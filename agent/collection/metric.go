@@ -20,6 +20,19 @@ type Metric struct {
 	MetricType MetricType
 }
 
+// Selects metrics based on host, namespace, or value filters
+type MetricFilter struct {
+	HostFilter *HostFilter
+	NamespaceFilter *NamespaceFilter
+	ValueFilter *ValueFilter
+}
+
+type HostFilter struct {}
+
+type NamespaceFilter struct {}
+
+type ValueFilter struct {}
+
 type metricType interface {}
 
 type metricCache struct {

@@ -26,11 +26,15 @@ pulse
 				--collector collectd,facter
 
 		server
-				--interactive
+				--live-brief
+				--live-tasks
+				--live-workers
+				--live-all
 				--web
 				--access-user user
 				--access-password password
 				--config <FILEPATH>
+				--workers <NUM OF WORKERS> (Defaults to core count)
 
 
 
@@ -39,6 +43,7 @@ pulse
 package main
 
 import (
+	"runtime"
 	"github.com/lynxbat/pulse/agent"
 	"github.com/lynxbat/pulse/agent/collection"
 //	"github.com/lynxbat/pulse/server"
@@ -59,11 +64,11 @@ type MetricValueItem struct {
 	Value interface{}
 }
 
-// Camelcase because it is used to convert to JSON/YAML
 type MetricListItem struct {
-	Host, Collector string
-	Last_update time.Time
-	Namespace []string
+	Host string `json:host`
+	Collector string `json:collector`
+	LastUpdate time.Time `json:last_update`
+	Namespace []string `json:namespace`
 }
 
 func main() {
@@ -98,6 +103,7 @@ func main() {
 			Usage:     "Start Pulse in server mode",
 			Flags:		[]cli.Flag {
 				cli.BoolFlag{Name: "interactive, i", Usage: "Logs to STDOUT"},
+				cli.IntFlag{Name: "maxcpu", Value: runtime.NumCPU(), Usage: fmt.Sprintf("Number of cores to run across. Default [%d]", runtime.NumCPU())},
 				cli.BoolFlag{Name: "web, w", Usage: "Enables Web Server (REST API / status page)"},
 				cli.StringFlag{Name: "access-user", Usage: "Enter a user to secure web server"},
 				cli.StringFlag{Name: "access-password", Usage: "Enter a password to secure web server"},
@@ -113,7 +119,7 @@ func main() {
 }
 
 func serverCommand(c *cli.Context) {
-	agent.StartScheduler()
+	agent.StartScheduler(c.Int("maxcpu"))
 
 
 
