@@ -6,6 +6,9 @@ import (
 	"github.com/lynxbat/pulse/agent/publishing"
 	"fmt"
 	"time"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 // TODO defined by Collector Config
@@ -55,35 +58,105 @@ func GetMetricValues(string...interface {}) []collection.Metric{
 	// <>
 	// Static for now
 	metrics = getFromCollectDCollector(metrics)
-//	metrics = getFromFacterCollector(metrics)
+	metrics = getFromFacterCollector(metrics)
 	metrics = getFromLibcontainerCollector(metrics)
 	//
 	return metrics
 }
 
-func StartScheduler() {
+func StartScheduler(initWorkerCount int) {
 
 	metrics := GetMetricValues()
-	// Testing scheduler
-
-	// convert to newMetricTask to add error handling on construction
-
-	start := time.Now()
-//	stop := time.Now().Add(time.Hour * 24 * 30)
-
-	t := scheduling.MetricTask{
+	t1 := scheduling.MetricTask{
 		Label: "Foo",
 		Metadata: map[string]string{
 			"created_at": time.Now().Format("2006/01/02 15:04:05"),
 			"source": "code debugging",
 			"created_by": "nick",
 		},
-		Metrics: metrics[len(metrics)-3:],
-		// start, stop, interval
-		Schedule: scheduling.NewSchedule(time.Second * 10, start),
+		CollectorConfigs: map[string]collection.CollectorConfig{},
+		Metrics: metrics,
+		Schedule: scheduling.NewSchedule(time.Millisecond * 500),
 		PublisherConfig: publishing.STDOUTPublishingConfig{},
 	}
-	fmt.Println(t)
+	t2 := scheduling.MetricTask{
+		Label: "Bar",
+		Metadata: map[string]string{
+			"created_at": time.Now().Format("2006/01/02 15:04:05"),
+			"source": "code debugging",
+			"created_by": "nick",
+		},
+		CollectorConfigs: map[string]collection.CollectorConfig{},
+		Metrics: metrics,
+		Schedule: scheduling.NewSchedule(time.Second * 1, time.Now().Add(time.Second * 5), time.Now().Add(time.Second * 300)),
+		PublisherConfig: publishing.STDOUTPublishingConfig{},
+	}
+	t3 := scheduling.MetricTask{
+		Label: "Baz",
+		Metadata: map[string]string{
+			"created_at": time.Now().Format("2006/01/02 15:04:05"),
+			"source": "code debugging",
+			"created_by": "nick",
+		},
+		CollectorConfigs: map[string]collection.CollectorConfig{},
+		Metrics: metrics,
+		Schedule: scheduling.NewSchedule(time.Second * 1, time.Now().Add(time.Second * 10), time.Now().Add(time.Second * 300)),
+		PublisherConfig: publishing.STDOUTPublishingConfig{},
+	}
+	t4 := scheduling.MetricTask{
+		Label: "Qux",
+		Metadata: map[string]string{
+			"created_at": time.Now().Format("2006/01/02 15:04:05"),
+			"source": "code debugging",
+			"created_by": "nick",
+		},
+		CollectorConfigs: map[string]collection.CollectorConfig{},
+		Metrics: metrics,
+		Schedule: scheduling.NewSchedule(time.Second * 1, time.Now().Add(time.Second * 15), time.Now().Add(time.Second * 300)),
+		PublisherConfig: publishing.STDOUTPublishingConfig{},
+	}
+	t5 := scheduling.MetricTask{
+		Label: "Quux",
+		Metadata: map[string]string{
+			"created_at": time.Now().Format("2006/01/02 15:04:05"),
+			"source": "code debugging",
+			"created_by": "nick",
+		},
+		CollectorConfigs: map[string]collection.CollectorConfig{},
+		Metrics: metrics,
+		Schedule: scheduling.NewSchedule(time.Second * 1, time.Now().Add(time.Second * 30), time.Now().Add(time.Second * 300)),
+		PublisherConfig: publishing.STDOUTPublishingConfig{},
+	}
+
+	scheduler := scheduling.NewScheduler(initWorkerCount)
+	// Add tasks to scheduler
+	scheduler.MetricTasks = []*scheduling.MetricTask{&t1, &t2, &t3, &t4, &t5}
+
+	// Starts scheduler, this is a nonblocking method. So you must provide a way to block until you want to cleanup using Stop()
+	err := scheduler.Start()
+	// Defer stop
+	defer scheduler.Stop()
+
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+	}
+
+	killChannel := make(chan bool)
+	signalChannel := make(chan os.Signal, 2)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		sig := <-signalChannel
+		switch sig {
+		case os.Interrupt:
+			killChannel <- true
+		case syscall.SIGTERM:
+			killChannel <- true
+		}
+	}()
+
+	// Blocks and waits for kill
+	// TODO move higher than the agent. CLI control preferred.
+	<- killChannel
 }
 
 func getFromCollectDCollector(metrics []collection.Metric) []collection.Metric{

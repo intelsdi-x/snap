@@ -12,6 +12,9 @@ type Collector struct {
 	CachingTTL float64
 }
 
+type CollectorConfig interface {
+}
+
 type collector interface {
 	GetMetricList() []Metric
 	GetMetricValues(metrics []Metric, things...interface{}) []Metric
