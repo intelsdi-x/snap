@@ -7,9 +7,16 @@ import (
 	"time"
 )
 
-type Collector struct {
+type CollectorBase struct {
 	Caching    bool
 	CachingTTL float64
+
+	collectorType string
+}
+
+type ConfigBase struct {
+	isCaching  bool
+	cachingTTL float64
 }
 
 type CollectorConfig interface {
@@ -17,9 +24,22 @@ type CollectorConfig interface {
 	CacheTTL() float64
 }
 
-type collector interface {
+type Collector interface {
+	CollectorType() string
 	GetMetricList() []Metric
 	GetMetricValues(metrics []Metric, things ...interface{}) []Metric
+}
+
+func (c *CollectorBase) CollectorType() string {
+	return c.collectorType
+}
+
+func (c ConfigBase) CachingEnabled() bool {
+	return c.isCaching
+}
+
+func (c ConfigBase) CacheTTL() float64 {
+	return c.cachingTTL
 }
 
 func GetHostname() string {
@@ -31,17 +51,19 @@ func newMetricCache() metricCache {
 	return metricCache{time.Now(), []Metric{}, true}
 }
 
-func NewCollectorByType(cType string, cConfig CollectorConfig) collector {
+func NewCollectorByType(cType string, cConfig CollectorConfig) Collector {
 	switch cType {
 	case "collectd":
-		return NewCollectDCollector(cConfig.(*collectDConfig))
+		return NewCollectDCollector(cConfig.(collectDConfig))
+	case "facter":
+		return NewFacterCollector(cConfig.(facterConfig))
 	default:
 		panic(1)
 	}
 }
 
-func NewCollectorMap() map[string]collector {
-	return map[string]collector{}
+func NewCollectorMap() map[string]Collector {
+	return map[string]Collector{}
 }
 
 func (m *metricCache) IsExpired(min_age float64) bool {

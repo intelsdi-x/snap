@@ -15,7 +15,7 @@ var (
 )
 
 type collectDCollector struct {
-	Collector
+	CollectorBase
 	Address string
 }
 
@@ -31,28 +31,24 @@ type collectDResponse struct {
 }
 
 type collectDConfig struct {
-	Address    string
-	isCaching  bool
-	cachingTTL float64
-}
-
-func (c *collectDConfig) CachingEnabled() bool {
-	return c.isCaching
-}
-
-func (c *collectDConfig) CacheTTL() float64 {
-	return c.cachingTTL
+	ConfigBase
+	Address string
 }
 
 // public
 // addr string, caching bool, cache_ttl float64
 
-func NewCollectDCollector(config *collectDConfig) collector {
+func NewCollectDCollector(config collectDConfig) Collector {
 	c := new(collectDCollector)
+	c.collectorType = "collectd"
 	c.Address = config.Address
 	c.Caching = config.CachingEnabled()
 	c.CachingTTL = config.CacheTTL()
 	return c
+}
+
+func NewCollectDConfig() CollectorConfig {
+	return collectDConfig{Address: "wat"}
 }
 
 func (c *collectDCollector) GetMetricList() []Metric {
