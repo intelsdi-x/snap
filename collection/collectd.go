@@ -1,12 +1,12 @@
 package collection
 
 import (
-	"io"
-	"net"
 	"bufio"
 	"fmt"
-	"strings"
+	"io"
+	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,26 +21,41 @@ type collectDCollector struct {
 
 type collectDConnection struct {
 	connection io.ReadWriteCloser
-	reader *bufio.Reader
+	reader     *bufio.Reader
 }
 
 type collectDResponse struct {
-	Status int
+	Status  int
 	Message string
 	Payload []string
 }
 
-// public
+type collectDConfig struct {
+	Address    string
+	isCaching  bool
+	cachingTTL float64
+}
 
-func NewCollectDCollector(addr string, caching bool, cache_ttl float64) collector{
+func (c *collectDConfig) CachingEnabled() bool {
+	return c.isCaching
+}
+
+func (c *collectDConfig) CacheTTL() float64 {
+	return c.cachingTTL
+}
+
+// public
+// addr string, caching bool, cache_ttl float64
+
+func NewCollectDCollector(config *collectDConfig) collector {
 	c := new(collectDCollector)
-	c.Address = addr
-	c.Caching = caching
-	c.CachingTTL = cache_ttl
+	c.Address = config.Address
+	c.Caching = config.CachingEnabled()
+	c.CachingTTL = config.CacheTTL()
 	return c
 }
 
-func (c *collectDCollector) GetMetricList() []Metric{
+func (c *collectDCollector) GetMetricList() []Metric {
 	conn := c.newConnection()
 	conn.sendCommand("LISTVAL")
 	resp := conn.readResponse()
@@ -51,7 +66,6 @@ func (c *collectDCollector) GetMetricList() []Metric{
 		c := strings.Split(a[1], "/")
 		host := c[0]
 		namespace := c[1:]
-
 
 		var ms_str string
 		ms_a := strings.Split(a[0], ".")
@@ -73,7 +87,7 @@ func (c *collectDCollector) GetMetricList() []Metric{
 func (c *collectDCollector) pullMetrics(conn *collectDConnection, in chan Metric, out chan Metric, doquit chan bool) {
 	for {
 		select {
-		case metric := <- in:
+		case metric := <-in:
 			// We received a metric
 			conn.sendCommand("GETVAL " + metric.GetFullNamespace())
 			resp := conn.readResponse()
@@ -84,13 +98,13 @@ func (c *collectDCollector) pullMetrics(conn *collectDConnection, in chan Metric
 				metric.Values[name] = value
 			}
 			out <- metric
-		case <- doquit:
+		case <-doquit:
 			return
 		}
 	}
 }
 
-func (c *collectDCollector) GetMetricValues(metrics []Metric, things...interface {}) []Metric{
+func (c *collectDCollector) GetMetricValues(metrics []Metric, things ...interface{}) []Metric {
 	if !c.Caching || (c.Caching && collectd_cache.IsExpired(c.CachingTTL)) {
 		var cores int
 
@@ -140,9 +154,11 @@ func (c *collectDCollector) GetMetricValues(metrics []Metric, things...interface
 	return collectd_cache.Metrics
 }
 
-func (c *collectDCollector) newConnection() *collectDConnection{
+func (c *collectDCollector) newConnection() *collectDConnection {
 	conn, err := net.Dial("unix", c.Address)
-	if err != nil { panic(err.Error()) }
+	if err != nil {
+		panic(err.Error())
+	}
 	r := bufio.NewReader(conn)
 	return &collectDConnection{conn, r}
 }
@@ -153,22 +169,28 @@ func (c *collectDConnection) Close() {
 
 func (c *collectDConnection) sendCommand(cmd string) {
 	_, err := c.connection.Write([]byte(cmd + "\n"))
-	if err != nil { panic(err.Error()) }
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
-func (c *collectDConnection) readResponse() *collectDResponse{
+func (c *collectDConnection) readResponse() *collectDResponse {
 	resp := new(collectDResponse)
 	// Read out status
 	_, err := fmt.Fscanf(c.reader, "%d ", &resp.Status)
-	if err != nil { panic(err.Error()) }
+	if err != nil {
+		panic(err.Error())
+	}
 	// Read response message
 	resp.Message, err = c.reader.ReadString('\n')
-	if err != nil { panic(err.Error()) }
+	if err != nil {
+		panic(err.Error())
+	}
 	// Read payload
 	return resp.parsePayload(c.reader)
 }
 
-func (resp *collectDResponse) parsePayload(r *bufio.Reader) *collectDResponse{
+func (resp *collectDResponse) parsePayload(r *bufio.Reader) *collectDResponse {
 	resp.Payload = make([]string, resp.Status)
 	for x := 0; x < resp.Status; x++ {
 		s, _ := r.ReadString('\n')
@@ -176,5 +198,3 @@ func (resp *collectDResponse) parsePayload(r *bufio.Reader) *collectDResponse{
 	}
 	return resp
 }
-
-

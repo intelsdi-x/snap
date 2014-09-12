@@ -6,8 +6,9 @@ import (
 	"time"
 	"fmt"
 	"errors"
-	"github.com/lynxbat/pulse/agent/collection"
+	"github.com/lynxbat/pulse/collection"
 //	tm "github.com/buger/goterm" // TODO move to pulse cli
+	"os"
 )
 
 type SchedulerState int
@@ -27,7 +28,7 @@ type scheduler struct {
 
 	workerPoolCount   int
 	workerPool        WorkerPool
-	workerChan        chan []collection.Metric
+	workerChan        chan work
 	workerQuitChan    chan bool
 	workerAckQuitChan chan bool
 }
@@ -37,6 +38,11 @@ type schedule struct {
 	Stop *time.Time
 	Interval time.Duration
 	// Interval will be fixed to static division inside start-stop range. Optionally maybe have it based on from task start
+}
+
+type work struct {
+	Collector string
+	Metrics   []collection.Metric
 }
 
 func NewScheduler(initWorkerCount int) scheduler {
@@ -75,8 +81,21 @@ func (m WorkerPool) Swap(i, j int) {
 }
 
 func (s *scheduler) Start() error {
+	// Scheduler needs to know the types of collectors across all tasks (and when a new task is added)
+	// Scheduler is responsible for:
+	// * initializing new collectors
+	// * closing collector
+//	collectorMap := collection.NewCollectorMap()
+	for _, cType := range s.getCollectorTypes() {
+		// For each c call NewCollectorByType(cType) and store in collectorMap[c]
+		fmt.Printf("Creating collector type: %s\n", cType)
+//		collection.NewCollectorByType(cType)
+	}
+
+	os.Exit(0)
+
 	s.State = Starting
-	s.workerChan = make(chan []collection.Metric)
+	s.workerChan = make(chan work)
 	s.workerQuitChan = make(chan bool)
 	s.workerAckQuitChan = make(chan bool)
 
@@ -168,5 +187,20 @@ func (s *scheduler) Stop() error {
 
 func (s *scheduler) HasTasks() bool {
 	return len(s.MetricTasks) > 0
+}
+
+func (s *scheduler) getCollectorTypes() []string{
+	h := map[string]bool{}
+	c := []string{}
+
+	for _, t := range s.MetricTasks {
+		for _, m := range t.Metrics {
+			h[m.Collector] = true
+		}
+	}
+	for k, _ := range h {
+		c = append(c, k)
+	}
+	return c
 }
 

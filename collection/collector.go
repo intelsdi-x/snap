@@ -1,43 +1,58 @@
 package collection
 
 import (
-	"time"
+	"os/exec"
 	"strconv"
 	"strings"
-	"os/exec"
+	"time"
 )
 
 type Collector struct {
-	Caching bool
+	Caching    bool
 	CachingTTL float64
 }
 
 type CollectorConfig interface {
+	CachingEnabled() bool
+	CacheTTL() float64
 }
 
 type collector interface {
 	GetMetricList() []Metric
-	GetMetricValues(metrics []Metric, things...interface{}) []Metric
+	GetMetricValues(metrics []Metric, things ...interface{}) []Metric
 }
 
-func GetHostname() string{
+func GetHostname() string {
 	x, _ := exec.Command("sh", "-c", "hostname -f").Output()
 	return string(x[:len(x)-1])
 }
 
-func newMetricCache() metricCache{
+func newMetricCache() metricCache {
 	return metricCache{time.Now(), []Metric{}, true}
 }
 
-func (m *metricCache) IsExpired(min_age float64) bool{
+func NewCollectorByType(cType string, cConfig CollectorConfig) collector {
+	switch cType {
+	case "collectd":
+		return NewCollectDCollector(cConfig.(*collectDConfig))
+	default:
+		panic(1)
+	}
+}
+
+func NewCollectorMap() map[string]collector {
+	return map[string]collector{}
+}
+
+func (m *metricCache) IsExpired(min_age float64) bool {
 	return time.Since(m.LastPull).Seconds() > min_age || m.New
 }
 
-func (m *Metric) GetNamespaceString() string{
+func (m *Metric) GetNamespaceString() string {
 	return strings.Join(m.Namespace, "/")
 }
 
-func (m *Metric) GetFullNamespace() string{
+func (m *Metric) GetFullNamespace() string {
 	return m.Host + "/" + m.GetNamespaceString()
 }
 

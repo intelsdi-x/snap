@@ -3,7 +3,6 @@ package scheduling
 import (
 	"time"
 	"math/rand"
-	"github.com/lynxbat/pulse/agent/collection"
 	"code.google.com/p/go-uuid/uuid"
 )
 
@@ -20,16 +19,18 @@ type MetricWorkerJob struct {
 
 }
 
-func (w *MetricWorker) Start(workerChan chan []collection.Metric, quitChan chan bool, ackQuitChan chan bool) {
+func (w *MetricWorker) Start(workerChan chan work, quitChan chan bool, ackQuitChan chan bool) {
 	for {
 		select {
 		case <- quitChan:
-			// ack the quit signal and exit goroutine
+			// ack the quit indicating this worker will no longer process tasks
 			ackQuitChan <- true
+			// Return and exit function
 			return
-		case metrics := <- workerChan:
+		case work := <- workerChan:
+
 			time.Sleep(time.Duration(rand.Int31n(1000)) * time.Millisecond)
-			w.MetricsWorked += len(metrics)
+			w.MetricsWorked += len(work.Metrics)
 			w.WorkReceived++
 		}
 	}

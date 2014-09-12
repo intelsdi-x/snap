@@ -2,8 +2,8 @@ package scheduling
 
 import (
 	"time"
-	"github.com/lynxbat/pulse/agent/collection"
-	"github.com/lynxbat/pulse/agent/publishing"
+	"github.com/lynxbat/pulse/collection"
+	"github.com/lynxbat/pulse/publishing"
 	"code.google.com/p/go-uuid/uuid"
 )
 
@@ -28,7 +28,7 @@ type MetricTask struct {
 	state string
 }
 
-func (m *MetricTask) Spin(workerChan chan []collection.Metric) {
+func (m *MetricTask) Spin(workerChan chan work) {
 //	fmt.Printf("SPIN (%s:%s) - %d\n", m.Label, m.UUID(), m.tickCounter)
 
 	metricMap := map[string][]collection.Metric{}
@@ -87,13 +87,13 @@ func (m *MetricTask) Sleep() {
 	time.Sleep(m.Schedule.Interval)
 }
 
-func (m *MetricTask) Trigger(workerChan chan []collection.Metric, t time.Time, metricMap map[string][]collection.Metric) {
+func (m *MetricTask) Trigger(workerChan chan work, t time.Time, metricMap map[string][]collection.Metric) {
 	m.Sleep()
 	m.updateDrift(t)
 	m.tickCounter++
 	// Send metrics slice to worker by collector type
 	for key, _ := range metricMap {
-		workerChan <- metricMap[key]
+		workerChan <- work{Collector: key, Metrics: metricMap[key]}
 	}
 	m.state = "running"
 	m.checkStop()
