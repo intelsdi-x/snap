@@ -44,8 +44,8 @@ package main
 
 import (
 	"runtime"
-	"github.com/lynxbat/pulse/agent"
-	"github.com/lynxbat/pulse/agent/collection"
+	"github.com/lynxbat/pulse"
+	"github.com/lynxbat/pulse/collection"
 //	"github.com/lynxbat/pulse/server"
 	"github.com/codegangsta/cli"
 	"os"

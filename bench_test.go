@@ -1,8 +1,8 @@
-package agent
+package pulse
 
 import (
 	"testing"
-	"github.com/lynxbat/pulse/agent/collection"
+	"github.com/lynxbat/pulse/collection"
 	"runtime"
 )
 

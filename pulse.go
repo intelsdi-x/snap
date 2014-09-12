@@ -1,9 +1,9 @@
-package agent
+package pulse
 
 import (
-	"github.com/lynxbat/pulse/agent/collection"
-	"github.com/lynxbat/pulse/agent/scheduling"
-	"github.com/lynxbat/pulse/agent/publishing"
+	"github.com/lynxbat/pulse/collection"
+	"github.com/lynxbat/pulse/scheduling"
+	"github.com/lynxbat/pulse/publishing"
 	"fmt"
 	"time"
 	"os"
