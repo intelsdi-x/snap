@@ -1,7 +1,7 @@
 package pulse_test
 
 import (
-//	. "github.com/lynxbat/pulse"
+	//	. "github.com/intelsdi/pulse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

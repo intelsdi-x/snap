@@ -12,7 +12,7 @@ install:
   - go get -v github.com/onsi/ginkgo/ginkgo
   - go get -v github.com/onsi/gomega
   - go get -d -v ./... && go build -v ./...
-  - ls /home/travis/gopath/src/github.com/lynxbat/pulse
+  - ls /home/travis/gopath/src/github.com/intelsdi/pulse
   # - export PATH=$PATH:$HOME/gopath/bin
 
 script: ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race

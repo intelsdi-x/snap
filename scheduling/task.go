@@ -1,21 +1,21 @@
 package scheduling
 
 import (
-	"time"
-	"github.com/lynxbat/pulse/collection"
-	"github.com/lynxbat/pulse/publishing"
 	"code.google.com/p/go-uuid/uuid"
+	"github.com/intelsdi/pulse/collection"
+	"github.com/intelsdi/pulse/publishing"
+	"time"
 )
 
 // A task definition for collecting a metric
 type MetricTask struct {
-	Label      string
-	Metadata map[string]string
+	Label            string
+	Metadata         map[string]string
 	CollectorConfigs map[string]collection.CollectorConfig
-	Metrics   []collection.Metric
-	Schedule  schedule
-	PublisherConfig publishing.MetricPublisherConfig
-	Drift time.Duration
+	Metrics          []collection.Metric
+	Schedule         schedule
+	PublisherConfig  publishing.MetricPublisherConfig
+	Drift            time.Duration
 
 	// This is lazy loaded to avoid having to use a constructor
 	// so only access via the UUID() reader method
@@ -24,12 +24,12 @@ type MetricTask struct {
 	// TODO metric task stats from workers
 	// Number of times this task has fired
 	tickCounter int
-	lastTick time.Time
-	state string
+	lastTick    time.Time
+	state       string
 }
 
 func (m *MetricTask) Spin(workerChan chan work) {
-//	fmt.Printf("SPIN (%s:%s) - %d\n", m.Label, m.UUID(), m.tickCounter)
+	//	fmt.Printf("SPIN (%s:%s) - %d\n", m.Label, m.UUID(), m.tickCounter)
 
 	metricMap := map[string][]collection.Metric{}
 
@@ -59,7 +59,7 @@ func (m *MetricTask) Spin(workerChan chan work) {
 
 // Returns unique ID
 // This lazy loads the ID on the first load
-func (m *MetricTask) UUID() string{
+func (m *MetricTask) UUID() string {
 	if m.uuid == nil {
 		u := uuid.New()
 		m.uuid = &u
@@ -67,7 +67,7 @@ func (m *MetricTask) UUID() string{
 	return *m.uuid
 }
 
-func (m *MetricTask) State() string{
+func (m *MetricTask) State() string {
 	if m.state == "" {
 		m.state = "waiting"
 	}
@@ -105,7 +105,7 @@ func (m *MetricTask) checkStop() {
 	}
 }
 
-func (m *MetricTask) TimeTillStart() time.Duration{
+func (m *MetricTask) TimeTillStart() time.Duration {
 	y := m.Schedule.Start.Sub(time.Now())
 	if y < 0 {
 		y = 0
@@ -113,6 +113,6 @@ func (m *MetricTask) TimeTillStart() time.Duration{
 	return y
 }
 
-func (m *MetricTask) HasStart() bool{
+func (m *MetricTask) HasStart() bool {
 	return m.Schedule.Start != nil
 }

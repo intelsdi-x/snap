@@ -1,7 +1,7 @@
 package collection_test
 
 import (
-	. "github.com/lynxbat/pulse/collection"
+	. "github.com/intelsdi/pulse/collection"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
