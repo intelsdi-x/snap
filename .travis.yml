@@ -11,6 +11,6 @@ install:
   - go get -v github.com/onsi/ginkgo/ginkgo
   - go get -v github.com/onsi/gomega
   - go get -d -v ./... && go build -v ./...
-  - export PATH=$PATH:$HOME/gopath/bin
+  # - export PATH=$PATH:$HOME/gopath/bin
 
 script: ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race
