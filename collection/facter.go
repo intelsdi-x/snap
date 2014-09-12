@@ -11,21 +11,32 @@ var (
 )
 
 type facterCollector struct {
-	Collector
+	CollectorBase
 	FacterPath string
 }
 
-type fact interface {}
+type facterConfig struct {
+	ConfigBase
+	Path string
+}
 
-func NewFacterCollector(fp string, caching bool, cache_ttl float64) collector{
+type fact interface{}
+
+// TODO refacter config to be stored and properties to me mapped.
+func NewFacterCollector(f facterConfig) Collector {
 	c := new(facterCollector)
-	c.FacterPath = fp
-	c.Caching = caching
-	c.CachingTTL = cache_ttl
+	c.collectorType = "facter"
+	c.FacterPath = f.Path
+	c.Caching = f.CachingEnabled()
+	c.CachingTTL = f.CacheTTL()
 	return c
 }
 
-func (f *facterCollector) GetMetricList() []Metric{
+func NewFacterConfig() CollectorConfig {
+	return facterConfig{Path: "wat"}
+}
+
+func (f *facterCollector) GetMetricList() []Metric {
 	if !f.Caching || (f.Caching && facter_cache.IsExpired(f.CachingTTL)) {
 		out, _ := exec.Command("sh", "-c", f.FacterPath+" -j").Output()
 		update_time := time.Now()
@@ -46,6 +57,6 @@ func (f *facterCollector) GetMetricList() []Metric{
 	return facter_cache.Metrics
 }
 
-func (f *facterCollector) GetMetricValues(metrics []Metric, things...interface {}) []Metric{
+func (f *facterCollector) GetMetricValues(metrics []Metric, things ...interface{}) []Metric {
 	return f.GetMetricList()
 }
