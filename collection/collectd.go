@@ -47,8 +47,8 @@ func NewCollectDCollector(config collectDConfig) Collector {
 	return c
 }
 
-func NewCollectDConfig() CollectorConfig {
-	return collectDConfig{Address: "wat"}
+func NewCollectDConfig(unixSocketAddr string) CollectorConfig {
+	return collectDConfig{Address: unixSocketAddr}
 }
 
 func (c *collectDCollector) GetMetricList() []Metric {

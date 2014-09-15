@@ -15,14 +15,14 @@ var _ = Describe("NewCollectorByType", func() {
 
 	Context("with \"collectd\" type and config", func() {
 		It("returns a Collector with CollectorType() = \"collectd\"", func() {
-			c := NewCollectorByType("collectd", NewCollectDConfig())
+			c := NewCollectorByType("collectd", NewCollectDConfig("dummy"))
 			Expect(c.CollectorType()).To(Equal("collectd"))
 		})
 	})
 
 	Context("with \"facter\" type and config", func() {
 		It("returns a Collector with CollectorType() = \"facter\"", func() {
-			c := NewCollectorByType("facter", NewFacterConfig())
+			c := NewCollectorByType("facter", NewFacterConfig("facter"))
 			Expect(c.CollectorType()).To(Equal("facter"))
 		})
 	})

@@ -57,6 +57,8 @@ func NewCollectorByType(cType string, cConfig CollectorConfig) Collector {
 		return NewCollectDCollector(cConfig.(collectDConfig))
 	case "facter":
 		return NewFacterCollector(cConfig.(facterConfig))
+	case "container":
+		return NewContainerCollector(cConfig.(containerConfig))
 	default:
 		panic(1)
 	}

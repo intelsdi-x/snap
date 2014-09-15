@@ -12,15 +12,32 @@ import (
 
 // TODO move to collector config
 var (
-	docker_folder string = "/var/lib/docker/execdriver/native/"
+	DefaultDockerFolder string = "/var/lib/docker/execdriver/native/"
 )
 
 type containerCollector struct {
 	Collector
+	Config containerConfig
 }
 
-func NewContainerCollector() *containerCollector {
+type containerConfig struct {
+	ConfigBase
+	DockerFolder string
+}
+
+func NewContainerConfig(opts ...string) CollectorConfig {
+	c := containerConfig{}
+	if len(opts) == 1 {
+		c.DockerFolder = opts[0]
+	} else {
+		c.DockerFolder = DefaultDockerFolder
+	}
+	return &c
+}
+
+func NewContainerCollector(config containerConfig) *containerCollector {
 	c := new(containerCollector)
+	c.Config = config
 	return c
 }
 
@@ -125,13 +142,13 @@ func getContainerMetric(container_path string) ([]Metric, error) {
 
 // TODO switch to static Metric List
 func (x *containerCollector) GetMetricList() []Metric {
-	folders, _ := ioutil.ReadDir(docker_folder)
+	folders, _ := ioutil.ReadDir(x.Config.DockerFolder)
 	container_count := 0
 	container_ids := []string{}
 	metrics := []Metric{}
 	for _, folder := range folders {
 		if folder.IsDir() {
-			m, err := getContainerMetric(filepath.Join(docker_folder, folder.Name()))
+			m, err := getContainerMetric(filepath.Join(x.Config.DockerFolder, folder.Name()))
 			if err == nil {
 				container_count++
 				container_ids = append(container_ids, folder.Name()[0:11])
@@ -158,6 +175,6 @@ func (x *containerCollector) GetMetricList() []Metric {
 	return metrics
 }
 
-func (x *containerCollector) GetMetricValues() []Metric {
+func (x *containerCollector) GetMetricValues(metrics []Metric, things ...interface{}) []Metric {
 	return x.GetMetricList()
 }

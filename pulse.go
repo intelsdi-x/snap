@@ -32,17 +32,18 @@ type CommandResponse struct {
 func GetMetricList() []collection.Metric {
 	// TODO make all collector plugins explicit
 	// CollectD collector
-	collectd_coll := collection.NewCollectDCollector(UNIX_SOCK, caching, caching_ttl)
-	metrics := collectd_coll.GetMetricList()
+	collectdColl := collection.NewCollectorByType("collectd", collection.NewCollectDConfig(UNIX_SOCK))
+	metrics := collectdColl.GetMetricList()
 
 	// TODO make all collector plugins explicit
 	// Facter collector
-	facter_coll := collection.NewFacterCollector("facter", caching, caching_ttl)
-	metrics = append(metrics, facter_coll.GetMetricList()...)
+
+	facterColl := collection.NewCollectorByType("facter", collection.NewFacterConfig("facter"))
+	metrics = append(metrics, facterColl.GetMetricList()...)
 
 	// TODO make all collector plugins explicit
 	// Container collector
-	container_coll := collection.NewContainerCollector()
+	container_coll := collection.NewCollectorByType("container", collection.NewContainerConfig())
 	metrics = append(metrics, container_coll.GetMetricList()...)
 
 	//	metrics := []collection.Metric{}
@@ -159,19 +160,19 @@ func StartScheduler(initWorkerCount int) {
 }
 
 func getFromCollectDCollector(metrics []collection.Metric) []collection.Metric {
-	c := collection.NewCollectDCollector(UNIX_SOCK, caching, caching_ttl)
-	new_metrics := c.GetMetricValues(c.GetMetricList())
-	return append(metrics, new_metrics...)
+	collectdColl := collection.NewCollectorByType("collectd", collection.NewCollectDConfig(UNIX_SOCK))
+	newMetrics := collectdColl.GetMetricList()
+	return append(metrics, newMetrics...)
 }
 
 func getFromFacterCollector(metrics []collection.Metric) []collection.Metric {
-	c := collection.NewFacterCollector("facter", caching, caching_ttl)
-	new_metrics := c.GetMetricValues(c.GetMetricValues([]collection.Metric{}))
-	return append(metrics, new_metrics...)
+	facterColl := collection.NewCollectorByType("facter", collection.NewFacterConfig("facter"))
+	newMetrics := append(metrics, facterColl.GetMetricList()...)
+	return append(metrics, newMetrics...)
 }
 
 func getFromLibcontainerCollector(metrics []collection.Metric) []collection.Metric {
-	c := collection.NewContainerCollector()
-	new_metrics := c.GetMetricValues()
-	return append(metrics, new_metrics...)
+	container_coll := collection.NewCollectorByType("container", collection.NewContainerConfig())
+	newMetrics := append(metrics, container_coll.GetMetricList()...)
+	return append(metrics, newMetrics...)
 }
