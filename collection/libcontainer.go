@@ -119,7 +119,7 @@ func getContainerMetric(container_path string) ([]Metric, error) {
 	//
 	// cpu_m := getCpuMetrics(stats, c, s)
 	net_m := getNetMetrics(stats, c, s)
-	metrics := []Metric{m, cpu_m, net_m}
+	metrics := []Metric{m, net_m}
 	return metrics, err
 }
 
