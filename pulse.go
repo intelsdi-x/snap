@@ -1,10 +1,10 @@
 package pulse
 
 import (
+	"./collection"
+	"./publishing"
+	"./scheduling"
 	"fmt"
-	"github.com/intelsdi/pulse/collection"
-	"github.com/intelsdi/pulse/publishing"
-	"github.com/intelsdi/pulse/scheduling"
 	"os"
 	"os/signal"
 	"syscall"

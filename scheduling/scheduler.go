@@ -1,9 +1,9 @@
 package scheduling
 
 import (
+	"../collection"
 	"errors"
 	"fmt"
-	"github.com/intelsdi/pulse/collection"
 	"sort"
 	"strings"
 	"time"
