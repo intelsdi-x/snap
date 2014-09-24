@@ -1,9 +1,9 @@
 package scheduling
 
 import (
+	"../collection"
+	"../publishing"
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/intelsdi/pulse/collection"
-	"github.com/intelsdi/pulse/publishing"
 	"time"
 )
 
