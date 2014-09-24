@@ -2,29 +2,46 @@ package collection
 
 import (
 	"encoding/json"
-	"os"
-	"github.com/docker/libcontainer"
 	"fmt"
+	"github.com/docker/libcontainer"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 )
 
 // TODO move to collector config
 var (
-	docker_folder string = "/var/lib/docker/execdriver/native/"
+	DefaultDockerFolder string = "/var/lib/docker/execdriver/native/"
 )
 
 type containerCollector struct {
 	Collector
+	Config containerConfig
 }
 
-func NewContainerCollector() *containerCollector{
+type containerConfig struct {
+	ConfigBase
+	DockerFolder string
+}
+
+func NewContainerConfig(opts ...string) CollectorConfig {
+	c := containerConfig{}
+	if len(opts) == 1 {
+		c.DockerFolder = opts[0]
+	} else {
+		c.DockerFolder = DefaultDockerFolder
+	}
+	return &c
+}
+
+func NewContainerCollector(config containerConfig) *containerCollector {
 	c := new(containerCollector)
+	c.Config = config
 	return c
 }
 
-func getState(state_config string) *libcontainer.State{
+func getState(state_config string) *libcontainer.State {
 	f, err := os.Open(state_config)
 	if err != nil {
 		fmt.Printf("failed to open %s - %s\n", state_config, err)
@@ -37,7 +54,7 @@ func getState(state_config string) *libcontainer.State{
 	return retConfig
 }
 
-func getConfig(container_config string) *libcontainer.Config{
+func getConfig(container_config string) *libcontainer.Config {
 	f, err := os.Open(container_config)
 	if err != nil {
 		fmt.Printf("failed to open %s - %s\n", container_config, err)
@@ -50,27 +67,30 @@ func getConfig(container_config string) *libcontainer.Config{
 	return retConfig
 }
 
-func getCpuMetrics(stats *libcontainer.ContainerStats, c *libcontainer.Config, s *libcontainer.State) Metric{
-	m := Metric{}
-	// Hostname for container
-	m.Host = GetHostname()
-	m.Namespace = []string{"container", c.Hostname, "cpu"}
-	m.Collector = "libcontainer"
-	m.LastUpdate = time.Now()
-	m.Values = map[string]metricType{}
-	m.Values["percent_usage"] = stats.CgroupStats.CpuStats.CpuUsage.PercentUsage
-	pc := stats.CgroupStats.CpuStats.CpuUsage.PercpuUsage
-	var sum uint64 = 0
-	for _, x := range pc { sum += x}
-	for i, x := range pc {
-		s := fmt.Sprintf("core%d_ratio", i)
-		m.Values[s] = fmt.Sprintf("%0.3f", float64(x) / float64(sum))
-	}
-//	metrics = append(metrics, m)
-	return m
-}
+// TODO libcontainer update removed support for collection of CPU by removing sampling. Need to reimplement locally.
+// func getCpuMetrics(stats *libcontainer.ContainerStats, c *libcontainer.Config, s *libcontainer.State) Metric {
+// 	m := Metric{}
+// 	// Hostname for container
+// 	m.Host = GetHostname()
+// 	m.Namespace = []string{"container", c.Hostname, "cpu"}
+// 	m.Collector = "libcontainer"
+// 	m.LastUpdate = time.Now()
+// 	m.Values = map[string]metricType{}
+// 	m.Values["percent_usage"] = stats.CgroupStats.CpuStats.CpuUsage.PercentUsage
+// 	pc := stats.CgroupStats.CpuStats.CpuUsage.PercpuUsage
+// 	var sum uint64 = 0
+// 	for _, x := range pc {
+// 		sum += x
+// 	}
+// 	for i, x := range pc {
+// 		s := fmt.Sprintf("core%d_ratio", i)
+// 		m.Values[s] = fmt.Sprintf("%0.3f", float64(x)/float64(sum))
+// 	}
+// 	//	metrics = append(metrics, m)
+// 	return m
+// }
 
-func getNetMetrics(stats *libcontainer.ContainerStats, c *libcontainer.Config, s *libcontainer.State) Metric{
+func getNetMetrics(stats *libcontainer.ContainerStats, c *libcontainer.Config, s *libcontainer.State) Metric {
 	values := map[string]metricType{}
 	values["tx_bytes"] = stats.NetworkStats.TxBytes
 	values["rx_bytes"] = stats.NetworkStats.RxBytes
@@ -81,20 +101,20 @@ func getNetMetrics(stats *libcontainer.ContainerStats, c *libcontainer.Config, s
 	values["tx_errors"] = stats.NetworkStats.TxErrors
 	values["rx_errors"] = stats.NetworkStats.RxErrors
 	return Metric{
-		Host: GetHostname(),
-		Namespace: []string{"container", c.Hostname, "net"},
+		Host:       GetHostname(),
+		Namespace:  []string{"container", c.Hostname, "net"},
 		LastUpdate: time.Now(),
-		Values: values,
-		Collector: "libcontainer",
+		Values:     values,
+		Collector:  "libcontainer",
 		MetricType: Polling,
 	}
 }
 
-func getBlkMetrics(stats *libcontainer.ContainerStats, c *libcontainer.Config, s *libcontainer.State) Metric{
+func getBlkMetrics(stats *libcontainer.ContainerStats, c *libcontainer.Config, s *libcontainer.State) Metric {
 	return Metric{}
 }
 
-func getContainerMetric(container_path string) ([]Metric, error){
+func getContainerMetric(container_path string) ([]Metric, error) {
 	s := getState(filepath.Join(container_path, "state.json"))
 	c := getConfig(filepath.Join(container_path, "container.json"))
 	stats, err := libcontainer.GetStats(c, s)
@@ -106,31 +126,31 @@ func getContainerMetric(container_path string) ([]Metric, error){
 	values["veth_child"] = s.NetworkState.VethChild
 	// State metric
 	m := Metric{
-		Host: GetHostname(),
-		Namespace: []string{"container", c.Hostname, "state"},
+		Host:       GetHostname(),
+		Namespace:  []string{"container", c.Hostname, "state"},
 		LastUpdate: time.Now(),
-		Values: values,
-		Collector: "libcontainer",
+		Values:     values,
+		Collector:  "libcontainer",
 		MetricType: Polling,
 	}
 	//
-	cpu_m := getCpuMetrics(stats, c, s)
+	// cpu_m := getCpuMetrics(stats, c, s)
 	net_m := getNetMetrics(stats, c, s)
-	metrics := []Metric{m, cpu_m, net_m}
+	metrics := []Metric{m, net_m}
 	return metrics, err
 }
 
 // TODO switch to static Metric List
-func (x *containerCollector) GetMetricList() []Metric{
-	folders, _ := ioutil.ReadDir(docker_folder)
+func (x *containerCollector) GetMetricList() []Metric {
+	folders, _ := ioutil.ReadDir(x.Config.DockerFolder)
 	container_count := 0
 	container_ids := []string{}
 	metrics := []Metric{}
-	for _, folder :=  range folders {
+	for _, folder := range folders {
 		if folder.IsDir() {
-			m, err := getContainerMetric(filepath.Join(docker_folder, folder.Name()))
+			m, err := getContainerMetric(filepath.Join(x.Config.DockerFolder, folder.Name()))
 			if err == nil {
-				container_count ++
+				container_count++
 				container_ids = append(container_ids, folder.Name()[0:11])
 				metrics = append(metrics, m...)
 			}
@@ -142,11 +162,11 @@ func (x *containerCollector) GetMetricList() []Metric{
 	values["ids"] = container_ids
 
 	m := Metric{
-		Host: GetHostname(),
-		Namespace: []string{"container", "global"},
+		Host:       GetHostname(),
+		Namespace:  []string{"container", "global"},
 		LastUpdate: time.Now(),
-		Values: values,
-		Collector: "libcontainer",
+		Values:     values,
+		Collector:  "libcontainer",
 		MetricType: Polling,
 	}
 
@@ -155,6 +175,6 @@ func (x *containerCollector) GetMetricList() []Metric{
 	return metrics
 }
 
-func (x *containerCollector) GetMetricValues() []Metric{
+func (x *containerCollector) GetMetricValues(metrics []Metric, things ...interface{}) []Metric {
 	return x.GetMetricList()
 }

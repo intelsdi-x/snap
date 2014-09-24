@@ -1,13 +1,13 @@
 package scheduling
 
 import (
+	"errors"
+	"fmt"
+	"github.com/intelsdi/pulse/collection"
 	"sort"
 	"strings"
 	"time"
-	"fmt"
-	"errors"
-	"github.com/lynxbat/pulse/collection"
-//	tm "github.com/buger/goterm" // TODO move to pulse cli
+	//	tm "github.com/buger/goterm" // TODO move to pulse cli
 	"os"
 )
 
@@ -34,8 +34,8 @@ type scheduler struct {
 }
 
 type schedule struct {
-	Start *time.Time
-	Stop *time.Time
+	Start    *time.Time
+	Stop     *time.Time
 	Interval time.Duration
 	// Interval will be fixed to static division inside start-stop range. Optionally maybe have it based on from task start
 }
@@ -52,7 +52,7 @@ func NewScheduler(initWorkerCount int) scheduler {
 	return s
 }
 
-func NewSchedule(duration time.Duration, times...time.Time) schedule {
+func NewSchedule(duration time.Duration, times ...time.Time) schedule {
 	s := schedule{}
 	s.Interval = duration
 	if len(times) > 0 {
@@ -73,7 +73,7 @@ func (m WorkerPool) Len() int {
 }
 
 func (m WorkerPool) Less(i, j int) bool {
-	return m[i].UUID() < m[j].UUID();
+	return m[i].UUID() < m[j].UUID()
 }
 
 func (m WorkerPool) Swap(i, j int) {
@@ -85,11 +85,11 @@ func (s *scheduler) Start() error {
 	// Scheduler is responsible for:
 	// * initializing new collectors
 	// * closing collector
-//	collectorMap := collection.NewCollectorMap()
+	//	collectorMap := collection.NewCollectorMap()
 	for _, cType := range s.getCollectorTypes() {
 		// For each c call NewCollectorByType(cType) and store in collectorMap[c]
 		fmt.Printf("Creating collector type: %s\n", cType)
-//		collection.NewCollectorByType(cType)
+		//		collection.NewCollectorByType(cType)
 	}
 
 	os.Exit(0)
@@ -157,7 +157,7 @@ func (s *scheduler) PrintStats() {
 		x += fmt.Sprintf("Total Jobs: %d\nTotal Metrics: %d\n", t_jobs, t_metrics)
 		x += "\n"
 		if lineCount > 0 {
-			fmt.Printf("\033[%dA", lineCount - 1)
+			fmt.Printf("\033[%dA", lineCount-1)
 		}
 		fmt.Print(x)
 		lineCount = len(strings.Split(x, "\n"))
@@ -189,7 +189,7 @@ func (s *scheduler) HasTasks() bool {
 	return len(s.MetricTasks) > 0
 }
 
-func (s *scheduler) getCollectorTypes() []string{
+func (s *scheduler) getCollectorTypes() []string {
 	h := map[string]bool{}
 	c := []string{}
 
@@ -203,4 +203,3 @@ func (s *scheduler) getCollectorTypes() []string{
 	}
 	return c
 }
-

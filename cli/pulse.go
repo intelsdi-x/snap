@@ -43,32 +43,32 @@ pulse
 package main
 
 import (
+	"github.com/intelsdi/pulse"
+	"github.com/intelsdi/pulse/collection"
 	"runtime"
-	"github.com/lynxbat/pulse"
-	"github.com/lynxbat/pulse/collection"
-//	"github.com/lynxbat/pulse/server"
+	//	"github.com/intelsdi/pulse/server"
+	"encoding/json"
+	"fmt"
 	"github.com/codegangsta/cli"
 	"os"
-	"fmt"
+	"reflect"
 	"strings"
 	"text/tabwriter"
-	"encoding/json"
 	"time"
-	"reflect"
 )
 
 type MetricValueItem struct {
 	Host, Collector string
-	Last_update time.Time
-	Namespace []string
-	Value interface{}
+	Last_update     time.Time
+	Namespace       []string
+	Value           interface{}
 }
 
 type MetricListItem struct {
-	Host string `json:host`
-	Collector string `json:collector`
+	Host       string    `json:host`
+	Collector  string    `json:collector`
 	LastUpdate time.Time `json:last_update`
-	Namespace []string `json:namespace`
+	Namespace  []string  `json:namespace`
 }
 
 func main() {
@@ -77,9 +77,9 @@ func main() {
 	app.Usage = "Intel Pulse® Telemetry Agent"
 	app.Commands = []cli.Command{
 		{
-			Name:      "list",
-			Usage:     "list metrics for this agent",
-			Flags:     []cli.Flag {
+			Name:  "list",
+			Usage: "list metrics for this agent",
+			Flags: []cli.Flag{
 				cli.StringFlag{Name: "format, f", Value: "list", Usage: "json(j), yaml(y), list(l)[default]"},
 				cli.BoolFlag{Name: "no-pretty-print", Usage: "Disables pretty printing of JSON"},
 			},
@@ -88,9 +88,9 @@ func main() {
 			},
 		},
 		{
-			Name:      "get",
-			Usage:     "Retrive metrics",
-			Flags:		[]cli.Flag {
+			Name:  "get",
+			Usage: "Retrive metrics",
+			Flags: []cli.Flag{
 				cli.StringFlag{Name: "format, f", Value: "list", Usage: "json(j), yaml(y), list(l)[default]"},
 				cli.BoolFlag{Name: "no-pretty-print", Usage: "Disables pretty printing of JSON"},
 			},
@@ -99,9 +99,9 @@ func main() {
 			},
 		},
 		{
-			Name:      "server",
-			Usage:     "Start Pulse in server mode",
-			Flags:		[]cli.Flag {
+			Name:  "server",
+			Usage: "Start Pulse in server mode",
+			Flags: []cli.Flag{
 				cli.BoolFlag{Name: "interactive, i", Usage: "Logs to STDOUT"},
 				cli.IntFlag{Name: "maxcpu", Value: runtime.NumCPU(), Usage: fmt.Sprintf("Number of cores to run across. Default [%d]", runtime.NumCPU())},
 				cli.BoolFlag{Name: "web, w", Usage: "Enables Web Server (REST API / status page)"},
@@ -121,15 +121,11 @@ func main() {
 func serverCommand(c *cli.Context) {
 	agent.StartScheduler(c.Int("maxcpu"))
 
-
-
-
-
-//	if c.Bool("web") {
-//		s := new(server.Server)
-//		s.Port = 3000
-//		s.Start()
-//	}
+	//	if c.Bool("web") {
+	//		s := new(server.Server)
+	//		s.Port = 3000
+	//		s.Start()
+	//	}
 }
 
 func getCommand(c *cli.Context) {
@@ -219,13 +215,13 @@ func PrintScreenMetricList(metrics []collection.Metric) {
 	w.Flush()
 }
 
-func newMetricListItem(host, collector string, last_update time.Time, namespace []string) MetricListItem{
+func newMetricListItem(host, collector string, last_update time.Time, namespace []string) MetricListItem {
 	return MetricListItem{host, collector, last_update, namespace}
 }
 
 func PrintMetricsListAsJSON(metrics []collection.Metric, pretty bool) {
 	mlist := []MetricListItem{}
-	for _, m :=  range metrics {
+	for _, m := range metrics {
 		mlist = append(mlist, MetricListItem{m.Host, m.Collector, m.LastUpdate, m.Namespace})
 	}
 	var b []byte
@@ -237,7 +233,7 @@ func PrintMetricsListAsJSON(metrics []collection.Metric, pretty bool) {
 	fmt.Println(string(b))
 }
 
-func parseValues(in_val interface{}) (string, string){
+func parseValues(in_val interface{}) (string, string) {
 	var val, type_ string
 
 	// Lots of conversion
@@ -260,7 +256,7 @@ func parseValues(in_val interface{}) (string, string){
 		b, _ := json.Marshal(v)
 		val = string(b)
 		type_ = "json"
-	} else if v, ok := in_val.(map[string]interface {}); ok {
+	} else if v, ok := in_val.(map[string]interface{}); ok {
 		b, _ := json.Marshal(v)
 		val = string(b)
 		type_ = "json"

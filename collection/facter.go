@@ -32,8 +32,8 @@ func NewFacterCollector(f facterConfig) Collector {
 	return c
 }
 
-func NewFacterConfig() CollectorConfig {
-	return facterConfig{Path: "wat"}
+func NewFacterConfig(path string) CollectorConfig {
+	return facterConfig{Path: path}
 }
 
 func (f *facterCollector) GetMetricList() []Metric {

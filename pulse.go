@@ -1,14 +1,14 @@
 package pulse
 
 import (
-	"github.com/lynxbat/pulse/collection"
-	"github.com/lynxbat/pulse/scheduling"
-	"github.com/lynxbat/pulse/publishing"
 	"fmt"
-	"time"
+	"github.com/intelsdi/pulse/collection"
+	"github.com/intelsdi/pulse/publishing"
+	"github.com/intelsdi/pulse/scheduling"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 // TODO defined by Collector Config
@@ -25,33 +25,33 @@ var caching_ttl float64 = 1
 const UNIX_SOCK = "/var/run/collectd-unixsock"
 
 type CommandResponse struct {
-	Message string
+	Message    string
 	StatusCode int
 }
 
-func GetMetricList() []collection.Metric{
+func GetMetricList() []collection.Metric {
 	// TODO make all collector plugins explicit
 	// CollectD collector
-	collectd_coll := collection.NewCollectDCollector(UNIX_SOCK, caching, caching_ttl)
-	metrics := collectd_coll.GetMetricList()
+	collectdColl := collection.NewCollectorByType("collectd", collection.NewCollectDConfig(UNIX_SOCK))
+	metrics := collectdColl.GetMetricList()
 
 	// TODO make all collector plugins explicit
 	// Facter collector
-	facter_coll := collection.NewFacterCollector("facter", caching, caching_ttl)
-	metrics = append(metrics, facter_coll.GetMetricList()...)
+
+	facterColl := collection.NewCollectorByType("facter", collection.NewFacterConfig("facter"))
+	metrics = append(metrics, facterColl.GetMetricList()...)
 
 	// TODO make all collector plugins explicit
 	// Container collector
-	container_coll := collection.NewContainerCollector()
+	container_coll := collection.NewCollectorByType("container", collection.NewContainerConfig())
 	metrics = append(metrics, container_coll.GetMetricList()...)
 
-
-//	metrics := []collection.Metric{}
+	//	metrics := []collection.Metric{}
 	return metrics
 }
 
 // TODO convert string to CollectorConfig interface once implemented
-func GetMetricValues(string...interface {}) []collection.Metric{
+func GetMetricValues(string ...interface{}) []collection.Metric {
 	// Our metric slice
 	metrics := []collection.Metric{}
 	// TODO collect for each collector provided
@@ -71,61 +71,61 @@ func StartScheduler(initWorkerCount int) {
 		Label: "Foo",
 		Metadata: map[string]string{
 			"created_at": time.Now().Format("2006/01/02 15:04:05"),
-			"source": "code debugging",
+			"source":     "code debugging",
 			"created_by": "nick",
 		},
 		CollectorConfigs: map[string]collection.CollectorConfig{},
-		Metrics: metrics,
-		Schedule: scheduling.NewSchedule(time.Millisecond * 500),
-		PublisherConfig: publishing.STDOUTPublishingConfig{},
+		Metrics:          metrics,
+		Schedule:         scheduling.NewSchedule(time.Millisecond * 500),
+		PublisherConfig:  publishing.STDOUTPublishingConfig{},
 	}
 	t2 := scheduling.MetricTask{
 		Label: "Bar",
 		Metadata: map[string]string{
 			"created_at": time.Now().Format("2006/01/02 15:04:05"),
-			"source": "code debugging",
+			"source":     "code debugging",
 			"created_by": "nick",
 		},
 		CollectorConfigs: map[string]collection.CollectorConfig{},
-		Metrics: metrics,
-		Schedule: scheduling.NewSchedule(time.Second * 1, time.Now().Add(time.Second * 5), time.Now().Add(time.Second * 300)),
-		PublisherConfig: publishing.STDOUTPublishingConfig{},
+		Metrics:          metrics,
+		Schedule:         scheduling.NewSchedule(time.Second*1, time.Now().Add(time.Second*5), time.Now().Add(time.Second*300)),
+		PublisherConfig:  publishing.STDOUTPublishingConfig{},
 	}
 	t3 := scheduling.MetricTask{
 		Label: "Baz",
 		Metadata: map[string]string{
 			"created_at": time.Now().Format("2006/01/02 15:04:05"),
-			"source": "code debugging",
+			"source":     "code debugging",
 			"created_by": "nick",
 		},
 		CollectorConfigs: map[string]collection.CollectorConfig{},
-		Metrics: metrics,
-		Schedule: scheduling.NewSchedule(time.Second * 1, time.Now().Add(time.Second * 10), time.Now().Add(time.Second * 300)),
-		PublisherConfig: publishing.STDOUTPublishingConfig{},
+		Metrics:          metrics,
+		Schedule:         scheduling.NewSchedule(time.Second*1, time.Now().Add(time.Second*10), time.Now().Add(time.Second*300)),
+		PublisherConfig:  publishing.STDOUTPublishingConfig{},
 	}
 	t4 := scheduling.MetricTask{
 		Label: "Qux",
 		Metadata: map[string]string{
 			"created_at": time.Now().Format("2006/01/02 15:04:05"),
-			"source": "code debugging",
+			"source":     "code debugging",
 			"created_by": "nick",
 		},
 		CollectorConfigs: map[string]collection.CollectorConfig{},
-		Metrics: metrics,
-		Schedule: scheduling.NewSchedule(time.Second * 1, time.Now().Add(time.Second * 15), time.Now().Add(time.Second * 300)),
-		PublisherConfig: publishing.STDOUTPublishingConfig{},
+		Metrics:          metrics,
+		Schedule:         scheduling.NewSchedule(time.Second*1, time.Now().Add(time.Second*15), time.Now().Add(time.Second*300)),
+		PublisherConfig:  publishing.STDOUTPublishingConfig{},
 	}
 	t5 := scheduling.MetricTask{
 		Label: "Quux",
 		Metadata: map[string]string{
 			"created_at": time.Now().Format("2006/01/02 15:04:05"),
-			"source": "code debugging",
+			"source":     "code debugging",
 			"created_by": "nick",
 		},
 		CollectorConfigs: map[string]collection.CollectorConfig{},
-		Metrics: metrics,
-		Schedule: scheduling.NewSchedule(time.Second * 1, time.Now().Add(time.Second * 30), time.Now().Add(time.Second * 300)),
-		PublisherConfig: publishing.STDOUTPublishingConfig{},
+		Metrics:          metrics,
+		Schedule:         scheduling.NewSchedule(time.Second*1, time.Now().Add(time.Second*30), time.Now().Add(time.Second*300)),
+		PublisherConfig:  publishing.STDOUTPublishingConfig{},
 	}
 
 	scheduler := scheduling.NewScheduler(initWorkerCount)
@@ -156,27 +156,23 @@ func StartScheduler(initWorkerCount int) {
 
 	// Blocks and waits for kill
 	// TODO move higher than the agent. CLI control preferred.
-	<- killChannel
+	<-killChannel
 }
 
-func getFromCollectDCollector(metrics []collection.Metric) []collection.Metric{
-	c := collection.NewCollectDCollector(UNIX_SOCK, caching, caching_ttl)
-	new_metrics := c.GetMetricValues(c.GetMetricList())
-	return append(metrics, new_metrics...)
+func getFromCollectDCollector(metrics []collection.Metric) []collection.Metric {
+	collectdColl := collection.NewCollectorByType("collectd", collection.NewCollectDConfig(UNIX_SOCK))
+	newMetrics := collectdColl.GetMetricList()
+	return append(metrics, newMetrics...)
 }
 
-func getFromFacterCollector(metrics []collection.Metric) []collection.Metric{
-	c := collection.NewFacterCollector("facter", caching, caching_ttl)
-	new_metrics := c.GetMetricValues(c.GetMetricValues([]collection.Metric{}))
-	return append(metrics, new_metrics...)
+func getFromFacterCollector(metrics []collection.Metric) []collection.Metric {
+	facterColl := collection.NewCollectorByType("facter", collection.NewFacterConfig("facter"))
+	newMetrics := append(metrics, facterColl.GetMetricList()...)
+	return append(metrics, newMetrics...)
 }
 
-func getFromLibcontainerCollector(metrics []collection.Metric) []collection.Metric{
-	c := collection.NewContainerCollector()
-	new_metrics := c.GetMetricValues()
-	return append(metrics, new_metrics...)
+func getFromLibcontainerCollector(metrics []collection.Metric) []collection.Metric {
+	container_coll := collection.NewCollectorByType("container", collection.NewContainerConfig())
+	newMetrics := append(metrics, container_coll.GetMetricList()...)
+	return append(metrics, newMetrics...)
 }
-
-
-
-
