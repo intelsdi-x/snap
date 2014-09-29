@@ -1,3 +1,12 @@
+// +build linux
+
+/*
+Libcontainer collector support
+
+author: Nicholas Weaver
+arch: linux
+*/
+
 package collection
 
 import (
