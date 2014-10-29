@@ -1,10 +1,10 @@
-// +build linux
+// +build !darwin
 
 /*
-Libcontainer collector support
+Libcontainer collector
 
 author: Nicholas Weaver
-arch: linux
+arch: linux x86
 */
 
 package collection
