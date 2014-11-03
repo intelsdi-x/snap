@@ -51,14 +51,19 @@ func newMetricCache() metricCache {
 	return metricCache{time.Now(), []Metric{}, true}
 }
 
+func CollectorPluginTypes() []string {
+	return []string{}
+}
+
 func NewCollectorByType(cType string, cConfig CollectorConfig) Collector {
 	switch cType {
 	case "collectd":
 		return NewCollectDCollector(cConfig.(collectDConfig))
 	case "facter":
 		return NewFacterCollector(cConfig.(facterConfig))
-	case "container":
-		return NewContainerCollector(cConfig.(containerConfig))
+	// Fix lookup to not rely on static method name
+	// case "container":
+	// return NewContainerCollector(cConfig.(containerConfig))
 	default:
 		panic(1)
 	}

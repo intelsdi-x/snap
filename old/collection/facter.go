@@ -1,3 +1,10 @@
+/*
+Facter collector
+
+author: Nicholas Weaver
+arch: x86
+*/
+
 package collection
 
 import (

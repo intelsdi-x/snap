@@ -1,3 +1,12 @@
+// +build !darwin
+
+/*
+Libcontainer collector
+
+author: Nicholas Weaver
+arch: linux x86
+*/
+
 package collection
 
 import (

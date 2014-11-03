@@ -43,8 +43,8 @@ func GetMetricList() []collection.Metric {
 
 	// TODO make all collector plugins explicit
 	// Container collector
-	container_coll := collection.NewCollectorByType("container", collection.NewContainerConfig())
-	metrics = append(metrics, container_coll.GetMetricList()...)
+	// container_coll := collection.NewCollectorByType("container", collection.NewContainerConfig())
+	// metrics = append(metrics, container_coll.GetMetricList()...)
 
 	//	metrics := []collection.Metric{}
 	return metrics
@@ -59,7 +59,7 @@ func GetMetricValues(string ...interface{}) []collection.Metric {
 	// Static for now
 	metrics = getFromCollectDCollector(metrics)
 	metrics = getFromFacterCollector(metrics)
-	metrics = getFromLibcontainerCollector(metrics)
+	// metrics = getFromLibcontainerCollector(metrics)
 	//
 	return metrics
 }
@@ -171,8 +171,8 @@ func getFromFacterCollector(metrics []collection.Metric) []collection.Metric {
 	return append(metrics, newMetrics...)
 }
 
-func getFromLibcontainerCollector(metrics []collection.Metric) []collection.Metric {
-	container_coll := collection.NewCollectorByType("container", collection.NewContainerConfig())
-	newMetrics := append(metrics, container_coll.GetMetricList()...)
-	return append(metrics, newMetrics...)
-}
+// func getFromLibcontainerCollector(metrics []collection.Metric) []collection.Metric {
+// 	container_coll := collection.NewCollectorByType("container", collection.NewContainerConfig())
+// 	newMetrics := append(metrics, container_coll.GetMetricList()...)
+// 	return append(metrics, newMetrics...)
+// }

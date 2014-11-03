@@ -13,6 +13,13 @@ func Foo() bool {
 
 var _ = Describe("NewCollectorByType", func() {
 
+	Context("POC test", func() {
+		It("a", func() {
+			c := NewCollectorByType("collectd", NewCollectDConfig("dummy"))
+			Expect(c.CollectorType()).To(Equal("collectd"))
+		})
+	})
+
 	Context("with \"collectd\" type and config", func() {
 		It("returns a Collector with CollectorType() = \"collectd\"", func() {
 			c := NewCollectorByType("collectd", NewCollectDConfig("dummy"))
