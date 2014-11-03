@@ -6,15 +6,9 @@ import (
 )
 
 func main() {
-	// init plugin rpc server
-	server, err := plugin.NewServer()
-	if err != nil {
-		panic(err)
-	}
-
 	// Three things provided:
 	//   the implementation satfiying plugin.CollectorPlugin
 	//   the collector configuration policy satifying plugin.ConfigRules
 	policy := facter.ConfigPolicy()
-	server.StartCollector(facter.Name, facter.Version, new(facter.Facter), policy)
+	plugin.StartCollector(facter.Name, facter.Version, new(facter.Facter), policy)
 }

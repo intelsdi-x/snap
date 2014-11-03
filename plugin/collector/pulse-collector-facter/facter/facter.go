@@ -15,8 +15,7 @@ const (
 type Facter struct {
 }
 
-func (f *Facter) Collect(s string, r *string) error {
-
+func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
 	return nil
 }
 
