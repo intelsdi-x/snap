@@ -1,12 +1,5 @@
 
-all: plugins	
+all: build-pulse
 
-plugins: collector-plugins pusblisher-plugins
-
-collector-plugins: facter
-	
-pusblisher-plugins:
-
-# temp while evaluating gox
-facter:
-	go build -v ./plugin/collector/pulse-collector-facter
+build-pulse:
+	bash -c ./scripts/build.sh
