@@ -21,7 +21,7 @@ mkdir -p $PUBLISHERDIR
 # Binaries
 # 
 echo " Building Pulse Agent"	
-go build -o $BINDIR/pulse-agent .
+go build -o $BINDIR/pulse-agent . || exit 1
 
 # Built-in Collector Plugin building
 cd plugin/collector/
@@ -29,7 +29,8 @@ echo " Building Collector Plugin(s)"
 for d in *; do
 	if [[ -d $d ]]; then
 		echo "    $d"		
-		go build -o ../../$COLLECTORDIR/$d ./$d/
+		go build -o ../../$COLLECTORDIR/$d ./$d/ || exit 2		
+		# chmod -x ../../$COLLECTORDIR/$d / for testing non-executable builds
 	fi
 done
 cd ../../

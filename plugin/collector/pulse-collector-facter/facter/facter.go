@@ -9,14 +9,18 @@ const (
 	Version = 1
 )
 
-// Facter collector
-//
-// Attempts to call facter and convert metrics into plugins
 type Facter struct {
 }
 
 func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
 	return nil
+}
+
+func Meta() *plugin.PluginMeta {
+	m := new(plugin.PluginMeta)
+	m.Name = Name
+	m.Version = Version
+	return m
 }
 
 func ConfigPolicy() *plugin.ConfigPolicy {
