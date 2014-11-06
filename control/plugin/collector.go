@@ -14,15 +14,18 @@ type CollectorPlugin interface {
 	Collect(CollectorArgs, *CollectorReply) error
 }
 
+// Arguments passed to Collect() for a Collector implementation
 type CollectorArgs struct {
 }
 
+// Reply assigned by a Collector implementation using Collect()
 type CollectorReply struct {
 }
 
-// A collector plugin and a config policy for it
+// Execution method for a Collector plugin.
 func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 
+	// TODO - Patching in logging, needs to be replaced with proper log pathing and deterministic log file naming
 	lf, err := os.OpenFile("/tmp/pulse_plugin.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Printf("error opening file: %v", err)
@@ -30,11 +33,8 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 	}
 	defer lf.Close()
 	pluginLog := log.New(lf, ">>>", log.Ldate|log.Ltime)
+	// TODO
 
-	// Init plugin session state
-	// pluginState := InitSessionState()
-
-	//
 	pluginLog.Printf("Starting collector plugin\n")
 	if len(os.Args) < 2 {
 		log.Fatalln("Pulse plugins are not started individually.")
@@ -44,11 +44,15 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 	var sessionState = new(SessionState)
 	sessionState = InitSessionState(os.Args[0], os.Args[1])
 
+	// Register the collector RPC methods from plugin implementation
 	rpc.RegisterName("collector", c)
+	// Register common plugin methods used for utility reasons
 	rpc.RegisterName("meta", m)
 
+	// Right now we only listen on TCP connections. Optionally consider a UNIX socket option.
 	l, err := net.Listen("tcp", "127.0.0.1:"+sessionState.ListenPort)
 	pluginLog.Printf("Listening %s\n", l.Addr())
+
 	if err != nil {
 		panic(err)
 	}
