@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/intelsdilabs/pulse/control"
 )
@@ -39,6 +40,8 @@ func main() {
 	// fmt.Println(PulsePath)
 
 	pluginControl := control.Control()
+	pluginControl.Start()
+	defer pluginControl.Stop()
 
 	// fmt.Println(pluginControl)
 	// fmt.Println(CollectorPath)
@@ -58,6 +61,10 @@ func main() {
 			continue
 		}
 		pluginControl.Load(d)
+	}
+
+	for {
+		time.Sleep(time.Second * 1)
 	}
 	// err := pluginControl.Load(collectorPath)
 

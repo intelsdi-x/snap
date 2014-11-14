@@ -1,12 +1,10 @@
 package control
 
 import (
-	// "crypto/rand"
 	"crypto/rsa"
-	"encoding/json"
+	"fmt"
+	"github.com/intelsdilabs/pulse/control/plugin"
 	"log"
-	"os"
-	"os/exec"
 	"time"
 )
 
@@ -16,23 +14,58 @@ import (
 // Session token = plugin seed encrypted by control private key, verified by plugin using control public key
 //
 
+const (
+	// LoadedPlugin Types enum
+	CollectorPlugin pluginType = iota
+	PublisherPlugin
+
+	// LoadedPlugin States
+	DetectedState pluginState = "detected"
+	LoadingState  pluginState = "loading"
+	LoadedState   pluginState = "loaded"
+	UnloadedState pluginState = "unloaded"
+)
+
+//
+type pluginState string
+
+type pluginType int
+
+type loadedPlugins []LoadedPlugin
+
+type executablePlugins []ExecutablePlugin
+
+// Represents a plugin loaded or loading into control
+type LoadedPlugin struct {
+	Path  string
+	Type  pluginType
+	State pluginState
+}
+
 type pluginControl struct {
+	// TODO, going to need coordination on changing of these
+	LoadedPlugins  loadedPlugins
+	RunningPlugins executablePlugins
+	Started        bool
+
+	loadRequestsChan chan LoadedPlugin
+
 	controlPrivKey *rsa.PrivateKey
 	controlPubKey  *rsa.PublicKey
 }
 
-type PluginArgs struct {
-	PluginLogPath string
-	ControlPubKey *rsa.PublicKey
-}
-
-func (p *pluginControl) GenerateArgs() PluginArgs {
-	a := PluginArgs{ControlPubKey: p.controlPubKey, PluginLogPath: "/tmp"}
+func (p *pluginControl) GenerateArgs(daemon bool) plugin.Arg {
+	a := plugin.Arg{
+		ControlPubKey: p.controlPubKey,
+		PluginLogPath: "/tmp",
+		RunAsDaemon:   daemon,
+	}
 	return a
 }
 
 func Control() *pluginControl {
 	c := new(pluginControl)
+	c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
 
 	// if err != nil {
@@ -46,36 +79,124 @@ func Control() *pluginControl {
 	return c
 }
 
+// Begin handling load, unload, and inventory
+func (p *pluginControl) Start() {
+	// begin controlling
+
+	// Start load handler. We only start one to keep load requests handled in
+	// a linear fashion for now as this is a low priority.
+	go p.HandleLoadRequests()
+
+	p.Started = true
+}
+
+func (p *pluginControl) Stop() {
+	close(p.loadRequestsChan)
+}
+
+// Handles loading of plugins. One at a time.
+func (p *pluginControl) HandleLoadRequests() {
+	for {
+		lPlugin := <-p.loadRequestsChan
+
+		ePlugin, err := p.NewExecutablePlugin(lPlugin.Path, false)
+
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		err = ePlugin.Start()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		var resp *plugin.Response
+		resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
+
+		fmt.Println(resp, err)
+
+	}
+}
+
 func (p *pluginControl) Load(path string) {
+	if !p.Started {
+		panic("Must start plugin control before calling Load()")
+	}
+
+	/*
+		Loading plugin status
+
+		Before start (todo)
+		* executable (caught on start)
+		* signed? (todo)
+		* Grab checksum (file watching? todo)
+		=> Plugin state = detected
+
+		After start before Ping
+		* starts? (catch crash)
+		* response? (catch stdout)
+		=> Plugin state = loaded
+	*/
+
 	log.Printf("Attempting to load: %s\v", path)
-	// Start plugin passing control details and receiving response
 
-	x, e := json.Marshal(p.GenerateArgs())
-	if e != nil {
-		panic(e)
-	}
-	log.Println(string(x))
+	lPlugin := LoadedPlugin{Path: path}
+	p.loadRequestsChan <- lPlugin
 
-	cmd := new(exec.Cmd)
-	cmd.Path = path
-	cmd.Args = []string{path, string(x)}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stdout
+	/*
+		// Start plugin passing control details and receiving response
 
-	err := cmd.Start()
-	if err != nil {
-		panic(err)
-	}
+		x, e := json.Marshal(p.GenerateArgs())
+		if e != nil {
+			panic(e)
+		}
+		log.Println(string(x))
 
-	go func() {
-		// How long to wait for testing for killing
-		time.Sleep(time.Second * 1)
-		cmd.Process.Kill()
-	}()
+		cmd := new(exec.Cmd)
+		cmd.Path = path
+		cmd.Args = []string{path, string(x)}
+		stdout, err := cmd.StdoutPipe()
+		// cmd.Stdout = os.Stdout
+		// cmd.Stderr = os.Stdout
 
-	cmd.Wait()
+		scanner := bufio.NewScanner(stdout)
+		go func() {
+			for scanner.Scan() {
+				b := scanner.Bytes()
+				r := plugin.Response{}
+				err := json.Unmarshal(b, &r)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("%v\n", r)
+			}
+		}()
 
-	// Ping
+		err = cmd.Start()
+		if err != nil {
+			panic(err)
+		}
 
-	// Plugin
+		// var b []byte
+
+		// b, err = ioutil.ReadAll(stdout)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		// log.Println("Response:" + string(b))
+
+		go func() {
+			// How long to wait for testing for killing
+			time.Sleep(time.Second * 10)
+			cmd.Process.Kill()
+		}()
+
+		cmd.Wait()
+
+		// Ping
+
+		// Plugin
+	*/
 }
