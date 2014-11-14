@@ -1,6 +1,7 @@
 package control
 
 import (
+	"errors"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -10,7 +11,8 @@ import (
 type MockPluginExecutor struct {
 	Killed bool
 
-	WaitTime time.Duration
+	WaitTime  time.Duration
+	WaitError error
 }
 
 func (m *MockPluginExecutor) Wait() error {
@@ -20,10 +22,10 @@ func (m *MockPluginExecutor) Wait() error {
 	for time.Now().Sub(t) < m.WaitTime {
 		// Return if Killed while waiting
 		if m.Killed {
-			return nil
+			return m.WaitError
 		}
 	}
-	return nil
+	return m.WaitError
 }
 
 func (m *MockPluginExecutor) Kill() error {
@@ -39,14 +41,42 @@ func (m *MockPluginExecutor) Kill() error {
 
 func TestWaitForPluginResponse(t *testing.T) {
 
+	Convey("Given a PluginExector that exits immediately", t, func() {
+		mockExecutor := new(MockPluginExecutor)
+		mockExecutor.WaitTime = time.Millisecond * 100
+		mockExecutor.WaitError = errors.New("Exit 127")
+
+		Convey("when control.WaitForPluginResponse is passed the PluginExecutor", func() {
+			resp, err := WaitForPluginResponse(mockExecutor, time.Second*10)
+
+			Convey("The PluginExecutor.Kill() should be called", func() {
+				So(mockExecutor.Killed, ShouldEqual, false)
+			})
+
+			Convey("Returns nil response", func() {
+				So(resp, ShouldBeNil)
+			})
+
+			Convey("Returns error", func() {
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("Returns error indicating timeout occured", func() {
+				So(err.Error(), ShouldEqual, "Exit 127")
+			})
+
+		})
+
+	})
+
 	Convey("Given a PluginExector that will run longer than timeout without responding", t, func() {
 		mockExecutor := new(MockPluginExecutor)
 		mockExecutor.WaitTime = time.Second * 120
 
-		Convey("when control.WaitForPluginResponse is passed a PluginExecutor that will not respond", func() {
+		Convey("when control.WaitForPluginResponse is passed the PluginExecutor", func() {
 			resp, err := WaitForPluginResponse(mockExecutor, time.Millisecond*10)
 
-			Convey("The PluginExecutor.Kill() should be called ", func() {
+			Convey("The PluginExecutor.Kill() should be called", func() {
 				So(mockExecutor.Killed, ShouldEqual, true)
 			})
 
@@ -54,7 +84,11 @@ func TestWaitForPluginResponse(t *testing.T) {
 				So(resp, ShouldBeNil)
 			})
 
-			Convey("Returns error indicating timeout", func() {
+			Convey("Returns error", func() {
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("Returns error indicating timeout occured", func() {
 				So(err.Error(), ShouldEqual, "Timeout waiting for response")
 			})
 		})
