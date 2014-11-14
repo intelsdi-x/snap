@@ -10,11 +10,20 @@ import (
 type MockPluginExecutor struct {
 	Killed bool
 
-	WaitMethod func() error
+	WaitTime time.Duration
 }
 
 func (m *MockPluginExecutor) Wait() error {
-	return m.WaitMethod()
+	t := time.Now()
+
+	// Loop until wait time expired
+	for time.Now().Sub(t) < m.WaitTime {
+		// Return if Killed while waiting
+		if m.Killed {
+			return nil
+		}
+	}
+	return nil
 }
 
 func (m *MockPluginExecutor) Kill() error {
@@ -32,11 +41,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 
 	Convey("Given a PluginExector that will run longer than timeout without responding", t, func() {
 		mockExecutor := new(MockPluginExecutor)
-		// Set Wait to return after 500 milliseconds
-		mockExecutor.WaitMethod = func() error {
-			time.Sleep(time.Millisecond * 100)
-			return nil
-		}
+		mockExecutor.WaitTime = time.Second * 120
 
 		Convey("when control.WaitForPluginResponse is passed a PluginExecutor that will not respond", func() {
 			resp, err := WaitForPluginResponse(mockExecutor, time.Millisecond*10)

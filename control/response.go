@@ -1,13 +1,10 @@
 package control
 
 import (
-	// "bufio"
-	// "encoding/json"
 	"errors"
-	"github.com/intelsdilabs/pulse/control/plugin"
-	// // "io"
-	// "log"
 	"time"
+
+	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
 type PluginExecutor interface {
@@ -22,22 +19,12 @@ func WaitForPluginResponse(pExecutor PluginExecutor, timeout time.Duration) (*pl
 	var resp *plugin.Response = new(plugin.Response)
 	var topErr error
 
-	pExecutor.Kill()
-
 	// Kill on timeout
 	go func() {
 		time.Sleep(timeout)
-		// if !cmd.ProcessState.Exited() {
-		err := pExecutor.Kill()
-		if err != nil {
-			// It is possible it died on its own or was killed somewhere else
-			// we just want to log this and not panic.
-			// log.Println(err.Error())
-		} else {
-			topErr = errors.New("Timeout waiting for response")
-			return
-		}
-		// }
+		topErr = errors.New("Timeout waiting for response")
+		pExecutor.Kill()
+		return
 	}()
 
 	// // Wait for response
@@ -59,16 +46,15 @@ func WaitForPluginResponse(pExecutor PluginExecutor, timeout time.Duration) (*pl
 	// }()
 
 	err := pExecutor.Wait()
+	// Return top level error
 	if topErr != nil {
-		// log.Printf("[CONTROL] Plugin stopped with error [%v]\n", topErr)
 		return nil, topErr
 	}
-
+	// Return pExecutor.Wait() error
 	if err != nil {
 		// log.Printf("[CONTROL] Plugin stopped with error [%v]\n", err)
 		return nil, err
 	}
-
-	// log.Printf("[CONTROL] Plugin run completed\n")
+	// Return response
 	return resp, nil
 }
