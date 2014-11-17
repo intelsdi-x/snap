@@ -1,0 +1,15 @@
+language: go
+go:
+- 1.3.1
+- tip
+before_install:
+- cp .netrc ~
+- chmod 600 .netrc
+install:
+- go get -v go get github.com/smartystreets/goconvey
+- go get -d -v ./... && go build -v ./...
+- ls /home/travis/gopath/src/github.com/intelsdilabs/pulse
+script: go test ./... -v
+notifications:
+  slack:
+    secure: VkbZLIc2RH8yf3PtIAxUNPdAu3rQQ7yQx0GcK124JhbEnZGaHyK615V0rbG7HcVmYKGPdB0cXqZiLBDKGqGKb2zR1NepOe1nF03jxGSpPq8jIFeEXSJGEYGL34ScDzZZGuG6qwbjFcXiW5lqn6t8igzp7v2+URYBaZo5ktCS2xY=

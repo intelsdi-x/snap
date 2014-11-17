@@ -8,7 +8,7 @@ import (
 
 type ExecutablePlugin struct {
 	Cmd    *exec.Cmd
-	Stdout io.ReadCloser
+	Stdout io.Reader
 }
 
 // Starts the plugin and returns error or nil. This is non blocking.
@@ -22,6 +22,10 @@ func (e *ExecutablePlugin) Kill() error {
 
 func (e *ExecutablePlugin) Wait() error {
 	return e.Cmd.Wait()
+}
+
+func (e *ExecutablePlugin) StdoutPipe() io.Reader {
+	return e.Stdout
 }
 
 // Take the path and daemon mode and returns *ExecutablePlugin
