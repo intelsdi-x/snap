@@ -4,7 +4,9 @@ package plugin
 // task > control > default
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 )
 
@@ -15,6 +17,7 @@ type Plugin interface {
 // Started plugin session state
 type SessionState struct {
 	*Arg
+	Token string
 }
 
 // Arguments passed to startup of Plugin
@@ -25,6 +28,8 @@ type Arg struct {
 	ControlPubKey *rsa.PublicKey
 	// The listen port requested - optional, defaults to 0 via InitSessionState()
 	ListenPort string
+	// Whether to run as daemon to exit after sending response
+	RunAsDaemon bool
 }
 
 // Response from started plugin
@@ -45,6 +50,14 @@ func (p *PluginMeta) Status(a string, b *string) error {
 	return nil
 }
 
+func (s *SessionState) GenerateResponse(lAddr string) []byte {
+	r := Response{}
+	r.ListenAddress = lAddr
+	r.Token = s.Token
+	rs, _ := json.Marshal(r)
+	return rs
+}
+
 func InitSessionState(path string, pluginArgsMsg string) *SessionState {
 	pluginArg := new(Arg)
 	json.Unmarshal([]byte(pluginArgsMsg), pluginArg)
@@ -56,5 +69,10 @@ func InitSessionState(path string, pluginArgsMsg string) *SessionState {
 		pluginArg.ListenPort = "0"
 	}
 
-	return &SessionState{Arg: pluginArg}
+	// Generate random token for this session
+	rb := make([]byte, 32)
+	rand.Read(rb)
+	rs := base64.URLEncoding.EncodeToString(rb)
+
+	return &SessionState{Arg: pluginArg, Token: rs}
 }
