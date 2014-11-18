@@ -7,7 +7,7 @@ before_install:
 - chmod 600 .netrc
 install:
 - go get -v github.com/smartystreets/goconvey # Get goconvey
-- go get code.google.com/p/go.tools/cmd/cover # get golang cover
+- go get golang.org/x/tools/cmd/cover # get golang cover
 - go get -d -v ./... && go build -v ./... # get and build source
 - ls /home/travis/gopath/src/github.com/intelsdilabs/pulse # change dir into source
 script: go test ./... -v -cover # run go test with cover
