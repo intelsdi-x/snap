@@ -1,10 +1,15 @@
 package control
 
 import (
+	"bufio"
 	"crypto/rsa"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"io"
 	"log"
+	"os/exec"
 	"time"
 )
 
@@ -34,6 +39,13 @@ type pluginType int
 type loadedPlugins []LoadedPlugin
 
 type executablePlugins []ExecutablePlugin
+
+// A interface representing an executable plugin.
+type PluginExecutor interface {
+	Kill() error
+	Wait() error
+	ResponseReader() io.Reader
+}
 
 // Represents a plugin loaded or loading into control
 type LoadedPlugin struct {
@@ -113,11 +125,35 @@ func (p *pluginControl) HandleLoadRequests() {
 		}
 
 		var resp *plugin.Response
-		resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
+		resp, err = WaitForResponse(ePlugin, time.Second*3)
+		// resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
 
 		fmt.Println(resp, err)
 
 	}
+}
+
+// Take the path and daemon mode and returns *ExecutablePlugin
+func (p *pluginControl) NewExecutablePlugin(path string, daemon bool) (*ExecutablePlugin, error) {
+	jsonArgs, err := json.Marshal(p.GenerateArgs(daemon))
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := new(exec.Cmd)
+	cmd.Path = path
+	cmd.Args = []string{path, string(jsonArgs)}
+
+	stdout, err2 := cmd.StdoutPipe()
+	if err2 != nil {
+		return nil, err2
+	}
+
+	ePlugin := new(ExecutablePlugin)
+	ePlugin.Cmd = cmd
+	ePlugin.Stdout = stdout
+
+	return ePlugin, nil
 }
 
 func (p *pluginControl) Load(path string) {
@@ -199,4 +235,54 @@ func (p *pluginControl) Load(path string) {
 
 		// Plugin
 	*/
+}
+
+// Wait for response from started ExecutablePlugin. Returns plugin.Response or error.
+func WaitForResponse(p PluginExecutor, timeout time.Duration) (*plugin.Response, error) {
+	// The response we want to return
+
+	var resp *plugin.Response = new(plugin.Response)
+	var timeoutErr error
+	var jsonErr error
+
+	// Kill on timeout
+	go func() {
+		time.Sleep(timeout)
+		timeoutErr = errors.New("Timeout waiting for response")
+		p.Kill()
+		return
+	}()
+
+	// Wait for response
+	scanner := bufio.NewScanner(p.ResponseReader())
+	go func() {
+		for scanner.Scan() {
+			// Get bytes
+			b := scanner.Bytes()
+			// attempt to unmarshall into struct
+			err := json.Unmarshal(b, resp)
+			if err != nil {
+				jsonErr = errors.New("JSONError - " + err.Error())
+				return
+			}
+		}
+	}()
+
+	// Wait for PluginExecutor to respond
+	err := p.Wait()
+	// Return top level error
+	if jsonErr != nil {
+		return nil, jsonErr
+	}
+	// Return top level error
+	if timeoutErr != nil {
+		return nil, timeoutErr
+	}
+	// Return pExecutor.Wait() error
+	if err != nil {
+		// log.Printf("[CONTROL] Plugin stopped with error [%v]\n", err)
+		return nil, err
+	}
+	// Return response
+	return resp, nil
 }
