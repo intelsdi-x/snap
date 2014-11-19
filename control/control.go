@@ -111,13 +111,18 @@ func (p *pluginControl) HandleLoadRequests() {
 	for {
 		lPlugin := <-p.loadRequestsChan
 
-		ePlugin, err := p.NewExecutablePlugin(lPlugin.Path, false)
+		// Create a new Executable plugin
+		//
+		// In this case we only support Linux right now
+		ePlugin, err := newExecutablePlugin(p, lPlugin.Path, false)
 
+		// If error then log and return
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
+		// Start the plugin using the start method
 		err = ePlugin.Start()
 		if err != nil {
 			log.Println(err)
@@ -125,35 +130,18 @@ func (p *pluginControl) HandleLoadRequests() {
 		}
 
 		var resp *plugin.Response
-		resp, err = WaitForResponse(ePlugin, time.Second*3)
+		// This blocks until a response or an error
+		resp, err = waitForResponse(ePlugin, time.Second*3)
 		// resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
+
+		// If error then we log and return
+
+		// On response we create a LoadedPlugin
+		// and add to LoadedPlugins index
 
 		fmt.Println(resp, err)
 
 	}
-}
-
-// Take the path and daemon mode and returns *ExecutablePlugin
-func (p *pluginControl) NewExecutablePlugin(path string, daemon bool) (*ExecutablePlugin, error) {
-	jsonArgs, err := json.Marshal(p.GenerateArgs(daemon))
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := new(exec.Cmd)
-	cmd.Path = path
-	cmd.Args = []string{path, string(jsonArgs)}
-
-	stdout, err2 := cmd.StdoutPipe()
-	if err2 != nil {
-		return nil, err2
-	}
-
-	ePlugin := new(ExecutablePlugin)
-	ePlugin.Cmd = cmd
-	ePlugin.Stdout = stdout
-
-	return ePlugin, nil
 }
 
 func (p *pluginControl) Load(path string) {
@@ -238,7 +226,7 @@ func (p *pluginControl) Load(path string) {
 }
 
 // Wait for response from started ExecutablePlugin. Returns plugin.Response or error.
-func WaitForResponse(p PluginExecutor, timeout time.Duration) (*plugin.Response, error) {
+func waitForResponse(p PluginExecutor, timeout time.Duration) (*plugin.Response, error) {
 	// The response we want to return
 
 	var resp *plugin.Response = new(plugin.Response)
@@ -285,4 +273,27 @@ func WaitForResponse(p PluginExecutor, timeout time.Duration) (*plugin.Response,
 	}
 	// Return response
 	return resp, nil
+}
+
+// Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
+func newExecutablePlugin(p *pluginControl, path string, daemon bool) (*ExecutablePlugin, error) {
+	jsonArgs, err := json.Marshal(p.GenerateArgs(daemon))
+	if err != nil {
+		return nil, err
+	}
+	// Init the cmd
+	cmd := new(exec.Cmd)
+	cmd.Path = path
+	cmd.Args = []string{path, string(jsonArgs)}
+	// Link the stdout for response reading
+	stdout, err2 := cmd.StdoutPipe()
+	if err2 != nil {
+		return nil, err2
+	}
+	// Init the ExecutablePlugin and return
+	ePlugin := new(ExecutablePlugin)
+	ePlugin.cmd = cmd
+	ePlugin.stdout = stdout
+
+	return ePlugin, nil
 }
