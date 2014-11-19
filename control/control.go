@@ -31,7 +31,6 @@ const (
 	UnloadedState pluginState = "unloaded"
 )
 
-//
 type pluginState string
 
 type pluginType int
@@ -60,7 +59,7 @@ type pluginControl struct {
 	RunningPlugins executablePlugins
 	Started        bool
 
-	loadRequestsChan chan LoadedPlugin
+	// loadRequestsChan chan LoadedPlugin
 
 	controlPrivKey *rsa.PrivateKey
 	controlPubKey  *rsa.PublicKey
@@ -77,7 +76,7 @@ func (p *pluginControl) GenerateArgs(daemon bool) plugin.Arg {
 
 func Control() *pluginControl {
 	c := new(pluginControl)
-	c.loadRequestsChan = make(chan LoadedPlugin)
+	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
 
 	// if err != nil {
@@ -97,54 +96,25 @@ func (p *pluginControl) Start() {
 
 	// Start load handler. We only start one to keep load requests handled in
 	// a linear fashion for now as this is a low priority.
-	go p.HandleLoadRequests()
+	// go p.HandleLoadRequests()
 
 	p.Started = true
 }
 
 func (p *pluginControl) Stop() {
-	close(p.loadRequestsChan)
+	// close(p.loadRequestsChan)
+	p.Started = false
 }
 
 // Handles loading of plugins. One at a time.
-func (p *pluginControl) HandleLoadRequests() {
-	for {
-		lPlugin := <-p.loadRequestsChan
+// func (p *pluginControl) HandleLoadRequests() {
+// 	for {
+// 		lPlugin := <-p.loadRequestsChan
 
-		// Create a new Executable plugin
-		//
-		// In this case we only support Linux right now
-		ePlugin, err := newExecutablePlugin(p, lPlugin.Path, false)
+// 	}
+// }
 
-		// If error then log and return
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		// Start the plugin using the start method
-		err = ePlugin.Start()
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		var resp *plugin.Response
-		// This blocks until a response or an error
-		resp, err = waitForResponse(ePlugin, time.Second*3)
-		// resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
-
-		// If error then we log and return
-
-		// On response we create a LoadedPlugin
-		// and add to LoadedPlugins index
-
-		fmt.Println(resp, err)
-
-	}
-}
-
-func (p *pluginControl) Load(path string) {
+func (p *pluginControl) Load(path string) (string, error) {
 	if !p.Started {
 		panic("Must start plugin control before calling Load()")
 	}
@@ -165,9 +135,39 @@ func (p *pluginControl) Load(path string) {
 	*/
 
 	log.Printf("Attempting to load: %s\v", path)
-
 	lPlugin := LoadedPlugin{Path: path}
-	p.loadRequestsChan <- lPlugin
+
+	// Create a new Executable plugin
+	//
+	// In this case we only support Linux right now
+	ePlugin, err := newExecutablePlugin(p, lPlugin.Path, false)
+
+	// If error then log and return
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	// Start the plugin using the start method
+	err = ePlugin.Start()
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	var resp *plugin.Response
+	// This blocks until a response or an error
+	resp, err = waitForResponse(ePlugin, time.Second*3)
+	// resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
+
+	// If error then we log and return
+
+	// On response we create a LoadedPlugin
+	// and add to LoadedPlugins index
+
+	fmt.Println(resp, err)
+
+	return "dummy:1", err
 }
 
 // Wait for response from started ExecutablePlugin. Returns plugin.Response or error.
@@ -186,7 +186,7 @@ func waitForResponse(p PluginExecutor, timeout time.Duration) (*plugin.Response,
 		return
 	}()
 
-	// Wait for response
+	// Wait for response from ResponseReader
 	scanner := bufio.NewScanner(p.ResponseReader())
 	go func() {
 		for scanner.Scan() {

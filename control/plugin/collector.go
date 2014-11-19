@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/rpc"
 	"os"
-	"time"
 )
 
 // Collector plugin
@@ -76,8 +75,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 		}
 	} else {
 		resp := sessionState.GenerateResponse("")
-		time.Sleep(time.Second * 10)
-		fmt.Print(string(resp) + "!!!")
+		fmt.Print(string(resp))
 		os.Exit(0)
 	}
 }
