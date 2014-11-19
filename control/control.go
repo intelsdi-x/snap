@@ -168,61 +168,6 @@ func (p *pluginControl) Load(path string) {
 
 	lPlugin := LoadedPlugin{Path: path}
 	p.loadRequestsChan <- lPlugin
-
-	/*
-		// Start plugin passing control details and receiving response
-
-		x, e := json.Marshal(p.GenerateArgs())
-		if e != nil {
-			panic(e)
-		}
-		log.Println(string(x))
-
-		cmd := new(exec.Cmd)
-		cmd.Path = path
-		cmd.Args = []string{path, string(x)}
-		stdout, err := cmd.StdoutPipe()
-		// cmd.Stdout = os.Stdout
-		// cmd.Stderr = os.Stdout
-
-		scanner := bufio.NewScanner(stdout)
-		go func() {
-			for scanner.Scan() {
-				b := scanner.Bytes()
-				r := plugin.Response{}
-				err := json.Unmarshal(b, &r)
-				if err != nil {
-					panic(err)
-				}
-				fmt.Printf("%v\n", r)
-			}
-		}()
-
-		err = cmd.Start()
-		if err != nil {
-			panic(err)
-		}
-
-		// var b []byte
-
-		// b, err = ioutil.ReadAll(stdout)
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// log.Println("Response:" + string(b))
-
-		go func() {
-			// How long to wait for testing for killing
-			time.Sleep(time.Second * 10)
-			cmd.Process.Kill()
-		}()
-
-		cmd.Wait()
-
-		// Ping
-
-		// Plugin
-	*/
 }
 
 // Wait for response from started ExecutablePlugin. Returns plugin.Response or error.
