@@ -5,11 +5,15 @@ go:
 before_install:
 - cp .netrc ~
 - chmod 600 .netrc
+env:
+  global:
+  	- PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdilabs/pulse
+    - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdilabs/pulse/build    
 install:
 - go get -v github.com/smartystreets/goconvey # Get goconvey
 - go get golang.org/x/tools/cmd/cover # get golang cover
 - go get -d -v ./... && go build -v ./... # get and build source
-- ls /home/travis/gopath/src/github.com/intelsdilabs/pulse # change dir into source
+- ls $PULSE_SOURCE # change dir into source
 script: go test ./... -v -cover # run go test with cover
 notifications:
   slack:
