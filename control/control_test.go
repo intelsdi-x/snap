@@ -120,9 +120,7 @@ func TestNewExecutablePlugin(t *testing.T) {
 }
 
 func TestWaitForPluginResponse(t *testing.T) {
-
 	Convey(".waitForResponse", t, func() {
-
 		Convey("called with PluginExecutor that returns a valid response", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.Response = "{}"
