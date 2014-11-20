@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"io"
 	"log"
@@ -106,17 +105,9 @@ func (p *pluginControl) Stop() {
 	p.Started = false
 }
 
-// Handles loading of plugins. One at a time.
-// func (p *pluginControl) HandleLoadRequests() {
-// 	for {
-// 		lPlugin := <-p.loadRequestsChan
-
-// 	}
-// }
-
 func (p *pluginControl) Load(path string) (string, error) {
 	if !p.Started {
-		panic("Must start plugin control before calling Load()")
+		return "", errors.New("Must start plugin control before calling Load()")
 	}
 
 	/*
@@ -165,7 +156,7 @@ func (p *pluginControl) Load(path string) (string, error) {
 	// On response we create a LoadedPlugin
 	// and add to LoadedPlugins index
 
-	fmt.Println(resp, err)
+	log.Println(resp, err)
 
 	return "dummy:1", err
 }

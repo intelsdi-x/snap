@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
+	"os"
+	"path"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -20,6 +23,12 @@ type MockPluginExecutor struct {
 	WaitError       error
 	WaitForResponse func(time.Duration) (*plugin.Response, error)
 }
+
+var (
+	PluginName = "pulse-collector-dummy"
+	PulsePath  = os.Getenv("PULSE_PATH")
+	PluginPath = path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy")
+)
 
 // Mock
 func (m *MockPluginExecutor) Wait() error {
@@ -46,6 +55,52 @@ func (m *MockPluginExecutor) ResponseReader() io.Reader {
 	readbuffer := bytes.NewBuffer([]byte(m.Response))
 	reader := bufio.NewReader(readbuffer)
 	return reader
+}
+
+// Uses the dummy collector plugin to simulate Loading
+func TestLoad(t *testing.T) {
+	// These tests only work if PULSE_PATH is known.
+	// It is the responsibility of the testing framework to
+	// build the plugins first into the build dir.
+	if PulsePath != "" {
+		Convey("pluginControl.Load", t, func() {
+
+			Convey("loads successfully", func() {
+				c := Control()
+				c.Start()
+				loadedPlugin, err := c.Load(PluginPath)
+
+				So(loadedPlugin, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
+
+			Convey("returns error if not started", func() {
+				c := Control()
+				loadedPlugin, err := c.Load(PluginPath)
+
+				So(loadedPlugin, ShouldEqual, "")
+				So(err, ShouldNotBeNil)
+			})
+
+		})
+
+	} else {
+		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
+	}
+}
+
+func TestStop(t *testing.T) {
+	Convey("pluginControl.Stop", t, func() {
+		c := Control()
+		c.Start()
+		c.Stop()
+
+		Convey("returns ExecutablePlugin", func() {
+			So(c.Started, ShouldBeFalse)
+		})
+
+	})
+
 }
 
 func TestNewExecutablePlugin(t *testing.T) {
