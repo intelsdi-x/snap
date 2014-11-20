@@ -7,7 +7,7 @@ before_install:
 - chmod 600 .netrc
 env:
   global:
-  	- PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdilabs/pulse
+    - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdilabs/pulse
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdilabs/pulse/build    
 install:
 - go get -v github.com/smartystreets/goconvey # Get goconvey
