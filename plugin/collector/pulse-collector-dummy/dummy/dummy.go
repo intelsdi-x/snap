@@ -7,6 +7,7 @@ import (
 const (
 	Name    = "dummy"
 	Version = 1
+	Type    = "collector"
 )
 
 // Dummy collector implementation used for testing
