@@ -78,7 +78,7 @@ func TestLoad(t *testing.T) {
 				c := Control()
 				loadedPlugin, err := c.Load(PluginPath)
 
-				So(loadedPlugin, ShouldEqual, "")
+				So(loadedPlugin, ShouldBeNil)
 				So(err, ShouldNotBeNil)
 			})
 

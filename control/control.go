@@ -5,11 +5,13 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
-	"github.com/intelsdilabs/pulse/control/plugin"
+	"fmt"
 	"io"
 	"log"
 	"os/exec"
 	"time"
+
+	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
 // control private key (RSA private key)
@@ -19,10 +21,6 @@ import (
 //
 
 const (
-	// LoadedPlugin Types enum
-	CollectorPlugin pluginType = iota
-	PublisherPlugin
-
 	// LoadedPlugin States
 	DetectedState pluginState = "detected"
 	LoadingState  pluginState = "loading"
@@ -47,9 +45,12 @@ type PluginExecutor interface {
 
 // Represents a plugin loaded or loading into control
 type LoadedPlugin struct {
-	Path  string
-	Type  pluginType
-	State pluginState
+	Meta       plugin.PluginMeta
+	Path       string
+	Type       plugin.PluginType
+	State      pluginState
+	Token      string
+	LoadedTime time.Time
 }
 
 type pluginControl struct {
@@ -105,9 +106,9 @@ func (p *pluginControl) Stop() {
 	p.Started = false
 }
 
-func (p *pluginControl) Load(path string) (string, error) {
+func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 	if !p.Started {
-		return "", errors.New("Must start plugin control before calling Load()")
+		return nil, errors.New("Must start plugin control before calling Load()")
 	}
 
 	/*
@@ -126,7 +127,9 @@ func (p *pluginControl) Load(path string) (string, error) {
 	*/
 
 	log.Printf("Attempting to load: %s\v", path)
-	lPlugin := LoadedPlugin{Path: path}
+	lPlugin := new(LoadedPlugin)
+	lPlugin.Path = path
+	lPlugin.State = DetectedState
 
 	// Create a new Executable plugin
 	//
@@ -136,14 +139,14 @@ func (p *pluginControl) Load(path string) (string, error) {
 	// If error then log and return
 	if err != nil {
 		log.Println(err)
-		return "", err
+		return nil, err
 	}
 
 	// Start the plugin using the start method
 	err = ePlugin.Start()
 	if err != nil {
 		log.Println(err)
-		return "", err
+		return nil, err
 	}
 
 	var resp *plugin.Response
@@ -152,13 +155,34 @@ func (p *pluginControl) Load(path string) (string, error) {
 	// resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
 
 	// If error then we log and return
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
 
+	// If the response state is not Success we log an error
+	if resp.State != plugin.PluginSuccess {
+		log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
+		return nil, errors.New(fmt.Sprintf("Plugin loading did not succeed: %s\n", resp.ErrorMessage))
+	}
 	// On response we create a LoadedPlugin
 	// and add to LoadedPlugins index
+	//
+	lPlugin.Meta = resp.Meta
+	lPlugin.Type = resp.Type
+	lPlugin.Token = resp.Token
+	lPlugin.LoadedTime = time.Now()
+	lPlugin.State = LoadedState
 
-	log.Println(resp, err)
+	/*
 
-	return "dummy:1", err
+		Name
+		Version
+		Loaded Time
+
+	*/
+
+	return lPlugin, err
 }
 
 // Wait for response from started ExecutablePlugin. Returns plugin.Response or error.
