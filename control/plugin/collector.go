@@ -59,25 +59,44 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 		l, err := net.Listen("tcp", "127.0.0.1:"+sessionState.ListenPort)
 		pluginLog.Printf("Listening %s\n", l.Addr())
 		pluginLog.Printf("Session token %s\n", sessionState.Token)
-		resp := sessionState.GenerateResponse(l.Addr().String())
-		// time.Sleep(time.Second * 2)
+		// Add the listening information to the session state
+		sessionState.ListenAddress = l.Addr().String()
+
+		// Generate a response
+		r := Response{
+			Type:  CollectorPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		resp := sessionState.GenerateResponse(r)
+		// Output response to stdout
 		fmt.Print(string(resp))
 
 		if err != nil {
 			panic(err)
 		}
 
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				panic(err)
+		go func() {
+			for {
+				conn, err := l.Accept()
+				if err != nil {
+					panic(err)
+				}
+				go rpc.ServeConn(conn)
 			}
-			go rpc.ServeConn(conn)
-		}
+		}()
+
+		// Right now we kill after 30 seconds until heartbeat is implemented
+		time.Sleep(time.Second * 30)
 	} else {
-		resp := sessionState.GenerateResponse("")
-		time.Sleep(time.Second * 10)
-		fmt.Print(string(resp) + "!!!")
+		sessionState.ListenAddress = ""
+		r := Response{
+			Type:  CollectorPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		resp := sessionState.GenerateResponse(r)
+		fmt.Print(string(resp))
 		os.Exit(0)
 	}
 }
