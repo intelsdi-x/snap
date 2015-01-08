@@ -8,7 +8,7 @@ import (
 
 func TestSubscribe(t *testing.T) {
 	m := &Metric{
-		sub: new(Subscriptions),
+		sub: new(subscriptions),
 	}
 	m.Subscribe()
 	Convey("adds a subscription", t, func() {
@@ -18,7 +18,7 @@ func TestSubscribe(t *testing.T) {
 
 func TestUnsubscribe(t *testing.T) {
 	m := &Metric{
-		sub: new(Subscriptions),
+		sub: new(subscriptions),
 	}
 	Convey("when there are subscriptions to unsubscribe", t, func() {
 		m.Subscribe()
@@ -37,7 +37,7 @@ func TestUnsubscribe(t *testing.T) {
 
 func TestSubscriptions(t *testing.T) {
 	m := &Metric{
-		sub: new(Subscriptions),
+		sub: new(subscriptions),
 	}
 	Convey("should accurately represent the subscription count", t, func() {
 		for i := 0; i < 6; i++ {

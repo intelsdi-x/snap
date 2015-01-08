@@ -7,7 +7,7 @@ import (
 
 func TestAdd(t *testing.T) {
 	Convey("Increments the counter", t, func() {
-		s := new(Subscriptions)
+		s := new(subscriptions)
 		s.Add()
 		So(s.Count(), ShouldEqual, 1)
 	})
@@ -15,7 +15,7 @@ func TestAdd(t *testing.T) {
 
 func TestRemove(t *testing.T) {
 	Convey("when count is 1", t, func() {
-		s := new(Subscriptions)
+		s := new(subscriptions)
 		s.Add()
 		Convey("then it decrements the counter", func() {
 			s.Remove()
@@ -23,7 +23,7 @@ func TestRemove(t *testing.T) {
 		})
 	})
 	Convey("when count is 0", t, func() {
-		s := new(Subscriptions)
+		s := new(subscriptions)
 		s.Remove()
 		Convey("then it returns an error", func() {
 			err := s.Remove()
