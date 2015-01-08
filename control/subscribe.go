@@ -11,8 +11,8 @@ type SubscriptionEvent struct {
 	namespace *string
 }
 
-func (su *SubscriptionEvent) Namespace() string {
-	return *su.namespace
+func (se *SubscriptionEvent) Namespace() string {
+	return *se.namespace
 }
 
 func (ap *availablePlugin) Subscriptions() int {
@@ -21,9 +21,12 @@ func (ap *availablePlugin) Subscriptions() int {
 
 func (m *metric) Subscribe() {
 	m.sub.Add()
+	evns := "Control.MetricSubscribed"
 	m.emitter.Emit(&SubscriptionEvent{
 		Count:           m.Subscriptions(),
 		MetricNamespace: m.Namespace,
+
+		namespace: &evns,
 	})
 }
 
