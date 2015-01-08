@@ -1,4 +1,4 @@
-package metric
+package control
 
 import (
 	"testing"
@@ -7,9 +7,7 @@ import (
 )
 
 func TestSubscribe(t *testing.T) {
-	m := &Metric{
-		sub: new(subscriptions),
-	}
+	m := newMetric(&metricOpts{[]string{}})
 	m.Subscribe()
 	Convey("adds a subscription", t, func() {
 		So(m.Subscriptions(), ShouldEqual, 1)
@@ -17,9 +15,7 @@ func TestSubscribe(t *testing.T) {
 }
 
 func TestUnsubscribe(t *testing.T) {
-	m := &Metric{
-		sub: new(subscriptions),
-	}
+	m := newMetric(&metricOpts{[]string{}})
 	Convey("when there are subscriptions to unsubscribe", t, func() {
 		m.Subscribe()
 		Convey("It removes a subscription", func() {
@@ -35,10 +31,8 @@ func TestUnsubscribe(t *testing.T) {
 	})
 }
 
-func TestSubscriptions(t *testing.T) {
-	m := &Metric{
-		sub: new(subscriptions),
-	}
+func TestSubscriptionsCount(t *testing.T) {
+	m := newMetric(&metricOpts{[]string{}})
 	Convey("should accurately represent the subscription count", t, func() {
 		for i := 0; i < 6; i++ {
 			m.Subscribe()

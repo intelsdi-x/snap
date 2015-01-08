@@ -1,4 +1,4 @@
-package metric
+package control
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
