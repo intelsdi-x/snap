@@ -1,4 +1,4 @@
-package availability
+package metric
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
