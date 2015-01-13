@@ -73,7 +73,7 @@ func TestRunner(t *testing.T) {
 
 			Convey(".Start", func() {
 
-				Convey("Starting Runner without adding delegates", func() {
+				Convey("returns error without adding delegates", func() {
 					r := new(Runner)
 					e := r.Start()
 
@@ -81,7 +81,7 @@ func TestRunner(t *testing.T) {
 					So(e.Error(), ShouldEqual, "No delegates added before called Start()")
 				})
 
-				Convey("Starting Runner after adding one delegates", func() {
+				Convey("starts after adding one delegates", func() {
 					r := new(Runner)
 					m1 := new(MockHandlerDelegate)
 					r.AddDelegates(m1)
@@ -91,7 +91,7 @@ func TestRunner(t *testing.T) {
 					So(m1.WasRegistered, ShouldBeTrue)
 				})
 
-				Convey("Starting Runner after adding multiple delegates", func() {
+				Convey("starts after  after adding multiple delegates", func() {
 					r := new(Runner)
 					m1 := new(MockHandlerDelegate)
 					m2 := new(MockHandlerDelegate)
@@ -106,7 +106,7 @@ func TestRunner(t *testing.T) {
 					So(m3.WasRegistered, ShouldBeTrue)
 				})
 
-				Convey("Throws error if delegate cannot RegisterHandler", func() {
+				Convey("error if delegate cannot RegisterHandler", func() {
 					r := new(Runner)
 					me := new(MockHandlerDelegate)
 					me.ErrorMode = true
