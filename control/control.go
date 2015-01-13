@@ -32,7 +32,7 @@ type pluginState string
 
 type pluginType int
 
-type loadedPlugins []LoadedPlugin
+type loadedPlugins []*LoadedPlugin
 
 type executablePlugins []ExecutablePlugin
 
@@ -173,6 +173,8 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 	lPlugin.Token = resp.Token
 	lPlugin.LoadedTime = time.Now()
 	lPlugin.State = LoadedState
+
+	p.LoadedPlugins = append(p.LoadedPlugins, lPlugin)
 
 	/*
 
