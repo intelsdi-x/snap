@@ -14,17 +14,12 @@ func (p *pluginControl) UnloadPlugin(lPlugin *LoadedPlugin) error {
 		return errors.New("Plugin must be in a LoadedState")
 	}
 
-	var pluginRemoved = false
 	for i, lp := range p.LoadedPlugins {
 		if lp == lPlugin {
-			pluginRemoved = true
 			p.LoadedPlugins = append(p.LoadedPlugins[:i], p.LoadedPlugins[i+1:]...)
+			return nil
 		}
 	}
 
-	if !pluginRemoved {
-		return errors.New("Must load plugin before calling Unload()")
-	}
-
-	return nil
+	return errors.New("Must load plugin before calling Unload()")
 }
