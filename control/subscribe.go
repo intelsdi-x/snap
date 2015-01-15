@@ -64,26 +64,27 @@ func (s *subscriptions) Init() {
 
 // atomically increments a metric's subscription count in the table
 // if the key does not exist, it is added with a count of 1
-func (s *subscriptions) Subscribe(key string) {
+func (s *subscriptions) Subscribe(key string) int {
 	s.Lock()
+	defer s.Unlock()
 	if _, ok := (*s.table)[key]; !ok {
 		*s.keys = append(*s.keys, key)
 	}
 	(*s.table)[key]++
-	s.Unlock()
+	return (*s.table)[key]
 }
 
 // atomically decrements a metric's count in the table
 // if the key does not exist, or the count is already zero,
 // an error is returned
-func (s *subscriptions) Unsubscribe(key string) error {
+func (s *subscriptions) Unsubscribe(key string) (int, error) {
 	s.Lock()
 	defer s.Unlock()
 	if (*s.table)[key] == 0 {
-		return errors.New("subscription count cannot be less than 0 for key " + key)
+		return 0, errors.New("subscription count cannot be less than 0 for key " + key)
 	}
 	(*s.table)[key]--
-	return nil
+	return (*s.table)[key], nil
 }
 
 // returns the current subscription count of a key

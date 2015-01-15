@@ -217,3 +217,27 @@ func TestWaitForPluginResponse(t *testing.T) {
 
 	})
 }
+
+func TestSubscribeMetric(t *testing.T) {
+	Convey("adds a subscription", t, func() {
+		c := Control()
+		c.SubscribeMetric([]string{"test", "foo"})
+		So(c.subscriptions.Count("test.foo"), ShouldEqual, 1)
+	})
+}
+
+func TestUnsubscribeMetric(t *testing.T) {
+	c := Control()
+	Convey("When no error is returned", t, func() {
+		c.SubscribeMetric([]string{"test", "foo"})
+		Convey("it decrements a metric's subscriptions", func() {
+			c.UnsubscribeMetric([]string{"test", "foo"})
+			So(c.subscriptions.Count("test.foo"), ShouldEqual, 0)
+		})
+	})
+	Convey("When an error is returned", t, func() {
+		Convey("it panics", func() {
+			So(func() { c.UnsubscribeMetric([]string{"test", "bar"}) }, ShouldPanic)
+		})
+	})
+}
