@@ -120,12 +120,12 @@ func TestNewExecutablePlugin(t *testing.T) {
 }
 
 func TestWaitForPluginResponse(t *testing.T) {
-	Convey(".waitForResponse", t, func() {
+	Convey(".WaitForResponse", t, func() {
 		Convey("called with PluginExecutor that returns a valid response", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.Response = "{}"
 			mockExecutor.WaitTime = time.Millisecond * 1
-			resp, err := waitForResponse(mockExecutor, time.Millisecond*100)
+			resp, err := plugin.WaitForResponse(mockExecutor, time.Millisecond*100)
 
 			Convey("The PluginExecutor.Kill() should not be called", func() {
 				So(mockExecutor.Killed, ShouldEqual, false)
@@ -145,7 +145,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.Response = "junk"
 			mockExecutor.WaitTime = time.Millisecond * 1000
-			resp, err := waitForResponse(mockExecutor, time.Millisecond*100)
+			resp, err := plugin.WaitForResponse(mockExecutor, time.Millisecond*100)
 
 			Convey("The PluginExecutor.Kill() should be called", func() {
 				So(mockExecutor.Killed, ShouldEqual, true)
@@ -167,7 +167,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor.WaitTime = time.Millisecond * 100
 			mockExecutor.WaitError = errors.New("Exit 127")
 			Convey("when control.WaitForPluginResponse is passed the PluginExecutor", func() {
-				resp, err := waitForResponse(mockExecutor, time.Second*10)
+				resp, err := plugin.WaitForResponse(mockExecutor, time.Second*10)
 
 				Convey("The PluginExecutor.Kill() should not be called", func() {
 					So(mockExecutor.Killed, ShouldEqual, false)
@@ -188,7 +188,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 		Convey("called with PluginExecutor that will run longer than timeout without responding", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Second * 120
-			resp, err := waitForResponse(mockExecutor, time.Millisecond*10)
+			resp, err := plugin.WaitForResponse(mockExecutor, time.Millisecond*10)
 
 			Convey("The PluginExecutor.Kill() should be called", func() {
 				So(mockExecutor.Killed, ShouldEqual, true)
