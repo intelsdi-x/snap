@@ -105,7 +105,7 @@ func TestStop(t *testing.T) {
 
 func TestNewExecutablePlugin(t *testing.T) {
 	Convey("pluginControl.WaitForResponse", t, func() {
-		ex, err := newExecutablePlugin(Control(), "/foo/bar", false)
+		ex, err := plugin.NewExecutablePlugin(Control(), "/foo/bar", false)
 
 		Convey("returns ExecutablePlugin", func() {
 			So(ex, ShouldNotBeNil)

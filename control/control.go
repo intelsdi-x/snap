@@ -33,7 +33,7 @@ type pluginType int
 
 type loadedPlugins []LoadedPlugin
 
-type executablePlugins []ExecutablePlugin
+type executablePlugins []plugin.ExecutablePlugin
 
 // A interface representing an executable plugin.
 type PluginExecutor interface {
@@ -133,7 +133,7 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 	// Create a new Executable plugin
 	//
 	// In this case we only support Linux right now
-	ePlugin, err := newExecutablePlugin(p, lPlugin.Path, false)
+	ePlugin, err := plugin.NewExecutablePlugin(p, lPlugin.Path, false)
 
 	// If error then log and return
 	if err != nil {
