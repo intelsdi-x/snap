@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os/exec"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -233,27 +232,4 @@ func waitForResponse(p PluginExecutor, timeout time.Duration) (*plugin.Response,
 	}
 	// Return response
 	return resp, nil
-}
-
-// Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
-func newExecutablePlugin(p *pluginControl, path string, daemon bool) (*ExecutablePlugin, error) {
-	jsonArgs, err := json.Marshal(p.GenerateArgs(daemon))
-	if err != nil {
-		return nil, err
-	}
-	// Init the cmd
-	cmd := new(exec.Cmd)
-	cmd.Path = path
-	cmd.Args = []string{path, string(jsonArgs)}
-	// Link the stdout for response reading
-	stdout, err2 := cmd.StdoutPipe()
-	if err2 != nil {
-		return nil, err2
-	}
-	// Init the ExecutablePlugin and return
-	ePlugin := new(ExecutablePlugin)
-	ePlugin.cmd = cmd
-	ePlugin.stdout = stdout
-
-	return ePlugin, nil
 }
