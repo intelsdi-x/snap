@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/intelsdilabs/gomit"
+	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"io"
 	"log"
@@ -62,7 +62,7 @@ type pluginControl struct {
 
 	controlPrivKey *rsa.PrivateKey
 	controlPubKey  *rsa.PublicKey
-	eventManager   *EventController
+	eventManager   *gomit.EventController
 }
 
 func (p *pluginControl) GenerateArgs(daemon bool) plugin.Arg {
@@ -76,7 +76,7 @@ func (p *pluginControl) GenerateArgs(daemon bool) plugin.Arg {
 
 func Control() *pluginControl {
 	c := new(pluginControl)
-	c.eventManager = new(EventController)
+	c.eventManager = new(gomit.EventController)
 
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
