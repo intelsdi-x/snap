@@ -25,3 +25,4 @@ _testmain.go
 tmp/
 scratch/
 build/
+*.swp

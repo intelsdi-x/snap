@@ -1,10 +1,16 @@
 package core
 
+const (
+	Unloaded     = "Control.PluginUnloaded"
+	Subscribed   = "Control.MetricSubscribed"
+	Unsubscribed = "Control.MetricUnsubscribed"
+)
+
 type UnloadPluginEvent struct {
 }
 
 func (e *UnloadPluginEvent) Namespace() string {
-	return "Control.Plugin"
+	return Unloaded
 }
 
 type SubscriptionEvent struct {
@@ -13,7 +19,7 @@ type SubscriptionEvent struct {
 }
 
 func (se *SubscriptionEvent) Namespace() string {
-	return "Control.MetricSubscribed"
+	return Subscribed
 }
 
 type UnsubscriptionEvent struct {
@@ -22,5 +28,5 @@ type UnsubscriptionEvent struct {
 }
 
 func (ue *UnsubscriptionEvent) Namespace() string {
-	return "Control.MetricUnsubscribed"
+	return Unsubscribed
 }
