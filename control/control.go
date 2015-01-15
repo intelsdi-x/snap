@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
@@ -28,7 +29,7 @@ type pluginState string
 
 type pluginType int
 
-type loadedPlugins []LoadedPlugin
+type loadedPlugins []*LoadedPlugin
 
 type executablePlugins []plugin.ExecutablePlugin
 
@@ -47,11 +48,11 @@ type pluginControl struct {
 	LoadedPlugins  loadedPlugins
 	RunningPlugins executablePlugins
 	Started        bool
-
 	// loadRequestsChan chan LoadedPlugin
 
 	controlPrivKey *rsa.PrivateKey
 	controlPubKey  *rsa.PublicKey
+	eventManager   *gomit.EventController
 }
 
 func (p *pluginControl) GenerateArgs(daemon bool) plugin.Arg {
@@ -65,6 +66,8 @@ func (p *pluginControl) GenerateArgs(daemon bool) plugin.Arg {
 
 func Control() *pluginControl {
 	c := new(pluginControl)
+	c.eventManager = new(gomit.EventController)
+
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
 
@@ -162,6 +165,8 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 	lPlugin.Token = resp.Token
 	lPlugin.LoadedTime = time.Now()
 	lPlugin.State = LoadedState
+
+	p.LoadedPlugins = append(p.LoadedPlugins, lPlugin)
 
 	/*
 
