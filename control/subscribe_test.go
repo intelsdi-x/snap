@@ -1,6 +1,7 @@
 package control
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -48,17 +49,19 @@ func TestUnsubscribe(t *testing.T) {
 		})
 	})
 	Convey("when the metric is not in the table", t, func() {
-		Convey("then it returns an error", func() {
+		Convey("then it returns the correct error", func() {
 			err := s.Unsubscribe("test.bar")
 			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("subscription count cannot be less than 0 for key test.bar"))
 		})
 	})
 	Convey("when the metric's count is already 0", t, func() {
 		s.Subscribe("test.bar")
 		s.Unsubscribe("test.bar")
-		Convey("then it returns an error", func() {
+		Convey("then it returns the correct error", func() {
 			err := s.Unsubscribe("test.bar")
 			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, errors.New("subscription count cannot be less than 0 for key test.bar"))
 		})
 	})
 }
