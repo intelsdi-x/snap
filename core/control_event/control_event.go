@@ -14,7 +14,6 @@ func (e *UnloadPluginEvent) Namespace() string {
 }
 
 type MetricSubscriptionEvent struct {
-	Count           int
 	MetricNamespace []string
 }
 
@@ -23,7 +22,6 @@ func (se *MetricSubscriptionEvent) Namespace() string {
 }
 
 type MetricUnsubscriptionEvent struct {
-	Count           int
 	MetricNamespace []string
 }
 
