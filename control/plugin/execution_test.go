@@ -32,7 +32,7 @@ type MockPluginExecutor struct {
 }
 
 // Mock
-func (m *MockPluginExecutor) Wait() error {
+func (m *MockPluginExecutor) WaitForExit() error {
 	t := time.Now()
 
 	// Loop until wait time expired

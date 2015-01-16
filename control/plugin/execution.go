@@ -18,7 +18,7 @@ type ExecutablePlugin struct {
 // A interface representing an executable plugin.
 type pluginExecutor interface {
 	Kill() error
-	Wait() error
+	WaitForExit() error
 	ResponseReader() io.Reader
 }
 
@@ -37,7 +37,7 @@ func (e *ExecutablePlugin) Kill() error {
 }
 
 // Waits for plugin to halt. If error is returned then plugin stopped with error. If not plugin stopped safely.
-func (e *ExecutablePlugin) Wait() error {
+func (e *ExecutablePlugin) WaitForExit() error {
 	return e.cmd.Wait()
 }
 
@@ -101,7 +101,7 @@ func WaitForResponse(p pluginExecutor, timeout time.Duration) (*Response, error)
 	}()
 
 	// Wait for PluginExecutor to respond
-	err := p.Wait()
+	err := p.WaitForExit()
 	// Return top level error
 	if jsonErr != nil {
 		return nil, jsonErr
