@@ -3,7 +3,7 @@ package control
 
 import (
 	"errors"
-	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
 func (p *pluginControl) UnloadPlugin(lPlugin *LoadedPlugin) error {
@@ -18,7 +18,7 @@ func (p *pluginControl) UnloadPlugin(lPlugin *LoadedPlugin) error {
 	for i, lp := range p.LoadedPlugins {
 		if lp == lPlugin {
 			p.LoadedPlugins = append(p.LoadedPlugins[:i], p.LoadedPlugins[i+1:]...)
-			event := new(core.UnloadPluginEvent)
+			event := new(control_event.UnloadPluginEvent)
 			defer p.eventManager.Emit(event)
 			return nil
 		}
