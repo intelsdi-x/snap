@@ -1,32 +1,32 @@
 package control_event
 
 const (
-	Unloaded     = "Control.PluginUnloaded"
-	Subscribed   = "Control.MetricSubscribed"
-	Unsubscribed = "Control.MetricUnsubscribed"
+	PluginUnloaded     = "Control.PluginUnloaded"
+	MetricSubscribed   = "Control.MetricSubscribed"
+	MetricUnsubscribed = "Control.MetricUnsubscribed"
 )
 
 type UnloadPluginEvent struct {
 }
 
 func (e *UnloadPluginEvent) Namespace() string {
-	return Unloaded
+	return PluginUnloaded
 }
 
-type SubscriptionEvent struct {
+type MetricSubscriptionEvent struct {
 	Count           int
 	MetricNamespace []string
 }
 
-func (se *SubscriptionEvent) Namespace() string {
-	return Subscribed
+func (se *MetricSubscriptionEvent) Namespace() string {
+	return MetricSubscribed
 }
 
-type UnsubscriptionEvent struct {
+type MetricUnsubscriptionEvent struct {
 	Count           int
 	MetricNamespace []string
 }
 
-func (ue *UnsubscriptionEvent) Namespace() string {
-	return Unsubscribed
+func (ue *MetricUnsubscriptionEvent) Namespace() string {
+	return MetricUnsubscribed
 }

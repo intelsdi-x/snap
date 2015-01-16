@@ -187,9 +187,9 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 
 // subscribes a metric
 func (p *pluginControl) SubscribeMetric(metric []string) {
-	key := strings.Join(metric, ".")
+	key := getMetricKey(metric)
 	count := p.subscriptions.Subscribe(key)
-	e := &control_event.SubscriptionEvent{
+	e := &control_event.MetricSubscriptionEvent{
 		MetricNamespace: metric,
 		Count:           count,
 	}
@@ -198,15 +198,19 @@ func (p *pluginControl) SubscribeMetric(metric []string) {
 
 // unsubscribes a metric
 func (p *pluginControl) UnsubscribeMetric(metric []string) {
-	key := strings.Join(metric, ".")
+	key := getMetricKey(metric)
 	count, err := p.subscriptions.Unsubscribe(key)
 	if err != nil {
 		// panic because if a metric falls below 0, something bad has happened
 		panic(err.Error())
 	}
-	e := &control_event.UnsubscriptionEvent{
+	e := &control_event.MetricUnsubscriptionEvent{
 		MetricNamespace: metric,
 		Count:           count,
 	}
 	defer p.eventManager.Emit(e)
+}
+
+func getMetricKey(metric []string) string {
+	return strings.Join(metric, ".")
 }
