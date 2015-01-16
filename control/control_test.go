@@ -2,8 +2,6 @@ package control
 
 import (
 	"fmt"
-	"os"
-	"path"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -19,12 +17,6 @@ type MockPluginExecutor struct {
 	WaitError       error
 	WaitForResponse func(time.Duration) (*plugin.Response, error)
 }
-
-var (
-	PluginName = "pulse-collector-dummy"
-	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
-)
 
 // Uses the dummy collector plugin to simulate Loading
 func TestLoad(t *testing.T) {
