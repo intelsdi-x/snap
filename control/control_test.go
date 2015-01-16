@@ -23,7 +23,7 @@ type MockPluginExecutor struct {
 var (
 	PluginName = "pulse-collector-dummy"
 	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy")
+	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
 )
 
 // Uses the dummy collector plugin to simulate Loading
