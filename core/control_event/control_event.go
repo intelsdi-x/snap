@@ -1,4 +1,4 @@
-package core
+package control_event
 
 const (
 	Unloaded     = "Control.PluginUnloaded"
