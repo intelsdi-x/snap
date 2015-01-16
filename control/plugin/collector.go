@@ -97,6 +97,6 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 		}
 		resp := sessionState.GenerateResponse(r)
 		fmt.Print(string(resp))
-		os.Exit(0)
 	}
+	os.Exit(0)
 }
