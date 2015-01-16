@@ -16,7 +16,7 @@ type ExecutablePlugin struct {
 }
 
 // A interface representing an executable plugin.
-type PluginExecutor interface {
+type pluginExecutor interface {
 	Kill() error
 	Wait() error
 	ResponseReader() io.Reader
@@ -70,7 +70,7 @@ func NewExecutablePlugin(c ExecutablePluginController, path string, daemon bool)
 }
 
 // Wait for response from started ExecutablePlugin. Returns Response or error.
-func WaitForResponse(p PluginExecutor, timeout time.Duration) (*Response, error) {
+func WaitForResponse(p pluginExecutor, timeout time.Duration) (*Response, error) {
 	// The response we want to return
 
 	var resp *Response = new(Response)
