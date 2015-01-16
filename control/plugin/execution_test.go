@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"os"
-	"path"
+	// "os"
+	// "path"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -33,11 +33,11 @@ type MockPluginExecutor struct {
 	WaitForResponse func(time.Duration) (Response, error)
 }
 
-var (
-	PluginName = "pulse-collector-dummy"
-	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy")
-)
+// var (
+// 	PluginName = "pulse-collector-dummy"
+// 	PulsePath  = os.Getenv("PULSE_PATH")
+// 	PluginPath = path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy")
+// )
 
 // Mock
 func (m *MockPluginExecutor) Wait() error {

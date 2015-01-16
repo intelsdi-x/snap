@@ -1,18 +1,29 @@
 package control
 
 import (
-	"github.com/intelsdilabs/gomit"
-
 	"errors"
+
+	"github.com/intelsdilabs/gomit"
+	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
-var (
+const (
 	HandlerRegistrationName = "control.runner"
+
+	// availablePlugin States
+	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
 )
+
+type availablePluginState int
 
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type Runner struct {
 	delegates []gomit.Delegator
+}
+
+// Representing a plugin running and available to execute calls against.
+type availablePlugin struct {
+	State availablePluginState
 }
 
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
@@ -54,11 +65,23 @@ func (r *Runner) Stop() []error {
 	return errs
 }
 
-// Start a RunnablePlugin returning details on the RunningState
-func StartPlugin() {}
+// Start and return an availablePlugin or error.
+func startPlugin(p plugin.PluginExecutor) (availablePlugin, error) {
+	// Start plugin in daemon mode
+
+	// Wait for plugin response
+
+	// Ask for metric inventory
+
+	// build availablePlugin
+	ap := availablePlugin{}
+	// return availablePlugin
+
+	return ap, nil
+}
 
 // Halt a RunnablePlugin
-func StopPlugin() {}
+func stopPlugin() {}
 
 // Empty handler acting as placeholder until implementation. This helps tests
 // pass to ensure registration works.

@@ -1,12 +1,40 @@
 package control
 
 import (
-	"github.com/intelsdilabs/gomit"
-
 	"errors"
-	. "github.com/smartystreets/goconvey/convey"
+	"io"
 	"testing"
+
+	"github.com/intelsdilabs/gomit"
+	"github.com/intelsdilabs/pulse/control/plugin"
+	. "github.com/smartystreets/goconvey/convey"
 )
+
+type MockController struct {
+}
+
+func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
+	a := plugin.Arg{
+		PluginLogPath: "/tmp",
+		RunAsDaemon:   daemon,
+	}
+	return a
+}
+
+type MockExecutablePlugin struct {
+}
+
+func (m *MockExecutablePlugin) ResponseReader() io.Reader {
+	return nil
+}
+
+func (m *MockExecutablePlugin) Kill() error {
+	return nil
+}
+
+func (m *MockExecutablePlugin) Wait() error {
+	return nil
+}
 
 type MockHandlerDelegate struct {
 	ErrorMode       bool
@@ -39,8 +67,7 @@ func (m *MockHandlerDelegate) IsHandlerRegistered(s string) bool {
 	return false
 }
 
-// Uses the dummy collector plugin to simulate Loading
-func TestRunner(t *testing.T) {
+func TestRunnerState(t *testing.T) {
 	Convey("pulse/control", t, func() {
 
 		Convey("Runner", func() {
@@ -161,6 +188,30 @@ func TestRunner(t *testing.T) {
 
 			})
 
+		})
+	})
+}
+
+func TestRunnerPluginRunning(t *testing.T) {
+	Convey("pulse/control", t, func() {
+
+		Convey("Runner", func() {
+			Convey("startPlugin", func() {
+
+				Convey("Should return an AvailablePlugin in a Running state", func() {
+					exPlugin := new(MockExecutablePlugin)
+					ap, e := startPlugin(exPlugin)
+
+					So(ap, ShouldNotBeNil)
+					So(ap.State, ShouldEqual, PluginRunning)
+					So(e, ShouldBeNil)
+				})
+
+			})
+
+			Convey("stopPlugin", func() {
+
+			})
 		})
 	})
 }
