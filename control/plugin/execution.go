@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"os/exec"
 	"time"
 )
@@ -22,12 +23,9 @@ type pluginExecutor interface {
 	ResponseReader() io.Reader
 }
 
-type ExecutablePluginController interface {
-	GenerateArgs(bool) Arg
-}
-
 // Starts the plugin and returns error if one ocurred. This is non blocking.
 func (e *ExecutablePlugin) Start() error {
+	log.Println(e.cmd.Path)
 	return e.cmd.Start()
 }
 
@@ -47,8 +45,10 @@ func (e *ExecutablePlugin) ResponseReader() io.Reader {
 }
 
 // Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
-func NewExecutablePlugin(c ExecutablePluginController, path string, daemon bool) (*ExecutablePlugin, error) {
-	jsonArgs, err := json.Marshal(c.GenerateArgs(daemon))
+func NewExecutablePlugin(a Arg, path string, daemon bool) (*ExecutablePlugin, error) {
+	a.RunAsDaemon = daemon // override args with function arg to esnure they match
+
+	jsonArgs, err := json.Marshal(a)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +69,10 @@ func NewExecutablePlugin(c ExecutablePluginController, path string, daemon bool)
 	return ePlugin, nil
 }
 
+func (e *ExecutablePlugin) WaitForResponse(timeout time.Duration) (*Response, error) {
+	return WaitForResponse(e, timeout)
+}
+
 // Wait for response from started ExecutablePlugin. Returns Response or error.
 func WaitForResponse(p pluginExecutor, timeout time.Duration) (*Response, error) {
 	// The response we want to return
@@ -79,8 +83,9 @@ func WaitForResponse(p pluginExecutor, timeout time.Duration) (*Response, error)
 
 	// Kill on timeout
 	go func() {
+		log.Println(timeout)
 		time.Sleep(timeout)
-		timeoutErr = errors.New("Timeout waiting for response")
+		timeoutErr = errors.New("timeout waiting for response")
 		p.Kill()
 		return
 	}()
@@ -112,7 +117,7 @@ func WaitForResponse(p pluginExecutor, timeout time.Duration) (*Response, error)
 	}
 	// Return pExecutor.Wait() error
 	if err != nil {
-		// log.Printf("[CONTROL] Plugin stopped with error [%v]\n", err)
+		log.Printf("[CONTROL] Plugin stopped with error [%v]\n", err)
 		return nil, err
 	}
 	// Return response

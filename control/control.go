@@ -55,15 +55,6 @@ type pluginControl struct {
 	eventManager   *gomit.EventController
 }
 
-func (p *pluginControl) GenerateArgs(daemon bool) plugin.Arg {
-	a := plugin.Arg{
-		ControlPubKey: p.controlPubKey,
-		PluginLogPath: "/tmp",
-		RunAsDaemon:   daemon,
-	}
-	return a
-}
-
 func Control() *pluginControl {
 	c := new(pluginControl)
 	c.eventManager = new(gomit.EventController)
@@ -126,7 +117,7 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 	// Create a new Executable plugin
 	//
 	// In this case we only support Linux right now
-	ePlugin, err := plugin.NewExecutablePlugin(p, lPlugin.Path, false)
+	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(), lPlugin.Path, false)
 
 	// If error then log and return
 	if err != nil {
@@ -177,4 +168,12 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 	*/
 
 	return lPlugin, err
+}
+
+func (p *pluginControl) generateArgs() plugin.Arg {
+	a := plugin.Arg{
+		ControlPubKey: p.controlPubKey,
+		PluginLogPath: "/tmp",
+	}
+	return a
 }

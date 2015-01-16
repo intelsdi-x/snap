@@ -5,19 +5,26 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
+	"path"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
+var (
+	PluginName = "pulse-collector-dummy"
+	PulsePath  = os.Getenv("PULSE_PATH")
+	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
+)
+
 type MockController struct {
 }
 
-func (p *MockController) GenerateArgs(daemon bool) Arg {
+func (p *MockController) GenerateArgs() Arg {
 	a := Arg{
 		PluginLogPath: "/tmp",
-		RunAsDaemon:   daemon,
 	}
 	return a
 }
@@ -61,7 +68,8 @@ func (m *MockPluginExecutor) ResponseReader() io.Reader {
 func TestNewExecutablePlugin(t *testing.T) {
 	Convey("pluginControl.WaitForResponse", t, func() {
 		c := new(MockController)
-		ex, err := NewExecutablePlugin(c, "/foo/bar", false)
+
+		ex, err := NewExecutablePlugin(c.GenerateArgs(), "/foo/bar", false)
 
 		Convey("returns ExecutablePlugin", func() {
 			So(ex, ShouldNotBeNil)
@@ -156,9 +164,22 @@ func TestWaitForPluginResponse(t *testing.T) {
 
 			Convey("Returns error", func() {
 				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, "Timeout waiting for response")
+				So(err.Error(), ShouldEqual, "timeout waiting for response")
 			})
 		})
+
+		// These tests don't mock and directly use dummy collector plugin
+		// They require pulse path being set and a recent build of the plugin
+		if PluginPath != "" {
+			Convey("dummy", func() {
+				m := new(MockController)
+				_, err := NewExecutablePlugin(m.GenerateArgs(), PluginPath, false)
+				if err != nil {
+					panic(err)
+				}
+
+			})
+		}
 
 	})
 }
