@@ -5,10 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/intelsdilabs/gomit"
+
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
 // control private key (RSA private key)
@@ -53,11 +56,14 @@ type pluginControl struct {
 	controlPrivKey *rsa.PrivateKey
 	controlPubKey  *rsa.PublicKey
 	eventManager   *gomit.EventController
+	subscriptions  *subscriptions
 }
 
 func Control() *pluginControl {
 	c := new(pluginControl)
 	c.eventManager = new(gomit.EventController)
+	c.subscriptions = new(subscriptions)
+	c.subscriptions.Init()
 
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -176,4 +182,32 @@ func (p *pluginControl) generateArgs() plugin.Arg {
 		PluginLogPath: "/tmp",
 	}
 	return a
+}
+
+// subscribes a metric
+func (p *pluginControl) SubscribeMetric(metric []string) {
+	key := getMetricKey(metric)
+	p.subscriptions.Subscribe(key)
+	e := &control_event.MetricSubscriptionEvent{
+		MetricNamespace: metric,
+	}
+	defer p.eventManager.Emit(e)
+}
+
+// unsubscribes a metric
+func (p *pluginControl) UnsubscribeMetric(metric []string) {
+	key := getMetricKey(metric)
+	err := p.subscriptions.Unsubscribe(key)
+	if err != nil {
+		// panic because if a metric falls below 0, something bad has happened
+		panic(err.Error())
+	}
+	e := &control_event.MetricUnsubscriptionEvent{
+		MetricNamespace: metric,
+	}
+	defer p.eventManager.Emit(e)
+}
+
+func getMetricKey(metric []string) string {
+	return strings.Join(metric, ".")
 }

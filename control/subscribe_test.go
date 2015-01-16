@@ -51,7 +51,6 @@ func TestUnsubscribe(t *testing.T) {
 	Convey("when the metric is not in the table", t, func() {
 		Convey("then it returns the correct error", func() {
 			err := s.Unsubscribe("test.bar")
-			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("subscription count cannot be less than 0 for key test.bar"))
 		})
 	})
@@ -60,7 +59,6 @@ func TestUnsubscribe(t *testing.T) {
 		s.Unsubscribe("test.bar")
 		Convey("then it returns the correct error", func() {
 			err := s.Unsubscribe("test.bar")
-			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, errors.New("subscription count cannot be less than 0 for key test.bar"))
 		})
 	})
