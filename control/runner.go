@@ -2,8 +2,10 @@ package control
 
 import (
 	"errors"
+	"time"
 
 	"github.com/intelsdilabs/gomit"
+
 	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
@@ -23,7 +25,15 @@ type Runner struct {
 
 // Representing a plugin running and available to execute calls against.
 type availablePlugin struct {
-	State availablePluginState
+	State    availablePluginState
+	Response *plugin.Response
+}
+
+// TBD
+type executablePlugin interface {
+	Start() error
+	Kill() error
+	WaitForResponse(time.Duration) (*plugin.Response, error)
 }
 
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
@@ -66,15 +76,30 @@ func (r *Runner) Stop() []error {
 }
 
 // Start and return an availablePlugin or error.
-func startPlugin(p plugin.PluginExecutor) (availablePlugin, error) {
+func startPlugin(p executablePlugin) (*availablePlugin, error) {
 	// Start plugin in daemon mode
+	p.Start()
 
 	// Wait for plugin response
+	resp, err := p.WaitForResponse(time.Second * 3)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp == nil {
+		return nil, errors.New("no reponse object returned from plugin")
+	}
+
+	if resp.State != plugin.PluginSuccess {
+		return nil, errors.New("plugin could not start error: " + resp.ErrorMessage)
+	}
 
 	// Ask for metric inventory
 
 	// build availablePlugin
-	ap := availablePlugin{}
+	ap := new(availablePlugin)
+	ap.Response = resp
+
 	// return availablePlugin
 
 	return ap, nil

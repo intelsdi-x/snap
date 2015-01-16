@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -22,9 +23,15 @@ func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
 }
 
 type MockExecutablePlugin struct {
+	Timeout     bool
+	NilResponse bool
 }
 
 func (m *MockExecutablePlugin) ResponseReader() io.Reader {
+	return nil
+}
+
+func (m *MockExecutablePlugin) Start() error {
 	return nil
 }
 
@@ -34,6 +41,20 @@ func (m *MockExecutablePlugin) Kill() error {
 
 func (m *MockExecutablePlugin) Wait() error {
 	return nil
+}
+
+func (m *MockExecutablePlugin) WaitForResponse(t time.Duration) (*plugin.Response, error) {
+	if m.Timeout {
+		return nil, errors.New("timeout")
+	}
+
+	if m.NilResponse {
+		return nil, nil
+	}
+
+	resp := new(plugin.Response)
+	resp.Type = plugin.CollectorPluginType
+	return resp, nil
 }
 
 type MockHandlerDelegate struct {
@@ -198,13 +219,31 @@ func TestRunnerPluginRunning(t *testing.T) {
 		Convey("Runner", func() {
 			Convey("startPlugin", func() {
 
-				Convey("Should return an AvailablePlugin in a Running state", func() {
+				Convey("should return an AvailablePlugin in a Running state", func() {
 					exPlugin := new(MockExecutablePlugin)
 					ap, e := startPlugin(exPlugin)
 
 					So(ap, ShouldNotBeNil)
 					So(ap.State, ShouldEqual, PluginRunning)
 					So(e, ShouldBeNil)
+				})
+
+				Convey("should return error for WaitForResponse error", func() {
+					exPlugin := new(MockExecutablePlugin)
+					exPlugin.Timeout = true // set to not response
+					ap, e := startPlugin(exPlugin)
+
+					So(ap, ShouldBeNil)
+					So(e, ShouldResemble, errors.New("timeout"))
+				})
+
+				Convey("should return error for nil availablePlugin", func() {
+					exPlugin := new(MockExecutablePlugin)
+					exPlugin.NilResponse = true // set to not response
+					ap, e := startPlugin(exPlugin)
+
+					So(ap, ShouldBeNil)
+					So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
 				})
 
 			})
