@@ -11,7 +11,7 @@ import (
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
 // control private key (RSA private key)
@@ -189,7 +189,7 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 func (p *pluginControl) SubscribeMetric(metric []string) {
 	key := strings.Join(metric, ".")
 	count := p.subscriptions.Subscribe(key)
-	e := &core.SubscriptionEvent{
+	e := &control_event.SubscriptionEvent{
 		MetricNamespace: metric,
 		Count:           count,
 	}
@@ -204,7 +204,7 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 		// panic because if a metric falls below 0, something bad has happened
 		panic(err.Error())
 	}
-	e := &core.UnsubscriptionEvent{
+	e := &control_event.UnsubscriptionEvent{
 		MetricNamespace: metric,
 		Count:           count,
 	}
