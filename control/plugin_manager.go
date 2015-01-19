@@ -46,10 +46,13 @@ func PluginManager() *pluginManager {
 	return p
 }
 
+// Start a Plugin Manager to handle load, unload, and inventory
+// requests.
 func (p *pluginManager) Start() {
 	p.Started = true
 }
 
+// Stop a Plugin Manager instance.
 func (p *pluginManager) Stop() {
 	p.Started = false
 }
@@ -63,6 +66,9 @@ func (p *pluginManager) GenerateArgs(daemon bool) plugin.Arg {
 	return a
 }
 
+// LoadPlugin is the public method to load a plugin into
+// the LoadedPlugins array and issue an event when
+// successful.
 func (p *pluginManager) LoadPlugin(path string) error {
 	if !p.Started {
 		return errors.New("Must start pluginManager before calling LoadPlugin()")
@@ -71,10 +77,12 @@ func (p *pluginManager) LoadPlugin(path string) error {
 	if err := load(p, path); err != nil {
 		return err
 	}
-
+	// defer sending event
 	return nil
 }
 
+// Load is the private method for loading a plugin and
+// saving plugin into the LoadedPlugins array
 func load(p *pluginManager, path string) error {
 	log.Printf("Attempting to load: %s\v", path)
 	lPlugin := new(LoadedPlugin)
