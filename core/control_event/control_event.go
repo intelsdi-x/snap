@@ -1,10 +1,17 @@
 package control_event
 
 const (
+	PluginLoaded       = "Control.PluginLoaded"
 	PluginUnloaded     = "Control.PluginUnloaded"
 	MetricSubscribed   = "Control.MetricSubscribed"
 	MetricUnsubscribed = "Control.MetricUnsubscribed"
 )
+
+type LoadPluginEvent struct{}
+
+func (e *LoadPluginEvent) Namespace() string {
+	return PluginLoaded
+}
 
 type UnloadPluginEvent struct {
 }

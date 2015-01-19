@@ -9,7 +9,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
 const (
@@ -37,12 +39,14 @@ type pluginManager struct {
 	LoadedPlugins loadedPlugins
 	Started       bool
 
-	privKey *rsa.PrivateKey
-	pubKey  *rsa.PublicKey
+	eventManager *gomit.EventController
+	privKey      *rsa.PrivateKey
+	pubKey       *rsa.PublicKey
 }
 
 func PluginManager() *pluginManager {
 	p := new(pluginManager)
+	p.eventManager = new(gomit.EventController)
 	return p
 }
 
@@ -78,6 +82,8 @@ func (p *pluginManager) LoadPlugin(path string) error {
 		return err
 	}
 	// defer sending event
+	event := new(control_event.LoadPluginEvent)
+	defer p.eventManager.Emit(event)
 	return nil
 }
 
