@@ -140,7 +140,7 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 
 	var resp *plugin.Response
 	// This blocks until a response or an error
-	resp, err = plugin.WaitForResponse(ePlugin, time.Second*3)
+	resp, err = ePlugin.WaitForResponse(time.Second * 3)
 	// resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
 
 	// If error then we log and return

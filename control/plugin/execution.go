@@ -125,7 +125,7 @@ func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Respon
 					3)	wait for response, on response we fire proper code to waitChannel
 
 			C. The wait behavior loops collecting
-					1)	timeout signal, this is used to mark exit as by timeout
+					1)	timeout signal, this is used to mark exit by timeout
 					2)	killed signal, signal the plugin has stopped - this exits
 						the loop for all scenarios
 					3)	response received, signal the plugin has responded - this exits
@@ -134,7 +134,7 @@ func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Respon
 	*/
 
 	// wait channel
-	waitChannel := make(chan waitSignalValue)
+	waitChannel := make(chan waitSignalValue, 3)
 
 	// send timeout signal to our channel on timeout
 	log.Println("timeout chan start")
@@ -229,13 +229,11 @@ func waitForResponseFromPlugin(r io.Reader, waitChannel chan waitSignalValue) {
 			waitChannel <- waitSignalValue{Signal: pluginResponseOk, Error: &e}
 			// exit function
 			return
-		} else {
-			// send plugin response received (valid)
-			waitChannel <- waitSignalValue{Signal: pluginResponseOk, Response: resp}
-			// exit function
-			return
 		}
-
+		// send plugin response received (valid)
+		waitChannel <- waitSignalValue{Signal: pluginResponseOk, Response: resp}
+		// exit function
+		return
 	}
 }
 
