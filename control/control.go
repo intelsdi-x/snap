@@ -20,31 +20,7 @@ import (
 // Session token = plugin seed encrypted by control private key, verified by plugin using control public key
 //
 
-const (
-	// LoadedPlugin States
-	DetectedState pluginState = "detected"
-	LoadingState  pluginState = "loading"
-	LoadedState   pluginState = "loaded"
-	UnloadedState pluginState = "unloaded"
-)
-
-type pluginState string
-
-type pluginType int
-
-type loadedPlugins []*LoadedPlugin
-
 type executablePlugins []plugin.ExecutablePlugin
-
-// Represents a plugin loaded or loading into control
-type LoadedPlugin struct {
-	Meta       plugin.PluginMeta
-	Path       string
-	Type       plugin.PluginType
-	State      pluginState
-	Token      string
-	LoadedTime time.Time
-}
 
 type pluginControl struct {
 	// TODO, going to need coordination on changing of these
