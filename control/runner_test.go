@@ -219,37 +219,48 @@ func TestRunnerPluginRunning(t *testing.T) {
 		Convey("Runner", func() {
 			Convey("startPlugin", func() {
 
-				Convey("should return an AvailablePlugin in a Running state", func() {
-					exPlugin := new(MockExecutablePlugin)
-					ap, e := startPlugin(exPlugin)
+				// These tests only work if Pulse Path is known to discover dummy plugin used for testing
+				if PulsePath != "" {
+					// Convey("should return an AvailablePlugin in a Running state", func() {
+					// 	m := new(MockController)
+					// 	exPlugin, err := plugin.NewExecutablePlugin(m, PluginPath, false)
+					// 	if err != nil {
+					// 		panic(err)
+					// 	}
 
-					So(ap, ShouldNotBeNil)
-					So(ap.State, ShouldEqual, PluginRunning)
-					So(e, ShouldBeNil)
-				})
+					// 	So(err, ShouldBeNil)
 
-				Convey("should return error for WaitForResponse error", func() {
-					exPlugin := new(MockExecutablePlugin)
-					exPlugin.Timeout = true // set to not response
-					ap, e := startPlugin(exPlugin)
+					// 	// exPlugin := new(MockExecutablePlugin)
+					// 	ap, e := startPlugin(exPlugin)
 
-					So(ap, ShouldBeNil)
-					So(e, ShouldResemble, errors.New("timeout"))
-				})
+					// 	So(e, ShouldBeNil)
+					// 	So(ap, ShouldNotBeNil)
+					// 	So(ap.State, ShouldEqual, PluginRunning)
+					// })
 
-				Convey("should return error for nil availablePlugin", func() {
-					exPlugin := new(MockExecutablePlugin)
-					exPlugin.NilResponse = true // set to not response
-					ap, e := startPlugin(exPlugin)
+					// Convey("should return error for WaitForResponse error", func() {
+					// 	exPlugin := new(MockExecutablePlugin)
+					// 	exPlugin.Timeout = true // set to not response
+					// 	ap, e := startPlugin(exPlugin)
 
-					So(ap, ShouldBeNil)
-					So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
-				})
+					// 	So(ap, ShouldBeNil)
+					// 	So(e, ShouldResemble, errors.New("timeout"))
+					// })
+
+					// Convey("should return error for nil availablePlugin", func() {
+					// 	exPlugin := new(MockExecutablePlugin)
+					// 	exPlugin.NilResponse = true // set to not response
+					// 	ap, e := startPlugin(exPlugin)
+
+					// 	So(ap, ShouldBeNil)
+					// 	So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
+					// })
+				}
 
 			})
 
 			Convey("stopPlugin", func() {
-
+				// TODO
 			})
 		})
 	})

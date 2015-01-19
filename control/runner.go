@@ -7,9 +7,12 @@ import (
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/client"
 )
 
 const (
+	DefaultClientTimeout = time.Second * 3
+
 	HandlerRegistrationName = "control.runner"
 
 	// availablePlugin States
@@ -78,12 +81,15 @@ func (r *Runner) Stop() []error {
 // Start and return an availablePlugin or error.
 func startPlugin(p executablePlugin) (*availablePlugin, error) {
 	// Start plugin in daemon mode
-	p.Start()
+	e := p.Start()
+	if e != nil {
+		return nil, errors.New("error while starting plugin: " + e.Error())
+	}
 
 	// Wait for plugin response
 	resp, err := p.WaitForResponse(time.Second * 3)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error while waiting for response: " + err.Error())
 	}
 
 	if resp == nil {
@@ -93,6 +99,19 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 	if resp.State != plugin.PluginSuccess {
 		return nil, errors.New("plugin could not start error: " + resp.ErrorMessage)
 	}
+
+	// Create RPC client
+	switch t := resp.Type; t {
+	case plugin.CollectorPluginType:
+		_, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
+		if e != nil {
+			return nil, errors.New("error while creating client connection: " + e.Error())
+		}
+	default:
+		return nil, errors.New("Cannot create a client for a plugin of the type: " + t.String())
+	}
+
+	// Ping through client
 
 	// Ask for metric inventory
 
