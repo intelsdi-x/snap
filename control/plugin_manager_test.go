@@ -43,3 +43,14 @@ func TestLoadPlugin(t *testing.T) {
 
 	}
 }
+
+func TestPluginManagerStop(t *testing.T) {
+	Convey("PluginManager.Stop", t, func() {
+		p := PluginManager()
+		p.Start()
+		Convey("stops successfully", func() {
+			p.Stop()
+			So(p.Started, ShouldBeFalse)
+		})
+	})
+}
