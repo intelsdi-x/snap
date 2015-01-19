@@ -25,29 +25,56 @@ type CollectorReply struct {
 
 // Execution method for a Collector plugin.
 func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
+
 	// TODO - Patching in logging, needs to be replaced with proper log pathing and deterministic log file naming
-	lf, err := os.OpenFile("/tmp/pulse_plugin.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		fmt.Printf("error opening file: %v", err)
+
+	// defer lf.Close()
+	// pluginLog := log.New(os.Stdout, ">>>", log.Ldate|log.Ltime)
+	// pluginLog := log.New(lf, ">>>", log.Ldate|log.Ltime)
+	// TODO
+	//
+	// pluginLog.Printf("\n")
+	// pluginLog.Printf("Starting collector plugin\n")
+	// if len(os.Args) < 2 {
+	// log.Fatalln("Pulse plugins are not started individually.")
+	// os.Exit(9)
+	// }
+	//
+	// pluginLog.Println(os.Args[0])
+	// pluginLog.Println(os.Args[1])
+	sessionState, sErr := InitSessionState(os.Args[0], os.Args[1])
+	if sErr != nil {
+		fmt.Printf("error parsing arguments: %s\n", sErr.Error())
 		os.Exit(1)
 	}
-	defer lf.Close()
-	pluginLog := log.New(lf, ">>>", log.Ldate|log.Ltime)
-	// TODO
-
-	pluginLog.Printf("\n")
-	pluginLog.Printf("Starting collector plugin\n")
-	if len(os.Args) < 2 {
-		log.Fatalln("Pulse plugins are not started individually.")
-		os.Exit(9)
+	var pluginLog *log.Logger
+	switch lp := sessionState.Arg.PluginLogPath; lp {
+	case "":
+		// Empty means use default tmp log (needs to be removed post-alpha)
+		lf, err := os.OpenFile("/tmp/pulse_plugin.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Printf("error opening log file: %v", err)
+			os.Exit(1)
+		}
+		pluginLog = log.New(lf, ">>>", log.Ldate|log.Ltime)
+	default:
+		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Printf("error opening log file (%s): %v", lp, err)
+			os.Exit(1)
+		}
+		pluginLog = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	}
 
-	var sessionState = new(SessionState)
-	sessionState = InitSessionState(os.Args[0], os.Args[1])
+	// if sErr != nil {
+	// pluginLog.Println(sErr)
+	// }
+	sessionState.LastPing = time.Now()
 
 	// Generate response
 	// We should share as much as possible here.
 
+	pluginLog.Printf("Daemon mode: %t\n", sessionState.RunAsDaemon)
 	// if not in daemon mode we don't need to setup listener
 	if sessionState.RunAsDaemon {
 		// Register the collector RPC methods from plugin implementation
@@ -69,10 +96,19 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 			Meta:  *m,
 		}
 		resp := sessionState.GenerateResponse(r)
+		pluginLog.Println(string(resp))
 		// Output response to stdout
-		fmt.Print(string(resp))
+		fmt.Println(string(resp))
+
+		// Start ping listener
+		// If it has not received a ping in N amount of time * T it quits.
+		killChan := make(chan interface{})
+
+		pluginLog.Println("Watching Ping timeout")
+		go watchLastPing(killChan, sessionState, pluginLog)
 
 		if err != nil {
+			pluginLog.Println(err.Error())
 			panic(err)
 		}
 
@@ -82,12 +118,13 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 				if err != nil {
 					panic(err)
 				}
+
+				defer conn.Close()
 				go rpc.ServeConn(conn)
 			}
 		}()
 
-		// Right now we kill after 30 seconds until heartbeat is implemented
-		time.Sleep(time.Second * 30)
+		<-killChan // Closing of channel kills
 	} else {
 		sessionState.ListenAddress = ""
 		r := Response{
@@ -98,5 +135,27 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 		resp := sessionState.GenerateResponse(r)
 		fmt.Print(string(resp))
 	}
+	pluginLog.Println("Exiting!")
 	os.Exit(0)
+}
+
+func watchLastPing(killChan chan (interface{}), s *SessionState, l *log.Logger) {
+	l.Println("Watching Ping timeout")
+	count := 0
+	for {
+		if time.Now().Sub(s.LastPing) >= PingTimeoutDuration {
+			l.Println("Ping timeout fired")
+			count++
+			if count >= PingTimeoutLimit {
+				l.Println("Ping timeout expired")
+				defer close(killChan)
+				return
+			}
+		} else {
+			// Reset count
+			count = 0
+		}
+		time.Sleep(PingTimeoutDuration)
+		l.Println("Ping timeout tick")
+	}
 }
