@@ -3,7 +3,7 @@ package plugin
 import (
 	"bufio"
 	"bytes"
-	// "errors"
+	"errors"
 	"io"
 	"os"
 	"path"
@@ -65,151 +65,135 @@ func (m *MockPluginExecutor) ResponseReader() io.Reader {
 	return reader
 }
 
-// func TestNewExecutablePlugin(t *testing.T) {
-// 	Convey("pluginControl.WaitForResponse", t, func() {
-// 		c := new(MockController)
+func TestNewExecutablePlugin(t *testing.T) {
+	Convey("pluginControl.WaitForResponse", t, func() {
+		c := new(MockController)
 
-// 		ex, err := NewExecutablePlugin(c.GenerateArgs(), "/foo/bar", false)
+		ex, err := NewExecutablePlugin(c.GenerateArgs(), "/foo/bar", false)
 
-// 		Convey("returns ExecutablePlugin", func() {
-// 			So(ex, ShouldNotBeNil)
-// 		})
+		Convey("returns ExecutablePlugin", func() {
+			So(ex, ShouldNotBeNil)
+		})
 
-// 		Convey("does not return error", func() {
-// 			So(err, ShouldBeNil)
-// 		})
+		Convey("does not return error", func() {
+			So(err, ShouldBeNil)
+		})
 
-// 	})
+	})
 
-// }
+}
 
 func TestWaitForPluginResponse(t *testing.T) {
-	Convey(".WaitForResponse", t, func() {
+	Convey(".waitHandling", t, func() {
+
 		Convey("called with PluginExecutor that returns a valid response", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.Response = "{}"
 			mockExecutor.WaitTime = time.Millisecond * 1
+			Convey("daemon mode off", func() {
+				resp, err := waitHandling(mockExecutor, time.Second*3, false)
 
-			// Convey("The PluginExecutor.Kill() should not be called", func() {
-			// 	So(mockExecutor.Killed, ShouldEqual, false)
-			// })
+				So(mockExecutor.Killed, ShouldEqual, false)
+				So(resp, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
+			Convey("daemon mode on", func() {
+				resp, err := waitHandling(mockExecutor, time.Second*3, true)
 
-			// Convey("Returns a response", func() {
-			// 	So(resp, ShouldNotBeNil)
-			// })
-
-			// Convey("Returns nil instead of error", func() {
-			// 	So(err, ShouldBeNil)
-			// })
-
+				So(mockExecutor.Killed, ShouldEqual, false)
+				So(resp, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
 		})
 
-		// Convey("called with PluginExecutor that returns an invalid response", func() {
-		// 	mockExecutor := new(MockPluginExecutor)
-		// 	mockExecutor.Response = "junk"
-		// 	mockExecutor.WaitTime = time.Millisecond * 1000
-		// 	resp, err := mockExecutor.WaitForResponse(time.Millisecond * 100)
+		Convey("called with PluginExecutor that returns an invalid response", func() {
+			mockExecutor := new(MockPluginExecutor)
+			mockExecutor.Response = "junk"
+			mockExecutor.WaitTime = time.Millisecond * 1000
 
-		// 	Convey("The PluginExecutor.Kill() should be called", func() {
-		// 		So(mockExecutor.Killed, ShouldEqual, true)
-		// 	})
+			Convey("daemon mode off", func() {
+				resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
+				So(mockExecutor.Killed, ShouldEqual, true)
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldStartWith, "JSONError")
+			})
+			Convey("daemon mode on", func() {
+				resp, err := waitHandling(mockExecutor, time.Millisecond*100, true)
+				So(mockExecutor.Killed, ShouldEqual, true)
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldStartWith, "JSONError")
+			})
+		})
 
-		// 	Convey("Returns nil response", func() {
-		// 		So(resp, ShouldBeNil)
-		// 	})
+		Convey("called with PluginExecutor that exits immediately without returning a reponse", func() {
+			mockExecutor := new(MockPluginExecutor)
+			mockExecutor.WaitTime = time.Millisecond * 100
+			mockExecutor.WaitError = errors.New("Exit 127")
+			resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
 
-		// 	Convey("Returns error", func() {
-		// 		So(err, ShouldNotBeNil)
-		// 		So(err.Error(), ShouldStartWith, "JSONError")
-		// 	})
+			So(mockExecutor.Killed, ShouldEqual, false)
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "Exit 127")
+		})
 
-		// })
+		Convey("called with PluginExecutor that will run longer than timeout without responding", func() {
+			mockExecutor := new(MockPluginExecutor)
+			mockExecutor.WaitTime = time.Second * 120
+			resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
 
-		// Convey("called with PluginExecutor that exits immediately without returning a reponse", func() {
-		// 	mockExecutor := new(MockPluginExecutor)
-		// 	mockExecutor.WaitTime = time.Millisecond * 100
-		// 	mockExecutor.WaitError = errors.New("Exit 127")
-		// 	Convey("when control.WaitForPluginResponse is passed the PluginExecutor", func() {
-		// 		resp, err := mockExecutor.WaitForResponse(time.Millisecond * 100)
+			So(mockExecutor.Killed, ShouldEqual, true)
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "timeout waiting for response")
+		})
 
-		// 		Convey("The PluginExecutor.Kill() should not be called", func() {
-		// 			So(mockExecutor.Killed, ShouldEqual, false)
-		// 		})
+		// These tests don't mock and directly use dummy collector plugin
+		// They require pulse path being set and a recent build of the plugin
+		// WIP
+		if PluginPath != "" {
+			Convey("dummy", func() {
+				m := new(MockController)
+				a := m.GenerateArgs()
+				a.PluginLogPath = ""
+				ex, err := NewExecutablePlugin(a, PluginPath, true)
+				if err != nil {
+					panic(err)
+				}
 
-		// 		Convey("Returns nil response", func() {
-		// 			So(resp, ShouldBeNil)
-		// 		})
+				ex.Start()
+				r, e := ex.WaitForResponse(time.Second * 5)
+				if r != nil {
+					println("ListenAddress: " + r.ListenAddress)
+				}
+				if e != nil {
+					println(e.Error())
+				}
 
-		// 		Convey("Returns error", func() {
-		// 			So(err, ShouldNotBeNil)
-		// 			So(err.Error(), ShouldEqual, "Exit 127")
-		// 		})
+			})
 
-		// 	})
-		// })
+			Convey("dummy2", func() {
+				m := new(MockController)
+				a := m.GenerateArgs()
+				a.PluginLogPath = ""
+				ex, err := NewExecutablePlugin(a, PluginPath, false)
+				if err != nil {
+					panic(err)
+				}
 
-		// Convey("called with PluginExecutor that will run longer than timeout without responding", func() {
-		// 	mockExecutor := new(MockPluginExecutor)
-		// 	mockExecutor.WaitTime = time.Second * 120
-		// 	resp, err := mockExecutor.WaitForResponse(time.Millisecond * 100)
+				ex.Start()
+				r, e := ex.WaitForResponse(time.Second * 5)
+				if r != nil {
+					println("ListenAddress: " + r.ListenAddress)
+				}
+				if e != nil {
+					println(e.Error())
+				}
 
-		// 	Convey("The PluginExecutor.Kill() should be called", func() {
-		// 		So(mockExecutor.Killed, ShouldEqual, true)
-		// 	})
-
-		// 	Convey("Returns nil response", func() {
-		// 		So(resp, ShouldBeNil)
-		// 	})
-
-		// 	Convey("Returns error", func() {
-		// 		So(err, ShouldNotBeNil)
-		// 		So(err.Error(), ShouldEqual, "timeout waiting for response")
-		// 	})
-		// })
-
-		// // These tests don't mock and directly use dummy collector plugin
-		// // They require pulse path being set and a recent build of the plugin
-		// if PluginPath != "" {
-		// 	Convey("dummy", func() {
-		// 		m := new(MockController)
-		// 		a := m.GenerateArgs()
-		// 		a.PluginLogPath = ""
-		// 		ex, err := NewExecutablePlugin(a, PluginPath, true)
-		// 		if err != nil {
-		// 			panic(err)
-		// 		}
-
-		// 		ex.Start()
-		// 		r, e := ex.WaitForResponse(time.Second * 5)
-		// 		if r != nil {
-		// 			println("ListenAddress: " + r.ListenAddress)
-		// 		}
-		// 		if e != nil {
-		// 			println(e.Error())
-		// 		}
-
-		// 	})
-
-		// 	Convey("dummy2", func() {
-		// 		m := new(MockController)
-		// 		a := m.GenerateArgs()
-		// 		a.PluginLogPath = ""
-		// 		ex, err := NewExecutablePlugin(a, PluginPath, false)
-		// 		if err != nil {
-		// 			panic(err)
-		// 		}
-
-		// 		ex.Start()
-		// 		r, e := ex.WaitForResponse(time.Second * 5)
-		// 		if r != nil {
-		// 			println("ListenAddress: " + r.ListenAddress)
-		// 		}
-		// 		if e != nil {
-		// 			println(e.Error())
-		// 		}
-
-		// })
-		// }
+			})
+		}
 
 	})
 }

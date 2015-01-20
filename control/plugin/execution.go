@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os/exec"
@@ -40,13 +41,13 @@ type waitSignalValue struct {
 	Error    *error
 }
 
-// Starts the plugin and returns error if one ocurred. This is non blocking.
+// Starts the plugin and returns error if one occurred. This is non blocking.
 func (e *ExecutablePlugin) Start() error {
 	log.Println(e.cmd.Path)
 	return e.cmd.Start()
 }
 
-// Kills the plugin and returns error if one ocurred. This is blocking.
+// Kills the plugin and returns error if one occurred. This is blocking.
 func (e *ExecutablePlugin) Kill() error {
 	return e.cmd.Process.Kill()
 }
@@ -160,8 +161,19 @@ func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Respon
 		switch w.Signal {
 		case pluginTimeout: // plugin timeout signal received
 			log.Println("plugin timeout signal received")
-			// set that a timeout occurred
-			timeoutFlag = true
+			// If timeout received after response we are ok with it and
+			// don't need to flip the timeout flag.
+			fmt.Println(response)
+			if response == nil {
+				log.Println("timeout flag flipped")
+				// We got a timeout without getting a response
+				// set the flag
+				timeoutFlag = true
+				// Kill the plugin. This will eventually trigger a kill signal.
+				p.Kill()
+				break
+			}
+			log.Println("timeout flag ignored because of response")
 
 		case pluginKilled: // plugin killed signal received
 			log.Println("plugin kill signal received")
@@ -174,7 +186,7 @@ func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Respon
 			// 2) If a timeout occurred we return that as error (fail)
 			if timeoutFlag {
 				log.Println("returning with error (timeout)")
-				return nil, *w.Error
+				return nil, errors.New("timeout waiting for response")
 			}
 			// 3) If a good response was returned we return that with no error (success)
 			if response != nil {
@@ -189,6 +201,7 @@ func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Respon
 			log.Println("plugin response (ok) received")
 			// If in daemon mode we can return now (succes) since the plugin will continue to run
 			// if not we let the loop continue (to wait for kill)
+			fmt.Println(response)
 			response = w.Response
 			if daemon {
 				log.Println("returning with response")
@@ -207,11 +220,11 @@ func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Respon
 func waitForPluginTimeout(timeout time.Duration, p pluginExecutor, waitChannel chan waitSignalValue) {
 	// sleep for timeout duration
 	time.Sleep(timeout)
+	// Check if waitChannel is closed. If it is we exit now.
 	// Send out timeout signal, waiting method will still wait for exit caused by p.Kill
-	e := errors.New("timeout waiting for response")
-	waitChannel <- waitSignalValue{Signal: pluginTimeout, Error: &e}
-	// Ensure this function kills the plugin
-	p.Kill()
+	// Because this channel is shared this ensures that the resulting kill signals the channel after
+	// the response has already queued across it.
+	waitChannel <- waitSignalValue{Signal: pluginTimeout}
 }
 
 func waitForResponseFromPlugin(r io.Reader, waitChannel chan waitSignalValue) {
@@ -224,9 +237,10 @@ func waitForResponseFromPlugin(r io.Reader, waitChannel chan waitSignalValue) {
 		// attempt to unmarshall into struct
 		err := json.Unmarshal(b, resp)
 		if err != nil {
+			log.Println("JSON error in response: " + err.Error())
 			e := errors.New("JSONError - " + err.Error())
 			// send plugin response received but bad
-			waitChannel <- waitSignalValue{Signal: pluginResponseOk, Error: &e}
+			waitChannel <- waitSignalValue{Signal: pluginResponseBad, Error: &e}
 			// exit function
 			return
 		}
