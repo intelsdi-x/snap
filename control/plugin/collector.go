@@ -102,7 +102,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 
 		// Start ping listener
 		// If it has not received a ping in N amount of time * T it quits.
-		killChan := make(chan interface{})
+		killChan := make(chan struct{})
 
 		pluginLog.Println("Watching Ping timeout")
 		go watchLastPing(killChan, sessionState, pluginLog)
@@ -139,7 +139,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 	os.Exit(0)
 }
 
-func watchLastPing(killChan chan (interface{}), s *SessionState, l *log.Logger) {
+func watchLastPing(killChan chan (struct{}), s *SessionState, l *log.Logger) {
 	l.Println("Watching Ping timeout")
 	count := 0
 	for {

@@ -179,7 +179,7 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 func (p *pluginControl) generateArgs() plugin.Arg {
 	a := plugin.Arg{
 		ControlPubKey: p.controlPubKey,
-		PluginLogPath: "/tmp",
+		PluginLogPath: "/tmp/pulse-test-plugin.log",
 	}
 	return a
 }
