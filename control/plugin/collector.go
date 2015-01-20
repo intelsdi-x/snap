@@ -44,23 +44,23 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 	// pluginLog.Println(os.Args[1])
 	sessionState, sErr := InitSessionState(os.Args[0], os.Args[1])
 	if sErr != nil {
-		fmt.Printf("error parsing arguments: %s\n", sErr.Error())
+		// fmt.Printf("error parsing arguments: %s\n", sErr.Error())
 		os.Exit(1)
 	}
 	var pluginLog *log.Logger
 	switch lp := sessionState.Arg.PluginLogPath; lp {
-	case "":
+	case "", "/tmp":
 		// Empty means use default tmp log (needs to be removed post-alpha)
 		lf, err := os.OpenFile("/tmp/pulse_plugin.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-			fmt.Printf("error opening log file: %v", err)
+			// fmt.Printf("error opening log file: %v", err)
 			os.Exit(1)
 		}
 		pluginLog = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	default:
 		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-			fmt.Printf("error opening log file (%s): %v", lp, err)
+			// fmt.Printf("error opening log file (%s): %v", lp, err)
 			os.Exit(1)
 		}
 		pluginLog = log.New(lf, ">>>", log.Ldate|log.Ltime)

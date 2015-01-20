@@ -238,6 +238,7 @@ func waitForResponseFromPlugin(r io.Reader, waitChannel chan waitSignalValue) {
 		err := json.Unmarshal(b, resp)
 		if err != nil {
 			log.Println("JSON error in response: " + err.Error())
+			log.Printf("response: \"%s\"\n", string(b))
 			e := errors.New("JSONError - " + err.Error())
 			// send plugin response received but bad
 			waitChannel <- waitSignalValue{Signal: pluginResponseBad, Error: &e}
