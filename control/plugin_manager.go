@@ -132,9 +132,9 @@ func load(p *pluginManager, path string) error {
 	return nil
 }
 
-func (p *pluginControl) UnloadPlugin(lPlugin *LoadedPlugin) error {
+func (p *pluginManager) UnloadPlugin(lPlugin *LoadedPlugin) error {
 	if !p.Started {
-		return errors.New("Must start plugin control before calling Load()")
+		return errors.New("Must start pluginManager before calling UnloadPlugin()")
 	}
 
 	if lPlugin.State != LoadedState {
@@ -150,5 +150,5 @@ func (p *pluginControl) UnloadPlugin(lPlugin *LoadedPlugin) error {
 		}
 	}
 
-	return errors.New("Must load plugin before calling Unload()")
+	return errors.New("Must load plugin before calling UnloadPlugin()")
 }
