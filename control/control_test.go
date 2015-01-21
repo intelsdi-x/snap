@@ -23,7 +23,7 @@ type MockPluginExecutor struct {
 var (
 	PluginName = "pulse-collector-dummy"
 	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy")
+	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
 )
 
 // Uses the dummy collector plugin to simulate Loading
@@ -51,16 +51,15 @@ func TestLoad(t *testing.T) {
 				So(err, ShouldNotBeNil)
 			})
 
-			Convey("adds to pluginControl.LoadedPlugins on successful load",
-				func() {
-					c := Control()
-					c.Start()
-					loadedPlugin, err := c.Load(PluginPath)
+			Convey("adds to pluginControl.LoadedPlugins on successful load", func() {
+				c := Control()
+				c.Start()
+				loadedPlugin, err := c.Load(PluginPath)
 
-					So(loadedPlugin, ShouldNotBeNil)
-					So(err, ShouldBeNil)
-					So(len(c.LoadedPlugins), ShouldBeGreaterThan, 0)
-				})
+				So(loadedPlugin, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+				So(len(c.LoadedPlugins), ShouldBeGreaterThan, 0)
+			})
 
 		})
 

@@ -13,13 +13,18 @@ import (
 	"testing"
 )
 
+var (
+	PluginName = "pulse-collector-dummy"
+	PulsePath  = os.Getenv("PULSE_PATH")
+	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
+)
+
 type MockController struct {
 }
 
-func (p *MockController) GenerateArgs(daemon bool) Arg {
+func (p *MockController) GenerateArgs() Arg {
 	a := Arg{
 		PluginLogPath: "/tmp",
-		RunAsDaemon:   daemon,
 	}
 	return a
 }
@@ -33,14 +38,8 @@ type MockPluginExecutor struct {
 	WaitForResponse func(time.Duration) (Response, error)
 }
 
-var (
-	PluginName = "pulse-collector-dummy"
-	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy")
-)
-
 // Mock
-func (m *MockPluginExecutor) Wait() error {
+func (m *MockPluginExecutor) WaitForExit() error {
 	t := time.Now()
 
 	// Loop until wait time expired
@@ -69,7 +68,8 @@ func (m *MockPluginExecutor) ResponseReader() io.Reader {
 func TestNewExecutablePlugin(t *testing.T) {
 	Convey("pluginControl.WaitForResponse", t, func() {
 		c := new(MockController)
-		ex, err := NewExecutablePlugin(c, "/foo/bar", false)
+
+		ex, err := NewExecutablePlugin(c.GenerateArgs(), "/foo/bar", false)
 
 		Convey("returns ExecutablePlugin", func() {
 			So(ex, ShouldNotBeNil)
@@ -84,89 +84,116 @@ func TestNewExecutablePlugin(t *testing.T) {
 }
 
 func TestWaitForPluginResponse(t *testing.T) {
-	Convey(".WaitForResponse", t, func() {
+	Convey(".waitHandling", t, func() {
+
 		Convey("called with PluginExecutor that returns a valid response", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.Response = "{}"
 			mockExecutor.WaitTime = time.Millisecond * 1
-			resp, err := WaitForResponse(mockExecutor, time.Millisecond*100)
+			Convey("daemon mode off", func() {
+				resp, err := waitHandling(mockExecutor, time.Second*3, false)
 
-			Convey("The PluginExecutor.Kill() should not be called", func() {
 				So(mockExecutor.Killed, ShouldEqual, false)
-			})
-
-			Convey("Returns a response", func() {
 				So(resp, ShouldNotBeNil)
-			})
-
-			Convey("Returns nil instead of error", func() {
 				So(err, ShouldBeNil)
 			})
+			Convey("daemon mode on", func() {
+				resp, err := waitHandling(mockExecutor, time.Second*3, true)
 
+				So(mockExecutor.Killed, ShouldEqual, false)
+				So(resp, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
 		})
 
 		Convey("called with PluginExecutor that returns an invalid response", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.Response = "junk"
 			mockExecutor.WaitTime = time.Millisecond * 1000
-			resp, err := WaitForResponse(mockExecutor, time.Millisecond*100)
 
-			Convey("The PluginExecutor.Kill() should be called", func() {
+			Convey("daemon mode off", func() {
+				resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
 				So(mockExecutor.Killed, ShouldEqual, true)
-			})
-
-			Convey("Returns nil response", func() {
 				So(resp, ShouldBeNil)
-			})
-
-			Convey("Returns error", func() {
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldStartWith, "JSONError")
 			})
-
+			Convey("daemon mode on", func() {
+				resp, err := waitHandling(mockExecutor, time.Millisecond*100, true)
+				So(mockExecutor.Killed, ShouldEqual, true)
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldStartWith, "JSONError")
+			})
 		})
 
 		Convey("called with PluginExecutor that exits immediately without returning a reponse", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Millisecond * 100
 			mockExecutor.WaitError = errors.New("Exit 127")
-			Convey("when control.WaitForPluginResponse is passed the PluginExecutor", func() {
-				resp, err := WaitForResponse(mockExecutor, time.Second*10)
+			resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
 
-				Convey("The PluginExecutor.Kill() should not be called", func() {
-					So(mockExecutor.Killed, ShouldEqual, false)
-				})
-
-				Convey("Returns nil response", func() {
-					So(resp, ShouldBeNil)
-				})
-
-				Convey("Returns error", func() {
-					So(err, ShouldNotBeNil)
-					So(err.Error(), ShouldEqual, "Exit 127")
-				})
-
-			})
+			So(mockExecutor.Killed, ShouldEqual, false)
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "Exit 127")
 		})
 
 		Convey("called with PluginExecutor that will run longer than timeout without responding", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Second * 120
-			resp, err := WaitForResponse(mockExecutor, time.Millisecond*10)
+			resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
 
-			Convey("The PluginExecutor.Kill() should be called", func() {
-				So(mockExecutor.Killed, ShouldEqual, true)
-			})
-
-			Convey("Returns nil response", func() {
-				So(resp, ShouldBeNil)
-			})
-
-			Convey("Returns error", func() {
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, "Timeout waiting for response")
-			})
+			So(mockExecutor.Killed, ShouldEqual, true)
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "timeout waiting for response")
 		})
+
+		// These tests don't mock and directly use dummy collector plugin
+		// They require pulse path being set and a recent build of the plugin
+		// WIP
+		if PluginPath != "" {
+			Convey("dummy", func() {
+				m := new(MockController)
+				a := m.GenerateArgs()
+				a.PluginLogPath = ""
+				ex, err := NewExecutablePlugin(a, PluginPath, true)
+				if err != nil {
+					panic(err)
+				}
+
+				ex.Start()
+				r, e := ex.WaitForResponse(time.Second * 5)
+				if r != nil {
+					println("ListenAddress: " + r.ListenAddress)
+				}
+				if e != nil {
+					println(e.Error())
+				}
+
+			})
+
+			Convey("dummy2", func() {
+				m := new(MockController)
+				a := m.GenerateArgs()
+				a.PluginLogPath = ""
+				ex, err := NewExecutablePlugin(a, PluginPath, false)
+				if err != nil {
+					panic(err)
+				}
+
+				ex.Start()
+				r, e := ex.WaitForResponse(time.Second * 5)
+				if r != nil {
+					println("ListenAddress: " + r.ListenAddress)
+				}
+				if e != nil {
+					println(e.Error())
+				}
+
+			})
+		}
 
 	})
 }

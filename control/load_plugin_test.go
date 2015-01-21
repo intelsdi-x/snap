@@ -44,6 +44,7 @@ func TestUnload(t *testing.T) {
 					c := Control()
 					c.Start()
 					loadedPlugin, err := c.Load(PluginPath)
+					So(err, ShouldBeNil)
 					loadedPlugin.State = DetectedState
 					err = c.UnloadPlugin(loadedPlugin)
 					So(err, ShouldResemble, errors.New("Plugin must be in a LoadedState"))

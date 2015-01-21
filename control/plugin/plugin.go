@@ -8,9 +8,16 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"time"
 )
 
 const (
+	// Timeout settings
+	// How much time must elapse before a lack of Ping results in a timeout
+	PingTimeoutDuration = time.Second * 1
+	// How many succesive PingTimeouts must occur to equal a failure.
+	PingTimeoutLimit = 10
+
 	// List of plugin type
 	CollectorPluginType PluginType = iota
 	PublisherPluginType
@@ -51,6 +58,7 @@ type SessionState struct {
 	*Arg
 	Token         string
 	ListenAddress string
+	LastPing      time.Time
 }
 
 // Arguments passed to startup of Plugin
@@ -97,9 +105,12 @@ func (s *SessionState) GenerateResponse(r Response) []byte {
 	return rs
 }
 
-func InitSessionState(path string, pluginArgsMsg string) *SessionState {
+func InitSessionState(path string, pluginArgsMsg string) (*SessionState, error) {
 	pluginArg := new(Arg)
-	json.Unmarshal([]byte(pluginArgsMsg), pluginArg)
+	err := json.Unmarshal([]byte(pluginArgsMsg), pluginArg)
+	if err != nil {
+		return nil, err
+	}
 
 	// If no port was provided we let the OS select a port for us.
 	// This is safe as address is returned in the Response and keep
@@ -113,5 +124,5 @@ func InitSessionState(path string, pluginArgsMsg string) *SessionState {
 	rand.Read(rb)
 	rs := base64.URLEncoding.EncodeToString(rb)
 
-	return &SessionState{Arg: pluginArg, Token: rs}
+	return &SessionState{Arg: pluginArg, Token: rs}, nil
 }

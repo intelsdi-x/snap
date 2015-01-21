@@ -1,12 +1,61 @@
 package control
 
 import (
-	"github.com/intelsdilabs/gomit"
-
 	"errors"
-	. "github.com/smartystreets/goconvey/convey"
+	"io"
 	"testing"
+	"time"
+
+	"github.com/intelsdilabs/gomit"
+	"github.com/intelsdilabs/pulse/control/plugin"
+	. "github.com/smartystreets/goconvey/convey"
 )
+
+type MockController struct {
+}
+
+func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
+	a := plugin.Arg{
+		PluginLogPath: "/tmp",
+		RunAsDaemon:   daemon,
+	}
+	return a
+}
+
+type MockExecutablePlugin struct {
+	Timeout     bool
+	NilResponse bool
+}
+
+func (m *MockExecutablePlugin) ResponseReader() io.Reader {
+	return nil
+}
+
+func (m *MockExecutablePlugin) Start() error {
+	return nil
+}
+
+func (m *MockExecutablePlugin) Kill() error {
+	return nil
+}
+
+func (m *MockExecutablePlugin) Wait() error {
+	return nil
+}
+
+func (m *MockExecutablePlugin) WaitForResponse(t time.Duration) (*plugin.Response, error) {
+	if m.Timeout {
+		return nil, errors.New("timeout")
+	}
+
+	if m.NilResponse {
+		return nil, nil
+	}
+
+	resp := new(plugin.Response)
+	resp.Type = plugin.CollectorPluginType
+	return resp, nil
+}
 
 type MockHandlerDelegate struct {
 	ErrorMode       bool
@@ -39,8 +88,7 @@ func (m *MockHandlerDelegate) IsHandlerRegistered(s string) bool {
 	return false
 }
 
-// Uses the dummy collector plugin to simulate Loading
-func TestRunner(t *testing.T) {
+func TestRunnerState(t *testing.T) {
 	Convey("pulse/control", t, func() {
 
 		Convey("Runner", func() {
@@ -161,6 +209,59 @@ func TestRunner(t *testing.T) {
 
 			})
 
+		})
+	})
+}
+
+func TestRunnerPluginRunning(t *testing.T) {
+	Convey("pulse/control", t, func() {
+
+		Convey("Runner", func() {
+			Convey("startPlugin", func() {
+
+				// These tests only work if Pulse Path is known to discover dummy plugin used for testing
+				if PulsePath != "" {
+					// Convey("should return an AvailablePlugin in a Running state", func() {
+					// 	m := new(MockController)
+					// 	exPlugin, err := plugin.NewExecutablePlugin(m, PluginPath, false)
+					// 	if err != nil {
+					// 		panic(err)
+					// 	}
+
+					// 	So(err, ShouldBeNil)
+
+					// 	// exPlugin := new(MockExecutablePlugin)
+					// 	ap, e := startPlugin(exPlugin)
+
+					// 	So(e, ShouldBeNil)
+					// 	So(ap, ShouldNotBeNil)
+					// 	So(ap.State, ShouldEqual, PluginRunning)
+					// })
+
+					// Convey("should return error for WaitForResponse error", func() {
+					// 	exPlugin := new(MockExecutablePlugin)
+					// 	exPlugin.Timeout = true // set to not response
+					// 	ap, e := startPlugin(exPlugin)
+
+					// 	So(ap, ShouldBeNil)
+					// 	So(e, ShouldResemble, errors.New("timeout"))
+					// })
+
+					// Convey("should return error for nil availablePlugin", func() {
+					// 	exPlugin := new(MockExecutablePlugin)
+					// 	exPlugin.NilResponse = true // set to not response
+					// 	ap, e := startPlugin(exPlugin)
+
+					// 	So(ap, ShouldBeNil)
+					// 	So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
+					// })
+				}
+
+			})
+
+			Convey("stopPlugin", func() {
+				// TODO
+			})
 		})
 	})
 }

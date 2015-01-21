@@ -1,18 +1,42 @@
 package control
 
 import (
+	"errors"
+	"time"
+
 	"github.com/intelsdilabs/gomit"
 
-	"errors"
+	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/client"
 )
 
-var (
+const (
+	DefaultClientTimeout = time.Second * 3
+
 	HandlerRegistrationName = "control.runner"
+
+	// availablePlugin States
+	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
 )
+
+type availablePluginState int
 
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type Runner struct {
 	delegates []gomit.Delegator
+}
+
+// Representing a plugin running and available to execute calls against.
+type availablePlugin struct {
+	State    availablePluginState
+	Response *plugin.Response
+}
+
+// TBD
+type executablePlugin interface {
+	Start() error
+	Kill() error
+	WaitForResponse(time.Duration) (*plugin.Response, error)
 }
 
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
@@ -54,11 +78,54 @@ func (r *Runner) Stop() []error {
 	return errs
 }
 
-// Start a RunnablePlugin returning details on the RunningState
-func StartPlugin() {}
+// Start and return an availablePlugin or error.
+func startPlugin(p executablePlugin) (*availablePlugin, error) {
+	// Start plugin in daemon mode
+	e := p.Start()
+	if e != nil {
+		return nil, errors.New("error while starting plugin: " + e.Error())
+	}
+
+	// Wait for plugin response
+	resp, err := p.WaitForResponse(time.Second * 3)
+	if err != nil {
+		return nil, errors.New("error while waiting for response: " + err.Error())
+	}
+
+	if resp == nil {
+		return nil, errors.New("no reponse object returned from plugin")
+	}
+
+	if resp.State != plugin.PluginSuccess {
+		return nil, errors.New("plugin could not start error: " + resp.ErrorMessage)
+	}
+
+	// Create RPC client
+	switch t := resp.Type; t {
+	case plugin.CollectorPluginType:
+		_, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
+		if e != nil {
+			return nil, errors.New("error while creating client connection: " + e.Error())
+		}
+	default:
+		return nil, errors.New("Cannot create a client for a plugin of the type: " + t.String())
+	}
+
+	// Ping through client
+
+	// Ask for metric inventory
+
+	// build availablePlugin
+	ap := new(availablePlugin)
+	ap.Response = resp
+
+	// return availablePlugin
+
+	return ap, nil
+}
 
 // Halt a RunnablePlugin
-func StopPlugin() {}
+func stopPlugin() {}
 
 // Empty handler acting as placeholder until implementation. This helps tests
 // pass to ensure registration works.
