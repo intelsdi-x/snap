@@ -61,7 +61,7 @@ func (p *pluginManager) Stop() {
 	p.Started = false
 }
 
-func (p *pluginManager) GenerateArgs(daemon bool) plugin.Arg {
+func (p *pluginManager) generateArgs(daemon bool) plugin.Arg {
 	a := plugin.Arg{
 		ControlPubKey: p.pubKey,
 		PluginLogPath: "/tmp",
@@ -95,7 +95,7 @@ func load(p *pluginManager, path string) error {
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(false), lPlugin.Path, false)
+	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(false), lPlugin.Path, false)
 
 	if err != nil {
 		log.Println(err)
