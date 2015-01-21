@@ -24,7 +24,7 @@ func TestLoadPlugin(t *testing.T) {
 		Convey("PluginManager.LoadPlugin", t, func() {
 
 			Convey("loads plugin successfully", func() {
-				p := PluginManager()
+				p := newPluginManager()
 				p.Start()
 				err := p.LoadPlugin(PluginPath)
 
@@ -33,7 +33,7 @@ func TestLoadPlugin(t *testing.T) {
 			})
 
 			Convey("returns error if PluginManager is not started", func() {
-				p := PluginManager()
+				p := newPluginManager()
 				err := p.LoadPlugin(PluginPath)
 
 				So(p.LoadedPlugins, ShouldBeEmpty)
@@ -46,7 +46,7 @@ func TestLoadPlugin(t *testing.T) {
 
 func TestPluginManagerStop(t *testing.T) {
 	Convey("PluginManager.Stop", t, func() {
-		p := PluginManager()
+		p := newPluginManager()
 		p.Start()
 		Convey("stops successfully", func() {
 			p.Stop()

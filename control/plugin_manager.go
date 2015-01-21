@@ -44,7 +44,7 @@ type pluginManager struct {
 	pubKey       *rsa.PublicKey
 }
 
-func PluginManager() *pluginManager {
+func newPluginManager() *pluginManager {
 	p := new(pluginManager)
 	p.eventManager = new(gomit.EventController)
 	return p
