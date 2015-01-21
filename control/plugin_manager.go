@@ -95,7 +95,7 @@ func load(p *pluginManager, path string) error {
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p, lPlugin.Path, false)
+	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(false), lPlugin.Path, false)
 
 	if err != nil {
 		log.Println(err)
@@ -109,7 +109,7 @@ func load(p *pluginManager, path string) error {
 	}
 
 	var resp *plugin.Response
-	resp, err = plugin.WaitForResponse(ePlugin, time.Second*3)
+	resp, err = ePlugin.WaitForResponse(time.Second * 3)
 
 	if err != nil {
 		log.Println(err)
