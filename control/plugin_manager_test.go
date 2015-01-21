@@ -63,7 +63,9 @@ func TestUnloadPlugin(t *testing.T) {
 			Convey("when pluginManager is not started", func() {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
+					p.Start()
 					p.LoadPlugin(PluginPath)
+					p.Stop()
 					err := p.UnloadPlugin(p.LoadedPlugins[0])
 					So(err, ShouldNotBeNil)
 					So(err.Error(), ShouldEqual, "Must start pluginManager before calling UnloadPlugin()")
@@ -106,7 +108,7 @@ func TestUnloadPlugin(t *testing.T) {
 					err = p.UnloadPlugin(plugin)
 
 					err = p.UnloadPlugin(plugin)
-					So(err, ShouldResemble, errors.New("Must load plugin before calling Unload()"))
+					So(err, ShouldResemble, errors.New("Must load plugin before calling UnloadPlugin()"))
 
 				})
 			})
