@@ -78,7 +78,6 @@ func (r *Runner) Stop() []error {
 	return errs
 }
 
-// Start and return an availablePlugin or error.
 func startPlugin(p executablePlugin) (*availablePlugin, error) {
 	// Start plugin in daemon mode
 	e := p.Start()
@@ -100,6 +99,7 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 		return nil, errors.New("plugin could not start error: " + resp.ErrorMessage)
 	}
 
+	// var pluginClient plugin.
 	// Create RPC client
 	switch t := resp.Type; t {
 	case plugin.CollectorPluginType:
@@ -114,10 +114,12 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 	// Ping through client
 
 	// Ask for metric inventory
+	// TODO
 
 	// build availablePlugin
 	ap := new(availablePlugin)
 	ap.Response = resp
+	ap.State = PluginRunning
 
 	// return availablePlugin
 
