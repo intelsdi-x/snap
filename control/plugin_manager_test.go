@@ -1,6 +1,7 @@
 package control
 
 import (
+	"errors"
 	"os"
 	"path"
 	"testing"
@@ -30,6 +31,7 @@ func TestLoadPlugin(t *testing.T) {
 
 				So(p.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
+				So(len(p.LoadedPlugins), ShouldBeGreaterThan, 0)
 			})
 
 			Convey("returns error if PluginManager is not started", func() {
@@ -53,4 +55,63 @@ func TestPluginManagerStop(t *testing.T) {
 			So(p.Started, ShouldBeFalse)
 		})
 	})
+}
+
+func TestUnloadPlugin(t *testing.T) {
+	if PulsePath != "" {
+		Convey("pluginManager.UnloadPlugin", t, func() {
+			Convey("when pluginManager is not started", func() {
+				Convey("then an error is thrown", func() {
+					p := newPluginManager()
+					p.Start()
+					p.LoadPlugin(PluginPath)
+					p.Stop()
+					err := p.UnloadPlugin(p.LoadedPlugins[0])
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldEqual, "Must start pluginManager before calling UnloadPlugin()")
+
+				})
+			})
+
+			Convey("when a loaded plugin is unloaded", func() {
+				Convey("then it is removed from the loadedPlugins", func() {
+					p := newPluginManager()
+					p.Start()
+					err := p.LoadPlugin(PluginPath)
+
+					num_plugins_loaded := len(p.LoadedPlugins)
+					err = p.UnloadPlugin(p.LoadedPlugins[0])
+
+					So(err, ShouldBeNil)
+					So(len(p.LoadedPlugins), ShouldEqual, num_plugins_loaded-1)
+				})
+			})
+
+			Convey("when a loaded plugin is not in a PluginLoaded state", func() {
+				Convey("then an error is thrown", func() {
+					p := newPluginManager()
+					p.Start()
+					err := p.LoadPlugin(PluginPath)
+					p.LoadedPlugins[0].State = DetectedState
+					err = p.UnloadPlugin(p.LoadedPlugins[0])
+					So(err, ShouldResemble, errors.New("Plugin must be in a LoadedState"))
+				})
+			})
+
+			Convey("when a plugin is already unloaded", func() {
+				Convey("then an error is thrown", func() {
+					p := newPluginManager()
+					p.Start()
+					err := p.LoadPlugin(PluginPath)
+
+					plugin := p.LoadedPlugins[0]
+					err = p.UnloadPlugin(plugin)
+
+					err = p.UnloadPlugin(plugin)
+					So(err, ShouldResemble, errors.New("Must load plugin before calling UnloadPlugin()"))
+
+				})
+			})
+		})
+	}
 }
