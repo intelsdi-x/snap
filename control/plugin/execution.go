@@ -195,13 +195,18 @@ func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Respon
 			}
 			// 4) otherwise we return no response and an error that no response was received (fail)
 			log.Println("returning with error (killed without response)")
-			return nil, *w.Error
+			// The kill could have been without error so we check if ExitError was returned and return
+			// our own if not.
+			if *w.Error != nil {
+				return nil, *w.Error
+			} else {
+				return nil, errors.New("plugin died without sending response")
+			}
 
 		case pluginResponseOk: // plugin response (valid) signal received
 			log.Println("plugin response (ok) received")
 			// If in daemon mode we can return now (succes) since the plugin will continue to run
 			// if not we let the loop continue (to wait for kill)
-			fmt.Println(response)
 			response = w.Response
 			if daemon {
 				log.Println("returning with response")
@@ -257,6 +262,7 @@ func waitForKilledPlugin(p pluginExecutor, waitChannel chan waitSignalValue) {
 	// TODO, refactor not to block. In daemon mode this would hang for the life of process.
 	// ideally this should check if running or waitChannel closed and then exit on either.
 	e := p.WaitForExit()
+	time.Sleep(time.Second * 2)
 	// send signal
 	waitChannel <- waitSignalValue{Signal: pluginKilled, Error: &e}
 }
