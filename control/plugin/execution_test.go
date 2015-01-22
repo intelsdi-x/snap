@@ -131,7 +131,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Millisecond * 100
 			mockExecutor.WaitError = errors.New("Exit 127")
-			resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
+			resp, err := waitHandling(mockExecutor, time.Millisecond*500, false)
 
 			So(mockExecutor.Killed, ShouldEqual, false)
 			So(resp, ShouldBeNil)
