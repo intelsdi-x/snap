@@ -262,7 +262,7 @@ func waitForKilledPlugin(p pluginExecutor, waitChannel chan waitSignalValue) {
 	// TODO, refactor not to block. In daemon mode this would hang for the life of process.
 	// ideally this should check if running or waitChannel closed and then exit on either.
 	e := p.WaitForExit()
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Millisecond * 100)
 	// send signal
 	waitChannel <- waitSignalValue{Signal: pluginKilled, Error: &e}
 }
