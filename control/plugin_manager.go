@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/gomit"
+
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
 const (
-	// LoadedPlugin States
+	// loadedPlugin States
 	DetectedState pluginState = "detected"
 	LoadingState  pluginState = "loading"
 	LoadedState   pluginState = "loaded"
@@ -24,15 +25,35 @@ const (
 
 type pluginState string
 
-type loadedPlugins []*LoadedPlugin
+type loadedPlugins []*loadedPlugin
 
-type LoadedPlugin struct {
+type loadedPlugin struct {
 	Meta       plugin.PluginMeta
 	Path       string
 	Type       plugin.PluginType
 	State      pluginState
 	Token      string
 	LoadedTime time.Time
+}
+
+func (lp *loadedPlugin) Name() string {
+	return lp.Meta.Name
+}
+
+func (lp *loadedPlugin) Version() int {
+	return lp.Meta.Version
+}
+
+func (lp *loadedPlugin) TypeName() string {
+	return lp.Type.String()
+}
+
+func (lp *loadedPlugin) Status() string {
+	return string(lp.State)
+}
+
+func (lp *loadedPlugin) LoadedTimestamp() int64 {
+	return lp.LoadedTime.Unix()
 }
 
 type pluginManager struct {
@@ -91,7 +112,7 @@ func (p *pluginManager) LoadPlugin(path string) error {
 // saving plugin into the LoadedPlugins array
 func load(p *pluginManager, path string) error {
 	log.Printf("Attempting to load: %s\v", path)
-	lPlugin := new(LoadedPlugin)
+	lPlugin := new(loadedPlugin)
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
@@ -132,7 +153,7 @@ func load(p *pluginManager, path string) error {
 	return nil
 }
 
-func (p *pluginManager) UnloadPlugin(lPlugin *LoadedPlugin) error {
+func (p *pluginManager) UnloadPlugin(lPlugin *loadedPlugin) error {
 	if !p.Started {
 		return errors.New("Must start pluginManager before calling UnloadPlugin()")
 	}
