@@ -35,6 +35,7 @@ type pluginControl struct {
 	pluginManager  *pluginManager
 }
 
+// TODO Update to newPluginControl
 func Control() *pluginControl {
 	c := new(pluginControl)
 	c.eventManager = new(gomit.EventController)
@@ -66,6 +67,8 @@ func (p *pluginControl) Start() {
 	// a linear fashion for now as this is a low priority.
 	// go p.HandleLoadRequests()
 
+	// Start pluginManager when pluginControl starts
+	p.pluginManager.Start()
 	p.Started = true
 }
 

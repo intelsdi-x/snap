@@ -19,6 +19,17 @@ type MockPluginExecutor struct {
 	WaitForResponse func(time.Duration) (*plugin.Response, error)
 }
 
+func TestPluginControlStart(t *testing.T) {
+	Convey("pluginControl.Start", t, func() {
+		Convey("starts successfully", func() {
+			c := Control()
+			c.Start()
+			So(c.Started, ShouldBeTrue)
+			So(c.pluginManager.Started, ShouldBeTrue)
+		})
+	})
+}
+
 // Uses the dummy collector plugin to simulate Loading
 func TestLoad(t *testing.T) {
 	// These tests only work if PULSE_PATH is known.
