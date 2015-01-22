@@ -131,3 +131,24 @@ func load(p *pluginManager, path string) error {
 
 	return nil
 }
+
+func (p *pluginManager) UnloadPlugin(lPlugin *LoadedPlugin) error {
+	if !p.Started {
+		return errors.New("Must start pluginManager before calling UnloadPlugin()")
+	}
+
+	if lPlugin.State != LoadedState {
+		return errors.New("Plugin must be in a LoadedState")
+	}
+
+	for i, lp := range p.LoadedPlugins {
+		if lp == lPlugin {
+			p.LoadedPlugins = append(p.LoadedPlugins[:i], p.LoadedPlugins[i+1:]...)
+			event := new(control_event.UnloadPluginEvent)
+			defer p.eventManager.Emit(event)
+			return nil
+		}
+	}
+
+	return errors.New("Must load plugin before calling UnloadPlugin()")
+}
