@@ -11,25 +11,51 @@ import (
 )
 
 const (
-	DefaultClientTimeout = time.Second * 3
+	DefaultClientTimeout      = time.Second * 3
+	DefaultHealthCheckTimeout = time.Second * 1
 
 	HandlerRegistrationName = "control.runner"
 
 	// availablePlugin States
 	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
+	PluginDisabled
 )
 
 type availablePluginState int
 
+var availablePlugins []*availablePlugin
+
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type Runner struct {
 	delegates []gomit.Delegator
+	monitor   monitor
 }
 
 // Representing a plugin running and available to execute calls against.
 type availablePlugin struct {
-	State    availablePluginState
-	Response *plugin.Response
+	State                   availablePluginState
+	Response                *plugin.Response
+	client                  *client.PluginNativeClient
+	failedHealthChecks      int
+	failedHealthChecksTotal int
+}
+
+func (ap *availablePlugin) checkHealth() {
+	hc := make(chan string, 1)
+	go func() {
+		hc <- "call ap.client.Ping() here"
+	}()
+	select {
+	case res := <-hc:
+		if res == "ok" {
+			//if res is ok - do nothing
+		} else { //else increment inc failedHealthChecks and failedHealthChecksTotal
+		}
+	case <-time.After(time.Second * 1):
+		ap.failedHealthChecks++
+		ap.failedHealthChecksTotal++
+	}
+
 }
 
 // TBD
@@ -61,6 +87,8 @@ func (r *Runner) Start() error {
 			return e
 		}
 	}
+
+	//Create an instance of the monitor and add it the runner
 
 	return nil
 }
@@ -100,10 +128,15 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 		return nil, errors.New("plugin could not start error: " + resp.ErrorMessage)
 	}
 
+	// build availablePlugin
+	ap := new(availablePlugin)
+	ap.Response = resp
+
 	// Create RPC client
 	switch t := resp.Type; t {
 	case plugin.CollectorPluginType:
-		_, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
+		c, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
+		ap.client = c
 		if e != nil {
 			return nil, errors.New("error while creating client connection: " + e.Error())
 		}
@@ -115,11 +148,9 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 
 	// Ask for metric inventory
 
-	// build availablePlugin
-	ap := new(availablePlugin)
-	ap.Response = resp
-
 	// return availablePlugin
+
+	availablePlugins = append(availablePlugins, ap)
 
 	return ap, nil
 }
