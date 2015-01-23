@@ -17,11 +17,13 @@ const (
 	PingTimeoutDuration = time.Second * 1
 	// How many succesive PingTimeouts must occur to equal a failure.
 	PingTimeoutLimit = 10
+)
 
+const (
 	// List of plugin type
 	CollectorPluginType PluginType = iota
 	PublisherPluginType
-	ProcesserPluginType
+	ProcessorPluginType
 )
 
 const (
@@ -31,7 +33,7 @@ const (
 )
 
 var (
-	// Slice matching plugin type enum to a string
+	// Array matching plugin type enum to a string
 	// note: in string represenation we use lower case
 	types = [...]string{
 		"collector",

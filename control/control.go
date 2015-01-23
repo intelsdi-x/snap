@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/intelsdilabs/gomit"
@@ -33,13 +32,17 @@ type pluginControl struct {
 	controlPubKey  *rsa.PublicKey
 	eventManager   *gomit.EventController
 	subscriptions  *subscriptions
+	pluginManager  *pluginManager
 }
 
 func Control() *pluginControl {
 	c := new(pluginControl)
 	c.eventManager = new(gomit.EventController)
+
 	c.subscriptions = new(subscriptions)
 	c.subscriptions.Init()
+
+	c.pluginManager = newPluginManager()
 
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -71,7 +74,7 @@ func (p *pluginControl) Stop() {
 	p.Started = false
 }
 
-func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
+func (p *pluginControl) Load(path string) (*loadedPlugin, error) {
 	if !p.Started {
 		return nil, errors.New("Must start plugin control before calling Load()")
 	}
@@ -92,7 +95,7 @@ func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
 	*/
 
 	log.Printf("Attempting to load: %s\v", path)
-	lPlugin := new(LoadedPlugin)
+	lPlugin := new(loadedPlugin)
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
@@ -184,6 +187,20 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 	defer p.eventManager.Emit(e)
 }
 
-func getMetricKey(metric []string) string {
-	return strings.Join(metric, ".")
+type CatalogedPlugin interface {
+	Name() string
+	Version() int
+	TypeName() string
+	Status() string
+	LoadedTimestamp() int64
+}
+
+type PluginCatalog []CatalogedPlugin
+
+func (p *pluginControl) PluginCatalog() PluginCatalog {
+	pc := make([]CatalogedPlugin, len(p.pluginManager.LoadedPlugins))
+	for i, _ := range p.pluginManager.LoadedPlugins {
+		pc[i] = p.pluginManager.LoadedPlugins[i]
+	}
+	return pc
 }

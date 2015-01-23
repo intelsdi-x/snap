@@ -5,6 +5,9 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
+
+	"github.com/intelsdilabs/pulse/control/plugin"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -114,4 +117,38 @@ func TestUnloadPlugin(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestLoadedPlugin(t *testing.T) {
+	lp := new(loadedPlugin)
+	lp.Meta = plugin.PluginMeta{"test", 1}
+	Convey(".Name()", t, func() {
+		Convey("it returns the name from the plugin metadata", func() {
+			So(lp.Name(), ShouldEqual, "test")
+		})
+	})
+	Convey(".Version()", t, func() {
+		Convey("it returns the version from the plugin metadata", func() {
+			So(lp.Version(), ShouldEqual, 1)
+		})
+	})
+	Convey(".TypeName()", t, func() {
+		lp.Type = 0
+		Convey("it returns the string representation of the plugin type", func() {
+			So(lp.TypeName(), ShouldEqual, "collector")
+		})
+	})
+	Convey(".Status()", t, func() {
+		lp.State = LoadedState
+		Convey("it returns a string of the current plugin state", func() {
+			So(lp.Status(), ShouldEqual, "loaded")
+		})
+	})
+	Convey(".LoadedTimestamp()", t, func() {
+		ts := time.Now()
+		lp.LoadedTime = ts
+		Convey("it returns the Unix timestamp of the LoadedTime", func() {
+			So(lp.LoadedTimestamp(), ShouldEqual, ts.Unix())
+		})
+	})
 }

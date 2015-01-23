@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -96,4 +97,42 @@ func TestUnsubscribeMetric(t *testing.T) {
 			So(func() { c.UnsubscribeMetric([]string{"test", "bar"}) }, ShouldPanic)
 		})
 	})
+}
+
+func TestPluginCatalog(t *testing.T) {
+	ts := time.Now()
+
+	c := Control()
+
+	lp1 := new(loadedPlugin)
+	lp1.Meta = plugin.PluginMeta{"test1", 1}
+	lp1.Type = 0
+	lp1.State = "loaded"
+	lp1.LoadedTime = ts
+	c.pluginManager.LoadedPlugins = append(c.pluginManager.LoadedPlugins, lp1)
+
+	lp2 := new(loadedPlugin)
+	lp2.Meta = plugin.PluginMeta{"test2", 1}
+	lp2.Type = 0
+	lp2.State = "loaded"
+	lp2.LoadedTime = ts
+	c.pluginManager.LoadedPlugins = append(c.pluginManager.LoadedPlugins, lp2)
+
+	lp3 := new(loadedPlugin)
+	lp3.Meta = plugin.PluginMeta{"test3", 1}
+	lp3.Type = 0
+	lp3.State = "loaded"
+	lp3.LoadedTime = ts
+	c.pluginManager.LoadedPlugins = append(c.pluginManager.LoadedPlugins, lp3)
+
+	pc := c.PluginCatalog()
+
+	Convey("it returns a list of CatalogedPlugins (PluginCatalog)", t, func() {
+		So(pc, ShouldHaveSameTypeAs, PluginCatalog{})
+	})
+
+	Convey("the loadedPlugins implement the interface CatalogedPlugin interface", t, func() {
+		So(lp1.Name(), ShouldEqual, "test1")
+	})
+
 }
