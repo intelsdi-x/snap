@@ -24,9 +24,8 @@ func TestDummyPluginLoad(t *testing.T) {
 		Convey("ensure plugin loads and responds", t, func() {
 			c := control.Control()
 			c.Start()
-			loadedPlugin, err := c.Load(PluginPath)
+			err := c.Load(PluginPath)
 
-			So(loadedPlugin, ShouldNotBeNil)
 			So(err, ShouldBeNil)
 		})
 	} else {

@@ -19,6 +19,17 @@ type MockPluginExecutor struct {
 	WaitForResponse func(time.Duration) (*plugin.Response, error)
 }
 
+func TestPluginControlStart(t *testing.T) {
+	Convey("pluginControl.Start", t, func() {
+		Convey("starts successfully", func() {
+			c := Control()
+			c.Start()
+			So(c.Started, ShouldBeTrue)
+			So(c.pluginManager.Started, ShouldBeTrue)
+		})
+	})
+}
+
 // Uses the dummy collector plugin to simulate Loading
 func TestLoad(t *testing.T) {
 	// These tests only work if PULSE_PATH is known.
@@ -30,28 +41,27 @@ func TestLoad(t *testing.T) {
 			Convey("loads successfully", func() {
 				c := Control()
 				c.Start()
-				loadedPlugin, err := c.Load(PluginPath)
+				err := c.Load(PluginPath)
 
-				So(loadedPlugin, ShouldNotBeNil)
+				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 			})
 
 			Convey("returns error if not started", func() {
 				c := Control()
-				loadedPlugin, err := c.Load(PluginPath)
+				err := c.Load(PluginPath)
 
-				So(loadedPlugin, ShouldBeNil)
+				So(c.pluginManager.LoadedPlugins, ShouldBeEmpty)
 				So(err, ShouldNotBeNil)
 			})
 
-			Convey("adds to pluginControl.LoadedPlugins on successful load", func() {
+			Convey("adds to pluginControl.pluginManager.LoadedPlugins on successful load", func() {
 				c := Control()
 				c.Start()
-				loadedPlugin, err := c.Load(PluginPath)
+				err := c.Load(PluginPath)
 
-				So(loadedPlugin, ShouldNotBeNil)
 				So(err, ShouldBeNil)
-				So(len(c.LoadedPlugins), ShouldBeGreaterThan, 0)
+				So(len(c.pluginManager.LoadedPlugins), ShouldBeGreaterThan, 0)
 			})
 
 		})
