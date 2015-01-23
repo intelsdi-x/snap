@@ -41,28 +41,27 @@ func TestLoad(t *testing.T) {
 			Convey("loads successfully", func() {
 				c := Control()
 				c.Start()
-				loadedPlugin, err := c.Load(PluginPath)
+				err := c.Load(PluginPath)
 
-				So(loadedPlugin, ShouldNotBeNil)
+				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 			})
 
 			Convey("returns error if not started", func() {
 				c := Control()
-				loadedPlugin, err := c.Load(PluginPath)
+				err := c.Load(PluginPath)
 
-				So(loadedPlugin, ShouldBeNil)
+				So(c.pluginManager.LoadedPlugins, ShouldBeEmpty)
 				So(err, ShouldNotBeNil)
 			})
 
-			Convey("adds to pluginControl.LoadedPlugins on successful load", func() {
+			Convey("adds to pluginControl.pluginManager.LoadedPlugins on successful load", func() {
 				c := Control()
 				c.Start()
-				loadedPlugin, err := c.Load(PluginPath)
+				err := c.Load(PluginPath)
 
-				So(loadedPlugin, ShouldNotBeNil)
 				So(err, ShouldBeNil)
-				So(len(c.LoadedPlugins), ShouldBeGreaterThan, 0)
+				So(len(c.pluginManager.LoadedPlugins), ShouldBeGreaterThan, 0)
 			})
 
 		})
