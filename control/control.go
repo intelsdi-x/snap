@@ -3,9 +3,6 @@ package control
 import (
 	"crypto/rsa"
 	"errors"
-	"fmt"
-	"log"
-	"time"
 
 	"github.com/intelsdilabs/gomit"
 
@@ -23,7 +20,6 @@ type executablePlugins []plugin.ExecutablePlugin
 
 type pluginControl struct {
 	// TODO, going to need coordination on changing of these
-	LoadedPlugins  loadedPlugins
 	RunningPlugins executablePlugins
 	Started        bool
 	// loadRequestsChan chan LoadedPlugin
@@ -77,9 +73,9 @@ func (p *pluginControl) Stop() {
 	p.Started = false
 }
 
-func (p *pluginControl) Load(path string) (*loadedPlugin, error) {
+func (p *pluginControl) Load(path string) error {
 	if !p.Started {
-		return nil, errors.New("Must start plugin control before calling Load()")
+		return errors.New("Must start plugin control before calling Load()")
 	}
 
 	/*
@@ -97,65 +93,9 @@ func (p *pluginControl) Load(path string) (*loadedPlugin, error) {
 		=> Plugin state = loaded
 	*/
 
-	log.Printf("Attempting to load: %s\v", path)
-	lPlugin := new(loadedPlugin)
-	lPlugin.Path = path
-	lPlugin.State = DetectedState
+	err := p.pluginManager.LoadPlugin(path)
 
-	// Create a new Executable plugin
-	//
-	// In this case we only support Linux right now
-	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(), lPlugin.Path, false)
-
-	// If error then log and return
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	// Start the plugin using the start method
-	err = ePlugin.Start()
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	var resp *plugin.Response
-	// This blocks until a response or an error
-	resp, err = ePlugin.WaitForResponse(time.Second * 3)
-	// resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
-
-	// If error then we log and return
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	// If the response state is not Success we log an error
-	if resp.State != plugin.PluginSuccess {
-		log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
-		return nil, errors.New(fmt.Sprintf("Plugin loading did not succeed: %s\n", resp.ErrorMessage))
-	}
-	// On response we create a LoadedPlugin
-	// and add to LoadedPlugins index
-	//
-	lPlugin.Meta = resp.Meta
-	lPlugin.Type = resp.Type
-	lPlugin.Token = resp.Token
-	lPlugin.LoadedTime = time.Now()
-	lPlugin.State = LoadedState
-
-	p.LoadedPlugins = append(p.LoadedPlugins, lPlugin)
-
-	/*
-
-		Name
-		Version
-		Loaded Time
-
-	*/
-
-	return lPlugin, err
+	return err
 }
 
 func (p *pluginControl) generateArgs() plugin.Arg {
