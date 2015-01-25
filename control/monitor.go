@@ -5,33 +5,31 @@ import (
 )
 
 const (
-	StoppedState monitorState = "stopped"
-	StartedState monitorState = "started"
-	RunningState monitorState = "running"
+	DefaultMonitorDuration = time.Second * time.Duration(60)
 
-	interval int = 60
+	MonitorStopped monitorState = iota - 1 // default is stopped
+	MonitorStarted
 )
 
-type monitorState string
+var interval int = 60
+
+type monitorState int
 
 type monitor struct {
 	State monitorState
-	//Unix  time since last run
-	LastRun time.Time
-	quit    chan struct{}
+	quit  chan struct{}
 }
 
 func newMonitor() *monitor {
 	m := new(monitor)
-	m.State = StoppedState
+	m.State = MonitorStopped
 	return m
 }
 
 func (m *monitor) Start() {
-	//start a routine that will be fired every X duration to loop
-	//over available plugins and fire a health check
-
-	ticker := time.NewTicker(time.Second * time.Duration(interval))
+	//start a routine that will be fired every X duration looping
+	//over available plugins and firing a health check routine
+	ticker := time.NewTicker(DefaultMonitorDuration)
 	m.quit = make(chan struct{})
 	go func() {
 		for {
@@ -44,15 +42,16 @@ func (m *monitor) Start() {
 				}
 			case <-m.quit:
 				ticker.Stop()
+				m.State = MonitorStopped
 				return
 			}
 		}
 	}()
-
-	m.State = StartedState
+	m.State = MonitorStarted
 }
 
 func (m *monitor) Stop() {
 	close(m.quit)
-	m.State = StoppedState
+	// m.Stop()
+	m.State = MonitorStopped
 }

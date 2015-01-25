@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	DefaultClientTimeout      = time.Second * 3
-	DefaultHealthCheckTimeout = time.Second * 1
+	DefaultClientTimeout           = time.Second * 3
+	DefaultHealthCheckTimeout      = time.Second * 1
+	DefaultHealthCheckFailureLimit = 3
 
 	HandlerRegistrationName = "control.runner"
 
@@ -28,34 +29,40 @@ var availablePlugins []*availablePlugin
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type Runner struct {
 	delegates []gomit.Delegator
-	monitor   monitor
+	monitor   *monitor
 }
 
 // Representing a plugin running and available to execute calls against.
 type availablePlugin struct {
-	State                   availablePluginState
-	Response                *plugin.Response
-	client                  *client.PluginNativeClient
-	failedHealthChecks      int
-	failedHealthChecksTotal int
+	State              availablePluginState
+	Response           *plugin.Response
+	client             *client.PluginNativeClient
+	failedHealthChecks int
+}
+
+func (ap *availablePlugin) healthCheckFailed() {
+	ap.failedHealthChecks++
+	if ap.failedHealthChecks > DefaultHealthCheckFailureLimit {
+		ap.State = PluginDisabled
+	}
 }
 
 func (ap *availablePlugin) checkHealth() {
 	hc := make(chan string, 1)
 	go func() {
-		hc <- "call ap.client.Ping() here"
+		hc <- "TODO: call ap.client.Ping() here"
 	}()
 	select {
 	case res := <-hc:
-		if res == "ok" {
+		if res == "TODO: call ap.client.Ping() here" {
 			//if res is ok - do nothing
-		} else { //else increment inc failedHealthChecks and failedHealthChecksTotal
+			ap.failedHealthChecks = 0
+		} else {
+			ap.healthCheckFailed()
 		}
 	case <-time.After(time.Second * 1):
-		ap.failedHealthChecks++
-		ap.failedHealthChecksTotal++
+		ap.healthCheckFailed()
 	}
-
 }
 
 // TBD
@@ -88,7 +95,10 @@ func (r *Runner) Start() error {
 		}
 	}
 
-	//Create an instance of the monitor and add it the runner
+	//Create an instance of the monitor add it the runner and start it
+	monitor := newMonitor()
+	r.monitor = monitor
+	r.monitor.Start()
 
 	return nil
 }
