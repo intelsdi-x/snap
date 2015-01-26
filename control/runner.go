@@ -8,6 +8,7 @@ import (
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/client"
+	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
 const (
@@ -37,14 +38,31 @@ type availablePlugin struct {
 	State              availablePluginState
 	Response           *plugin.Response
 	client             *client.PluginNativeClient
+	eventManager       *gomit.EventController
 	failedHealthChecks int
+}
+
+func newAvailablePlugin() *availablePlugin {
+	ap := new(availablePlugin)
+	ap.eventManager = new(gomit.EventController)
+	return ap
 }
 
 func (ap *availablePlugin) healthCheckFailed() {
 	ap.failedHealthChecks++
 	if ap.failedHealthChecks > DefaultHealthCheckFailureLimit {
 		ap.State = PluginDisabled
+		pde := &control_event.DisabledPluginEvent{
+			Type: ap.Response.Type,
+			Meta: ap.Response.Meta,
+		}
+		defer ap.eventManager.Emit(pde)
 	}
+	hcfe := &control_event.HealthCheckFailedEvent{
+		Type: ap.Response.Type,
+		Meta: ap.Response.Meta,
+	}
+	defer ap.eventManager.Emit(hcfe)
 }
 
 func (ap *availablePlugin) checkHealth() {

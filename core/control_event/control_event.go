@@ -1,10 +1,16 @@
 package control_event
 
+import (
+	"github.com/intelsdilabs/pulse/control/plugin"
+)
+
 const (
 	PluginLoaded       = "Control.PluginLoaded"
+	PluginDisabled     = "Control.PluginDisabled"
 	PluginUnloaded     = "Control.PluginUnloaded"
 	MetricSubscribed   = "Control.MetricSubscribed"
 	MetricUnsubscribed = "Control.MetricUnsubscribed"
+	HealthCheckFailed  = "Control.PluginHealthCheckFailed"
 )
 
 type LoadPluginEvent struct{}
@@ -18,6 +24,15 @@ type UnloadPluginEvent struct {
 
 func (e *UnloadPluginEvent) Namespace() string {
 	return PluginUnloaded
+}
+
+type DisabledPluginEvent struct {
+	Type plugin.PluginType
+	Meta plugin.PluginMeta
+}
+
+func (e *DisabledPluginEvent) Namespace() string {
+	return PluginDisabled
 }
 
 type MetricSubscriptionEvent struct {
@@ -34,4 +49,13 @@ type MetricUnsubscriptionEvent struct {
 
 func (ue *MetricUnsubscriptionEvent) Namespace() string {
 	return MetricUnsubscribed
+}
+
+type HealthCheckFailedEvent struct {
+	Type plugin.PluginType
+	Meta plugin.PluginMeta
+}
+
+func (hfe *HealthCheckFailedEvent) Namespace() string {
+	return HealthCheckFailed
 }
