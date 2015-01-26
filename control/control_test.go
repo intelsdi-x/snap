@@ -25,7 +25,6 @@ func TestPluginControlStart(t *testing.T) {
 			c := Control()
 			c.Start()
 			So(c.Started, ShouldBeTrue)
-			So(c.pluginManager.Started, ShouldBeTrue)
 		})
 	})
 }
@@ -51,7 +50,7 @@ func TestLoad(t *testing.T) {
 				c := Control()
 				err := c.Load(PluginPath)
 
-				So(c.pluginManager.LoadedPlugins, ShouldBeEmpty)
+				So(c.pluginManager.LoadedPlugins.Len(), ShouldEqual, 0)
 				So(err, ShouldNotBeNil)
 			})
 
@@ -61,7 +60,7 @@ func TestLoad(t *testing.T) {
 				err := c.Load(PluginPath)
 
 				So(err, ShouldBeNil)
-				So(len(c.pluginManager.LoadedPlugins), ShouldBeGreaterThan, 0)
+				So(c.pluginManager.LoadedPlugins.Len(), ShouldBeGreaterThan, 0)
 			})
 
 		})
@@ -119,21 +118,21 @@ func TestPluginCatalog(t *testing.T) {
 	lp1.Type = 0
 	lp1.State = "loaded"
 	lp1.LoadedTime = ts
-	c.pluginManager.LoadedPlugins = append(c.pluginManager.LoadedPlugins, lp1)
+	c.pluginManager.LoadedPlugins.Append(lp1)
 
 	lp2 := new(loadedPlugin)
 	lp2.Meta = plugin.PluginMeta{"test2", 1}
 	lp2.Type = 0
 	lp2.State = "loaded"
 	lp2.LoadedTime = ts
-	c.pluginManager.LoadedPlugins = append(c.pluginManager.LoadedPlugins, lp2)
+	c.pluginManager.LoadedPlugins.Append(lp2)
 
 	lp3 := new(loadedPlugin)
 	lp3.Meta = plugin.PluginMeta{"test3", 1}
 	lp3.Type = 0
 	lp3.State = "loaded"
 	lp3.LoadedTime = ts
-	c.pluginManager.LoadedPlugins = append(c.pluginManager.LoadedPlugins, lp3)
+	c.pluginManager.LoadedPlugins.Append(lp3)
 
 	pc := c.PluginCatalog()
 
