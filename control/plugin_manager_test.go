@@ -64,8 +64,9 @@ func TestLoadPlugin(t *testing.T) {
 
 			Convey("loads plugin successfully", func() {
 				p := newPluginManager()
-				err := p.LoadPlugin(PluginPath)
+				lp, err := p.LoadPlugin(PluginPath)
 
+				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 				So(len(p.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
@@ -83,7 +84,7 @@ func TestUnloadPlugin(t *testing.T) {
 			Convey("when a loaded plugin is unloaded", func() {
 				Convey("then it is removed from the loadedPlugins", func() {
 					p := newPluginManager()
-					err := p.LoadPlugin(PluginPath)
+					_, err := p.LoadPlugin(PluginPath)
 
 					num_plugins_loaded := len(p.LoadedPlugins.Table())
 					lp, _ := p.LoadedPlugins.Get(0)
@@ -97,7 +98,7 @@ func TestUnloadPlugin(t *testing.T) {
 			Convey("when a loaded plugin is not in a PluginLoaded state", func() {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
-					err := p.LoadPlugin(PluginPath)
+					_, err := p.LoadPlugin(PluginPath)
 					lp, _ := p.LoadedPlugins.Get(0)
 					lp.State = DetectedState
 					err = p.UnloadPlugin(lp)
@@ -108,7 +109,7 @@ func TestUnloadPlugin(t *testing.T) {
 			Convey("when a plugin is already unloaded", func() {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
-					err := p.LoadPlugin(PluginPath)
+					_, err := p.LoadPlugin(PluginPath)
 
 					plugin, _ := p.LoadedPlugins.Get(0)
 					err = p.UnloadPlugin(plugin)

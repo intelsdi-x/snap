@@ -31,7 +31,7 @@ type loadedPlugins struct {
 }
 
 func newLoadedPlugins() *loadedPlugins {
-	t := make([]*loadedPlugin, 0)
+	var t []*loadedPlugin
 	return &loadedPlugins{
 		table:       &t,
 		mutex:       new(sync.Mutex),
@@ -194,9 +194,9 @@ func (p *pluginManager) generateArgs(daemon bool) plugin.Arg {
 	return a
 }
 
-// Load is the private method for loading a plugin and
+// Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
-func (p *pluginManager) LoadPlugin(path string) error {
+func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	log.Printf("Attempting to load: %s\v", path)
 	lPlugin := new(loadedPlugin)
 	lPlugin.Path = path
@@ -206,13 +206,13 @@ func (p *pluginManager) LoadPlugin(path string) error {
 
 	if err != nil {
 		log.Println(err)
-		return err
+		return nil, err
 	}
 
 	err = ePlugin.Start()
 	if err != nil {
 		log.Println(err)
-		return err
+		return nil, err
 	}
 
 	var resp *plugin.Response
@@ -220,12 +220,12 @@ func (p *pluginManager) LoadPlugin(path string) error {
 
 	if err != nil {
 		log.Println(err)
-		return err
+		return nil, err
 	}
 
 	if resp.State != plugin.PluginSuccess {
 		log.Println("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
-		return fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
+		return nil, fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 	}
 
 	lPlugin.Meta = resp.Meta
@@ -236,10 +236,10 @@ func (p *pluginManager) LoadPlugin(path string) error {
 
 	err = p.LoadedPlugins.Append(lPlugin)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return lPlugin, nil
 }
 
 // unloads a plugin from the LoadedPlugins table
