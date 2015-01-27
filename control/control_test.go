@@ -2,6 +2,7 @@ package control
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -27,6 +28,41 @@ func TestPluginControlStart(t *testing.T) {
 			So(c.Started, ShouldBeTrue)
 		})
 	})
+}
+
+func TestSwapPlugin(t *testing.T) {
+	if PulsePath != "" {
+		Convey("SwapPlugin", t, func() {
+			c := Control()
+			c.Start()
+			c.Load(PluginPath)
+
+			facterPath := strings.Replace(PluginPath, "pulse-collector-dummy", "pulse-collector-facter", 1)
+			pc := c.PluginCatalog()
+			dummy := pc[0]
+
+			Convey("successfully swaps plugins", func() {
+				err := c.SwapPlugins(facterPath, dummy)
+				pc = c.PluginCatalog()
+				So(err, ShouldBeNil)
+				So(pc[0].Name(), ShouldEqual, "facter")
+			})
+			Convey("does not unload & returns an error if it cannot load a plugin", func() {
+				err := c.SwapPlugins("/fake/plugin/path", pc[0])
+				So(err, ShouldNotBeNil)
+				So(pc[0].Name(), ShouldEqual, "dummy")
+			})
+			Convey("rollsback loaded plugin & returns an error if it cannot unload a plugin", func() {
+				dummy := pc[0]
+				c.SwapPlugins(facterPath, dummy)
+				pc = c.PluginCatalog()
+
+				err := c.SwapPlugins(PluginPath, dummy)
+				So(err, ShouldNotBeNil)
+				So(pc[0].Name(), ShouldEqual, "facter")
+			})
+		})
+	}
 }
 
 // Uses the dummy collector plugin to simulate Loading
