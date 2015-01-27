@@ -64,7 +64,6 @@ func (p *pluginControl) Start() {
 	// go p.HandleLoadRequests()
 
 	// Start pluginManager when pluginControl starts
-	p.pluginManager.Start()
 	p.Started = true
 }
 
@@ -73,29 +72,33 @@ func (p *pluginControl) Stop() {
 	p.Started = false
 }
 
+// Load is the public method to load a plugin into
+// the LoadedPlugins array and issue an event when
+// successful.
 func (p *pluginControl) Load(path string) error {
 	if !p.Started {
-		return errors.New("Must start plugin control before calling Load()")
+		return errors.New("Must start Controller before calling Load()")
 	}
 
-	/*
-		Loading plugin status
+	if err := p.pluginManager.LoadPlugin(path); err != nil {
+		return err
+	}
 
-		Before start (todo)
-		* executable (caught on start)
-		* signed? (todo)
-		* Grab checksum (file watching? todo)
-		=> Plugin state = detected
+	// defer sending event
+	event := new(control_event.LoadPluginEvent)
+	defer p.eventManager.Emit(event)
+	return nil
+}
 
-		After start before Ping
-		* starts? (catch crash)
-		* response? (catch stdout)
-		=> Plugin state = loaded
-	*/
+func (p *pluginControl) Unload(pl CatalogedPlugin) error {
+	err := p.pluginManager.UnloadPlugin(pl)
+	if err != nil {
+		return err
+	}
 
-	err := p.pluginManager.LoadPlugin(path)
-
-	return err
+	event := new(control_event.UnloadPluginEvent)
+	defer p.eventManager.Emit(event)
+	return nil
 }
 
 func (p *pluginControl) generateArgs() plugin.Arg {
@@ -141,9 +144,10 @@ type CatalogedPlugin interface {
 type PluginCatalog []CatalogedPlugin
 
 func (p *pluginControl) PluginCatalog() PluginCatalog {
-	pc := make([]CatalogedPlugin, len(p.pluginManager.LoadedPlugins))
-	for i, _ := range p.pluginManager.LoadedPlugins {
-		pc[i] = p.pluginManager.LoadedPlugins[i]
+	table := p.pluginManager.LoadedPlugins.Table()
+	pc := make([]CatalogedPlugin, len(table))
+	for i, lp := range table {
+		pc[i] = lp
 	}
 	return pc
 }
