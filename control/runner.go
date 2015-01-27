@@ -40,14 +40,17 @@ type availablePlugin struct {
 	client             client.PluginClient
 	eventManager       *gomit.EventController
 	failedHealthChecks int
+	healthChan         chan error
 }
 
 func newAvailablePlugin() *availablePlugin {
 	ap := new(availablePlugin)
 	ap.eventManager = new(gomit.EventController)
+	ap.healthChan = make(chan error, 1)
 	return ap
 }
 
+// Emits event and disables the plugin if the default limit is exceeded
 func (ap *availablePlugin) healthCheckFailed() {
 	ap.failedHealthChecks++
 	if ap.failedHealthChecks >= DefaultHealthCheckFailureLimit {
@@ -65,13 +68,14 @@ func (ap *availablePlugin) healthCheckFailed() {
 	defer ap.eventManager.Emit(hcfe)
 }
 
+// Ping the client resetting the failedHealthCheks on success.
+// On failure healthCheckFailed() is called.
 func (ap *availablePlugin) checkHealth() {
-	hc := make(chan error, 1)
 	go func() {
-		hc <- ap.client.Ping()
+		ap.healthChan <- ap.client.Ping()
 	}()
 	select {
-	case err := <-hc:
+	case err := <-ap.healthChan:
 		if err == nil {
 			//if res is ok - do nothing
 			ap.failedHealthChecks = 0

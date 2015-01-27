@@ -26,6 +26,7 @@ func newMonitor() *monitor {
 	return m
 }
 
+// start the monitor
 func (m *monitor) Start() {
 	//start a routine that will be fired every X duration looping
 	//over available plugins and firing a health check routine
@@ -50,6 +51,7 @@ func (m *monitor) Start() {
 	m.State = MonitorStarted
 }
 
+// stop the monitor
 func (m *monitor) Stop() {
 	close(m.quit)
 	// m.Stop()
