@@ -117,8 +117,8 @@ func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
 		return err
 	}
 
-	//event := new(control_event.SwapPluginsEvent)
-	//defer p.eventManager.Emit(event)
+	event := new(control_event.SwapPluginsEvent)
+	defer p.eventManager.Emit(event)
 
 	return nil
 }
