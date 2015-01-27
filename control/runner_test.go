@@ -88,6 +88,18 @@ func (m *MockHandlerDelegate) IsHandlerRegistered(s string) bool {
 	return false
 }
 
+type MockHealthyPluginCollectorClient struct{}
+
+func (mpcc *MockHealthyPluginCollectorClient) Ping() error {
+	return nil
+}
+
+type MockUnhealthyPluginCollectorClient struct{}
+
+func (mucc *MockUnhealthyPluginCollectorClient) Ping() error {
+	return errors.New("Fail")
+}
+
 func TestRunnerState(t *testing.T) {
 	Convey("pulse/control", t, func() {
 
@@ -222,6 +234,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 				// These tests only work if Pulse Path is known to discover dummy plugin used for testing
 				if PulsePath != "" {
 					Convey("should return an AvailablePlugin in a Running state", func() {
+						r := new(Runner)
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -233,12 +246,109 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						// exPlugin := new(MockExecutablePlugin)
-						ap, e := startPlugin(exPlugin)
+						ap, e := r.startPlugin(exPlugin)
 
 						So(e, ShouldBeNil)
 						So(ap, ShouldNotBeNil)
 						println(ap.State)
 						So(ap.State, ShouldEqual, PluginRunning)
+					})
+
+					Convey("availablePlugins should include returned availablePlugin", func() {
+						r := new(Runner)
+						a := plugin.Arg{
+							PluginLogPath: "/tmp/pulse-test-plugin.log",
+						}
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						if err != nil {
+							panic(err)
+						}
+
+						So(err, ShouldBeNil)
+						apCount := len(availablePlugins)
+						ap, e := r.startPlugin(exPlugin)
+						So(e, ShouldBeNil)
+						So(ap, ShouldNotBeNil)
+						So(len(availablePlugins), ShouldEqual, apCount+1)
+					})
+
+					Convey("healthcheck on healthy plugin does not increment failedHealthChecks", func() {
+						r := new(Runner)
+						a := plugin.Arg{
+							PluginLogPath: "/tmp/pulse-test-plugin.log",
+						}
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						if err != nil {
+							panic(err)
+						}
+
+						So(err, ShouldBeNil)
+						ap, e := r.startPlugin(exPlugin)
+						So(e, ShouldBeNil)
+						ap.client = new(MockHealthyPluginCollectorClient)
+						ap.checkHealth()
+						So(ap.failedHealthChecks, ShouldEqual, 0)
+					})
+
+					Convey("healthcheck on unhealthy plugin increments failedHealthChecks", func() {
+						r := new(Runner)
+						a := plugin.Arg{
+							PluginLogPath: "/tmp/pulse-test-plugin.log",
+						}
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						if err != nil {
+							panic(err)
+						}
+
+						So(err, ShouldBeNil)
+						ap, e := r.startPlugin(exPlugin)
+						So(e, ShouldBeNil)
+						ap.client = new(MockUnhealthyPluginCollectorClient)
+						ap.checkHealth()
+						So(ap.failedHealthChecks, ShouldEqual, 1)
+					})
+
+					Convey("successful healthcheck resets failedHealthChecks", func() {
+						r := new(Runner)
+						a := plugin.Arg{
+							PluginLogPath: "/tmp/pulse-test-plugin.log",
+						}
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						if err != nil {
+							panic(err)
+						}
+
+						So(err, ShouldBeNil)
+						ap, e := r.startPlugin(exPlugin)
+						So(e, ShouldBeNil)
+						ap.client = new(MockUnhealthyPluginCollectorClient)
+						ap.checkHealth()
+						ap.checkHealth()
+						So(ap.failedHealthChecks, ShouldEqual, 2)
+						ap.client = new(MockHealthyPluginCollectorClient)
+						ap.checkHealth()
+						So(ap.failedHealthChecks, ShouldEqual, 0)
+					})
+
+					Convey("three consecutive failedHealthChecks disables the plugin", func() {
+						r := new(Runner)
+						a := plugin.Arg{
+							PluginLogPath: "/tmp/pulse-test-plugin.log",
+						}
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						if err != nil {
+							panic(err)
+						}
+
+						So(err, ShouldBeNil)
+						ap, e := r.startPlugin(exPlugin)
+						So(e, ShouldBeNil)
+						ap.client = new(MockUnhealthyPluginCollectorClient)
+						ap.checkHealth()
+						ap.checkHealth()
+						ap.checkHealth()
+						So(ap.failedHealthChecks, ShouldEqual, 3)
+						So(ap.State, ShouldEqual, PluginDisabled)
 					})
 
 					// Convey("should return error for WaitForResponse error", func() {

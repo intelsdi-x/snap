@@ -12,15 +12,15 @@ import (
 )
 
 const (
-	DefaultClientTimeout           = time.Second * 3
-	DefaultHealthCheckTimeout      = time.Second * 1
-	DefaultHealthCheckFailureLimit = 3
-
 	HandlerRegistrationName = "control.runner"
 
 	// availablePlugin States
 	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
 	PluginDisabled
+
+	DefaultClientTimeout           = time.Second * 3
+	DefaultHealthCheckTimeout      = time.Second * 1
+	DefaultHealthCheckFailureLimit = 3
 )
 
 type availablePluginState int
@@ -37,7 +37,7 @@ type Runner struct {
 type availablePlugin struct {
 	State              availablePluginState
 	Response           *plugin.Response
-	client             *client.PluginNativeClient
+	client             client.PluginClient
 	eventManager       *gomit.EventController
 	failedHealthChecks int
 }
@@ -50,7 +50,7 @@ func newAvailablePlugin() *availablePlugin {
 
 func (ap *availablePlugin) healthCheckFailed() {
 	ap.failedHealthChecks++
-	if ap.failedHealthChecks > DefaultHealthCheckFailureLimit {
+	if ap.failedHealthChecks >= DefaultHealthCheckFailureLimit {
 		ap.State = PluginDisabled
 		pde := &control_event.DisabledPluginEvent{
 			Type: ap.Response.Type,
@@ -66,13 +66,13 @@ func (ap *availablePlugin) healthCheckFailed() {
 }
 
 func (ap *availablePlugin) checkHealth() {
-	hc := make(chan string, 1)
+	hc := make(chan error, 1)
 	go func() {
-		hc <- "TODO: call ap.client.Ping() here"
+		hc <- ap.client.Ping()
 	}()
 	select {
-	case res := <-hc:
-		if res == "TODO: call ap.client.Ping() here" {
+	case err := <-hc:
+		if err == nil {
 			//if res is ok - do nothing
 			ap.failedHealthChecks = 0
 		} else {
@@ -134,7 +134,7 @@ func (r *Runner) Stop() []error {
 	return errs
 }
 
-func startPlugin(p executablePlugin) (*availablePlugin, error) {
+func (r *Runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	// Start plugin in daemon mode
 	e := p.Start()
 	if e != nil {
@@ -155,14 +155,11 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 		return nil, errors.New("plugin could not start error: " + resp.ErrorMessage)
 	}
 
-<<<<<<< HEAD
 	// build availablePlugin
-	ap := new(availablePlugin)
+	ap := newAvailablePlugin()
 	ap.Response = resp
 
-=======
 	// var pluginClient plugin.
->>>>>>> lynxbat-sdi-56
 	// Create RPC client
 	switch t := resp.Type; t {
 	case plugin.CollectorPluginType:
@@ -178,17 +175,8 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 	// Ping through client
 
 	// Ask for metric inventory
-	// TODO
 
-<<<<<<< HEAD
-=======
-	// build availablePlugin
-	ap := new(availablePlugin)
-	ap.Response = resp
 	ap.State = PluginRunning
-
->>>>>>> lynxbat-sdi-56
-	// return availablePlugin
 
 	availablePlugins = append(availablePlugins, ap)
 
@@ -196,7 +184,7 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 }
 
 // Halt a RunnablePlugin
-func stopPlugin() {}
+func (r *Runner) stopPlugin() {}
 
 // Empty handler acting as placeholder until implementation. This helps tests
 // pass to ensure registration works.

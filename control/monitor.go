@@ -5,10 +5,10 @@ import (
 )
 
 const (
-	DefaultMonitorDuration = time.Second * time.Duration(60)
-
 	MonitorStopped monitorState = iota - 1 // default is stopped
 	MonitorStarted
+
+	DefaultMonitorDuration = time.Second * 60
 )
 
 var interval int = 60
