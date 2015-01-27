@@ -50,7 +50,7 @@ func TestLoad(t *testing.T) {
 				c := Control()
 				err := c.Load(PluginPath)
 
-				So(c.pluginManager.LoadedPlugins.Len(), ShouldEqual, 0)
+				So(len(c.pluginManager.LoadedPlugins.Table()), ShouldEqual, 0)
 				So(err, ShouldNotBeNil)
 			})
 
@@ -60,7 +60,7 @@ func TestLoad(t *testing.T) {
 				err := c.Load(PluginPath)
 
 				So(err, ShouldBeNil)
-				So(c.pluginManager.LoadedPlugins.Len(), ShouldBeGreaterThan, 0)
+				So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
 			})
 
 		})

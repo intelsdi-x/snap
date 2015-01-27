@@ -39,6 +39,7 @@ func newLoadedPlugins() *loadedPlugins {
 	}
 }
 
+// adds a loadedPlugin pointer to the loadedPlugins table
 func (l *loadedPlugins) Append(lp *loadedPlugin) error {
 
 	l.mutex.Lock()
@@ -47,7 +48,7 @@ func (l *loadedPlugins) Append(lp *loadedPlugin) error {
 	// make sure we don't already  have a pointer to this plugin in the table
 	for i, pl := range *l.table {
 		if lp == pl {
-			return errors.New("plugin already loaded at index" + strconv.Itoa(i))
+			return errors.New("plugin already loaded at index " + strconv.Itoa(i))
 		}
 	}
 
@@ -59,14 +60,12 @@ func (l *loadedPlugins) Append(lp *loadedPlugin) error {
 	return nil
 }
 
-func (l *loadedPlugins) Len() int {
-
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
-	return len(*l.table)
+// returns a copy of the table
+func (l *loadedPlugins) Table() []*loadedPlugin {
+	return *l.table
 }
 
+// used to transactionally retrieve a loadedPlugin pointer from the table
 func (l *loadedPlugins) Get(index int) (*loadedPlugin, error) {
 	l.Lock()
 	defer l.Unlock()
@@ -78,6 +77,8 @@ func (l *loadedPlugins) Get(index int) (*loadedPlugin, error) {
 	return (*l.table)[index], nil
 }
 
+// used to lock the plugin table externally,
+// when iterating in unsafe scenarios
 func (l *loadedPlugins) Lock() {
 	l.mutex.Lock()
 }
@@ -96,29 +97,17 @@ func (l *loadedPlugins) splice(index int) {
 	l.table = &lp
 }
 
+// splice unsafely
 func (l *loadedPlugins) NonblockingSplice(index int) {
 	l.splice(index)
 }
 
+// atomic splice
 func (l *loadedPlugins) Splice(index int) {
 
 	l.mutex.Lock()
 	l.splice(index)
 	l.mutex.Unlock()
-
-}
-
-// walk through the table of loaded plugins while holding the mutex
-func (l *loadedPlugins) Range(f func(int, *loadedPlugin)) {
-
-	l.Lock()
-
-	for l.Next() {
-		i, lp := l.Item()
-		f(i, lp)
-	}
-
-	l.Unlock()
 
 }
 
@@ -140,6 +129,7 @@ func (l *loadedPlugins) Next() bool {
 	return true
 }
 
+// the struct representing a plugin that is loaded into Pulse
 type loadedPlugin struct {
 	Meta       plugin.PluginMeta
 	Path       string
@@ -149,26 +139,38 @@ type loadedPlugin struct {
 	LoadedTime time.Time
 }
 
+// returns plugin name
+// implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Name() string {
 	return lp.Meta.Name
 }
 
+// returns plugin version
+// implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Version() int {
 	return lp.Meta.Version
 }
 
+// returns plugin type as a string
+// implements the CatalogedPlugin interface
 func (lp *loadedPlugin) TypeName() string {
 	return lp.Type.String()
 }
 
+// returns current plugin state
+// implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Status() string {
 	return string(lp.State)
 }
 
+// returns a unix timestamp of the LoadTime of a plugin
+// implements the CatalogedPlugin interface
 func (lp *loadedPlugin) LoadedTimestamp() int64 {
 	return lp.LoadedTime.Unix()
 }
 
+// the struct representing the object responsible for
+// loading and unloading plugins
 type pluginManager struct {
 	LoadedPlugins *loadedPlugins
 
@@ -240,8 +242,11 @@ func (p *pluginManager) LoadPlugin(path string) error {
 	return nil
 }
 
+// unloads a plugin from the LoadedPlugins table
 func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 
+	// We hold the mutex here to safely splice out the plugin from the table.
+	// Using a stale index can be slightly dangerous (unloading incorrect plugin).
 	p.LoadedPlugins.Lock()
 	defer p.LoadedPlugins.Unlock()
 
@@ -253,14 +258,19 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 
 	// find it in the list
 	for p.LoadedPlugins.Next() {
-		i, lp := p.LoadedPlugins.Item()
-		// plugin key is its name && version
-		if pl.Name() == lp.Meta.Name && pl.Version() == lp.Meta.Version {
-			index = i
-			plugin = lp
-			// use bool for found becase we cannot check against default type values
-			// index of given plugin may be 0
-			found = true
+		if !found {
+			i, lp := p.LoadedPlugins.Item()
+			// plugin key is its name && version
+			if pl.Name() == lp.Meta.Name && pl.Version() == lp.Meta.Version {
+				index = i
+				plugin = lp
+				// use bool for found becase we cannot check against default type values
+				// index of given plugin may be 0
+				found = true
+			}
+		} else {
+			// break out of the loop once we find the plugin we're looking for
+			break
 		}
 	}
 

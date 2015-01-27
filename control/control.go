@@ -144,9 +144,10 @@ type CatalogedPlugin interface {
 type PluginCatalog []CatalogedPlugin
 
 func (p *pluginControl) PluginCatalog() PluginCatalog {
-	pc := make([]CatalogedPlugin, p.pluginManager.LoadedPlugins.Len())
-	p.pluginManager.LoadedPlugins.Range(func(i int, lp *loadedPlugin) {
+	table := p.pluginManager.LoadedPlugins.Table()
+	pc := make([]CatalogedPlugin, len(table))
+	for i, lp := range table {
 		pc[i] = lp
-	})
+	}
 	return pc
 }

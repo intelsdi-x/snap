@@ -18,6 +18,41 @@ var (
 	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
 )
 
+func TestLoadedPlugins(t *testing.T) {
+	Convey("Append", t, func() {
+		Convey("returns an error when loading duplicate plugins", func() {
+			lp := newLoadedPlugins()
+			lp.Append(new(loadedPlugin))
+
+			p, _ := lp.Get(0)
+			err := lp.Append(p)
+			So(err, ShouldResemble, errors.New("plugin already loaded at index 0"))
+
+		})
+	})
+	Convey("Get", t, func() {
+		Convey("returns an error when index is out of range", func() {
+			lp := newLoadedPlugins()
+			lp.Append(new(loadedPlugin))
+
+			_, err := lp.Get(1)
+			So(err, ShouldResemble, errors.New("index out of range"))
+
+		})
+	})
+	Convey("Splice", t, func() {
+		Convey("splices an item out of the table", func() {
+			lp := newLoadedPlugins()
+			lp.Append(new(loadedPlugin))
+			lp.Append(new(loadedPlugin))
+			lp.Append(new(loadedPlugin))
+			lp.Splice(1)
+			So(len(lp.Table()), ShouldResemble, 2)
+
+		})
+	})
+}
+
 // Uses the dummy collector plugin to simulate loading
 func TestLoadPlugin(t *testing.T) {
 	// These tests only work if PULSE_PATH is known
@@ -33,7 +68,7 @@ func TestLoadPlugin(t *testing.T) {
 
 				So(p.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
-				So(p.LoadedPlugins.Len(), ShouldBeGreaterThan, 0)
+				So(len(p.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
 			})
 
 		})
@@ -50,12 +85,12 @@ func TestUnloadPlugin(t *testing.T) {
 					p := newPluginManager()
 					err := p.LoadPlugin(PluginPath)
 
-					num_plugins_loaded := p.LoadedPlugins.Len()
+					num_plugins_loaded := len(p.LoadedPlugins.Table())
 					lp, _ := p.LoadedPlugins.Get(0)
 					err = p.UnloadPlugin(lp)
 
 					So(err, ShouldBeNil)
-					So(p.LoadedPlugins.Len(), ShouldEqual, num_plugins_loaded-1)
+					So(len(p.LoadedPlugins.Table()), ShouldEqual, num_plugins_loaded-1)
 				})
 			})
 
