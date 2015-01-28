@@ -7,17 +7,21 @@ go:
 before_install:
 - cp .netrc ~
 - chmod 600 .netrc
+- go get github.com/axw/gocov/gocov
+- go get github.com/mattn/goveralls
+- go get -v github.com/smartystreets/goconvey # Get goconvey
+- if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 env:
   global:
     - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdilabs/pulse
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdilabs/pulse/build    
 install:
-- go get -v github.com/smartystreets/goconvey # Get goconvey
-- go get golang.org/x/tools/cmd/cover # get golang cover
 - go get -d -v ./... && go build -v ./... # get and build source
 - ls $PULSE_SOURCE # change dir into source
 - make
-script: go test ./... -v -cover # run go test with cover
+script:
+- go test ./... -v # run go test with cover
+- ./scripts/coverage.sh
 notifications:
   slack:
     secure: VkbZLIc2RH8yf3PtIAxUNPdAu3rQQ7yQx0GcK124JhbEnZGaHyK615V0rbG7HcVmYKGPdB0cXqZiLBDKGqGKb2zR1NepOe1nF03jxGSpPq8jIFeEXSJGEYGL34ScDzZZGuG6qwbjFcXiW5lqn6t8igzp7v2+URYBaZo5ktCS2xY=
