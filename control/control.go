@@ -80,7 +80,7 @@ func (p *pluginControl) Load(path string) error {
 		return errors.New("Must start Controller before calling Load()")
 	}
 
-	if err := p.pluginManager.LoadPlugin(path); err != nil {
+	if _, err := p.pluginManager.LoadPlugin(path); err != nil {
 		return err
 	}
 
@@ -98,6 +98,28 @@ func (p *pluginControl) Unload(pl CatalogedPlugin) error {
 
 	event := new(control_event.UnloadPluginEvent)
 	defer p.eventManager.Emit(event)
+	return nil
+}
+
+func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
+
+	lp, err := p.pluginManager.LoadPlugin(inPath)
+	if err != nil {
+		return err
+	}
+
+	err = p.pluginManager.UnloadPlugin(out)
+	if err != nil {
+		err2 := p.pluginManager.UnloadPlugin(lp)
+		if err2 != nil {
+			return errors.New("failed to rollback after error" + err2.Error() + " -- " + err.Error())
+		}
+		return err
+	}
+
+	event := new(control_event.SwapPluginsEvent)
+	defer p.eventManager.Emit(event)
+
 	return nil
 }
 
@@ -133,6 +155,9 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 	defer p.eventManager.Emit(e)
 }
 
+// the public interface for a plugin
+// this should be the contract for
+// how mgmt modules know a plugin
 type CatalogedPlugin interface {
 	Name() string
 	Version() int
@@ -141,8 +166,11 @@ type CatalogedPlugin interface {
 	LoadedTimestamp() int64
 }
 
+// the collection of cataloged plugins used
+// by mgmt modules
 type PluginCatalog []CatalogedPlugin
 
+// returns a copy of the plugin catalog
 func (p *pluginControl) PluginCatalog() PluginCatalog {
 	table := p.pluginManager.LoadedPlugins.Table()
 	pc := make([]CatalogedPlugin, len(table))

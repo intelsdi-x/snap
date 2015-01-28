@@ -8,6 +8,7 @@ const (
 	PluginLoaded       = "Control.PluginLoaded"
 	PluginDisabled     = "Control.PluginDisabled"
 	PluginUnloaded     = "Control.PluginUnloaded"
+	PluginsSwapped     = "Control.PluginsSwapped"
 	MetricSubscribed   = "Control.MetricSubscribed"
 	MetricUnsubscribed = "Control.MetricUnsubscribed"
 	HealthCheckFailed  = "Control.PluginHealthCheckFailed"
@@ -33,6 +34,12 @@ type DisabledPluginEvent struct {
 
 func (e *DisabledPluginEvent) Namespace() string {
 	return PluginDisabled
+}
+
+type SwapPluginsEvent struct{}
+
+func (s *SwapPluginsEvent) Namespace() string {
+	return PluginsSwapped
 }
 
 type MetricSubscriptionEvent struct {
