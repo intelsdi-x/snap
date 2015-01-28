@@ -11,8 +11,6 @@ const (
 	DefaultMonitorDuration = time.Second * 60
 )
 
-var interval int = 60
-
 type monitorState int
 
 type monitor struct {
