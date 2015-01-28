@@ -138,7 +138,7 @@ func (p *pluginControl) SubscribeMetric(metric []string) {
 	e := &control_event.MetricSubscriptionEvent{
 		MetricNamespace: metric,
 	}
-	defer p.eventManager.Emit(e)
+	p.eventManager.Emit(e)
 }
 
 // unsubscribes a metric
@@ -152,7 +152,7 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 	e := &control_event.MetricUnsubscriptionEvent{
 		MetricNamespace: metric,
 	}
-	defer p.eventManager.Emit(e)
+	p.eventManager.Emit(e)
 }
 
 // the public interface for a plugin
