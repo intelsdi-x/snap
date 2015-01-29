@@ -32,7 +32,6 @@ func TestDummyPluginLoad(t *testing.T) {
 			err := c.Load(PluginPath)
 
 			So(err, ShouldBeNil)
-			So(loadedPlugin, ShouldNotBeNil)
 		})
 	} else {
 		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
