@@ -3,6 +3,7 @@ package control_event
 const (
 	PluginLoaded       = "Control.PluginLoaded"
 	PluginUnloaded     = "Control.PluginUnloaded"
+	PluginsSwapped     = "Control.PluginsSwapped"
 	MetricSubscribed   = "Control.MetricSubscribed"
 	MetricUnsubscribed = "Control.MetricUnsubscribed"
 )
@@ -18,6 +19,12 @@ type UnloadPluginEvent struct {
 
 func (e *UnloadPluginEvent) Namespace() string {
 	return PluginUnloaded
+}
+
+type SwapPluginsEvent struct{}
+
+func (s *SwapPluginsEvent) Namespace() string {
+	return PluginsSwapped
 }
 
 type MetricSubscriptionEvent struct {

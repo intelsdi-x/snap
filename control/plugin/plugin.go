@@ -17,12 +17,14 @@ const (
 	// How much time must elapse before a lack of Ping results in a timeout
 	PingTimeoutDuration = time.Second * 5
 	// How many succesive PingTimeouts must occur to equal a failure.
-	PingTimeoutLimit = 5
+	PingTimeoutLimit = 10
+)
 
+const (
 	// List of plugin type
 	CollectorPluginType PluginType = iota
 	PublisherPluginType
-	ProcesserPluginType
+	ProcessorPluginType
 )
 
 const (
@@ -32,7 +34,7 @@ const (
 )
 
 var (
-	// Slice matching plugin type enum to a string
+	// Array matching plugin type enum to a string
 	// note: in string represenation we use lower case
 	types = [...]string{
 		"collector",

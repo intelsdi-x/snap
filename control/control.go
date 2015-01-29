@@ -3,10 +3,6 @@ package control
 import (
 	"crypto/rsa"
 	"errors"
-	"fmt"
-	"log"
-	"strings"
-	"time"
 
 	"github.com/intelsdilabs/gomit"
 
@@ -24,7 +20,6 @@ type executablePlugins []plugin.ExecutablePlugin
 
 type pluginControl struct {
 	// TODO, going to need coordination on changing of these
-	LoadedPlugins  loadedPlugins
 	RunningPlugins executablePlugins
 	Started        bool
 	// loadRequestsChan chan LoadedPlugin
@@ -33,13 +28,18 @@ type pluginControl struct {
 	controlPubKey  *rsa.PublicKey
 	eventManager   *gomit.EventController
 	subscriptions  *subscriptions
+	pluginManager  *pluginManager
 }
 
+// TODO Update to newPluginControl
 func Control() *pluginControl {
 	c := new(pluginControl)
 	c.eventManager = new(gomit.EventController)
+
 	c.subscriptions = new(subscriptions)
 	c.subscriptions.Init()
+
+	c.pluginManager = newPluginManager()
 
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -63,6 +63,7 @@ func (p *pluginControl) Start() {
 	// a linear fashion for now as this is a low priority.
 	// go p.HandleLoadRequests()
 
+	// Start pluginManager when pluginControl starts
 	p.Started = true
 }
 
@@ -71,85 +72,55 @@ func (p *pluginControl) Stop() {
 	p.Started = false
 }
 
-func (p *pluginControl) Load(path string) (*LoadedPlugin, error) {
+// Load is the public method to load a plugin into
+// the LoadedPlugins array and issue an event when
+// successful.
+func (p *pluginControl) Load(path string) error {
 	if !p.Started {
-		return nil, errors.New("Must start plugin control before calling Load()")
+		return errors.New("Must start Controller before calling Load()")
 	}
 
-	/*
-		Loading plugin status
+	if _, err := p.pluginManager.LoadPlugin(path); err != nil {
+		return err
+	}
 
-		Before start (todo)
-		* executable (caught on start)
-		* signed? (todo)
-		* Grab checksum (file watching? todo)
-		=> Plugin state = detected
+	// defer sending event
+	event := new(control_event.LoadPluginEvent)
+	defer p.eventManager.Emit(event)
+	return nil
+}
 
-		After start before Ping
-		* starts? (catch crash)
-		* response? (catch stdout)
-		=> Plugin state = loaded
-	*/
-
-	log.Printf("Attempting to load: %s\v", path)
-	lPlugin := new(LoadedPlugin)
-	lPlugin.Path = path
-	lPlugin.State = DetectedState
-
-	// Create a new Executable plugin
-	//
-	// In this case we only support Linux right now
-	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(), lPlugin.Path, false)
-
-	// If error then log and return
+func (p *pluginControl) Unload(pl CatalogedPlugin) error {
+	err := p.pluginManager.UnloadPlugin(pl)
 	if err != nil {
-		log.Println(err)
-		return nil, err
+		return err
 	}
 
-	// Start the plugin using the start method
-	err = ePlugin.Start()
+	event := new(control_event.UnloadPluginEvent)
+	defer p.eventManager.Emit(event)
+	return nil
+}
+
+func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
+
+	lp, err := p.pluginManager.LoadPlugin(inPath)
 	if err != nil {
-		log.Println(err)
-		return nil, err
+		return err
 	}
 
-	var resp *plugin.Response
-	// This blocks until a response or an error
-	resp, err = ePlugin.WaitForResponse(time.Second * 3)
-	// resp, err = WaitForPluginResponse(ePlugin, time.Second*3)
-
-	// If error then we log and return
+	err = p.pluginManager.UnloadPlugin(out)
 	if err != nil {
-		log.Println(err)
-		return nil, err
+		err2 := p.pluginManager.UnloadPlugin(lp)
+		if err2 != nil {
+			return errors.New("failed to rollback after error" + err2.Error() + " -- " + err.Error())
+		}
+		return err
 	}
 
-	// If the response state is not Success we log an error
-	if resp.State != plugin.PluginSuccess {
-		log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
-		return nil, errors.New(fmt.Sprintf("Plugin loading did not succeed: %s\n", resp.ErrorMessage))
-	}
-	// On response we create a LoadedPlugin
-	// and add to LoadedPlugins index
-	//
-	lPlugin.Meta = resp.Meta
-	lPlugin.Type = resp.Type
-	lPlugin.Token = resp.Token
-	lPlugin.LoadedTime = time.Now()
-	lPlugin.State = LoadedState
+	event := new(control_event.SwapPluginsEvent)
+	defer p.eventManager.Emit(event)
 
-	p.LoadedPlugins = append(p.LoadedPlugins, lPlugin)
-
-	/*
-
-		Name
-		Version
-		Loaded Time
-
-	*/
-
-	return lPlugin, err
+	return nil
 }
 
 func (p *pluginControl) generateArgs() plugin.Arg {
@@ -167,7 +138,7 @@ func (p *pluginControl) SubscribeMetric(metric []string) {
 	e := &control_event.MetricSubscriptionEvent{
 		MetricNamespace: metric,
 	}
-	defer p.eventManager.Emit(e)
+	p.eventManager.Emit(e)
 }
 
 // unsubscribes a metric
@@ -181,9 +152,30 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 	e := &control_event.MetricUnsubscriptionEvent{
 		MetricNamespace: metric,
 	}
-	defer p.eventManager.Emit(e)
+	p.eventManager.Emit(e)
 }
 
-func getMetricKey(metric []string) string {
-	return strings.Join(metric, ".")
+// the public interface for a plugin
+// this should be the contract for
+// how mgmt modules know a plugin
+type CatalogedPlugin interface {
+	Name() string
+	Version() int
+	TypeName() string
+	Status() string
+	LoadedTimestamp() int64
+}
+
+// the collection of cataloged plugins used
+// by mgmt modules
+type PluginCatalog []CatalogedPlugin
+
+// returns a copy of the plugin catalog
+func (p *pluginControl) PluginCatalog() PluginCatalog {
+	table := p.pluginManager.LoadedPlugins.Table()
+	pc := make([]CatalogedPlugin, len(table))
+	for i, lp := range table {
+		pc[i] = lp
+	}
+	return pc
 }
