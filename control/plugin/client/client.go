@@ -8,7 +8,7 @@ import (
 
 // A client providing common plugin method calls.
 type PluginClient interface {
-	Ping() bool
+	Ping() error
 }
 
 // A client providing collector specific plugin method calls.
@@ -29,10 +29,10 @@ type PluginNativeClient struct {
 	connection *rpc.Client
 }
 
-func (p *PluginNativeClient) Ping() bool {
-	var b bool
-	p.connection.Call("meta.Ping", time.Second*3, &b)
-	return b
+func (p *PluginNativeClient) Ping() error {
+	// var b bool
+	// p.connection.Call("meta.Ping", time.Second*3, &b)
+	return nil
 }
 
 func NewCollectorClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
