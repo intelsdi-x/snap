@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	// Import the pulse plugin library
@@ -24,6 +25,7 @@ func main() {
 	// Start a collector
 	e := plugin.StartCollector(meta, new(dummy.Dummy), policy)
 	if e != nil {
+		fmt.Println(e.Error())
 		os.Exit(2)
 	}
 }
