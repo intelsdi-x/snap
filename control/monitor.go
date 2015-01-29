@@ -25,7 +25,7 @@ func newMonitor() *monitor {
 }
 
 // start the monitor
-func (m *monitor) Start() {
+func (m *monitor) Start(availablePlugins *availablePlugins) {
 	//start a routine that will be fired every X duration looping
 	//over available plugins and firing a health check routine
 	ticker := time.NewTicker(DefaultMonitorDuration)
@@ -34,11 +34,13 @@ func (m *monitor) Start() {
 		for {
 			select {
 			case <-ticker.C:
-				for _, ap := range availablePlugins {
+				availablePlugins.Lock()
+				for _, ap := range availablePlugins.Table() {
 					if ap.State == PluginRunning {
 						go ap.checkHealth()
 					}
 				}
+				availablePlugins.Unlock()
 			case <-m.quit:
 				ticker.Stop()
 				m.State = MonitorStopped

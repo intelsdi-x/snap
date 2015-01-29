@@ -2,6 +2,8 @@ package control
 
 import (
 	"errors"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/intelsdilabs/gomit"
@@ -25,12 +27,108 @@ const (
 
 type availablePluginState int
 
-var availablePlugins []*availablePlugin
+//JC remove me - var availablePlugins []*availablePlugin
+
+type availablePlugins struct {
+	table       *[]*availablePlugin
+	mutex       *sync.Mutex
+	currentIter int
+}
+
+func newAvailablePlugins() *availablePlugins {
+	var t []*availablePlugin
+	return &availablePlugins{
+		table:       &t,
+		mutex:       new(sync.Mutex),
+		currentIter: 0,
+	}
+}
+
+// adds an availablePlugin pointer to the availablePlugins table
+func (a *availablePlugins) Append(ap *availablePlugin) error {
+
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	// make sure we don't already  have a pointer to this plugin in the table
+	for i, pa := range *a.table {
+		if ap == pa {
+			return errors.New("plugin instance already available at index " + strconv.Itoa(i))
+		}
+	}
+
+	// append
+	newAvailablePluginsTable := append(*a.table, ap)
+	// overwrite
+	a.table = &newAvailablePluginsTable
+
+	return nil
+}
+
+// returns a copy of the table
+func (a *availablePlugins) Table() []*availablePlugin {
+	return *a.table
+}
+
+// used to transactionally retrieve a loadedPlugin pointer from the table
+func (a *availablePlugins) Get(index int) (*availablePlugin, error) {
+	a.Lock()
+	defer a.Unlock()
+
+	if index > len(*a.table)-1 {
+		return nil, errors.New("index out of range")
+	}
+
+	return (*a.table)[index], nil
+}
+
+// used to lock the plugin table externally,
+// when iterating in unsafe scenarios
+func (a *availablePlugins) Lock() {
+	a.mutex.Lock()
+}
+
+func (a *availablePlugins) Unlock() {
+	a.mutex.Unlock()
+}
+
+/* we need an atomic read / write transaction for the splice when removing a plugin,
+   as the plugin is found by its index in the table.  By having the default Splice
+   method block, we protect against accidental use.  Using nonblocking requires explicit
+   invocation.
+*/
+func (a *availablePlugins) splice(index int) {
+	ap := append((*a.table)[:index], (*a.table)[index+1:]...)
+	a.table = &ap
+}
+
+// splice unsafely
+func (a *availablePlugins) NonblockingSplice(index int) {
+	a.splice(index)
+}
+
+// atomic splice
+func (a *availablePlugins) Splice(index int) {
+
+	a.mutex.Lock()
+	a.splice(index)
+	a.mutex.Unlock()
+
+}
 
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type Runner struct {
-	delegates []gomit.Delegator
-	monitor   *monitor
+	delegates        []gomit.Delegator
+	monitor          *monitor
+	availablePlugins *availablePlugins
+}
+
+func NewRunner() *Runner {
+	r := &Runner{
+		monitor:          newMonitor(),
+		availablePlugins: newAvailablePlugins(),
+	}
+	return r
 }
 
 // Representing a plugin running and available to execute calls against.
@@ -117,10 +215,8 @@ func (r *Runner) Start() error {
 		}
 	}
 
-	//Create an instance of the monitor add it the runner and start it
-	monitor := newMonitor()
-	r.monitor = monitor
-	r.monitor.Start()
+	// Start the monitor
+	r.monitor.Start(r.availablePlugins)
 
 	return nil
 }
@@ -182,7 +278,7 @@ func (r *Runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 
 	ap.State = PluginRunning
 
-	availablePlugins = append(availablePlugins, ap)
+	r.availablePlugins.Append(ap)
 
 	return ap, nil
 }

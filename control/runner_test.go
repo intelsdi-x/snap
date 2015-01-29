@@ -108,14 +108,14 @@ func TestRunnerState(t *testing.T) {
 			Convey(".AddDelegates", func() {
 
 				Convey("adds a handler delegate", func() {
-					r := new(Runner)
+					r := NewRunner()
 
 					r.AddDelegates(new(MockHandlerDelegate))
 					So(len(r.delegates), ShouldEqual, 1)
 				})
 
 				Convey("adds multiple delegates", func() {
-					r := new(Runner)
+					r := NewRunner()
 
 					r.AddDelegates(new(MockHandlerDelegate))
 					r.AddDelegates(new(MockHandlerDelegate))
@@ -123,7 +123,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("adds multiple delegates (batch)", func() {
-					r := new(Runner)
+					r := NewRunner()
 
 					r.AddDelegates(new(MockHandlerDelegate), new(MockHandlerDelegate))
 					So(len(r.delegates), ShouldEqual, 2)
@@ -134,7 +134,7 @@ func TestRunnerState(t *testing.T) {
 			Convey(".Start", func() {
 
 				Convey("returns error without adding delegates", func() {
-					r := new(Runner)
+					r := NewRunner()
 					e := r.Start()
 
 					So(e, ShouldNotBeNil)
@@ -142,7 +142,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("starts after adding one delegates", func() {
-					r := new(Runner)
+					r := NewRunner()
 					m1 := new(MockHandlerDelegate)
 					r.AddDelegates(m1)
 					e := r.Start()
@@ -152,7 +152,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("starts after  after adding multiple delegates", func() {
-					r := new(Runner)
+					r := NewRunner()
 					m1 := new(MockHandlerDelegate)
 					m2 := new(MockHandlerDelegate)
 					m3 := new(MockHandlerDelegate)
@@ -167,7 +167,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("error if delegate cannot RegisterHandler", func() {
-					r := new(Runner)
+					r := NewRunner()
 					me := new(MockHandlerDelegate)
 					me.ErrorMode = true
 					r.AddDelegates(me)
@@ -182,7 +182,7 @@ func TestRunnerState(t *testing.T) {
 			Convey(".Stop", func() {
 
 				Convey("removes handlers from delegates", func() {
-					r := new(Runner)
+					r := NewRunner()
 					m1 := new(MockHandlerDelegate)
 					m2 := new(MockHandlerDelegate)
 					m3 := new(MockHandlerDelegate)
@@ -199,7 +199,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("returns errors for handlers errors on stop", func() {
-					r := new(Runner)
+					r := NewRunner()
 					m1 := new(MockHandlerDelegate)
 					m1.StopError = errors.New("0")
 					m2 := new(MockHandlerDelegate)
@@ -234,7 +234,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 				// These tests only work if Pulse Path is known to discover dummy plugin used for testing
 				if PulsePath != "" {
 					Convey("should return an AvailablePlugin in a Running state", func() {
-						r := new(Runner)
+						r := NewRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -255,7 +255,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("availablePlugins should include returned availablePlugin", func() {
-						r := new(Runner)
+						r := NewRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -265,15 +265,16 @@ func TestRunnerPluginRunning(t *testing.T) {
 						}
 
 						So(err, ShouldBeNil)
-						apCount := len(availablePlugins)
+						apCount := len(r.availablePlugins.Table())
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
 						So(ap, ShouldNotBeNil)
-						So(len(availablePlugins), ShouldEqual, apCount+1)
+						So(len(r.availablePlugins.Table()), ShouldEqual, apCount+1)
+						So(ap, ShouldBeIn, r.availablePlugins.Table())
 					})
 
 					Convey("healthcheck on healthy plugin does not increment failedHealthChecks", func() {
-						r := new(Runner)
+						r := NewRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -291,7 +292,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("healthcheck on unhealthy plugin increments failedHealthChecks", func() {
-						r := new(Runner)
+						r := NewRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -309,7 +310,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("successful healthcheck resets failedHealthChecks", func() {
-						r := new(Runner)
+						r := NewRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -331,7 +332,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("three consecutive failedHealthChecks disables the plugin", func() {
-						r := new(Runner)
+						r := NewRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -375,6 +376,41 @@ func TestRunnerPluginRunning(t *testing.T) {
 			Convey("stopPlugin", func() {
 				// TODO
 			})
+		})
+	})
+}
+
+func TestAvailablePlugins(t *testing.T) {
+	Convey("Append", t, func() {
+		Convey("returns an error when loading duplicate plugins", func() {
+			ap := newAvailablePlugins()
+			ap.Append(new(availablePlugin))
+
+			p, _ := ap.Get(0)
+			err := ap.Append(p)
+			So(err, ShouldResemble, errors.New("plugin instance already available at index 0"))
+
+		})
+	})
+	Convey("Get", t, func() {
+		Convey("returns an error when index is out of range", func() {
+			ap := newAvailablePlugins()
+			ap.Append(new(availablePlugin))
+
+			_, err := ap.Get(1)
+			So(err, ShouldResemble, errors.New("index out of range"))
+
+		})
+	})
+	Convey("Splice", t, func() {
+		Convey("splices an item out of the table", func() {
+			ap := newAvailablePlugins()
+			ap.Append(new(availablePlugin))
+			ap.Append(new(availablePlugin))
+			ap.Append(new(availablePlugin))
+			ap.Splice(1)
+			So(len(ap.Table()), ShouldResemble, 2)
+
 		})
 	})
 }
