@@ -12,9 +12,6 @@ BINDIR=$BUILDDIR/bin
 COLLECTORDIR=$BUILDDIR/$PLUGINDIR/collector
 PUBLISHERDIR=$BUILDDIR/$PLUGINDIR/publisher
 
-# Clean build
-rm -rf $BUILDDIR/*
-
 # Make dir
 mkdir -p $BINDIR
 mkdir -p $COLLECTORDIR
@@ -39,6 +36,8 @@ then
 	go build -o $destination $target || exit 2
 	cd $SOURCEDIR
 else
+	# Clean build
+	rm -rf $BUILDDIR/*
 	echo " Building Collector Plugin(s)"
 	# Built-in Collector Plugin building
 	cd $SOURCEDIR/plugin/collector/
