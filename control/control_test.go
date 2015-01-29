@@ -35,7 +35,9 @@ func TestSwapPlugin(t *testing.T) {
 		Convey("SwapPlugin", t, func() {
 			c := Control()
 			c.Start()
-			c.Load(PluginPath)
+			e := c.Load(PluginPath)
+
+			So(e, ShouldBeNil)
 
 			facterPath := strings.Replace(PluginPath, "pulse-collector-dummy", "pulse-collector-facter", 1)
 			pc := c.PluginCatalog()
