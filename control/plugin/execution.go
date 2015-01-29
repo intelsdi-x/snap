@@ -43,7 +43,6 @@ type waitSignalValue struct {
 
 // Starts the plugin and returns error if one occurred. This is non blocking.
 func (e *ExecutablePlugin) Start() error {
-	log.Println(e.cmd.Path)
 	return e.cmd.Start()
 }
 
