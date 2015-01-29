@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
-
 	. "github.com/smartystreets/goconvey/convey"
 )
 

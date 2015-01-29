@@ -188,7 +188,7 @@ func newPluginManager() *pluginManager {
 func (p *pluginManager) generateArgs(daemon bool) plugin.Arg {
 	a := plugin.Arg{
 		ControlPubKey: p.pubKey,
-		PluginLogPath: "/tmp",
+		PluginLogPath: "/tmp/pulse-plugin.log",
 		RunAsDaemon:   daemon,
 	}
 	return a
@@ -204,6 +204,8 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 
 	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(false), lPlugin.Path, false)
 
+	log.Println(ePlugin)
+
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -211,7 +213,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 
 	err = ePlugin.Start()
 	if err != nil {
-		log.Println(err)
+		log.Println("Start error" + err.Error())
 		return nil, err
 	}
 

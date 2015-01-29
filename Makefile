@@ -5,4 +5,4 @@ test:
 	go get -u golang.org/x/tools/cmd/cover
 
 build-pulse:
-	bash -c ./scripts/build.sh
+	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))"

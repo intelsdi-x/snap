@@ -30,6 +30,8 @@ type PluginNativeClient struct {
 }
 
 func (p *PluginNativeClient) Ping() error {
+	// var b bool
+	// p.connection.Call("meta.Ping", time.Second*3, &b)
 	return nil
 }
 

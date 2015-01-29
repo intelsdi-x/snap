@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os/exec"
 	"time"
@@ -43,7 +44,6 @@ type waitSignalValue struct {
 
 // Starts the plugin and returns error if one occurred. This is non blocking.
 func (e *ExecutablePlugin) Start() error {
-	log.Println(e.cmd.Path)
 	return e.cmd.Start()
 }
 
@@ -102,6 +102,9 @@ func (e *ExecutablePlugin) WaitForResponse(timeout time.Duration) (*Response, er
 
 // Private method which handles behvaior for wait for response for daemon and non-daemon modes.
 func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Response, error) {
+	// disable to turn debug logging back on
+	log.SetOutput(ioutil.Discard)
+
 	log.Printf("daemon == %t\n", daemon)
 	/*
 		Bit of complex behavior so some notes:
