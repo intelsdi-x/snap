@@ -8,15 +8,16 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"time"
 )
 
 const (
 	// Timeout settings
 	// How much time must elapse before a lack of Ping results in a timeout
-	PingTimeoutDuration = time.Second * 1
+	PingTimeoutDuration = time.Second * 5
 	// How many succesive PingTimeouts must occur to equal a failure.
-	PingTimeoutLimit = 10
+	PingTimeoutLimit = 5
 
 	// List of plugin type
 	CollectorPluginType PluginType = iota
@@ -73,6 +74,10 @@ type Arg struct {
 	RunAsDaemon bool
 }
 
+// Arguments passed to ping
+type PingArgs struct {
+}
+
 // Response from started plugin
 type Response struct {
 	Meta          PluginMeta
@@ -93,9 +98,14 @@ type PluginMeta struct {
 	Version int
 }
 
-func (p *PluginMeta) Status(a string, b *string) error {
-	return nil
+func (p *PluginMeta) Ping(arg time.Duration, reply *bool) error {
+	*reply = true
+	return errors.New("!!!!")
 }
+
+// func (p *PluginMeta) Status(a string, b *string) error {
+// 	return nil
+// }
 
 func (s *SessionState) GenerateResponse(r Response) []byte {
 	// Add common plugin response properties

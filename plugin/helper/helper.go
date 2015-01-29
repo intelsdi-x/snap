@@ -2,7 +2,7 @@
 package helper
 
 import (
-	"fmt"
+	// "fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -23,10 +23,10 @@ func BuildPlugin(pluginType, pluginName string) error {
 	bPath := strings.Replace(wd, path.Join("/", "plugin", pluginType, pluginName), buildScript, 1)
 	sPath := strings.Replace(wd, path.Join("/", "plugin", pluginType, pluginName), "", 1)
 
-	fmt.Println(bPath, sPath, pluginType, pluginName)
+	// fmt.Println(bPath, sPath, pluginType, pluginName)
 	c := exec.Command(bPath, sPath, pluginType, pluginName)
 
-	o, e := c.Output()
-	fmt.Println(string(o))
+	_, e := c.Output()
+	// fmt.Println(string(o))
 	return e
 }

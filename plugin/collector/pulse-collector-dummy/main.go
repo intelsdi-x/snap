@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	// Import the pulse plugin library
 	"github.com/intelsdilabs/pulse/control/plugin"
 	// Import our collector plugin implementation
@@ -20,5 +22,8 @@ func main() {
 	meta := dummy.Meta()
 
 	// Start a collector
-	plugin.StartCollector(meta, new(dummy.Dummy), policy)
+	e := plugin.StartCollector(meta, new(dummy.Dummy), policy)
+	if e != nil {
+		os.Exit(2)
+	}
 }

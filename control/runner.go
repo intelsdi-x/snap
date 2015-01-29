@@ -30,6 +30,7 @@ type Runner struct {
 type availablePlugin struct {
 	State    availablePluginState
 	Response *plugin.Response
+	Client   client.PluginClient
 }
 
 // TBD
@@ -99,11 +100,11 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 		return nil, errors.New("plugin could not start error: " + resp.ErrorMessage)
 	}
 
-	// var pluginClient plugin.
+	var pluginClient client.PluginCollectorClient
 	// Create RPC client
 	switch t := resp.Type; t {
 	case plugin.CollectorPluginType:
-		_, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
+		pluginClient, e = client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
 		if e != nil {
 			return nil, errors.New("error while creating client connection: " + e.Error())
 		}
@@ -112,6 +113,9 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// Ping through client
+	if !pluginClient.Ping() {
+		panic("Did not ping")
+	}
 
 	// Ask for metric inventory
 	// TODO
@@ -120,6 +124,7 @@ func startPlugin(p executablePlugin) (*availablePlugin, error) {
 	ap := new(availablePlugin)
 	ap.Response = resp
 	ap.State = PluginRunning
+	ap.Client = pluginClient
 
 	// return availablePlugin
 

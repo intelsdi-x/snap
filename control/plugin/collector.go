@@ -24,7 +24,7 @@ type CollectorReply struct {
 }
 
 // Execution method for a Collector plugin.
-func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
+func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 
 	// TODO - Patching in logging, needs to be replaced with proper log pathing and deterministic log file naming
 
@@ -44,8 +44,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 	// pluginLog.Println(os.Args[1])
 	sessionState, sErr := InitSessionState(os.Args[0], os.Args[1])
 	if sErr != nil {
-		// fmt.Printf("error parsing arguments: %s\n", sErr.Error())
-		os.Exit(1)
+		return sErr
 	}
 	var pluginLog *log.Logger
 	switch lp := sessionState.Arg.PluginLogPath; lp {
@@ -58,30 +57,33 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 		}
 		pluginLog = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	default:
-		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 		if err != nil {
 			// fmt.Printf("error opening log file (%s): %v", lp, err)
 			os.Exit(1)
 		}
 		pluginLog = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	}
-
-	// if sErr != nil {
-	// pluginLog.Println(sErr)
-	// }
 	sessionState.LastPing = time.Now()
 
 	// Generate response
 	// We should share as much as possible here.
 
+	// We register RPC even in non-daemon mode to ensure it would be successful.
+	// Register the collector RPC methods from plugin implementation
+	// rpc.RegisterName("collector", c)
+	// Register common plugin methods used for utility reasons
+	e := rpc.Register(m)
+	// If the rpc registration has an error we need to halt.
+	if e != nil {
+		log.Println(e.Error())
+		pluginLog.Println(e.Error())
+		return e
+	}
+
 	pluginLog.Printf("Daemon mode: %t\n", sessionState.RunAsDaemon)
 	// if not in daemon mode we don't need to setup listener
 	if sessionState.RunAsDaemon {
-		// Register the collector RPC methods from plugin implementation
-		rpc.RegisterName("collector", c)
-		// Register common plugin methods used for utility reasons
-		rpc.RegisterName("meta", m)
-
 		// Right now we only listen on TCP connections. Optionally consider a UNIX socket option.
 		l, err := net.Listen("tcp", "127.0.0.1:"+sessionState.ListenPort)
 		pluginLog.Printf("Listening %s\n", l.Addr())
@@ -119,7 +121,8 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 					panic(err)
 				}
 
-				defer conn.Close()
+				// defer conn.Close()
+				pluginLog.Println("Watching Ping timeout")
 				go rpc.ServeConn(conn)
 			}
 		}()
@@ -136,7 +139,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) {
 		fmt.Print(string(resp))
 	}
 	pluginLog.Println("Exiting!")
-	os.Exit(0)
+	return nil
 }
 
 func watchLastPing(killChan chan (struct{}), s *SessionState, l *log.Logger) {
