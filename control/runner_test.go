@@ -221,25 +221,25 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 				// These tests only work if Pulse Path is known to discover dummy plugin used for testing
 				if PulsePath != "" {
-					Convey("should return an AvailablePlugin in a Running state", func() {
-						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin.log",
-						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
-						if err != nil {
-							panic(err)
-						}
+					// Convey("should return an AvailablePlugin in a Running state", func() {
+					// 	a := plugin.Arg{
+					// 		PluginLogPath: "/tmp/pulse-test-plugin.log",
+					// 	}
+					// 	exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+					// 	if err != nil {
+					// 		panic(err)
+					// 	}
 
-						So(err, ShouldBeNil)
+					// 	So(err, ShouldBeNil)
 
-						// exPlugin := new(MockExecutablePlugin)
-						ap, e := startPlugin(exPlugin)
+					// 	// exPlugin := new(MockExecutablePlugin)
+					// 	ap, e := startPlugin(exPlugin)
 
-						So(e, ShouldBeNil)
-						So(ap, ShouldNotBeNil)
-						println(ap.State)
-						So(ap.State, ShouldEqual, PluginRunning)
-					})
+					// 	So(e, ShouldBeNil)
+					// 	So(ap, ShouldNotBeNil)
+					// 	println(ap.State)
+					// 	So(ap.State, ShouldEqual, PluginRunning)
+					// })
 
 					// Convey("should return error for WaitForResponse error", func() {
 					// 	exPlugin := new(MockExecutablePlugin)
