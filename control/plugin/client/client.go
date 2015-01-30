@@ -11,6 +11,7 @@ import (
 // A client providing common plugin method calls.
 type PluginClient interface {
 	Ping() error
+	Kill(string) error
 }
 
 // A client providing collector specific plugin method calls.
@@ -35,6 +36,13 @@ func (p *PluginNativeClient) Ping() error {
 	a := plugin.PingArgs{}
 	b := true
 	err := p.connection.Call("SessionState.Ping", a, &b)
+	return err
+}
+
+func (p *PluginNativeClient) Kill(reason string) error {
+	a := plugin.KillArgs{Reason: reason}
+	b := true
+	err := p.connection.Call("SessionState.Kill", a, &b)
 	return err
 }
 

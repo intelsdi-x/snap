@@ -18,6 +18,7 @@ const (
 
 	// availablePlugin States
 	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
+	PluginStopped
 	PluginDisabled
 
 	DefaultClientTimeout           = time.Second * 3
@@ -285,8 +286,14 @@ func (r *Runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	return ap, nil
 }
 
-// Halt a RunnablePlugin
-func (r *Runner) stopPlugin() {}
+// Halt an availablePlugin
+func (ap *availablePlugin) stopPlugin(r string) error {
+	err := ap.client.Kill(r)
+	if err == nil {
+		ap.State = PluginStopped
+	}
+	return err
+}
 
 // Empty handler acting as placeholder until implementation. This helps tests
 // pass to ensure registration works.

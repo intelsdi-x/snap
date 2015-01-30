@@ -95,9 +95,17 @@ func (mpcc *MockHealthyPluginCollectorClient) Ping() error {
 	return nil
 }
 
+func (mpcc *MockHealthyPluginCollectorClient) Kill(string) error {
+	return nil
+}
+
 type MockUnhealthyPluginCollectorClient struct{}
 
 func (mucc *MockUnhealthyPluginCollectorClient) Ping() error {
+	return errors.New("Fail")
+}
+
+func (mucc *MockUnhealthyPluginCollectorClient) Kill(string) error {
 	return errors.New("Fail")
 }
 
@@ -393,7 +401,29 @@ func TestRunnerPluginRunning(t *testing.T) {
 			})
 
 			Convey("stopPlugin", func() {
-				// TODO
+				Convey("should return an AvailablePlugin in a Running state", func() {
+					r := NewRunner()
+					a := plugin.Arg{
+						PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
+					}
+					exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+					if err != nil {
+						panic(err)
+					}
+
+					So(err, ShouldBeNil)
+
+					// exPlugin := new(MockExecutablePlugin)
+					ap, e := r.startPlugin(exPlugin)
+
+					So(e, ShouldBeNil)
+					So(ap, ShouldNotBeNil)
+					So(ap.State, ShouldEqual, PluginRunning)
+
+					e = ap.stopPlugin("testing")
+					So(e, ShouldBeNil)
+					So(ap.State, ShouldEqual, PluginStopped)
+				})
 			})
 		})
 	})

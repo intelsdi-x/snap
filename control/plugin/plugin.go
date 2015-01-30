@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"log"
+	"os"
 	"time"
 )
 
@@ -80,6 +81,10 @@ type Arg struct {
 // Arguments passed to ping
 type PingArgs struct{}
 
+type KillArgs struct {
+	Reason string
+}
+
 // Response from started plugin
 type Response struct {
 	Meta          PluginMeta
@@ -109,12 +114,28 @@ func (s *SessionState) Ping(arg PingArgs, b *bool) error {
 	return nil
 }
 
+func (s *SessionState) Kill(arg KillArgs, b *bool) error {
+	// Right now we have no coordination needed. In the future we should
+	// add control to wait on a lock before halting.
+	s.Logger.Printf("Kill called by agent, reason: %s\n", arg.Reason)
+	go func() {
+		time.Sleep(time.Second * 2)
+		s.haltPlugin(3)
+	}()
+	return nil
+}
+
 func (s *SessionState) GenerateResponse(r Response) []byte {
 	// Add common plugin response properties
 	r.ListenAddress = s.ListenAddress
 	r.Token = s.Token
 	rs, _ := json.Marshal(r)
 	return rs
+}
+
+func (s *SessionState) haltPlugin(code int) {
+	s.Logger.Printf("Halting with exit code (%d)\n", code)
+	os.Exit(code)
 }
 
 func InitSessionState(path string, pluginArgsMsg string) (*SessionState, error) {
