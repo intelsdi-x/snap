@@ -273,12 +273,12 @@ func (r *Runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// Ping through client
-	if ap.client.Ping() != nil {
-		panic("Did not ping")
+	err = ap.client.Ping()
+	if err != nil {
+		return nil, err
 	}
 
 	// Ask for metric inventory
-
 	ap.State = PluginRunning
 	r.availablePlugins.Append(ap)
 

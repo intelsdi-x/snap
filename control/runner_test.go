@@ -25,6 +25,7 @@ func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
 type MockExecutablePlugin struct {
 	Timeout     bool
 	NilResponse bool
+	NoPing      bool
 }
 
 func (m *MockExecutablePlugin) ResponseReader() io.Reader {
@@ -312,7 +313,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					Convey("successful healthcheck resets failedHealthChecks", func() {
 						r := NewRunner()
 						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin.log",
+							PluginLogPath: "/tmp/pulse-test-plugin-foo.log",
 						}
 						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
 						if err != nil {
@@ -368,8 +369,24 @@ func TestRunnerPluginRunning(t *testing.T) {
 						exPlugin.NilResponse = true // set to not response
 						ap, e := r.startPlugin(exPlugin)
 
-						So(ap, ShouldBeNil)
 						So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
+						So(ap, ShouldBeNil)
+					})
+
+					Convey("should return error for executable plugin not in daemon mode", func() {
+						r := NewRunner()
+						a := plugin.Arg{
+							PluginLogPath: "/tmp/pulse-test-plugin.log",
+						}
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, false)
+						if err != nil {
+							panic(err)
+						}
+
+						ap, e := r.startPlugin(exPlugin)
+
+						So(e, ShouldResemble, errors.New("error while creating client connection: dial tcp: missing address"))
+						So(ap, ShouldBeNil)
 					})
 				}
 
