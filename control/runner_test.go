@@ -352,23 +352,25 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(ap.State, ShouldEqual, PluginDisabled)
 					})
 
-					// Convey("should return error for WaitForResponse error", func() {
-					// 	exPlugin := new(MockExecutablePlugin)
-					// 	exPlugin.Timeout = true // set to not response
-					// 	ap, e := startPlugin(exPlugin)
+					Convey("should return error for WaitForResponse error", func() {
+						r := NewRunner()
+						exPlugin := new(MockExecutablePlugin)
+						exPlugin.Timeout = true // set to not response
+						ap, e := r.startPlugin(exPlugin)
 
-					// 	So(ap, ShouldBeNil)
-					// 	So(e, ShouldResemble, errors.New("timeout"))
-					// })
+						So(ap, ShouldBeNil)
+						So(e, ShouldResemble, errors.New("error while waiting for response: timeout"))
+					})
 
-					// Convey("should return error for nil availablePlugin", func() {
-					// 	exPlugin := new(MockExecutablePlugin)
-					// 	exPlugin.NilResponse = true // set to not response
-					// 	ap, e := startPlugin(exPlugin)
+					Convey("should return error for nil availablePlugin", func() {
+						r := NewRunner()
+						exPlugin := new(MockExecutablePlugin)
+						exPlugin.NilResponse = true // set to not response
+						ap, e := r.startPlugin(exPlugin)
 
-					// 	So(ap, ShouldBeNil)
-					// 	So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
-					// })
+						So(ap, ShouldBeNil)
+						So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
+					})
 				}
 
 			})
