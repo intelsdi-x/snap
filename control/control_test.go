@@ -7,8 +7,9 @@ import (
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 // Mock Executor used to test
@@ -152,21 +153,21 @@ func TestPluginCatalog(t *testing.T) {
 	c := Control()
 
 	lp1 := new(loadedPlugin)
-	lp1.Meta = plugin.PluginMeta{"test1", 1}
+	lp1.Meta = plugin.PluginMeta{Name: "test1", Version: 1}
 	lp1.Type = 0
 	lp1.State = "loaded"
 	lp1.LoadedTime = ts
 	c.pluginManager.LoadedPlugins.Append(lp1)
 
 	lp2 := new(loadedPlugin)
-	lp2.Meta = plugin.PluginMeta{"test2", 1}
+	lp2.Meta = plugin.PluginMeta{Name: "test2", Version: 1}
 	lp2.Type = 0
 	lp2.State = "loaded"
 	lp2.LoadedTime = ts
 	c.pluginManager.LoadedPlugins.Append(lp2)
 
 	lp3 := new(loadedPlugin)
-	lp3.Meta = plugin.PluginMeta{"test3", 1}
+	lp3.Meta = plugin.PluginMeta{Name: "test3", Version: 1}
 	lp3.Type = 0
 	lp3.State = "loaded"
 	lp3.LoadedTime = ts

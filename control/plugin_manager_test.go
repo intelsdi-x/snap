@@ -124,7 +124,7 @@ func TestUnloadPlugin(t *testing.T) {
 
 func TestLoadedPlugin(t *testing.T) {
 	lp := new(loadedPlugin)
-	lp.Meta = plugin.PluginMeta{"test", 1}
+	lp.Meta = plugin.PluginMeta{Name: "test", Version: 1}
 	Convey(".Name()", t, func() {
 		Convey("it returns the name from the plugin metadata", func() {
 			So(lp.Name(), ShouldEqual, "test")

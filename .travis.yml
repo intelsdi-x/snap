@@ -9,7 +9,9 @@ before_install:
 - chmod 600 .netrc
 - go get github.com/axw/gocov/gocov
 - go get github.com/mattn/goveralls
-- go get -v github.com/smartystreets/goconvey # Get goconvey
+- go get -u github.com/golang/lint/golint
+- go get golang.org/x/tools/cmd/vet
+- go get golang.org/x/tools/cmd/goimports
 - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 env:
   global:
@@ -20,8 +22,7 @@ install:
 - ls $PULSE_SOURCE # change dir into source
 - make
 script:
-- go test ./... # run go test with cover
-- ./scripts/coverage.sh
+- ./scripts/test.sh # Run test suite
 notifications:
   slack:
     secure: VkbZLIc2RH8yf3PtIAxUNPdAu3rQQ7yQx0GcK124JhbEnZGaHyK615V0rbG7HcVmYKGPdB0cXqZiLBDKGqGKb2zR1NepOe1nF03jxGSpPq8jIFeEXSJGEYGL34ScDzZZGuG6qwbjFcXiW5lqn6t8igzp7v2+URYBaZo5ktCS2xY=

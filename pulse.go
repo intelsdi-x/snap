@@ -11,12 +11,10 @@ import (
 )
 
 var (
-	PulsePath     = os.Getenv("PULSE_PATH")
-	CollectorPath = path.Join(PulsePath, "plugin", "collector") // todo figure out whether env or determined
-
-	// TODO
-	PULSE_COLLECTOR_PATH = os.Getenv("PULSE_COLLECTOR_PATH")
-	PULSE_PUBLISHER_PATH = os.Getenv("PULSE_PUBLISHER_PATH")
+	// PulsePath is the local file path to a pulse build
+	PulsePath = os.Getenv("PULSE_PATH")
+	// CollectorPath is the path to collector plugins within a pulse build
+	CollectorPath = path.Join(PulsePath, "plugin", "collector")
 )
 
 func checkError(e error) {
