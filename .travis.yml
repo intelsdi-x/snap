@@ -20,7 +20,7 @@ install:
 - ls $PULSE_SOURCE # change dir into source
 - make
 script:
-- go test ./... -v # run go test with cover
+- go test ./... # run go test with cover
 - ./scripts/coverage.sh
 notifications:
   slack:
