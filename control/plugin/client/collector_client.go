@@ -1,10 +1,8 @@
 package client
 
-import (
 // "net"
 // "net/rpc"
 // "time"
-)
 
 // func NewCollectorClient(address string, timeout time.Duration) (*PluginNativeClient, error) {
 // 	// Attempt to dial address error on timeout or problem

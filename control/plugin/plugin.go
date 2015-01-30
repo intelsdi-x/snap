@@ -8,7 +8,8 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
+	"log"
+	"os"
 	"time"
 )
 
@@ -17,7 +18,7 @@ const (
 	// How much time must elapse before a lack of Ping results in a timeout
 	PingTimeoutDuration = time.Second * 5
 	// How many succesive PingTimeouts must occur to equal a failure.
-	PingTimeoutLimit = 10
+	PingTimeoutLimit = 3
 )
 
 const (
@@ -62,6 +63,7 @@ type SessionState struct {
 	Token         string
 	ListenAddress string
 	LastPing      time.Time
+	Logger        *log.Logger
 }
 
 // Arguments passed to startup of Plugin
@@ -77,7 +79,10 @@ type Arg struct {
 }
 
 // Arguments passed to ping
-type PingArgs struct {
+type PingArgs struct{}
+
+type KillArgs struct {
+	Reason string
 }
 
 // Response from started plugin
@@ -100,14 +105,25 @@ type PluginMeta struct {
 	Version int
 }
 
-func (p *PluginMeta) Ping(arg time.Duration, reply *bool) error {
-	*reply = true
-	return errors.New("!!!!")
+func (s *SessionState) Ping(arg PingArgs, b *bool) error {
+	// For now we return nil. We can return an error if we are shutting
+	// down or otherwise in a state we should signal poor health.
+	// Reply should contain any context.
+	s.LastPing = time.Now()
+	s.Logger.Println("Ping received")
+	return nil
 }
 
-// func (p *PluginMeta) Status(a string, b *string) error {
-// 	return nil
-// }
+func (s *SessionState) Kill(arg KillArgs, b *bool) error {
+	// Right now we have no coordination needed. In the future we should
+	// add control to wait on a lock before halting.
+	s.Logger.Printf("Kill called by agent, reason: %s\n", arg.Reason)
+	go func() {
+		time.Sleep(time.Second * 2)
+		s.haltPlugin(3)
+	}()
+	return nil
+}
 
 func (s *SessionState) GenerateResponse(r Response) []byte {
 	// Add common plugin response properties
@@ -115,6 +131,11 @@ func (s *SessionState) GenerateResponse(r Response) []byte {
 	r.Token = s.Token
 	rs, _ := json.Marshal(r)
 	return rs
+}
+
+func (s *SessionState) haltPlugin(code int) {
+	s.Logger.Printf("Halting with exit code (%d)\n", code)
+	os.Exit(code)
 }
 
 func InitSessionState(path string, pluginArgsMsg string) (*SessionState, error) {
@@ -137,4 +158,24 @@ func InitSessionState(path string, pluginArgsMsg string) (*SessionState, error) 
 	rs := base64.URLEncoding.EncodeToString(rb)
 
 	return &SessionState{Arg: pluginArg, Token: rs}, nil
+}
+
+func (s *SessionState) heartbeatWatch(killChan chan (struct{})) {
+	s.Logger.Println("Heartbeat started")
+	count := 0
+	for {
+		if time.Now().Sub(s.LastPing) >= PingTimeoutDuration {
+			count++
+			if count >= PingTimeoutLimit {
+				s.Logger.Println("Heartbeat timeout expired")
+				defer close(killChan)
+				return
+			}
+		} else {
+			s.Logger.Println("Heartbeat timeout reset")
+			// Reset count
+			count = 0
+		}
+		time.Sleep(PingTimeoutDuration)
+	}
 }

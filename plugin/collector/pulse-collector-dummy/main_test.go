@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/intelsdilabs/pulse/control"
-	"github.com/intelsdilabs/pulse/plugin/helper"
 	"os"
 	"path"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/intelsdilabs/pulse/control"
+	"github.com/intelsdilabs/pulse/plugin/helper"
+
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (

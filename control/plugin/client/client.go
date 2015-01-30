@@ -4,11 +4,14 @@ import (
 	"net"
 	"net/rpc"
 	"time"
+
+	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
 // A client providing common plugin method calls.
 type PluginClient interface {
 	Ping() error
+	Kill(string) error
 }
 
 // A client providing collector specific plugin method calls.
@@ -30,9 +33,17 @@ type PluginNativeClient struct {
 }
 
 func (p *PluginNativeClient) Ping() error {
-	// var b bool
-	// p.connection.Call("meta.Ping", time.Second*3, &b)
-	return nil
+	a := plugin.PingArgs{}
+	b := true
+	err := p.connection.Call("SessionState.Ping", a, &b)
+	return err
+}
+
+func (p *PluginNativeClient) Kill(reason string) error {
+	a := plugin.KillArgs{Reason: reason}
+	b := true
+	err := p.connection.Call("SessionState.Kill", a, &b)
+	return err
 }
 
 func NewCollectorClient(address string, timeout time.Duration) (PluginCollectorClient, error) {

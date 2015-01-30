@@ -226,7 +226,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	}
 
 	if resp.State != plugin.PluginSuccess {
-		log.Println("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
+		log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 		return nil, fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 	}
 

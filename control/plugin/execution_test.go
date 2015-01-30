@@ -9,8 +9,9 @@ import (
 	"path"
 	"time"
 
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (

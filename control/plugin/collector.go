@@ -46,7 +46,6 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 	if sErr != nil {
 		return sErr
 	}
-	var pluginLog *log.Logger
 	switch lp := sessionState.Arg.PluginLogPath; lp {
 	case "", "/tmp":
 		// Empty means use default tmp log (needs to be removed post-alpha)
@@ -55,14 +54,14 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 			// fmt.Printf("error opening log file: %v", err)
 			os.Exit(1)
 		}
-		pluginLog = log.New(lf, ">>>", log.Ldate|log.Ltime)
+		sessionState.Logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	default:
 		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 		if err != nil {
 			// fmt.Printf("error opening log file (%s): %v", lp, err)
 			os.Exit(1)
 		}
-		pluginLog = log.New(lf, ">>>", log.Ldate|log.Ltime)
+		sessionState.Logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	}
 	sessionState.LastPing = time.Now()
 
@@ -73,21 +72,21 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 	// Register the collector RPC methods from plugin implementation
 	// rpc.RegisterName("collector", c)
 	// Register common plugin methods used for utility reasons
-	e := rpc.Register(m)
+	e := rpc.Register(sessionState)
 	// If the rpc registration has an error we need to halt.
 	if e != nil {
 		log.Println(e.Error())
-		pluginLog.Println(e.Error())
+		sessionState.Logger.Println(e.Error())
 		return e
 	}
 
-	pluginLog.Printf("Daemon mode: %t\n", sessionState.RunAsDaemon)
+	sessionState.Logger.Printf("Daemon mode: %t\n", sessionState.RunAsDaemon)
 	// if not in daemon mode we don't need to setup listener
 	if sessionState.RunAsDaemon {
 		// Right now we only listen on TCP connections. Optionally consider a UNIX socket option.
 		l, err := net.Listen("tcp", "127.0.0.1:"+sessionState.ListenPort)
-		pluginLog.Printf("Listening %s\n", l.Addr())
-		pluginLog.Printf("Session token %s\n", sessionState.Token)
+		sessionState.Logger.Printf("Listening %s\n", l.Addr())
+		sessionState.Logger.Printf("Session token %s\n", sessionState.Token)
 		// Add the listening information to the session state
 		sessionState.ListenAddress = l.Addr().String()
 
@@ -98,19 +97,17 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 			Meta:  *m,
 		}
 		resp := sessionState.GenerateResponse(r)
-		pluginLog.Println(string(resp))
+		sessionState.Logger.Println(string(resp))
 		// Output response to stdout
 		fmt.Println(string(resp))
 
 		// Start ping listener
 		// If it has not received a ping in N amount of time * T it quits.
 		killChan := make(chan struct{})
-
-		pluginLog.Println("Watching Ping timeout")
-		go watchLastPing(killChan, sessionState, pluginLog)
+		go sessionState.heartbeatWatch(killChan)
 
 		if err != nil {
-			pluginLog.Println(err.Error())
+			sessionState.Logger.Println(err.Error())
 			panic(err)
 		}
 
@@ -120,9 +117,6 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 				if err != nil {
 					panic(err)
 				}
-
-				// defer conn.Close()
-				pluginLog.Println("Watching Ping timeout")
 				go rpc.ServeConn(conn)
 			}
 		}()
@@ -138,27 +132,6 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 		resp := sessionState.GenerateResponse(r)
 		fmt.Print(string(resp))
 	}
-	pluginLog.Println("Exiting!")
+	sessionState.Logger.Println("Exiting!")
 	return nil
-}
-
-func watchLastPing(killChan chan (struct{}), s *SessionState, l *log.Logger) {
-	l.Println("Watching Ping timeout")
-	count := 0
-	for {
-		if time.Now().Sub(s.LastPing) >= PingTimeoutDuration {
-			l.Println("Ping timeout fired")
-			count++
-			if count >= PingTimeoutLimit {
-				l.Println("Ping timeout expired")
-				defer close(killChan)
-				return
-			}
-		} else {
-			// Reset count
-			count = 0
-		}
-		time.Sleep(PingTimeoutDuration)
-		l.Println("Ping timeout tick")
-	}
 }

@@ -26,3 +26,4 @@ tmp/
 scratch/
 build/
 *.swp
+profile.cov
