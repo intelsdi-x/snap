@@ -2,11 +2,12 @@ package plugin
 
 import (
 	"encoding/json"
-	. "github.com/smartystreets/goconvey/convey"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestPluginType(t *testing.T) {
