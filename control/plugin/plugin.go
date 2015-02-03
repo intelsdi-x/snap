@@ -44,6 +44,26 @@ var (
 	}
 )
 
+type MetricType struct {
+	namespace               []string
+	lastAdvertisedTimestamp int64
+}
+
+func (m *MetricType) Namespace() []string {
+	return m.namespace
+}
+
+func (m *MetricType) LastAdvertisedTimestamp() int64 {
+	return m.lastAdvertisedTimestamp
+}
+
+func NewMetricType(ns []string, last int64) *MetricType {
+	return &MetricType{
+		namespace:               ns,
+		lastAdvertisedTimestamp: last,
+	}
+}
+
 type PluginResponseState int
 
 type PluginType int
@@ -138,7 +158,7 @@ func (s *SessionState) haltPlugin(code int) {
 	os.Exit(code)
 }
 
-func InitSessionState(path string, pluginArgsMsg string) (*SessionState, error) {
+func InitSessionState(path, pluginArgsMsg string) (*SessionState, error) {
 	pluginArg := new(Arg)
 	err := json.Unmarshal([]byte(pluginArgsMsg), pluginArg)
 	if err != nil {
