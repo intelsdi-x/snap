@@ -44,46 +44,34 @@ var (
 	}
 )
 
+type PluginResponseState int
+
+type Plugin interface{}
+
+type ConfigPolicy struct{}
+
+type PluginMeta struct {
+	Name    string
+	Version int
+}
+
 type MetricType struct {
-	namespace               []string
-	lastAdvertisedTimestamp int64
+	Namespace               []string
+	LastAdvertisedTimestamp int64
 }
 
-func (m *MetricType) Namespace() []string {
-	return m.namespace
-}
-
-func (m *MetricType) LastAdvertisedTimestamp() int64 {
-	return m.lastAdvertisedTimestamp
-}
-
-func NewMetricType(ns []string, last int64) *MetricType {
+func NewMetricType(ns []string) *MetricType {
 	return &MetricType{
-		namespace:               ns,
-		lastAdvertisedTimestamp: last,
+		Namespace:               ns,
+		LastAdvertisedTimestamp: time.Now().Unix(),
 	}
 }
 
-type PluginResponseState int
-
 type PluginType int
-
-// Plugin interface
-type Plugin interface {
-}
 
 // Returns string for matching enum plugin type
 func (p PluginType) String() string {
 	return types[p]
-}
-
-// Started plugin session state
-type SessionState struct {
-	*Arg
-	Token         string
-	ListenAddress string
-	LastPing      time.Time
-	Logger        *log.Logger
 }
 
 // Arguments passed to startup of Plugin
@@ -98,64 +86,13 @@ type Arg struct {
 	RunAsDaemon bool
 }
 
-// Arguments passed to ping
-type PingArgs struct{}
-
-type KillArgs struct {
-	Reason string
-}
-
-// Response from started plugin
-type Response struct {
-	Meta          PluginMeta
-	ListenAddress string
+// Started plugin session state
+type SessionState struct {
+	*Arg
 	Token         string
-	Type          PluginType
-	// State is a signal from plugin to control that it passed
-	// its own loading requirements
-	State        PluginResponseState
-	ErrorMessage string
-}
-
-type ConfigPolicy struct {
-}
-
-type PluginMeta struct {
-	Name    string
-	Version int
-}
-
-func (s *SessionState) Ping(arg PingArgs, b *bool) error {
-	// For now we return nil. We can return an error if we are shutting
-	// down or otherwise in a state we should signal poor health.
-	// Reply should contain any context.
-	s.LastPing = time.Now()
-	s.Logger.Println("Ping received")
-	return nil
-}
-
-func (s *SessionState) Kill(arg KillArgs, b *bool) error {
-	// Right now we have no coordination needed. In the future we should
-	// add control to wait on a lock before halting.
-	s.Logger.Printf("Kill called by agent, reason: %s\n", arg.Reason)
-	go func() {
-		time.Sleep(time.Second * 2)
-		s.haltPlugin(3)
-	}()
-	return nil
-}
-
-func (s *SessionState) GenerateResponse(r Response) []byte {
-	// Add common plugin response properties
-	r.ListenAddress = s.ListenAddress
-	r.Token = s.Token
-	rs, _ := json.Marshal(r)
-	return rs
-}
-
-func (s *SessionState) haltPlugin(code int) {
-	s.Logger.Printf("Halting with exit code (%d)\n", code)
-	os.Exit(code)
+	ListenAddress string
+	LastPing      time.Time
+	Logger        *log.Logger
 }
 
 func InitSessionState(path, pluginArgsMsg string) (*SessionState, error) {
@@ -178,6 +115,61 @@ func InitSessionState(path, pluginArgsMsg string) (*SessionState, error) {
 	rs := base64.URLEncoding.EncodeToString(rb)
 
 	return &SessionState{Arg: pluginArg, Token: rs}, nil
+}
+
+// Arguments passed to ping
+type PingArgs struct{}
+
+func (s *SessionState) Ping(arg PingArgs, b *bool) error {
+	// For now we return nil. We can return an error if we are shutting
+	// down or otherwise in a state we should signal poor health.
+	// Reply should contain any context.
+	s.LastPing = time.Now()
+	s.Logger.Println("Ping received")
+	return nil
+}
+
+// Arguments passed to Kill
+type KillArgs struct {
+	Reason string
+}
+
+func (s *SessionState) Kill(arg KillArgs, b *bool) error {
+	// Right now we have no coordination needed. In the future we should
+	// add control to wait on a lock before halting.
+	s.Logger.Printf("Kill called by agent, reason: %s\n", arg.Reason)
+	go func() {
+		time.Sleep(time.Second * 2)
+		s.haltPlugin(3)
+	}()
+	return nil
+}
+
+// Response from started plugin
+type Response struct {
+	Meta              PluginMeta
+	ListenAddress     string
+	Token             string
+	Type              PluginType
+	CollectorResponse GetMetricTypesReply
+
+	// State is a signal from plugin to control that it passed
+	// its own loading requirements
+	State        PluginResponseState
+	ErrorMessage string
+}
+
+func (s *SessionState) GenerateResponse(r Response) []byte {
+	// Add common plugin response properties
+	r.ListenAddress = s.ListenAddress
+	r.Token = s.Token
+	rs, _ := json.Marshal(r)
+	return rs
+}
+
+func (s *SessionState) haltPlugin(code int) {
+	s.Logger.Printf("Halting with exit code (%d)\n", code)
+	os.Exit(code)
 }
 
 func (s *SessionState) heartbeatWatch(killChan chan (struct{})) {

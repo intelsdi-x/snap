@@ -18,7 +18,14 @@ func (f *Dummy) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply)
 	return nil
 }
 
-func Meta() *plugin.PluginMeta {
+func (f *Dummy) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+	reply.MetricTypes = []*plugin.MetricType{
+		plugin.NewMetricType([]string{"foo", "bar"}),
+	}
+	return nil
+}
+
+func Meta() *plugin.PluginMeta { //
 	m := new(plugin.PluginMeta)
 	m.Name = Name
 	m.Version = Version
