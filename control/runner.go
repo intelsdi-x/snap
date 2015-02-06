@@ -3,6 +3,7 @@ package control
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,104 +29,131 @@ const (
 
 type availablePluginState int
 
-//JC remove me - var availablePlugins []*availablePlugin
-
 type availablePlugins struct {
-	table       *[]*availablePlugin
-	mutex       *sync.Mutex
-	currentIter int
+	Collectors, Publishers, Processors *apCollection
 }
 
 func newAvailablePlugins() *availablePlugins {
-	var t []*availablePlugin
 	return &availablePlugins{
-		table:       &t,
-		mutex:       new(sync.Mutex),
-		currentIter: 0,
+		Collectors: newAPCollection(),
+		Processors: newAPCollection(),
+
+		Publishers: newAPCollection(),
 	}
 }
 
-// adds an availablePlugin pointer to the availablePlugins table
-func (a *availablePlugins) Append(ap *availablePlugin) error {
+func (a *availablePlugins) Insert(ap *availablePlugin) error {
+	switch ap.Type {
+	case plugin.CollectorPluginType:
+		a.Collectors.Add(ap)
+	case plugin.PublisherPluginType:
+		a.Publishers.Add(ap)
+	case plugin.ProcessorPluginType:
+		a.Processors.Add(ap)
+	default:
+		return errors.New("cannot insert into available plugins, unknown plugin type")
+	}
+	return nil
+}
 
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
+func (a *availablePlugins) Remove(ap *availablePlugin) error {
+	switch ap.Type {
+	case plugin.CollectorPluginType:
+		a.Collectors.Remove(ap)
+	case plugin.PublisherPluginType:
+		a.Publishers.Remove(ap)
+	case plugin.ProcessorPluginType:
+		a.Processors.Remove(ap)
+	default:
+		return errors.New("cannot insert into available plugins, unknown plugin type")
+	}
+	return nil
+}
+
+type apCollection struct {
+	table *map[string]*[]*availablePlugin
+	mutex *sync.Mutex
+}
+
+func newAPCollection() *apCollection {
+	m := make(map[string]*[]*availablePlugin)
+	return &apCollection{
+		table: &m,
+		mutex: &sync.Mutex{},
+	}
+}
+
+// adds an availablePlugin pointer to the collection
+func (c *apCollection) Add(ap *availablePlugin) error {
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	// make sure we don't already  have a pointer to this plugin in the table
-	for i, pa := range *a.table {
-		if ap == pa {
-			return errors.New("plugin instance already available at index " + strconv.Itoa(i))
+	if (*c.table)[ap.Key] != nil {
+		for i, pa := range *(*c.table)[ap.Key] {
+			if ap == pa {
+				return errors.New("plugin instance already available at index " + strconv.Itoa(i))
+			}
 		}
+	} else {
+		var col []*availablePlugin
+		(*c.table)[ap.Key] = &col
 	}
 
+	// tell ap its index in the table
+	ap.Index = len(*(*c.table)[ap.Key])
+
 	// append
-	newAvailablePluginsTable := append(*a.table, ap)
+	newcollection := append(*(*c.table)[ap.Key], ap)
+
 	// overwrite
-	a.table = &newAvailablePluginsTable
+	(*c.table)[ap.Key] = &newcollection
 
 	return nil
 }
 
 // returns a copy of the table
-func (a *availablePlugins) Table() []*availablePlugin {
-	return *a.table
-}
+func (c *apCollection) Table() map[string][]*availablePlugin {
 
-// used to transactionally retrieve a loadedPlugin pointer from the table
-func (a *availablePlugins) Get(index int) (*availablePlugin, error) {
-	a.Lock()
-	defer a.Unlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
-	if index > len(*a.table)-1 {
-		return nil, errors.New("index out of range")
+	m := make(map[string][]*availablePlugin)
+	for k, v := range *c.table {
+		m[k] = *v
 	}
-
-	return (*a.table)[index], nil
+	return m
 }
 
 // used to lock the plugin table externally,
 // when iterating in unsafe scenarios
-func (a *availablePlugins) Lock() {
-	a.mutex.Lock()
+func (c *apCollection) Lock() {
+	c.mutex.Lock()
 }
 
-func (a *availablePlugins) Unlock() {
-	a.mutex.Unlock()
+func (c *apCollection) Unlock() {
+	c.mutex.Unlock()
 }
 
-/* we need an atomic read / write transaction for the splice when removing a plugin,
-   as the plugin is found by its index in the table.  By having the default Splice
-   method block, we protect against accidental use.  Using nonblocking requires explicit
-   invocation.
-*/
-func (a *availablePlugins) splice(index int) {
-	ap := append((*a.table)[:index], (*a.table)[index+1:]...)
-	a.table = &ap
-}
+func (c *apCollection) Remove(ap *availablePlugin) {
 
-// splice unsafely
-func (a *availablePlugins) NonblockingSplice(index int) {
-	a.splice(index)
-}
-
-// atomic splice
-func (a *availablePlugins) Splice(index int) {
-
-	a.mutex.Lock()
-	a.splice(index)
-	a.mutex.Unlock()
+	c.mutex.Lock()
+	splicedcoll := append((*(*c.table)[ap.Key])[:ap.Index], (*(*c.table)[ap.Key])[ap.Index+1:]...)
+	(*c.table)[ap.Key] = &splicedcoll
+	c.mutex.Unlock()
 
 }
 
 // Handles events pertaining to plugins and control the runnning state accordingly.
-type Runner struct {
+type runner struct {
 	delegates        []gomit.Delegator
 	monitor          *monitor
 	availablePlugins *availablePlugins
 }
 
-func NewRunner() *Runner {
-	r := &Runner{
+func newRunner() *runner {
+	r := &runner{
 		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(),
 	}
@@ -134,18 +162,28 @@ func NewRunner() *Runner {
 
 // Representing a plugin running and available to execute calls against.
 type availablePlugin struct {
-	State              availablePluginState
-	Response           *plugin.Response
-	client             client.PluginClient
+	Name    string
+	Key     string
+	Type    plugin.PluginType
+	Version int
+	Client  client.PluginClient
+	Index   int
+
 	eventManager       *gomit.EventController
 	failedHealthChecks int
 	healthChan         chan error
 }
 
-func newAvailablePlugin() *availablePlugin {
-	ap := new(availablePlugin)
-	ap.eventManager = new(gomit.EventController)
-	ap.healthChan = make(chan error, 1)
+func newAvailablePlugin(resp *plugin.Response) *availablePlugin {
+	ap := &availablePlugin{
+		Name:    resp.Meta.Name,
+		Version: resp.Meta.Version,
+		Type:    resp.Type,
+
+		eventManager: new(gomit.EventController),
+		healthChan:   make(chan error, 1),
+	}
+	ap.makeKey()
 	return ap
 }
 
@@ -153,25 +191,30 @@ func newAvailablePlugin() *availablePlugin {
 func (ap *availablePlugin) healthCheckFailed() {
 	ap.failedHealthChecks++
 	if ap.failedHealthChecks >= DefaultHealthCheckFailureLimit {
-		ap.State = PluginDisabled
 		pde := &control_event.DisabledPluginEvent{
-			Type: ap.Response.Type,
-			Meta: ap.Response.Meta,
+			Name:    ap.Name,
+			Version: ap.Version,
+			Type:    ap.Type,
+			Key:     ap.Key,
+			Index:   ap.Index,
 		}
+		// TODO: this event should be handled by runner to
+		// remove stop the ap, and remove it from the collection
 		defer ap.eventManager.Emit(pde)
 	}
 	hcfe := &control_event.HealthCheckFailedEvent{
-		Type: ap.Response.Type,
-		Meta: ap.Response.Meta,
+		Name:    ap.Name,
+		Version: ap.Version,
+		Type:    ap.Type,
 	}
 	defer ap.eventManager.Emit(hcfe)
 }
 
 // Ping the client resetting the failedHealthCheks on success.
 // On failure healthCheckFailed() is called.
-func (ap *availablePlugin) checkHealth() {
+func (ap *availablePlugin) CheckHealth() {
 	go func() {
-		ap.healthChan <- ap.client.Ping()
+		ap.healthChan <- ap.Client.Ping()
 	}()
 	select {
 	case err := <-ap.healthChan:
@@ -186,6 +229,16 @@ func (ap *availablePlugin) checkHealth() {
 	}
 }
 
+// Halt an availablePlugin
+func (ap *availablePlugin) Stop(r string) error {
+	return ap.Client.Kill(r)
+}
+
+func (ap *availablePlugin) makeKey() {
+	s := []string{ap.Name, strconv.Itoa(ap.Version)}
+	ap.Key = strings.Join(s, ":")
+}
+
 // TBD
 type executablePlugin interface {
 	Start() error
@@ -195,13 +248,13 @@ type executablePlugin interface {
 
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
 // unregistration on Stop.
-func (r *Runner) AddDelegates(delegates ...gomit.Delegator) {
+func (r *runner) AddDelegates(delegates ...gomit.Delegator) {
 	// Append the variadic collection of gomit.RegisterHanlders to r.delegates
 	r.delegates = append(r.delegates, delegates...)
 }
 
 // Begin handing events and managing available plugins
-func (r *Runner) Start() error {
+func (r *runner) Start() error {
 	// Delegates must be added before starting if none exist
 	// then this Runner can do nothing and should not start.
 	if len(r.delegates) == 0 {
@@ -223,7 +276,7 @@ func (r *Runner) Start() error {
 }
 
 // Stop handling, gracefully stop all plugins.
-func (r *Runner) Stop() []error {
+func (r *runner) Stop() []error {
 	var errs []error
 	// For each delegate unregister needed handlers
 	for _, del := range r.delegates {
@@ -235,7 +288,7 @@ func (r *Runner) Stop() []error {
 	return errs
 }
 
-func (r *Runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
+func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	// Start plugin in daemon mode
 	e := p.Start()
 	if e != nil {
@@ -257,46 +310,43 @@ func (r *Runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// build availablePlugin
-	ap := newAvailablePlugin()
-	ap.Response = resp
+	ap := newAvailablePlugin(resp)
 
 	// var pluginClient plugin.
 	// Create RPC client
-	switch t := resp.Type; t {
+	switch resp.Type {
 	case plugin.CollectorPluginType:
 		c, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
-		ap.client = c
+		ap.Client = c
 		if e != nil {
 			return nil, errors.New("error while creating client connection: " + e.Error())
 		}
 	default:
-		return nil, errors.New("Cannot create a client for a plugin of the type: " + t.String())
+		return nil, errors.New("Cannot create a client for a plugin of the type: " + resp.Type.String())
 	}
 
 	// Ping through client
-	err = ap.client.Ping()
+	err = ap.Client.Ping()
 	if err != nil {
 		return nil, err
 	}
 
-	// Ask for metric inventory
-	ap.State = PluginRunning
-	r.availablePlugins.Append(ap)
+	r.availablePlugins.Insert(ap)
 
 	return ap, nil
 }
 
-// Halt an availablePlugin
-func (ap *availablePlugin) stopPlugin(r string) error {
-	err := ap.client.Kill(r)
-	if err == nil {
-		ap.State = PluginStopped
+func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
+	err := ap.Client.Kill(reason)
+	if err != nil {
+		return err
 	}
-	return err
+	r.availablePlugins.Remove(ap)
+	return nil
 }
 
 // Empty handler acting as placeholder until implementation. This helps tests
 // pass to ensure registration works.
-func (r *Runner) HandleGomitEvent(e gomit.Event) {
+func (r *runner) HandleGomitEvent(e gomit.Event) {
 	// to do
 }

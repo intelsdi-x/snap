@@ -11,7 +11,7 @@ func TestMonitorState(t *testing.T) {
 		Convey("Runner", func() {
 			Convey(".Start", func() {
 				Convey("add the monitor", func() {
-					r := NewRunner()
+					r := newRunner()
 					r.AddDelegates(new(MockHandlerDelegate))
 					err := r.Start()
 					So(err, ShouldBeNil)

@@ -34,13 +34,33 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 		for {
 			select {
 			case <-ticker.C:
-				availablePlugins.Lock()
-				for _, ap := range availablePlugins.Table() {
-					if ap.State == PluginRunning {
-						go ap.checkHealth()
+				go func() {
+					availablePlugins.Collectors.Lock()
+					for _, apc := range availablePlugins.Collectors.Table() {
+						for _, ap := range apc {
+							go ap.CheckHealth()
+						}
 					}
-				}
-				availablePlugins.Unlock()
+					availablePlugins.Collectors.Unlock()
+				}()
+				go func() {
+					availablePlugins.Publishers.Lock()
+					for _, apc := range availablePlugins.Publishers.Table() {
+						for _, ap := range apc {
+							go ap.CheckHealth()
+						}
+					}
+					availablePlugins.Publishers.Unlock()
+				}()
+				go func() {
+					availablePlugins.Processors.Lock()
+					for _, apc := range availablePlugins.Processors.Table() {
+						for _, ap := range apc {
+							go ap.CheckHealth()
+						}
+					}
+					availablePlugins.Processors.Unlock()
+				}()
 			case <-m.quit:
 				ticker.Stop()
 				m.State = MonitorStopped
