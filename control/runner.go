@@ -71,15 +71,20 @@ func (a *availablePlugins) Remove(ap *availablePlugin) error {
 }
 
 type apCollection struct {
-	table *map[string]*[]*availablePlugin
-	mutex *sync.Mutex
+	table       *map[string]*[]*availablePlugin
+	mutex       *sync.Mutex
+	keys        *[]string
+	currentIter int
 }
 
 func newAPCollection() *apCollection {
 	m := make(map[string]*[]*availablePlugin)
+	var k []string
 	return &apCollection{
-		table: &m,
-		mutex: &sync.Mutex{},
+		table:       &m,
+		mutex:       &sync.Mutex{},
+		keys:        &k,
+		currentIter: 0,
 	}
 }
 
@@ -89,8 +94,12 @@ func (c *apCollection) Add(ap *availablePlugin) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	// make sure we don't already  have a pointer to this plugin in the table
+	if _, ok := (*c.table)[ap.Key]; !ok {
+		*c.keys = append(*c.keys, ap.Key)
+	}
+
 	if (*c.table)[ap.Key] != nil {
+		// make sure we don't already  have a pointer to this plugin in the table
 		for i, pa := range *(*c.table)[ap.Key] {
 			if ap == pa {
 				return errors.New("plugin instance already available at index " + strconv.Itoa(i))
@@ -145,6 +154,20 @@ func (c *apCollection) Remove(ap *availablePlugin) {
 
 }
 
+func (c *apCollection) Values() (string, *[]*availablePlugin) {
+	key := (*c.keys)[c.currentIter-1]
+	return key, (*c.table)[key]
+}
+
+func (c *apCollection) Next() bool {
+	c.currentIter++
+	if c.currentIter > len(*c.table) {
+		c.currentIter = 0
+		return false
+	}
+	return true
+}
+
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type runner struct {
 	delegates        []gomit.Delegator
@@ -154,7 +177,7 @@ type runner struct {
 
 func newRunner() *runner {
 	r := &runner{
-		monitor:          newMonitor(),
+		monitor:          newMonitor(-1),
 		availablePlugins: newAvailablePlugins(),
 	}
 	return r

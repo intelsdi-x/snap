@@ -15,20 +15,27 @@ type monitorState int
 
 type monitor struct {
 	State monitorState
-	quit  chan struct{}
+
+	duration time.Duration
+	quit     chan struct{}
 }
 
-func newMonitor() *monitor {
-	m := new(monitor)
-	m.State = MonitorStopped
-	return m
+func newMonitor(dur time.Duration) *monitor {
+	if dur < 0 {
+		dur = DefaultMonitorDuration
+	}
+	return &monitor{
+		State: MonitorStopped,
+
+		duration: dur,
+	}
 }
 
 // start the monitor
 func (m *monitor) Start(availablePlugins *availablePlugins) {
 	//start a routine that will be fired every X duration looping
 	//over available plugins and firing a health check routine
-	ticker := time.NewTicker(DefaultMonitorDuration)
+	ticker := time.NewTicker(m.duration)
 	m.quit = make(chan struct{})
 	go func() {
 		for {
@@ -36,8 +43,9 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 			case <-ticker.C:
 				go func() {
 					availablePlugins.Collectors.Lock()
-					for _, apc := range availablePlugins.Collectors.Table() {
-						for _, ap := range apc {
+					for availablePlugins.Collectors.Next() {
+						_, apc := availablePlugins.Collectors.Values()
+						for _, ap := range *apc {
 							go ap.CheckHealth()
 						}
 					}
@@ -45,8 +53,9 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 				}()
 				go func() {
 					availablePlugins.Publishers.Lock()
-					for _, apc := range availablePlugins.Publishers.Table() {
-						for _, ap := range apc {
+					for availablePlugins.Publishers.Next() {
+						_, apc := availablePlugins.Publishers.Values()
+						for _, ap := range *apc {
 							go ap.CheckHealth()
 						}
 					}
@@ -54,8 +63,9 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 				}()
 				go func() {
 					availablePlugins.Processors.Lock()
-					for _, apc := range availablePlugins.Processors.Table() {
-						for _, ap := range apc {
+					for availablePlugins.Processors.Next() {
+						_, apc := availablePlugins.Processors.Values()
+						for _, ap := range *apc {
 							go ap.CheckHealth()
 						}
 					}
