@@ -150,6 +150,10 @@ func (c *apCollection) Remove(ap *availablePlugin) {
 	c.mutex.Lock()
 	splicedcoll := append((*(*c.table)[ap.Key])[:ap.Index], (*(*c.table)[ap.Key])[ap.Index+1:]...)
 	(*c.table)[ap.Key] = &splicedcoll
+	// reset indexes
+	for i, ap := range *(*c.table)[ap.Key] {
+		ap.Index = i
+	}
 	c.mutex.Unlock()
 
 }

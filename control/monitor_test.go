@@ -61,7 +61,7 @@ func TestMonitor(t *testing.T) {
 			m := newMonitor(1 * time.Second)
 			m.Start(aps)
 			So(m.State, ShouldEqual, MonitorStarted)
-			time.Sleep(2 * time.Second)
+			time.Sleep(1 * time.Second)
 		})
 		Convey("stop", func() {
 			m := newMonitor(time.Duration(-1))
