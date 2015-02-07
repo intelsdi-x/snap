@@ -65,7 +65,7 @@ func (a *availablePlugins) Remove(ap *availablePlugin) error {
 	case plugin.ProcessorPluginType:
 		a.Processors.Remove(ap)
 	default:
-		return errors.New("cannot insert into available plugins, unknown plugin type")
+		return errors.New("cannot remove from available plugins, unknown plugin type")
 	}
 	return nil
 }
@@ -341,7 +341,10 @@ func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
 	if err != nil {
 		return err
 	}
-	r.availablePlugins.Remove(ap)
+	err = r.availablePlugins.Remove(ap)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
