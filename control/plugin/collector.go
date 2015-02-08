@@ -54,6 +54,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 	if sErr != nil {
 		return sErr
 	}
+
 	switch lp := sessionState.Arg.PluginLogPath; lp {
 	case "", "/tmp":
 		// Empty means use default tmp log (needs to be removed post-alpha)
@@ -84,7 +85,6 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 		sessionState.Logger.Println(e.Error())
 		return e
 	}
-
 	// Generate response
 	var reply GetMetricTypesReply
 	c.GetMetricTypes(GetMetricTypesArgs{}, &reply)
@@ -94,7 +94,6 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 		Meta:              *m,
 		CollectorResponse: reply,
 	}
-
 	sessionState.Logger.Printf("Daemon mode: %t\n", sessionState.RunAsDaemon)
 	// if not in daemon mode we don't need to setup listener
 	if sessionState.RunAsDaemon {
@@ -106,7 +105,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 		sessionState.ListenAddress = l.Addr().String()
 
 		// Generate a response
-		resp := sessionState.GenerateResponse(r)
+		resp := generateResponse(r, sessionState)
 		sessionState.Logger.Println(string(resp))
 		// Output response to stdout
 		fmt.Println(string(resp))
@@ -134,7 +133,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 		<-killChan // Closing of channel kills
 	} else {
 		sessionState.ListenAddress = ""
-		resp := sessionState.GenerateResponse(r)
+		resp := generateResponse(r, sessionState)
 		fmt.Print(string(resp))
 	}
 	sessionState.Logger.Println("Exiting!")

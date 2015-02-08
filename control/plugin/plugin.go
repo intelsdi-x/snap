@@ -159,14 +159,6 @@ type Response struct {
 	ErrorMessage string
 }
 
-func (s *SessionState) GenerateResponse(r Response) []byte {
-	// Add common plugin response properties
-	r.ListenAddress = s.ListenAddress
-	r.Token = s.Token
-	rs, _ := json.Marshal(r)
-	return rs
-}
-
 func (s *SessionState) haltPlugin(code int) {
 	s.Logger.Printf("Halting with exit code (%d)\n", code)
 	os.Exit(code)
@@ -190,4 +182,12 @@ func (s *SessionState) heartbeatWatch(killChan chan (struct{})) {
 		}
 		time.Sleep(PingTimeoutDuration)
 	}
+}
+
+func generateResponse(r Response, s *SessionState) []byte {
+	// Add common plugin response properties
+	r.ListenAddress = s.ListenAddress
+	r.Token = s.Token
+	rs, _ := json.Marshal(r)
+	return rs
 }
