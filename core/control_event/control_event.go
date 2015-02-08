@@ -28,8 +28,11 @@ func (e *UnloadPluginEvent) Namespace() string {
 }
 
 type DisabledPluginEvent struct {
-	Type plugin.PluginType
-	Meta plugin.PluginMeta
+	Name    string
+	Version int
+	Type    plugin.PluginType
+	Key     string
+	Index   int
 }
 
 func (e *DisabledPluginEvent) Namespace() string {
@@ -59,8 +62,9 @@ func (ue *MetricUnsubscriptionEvent) Namespace() string {
 }
 
 type HealthCheckFailedEvent struct {
-	Type plugin.PluginType
-	Meta plugin.PluginMeta
+	Name    string
+	Version int
+	Type    plugin.PluginType
 }
 
 func (hfe *HealthCheckFailedEvent) Namespace() string {
