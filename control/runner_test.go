@@ -117,14 +117,14 @@ func TestRunnerState(t *testing.T) {
 			Convey(".AddDelegates", func() {
 
 				Convey("adds a handler delegate", func() {
-					r := NewRunner()
+					r := newRunner()
 
 					r.AddDelegates(new(MockHandlerDelegate))
 					So(len(r.delegates), ShouldEqual, 1)
 				})
 
 				Convey("adds multiple delegates", func() {
-					r := NewRunner()
+					r := newRunner()
 
 					r.AddDelegates(new(MockHandlerDelegate))
 					r.AddDelegates(new(MockHandlerDelegate))
@@ -132,7 +132,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("adds multiple delegates (batch)", func() {
-					r := NewRunner()
+					r := newRunner()
 
 					r.AddDelegates(new(MockHandlerDelegate), new(MockHandlerDelegate))
 					So(len(r.delegates), ShouldEqual, 2)
@@ -143,7 +143,7 @@ func TestRunnerState(t *testing.T) {
 			Convey(".Start", func() {
 
 				Convey("returns error without adding delegates", func() {
-					r := NewRunner()
+					r := newRunner()
 					e := r.Start()
 
 					So(e, ShouldNotBeNil)
@@ -151,7 +151,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("starts after adding one delegates", func() {
-					r := NewRunner()
+					r := newRunner()
 					m1 := new(MockHandlerDelegate)
 					r.AddDelegates(m1)
 					e := r.Start()
@@ -161,7 +161,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("starts after  after adding multiple delegates", func() {
-					r := NewRunner()
+					r := newRunner()
 					m1 := new(MockHandlerDelegate)
 					m2 := new(MockHandlerDelegate)
 					m3 := new(MockHandlerDelegate)
@@ -176,7 +176,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("error if delegate cannot RegisterHandler", func() {
-					r := NewRunner()
+					r := newRunner()
 					me := new(MockHandlerDelegate)
 					me.ErrorMode = true
 					r.AddDelegates(me)
@@ -191,7 +191,7 @@ func TestRunnerState(t *testing.T) {
 			Convey(".Stop", func() {
 
 				Convey("removes handlers from delegates", func() {
-					r := NewRunner()
+					r := newRunner()
 					m1 := new(MockHandlerDelegate)
 					m2 := new(MockHandlerDelegate)
 					m3 := new(MockHandlerDelegate)
@@ -208,7 +208,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("returns errors for handlers errors on stop", func() {
-					r := NewRunner()
+					r := newRunner()
 					m1 := new(MockHandlerDelegate)
 					m1.StopError = errors.New("0")
 					m2 := new(MockHandlerDelegate)
@@ -242,8 +242,8 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 				// These tests only work if Pulse Path is known to discover dummy plugin used for testing
 				if PulsePath != "" {
-					Convey("should return an AvailablePlugin in a Running state", func() {
-						r := NewRunner()
+					Convey("should return an AvailablePlugin", func() {
+						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -259,12 +259,10 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 						So(e, ShouldBeNil)
 						So(ap, ShouldNotBeNil)
-						println(ap.State)
-						So(ap.State, ShouldEqual, PluginRunning)
 					})
 
 					Convey("availablePlugins should include returned availablePlugin", func() {
-						r := NewRunner()
+						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -274,16 +272,18 @@ func TestRunnerPluginRunning(t *testing.T) {
 						}
 
 						So(err, ShouldBeNil)
-						apCount := len(r.availablePlugins.Table())
+						t := r.availablePlugins.Collectors.Table()
+						colCount := len(t["dummy:1"])
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
 						So(ap, ShouldNotBeNil)
-						So(len(r.availablePlugins.Table()), ShouldEqual, apCount+1)
-						So(ap, ShouldBeIn, r.availablePlugins.Table())
+						t = r.availablePlugins.Collectors.Table()
+						So(len(t["dummy:1"]), ShouldEqual, colCount+1)
+						So(ap, ShouldBeIn, t["dummy:1"])
 					})
 
 					Convey("healthcheck on healthy plugin does not increment failedHealthChecks", func() {
-						r := NewRunner()
+						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -295,13 +295,13 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
-						ap.client = new(MockHealthyPluginCollectorClient)
-						ap.checkHealth()
+						ap.Client = new(MockHealthyPluginCollectorClient)
+						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 0)
 					})
 
 					Convey("healthcheck on unhealthy plugin increments failedHealthChecks", func() {
-						r := NewRunner()
+						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -313,13 +313,13 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
-						ap.client = new(MockUnhealthyPluginCollectorClient)
-						ap.checkHealth()
+						ap.Client = new(MockUnhealthyPluginCollectorClient)
+						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 1)
 					})
 
 					Convey("successful healthcheck resets failedHealthChecks", func() {
-						r := NewRunner()
+						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin-foo.log",
 						}
@@ -331,17 +331,17 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
-						ap.client = new(MockUnhealthyPluginCollectorClient)
-						ap.checkHealth()
-						ap.checkHealth()
+						ap.Client = new(MockUnhealthyPluginCollectorClient)
+						ap.CheckHealth()
+						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 2)
-						ap.client = new(MockHealthyPluginCollectorClient)
-						ap.checkHealth()
+						ap.Client = new(MockHealthyPluginCollectorClient)
+						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 0)
 					})
 
 					Convey("three consecutive failedHealthChecks disables the plugin", func() {
-						r := NewRunner()
+						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -353,16 +353,15 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
-						ap.client = new(MockUnhealthyPluginCollectorClient)
-						ap.checkHealth()
-						ap.checkHealth()
-						ap.checkHealth()
+						ap.Client = new(MockUnhealthyPluginCollectorClient)
+						ap.CheckHealth()
+						ap.CheckHealth()
+						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 3)
-						So(ap.State, ShouldEqual, PluginDisabled)
 					})
 
 					Convey("should return error for WaitForResponse error", func() {
-						r := NewRunner()
+						r := newRunner()
 						exPlugin := new(MockExecutablePlugin)
 						exPlugin.Timeout = true // set to not response
 						ap, e := r.startPlugin(exPlugin)
@@ -372,7 +371,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("should return error for nil availablePlugin", func() {
-						r := NewRunner()
+						r := newRunner()
 						exPlugin := new(MockExecutablePlugin)
 						exPlugin.NilResponse = true // set to not response
 						ap, e := r.startPlugin(exPlugin)
@@ -382,7 +381,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("should return error for executable plugin not in daemon mode", func() {
-						r := NewRunner()
+						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -402,7 +401,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 			Convey("stopPlugin", func() {
 				Convey("should return an AvailablePlugin in a Running state", func() {
-					r := NewRunner()
+					r := newRunner()
 					a := plugin.Arg{
 						PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
 					}
@@ -418,11 +417,9 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 					So(e, ShouldBeNil)
 					So(ap, ShouldNotBeNil)
-					So(ap.State, ShouldEqual, PluginRunning)
 
-					e = ap.stopPlugin("testing")
+					e = ap.Stop("testing")
 					So(e, ShouldBeNil)
-					So(ap.State, ShouldEqual, PluginStopped)
 				})
 			})
 		})
@@ -430,36 +427,131 @@ func TestRunnerPluginRunning(t *testing.T) {
 }
 
 func TestAvailablePlugins(t *testing.T) {
-	Convey("Append", t, func() {
-		Convey("returns an error when loading duplicate plugins", func() {
-			ap := newAvailablePlugins()
-			ap.Append(new(availablePlugin))
+	Convey("Insert", t, func() {
+		Convey("inserts a collector into the collectors collection", func() {
+			aps := newAvailablePlugins()
+			ap := &availablePlugin{
+				Type:    plugin.CollectorPluginType,
+				Name:    "test",
+				Version: 1,
+				Index:   0,
+			}
+			ap.makeKey()
+			aps.Insert(ap)
 
-			p, _ := ap.Get(0)
-			err := ap.Append(p)
+			tabe := aps.Collectors.Table()
+			So(ap, ShouldBeIn, tabe["test:1"])
+		})
+		Convey("inserts a publisher into the publishers collection", func() {
+			aps := newAvailablePlugins()
+			ap := &availablePlugin{
+				Type:    plugin.PublisherPluginType,
+				Name:    "test",
+				Version: 1,
+				Index:   0,
+			}
+			ap.makeKey()
+			aps.Insert(ap)
+
+			tabe := aps.Publishers.Table()
+			So(ap, ShouldBeIn, tabe["test:1"])
+		})
+		Convey("inserts a processor into the processors collection", func() {
+			aps := newAvailablePlugins()
+			ap := &availablePlugin{
+				Type:    plugin.ProcessorPluginType,
+				Name:    "test",
+				Version: 1,
+				Index:   0,
+			}
+			ap.makeKey()
+			aps.Insert(ap)
+
+			tabe := aps.Processors.Table()
+			So(ap, ShouldBeIn, tabe["test:1"])
+		})
+		Convey("returns an error if an unknown plugin type is given", func() {
+			aps := newAvailablePlugins()
+			ap := &availablePlugin{
+				Type:    99,
+				Name:    "test",
+				Version: 1,
+				Index:   0,
+			}
+			ap.makeKey()
+			err := aps.Insert(ap)
+			So(err, ShouldResemble, errors.New("cannot insert into available plugins, unknown plugin type"))
+		})
+	})
+	Convey("Remove", t, func() {
+		Convey("it removes a collector from the collector collection", func() {
+			aps := newAvailablePlugins()
+			ap := &availablePlugin{
+				Type:    plugin.CollectorPluginType,
+				Name:    "test",
+				Version: 1,
+				Index:   0,
+			}
+			ap.makeKey()
+			err := aps.Insert(ap)
+			So(err, ShouldEqual, nil)
+			aps.Remove(ap)
+			tabe := aps.Collectors.Table()
+			So(ap, ShouldNotBeIn, tabe["test:1"])
+		})
+		Convey("it removes a publisher from the publisher collection", func() {
+			aps := newAvailablePlugins()
+			ap := &availablePlugin{
+				Type:    plugin.PublisherPluginType,
+				Name:    "test",
+				Version: 1,
+				Index:   0,
+			}
+			ap.makeKey()
+			err := aps.Insert(ap)
+			So(err, ShouldEqual, nil)
+			aps.Remove(ap)
+			tabe := aps.Publishers.Table()
+			So(ap, ShouldNotBeIn, tabe["test:1"])
+		})
+		Convey("it removes a processor from the processor collection", func() {
+			aps := newAvailablePlugins()
+			ap := &availablePlugin{
+				Type:    plugin.ProcessorPluginType,
+				Name:    "test",
+				Version: 1,
+				Index:   0,
+			}
+			ap.makeKey()
+			err := aps.Insert(ap)
+			So(err, ShouldEqual, nil)
+			aps.Remove(ap)
+			tabe := aps.Processors.Table()
+			So(ap, ShouldNotBeIn, tabe["test:1"])
+		})
+		Convey("returns an error if an unknown plugin type is given", func() {
+			aps := newAvailablePlugins()
+			ap := &availablePlugin{
+				Type:    99,
+				Name:    "test",
+				Version: 1,
+				Index:   0,
+			}
+			ap.makeKey()
+			err := aps.Remove(ap)
+			So(err, ShouldResemble, errors.New("cannot remove from available plugins, unknown plugin type"))
+		})
+	})
+}
+
+func TestAPCollection(t *testing.T) {
+	Convey("Add", t, func() {
+		Convey("it returns an error if the pointer already exists in the table", func() {
+			apc := newAPCollection()
+			ap := &availablePlugin{}
+			apc.Add(ap)
+			err := apc.Add(ap)
 			So(err, ShouldResemble, errors.New("plugin instance already available at index 0"))
-
-		})
-	})
-	Convey("Get", t, func() {
-		Convey("returns an error when index is out of range", func() {
-			ap := newAvailablePlugins()
-			ap.Append(new(availablePlugin))
-
-			_, err := ap.Get(1)
-			So(err, ShouldResemble, errors.New("index out of range"))
-
-		})
-	})
-	Convey("Splice", t, func() {
-		Convey("splices an item out of the table", func() {
-			ap := newAvailablePlugins()
-			ap.Append(new(availablePlugin))
-			ap.Append(new(availablePlugin))
-			ap.Append(new(availablePlugin))
-			ap.Splice(1)
-			So(len(ap.Table()), ShouldResemble, 2)
-
 		})
 	})
 }
