@@ -26,7 +26,7 @@ type subscriptions struct {
 
 // returns the key and value of a certain index in the table.
 // to be used when iterating over the table
-func (s *subscriptions) Values() (string, int) {
+func (s *subscriptions) Item() (string, int) {
 	key := (*s.keys)[s.currentIter-1]
 	return key, (*s.table)[key]
 }
@@ -35,7 +35,7 @@ func (s *subscriptions) Values() (string, int) {
 // used to iterate over the table:
 /*
 for sub.Next() {
-	key, val := sub.Values()
+	key, val := sub.Item()
 	// do things with key / val
 }
 */

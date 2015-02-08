@@ -158,7 +158,7 @@ func (c *apCollection) Remove(ap *availablePlugin) {
 
 }
 
-func (c *apCollection) Values() (string, *[]*availablePlugin) {
+func (c *apCollection) Item() (string, *[]*availablePlugin) {
 	key := (*c.keys)[c.currentIter-1]
 	return key, (*c.table)[key]
 }
