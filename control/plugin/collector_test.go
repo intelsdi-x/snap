@@ -49,7 +49,6 @@ func TestStartCollector(t *testing.T) {
 		w.Close()
 		os.Stdout = old // restoring the real stdout
 		out := <-outC
-		println(out)
 		So(out, ShouldContainSubstring, "some_metric")
 	})
 }
