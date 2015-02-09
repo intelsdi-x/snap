@@ -71,7 +71,7 @@ func TestValue(t *testing.T) {
 		s.Subscribe("test.foo")
 		Convey("then it can retrieve them by the index (.curentIter)", func() {
 			s.currentIter = 1
-			key, val := s.Values()
+			key, val := s.Item()
 			So(key, ShouldEqual, "test.foo")
 			So(val, ShouldEqual, 1)
 		})
@@ -102,7 +102,7 @@ func TestNext(t *testing.T) {
 			testmap := make(map[string]int)
 			iters := 0
 			for s.Next() {
-				key, val := s.Values()
+				key, val := s.Item()
 				testmap[key] = val
 				iters++
 			}
