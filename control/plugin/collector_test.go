@@ -2,10 +2,11 @@ package plugin
 
 import (
 	"bytes"
-	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"os"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 type MockCollectorPlugin struct{}
