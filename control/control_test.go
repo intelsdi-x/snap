@@ -3,11 +3,10 @@ package control
 import (
 	"fmt"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
-
-	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
