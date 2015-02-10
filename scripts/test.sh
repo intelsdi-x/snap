@@ -40,4 +40,9 @@ go tool cover -func profile.cov
 # To submit the test coverage result to coveralls.io,
 # use goveralls (https://github.com/mattn/goveralls)
 # goveralls -coverprofile=profile.cov -service=travis-ci -repotoken t47LG6BQsfLwb9WxB56hXUezvwpED6D11
-goveralls -v -coverprofile=profile.cov -service travis.ci -repotoken $COVERALLS_TOKEN
+#
+# If running inside Travis we update coveralls. We don't want his happening on Macs
+if [ "$TRAVIS" == "true" ]
+then
+	goveralls -v -coverprofile=profile.cov -service travis.ci -repotoken $COVERALLS_TOKEN
+fi
