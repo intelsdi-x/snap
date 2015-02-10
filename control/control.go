@@ -28,7 +28,13 @@ type pluginControl struct {
 	controlPubKey  *rsa.PublicKey
 	eventManager   *gomit.EventController
 	subscriptions  *subscriptions
-	pluginManager  *pluginManager
+	pluginManager  ManagesPlugins
+}
+
+type ManagesPlugins interface {
+	LoadPlugin(string) (*loadedPlugin, error)
+	UnloadPlugin(CatalogedPlugin) error
+	LoadedPlugins() *loadedPlugins
 }
 
 // TODO Update to newPluginControl
@@ -172,7 +178,7 @@ type PluginCatalog []CatalogedPlugin
 
 // returns a copy of the plugin catalog
 func (p *pluginControl) PluginCatalog() PluginCatalog {
-	table := p.pluginManager.LoadedPlugins.Table()
+	table := p.pluginManager.LoadedPlugins().Table()
 	pc := make([]CatalogedPlugin, len(table))
 	for i, lp := range table {
 		pc[i] = lp

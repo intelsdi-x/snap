@@ -53,11 +53,13 @@ func TestSwapPlugin(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(pc[0].Name(), ShouldEqual, "facter")
 			})
+
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
 				err := c.SwapPlugins("/fake/plugin/path", pc[0])
 				So(err, ShouldNotBeNil)
 				So(pc[0].Name(), ShouldEqual, "dummy")
 			})
+
 			Convey("rollsback loaded plugin & returns an error if it cannot unload a plugin", func() {
 				dummy := pc[0]
 				c.SwapPlugins(facterPath, dummy)
@@ -84,7 +86,7 @@ func TestLoad(t *testing.T) {
 				c.Start()
 				err := c.Load(PluginPath)
 
-				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+				So(c.pluginManager.LoadedPlugins(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 			})
 
@@ -92,7 +94,7 @@ func TestLoad(t *testing.T) {
 				c := Control()
 				err := c.Load(PluginPath)
 
-				So(len(c.pluginManager.LoadedPlugins.Table()), ShouldEqual, 0)
+				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 0)
 				So(err, ShouldNotBeNil)
 			})
 
@@ -102,7 +104,7 @@ func TestLoad(t *testing.T) {
 				err := c.Load(PluginPath)
 
 				So(err, ShouldBeNil)
-				So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
+				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldBeGreaterThan, 0)
 			})
 
 			Convey("returns error from pluginManager.LoadPlugin()", func() {
@@ -212,21 +214,21 @@ func TestPluginCatalog(t *testing.T) {
 	lp1.Type = 0
 	lp1.State = "loaded"
 	lp1.LoadedTime = ts
-	c.pluginManager.LoadedPlugins.Append(lp1)
+	c.pluginManager.LoadedPlugins().Append(lp1)
 
 	lp2 := new(loadedPlugin)
 	lp2.Meta = plugin.PluginMeta{Name: "test2", Version: 1}
 	lp2.Type = 0
 	lp2.State = "loaded"
 	lp2.LoadedTime = ts
-	c.pluginManager.LoadedPlugins.Append(lp2)
+	c.pluginManager.LoadedPlugins().Append(lp2)
 
 	lp3 := new(loadedPlugin)
 	lp3.Meta = plugin.PluginMeta{Name: "test3", Version: 1}
 	lp3.Type = 0
 	lp3.State = "loaded"
 	lp3.LoadedTime = ts
-	c.pluginManager.LoadedPlugins.Append(lp3)
+	c.pluginManager.LoadedPlugins().Append(lp3)
 
 	pc := c.PluginCatalog()
 
