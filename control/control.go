@@ -28,10 +28,10 @@ type pluginControl struct {
 	controlPubKey  *rsa.PublicKey
 	eventManager   *gomit.EventController
 	subscriptions  *subscriptions
-	pluginManager  ManagesPlugins
+	pluginManager  managesPlugins
 }
 
-type ManagesPlugins interface {
+type managesPlugins interface {
 	LoadPlugin(string) (*loadedPlugin, error)
 	UnloadPlugin(CatalogedPlugin) error
 	LoadedPlugins() *loadedPlugins
