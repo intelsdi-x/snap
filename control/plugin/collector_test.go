@@ -1,8 +1,6 @@
 package plugin
 
 import (
-	"bytes"
-	"io"
 	"os"
 	"testing"
 
@@ -22,34 +20,18 @@ func (c *MockCollectorPlugin) GetMetricTypes(args GetMetricTypesArgs, reply *Get
 	return nil
 }
 
-func TestStartCollector(t *testing.T) {
+func TestCollector(t *testing.T) {
 
-	Convey("collector.StartCollector", t, func() {
+	Convey("StartCollector", t, func() {
 		os.Args = []string{"", "{\"ListenPort\": \"9998\", \"RunAsDaemon\": false}"}
 		meta := &PluginMeta{
 			Name:    "test1",
 			Version: 1,
 		}
 		policy := new(ConfigPolicy)
-		old := os.Stdout // keep backup of the real stdout
-		r, w, _ := os.Pipe()
-		os.Stdout = w
-
-		outC := make(chan string)
-		// copy the output in a separate goroutine so printing can't block indefinitely
-		go func() {
-			var buf bytes.Buffer
-			io.Copy(&buf, r)
-			outC <- buf.String()
-		}()
 
 		e := StartCollector(meta, new(MockCollectorPlugin), policy)
 		So(e, ShouldBeNil)
-
-		// back to normal state
-		w.Close()
-		os.Stdout = old // restoring the real stdout
-		out := <-outC
-		So(out, ShouldContainSubstring, "some_metric")
 	})
+
 }

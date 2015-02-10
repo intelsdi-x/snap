@@ -147,11 +147,10 @@ func (s *SessionState) Kill(arg KillArgs, b *bool) error {
 
 // Response from started plugin
 type Response struct {
-	Meta              PluginMeta
-	ListenAddress     string
-	Token             string
-	Type              PluginType
-	CollectorResponse GetMetricTypesReply
+	Meta          PluginMeta
+	ListenAddress string
+	Token         string
+	Type          PluginType
 
 	// State is a signal from plugin to control that it passed
 	// its own loading requirements

@@ -168,8 +168,6 @@ func TestWaitForPluginResponse(t *testing.T) {
 				r, e := ex.WaitForResponse(time.Second * 5)
 				if r != nil {
 					println("ListenAddress: " + r.ListenAddress)
-					So(r.CollectorResponse, ShouldNotBeNil)
-					So(len(r.CollectorResponse.MetricTypes), ShouldBeGreaterThan, 0)
 				}
 				if e != nil {
 					println(e.Error())

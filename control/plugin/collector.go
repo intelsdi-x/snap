@@ -76,7 +76,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 
 	// We register RPC even in non-daemon mode to ensure it would be successful.
 	// Register the collector RPC methods from plugin implementation
-	rpc.RegisterName("collector", c)
+	rpc.Register(c)
 	// Register common plugin methods used for utility reasons
 	e := rpc.Register(sessionState)
 	// If the rpc registration has an error we need to halt.
@@ -86,13 +86,10 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 		return e
 	}
 	// Generate response
-	var reply GetMetricTypesReply
-	c.GetMetricTypes(GetMetricTypesArgs{}, &reply)
 	r := Response{
-		Type:              CollectorPluginType,
-		State:             PluginSuccess,
-		Meta:              *m,
-		CollectorResponse: reply,
+		Type:  CollectorPluginType,
+		State: PluginSuccess,
+		Meta:  *m,
 	}
 	sessionState.Logger.Printf("Daemon mode: %t\n", sessionState.RunAsDaemon)
 	// if not in daemon mode we don't need to setup listener
