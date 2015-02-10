@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const (
+var (
 	// Timeout settings
 	// How much time must elapse before a lack of Ping results in a timeout
 	PingTimeoutDuration = time.Second * 5
@@ -145,7 +145,7 @@ func (s *SessionState) Kill(arg KillArgs, b *bool) error {
 	return nil
 }
 
-func (s *SessionState) GenerateResponse(r Response) []byte {
+func (s *SessionState) generateResponse(r Response) []byte {
 	// Add common plugin response properties
 	r.ListenAddress = s.ListenAddress
 	r.Token = s.Token

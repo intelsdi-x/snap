@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	// Import the pulse plugin library
 	"github.com/intelsdilabs/pulse/control/plugin"
 	// Import our collector plugin implementation
@@ -20,5 +22,5 @@ func main() {
 	meta := facter.Meta()
 
 	// Start a collector
-	plugin.StartCollector(meta, new(facter.Facter), policy)
+	plugin.StartCollector(meta, new(facter.Facter), policy, os.Args[0], os.Args[1])
 }
