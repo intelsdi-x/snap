@@ -39,12 +39,23 @@ func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins {
 	return nil
 }
 
-func TestPluginControlStart(t *testing.T) {
+func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
 		Convey("starts successfully", func() {
 			c := Control()
 			c.Start()
 			So(c.Started, ShouldBeTrue)
+		})
+	})
+}
+
+func TestPluginControlStart(t *testing.T) {
+	Convey("pluginControl.generateArgs", t, func() {
+		Convey("returns arg", func() {
+			c := Control()
+			c.Start()
+			a := c.generateArgs()
+			So(a, ShouldNotBeNil)
 		})
 	})
 }
