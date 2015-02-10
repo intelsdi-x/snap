@@ -1,6 +1,7 @@
 package control
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -18,6 +19,9 @@ type MockPluginExecutor struct {
 	WaitTime        time.Duration
 	WaitError       error
 	WaitForResponse func(time.Duration) (*plugin.Response, error)
+}
+
+type MockPluginManager struct {
 }
 
 func TestPluginControlStart(t *testing.T) {
@@ -101,6 +105,58 @@ func TestLoad(t *testing.T) {
 				So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
 			})
 
+			Convey("returns error from pluginManager.LoadPlugin()", func() {
+				c := Control()
+				c.Start()
+				err := c.Load(PluginPath + "foo")
+
+				So(err, ShouldNotBeNil)
+				// So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
+			})
+
+		})
+	} else {
+		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
+	}
+}
+
+func TestUnload(t *testing.T) {
+	// These tests only work if PULSE_PATH is known.
+	// It is the responsibility of the testing framework to
+	// build the plugins first into the build dir.
+	if PulsePath != "" {
+		Convey("pluginControl.Unload", t, func() {
+			Convey("unloads successfully", func() {
+				c := Control()
+				c.Start()
+				err := c.Load(PluginPath)
+
+				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+				So(err, ShouldBeNil)
+
+				pc := c.PluginCatalog()
+
+				So(len(pc), ShouldEqual, 1)
+				err = c.Unload(pc[0])
+				So(err, ShouldBeNil)
+			})
+
+			Convey("returns error on unload for unknown plugin(or already unloaded)", func() {
+				c := Control()
+				c.Start()
+				err := c.Load(PluginPath)
+
+				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+				So(err, ShouldBeNil)
+
+				pc := c.PluginCatalog()
+
+				So(len(pc), ShouldEqual, 1)
+				err = c.Unload(pc[0])
+				So(err, ShouldBeNil)
+				err = c.Unload(pc[0])
+				So(err, ShouldResemble, errors.New("plugin [dummy] -- [1] not found (has it already been unloaded?)"))
+			})
 		})
 
 	} else {
