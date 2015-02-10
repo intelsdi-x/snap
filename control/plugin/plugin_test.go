@@ -56,7 +56,7 @@ func TestSessionState(t *testing.T) {
 			r := Response{}
 			ss.ListenAddress = "1234"
 			ss.Token = "asdf"
-			response := ss.GenerateResponse(r)
+			response := ss.generateResponse(r)
 			So(response, ShouldHaveSameTypeAs, []byte{})
 			json.Unmarshal(response, &r)
 			So(r.ListenAddress, ShouldEqual, "1234")

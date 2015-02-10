@@ -23,7 +23,7 @@ func main() {
 	meta := dummy.Meta()
 
 	// Start a collector
-	e := plugin.StartCollector(meta, new(dummy.Dummy), policy)
+	e := plugin.StartCollector(meta, new(dummy.Dummy), policy, os.Args[0], os.Args[1])
 	if e != nil {
 		fmt.Println(e.Error())
 		os.Exit(2)
