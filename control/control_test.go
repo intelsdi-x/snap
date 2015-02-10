@@ -21,7 +21,22 @@ type MockPluginExecutor struct {
 	WaitForResponse func(time.Duration) (*plugin.Response, error)
 }
 
-type MockPluginManager struct {
+// Mock plugin manager that will fail swap on the last rollback for testing rollback failure is caught
+type MockPluginManagerBadSwap struct {
+	Mode           int
+	ExistingPlugin CatalogedPlugin
+}
+
+func (m *MockPluginManagerBadSwap) LoadPlugin(string) (*loadedPlugin, error) {
+	return new(loadedPlugin), nil
+}
+
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c CatalogedPlugin) error {
+	return errors.New("fake")
+}
+
+func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins {
+	return nil
 }
 
 func TestPluginControlStart(t *testing.T) {
@@ -68,6 +83,16 @@ func TestSwapPlugin(t *testing.T) {
 				err := c.SwapPlugins(PluginPath, dummy)
 				So(err, ShouldNotBeNil)
 				So(pc[0].Name(), ShouldEqual, "facter")
+			})
+
+			Convey("rollback failure returns error", func() {
+				dummy := pc[0]
+				pm := new(MockPluginManagerBadSwap)
+				pm.ExistingPlugin = dummy
+				c.pluginManager = pm
+
+				err := c.SwapPlugins(facterPath, dummy)
+				So(err, ShouldNotBeNil)
 			})
 		})
 	}
