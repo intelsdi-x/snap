@@ -1,13 +1,14 @@
 package dummy
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
 const (
-	Name    = "dummy"
+	Name    = "/dummy/dumb"
 	Version = 1
 	Type    = "collector"
 )
@@ -35,6 +36,12 @@ func Meta() *plugin.PluginMeta { //
 }
 
 func ConfigPolicy() *plugin.ConfigPolicy {
-	c := new(plugin.ConfigPolicy)
+	c := plugin.NewConfigPolicy()
+	p1 := &plugin.Policy{
+		Key:      "test",
+		Type:     reflect.String,
+		Required: false,
+	}
+	c.Add(Name, "/dummy", p1)
 	return c
 }
