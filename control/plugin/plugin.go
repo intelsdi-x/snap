@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"log"
-	"os"
 	"time"
 )
 
@@ -84,6 +83,7 @@ type SessionState struct {
 	ListenAddress string
 	LastPing      time.Time
 	Logger        *log.Logger
+	KillChan      chan int
 }
 
 // Arguments passed to startup of Plugin
@@ -140,7 +140,7 @@ func (s *SessionState) Kill(arg KillArgs, b *bool) error {
 	s.Logger.Printf("Kill called by agent, reason: %s\n", arg.Reason)
 	go func() {
 		time.Sleep(time.Second * 2)
-		s.haltPlugin(3)
+		s.KillChan <- 0
 	}()
 	return nil
 }
@@ -151,11 +151,6 @@ func (s *SessionState) generateResponse(r Response) []byte {
 	r.Token = s.Token
 	rs, _ := json.Marshal(r)
 	return rs
-}
-
-func (s *SessionState) haltPlugin(code int) {
-	s.Logger.Printf("Halting with exit code (%d)\n", code)
-	os.Exit(code)
 }
 
 func InitSessionState(path, pluginArgsMsg string) (*SessionState, error) {
@@ -177,10 +172,10 @@ func InitSessionState(path, pluginArgsMsg string) (*SessionState, error) {
 	rand.Read(rb)
 	rs := base64.URLEncoding.EncodeToString(rb)
 
-	return &SessionState{Arg: pluginArg, Token: rs}, nil
+	return &SessionState{Arg: pluginArg, Token: rs, KillChan: make(chan int)}, nil
 }
 
-func (s *SessionState) heartbeatWatch(killChan chan (struct{})) {
+func (s *SessionState) heartbeatWatch(killChan chan int) {
 	s.Logger.Println("Heartbeat started")
 	count := 0
 	for {
