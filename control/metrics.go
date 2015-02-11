@@ -1,16 +1,14 @@
 package control
 
-import "github.com/intelsdilabs/pulse/core"
-
-type MetricType struct {
+type metricType struct {
 	Plugin *loadedPlugin
 
 	namespace               []string
 	lastAdvertisedTimestamp int64
 }
 
-func newMetricType(ns []string, last int64, plugin *loadedPlugin) *MetricType {
-	return &MetricType{
+func newmetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
+	return &metricType{
 		Plugin: plugin,
 
 		namespace:               ns,
@@ -18,48 +16,40 @@ func newMetricType(ns []string, last int64, plugin *loadedPlugin) *MetricType {
 	}
 }
 
-func (m *MetricType) Namespace() []string {
+func (m *metricType) Namespace() []string {
 	return m.namespace
 }
 
-func (m *MetricType) LastAdvertisedTimestamp() int64 {
+func (m *metricType) LastAdvertisedTimestamp() int64 {
 	return m.lastAdvertisedTimestamp
 }
 
 type metricCatalog struct {
-	table       *[]*MetricType
+	table       *map[string]*metricType
 	mutex       *sync.Mutex
+	keys        *[]string
 	currentIter int
 }
 
 func newMetricCatalog() *metricCatalog {
-	var t []*MetricType
+	var t map[string]*metricType
+	var k []string
 	return &metricCatalog{
 		table:       &t,
 		mutex:       &sync.Mutex{},
 		currentIter: 0,
+		keys:        &k,
 	}
 }
 
-// adds a loadedPlugin pointer to the loadedPlugins table
-func (mc *MetricCatalog) Add(m *MetricType) error {
-
+// adds a metricType pointer to the loadedPlugins table
+func (mc *MetricCatalog) Add(m *metricType) {
 	mc.mutex.Lock()
-	defer mc.mutex.Unlock()
-
-	// make sure we don't already  have a pointer to this plugin in the table
-	for i, pl := range *mc.table {
-		if lp == pl {
-			return errors.New("plugin already loaded at index " + strconv.Itoa(i))
-		}
+	if _, ok := (*mc.table)[mt.Namespace()]; !ok {
+		*mc.keys = append(*mc.keys, m.Namespace())
 	}
-
-	// append
-	newMetricCatalog := append(*mc.table, lp)
-	// overwrite
-	mc.table = &newMetricCatalog
-
-	return nil
+	(*mc.table)[mt.Namespace()] = mt
+	mc.mutex.Unlock()
 }
 
 // returns a copy of the table
@@ -68,15 +58,15 @@ func (mc *MetricCatalog) Table() []*metricCatalog {
 }
 
 // used to transactionally retrieve a loadedPlugin pointer from the table
-func (mc *MetricCatalog) Get(index int) (*MetricType, error) {
+func (mc *MetricCatalog) Get(ns string) (*metricType, error) {
 	mc.Lock()
 	defer mc.Unlock()
 
-	if index > len(*mc.table)-1 {
-		return nil, errors.New("index out of range")
+	if m, ok := (*mc.table)[ns]; !ok {
+		return nil, errors.New("metric not found")
 	}
 
-	return (*mc.table)[index], nil
+	return m, nil
 }
 
 // used to lock the plugin table externally,
@@ -89,35 +79,17 @@ func (mc *MetricCatalog) Unlock() {
 	mc.mutex.Unlock()
 }
 
-/* we need an atomic read / write transaction for the splice when removing a plugin,
-   as the plugin is found by its index in the table.  By having the default Splice
-   method block, we protect against accidental use.  Using nonblocking requires explicit
-   invocation.
-*/
-func (mc *MetricCatalog) splice(index int) {
-	m := append((*mc.table)[:index], (*mc.table)[index+1:]...)
-	mc.table = &m
-}
-
-// splice unsafely
-func (mc *MetricCatalog) NonblockingSplice(index int) {
-	mc.splice(index)
-}
-
-// atomic splice
-func (mc *MetricCatalog) Splice(index int) {
-
+func (mc *MetricCatalog) Remove(ns string) {
 	mc.mutex.Lock()
-	mc.splice(index)
+	delete(mc, ns)
 	mc.mutex.Unlock()
-
 }
 
 // returns the item of a certain index in the table.
 // to be used when iterating over the table
-func (mc *MetricCatalog) Item() (int, *MetricType) {
-	i := mc.currentIter - 1
-	return i, (*mc.table)[i]
+func (mc *metricCatalog) Item() (string, int) {
+	key := (*mc.keys)[mc.currentIter-1]
+	return key, (*mc.table)[key]
 }
 
 // Returns true until the "end" of the table is reached.
