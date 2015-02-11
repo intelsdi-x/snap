@@ -48,19 +48,15 @@ func (s *subscriptions) Next() bool {
 	return true
 }
 
-// Since subscriptions should be a singleton inside a controller,
-// rather than using the NewSubscription() constructor pattern,
-// we use Init to initialize an existing subscrition table:
-/*
-//...
-control.sub := new(subscriptions)
-sub.Init()
-*/
-func (s *subscriptions) Init() {
+// newSubscriptionsTable initializes and returns a subscription table pointer
+func newSubscriptionsTable() *subscriptions {
 	tabe := make(map[string]int)
-	s.table = &tabe
-	s.mutex = new(sync.Mutex)
-	s.keys = new([]string)
+	s := &subscriptions{
+		table: &tabe,
+		mutex: &sync.Mutex{},
+		keys:  &[]string{},
+	}
+	return s
 }
 
 // atomically increments a metric's subscription count in the table

@@ -29,6 +29,7 @@ type pluginControl struct {
 	eventManager   *gomit.EventController
 	subscriptions  *subscriptions
 	pluginManager  managesPlugins
+	metricCatalog  *metricCatalog
 }
 
 type managesPlugins interface {
@@ -39,14 +40,12 @@ type managesPlugins interface {
 
 // TODO Update to newPluginControl
 func Control() *pluginControl {
-	c := new(pluginControl)
-	c.eventManager = new(gomit.EventController)
-
-	c.subscriptions = new(subscriptions)
-	c.subscriptions.Init()
-
-	c.pluginManager = newPluginManager()
-
+	c := &pluginControl{
+		eventManager:  gomit.NewEventController(),
+		subscriptions: newSubscriptionsTable(),
+		pluginManager: newPluginManager(),
+		metricCatalog: newMetricCatalog(),
+	}
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
 
@@ -159,6 +158,14 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 		MetricNamespace: metric,
 	}
 	p.eventManager.Emit(e)
+}
+
+func (p *pluginControl) resolvePlugin(mns string) (*loadedPlugin, error) {
+	m, err := p.metricCatalog.Get(mns)
+	if err != nil {
+		return nil, err
+	}
+	return m.Plugin, nil
 }
 
 // the public interface for a plugin
