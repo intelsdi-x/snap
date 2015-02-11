@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"testing"
 
 	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/plugin/helper"
-
-	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
