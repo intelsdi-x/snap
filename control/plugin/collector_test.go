@@ -1,37 +1,64 @@
 package plugin
 
 import (
-	"os"
+	"encoding/json"
+	"time"
+
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type MockCollectorPlugin struct{}
+type MockPlugin struct {
+	Meta PluginMeta
+	//Collector CollectorPlugin
+	Policy ConfigPolicy
+}
 
-func (c *MockCollectorPlugin) Collect(args CollectorArgs, reply *CollectorReply) error {
+func (f *MockPlugin) Collect(args CollectorArgs, reply *CollectorReply) error {
 	return nil
 }
 
-func (c *MockCollectorPlugin) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTypesReply) error {
+func (c *MockPlugin) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTypesReply) error {
 	reply.MetricTypes = []*MetricType{
-		NewMetricType([]string{"org", "some_metric"}),
+		NewMetricType([]string{"org", "some_metric"}, time.Now().Unix()),
 	}
 	return nil
 }
 
-func TestCollector(t *testing.T) {
+func TestStartCollector(t *testing.T) {
+	Convey("Daemon mode", t, func() {
+		// These setting ensure it exists before test timeout
+		PingTimeoutDuration = time.Millisecond * 100
+		PingTimeoutLimit = 1
 
-	Convey("StartCollector", t, func() {
-		os.Args = []string{"", "{\"ListenPort\": \"9998\", \"RunAsDaemon\": false}"}
-		meta := &PluginMeta{
-			Name:    "test1",
-			Version: 1,
-		}
-		policy := new(ConfigPolicy)
-
-		e := StartCollector(meta, new(MockCollectorPlugin), policy)
+		r := Arg{RunAsDaemon: true}
+		b, e := json.Marshal(r)
 		So(e, ShouldBeNil)
+
+		m := new(MockPlugin)
+		m.Meta.Name = "mock"
+		m.Meta.Version = 1
+
+		err := StartCollector(&m.Meta, m, &m.Policy, "/tmp/foo", string(b))
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Non-daemon mode", t, func() {
+		// These setting ensure it exists before test timeout
+		PingTimeoutDuration = time.Millisecond * 100
+		PingTimeoutLimit = 1
+
+		r := Arg{RunAsDaemon: false}
+		b, e := json.Marshal(r)
+		So(e, ShouldBeNil)
+
+		m := new(MockPlugin)
+		m.Meta.Name = "mock"
+		m.Meta.Version = 1
+
+		err := StartCollector(&m.Meta, m, &m.Policy, "/tmp/foo", string(b))
+		So(err, ShouldBeNil)
 	})
 
 }

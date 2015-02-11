@@ -172,7 +172,7 @@ func (lp *loadedPlugin) LoadedTimestamp() int64 {
 // the struct representing the object responsible for
 // loading and unloading plugins
 type pluginManager struct {
-	LoadedPlugins *loadedPlugins
+	loadedPlugins *loadedPlugins
 
 	privKey *rsa.PrivateKey
 	pubKey  *rsa.PublicKey
@@ -180,18 +180,14 @@ type pluginManager struct {
 
 func newPluginManager() *pluginManager {
 	p := &pluginManager{
-		LoadedPlugins: newLoadedPlugins(),
+		loadedPlugins: newLoadedPlugins(),
 	}
 	return p
 }
 
-func (p *pluginManager) generateArgs(daemon bool) plugin.Arg {
-	a := plugin.Arg{
-		ControlPubKey: p.pubKey,
-		PluginLogPath: "/tmp/pulse-plugin.log",
-		RunAsDaemon:   daemon,
-	}
-	return a
+// Returns loaded plugins
+func (p *pluginManager) LoadedPlugins() *loadedPlugins {
+	return p.loadedPlugins
 }
 
 // Load is the method for loading a plugin and
@@ -202,7 +198,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(false), lPlugin.Path, false)
+	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(false), lPlugin.Path, true)
 
 	log.Println(ePlugin)
 
@@ -219,11 +215,28 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
-
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
+	if resp.Type == plugin.CollectorPluginType {
+		ap, err := newAvailablePlugin(resp)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		col := ap.Client.(plugin.CollectorPlugin)
+		args := new(plugin.GetMetricTypesArgs)
+		var reply *plugin.GetMetricTypesReply
+		//TODO update metric catalog with metric types below
+		_ = col.GetMetricTypes(*args, reply)
+	}
+	ePlugin.Kill()
+
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return nil, err
+	// }
 
 	if resp.State != plugin.PluginSuccess {
 		log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
@@ -236,7 +249,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	lPlugin.LoadedTime = time.Now()
 	lPlugin.State = LoadedState
 
-	err = p.LoadedPlugins.Append(lPlugin)
+	err = p.LoadedPlugins().Append(lPlugin)
 	if err != nil {
 		return nil, err
 	}
@@ -249,8 +262,8 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 
 	// We hold the mutex here to safely splice out the plugin from the table.
 	// Using a stale index can be slightly dangerous (unloading incorrect plugin).
-	p.LoadedPlugins.Lock()
-	defer p.LoadedPlugins.Unlock()
+	p.LoadedPlugins().Lock()
+	defer p.LoadedPlugins().Unlock()
 
 	var (
 		index  int
@@ -259,9 +272,9 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 	)
 
 	// find it in the list
-	for p.LoadedPlugins.Next() {
+	for p.LoadedPlugins().Next() {
 		if !found {
-			i, lp := p.LoadedPlugins.Item()
+			i, lp := p.LoadedPlugins().Item()
 			// plugin key is its name && version
 			if pl.Name() == lp.Meta.Name && pl.Version() == lp.Meta.Version {
 				index = i
@@ -285,7 +298,16 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 	}
 
 	// splice out the given plugin
-	p.LoadedPlugins.NonblockingSplice(index)
+	p.LoadedPlugins().NonblockingSplice(index)
 
 	return nil
+}
+
+func (p *pluginManager) generateArgs(daemon bool) plugin.Arg {
+	a := plugin.Arg{
+		ControlPubKey: p.pubKey,
+		PluginLogPath: "/tmp/pulse-plugin.log",
+		RunAsDaemon:   daemon,
+	}
+	return a
 }

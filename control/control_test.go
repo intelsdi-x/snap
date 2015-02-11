@@ -1,13 +1,13 @@
 package control
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
-
-	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -21,12 +21,41 @@ type MockPluginExecutor struct {
 	WaitForResponse func(time.Duration) (*plugin.Response, error)
 }
 
-func TestPluginControlStart(t *testing.T) {
+// Mock plugin manager that will fail swap on the last rollback for testing rollback failure is caught
+type MockPluginManagerBadSwap struct {
+	Mode           int
+	ExistingPlugin CatalogedPlugin
+}
+
+func (m *MockPluginManagerBadSwap) LoadPlugin(string) (*loadedPlugin, error) {
+	return new(loadedPlugin), nil
+}
+
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c CatalogedPlugin) error {
+	return errors.New("fake")
+}
+
+func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins {
+	return nil
+}
+
+func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
 		Convey("starts successfully", func() {
 			c := Control()
 			c.Start()
 			So(c.Started, ShouldBeTrue)
+		})
+	})
+}
+
+func TestPluginControlStart(t *testing.T) {
+	Convey("pluginControl.generateArgs", t, func() {
+		Convey("returns arg", func() {
+			c := Control()
+			c.Start()
+			a := c.generateArgs()
+			So(a, ShouldNotBeNil)
 		})
 	})
 }
@@ -50,11 +79,13 @@ func TestSwapPlugin(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(pc[0].Name(), ShouldEqual, "facter")
 			})
+
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
 				err := c.SwapPlugins("/fake/plugin/path", pc[0])
 				So(err, ShouldNotBeNil)
 				So(pc[0].Name(), ShouldEqual, "dummy")
 			})
+
 			Convey("rollsback loaded plugin & returns an error if it cannot unload a plugin", func() {
 				dummy := pc[0]
 				c.SwapPlugins(facterPath, dummy)
@@ -63,6 +94,16 @@ func TestSwapPlugin(t *testing.T) {
 				err := c.SwapPlugins(PluginPath, dummy)
 				So(err, ShouldNotBeNil)
 				So(pc[0].Name(), ShouldEqual, "facter")
+			})
+
+			Convey("rollback failure returns error", func() {
+				dummy := pc[0]
+				pm := new(MockPluginManagerBadSwap)
+				pm.ExistingPlugin = dummy
+				c.pluginManager = pm
+
+				err := c.SwapPlugins(facterPath, dummy)
+				So(err, ShouldNotBeNil)
 			})
 		})
 	}
@@ -81,7 +122,7 @@ func TestLoad(t *testing.T) {
 				c.Start()
 				err := c.Load(PluginPath)
 
-				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+				So(c.pluginManager.LoadedPlugins(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 			})
 
@@ -89,7 +130,7 @@ func TestLoad(t *testing.T) {
 				c := Control()
 				err := c.Load(PluginPath)
 
-				So(len(c.pluginManager.LoadedPlugins.Table()), ShouldEqual, 0)
+				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 0)
 				So(err, ShouldNotBeNil)
 			})
 
@@ -99,9 +140,61 @@ func TestLoad(t *testing.T) {
 				err := c.Load(PluginPath)
 
 				So(err, ShouldBeNil)
-				So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
+				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldBeGreaterThan, 0)
 			})
 
+			Convey("returns error from pluginManager.LoadPlugin()", func() {
+				c := Control()
+				c.Start()
+				err := c.Load(PluginPath + "foo")
+
+				So(err, ShouldNotBeNil)
+				// So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
+			})
+
+		})
+	} else {
+		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
+	}
+}
+
+func TestUnload(t *testing.T) {
+	// These tests only work if PULSE_PATH is known.
+	// It is the responsibility of the testing framework to
+	// build the plugins first into the build dir.
+	if PulsePath != "" {
+		Convey("pluginControl.Unload", t, func() {
+			Convey("unloads successfully", func() {
+				c := Control()
+				c.Start()
+				err := c.Load(PluginPath)
+
+				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+				So(err, ShouldBeNil)
+
+				pc := c.PluginCatalog()
+
+				So(len(pc), ShouldEqual, 1)
+				err = c.Unload(pc[0])
+				So(err, ShouldBeNil)
+			})
+
+			Convey("returns error on unload for unknown plugin(or already unloaded)", func() {
+				c := Control()
+				c.Start()
+				err := c.Load(PluginPath)
+
+				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+				So(err, ShouldBeNil)
+
+				pc := c.PluginCatalog()
+
+				So(len(pc), ShouldEqual, 1)
+				err = c.Unload(pc[0])
+				So(err, ShouldBeNil)
+				err = c.Unload(pc[0])
+				So(err, ShouldResemble, errors.New("plugin [dummy] -- [1] not found (has it already been unloaded?)"))
+			})
 		})
 
 	} else {
@@ -157,21 +250,21 @@ func TestPluginCatalog(t *testing.T) {
 	lp1.Type = 0
 	lp1.State = "loaded"
 	lp1.LoadedTime = ts
-	c.pluginManager.LoadedPlugins.Append(lp1)
+	c.pluginManager.LoadedPlugins().Append(lp1)
 
 	lp2 := new(loadedPlugin)
 	lp2.Meta = plugin.PluginMeta{Name: "test2", Version: 1}
 	lp2.Type = 0
 	lp2.State = "loaded"
 	lp2.LoadedTime = ts
-	c.pluginManager.LoadedPlugins.Append(lp2)
+	c.pluginManager.LoadedPlugins().Append(lp2)
 
 	lp3 := new(loadedPlugin)
 	lp3.Meta = plugin.PluginMeta{Name: "test3", Version: 1}
 	lp3.Type = 0
 	lp3.State = "loaded"
 	lp3.LoadedTime = ts
-	c.pluginManager.LoadedPlugins.Append(lp3)
+	c.pluginManager.LoadedPlugins().Append(lp3)
 
 	pc := c.PluginCatalog()
 

@@ -22,15 +22,15 @@ func TestPluginType(t *testing.T) {
 func TestMetricType(t *testing.T) {
 	Convey("MetricType", t, func() {
 		now := time.Now().Unix()
-		m := NewMetricType([]string{"foo", "bar"})
+		m := NewMetricType([]string{"foo", "bar"}, now)
 		Convey("New", func() {
 			So(m, ShouldHaveSameTypeAs, &MetricType{})
 		})
 		Convey("Get Namespace", func() {
-			So(m.Namespace, ShouldResemble, []string{"foo", "bar"})
+			So(m.Namespace(), ShouldResemble, []string{"foo", "bar"})
 		})
 		Convey("Get LastAdvertisedTimestamp", func() {
-			So(m.LastAdvertisedTimestamp, ShouldEqual, now)
+			So(m.LastAdvertisedTimestamp(), ShouldEqual, now)
 		})
 	})
 }
@@ -56,7 +56,7 @@ func TestSessionState(t *testing.T) {
 			r := Response{}
 			ss.ListenAddress = "1234"
 			ss.Token = "asdf"
-			response := generateResponse(r, ss)
+			response := ss.generateResponse(r)
 			So(response, ShouldHaveSameTypeAs, []byte{})
 			json.Unmarshal(response, &r)
 			So(r.ListenAddress, ShouldEqual, "1234")

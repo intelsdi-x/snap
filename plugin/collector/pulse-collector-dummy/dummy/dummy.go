@@ -1,6 +1,8 @@
 package dummy
 
 import (
+	"time"
+
 	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
@@ -20,7 +22,7 @@ func (f *Dummy) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply)
 
 func (f *Dummy) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 	reply.MetricTypes = []*plugin.MetricType{
-		plugin.NewMetricType([]string{"foo", "bar"}),
+		plugin.NewMetricType([]string{"foo", "bar"}, time.Now().Unix()),
 	}
 	return nil
 }

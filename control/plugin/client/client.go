@@ -17,8 +17,8 @@ type PluginClient interface {
 // A client providing collector specific plugin method calls.
 type PluginCollectorClient interface {
 	PluginClient
-	// CollectMetricData()
-	// ListMetrics()
+	Collect(plugin.CollectorArgs, *plugin.CollectorReply) error
+	GetMetricTypes(plugin.GetMetricTypesArgs, *plugin.GetMetricTypesReply) error
 }
 
 // A client providing processor specific plugin method calls.
@@ -46,6 +46,22 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	return err
 }
 
+type CollectorClient struct {
+	//PluginClient
+	PluginNativeClient
+	//connection *rpc.Client
+}
+
+func (c *CollectorClient) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
+	err := c.connection.Call("Collector.Collect", args, reply)
+	return err
+}
+
+func (c *CollectorClient) GetMetricTypes(args plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+	err := c.connection.Call("Collector.GetMetricTypes", args, reply)
+	return err
+}
+
 func NewCollectorClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
 	// Attempt to dial address error on timeout or problem
 	conn, err := net.DialTimeout("tcp", address, timeout)
@@ -54,6 +70,6 @@ func NewCollectorClient(address string, timeout time.Duration) (PluginCollectorC
 		return nil, err
 	}
 	r := rpc.NewClient(conn)
-	p := &PluginNativeClient{connection: r}
+	p := &CollectorClient{PluginNativeClient{connection: r}}
 	return p, nil
 }

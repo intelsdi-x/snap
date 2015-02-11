@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"errors"
 	"fmt"
 	"log" // TODO proper logging to file or elsewhere
 	"net"
@@ -32,7 +33,7 @@ type GetMetricTypesReply struct {
 }
 
 // Execution method for a Collector plugin.
-func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
+func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path string, requestString string) error {
 
 	// TODO - Patching in logging, needs to be replaced with proper log pathing and deterministic log file naming
 
@@ -50,25 +51,22 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 	//
 	// pluginLog.Println(os.Args[0])
 	// pluginLog.Println(os.Args[1])
-	sessionState, sErr := InitSessionState(os.Args[0], os.Args[1])
+	sessionState, sErr := InitSessionState(path, requestString)
 	if sErr != nil {
 		return sErr
 	}
-
 	switch lp := sessionState.Arg.PluginLogPath; lp {
 	case "", "/tmp":
 		// Empty means use default tmp log (needs to be removed post-alpha)
 		lf, err := os.OpenFile("/tmp/pulse_plugin.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-			// fmt.Printf("error opening log file: %v", err)
-			os.Exit(1)
+			return errors.New(fmt.Sprintf("error opening log file: %v", err))
 		}
 		sessionState.Logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	default:
 		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 		if err != nil {
-			// fmt.Printf("error opening log file (%s): %v", lp, err)
-			os.Exit(1)
+			return errors.New(fmt.Sprintf("error opening log file: %v", err))
 		}
 		sessionState.Logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	}
@@ -81,9 +79,11 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 	e := rpc.Register(sessionState)
 	// If the rpc registration has an error we need to halt.
 	if e != nil {
-		log.Println(e.Error())
-		sessionState.Logger.Println(e.Error())
-		return e
+		if e.Error() != "rpc: service already defined: SessionState" {
+			log.Println(e.Error())
+			sessionState.Logger.Println(e.Error())
+			return e
+		}
 	}
 	// Generate response
 	r := Response{
@@ -102,7 +102,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 		sessionState.ListenAddress = l.Addr().String()
 
 		// Generate a response
-		resp := generateResponse(r, sessionState)
+		resp := sessionState.generateResponse(r)
 		sessionState.Logger.Println(string(resp))
 		// Output response to stdout
 		fmt.Println(string(resp))
@@ -130,7 +130,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy) error {
 		<-killChan // Closing of channel kills
 	} else {
 		sessionState.ListenAddress = ""
-		resp := generateResponse(r, sessionState)
+		resp := sessionState.generateResponse(r)
 		fmt.Print(string(resp))
 	}
 	sessionState.Logger.Println("Exiting!")
