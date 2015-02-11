@@ -160,7 +160,7 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 	p.eventManager.Emit(e)
 }
 
-func (p *pluginControl) resolvePlugin(mns string) (*loadedPlugin, error) {
+func (p *pluginControl) resolvePlugin(mns []string) (*loadedPlugin, error) {
 	m, err := p.metricCatalog.Get(mns)
 	if err != nil {
 		return nil, err

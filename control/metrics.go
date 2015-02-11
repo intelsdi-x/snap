@@ -1,5 +1,11 @@
 package control
 
+import (
+	"errors"
+	"strings"
+	"sync"
+)
+
 type metricType struct {
 	Plugin *loadedPlugin
 
@@ -43,26 +49,32 @@ func newMetricCatalog() *metricCatalog {
 }
 
 // adds a metricType pointer to the loadedPlugins table
-func (mc *MetricCatalog) Add(m *metricType) {
+func (mc *metricCatalog) Add(m *metricType) {
 	mc.mutex.Lock()
-	if _, ok := (*mc.table)[mt.Namespace()]; !ok {
-		*mc.keys = append(*mc.keys, m.Namespace())
+	key := getMetricKey(m.Namespace())
+	if _, ok := (*mc.table)[key]; !ok {
+		*mc.keys = append(*mc.keys, key)
 	}
-	(*mc.table)[mt.Namespace()] = mt
+	(*mc.table)[key] = m
 	mc.mutex.Unlock()
 }
 
 // returns a copy of the table
-func (mc *MetricCatalog) Table() []*metricCatalog {
+func (mc *metricCatalog) Table() map[string]*metricType {
 	return *mc.table
 }
 
 // used to transactionally retrieve a loadedPlugin pointer from the table
-func (mc *MetricCatalog) Get(ns string) (*metricType, error) {
+func (mc *metricCatalog) Get(ns []string) (*metricType, error) {
 	mc.Lock()
 	defer mc.Unlock()
 
-	if m, ok := (*mc.table)[ns]; !ok {
+	key := getMetricKey(ns)
+	var (
+		ok bool
+		m  *metricType
+	)
+	if m, ok = (*mc.table)[key]; !ok {
 		return nil, errors.New("metric not found")
 	}
 
@@ -71,34 +83,38 @@ func (mc *MetricCatalog) Get(ns string) (*metricType, error) {
 
 // used to lock the plugin table externally,
 // when iterating in unsafe scenarios
-func (mc *MetricCatalog) Lock() {
+func (mc *metricCatalog) Lock() {
 	mc.mutex.Lock()
 }
 
-func (mc *MetricCatalog) Unlock() {
+func (mc *metricCatalog) Unlock() {
 	mc.mutex.Unlock()
 }
 
-func (mc *MetricCatalog) Remove(ns string) {
+func (mc *metricCatalog) Remove(ns string) {
 	mc.mutex.Lock()
-	delete(mc, ns)
+	delete(*mc.table, ns)
 	mc.mutex.Unlock()
 }
 
 // returns the item of a certain index in the table.
 // to be used when iterating over the table
-func (mc *metricCatalog) Item() (string, int) {
+func (mc *metricCatalog) Item() (string, *metricType) {
 	key := (*mc.keys)[mc.currentIter-1]
 	return key, (*mc.table)[key]
 }
 
 // Returns true until the "end" of the table is reached.
 // used to iterate over the table:
-func (mc *MetricCatalog) Next() bool {
+func (mc *metricCatalog) Next() bool {
 	mc.currentIter++
 	if mc.currentIter > len(*mc.table) {
 		mc.currentIter = 0
 		return false
 	}
 	return true
+}
+
+func getMetricKey(metric []string) string {
+	return strings.Join(metric, ".")
 }

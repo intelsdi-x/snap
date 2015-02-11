@@ -2,7 +2,6 @@ package control
 
 import (
 	"errors"
-	"strings"
 	"sync"
 )
 
@@ -105,8 +104,4 @@ func (s *subscriptions) Lock() {
 // the counterpart to Lock, releases the lock.
 func (s *subscriptions) Unlock() {
 	s.mutex.Unlock()
-}
-
-func getMetricKey(metric []string) string {
-	return strings.Join(metric, ".")
 }
