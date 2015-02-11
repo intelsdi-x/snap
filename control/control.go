@@ -38,7 +38,7 @@ type managesPlugins interface {
 }
 
 // TODO Update to newPluginControl
-func Control() *pluginControl {
+func New() *pluginControl {
 	c := new(pluginControl)
 	c.eventManager = new(gomit.EventController)
 
