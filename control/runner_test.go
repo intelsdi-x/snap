@@ -273,13 +273,13 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 						So(err, ShouldBeNil)
 						t := r.availablePlugins.Collectors.Table()
-						colCount := len(t["dummy:1"])
+						colCount := len(t["/dummy/dumb:1"])
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
 						So(ap, ShouldNotBeNil)
 						t = r.availablePlugins.Collectors.Table()
-						So(len(t["dummy:1"]), ShouldEqual, colCount+1)
-						So(ap, ShouldBeIn, t["dummy:1"])
+						So(len(t["/dummy/dumb:1"]), ShouldEqual, colCount+1)
+						So(ap, ShouldBeIn, t["/dummy/dumb:1"])
 					})
 
 					Convey("healthcheck on healthy plugin does not increment failedHealthChecks", func() {

@@ -28,7 +28,7 @@ func (f *Dummy) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMet
 	return nil
 }
 
-func Meta() *plugin.PluginMeta { //
+func Meta() *plugin.PluginMeta {
 	m := new(plugin.PluginMeta)
 	m.Name = Name
 	m.Version = Version

@@ -83,7 +83,7 @@ func TestSwapPlugin(t *testing.T) {
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
 				err := c.SwapPlugins("/fake/plugin/path", pc[0])
 				So(err, ShouldNotBeNil)
-				So(pc[0].Name(), ShouldEqual, "dummy")
+				So(pc[0].Name(), ShouldEqual, "/dummy/dumb")
 			})
 
 			Convey("rollsback loaded plugin & returns an error if it cannot unload a plugin", func() {
@@ -193,7 +193,7 @@ func TestUnload(t *testing.T) {
 				err = c.Unload(pc[0])
 				So(err, ShouldBeNil)
 				err = c.Unload(pc[0])
-				So(err, ShouldResemble, errors.New("plugin [dummy] -- [1] not found (has it already been unloaded?)"))
+				So(err, ShouldResemble, errors.New("plugin [/dummy/dumb] -- [1] not found (has it already been unloaded?)"))
 			})
 		})
 
