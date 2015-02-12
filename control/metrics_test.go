@@ -1,0 +1,151 @@
+package control
+
+import (
+	"errors"
+	"testing"
+	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
+)
+
+func TestMetricType(t *testing.T) {
+	Convey("newMetricType()", t, func() {
+		Convey("returns a metricType", func() {
+			mt := newMetricType([]string{"test"}, time.Now().Unix(), new(loadedPlugin))
+			So(mt, ShouldHaveSameTypeAs, new(metricType))
+		})
+	})
+	Convey("metricType.Namespace()", t, func() {
+		Convey("returns the namespace of a metricType", func() {
+			ns := []string{"test"}
+			mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
+			So(mt.Namespace(), ShouldHaveSameTypeAs, ns)
+			So(mt.Namespace(), ShouldResemble, ns)
+		})
+	})
+	Convey("metricType.LastAdvertisedTimestamp()", t, func() {
+		Convey("returns the LastAdvertisedTimestamp for the metricType", func() {
+			ts := time.Now().Unix()
+			mt := newMetricType([]string{"test"}, ts, new(loadedPlugin))
+			So(mt.LastAdvertisedTimestamp(), ShouldHaveSameTypeAs, ts)
+			So(mt.LastAdvertisedTimestamp(), ShouldResemble, ts)
+		})
+	})
+}
+
+func TestMetricCatalog(t *testing.T) {
+	Convey("newMetricCatalog()", t, func() {
+		Convey("returns a metricCatalog", func() {
+			mc := newMetricCatalog()
+			So(mc, ShouldHaveSameTypeAs, new(metricCatalog))
+		})
+	})
+	Convey("metricCatalog.Add()", t, func() {
+		Convey("adds a metricType to the metricCatalog", func() {
+			ns := []string{"test"}
+			mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
+			mc := newMetricCatalog()
+			mc.Add(mt)
+			_mt, err := mc.Get(ns)
+			So(_mt, ShouldResemble, mt)
+			So(err, ShouldBeNil)
+		})
+	})
+	Convey("metricCatalog.Get()", t, func() {
+		Convey("add multiple metricTypes and get them back", func() {
+			ns := [][]string{
+				[]string{"test1"},
+				[]string{"test2"},
+				[]string{"test3"},
+			}
+			lp := new(loadedPlugin)
+			t := time.Now().Unix()
+			mt := []*metricType{
+				newMetricType(ns[0], t, lp),
+				newMetricType(ns[1], t, lp),
+				newMetricType(ns[2], t, lp),
+			}
+			mc := newMetricCatalog()
+			for _, v := range mt {
+				mc.Add(v)
+			}
+			for k, v := range ns {
+				_mt, err := mc.Get(v)
+				So(_mt, ShouldResemble, mt[k])
+				So(err, ShouldBeNil)
+			}
+		})
+	})
+	Convey("metricCatalog.Table()", t, func() {
+		Convey("returns a pointer to the table", func() {
+			mc := newMetricCatalog()
+			So(mc.Table(), ShouldHaveSameTypeAs, map[string]*metricType{})
+		})
+	})
+	Convey("metricCatalog.Remove()", t, func() {
+		Convey("removes a metricType from the catalog", func() {
+			ns := []string{"test"}
+			mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
+			mc := newMetricCatalog()
+			mc.Add(mt)
+			mc.Remove(ns)
+			_mt, err := mc.Get(ns)
+			So(_mt, ShouldBeNil)
+			So(err, ShouldResemble, errors.New("metric not found"))
+		})
+	})
+	Convey("metricCatalog.Next()", t, func() {
+		ns := []string{"test"}
+		mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
+		mc := newMetricCatalog()
+		Convey("returns false on empty table", func() {
+			ok := mc.Next()
+			So(ok, ShouldEqual, false)
+		})
+		Convey("returns true on populated table", func() {
+			mc.Add(mt)
+			ok := mc.Next()
+			So(ok, ShouldEqual, true)
+		})
+	})
+	Convey("metricCatalog.Item()", t, func() {
+		ns := [][]string{
+			[]string{"test1"},
+			[]string{"test2"},
+			[]string{"test3"},
+		}
+		lp := new(loadedPlugin)
+		t := time.Now().Unix()
+		mt := []*metricType{
+			newMetricType(ns[0], t, lp),
+			newMetricType(ns[1], t, lp),
+			newMetricType(ns[2], t, lp),
+		}
+		mc := newMetricCatalog()
+		for _, v := range mt {
+			mc.Add(v)
+		}
+		Convey("return first key and item in table", func() {
+			mc.Next()
+			key, item := mc.Item()
+			So(key, ShouldEqual, getMetricKey(ns[0]))
+			So(item, ShouldResemble, mt[0])
+		})
+		Convey("return second key and item in table", func() {
+			mc.Next()
+			mc.Next()
+			key, item := mc.Item()
+			So(key, ShouldEqual, getMetricKey(ns[1]))
+			So(item, ShouldResemble, mt[1])
+		})
+		Convey("return third key and item in table", func() {
+			mc.Next()
+			mc.Next()
+			mc.Next()
+			key, item := mc.Item()
+			So(key, ShouldEqual, getMetricKey(ns[2]))
+			So(item, ShouldResemble, mt[2])
+		})
+	})
+
+}
