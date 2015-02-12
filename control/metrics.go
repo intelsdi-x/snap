@@ -91,9 +91,9 @@ func (mc *metricCatalog) Unlock() {
 	mc.mutex.Unlock()
 }
 
-func (mc *metricCatalog) Remove(ns string) {
+func (mc *metricCatalog) Remove(ns []string) {
 	mc.mutex.Lock()
-	delete(*mc.table, ns)
+	delete(*mc.table, getMetricKey(ns))
 	mc.mutex.Unlock()
 }
 
