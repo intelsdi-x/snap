@@ -418,7 +418,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					So(e, ShouldBeNil)
 					So(ap, ShouldNotBeNil)
 
-					e = ap.Stop("testing")
+					e = r.stopPlugin("testing", ap)
 					So(e, ShouldBeNil)
 				})
 			})

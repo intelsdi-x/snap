@@ -364,7 +364,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 }
 
 func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
-	err := ap.Client.Kill(reason)
+	err := ap.Stop(reason)
 	if err != nil {
 		return err
 	}
