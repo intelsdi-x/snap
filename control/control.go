@@ -7,6 +7,7 @@ import (
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
@@ -29,13 +30,21 @@ type pluginControl struct {
 	eventManager   *gomit.EventController
 	subscriptions  *subscriptions
 	pluginManager  managesPlugins
-	metricCatalog  *metricCatalog
+	metricCatalog  catalogsMetrics
 }
 
 type managesPlugins interface {
 	LoadPlugin(string) (*loadedPlugin, error)
 	UnloadPlugin(CatalogedPlugin) error
 	LoadedPlugins() *loadedPlugins
+}
+
+type catalogsMetrics interface {
+	Get([]string) (*metricType, error)
+	Add(*metricType)
+	Table() map[string]*metricType
+	Item() (string, *metricType)
+	Next() bool
 }
 
 // TODO Update to newPluginControl
@@ -191,4 +200,13 @@ func (p *pluginControl) PluginCatalog() PluginCatalog {
 		pc[i] = lp
 	}
 	return pc
+}
+
+func (p *pluginControl) MetricCatalog() []core.MetricType {
+	var c []core.MetricType
+	for p.metricCatalog.Next() {
+		_, mt := p.metricCatalog.Item()
+		c = append(c, mt)
+	}
+	return c
 }

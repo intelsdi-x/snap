@@ -296,3 +296,17 @@ func TestResolvePlugin(t *testing.T) {
 		})
 	})
 }
+
+func TestExportedMetricCatalog(t *testing.T) {
+	Convey(".MetricCatalog()", t, func() {
+		c := Control()
+		lp := &loadedPlugin{}
+		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
+		c.metricCatalog.Add(mt)
+		Convey("it returns a collection of core.MetricTypes", func() {
+			t := c.MetricCatalog()
+			So(len(t), ShouldEqual, 1)
+			So(t[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+		})
+	})
+}
