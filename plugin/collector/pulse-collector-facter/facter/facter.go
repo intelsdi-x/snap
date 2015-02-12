@@ -12,6 +12,11 @@ const (
 type Facter struct {
 }
 
+func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+	//reply *[]*plugin.MetricType
+	return nil
+}
+
 func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
 	return nil
 }

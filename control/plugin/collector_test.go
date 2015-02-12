@@ -10,12 +10,18 @@ import (
 )
 
 type MockPlugin struct {
-	Meta      PluginMeta
-	Collector CollectorPlugin
-	Policy    ConfigPolicy
+	Meta   PluginMeta
+	Policy ConfigPolicy
 }
 
 func (f *MockPlugin) Collect(args CollectorArgs, reply *CollectorReply) error {
+	return nil
+}
+
+func (c *MockPlugin) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTypesReply) error {
+	reply.MetricTypes = []*MetricType{
+		NewMetricType([]string{"org", "some_metric"}, time.Now().Unix()),
+	}
 	return nil
 }
 
@@ -33,7 +39,7 @@ func TestStartCollector(t *testing.T) {
 		m.Meta.Name = "mock"
 		m.Meta.Version = 1
 
-		err := StartCollector(&m.Meta, m.Collector, &m.Policy, "/tmp/foo", string(b))
+		err := StartCollector(&m.Meta, m, &m.Policy, "/tmp/foo", string(b))
 		So(err, ShouldBeNil)
 	})
 
@@ -50,7 +56,7 @@ func TestStartCollector(t *testing.T) {
 		m.Meta.Name = "mock"
 		m.Meta.Version = 1
 
-		err := StartCollector(&m.Meta, m.Collector, &m.Policy, "/tmp/foo", string(b))
+		err := StartCollector(&m.Meta, m, &m.Policy, "/tmp/foo", string(b))
 		So(err, ShouldBeNil)
 	})
 

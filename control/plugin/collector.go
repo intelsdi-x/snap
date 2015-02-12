@@ -14,6 +14,7 @@ import (
 type CollectorPlugin interface {
 	Plugin
 	Collect(CollectorArgs, *CollectorReply) error
+	GetMetricTypes(GetMetricTypesArgs, *GetMetricTypesReply) error
 }
 
 // Arguments passed to Collect() for a Collector implementation
@@ -22,6 +23,13 @@ type CollectorArgs struct {
 
 // Reply assigned by a Collector implementation using Collect()
 type CollectorReply struct {
+}
+
+type GetMetricTypesArgs struct {
+}
+
+type GetMetricTypesReply struct {
+	MetricTypes []*MetricType
 }
 
 // Execution method for a Collector plugin.
@@ -64,12 +72,9 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path stri
 	}
 	sessionState.LastPing = time.Now()
 
-	// Generate response
-	// We should share as much as possible here.
-
 	// We register RPC even in non-daemon mode to ensure it would be successful.
 	// Register the collector RPC methods from plugin implementation
-	// rpc.RegisterName("collector", c)
+	rpc.Register(c)
 	// Register common plugin methods used for utility reasons
 	e := rpc.Register(sessionState)
 	// If the rpc registration has an error we need to halt.
@@ -80,7 +85,12 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path stri
 			return e
 		}
 	}
-
+	// Generate response
+	r := Response{
+		Type:  CollectorPluginType,
+		State: PluginSuccess,
+		Meta:  *m,
+	}
 	sessionState.Logger.Printf("Daemon mode: %t\n", sessionState.RunAsDaemon)
 	// if not in daemon mode we don't need to setup listener
 	if sessionState.RunAsDaemon {
@@ -92,11 +102,6 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path stri
 		sessionState.ListenAddress = l.Addr().String()
 
 		// Generate a response
-		r := Response{
-			Type:  CollectorPluginType,
-			State: PluginSuccess,
-			Meta:  *m,
-		}
 		resp := sessionState.generateResponse(r)
 		sessionState.Logger.Println(string(resp))
 		// Output response to stdout
@@ -125,11 +130,6 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path stri
 		<-killChan // Closing of channel kills
 	} else {
 		sessionState.ListenAddress = ""
-		r := Response{
-			Type:  CollectorPluginType,
-			State: PluginSuccess,
-			Meta:  *m,
-		}
 		resp := sessionState.generateResponse(r)
 		fmt.Print(string(resp))
 	}
