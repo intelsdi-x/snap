@@ -277,3 +277,22 @@ func TestPluginCatalog(t *testing.T) {
 	})
 
 }
+
+func TestResolvePlugin(t *testing.T) {
+	Convey(".resolvePlugin()", t, func() {
+		c := Control()
+		lp := &loadedPlugin{}
+		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
+		c.metricCatalog.Add(mt)
+		Convey("it resolves the plugin", func() {
+			p, err := c.resolvePlugin([]string{"foo", "bar"})
+			So(err, ShouldBeNil)
+			So(p, ShouldEqual, lp)
+		})
+		Convey("it returns an error if the metricType cannot be found", func() {
+			p, err := c.resolvePlugin([]string{"baz", "qux"})
+			So(p, ShouldBeNil)
+			So(err, ShouldResemble, errors.New("metric not found"))
+		})
+	})
+}

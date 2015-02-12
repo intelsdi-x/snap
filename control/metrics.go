@@ -13,7 +13,7 @@ type metricType struct {
 	lastAdvertisedTimestamp int64
 }
 
-func newmetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
+func newMetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
 	return &metricType{
 		Plugin: plugin,
 
@@ -38,7 +38,7 @@ type metricCatalog struct {
 }
 
 func newMetricCatalog() *metricCatalog {
-	var t map[string]*metricType
+	t := make(map[string]*metricType)
 	var k []string
 	return &metricCatalog{
 		table:       &t,
