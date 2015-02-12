@@ -10,8 +10,7 @@ import (
 )
 
 type MockPlugin struct {
-	Meta PluginMeta
-	//Collector CollectorPlugin
+	Meta   PluginMeta
 	Policy ConfigPolicy
 }
 

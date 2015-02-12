@@ -46,19 +46,13 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	return err
 }
 
-type CollectorClient struct {
-	//PluginClient
-	PluginNativeClient
-	//connection *rpc.Client
-}
-
-func (c *CollectorClient) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
-	err := c.connection.Call("Collector.Collect", args, reply)
+func (p *PluginNativeClient) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
+	err := p.connection.Call("Collector.Collect", args, reply)
 	return err
 }
 
-func (c *CollectorClient) GetMetricTypes(args plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
-	err := c.connection.Call("Collector.GetMetricTypes", args, reply)
+func (p *PluginNativeClient) GetMetricTypes(args plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+	err := p.connection.Call("Collector.GetMetricTypes", args, reply)
 	return err
 }
 
@@ -70,6 +64,6 @@ func NewCollectorClient(address string, timeout time.Duration) (PluginCollectorC
 		return nil, err
 	}
 	r := rpc.NewClient(conn)
-	p := &CollectorClient{PluginNativeClient{connection: r}}
+	p := &PluginNativeClient{connection: r}
 	return p, nil
 }
