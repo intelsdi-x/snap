@@ -7,6 +7,7 @@ import (
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
@@ -29,6 +30,7 @@ type pluginControl struct {
 	eventManager   *gomit.EventController
 	subscriptions  *subscriptions
 	pluginManager  managesPlugins
+	metricCatalog  catalogsMetrics
 }
 
 type managesPlugins interface {
@@ -37,16 +39,22 @@ type managesPlugins interface {
 	LoadedPlugins() *loadedPlugins
 }
 
+type catalogsMetrics interface {
+	Get([]string) (*metricType, error)
+	Add(*metricType)
+	Table() map[string]*metricType
+	Item() (string, *metricType)
+	Next() bool
+}
+
 // TODO Update to newPluginControl
 func Control() *pluginControl {
-	c := new(pluginControl)
-	c.eventManager = new(gomit.EventController)
-
-	c.subscriptions = new(subscriptions)
-	c.subscriptions.Init()
-
-	c.pluginManager = newPluginManager()
-
+	c := &pluginControl{
+		eventManager:  gomit.NewEventController(),
+		subscriptions: newSubscriptionsTable(),
+		pluginManager: newPluginManager(),
+		metricCatalog: newMetricCatalog(),
+	}
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
 
@@ -161,6 +169,14 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 	p.eventManager.Emit(e)
 }
 
+func (p *pluginControl) resolvePlugin(mns []string) (*loadedPlugin, error) {
+	m, err := p.metricCatalog.Get(mns)
+	if err != nil {
+		return nil, err
+	}
+	return m.Plugin, nil
+}
+
 // the public interface for a plugin
 // this should be the contract for
 // how mgmt modules know a plugin
@@ -184,4 +200,21 @@ func (p *pluginControl) PluginCatalog() PluginCatalog {
 		pc[i] = lp
 	}
 	return pc
+}
+
+func (p *pluginControl) MetricCatalog() []core.MetricType {
+	var c []core.MetricType
+	for p.metricCatalog.Next() {
+		_, mt := p.metricCatalog.Item()
+		c = append(c, mt)
+	}
+	return c
+}
+
+func (p *pluginControl) MetricExists(mns []string) bool {
+	_, err := p.metricCatalog.Get(mns)
+	if err == nil {
+		return true
+	}
+	return false
 }
