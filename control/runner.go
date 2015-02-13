@@ -173,19 +173,6 @@ func (c *apCollection) Next() bool {
 }
 
 // Handles events pertaining to plugins and control the runnning state accordingly.
-type runner struct {
-	delegates        []gomit.Delegator
-	monitor          *monitor
-	availablePlugins *availablePlugins
-}
-
-func newRunner() *runner {
-	r := &runner{
-		monitor:          newMonitor(-1),
-		availablePlugins: newAvailablePlugins(),
-	}
-	return r
-}
 
 // Representing a plugin running and available to execute calls against.
 type availablePlugin struct {
@@ -271,6 +258,21 @@ type executablePlugin interface {
 	Start() error
 	Kill() error
 	WaitForResponse(time.Duration) (*plugin.Response, error)
+}
+
+// Handles events pertaining to plugins and control the runnning state accordingly.
+type runner struct {
+	delegates        []gomit.Delegator
+	monitor          *monitor
+	availablePlugins *availablePlugins
+}
+
+func newRunner() *runner {
+	r := &runner{
+		monitor:          newMonitor(-1),
+		availablePlugins: newAvailablePlugins(),
+	}
+	return r
 }
 
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
