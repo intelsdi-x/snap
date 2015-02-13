@@ -32,8 +32,9 @@ type GetMetricTypesReply struct {
 	MetricTypes []*MetricType
 }
 
-// Execution method for a Collector plugin.
-func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path string, requestString string) error {
+// Execution method for a Collector plugin. Error and exit code (int) returned.
+func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path string, requestString string) (error, int) {
+	var exitCode int = 0
 
 	// TODO - Patching in logging, needs to be replaced with proper log pathing and deterministic log file naming
 
@@ -53,20 +54,20 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path stri
 	// pluginLog.Println(os.Args[1])
 	sessionState, sErr := InitSessionState(path, requestString)
 	if sErr != nil {
-		return sErr
+		return sErr, 2
 	}
 	switch lp := sessionState.Arg.PluginLogPath; lp {
 	case "", "/tmp":
 		// Empty means use default tmp log (needs to be removed post-alpha)
 		lf, err := os.OpenFile("/tmp/pulse_plugin.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-			return errors.New(fmt.Sprintf("error opening log file: %v", err))
+			return errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
 		}
 		sessionState.Logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	default:
 		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 		if err != nil {
-			return errors.New(fmt.Sprintf("error opening log file: %v", err))
+			return errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
 		}
 		sessionState.Logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
 	}
@@ -82,7 +83,7 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path stri
 		if e.Error() != "rpc: service already defined: SessionState" {
 			log.Println(e.Error())
 			sessionState.Logger.Println(e.Error())
-			return e
+			return e, 2
 		}
 	}
 	// Generate response
@@ -109,9 +110,8 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path stri
 
 		// Start ping listener
 		// If it has not received a ping in N amount of time * T it quits.
-		killChan := make(chan struct{})
-		go sessionState.heartbeatWatch(killChan)
 
+		go sessionState.heartbeatWatch(sessionState.KillChan)
 		if err != nil {
 			sessionState.Logger.Println(err.Error())
 			panic(err)
@@ -127,12 +127,12 @@ func StartCollector(m *PluginMeta, c CollectorPlugin, p *ConfigPolicy, path stri
 			}
 		}()
 
-		<-killChan // Closing of channel kills
+		exitCode = <-sessionState.KillChan // Closing of channel kills
 	} else {
 		sessionState.ListenAddress = ""
 		resp := sessionState.generateResponse(r)
 		fmt.Print(string(resp))
 	}
 	sessionState.Logger.Println("Exiting!")
-	return nil
+	return nil, exitCode
 }

@@ -37,7 +37,7 @@ func main() {
 	// TODO ERROR missing PULSE_PATH
 	// fmt.Println(PulsePath)
 
-	pluginControl := control.Control()
+	pluginControl := control.New()
 	pluginControl.Start()
 	defer pluginControl.Stop()
 

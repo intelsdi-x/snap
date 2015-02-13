@@ -47,14 +47,15 @@ type catalogsMetrics interface {
 	Next() bool
 }
 
-// TODO Update to newPluginControl
-func Control() *pluginControl {
+// Returns a new pluginControl instance
+func New() *pluginControl {
 	c := &pluginControl{
 		eventManager:  gomit.NewEventController(),
 		subscriptions: newSubscriptionsTable(),
 		pluginManager: newPluginManager(),
 		metricCatalog: newMetricCatalog(),
 	}
+
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
 

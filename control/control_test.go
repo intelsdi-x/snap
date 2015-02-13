@@ -39,10 +39,14 @@ func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins {
 	return nil
 }
 
+func TestControlNew(t *testing.T) {
+
+}
+
 func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
 		Convey("starts successfully", func() {
-			c := Control()
+			c := New()
 			c.Start()
 			So(c.Started, ShouldBeTrue)
 		})
@@ -52,7 +56,7 @@ func TestPluginControlGenerateArgs(t *testing.T) {
 func TestPluginControlStart(t *testing.T) {
 	Convey("pluginControl.generateArgs", t, func() {
 		Convey("returns arg", func() {
-			c := Control()
+			c := New()
 			c.Start()
 			a := c.generateArgs()
 			So(a, ShouldNotBeNil)
@@ -63,7 +67,7 @@ func TestPluginControlStart(t *testing.T) {
 func TestSwapPlugin(t *testing.T) {
 	if PulsePath != "" {
 		Convey("SwapPlugin", t, func() {
-			c := Control()
+			c := New()
 			c.Start()
 			e := c.Load(PluginPath)
 
@@ -118,7 +122,7 @@ func TestLoad(t *testing.T) {
 		Convey("pluginControl.Load", t, func() {
 
 			Convey("loads successfully", func() {
-				c := Control()
+				c := New()
 				c.Start()
 				err := c.Load(PluginPath)
 
@@ -127,7 +131,7 @@ func TestLoad(t *testing.T) {
 			})
 
 			Convey("returns error if not started", func() {
-				c := Control()
+				c := New()
 				err := c.Load(PluginPath)
 
 				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 0)
@@ -135,7 +139,7 @@ func TestLoad(t *testing.T) {
 			})
 
 			Convey("adds to pluginControl.pluginManager.LoadedPlugins on successful load", func() {
-				c := Control()
+				c := New()
 				c.Start()
 				err := c.Load(PluginPath)
 
@@ -144,7 +148,7 @@ func TestLoad(t *testing.T) {
 			})
 
 			Convey("returns error from pluginManager.LoadPlugin()", func() {
-				c := Control()
+				c := New()
 				c.Start()
 				err := c.Load(PluginPath + "foo")
 
@@ -165,7 +169,7 @@ func TestUnload(t *testing.T) {
 	if PulsePath != "" {
 		Convey("pluginControl.Unload", t, func() {
 			Convey("unloads successfully", func() {
-				c := Control()
+				c := New()
 				c.Start()
 				err := c.Load(PluginPath)
 
@@ -180,7 +184,7 @@ func TestUnload(t *testing.T) {
 			})
 
 			Convey("returns error on unload for unknown plugin(or already unloaded)", func() {
-				c := Control()
+				c := New()
 				c.Start()
 				err := c.Load(PluginPath)
 
@@ -204,7 +208,7 @@ func TestUnload(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	Convey("pluginControl.Stop", t, func() {
-		c := Control()
+		c := New()
 		c.Start()
 		c.Stop()
 
@@ -218,14 +222,14 @@ func TestStop(t *testing.T) {
 
 func TestSubscribeMetric(t *testing.T) {
 	Convey("adds a subscription", t, func() {
-		c := Control()
+		c := New()
 		c.SubscribeMetric([]string{"test", "foo"})
 		So(c.subscriptions.Count("test.foo"), ShouldEqual, 1)
 	})
 }
 
 func TestUnsubscribeMetric(t *testing.T) {
-	c := Control()
+	c := New()
 	Convey("When no error is returned", t, func() {
 		c.SubscribeMetric([]string{"test", "foo"})
 		Convey("it decrements a metric's subscriptions", func() {
@@ -243,7 +247,7 @@ func TestUnsubscribeMetric(t *testing.T) {
 func TestPluginCatalog(t *testing.T) {
 	ts := time.Now()
 
-	c := Control()
+	c := New()
 
 	lp1 := new(loadedPlugin)
 	lp1.Meta = plugin.PluginMeta{Name: "test1", Version: 1}
@@ -280,7 +284,7 @@ func TestPluginCatalog(t *testing.T) {
 
 func TestResolvePlugin(t *testing.T) {
 	Convey(".resolvePlugin()", t, func() {
-		c := Control()
+		c := New()
 		lp := &loadedPlugin{}
 		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
 		c.metricCatalog.Add(mt)
@@ -299,7 +303,7 @@ func TestResolvePlugin(t *testing.T) {
 
 func TestExportedMetricCatalog(t *testing.T) {
 	Convey(".MetricCatalog()", t, func() {
-		c := Control()
+		c := New()
 		lp := &loadedPlugin{}
 		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
 		c.metricCatalog.Add(mt)
@@ -333,7 +337,7 @@ func (m *mc) Next() bool {
 
 func TestMetricExists(t *testing.T) {
 	Convey("MetricExists()", t, func() {
-		c := Control()
+		c := New()
 		c.metricCatalog = &mc{}
 		So(c.MetricExists([]string{"hi"}), ShouldEqual, false)
 		c.metricCatalog.Next()

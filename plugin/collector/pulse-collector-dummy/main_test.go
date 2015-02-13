@@ -28,7 +28,7 @@ func TestDummyPluginLoad(t *testing.T) {
 		helper.BuildPlugin(PluginType, PluginName)
 		//
 		Convey("ensure plugin loads and responds", t, func() {
-			c := control.Control()
+			c := control.New()
 			c.Start()
 			err := c.Load(PluginPath)
 
