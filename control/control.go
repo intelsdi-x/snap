@@ -40,6 +40,7 @@ type managesPlugins interface {
 }
 
 type catalogsMetrics interface {
+	Exists([]string) bool
 	Get([]string) (*metricType, error)
 	Add(*metricType)
 	Table() map[string]*metricType

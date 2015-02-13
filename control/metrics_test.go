@@ -52,6 +52,8 @@ func TestMetricCatalog(t *testing.T) {
 		})
 	})
 	Convey("metricCatalog.Get()", t, func() {
+		mc := newMetricCatalog()
+		ts := time.Now().Unix()
 		Convey("add multiple metricTypes and get them back", func() {
 			ns := [][]string{
 				[]string{"test1"},
@@ -59,27 +61,41 @@ func TestMetricCatalog(t *testing.T) {
 				[]string{"test3"},
 			}
 			lp := new(loadedPlugin)
-			t := time.Now().Unix()
 			mt := []*metricType{
-				newMetricType(ns[0], t, lp),
-				newMetricType(ns[1], t, lp),
-				newMetricType(ns[2], t, lp),
+				newMetricType(ns[0], ts, lp),
+				newMetricType(ns[1], ts, lp),
+				newMetricType(ns[2], ts, lp),
 			}
-			mc := newMetricCatalog()
 			for _, v := range mt {
 				mc.Add(v)
 			}
 			for k, v := range ns {
 				_mt, err := mc.Get(v)
-				So(_mt, ShouldResemble, mt[k])
+				So(_mt, ShouldEqual, mt[k])
 				So(err, ShouldBeNil)
 			}
 		})
+		Convey("it returns the latest version", func() {
+			lp2 := new(loadedPlugin)
+			lp2.Meta.Version = 2
+			lp35 := new(loadedPlugin)
+			lp35.Meta.Version = 35
+			m2 := newMetricType([]string{"foo", "bar"}, ts, lp2)
+			mc.Add(m2)
+			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
+			mc.Add(m35)
+			m, err := mc.Get([]string{"foo", "bar"})
+			So(err, ShouldBeNil)
+			So(m, ShouldEqual, m35)
+		})
 	})
 	Convey("metricCatalog.Table()", t, func() {
-		Convey("returns a pointer to the table", func() {
+		Convey("returns a copy of the table", func() {
 			mc := newMetricCatalog()
+			mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), &loadedPlugin{})
+			mc.Add(mt)
 			So(mc.Table(), ShouldHaveSameTypeAs, map[string]*metricType{})
+			So(mc.Table()["foo.bar"], ShouldEqual, mt)
 		})
 	})
 	Convey("metricCatalog.Remove()", t, func() {
@@ -147,5 +163,11 @@ func TestMetricCatalog(t *testing.T) {
 			So(item, ShouldResemble, mt[2])
 		})
 	})
-
+	Convey("metricCatalog.Exists()", t, func() {
+		mc := newMetricCatalog()
+		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), &loadedPlugin{})
+		mc.Add(mt)
+		So(mc.Exists([]string{"foo", "bar"}), ShouldEqual, true)
+		So(mc.Exists([]string{"foo", "baz"}), ShouldEqual, false)
+	})
 }
