@@ -172,8 +172,6 @@ func (c *apCollection) Next() bool {
 	return true
 }
 
-// Handles events pertaining to plugins and control the runnning state accordingly.
-
 // Representing a plugin running and available to execute calls against.
 type availablePlugin struct {
 	Name    string
