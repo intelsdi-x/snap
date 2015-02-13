@@ -281,3 +281,66 @@ func TestPluginCatalog(t *testing.T) {
 	})
 
 }
+
+func TestResolvePlugin(t *testing.T) {
+	Convey(".resolvePlugin()", t, func() {
+		c := Control()
+		lp := &loadedPlugin{}
+		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
+		c.metricCatalog.Add(mt)
+		Convey("it resolves the plugin", func() {
+			p, err := c.resolvePlugin([]string{"foo", "bar"})
+			So(err, ShouldBeNil)
+			So(p, ShouldEqual, lp)
+		})
+		Convey("it returns an error if the metricType cannot be found", func() {
+			p, err := c.resolvePlugin([]string{"baz", "qux"})
+			So(p, ShouldBeNil)
+			So(err, ShouldResemble, errors.New("metric not found"))
+		})
+	})
+}
+
+func TestExportedMetricCatalog(t *testing.T) {
+	Convey(".MetricCatalog()", t, func() {
+		c := Control()
+		lp := &loadedPlugin{}
+		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
+		c.metricCatalog.Add(mt)
+		Convey("it returns a collection of core.MetricTypes", func() {
+			t := c.MetricCatalog()
+			So(len(t), ShouldEqual, 1)
+			So(t[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+		})
+	})
+}
+
+type mc struct {
+	e int
+}
+
+func (m *mc) Get([]string) (*metricType, error) {
+	if m.e == 1 {
+		return &metricType{}, nil
+	}
+	return nil, metricNotFound
+}
+
+func (m *mc) Add(*metricType)               {}
+func (m *mc) Table() map[string]*metricType { return map[string]*metricType{} }
+func (m *mc) Item() (string, *metricType)   { return "", &metricType{} }
+
+func (m *mc) Next() bool {
+	m.e = 1
+	return false
+}
+
+func TestMetricExists(t *testing.T) {
+	Convey("MetricExists()", t, func() {
+		c := Control()
+		c.metricCatalog = &mc{}
+		So(c.MetricExists([]string{"hi"}), ShouldEqual, false)
+		c.metricCatalog.Next()
+		So(c.MetricExists([]string{"hi"}), ShouldEqual, true)
+	})
+}

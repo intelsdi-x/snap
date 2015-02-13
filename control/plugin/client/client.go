@@ -17,8 +17,8 @@ type PluginClient interface {
 // A client providing collector specific plugin method calls.
 type PluginCollectorClient interface {
 	PluginClient
-	// CollectMetricData()
-	// ListMetrics()
+	Collect(plugin.CollectorArgs, *plugin.CollectorReply) error
+	GetMetricTypes(plugin.GetMetricTypesArgs, *plugin.GetMetricTypesReply) error
 }
 
 // A client providing processor specific plugin method calls.
@@ -43,6 +43,16 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	a := plugin.KillArgs{Reason: reason}
 	b := true
 	err := p.connection.Call("SessionState.Kill", a, &b)
+	return err
+}
+
+func (p *PluginNativeClient) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
+	err := p.connection.Call("Collector.Collect", args, reply)
+	return err
+}
+
+func (p *PluginNativeClient) GetMetricTypes(args plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+	err := p.connection.Call("Collector.GetMetricTypes", args, reply)
 	return err
 }
 

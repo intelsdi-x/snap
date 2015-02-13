@@ -201,7 +201,7 @@ type availablePlugin struct {
 	healthChan         chan error
 }
 
-func newAvailablePlugin(resp *plugin.Response) *availablePlugin {
+func newAvailablePlugin(resp *plugin.Response) (*availablePlugin, error) {
 	ap := &availablePlugin{
 		Name:    resp.Meta.Name,
 		Version: resp.Meta.Version,
@@ -210,8 +210,19 @@ func newAvailablePlugin(resp *plugin.Response) *availablePlugin {
 		eventManager: new(gomit.EventController),
 		healthChan:   make(chan error, 1),
 	}
+	// Create RPC client
+	switch resp.Type {
+	case plugin.CollectorPluginType:
+		c, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
+		ap.Client = c
+		if e != nil {
+			return nil, errors.New("error while creating client connection: " + e.Error())
+		}
+	default:
+		return nil, errors.New("Cannot create a client for a plugin of the type: " + resp.Type.String())
+	}
 	ap.makeKey()
-	return ap
+	return ap, nil
 }
 
 // Emits event and disables the plugin if the default limit is exceeded
@@ -337,19 +348,9 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// build availablePlugin
-	ap := newAvailablePlugin(resp)
-
-	// var pluginClient plugin.
-	// Create RPC client
-	switch resp.Type {
-	case plugin.CollectorPluginType:
-		c, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
-		ap.Client = c
-		if e != nil {
-			return nil, errors.New("error while creating client connection: " + e.Error())
-		}
-	default:
-		return nil, errors.New("Cannot create a client for a plugin of the type: " + resp.Type.String())
+	ap, err := newAvailablePlugin(resp)
+	if err != nil {
+		return nil, err
 	}
 
 	// Ping through client

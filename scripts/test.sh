@@ -12,8 +12,8 @@ COVERALLS_TOKEN=t47LG6BQsfLwb9WxB56hXUezvwpED6D11
 set -e
  
 # Automatic checks
-test -z "$(gofmt -l -w .     | tee /dev/stderr)"
-test -z "$(goimports -l -w . | tee /dev/stderr)"
+test -z "$(gofmt -l -d .     | tee /dev/stderr)"
+test -z "$(goimports -l -d . | tee /dev/stderr)"
 test -z "$(golint .          | tee /dev/stderr)"
 go vet ./...
 # go test -race ./... - Lets disable for now

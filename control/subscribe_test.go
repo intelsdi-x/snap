@@ -8,18 +8,16 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestInit(t *testing.T) {
-	s := new(subscriptions)
+func TestnewSubscriptionTable(t *testing.T) {
 	Convey("it initializes the pieces of the table correctly", t, func() {
-		s.Init()
+		s := newSubscriptionsTable()
 		So(s.table, ShouldHaveSameTypeAs, &map[string]int{})
 		So(s.mutex, ShouldHaveSameTypeAs, &sync.Mutex{})
 	})
 }
 
 func TestSubscribe(t *testing.T) {
-	s := new(subscriptions)
-	s.Init()
+	s := newSubscriptionsTable()
 	Convey("when the metric is not in the table", t, func() {
 		Convey("then it gets added to the table", func() {
 			s.Subscribe("test.foo")
@@ -39,8 +37,7 @@ func TestSubscribe(t *testing.T) {
 }
 
 func TestUnsubscribe(t *testing.T) {
-	s := new(subscriptions)
-	s.Init()
+	s := newSubscriptionsTable()
 	Convey("when the metric is in the table", t, func() {
 		s.Subscribe("test.foo")
 		Convey("then its subscription count is decremented", func() {
@@ -66,8 +63,7 @@ func TestUnsubscribe(t *testing.T) {
 
 func TestValue(t *testing.T) {
 	Convey("when there are items in the table", t, func() {
-		s := new(subscriptions)
-		s.Init()
+		s := newSubscriptionsTable()
 		s.Subscribe("test.foo")
 		Convey("then it can retrieve them by the index (.curentIter)", func() {
 			s.currentIter = 1
@@ -80,8 +76,7 @@ func TestValue(t *testing.T) {
 
 func TestNext(t *testing.T) {
 	Convey("when there are items in the table", t, func() {
-		s := new(subscriptions)
-		s.Init()
+		s := newSubscriptionsTable()
 		s.Subscribe("test.foo")
 		s.Subscribe("test.bar")
 		s.Unsubscribe("test.bar")
@@ -115,8 +110,7 @@ func TestNext(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	s := new(subscriptions)
-	s.Init()
+	s := newSubscriptionsTable()
 	s.Subscribe("test.foo")
 	s.Subscribe("test.bar")
 	s.Unsubscribe("test.bar")

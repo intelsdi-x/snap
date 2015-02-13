@@ -198,7 +198,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(false), lPlugin.Path, false)
+	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(false), lPlugin.Path, true)
 
 	log.Println(ePlugin)
 
@@ -215,11 +215,28 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
-
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
+	if resp.Type == plugin.CollectorPluginType {
+		ap, err := newAvailablePlugin(resp)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		col := ap.Client.(plugin.CollectorPlugin)
+		args := new(plugin.GetMetricTypesArgs)
+		var reply *plugin.GetMetricTypesReply
+		//TODO update metric catalog with metric types below
+		_ = col.GetMetricTypes(*args, reply)
+	}
+	ePlugin.Kill()
+
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return nil, err
+	// }
 
 	if resp.State != plugin.PluginSuccess {
 		log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
