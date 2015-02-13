@@ -38,7 +38,7 @@ func TestStartCollector(t *testing.T) {
 		m := new(MockPlugin)
 		m.Meta.Name = "mock"
 		m.Meta.Version = 1
-		err, _ := StartCollector(&m.Meta, m.Collector, &m.Policy, "/tmp/foo", string(b))
+		err, _ := StartCollector(&m.Meta, m, &m.Policy, "/tmp/foo", string(b))
 
 		So(err, ShouldBeNil)
 	})
@@ -56,7 +56,7 @@ func TestStartCollector(t *testing.T) {
 		m.Meta.Name = "mock"
 		m.Meta.Version = 1
 
-		err, _ := StartCollector(&m.Meta, m.Collector, &m.Policy, "/tmp/foo", string(b))
+		err, _ := StartCollector(&m.Meta, m, &m.Policy, "/tmp/foo", string(b))
 		So(err, ShouldBeNil)
 	})
 

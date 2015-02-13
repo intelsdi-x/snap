@@ -284,7 +284,7 @@ func TestPluginCatalog(t *testing.T) {
 
 func TestResolvePlugin(t *testing.T) {
 	Convey(".resolvePlugin()", t, func() {
-		c := Control()
+		c := New()
 		lp := &loadedPlugin{}
 		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
 		c.metricCatalog.Add(mt)
@@ -303,7 +303,7 @@ func TestResolvePlugin(t *testing.T) {
 
 func TestExportedMetricCatalog(t *testing.T) {
 	Convey(".MetricCatalog()", t, func() {
-		c := Control()
+		c := New()
 		lp := &loadedPlugin{}
 		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
 		c.metricCatalog.Add(mt)
@@ -337,7 +337,7 @@ func (m *mc) Next() bool {
 
 func TestMetricExists(t *testing.T) {
 	Convey("MetricExists()", t, func() {
-		c := Control()
+		c := New()
 		c.metricCatalog = &mc{}
 		So(c.MetricExists([]string{"hi"}), ShouldEqual, false)
 		c.metricCatalog.Next()
