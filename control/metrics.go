@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+var metricNotFound = errors.New("metric not found")
+
 type metricType struct {
 	Plugin *loadedPlugin
 
@@ -53,22 +55,24 @@ func (mc *metricCatalog) Add(m *metricType) {
 
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
+
 	key := getMetricKey(m.Namespace())
 
 	if _, ok := (*mc.table)[key]; !ok {
 		*mc.keys = append(*mc.keys, key)
 		(*mc.table)[key] = &[]*metricType{m}
-		return
+	} else {
+		*(*mc.table)[key] = append(*(*mc.table)[key], m)
 	}
 
-	*(*mc.table)[key] = append(*(*mc.table)[key], m)
+	sort((*mc.table)[key])
 }
 
 // returns a copy of the table
 func (mc *metricCatalog) Table() map[string]*metricType {
 	var m = map[string]*metricType{}
 	for k, v := range *mc.table {
-		m[k] = getLatest(*v)
+		m[k] = getLatest(v)
 	}
 	return m
 }
@@ -85,21 +89,16 @@ func (mc *metricCatalog) Get(ns []string) (*metricType, error) {
 		l  *metricType
 	)
 	if m, ok = (*mc.table)[key]; !ok {
-		return nil, errors.New("metric not found")
+		return nil, metricNotFound
 	}
 
 	if len(*m) > 1 {
-		l = getLatest(*m)
+		l = getLatest(m)
 	} else {
 		l = (*m)[0]
 	}
 
 	return l, nil
-}
-
-func (mc *metricCatalog) Exists(mns []string) bool {
-	_, ok := (*mc.table)[getMetricKey(mns)]
-	return ok
 }
 
 // used to lock the plugin table externally,
@@ -123,7 +122,7 @@ func (mc *metricCatalog) Remove(ns []string) {
 func (mc *metricCatalog) Item() (string, *metricType) {
 	key := (*mc.keys)[mc.currentIter-1]
 	mts := (*mc.table)[key]
-	m := getLatest(*mts)
+	m := getLatest(mts)
 	return key, m
 }
 
@@ -142,20 +141,23 @@ func getMetricKey(metric []string) string {
 	return strings.Join(metric, ".")
 }
 
-func getLatest(c []*metricType) *metricType {
-	unsorted := len(c)
+func sort(c *[]*metricType) {
+	unsorted := len(*c)
 	last := 0
-	for sorted := 0; sorted < len(c)-1; sorted++ {
+	for sorted := 0; sorted < len(*c)-1; sorted++ {
 		last = 0
 		lastIndex := 0
-		for i, mt := range c[:unsorted] {
+		for i, mt := range (*c)[:unsorted] {
 			if mt.Plugin.Version() > last {
 				last = mt.Plugin.Version()
 				lastIndex = i
 			}
 		}
-		c[lastIndex], c[unsorted-1] = c[unsorted-1], c[lastIndex]
+		(*c)[lastIndex], (*c)[unsorted-1] = (*c)[unsorted-1], (*c)[lastIndex]
 		unsorted--
 	}
-	return c[len(c)-1]
+}
+
+func getLatest(c *[]*metricType) *metricType {
+	return (*c)[len(*c)-1]
 }

@@ -40,7 +40,6 @@ type managesPlugins interface {
 }
 
 type catalogsMetrics interface {
-	Exists([]string) bool
 	Get([]string) (*metricType, error)
 	Add(*metricType)
 	Table() map[string]*metricType
@@ -210,4 +209,12 @@ func (p *pluginControl) MetricCatalog() []core.MetricType {
 		c = append(c, mt)
 	}
 	return c
+}
+
+func (p *pluginControl) MetricExists(mns []string) bool {
+	_, err := p.metricCatalog.Get(mns)
+	if err == nil {
+		return true
+	}
+	return false
 }

@@ -163,11 +163,4 @@ func TestMetricCatalog(t *testing.T) {
 			So(item, ShouldResemble, mt[2])
 		})
 	})
-	Convey("metricCatalog.Exists()", t, func() {
-		mc := newMetricCatalog()
-		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), &loadedPlugin{})
-		mc.Add(mt)
-		So(mc.Exists([]string{"foo", "bar"}), ShouldEqual, true)
-		So(mc.Exists([]string{"foo", "baz"}), ShouldEqual, false)
-	})
 }

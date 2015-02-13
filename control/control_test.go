@@ -310,3 +310,33 @@ func TestExportedMetricCatalog(t *testing.T) {
 		})
 	})
 }
+
+type mc struct {
+	e int
+}
+
+func (m *mc) Get([]string) (*metricType, error) {
+	if m.e == 1 {
+		return &metricType{}, nil
+	}
+	return nil, metricNotFound
+}
+
+func (m *mc) Add(*metricType)               {}
+func (m *mc) Table() map[string]*metricType { return map[string]*metricType{} }
+func (m *mc) Item() (string, *metricType)   { return "", &metricType{} }
+
+func (m *mc) Next() bool {
+	m.e = 1
+	return false
+}
+
+func TestMetricExists(t *testing.T) {
+	Convey("MetricExists()", t, func() {
+		c := Control()
+		c.metricCatalog = &mc{}
+		So(c.MetricExists([]string{"hi"}), ShouldEqual, false)
+		c.metricCatalog.Next()
+		So(c.MetricExists([]string{"hi"}), ShouldEqual, true)
+	})
+}
