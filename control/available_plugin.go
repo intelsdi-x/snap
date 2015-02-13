@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	DefaultClientTimeout           = time.Second * 3
 	DefaultHealthCheckTimeout      = time.Second * 1
 	DefaultHealthCheckFailureLimit = 3
 )
@@ -36,7 +37,7 @@ type availablePlugin struct {
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
-func newAvailablePlugin(resp *plugin.Response) *availablePlugin {
+func newAvailablePlugin(resp *plugin.Response) (*availablePlugin, error) {
 	ap := &availablePlugin{
 		Name:    resp.Meta.Name,
 		Version: resp.Meta.Version,
@@ -45,8 +46,21 @@ func newAvailablePlugin(resp *plugin.Response) *availablePlugin {
 		eventManager: new(gomit.EventController),
 		healthChan:   make(chan error, 1),
 	}
+
+	// Create RPC Client
+	switch resp.Type {
+	case plugin.CollectorPluginType:
+		c, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
+		ap.Client = c
+		if e != nil {
+			return nil, errors.New("error while creating client connection: " + e.Error())
+		}
+	default:
+		return nil, errors.New("Cannot create a client for a plugin of the type: " + resp.Type.String())
+	}
+
 	ap.makeKey()
-	return ap
+	return ap, nil
 }
 
 // Stop halts a running availablePlugin

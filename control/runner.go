@@ -7,7 +7,6 @@ import (
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/control/plugin/client"
 )
 
 const (
@@ -17,8 +16,6 @@ const (
 	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
 	PluginStopped
 	PluginDisabled
-
-	DefaultClientTimeout = time.Second * 3
 )
 
 // TBD
