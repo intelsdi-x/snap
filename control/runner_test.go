@@ -555,3 +555,20 @@ func TestAPCollection(t *testing.T) {
 		})
 	})
 }
+
+func TestAvailablePlugin(t *testing.T) {
+	Convey("Stop()", t, func() {
+		Convey("returns nil if plugin successfully stopped", func() {
+			r := newRunner()
+			a := plugin.Arg{
+				PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
+			}
+			exPlugin, _ := plugin.NewExecutablePlugin(a, PluginPath, true)
+
+			ap, _ := r.startPlugin(exPlugin)
+
+			err := ap.Stop("testing")
+			So(err, ShouldBeNil)
+		})
+	})
+}
