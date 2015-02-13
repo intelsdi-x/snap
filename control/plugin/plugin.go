@@ -1,6 +1,5 @@
 package plugin
 
-// Config Policy
 // task > control > default
 
 import (
@@ -115,9 +114,6 @@ type Response struct {
 	// its own loading requirements
 	State        PluginResponseState
 	ErrorMessage string
-}
-
-type ConfigPolicy struct {
 }
 
 type PluginMeta struct {

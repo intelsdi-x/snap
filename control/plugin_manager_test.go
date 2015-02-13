@@ -114,7 +114,7 @@ func TestUnloadPlugin(t *testing.T) {
 					err = p.UnloadPlugin(plugin)
 
 					err = p.UnloadPlugin(plugin)
-					So(err, ShouldResemble, errors.New("plugin [dummy] -- [1] not found (has it already been unloaded?)"))
+					So(err, ShouldResemble, errors.New("plugin [/dummy/dumb] -- [1] not found (has it already been unloaded?)"))
 
 				})
 			})
