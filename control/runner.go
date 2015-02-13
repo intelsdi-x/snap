@@ -307,6 +307,12 @@ func (r *runner) Start() error {
 // Stop handling, gracefully stop all plugins.
 func (r *runner) Stop() []error {
 	var errs []error
+
+	// Stop the monitor
+	r.monitor.Stop()
+
+	// TODO: Actually stop the plugins
+
 	// For each delegate unregister needed handlers
 	for _, del := range r.delegates {
 		e := del.UnregisterHandler(HandlerRegistrationName)
