@@ -42,8 +42,8 @@ func newLoadedPlugins() *loadedPlugins {
 // adds a loadedPlugin pointer to the loadedPlugins table
 func (l *loadedPlugins) Append(lp *loadedPlugin) error {
 
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
 	// make sure we don't already  have a pointer to this plugin in the table
 	for i, pl := range *l.table {
@@ -105,9 +105,9 @@ func (l *loadedPlugins) NonblockingSplice(index int) {
 // atomic splice
 func (l *loadedPlugins) Splice(index int) {
 
-	l.mutex.Lock()
+	l.Lock()
 	l.splice(index)
-	l.mutex.Unlock()
+	l.Unlock()
 
 }
 
