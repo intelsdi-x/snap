@@ -198,7 +198,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(false), lPlugin.Path, true)
+	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(true), lPlugin.Path, true)
 
 	log.Println(ePlugin)
 
@@ -222,7 +222,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	if resp.Type == plugin.CollectorPluginType {
 		ap, err := newAvailablePlugin(resp)
 		if err != nil {
-			log.Println(err)
+			log.Println(err.Error())
 			return nil, err
 		}
 		col := ap.Client.(plugin.CollectorPlugin)
@@ -304,10 +304,5 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 }
 
 func (p *pluginManager) generateArgs(daemon bool) plugin.Arg {
-	a := plugin.Arg{
-		ControlPubKey: p.pubKey,
-		PluginLogPath: "/tmp/pulse-plugin.log",
-		RunAsDaemon:   daemon,
-	}
-	return a
+	return plugin.NewArg(p.pubKey, "/tmp/pulse-plugin.log")
 }

@@ -42,7 +42,7 @@ func TestSessionState(t *testing.T) {
 			LastPing: now,
 		}
 		flag := true
-		ss.Logger = log.New(os.Stdout, ">>>", log.Ldate|log.Ltime)
+		ss.logger = log.New(os.Stdout, ">>>", log.Ldate|log.Ltime)
 		Convey("Ping", func() {
 
 			ss.Ping(PingArgs{}, &flag)
@@ -53,14 +53,56 @@ func TestSessionState(t *testing.T) {
 			So(wtf, ShouldBeNil)
 		})
 		Convey("GenerateResponse", func() {
-			r := Response{}
-			ss.ListenAddress = "1234"
-			ss.Token = "asdf"
+			r := &Response{}
+			ss.listenAddress = "1234"
+			ss.token = "asdf"
 			response := ss.generateResponse(r)
 			So(response, ShouldHaveSameTypeAs, []byte{})
 			json.Unmarshal(response, &r)
 			So(r.ListenAddress, ShouldEqual, "1234")
 			So(r.Token, ShouldEqual, "asdf")
 		})
+		Convey("InitSessionState", func() {
+			var mockPluginArgs string = "{\"RunAsDaemon\": false}"
+			sessionState, err, rc := NewSessionState(mockPluginArgs)
+			So(rc, ShouldEqual, 0)
+			So(err, ShouldBeNil)
+			So(sessionState, ShouldNotBeNil)
+		})
+		Convey("InitSessionState with a custom log path", func() {
+			var mockPluginArgs string = "{\"RunAsDaemon\": false, \"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
+			sessionState, err, rc := NewSessionState(mockPluginArgs)
+			So(rc, ShouldEqual, 0)
+			So(err, ShouldBeNil)
+			So(sessionState, ShouldNotBeNil)
+		})
+		Convey("heartbeatWatch timeout expired", func() {
+			PingTimeoutDuration = time.Millisecond * 100
+			PingTimeoutLimit = 1
+			ss.LastPing = now.Truncate(time.Minute)
+			killChan := make(chan int)
+			ss.heartbeatWatch(killChan)
+			rc := <-killChan
+			So(rc, ShouldEqual, 0)
+		})
+		Convey("heatbeatWatch reset", func() {
+			PingTimeoutDuration = time.Millisecond * 500
+			PingTimeoutLimit = 2
+			killChan := make(chan int)
+			ss.heartbeatWatch(killChan)
+			rc := <-killChan
+			So(rc, ShouldEqual, 0)
+		})
+	})
+}
+
+func TestPlugin(t *testing.T) {
+	Convey("Start", t, func() {
+		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
+		mockConfigPolicy := new(ConfigPolicy)
+		var mockPluginArgs string = "{\"RunAsDaemon\": false, \"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
+		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicy, mockPluginArgs)
+		So(err, ShouldBeNil)
+		So(rc, ShouldEqual, 0)
 	})
 }

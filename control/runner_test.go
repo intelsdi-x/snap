@@ -15,11 +15,7 @@ type MockController struct {
 }
 
 func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
-	a := plugin.Arg{
-		PluginLogPath: "/tmp/pulse-test-plugin.log",
-		RunAsDaemon:   daemon,
-	}
-	return a
+	return plugin.NewArg(nil, "/tmp/pulse-test-plugin.log")
 }
 
 type MockExecutablePlugin struct {
@@ -377,22 +373,6 @@ func TestRunnerPluginRunning(t *testing.T) {
 						ap, e := r.startPlugin(exPlugin)
 
 						So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
-						So(ap, ShouldBeNil)
-					})
-
-					Convey("should return error for executable plugin not in daemon mode", func() {
-						r := newRunner()
-						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin.log",
-						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, false)
-						if err != nil {
-							panic(err)
-						}
-
-						ap, e := r.startPlugin(exPlugin)
-
-						So(e, ShouldResemble, errors.New("error while creating client connection: dial tcp: missing address"))
 						So(ap, ShouldBeNil)
 					})
 				}

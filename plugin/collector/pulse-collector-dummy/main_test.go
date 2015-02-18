@@ -38,11 +38,3 @@ func TestDummyPluginLoad(t *testing.T) {
 		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
 	}
 }
-
-func TestMain(t *testing.T) {
-	Convey("ensure plugin loads and responds", t, func() {
-		os.Args[0] = ""
-		os.Args[1] = "{}"
-		main()
-	})
-}

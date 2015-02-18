@@ -92,14 +92,14 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor.Response = "{}"
 			mockExecutor.WaitTime = time.Millisecond * 1
 			Convey("daemon mode off", func() {
-				resp, err := waitHandling(mockExecutor, time.Second*3, false)
+				resp, err := waitHandling(mockExecutor, time.Second*3)
 
 				So(mockExecutor.Killed, ShouldEqual, false)
 				So(resp, ShouldNotBeNil)
 				So(err, ShouldBeNil)
 			})
 			Convey("daemon mode on", func() {
-				resp, err := waitHandling(mockExecutor, time.Second*3, true)
+				resp, err := waitHandling(mockExecutor, time.Second*3)
 
 				So(mockExecutor.Killed, ShouldEqual, false)
 				So(resp, ShouldNotBeNil)
@@ -113,14 +113,14 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor.WaitTime = time.Millisecond * 1000
 
 			Convey("daemon mode off", func() {
-				resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
+				resp, err := waitHandling(mockExecutor, time.Millisecond*100)
 				So(mockExecutor.Killed, ShouldEqual, true)
 				So(resp, ShouldBeNil)
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldStartWith, "JSONError")
 			})
 			Convey("daemon mode on", func() {
-				resp, err := waitHandling(mockExecutor, time.Millisecond*100, true)
+				resp, err := waitHandling(mockExecutor, time.Millisecond*100)
 				So(mockExecutor.Killed, ShouldEqual, true)
 				So(resp, ShouldBeNil)
 				So(err, ShouldNotBeNil)
@@ -132,7 +132,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Millisecond * 100
 			mockExecutor.WaitError = errors.New("Exit 127")
-			resp, err := waitHandling(mockExecutor, time.Millisecond*500, false)
+			resp, err := waitHandling(mockExecutor, time.Millisecond*500)
 
 			So(mockExecutor.Killed, ShouldEqual, false)
 			So(resp, ShouldBeNil)
@@ -143,7 +143,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 		Convey("called with PluginExecutor that will run longer than timeout without responding", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Second * 120
-			resp, err := waitHandling(mockExecutor, time.Millisecond*100, false)
+			resp, err := waitHandling(mockExecutor, time.Millisecond*100)
 
 			So(mockExecutor.Killed, ShouldEqual, true)
 			So(resp, ShouldBeNil)

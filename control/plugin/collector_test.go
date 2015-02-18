@@ -1,13 +1,75 @@
 package plugin
 
 import (
-	"encoding/json"
-	"time"
-
+	"errors"
+	"log"
+	"os"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+type MockSessionState struct {
+	runAsDaemon   bool
+	listenAddress string
+	listenPort    string
+	token         string
+	logger        *log.Logger
+	killChan      chan int
+}
+
+// func (s *MockSessionState) NewMockSesssionState(pluginArgsMsg string) (*MockSessionState, error, int) {
+// 	return &SessionState{
+// 		runAsDaemon: true,
+// 	}, nil, 0
+// }
+
+func (s *MockSessionState) Ping(arg PingArgs, b *bool) error {
+	return nil
+}
+
+func (s *MockSessionState) Kill(arg KillArgs, b *bool) error {
+	s.killChan <- 0
+	return nil
+}
+
+func (s *MockSessionState) Logger() *log.Logger {
+	return s.logger
+}
+
+func (s *MockSessionState) RunAsDaemon() bool {
+	return s.runAsDaemon
+}
+
+func (s *MockSessionState) ListenAddress() string {
+	return s.listenAddress
+}
+
+func (s *MockSessionState) ListenPort() string {
+	return s.listenPort
+}
+
+func (s *MockSessionState) SetListenAddress(a string) {
+	s.listenAddress = a
+}
+
+func (s *MockSessionState) Token() string {
+	return s.token
+}
+
+func (s *MockSessionState) KillChan() chan int {
+	return s.killChan
+}
+
+func (s *MockSessionState) generateResponse(r *Response) []byte {
+	return []byte("mockResponse")
+}
+
+func (s *MockSessionState) heartbeatWatch(killChan chan int) {
+	time.Sleep(time.Millisecond * 200)
+	killChan <- 0
+}
 
 type MockPlugin struct {
 	Meta   PluginMeta
@@ -26,38 +88,46 @@ func (c *MockPlugin) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTyp
 }
 
 func TestStartCollector(t *testing.T) {
-	Convey("Daemon mode", t, func() {
-		// These setting ensure it exists before test timeout
-		PingTimeoutDuration = time.Millisecond * 100
-		PingTimeoutLimit = 1
+	// These setting ensure it exists before test timeout
+	PingTimeoutDuration = time.Millisecond * 100
+	PingTimeoutLimit = 1
+	logger := log.New(os.Stdout,
+		"test: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
 
-		r := Arg{RunAsDaemon: true}
-		b, e := json.Marshal(r)
-		So(e, ShouldBeNil)
+	Convey("Collector", t, func() {
+		Convey("start with dynamic port", func() {
+			s := &MockSessionState{
+				listenPort: "0",
+				token:      "abcdef",
+				logger:     logger,
+				killChan:   make(chan int),
+			}
+			r := new(Response)
+			c := new(MockPlugin)
+			err, rc := StartCollector(c, s, r)
+			So(err, ShouldBeNil)
+			So(rc, ShouldEqual, 0)
 
-		m := new(MockPlugin)
-		m.Meta.Name = "mock"
-		m.Meta.Version = 1
-		err, _ := StartCollector(&m.Meta, m, &m.Policy, "/tmp/foo", string(b))
-
-		So(err, ShouldBeNil)
+			Convey("RPC service already registered", func() {
+				err, _ := StartCollector(c, s, r)
+				So(err, ShouldResemble, errors.New("rpc: service already defined: MockSessionState"))
+				// var x bool
+				// reply := &x
+				// *reply = true
+				// sessionState.Kill(KillArgs{}, reply)
+			})
+		})
+		Convey("start with unknown port", func() {
+			s := &MockSessionState{
+				listenPort: "",
+				token:      "abcdef",
+				logger:     logger,
+				killChan:   make(chan int),
+			}
+			r := new(Response)
+			c := new(MockPlugin)
+			So(func() { StartCollector(c, s, r) }, ShouldPanic)
+		})
 	})
-
-	Convey("Non-daemon mode", t, func() {
-		// These setting ensure it exists before test timeout
-		PingTimeoutDuration = time.Millisecond * 100
-		PingTimeoutLimit = 1
-
-		r := Arg{RunAsDaemon: false}
-		b, e := json.Marshal(r)
-		So(e, ShouldBeNil)
-
-		m := new(MockPlugin)
-		m.Meta.Name = "mock"
-		m.Meta.Version = 1
-
-		err, _ := StartCollector(&m.Meta, m, &m.Policy, "/tmp/foo", string(b))
-		So(err, ShouldBeNil)
-	})
-
 }
