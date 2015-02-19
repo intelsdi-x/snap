@@ -96,28 +96,6 @@ func TestStartCollector(t *testing.T) {
 		log.Ldate|log.Ltime|log.Lshortfile)
 
 	Convey("Collector", t, func() {
-		Convey("start with dynamic port", func() {
-			s := &MockSessionState{
-				listenPort: "0",
-				token:      "abcdef",
-				logger:     logger,
-				killChan:   make(chan int),
-			}
-			r := new(Response)
-			c := new(MockPlugin)
-			err, rc := StartCollector(c, s, r)
-			So(err, ShouldBeNil)
-			So(rc, ShouldEqual, 0)
-
-			Convey("RPC service already registered", func() {
-				err, _ := StartCollector(c, s, r)
-				So(err, ShouldResemble, errors.New("rpc: service already defined: MockSessionState"))
-				// var x bool
-				// reply := &x
-				// *reply = true
-				// sessionState.Kill(KillArgs{}, reply)
-			})
-		})
 		Convey("start with unknown port", func() {
 			s := &MockSessionState{
 				listenPort: "",
@@ -128,6 +106,25 @@ func TestStartCollector(t *testing.T) {
 			r := new(Response)
 			c := new(MockPlugin)
 			So(func() { StartCollector(c, s, r) }, ShouldPanic)
+			Convey("start with dynamic port", func() {
+				s := &MockSessionState{
+					listenPort: "0",
+					token:      "abcdef",
+					logger:     logger,
+					killChan:   make(chan int),
+				}
+				r := new(Response)
+				c := new(MockPlugin)
+				err, rc := StartCollector(c, s, r)
+				So(err, ShouldBeNil)
+				So(rc, ShouldEqual, 0)
+
+				Convey("RPC service already registered", func() {
+					err, _ := StartCollector(c, s, r)
+					So(err, ShouldResemble, errors.New("rpc: service already defined: MockSessionState"))
+				})
+
+			})
 		})
 	})
 }
