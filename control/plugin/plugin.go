@@ -92,6 +92,7 @@ type Session interface {
 
 	generateResponse(r *Response) []byte
 	heartbeatWatch(killChan chan int)
+	isDaemon() bool
 }
 
 // Started plugin session state
@@ -111,7 +112,9 @@ type Arg struct {
 	PluginLogPath string
 	// A public key from control used to verify RPC calls - not implemented yet
 	ControlPubKey *rsa.PublicKey
-	// The listen port requested - optional, defaults to 0 via InitSessionState()
+
+	NoDaemon bool
+	// The listen port
 	listenPort string
 }
 
@@ -183,34 +186,6 @@ func (s *SessionState) Kill(arg KillArgs, b *bool) error {
 	return nil
 }
 
-func (s *SessionState) generateResponse(r *Response) []byte {
-	// Add common plugin response properties
-	r.ListenAddress = s.listenAddress
-	r.Token = s.token
-	rs, _ := json.Marshal(r)
-	return rs
-}
-
-func (s *SessionState) heartbeatWatch(killChan chan int) {
-	s.logger.Println("Heartbeat started")
-	count := 0
-	for {
-		if time.Now().Sub(s.LastPing) >= PingTimeoutDuration {
-			count++
-			if count >= PingTimeoutLimit {
-				s.logger.Println("Heartbeat timeout expired")
-				defer close(killChan)
-				return
-			}
-		} else {
-			s.logger.Println("Heartbeat timeout reset")
-			// Reset count
-			count = 0
-		}
-		time.Sleep(PingTimeoutDuration)
-	}
-}
-
 // Logger gets the SessionState logger
 func (s *SessionState) Logger() *log.Logger {
 	return s.logger
@@ -241,9 +216,41 @@ func (s *SessionState) KillChan() chan int {
 	return s.killChan
 }
 
+func (s *SessionState) isDaemon() bool {
+	return !s.NoDaemon
+}
+
+func (s *SessionState) generateResponse(r *Response) []byte {
+	// Add common plugin response properties
+	r.ListenAddress = s.listenAddress
+	r.Token = s.token
+	rs, _ := json.Marshal(r)
+	return rs
+}
+
+func (s *SessionState) heartbeatWatch(killChan chan int) {
+	s.logger.Println("Heartbeat started")
+	count := 0
+	for {
+		if time.Now().Sub(s.LastPing) >= PingTimeoutDuration {
+			count++
+			if count >= PingTimeoutLimit {
+				s.logger.Println("Heartbeat timeout expired")
+				defer close(killChan)
+				return
+			}
+		} else {
+			s.logger.Println("Heartbeat timeout reset")
+			// Reset count
+			count = 0
+		}
+		time.Sleep(PingTimeoutDuration)
+	}
+}
+
 // NewSessionState takes the plugin args and returns a SessionState
 func NewSessionState(pluginArgsMsg string) (*SessionState, error, int) {
-	pluginArg := new(Arg)
+	pluginArg := &Arg{}
 	err := json.Unmarshal([]byte(pluginArgsMsg), pluginArg)
 	if err != nil {
 		return nil, err, 2
@@ -309,5 +316,5 @@ func Start(m *PluginMeta, c Plugin, p *ConfigPolicy, requestString string) (erro
 		}
 	}
 
-	return nil, 0
+	return nil, retCode
 }

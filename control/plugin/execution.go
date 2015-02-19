@@ -63,9 +63,7 @@ func (e *ExecutablePlugin) ResponseReader() io.Reader {
 }
 
 // Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
-func NewExecutablePlugin(a Arg, path string, daemon bool) (*ExecutablePlugin, error) {
-	log.Println(a)
-
+func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
 	jsonArgs, err := json.Marshal(a)
 	if err != nil {
 		return nil, err

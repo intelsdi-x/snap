@@ -71,6 +71,14 @@ func TestLoadPlugin(t *testing.T) {
 				So(len(p.LoadedPlugins().Table()), ShouldBeGreaterThan, 0)
 			})
 
+			Convey("error is returned on a bad PluginPath", func() {
+				p := newPluginManager()
+				lp, err := p.LoadPlugin("")
+
+				So(lp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+
 		})
 
 	}

@@ -11,19 +11,13 @@ import (
 )
 
 type MockSessionState struct {
-	runAsDaemon   bool
+	Daemon        bool
 	listenAddress string
 	listenPort    string
 	token         string
 	logger        *log.Logger
 	killChan      chan int
 }
-
-// func (s *MockSessionState) NewMockSesssionState(pluginArgsMsg string) (*MockSessionState, error, int) {
-// 	return &SessionState{
-// 		runAsDaemon: true,
-// 	}, nil, 0
-// }
 
 func (s *MockSessionState) Ping(arg PingArgs, b *bool) error {
 	return nil
@@ -36,10 +30,6 @@ func (s *MockSessionState) Kill(arg KillArgs, b *bool) error {
 
 func (s *MockSessionState) Logger() *log.Logger {
 	return s.logger
-}
-
-func (s *MockSessionState) RunAsDaemon() bool {
-	return s.runAsDaemon
 }
 
 func (s *MockSessionState) ListenAddress() string {
@@ -60,6 +50,10 @@ func (s *MockSessionState) Token() string {
 
 func (s *MockSessionState) KillChan() chan int {
 	return s.killChan
+}
+
+func (s *MockSessionState) isDaemon() bool {
+	return s.Daemon
 }
 
 func (s *MockSessionState) generateResponse(r *Response) []byte {

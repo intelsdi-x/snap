@@ -19,9 +19,11 @@ func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
 }
 
 type MockExecutablePlugin struct {
-	Timeout     bool
-	NilResponse bool
-	NoPing      bool
+	Timeout       bool
+	NilResponse   bool
+	NoPing        bool
+	StartError    bool
+	PluginFailure bool
 }
 
 func (m *MockExecutablePlugin) ResponseReader() io.Reader {
@@ -29,6 +31,9 @@ func (m *MockExecutablePlugin) ResponseReader() io.Reader {
 }
 
 func (m *MockExecutablePlugin) Start() error {
+	if m.StartError {
+		return errors.New("start error")
+	}
 	return nil
 }
 
@@ -51,6 +56,10 @@ func (m *MockExecutablePlugin) WaitForResponse(t time.Duration) (*plugin.Respons
 
 	resp := new(plugin.Response)
 	resp.Type = plugin.CollectorPluginType
+	if m.PluginFailure {
+		resp.State = plugin.PluginFailure
+		resp.ErrorMessage = "plugin start error"
+	}
 	return resp, nil
 }
 
@@ -242,8 +251,9 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
+							// Daemon:        true,
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -255,14 +265,19 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 						So(e, ShouldBeNil)
 						So(ap, ShouldNotBeNil)
+
+						err = r.stopPlugin("testing", ap)
+
+						So(err, ShouldBeNil)
 					})
 
 					Convey("availablePlugins should include returned availablePlugin", func() {
 						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
+							// Daemon:        true,
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -283,7 +298,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -301,7 +316,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -319,7 +334,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin-foo.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -341,7 +356,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -375,6 +390,28 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
 						So(ap, ShouldBeNil)
 					})
+
+					Convey("should return error if plugin fails while starting", func() {
+						r := newRunner()
+						exPlugin := &MockExecutablePlugin{
+							StartError: true,
+						}
+						ap, e := r.startPlugin(exPlugin)
+
+						So(e, ShouldResemble, errors.New("error while starting plugin: start error"))
+						So(ap, ShouldBeNil)
+					})
+
+					Convey("should return error if plugin fails to start", func() {
+						r := newRunner()
+						exPlugin := &MockExecutablePlugin{
+							PluginFailure: true,
+						}
+						ap, e := r.startPlugin(exPlugin)
+
+						So(e, ShouldResemble, errors.New("plugin could not start error: plugin start error"))
+						So(ap, ShouldBeNil)
+					})
 				}
 
 			})
@@ -385,7 +422,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					a := plugin.Arg{
 						PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
 					}
-					exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath, true)
+					exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
 					if err != nil {
 						panic(err)
 					}
@@ -532,6 +569,37 @@ func TestAPCollection(t *testing.T) {
 			apc.Add(ap)
 			err := apc.Add(ap)
 			So(err, ShouldResemble, errors.New("plugin instance already available at index 0"))
+		})
+	})
+}
+
+func TestAvailablePlugin(t *testing.T) {
+	Convey("newAvailablePlugin", t, func() {
+		Convey("it returns an error if client cannot be created", func() {
+			resp := &plugin.Response{
+				Meta: plugin.PluginMeta{
+					Name:    "test",
+					Version: 1,
+				},
+				Type:          plugin.CollectorPluginType,
+				ListenAddress: "localhost:",
+			}
+			ap, err := newAvailablePlugin(resp)
+			So(ap, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+		})
+		Convey("it returns an error for unsupported types", func() {
+			resp := &plugin.Response{
+				Meta: plugin.PluginMeta{
+					Name:    "test",
+					Version: 1,
+				},
+				Type:          plugin.ProcessorPluginType,
+				ListenAddress: "localhost:9999",
+			}
+			ap, err := newAvailablePlugin(resp)
+			So(ap, ShouldBeNil)
+			So(err, ShouldNotBeNil)
 		})
 	})
 }

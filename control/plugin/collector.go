@@ -73,7 +73,9 @@ func StartCollector(c CollectorPlugin, s Session, r *Response) (error, int) {
 		}
 	}()
 
-	exitCode = <-s.KillChan() // Closing of channel kills
+	if s.isDaemon() {
+		exitCode = <-s.KillChan() // Closing of channel kills
+	}
 
 	return nil, exitCode
 }

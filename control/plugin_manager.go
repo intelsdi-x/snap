@@ -198,9 +198,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(true), lPlugin.Path, true)
-
-	log.Println(ePlugin)
+	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(), lPlugin.Path)
 
 	if err != nil {
 		log.Println(err)
@@ -231,12 +229,12 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 		//TODO update metric catalog with metric types below
 		_ = col.GetMetricTypes(*args, reply)
 	}
-	ePlugin.Kill()
 
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return nil, err
-	// }
+	err = ePlugin.Kill()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
 
 	if resp.State != plugin.PluginSuccess {
 		log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
@@ -303,6 +301,6 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 	return nil
 }
 
-func (p *pluginManager) generateArgs(daemon bool) plugin.Arg {
+func (p *pluginManager) generateArgs() plugin.Arg {
 	return plugin.NewArg(p.pubKey, "/tmp/pulse-plugin.log")
 }

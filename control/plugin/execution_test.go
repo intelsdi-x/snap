@@ -70,7 +70,7 @@ func TestNewExecutablePlugin(t *testing.T) {
 	Convey("pluginControl.WaitForResponse", t, func() {
 		c := new(MockController)
 
-		ex, err := NewExecutablePlugin(c.GenerateArgs(), "/foo/bar", false)
+		ex, err := NewExecutablePlugin(c.GenerateArgs(), "/foo/bar")
 
 		Convey("returns ExecutablePlugin", func() {
 			So(ex, ShouldNotBeNil)
@@ -159,7 +159,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 				m := new(MockController)
 				a := m.GenerateArgs()
 				a.PluginLogPath = ""
-				ex, err := NewExecutablePlugin(a, PluginPath, true)
+				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)
 				}
@@ -179,7 +179,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 				m := new(MockController)
 				a := m.GenerateArgs()
 				a.PluginLogPath = ""
-				ex, err := NewExecutablePlugin(a, PluginPath, false)
+				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)
 				}
