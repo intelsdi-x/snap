@@ -98,7 +98,7 @@ func TestStartCollector(t *testing.T) {
 	Convey("Collector", t, func() {
 		Convey("start with unknown port", func() {
 			s := &MockSessionState{
-				listenPort: "",
+				listenPort: "-1",
 				token:      "abcdef",
 				logger:     logger,
 				killChan:   make(chan int),
@@ -107,7 +107,7 @@ func TestStartCollector(t *testing.T) {
 			c := new(MockPlugin)
 			So(func() { StartCollector(c, s, r) }, ShouldPanic)
 			Convey("start with dynamic port", func() {
-				s := &MockSessionState{
+				s = &MockSessionState{
 					listenPort: "0",
 					token:      "abcdef",
 					logger:     logger,
