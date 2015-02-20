@@ -9,14 +9,14 @@ type ConfigTree struct {
 	mutex *sync.Mutex
 }
 
-func NewConfigTree() *ConfigTree {
+func New() *ConfigTree {
 	return &ConfigTree{
 		root:  &node{},
 		mutex: &sync.Mutex{},
 	}
 }
 
-func (ct *ConfigTree) Add(ns []string, node Node) {
+func (ct *ConfigTree) Add(ns []string) {
 	f, remain := ns[0], ns[1:]
 	if ct.root == nil {
 		ct.root = &node{
@@ -27,13 +27,14 @@ func (ct *ConfigTree) Add(ns []string, node Node) {
 	}
 }
 
-func (ct *ConfigTree) Get() Node {}
+//func (ct *ConfigTree) Get() Node {}
 
 type Node interface {
 }
 
 type node struct {
-	nodes *node
+	nodes []node
+	key   string
 	Node  Node
 }
 
@@ -45,7 +46,7 @@ func (n *node) add(ns []string) {
 			return
 		}
 	}
-	newNode := &node{
+	newNode := node{
 		key: f,
 	}
 	newNode.add(remain)
