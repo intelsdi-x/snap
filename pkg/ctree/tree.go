@@ -20,6 +20,9 @@ func New() *ConfigTree {
 
 func (c *ConfigTree) Add(ns []string, inNode Node) {
 	c.mutex.Lock()
+	if len(ns) == 0 {
+		return
+	}
 	f, remain := ns[0], ns[1:]
 	if c.root == nil {
 		c.root = &node{
@@ -29,10 +32,6 @@ func (c *ConfigTree) Add(ns []string, inNode Node) {
 		if f != c.root.keys[0] {
 			panic("Can't add a new root namespace")
 		}
-	}
-	if len(ns) == 0 {
-		c.root.Node = inNode
-		return
 	}
 	c.root.add(remain, inNode)
 	c.mutex.Unlock()

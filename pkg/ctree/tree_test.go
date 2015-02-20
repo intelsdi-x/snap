@@ -55,4 +55,87 @@ func TestConfigTree(t *testing.T) {
 		fmt.Println(g.(*dummyNode).data)
 	})
 
+	Convey("Get2()", t, func() {
+		c := New()
+		c.Freeze()
+		n := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
+		So(n, ShouldBeNil)
+	})
+
+	Convey("Get3()", t, func() {
+		c := New()
+		d1 := newDummyNode()
+		d1.data = "a"
+		c.Add([]string{"intel"}, d1)
+		c.Freeze()
+		n := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
+		So(n, ShouldBeNil)
+	})
+
+	Convey("Get4()", t, func() {
+		c := New()
+		d1 := newDummyNode()
+		d1.data = "a"
+		c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
+		c.Freeze()
+		n := c.Get([]string{"intel"})
+		So(n, ShouldBeNil)
+	})
+
+	Convey("Get5()", t, func() {
+		fmt.Println("")
+		d1 := newDummyNode()
+		d1.data = "a"
+		d2 := newDummyNode()
+		d2.data = "b"
+		c := New()
+		c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
+		c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan"}, d2)
+		c.Freeze()
+		c.print()
+		g := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
+		fmt.Println(g.(*dummyNode).data)
+	})
+
+	Convey("Get6()", t, func() {
+		fmt.Println("")
+		d1 := newDummyNode()
+		d1.data = "a"
+		d2 := newDummyNode()
+		d2.data = "b"
+		c := New()
+		c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
+		c.Add([]string{"intel", "foo", "sdilabs"}, d2)
+		c.Freeze()
+		c.print()
+		g := c.Get([]string{"intel", "foo", "sdilabs", "joel"})
+		fmt.Println(g.(*dummyNode).data)
+	})
+
+	Convey("Get6()", t, func() {
+		d1 := newDummyNode()
+		d1.data = "a"
+		d2 := newDummyNode()
+		d2.data = "b"
+		c := New()
+		c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
+
+		So(func() {
+			c.Add([]string{"mashery", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d2)
+		}, ShouldPanic)
+	})
+
+	Convey("Get7()", t, func() {
+		d1 := newDummyNode()
+		d1.data = "a"
+		c := New()
+		c.Add([]string{}, d1)
+	})
+
+	Convey("Frozen()", t, func() {
+		c := New()
+		c.Freeze()
+		So(c.Frozen(), ShouldBeTrue)
+	})
+
 }
