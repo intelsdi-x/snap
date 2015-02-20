@@ -15,7 +15,11 @@ type MockController struct {
 }
 
 func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
-	return plugin.NewArg(nil, "/tmp/pulse-test-plugin.log")
+	a := plugin.Arg{
+		PluginLogPath: "/tmp/pulse-test-plugin.log",
+		RunAsDaemon:   daemon,
+	}
+	return a
 }
 
 type MockExecutablePlugin struct {
@@ -275,7 +279,6 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner()
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
-							// Daemon:        true,
 						}
 						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
 						if err != nil {
@@ -435,7 +438,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					So(e, ShouldBeNil)
 					So(ap, ShouldNotBeNil)
 
-					e = ap.Stop("testing")
+					e = r.stopPlugin("testing", ap)
 					So(e, ShouldBeNil)
 				})
 			})
