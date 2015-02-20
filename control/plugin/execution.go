@@ -62,16 +62,8 @@ func (e *ExecutablePlugin) ResponseReader() io.Reader {
 	return e.stdout
 }
 
-//
-func (e *ExecutablePlugin) RunAsDaemon() bool {
-	return e.args.RunAsDaemon
-}
-
 // Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
-func NewExecutablePlugin(a Arg, path string, daemon bool) (*ExecutablePlugin, error) {
-	log.Println(a)
-	a.RunAsDaemon = daemon // override args with function arg to ensure they match
-
+func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
 	jsonArgs, err := json.Marshal(a)
 	if err != nil {
 		return nil, err
@@ -96,16 +88,14 @@ func NewExecutablePlugin(a Arg, path string, daemon bool) (*ExecutablePlugin, er
 
 // Waits for a plugin response from a started plugin
 func (e *ExecutablePlugin) WaitForResponse(timeout time.Duration) (*Response, error) {
-	r, err := waitHandling(e, timeout, e.RunAsDaemon())
+	r, err := waitHandling(e, timeout)
 	return r, err
 }
 
 // Private method which handles behvaior for wait for response for daemon and non-daemon modes.
-func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Response, error) {
+func waitHandling(p pluginExecutor, timeout time.Duration) (*Response, error) {
 	// disable to turn debug logging back on
 	log.SetOutput(ioutil.Discard)
-
-	log.Printf("daemon == %t\n", daemon)
 	/*
 		Bit of complex behavior so some notes:
 			A. We need to wait for three scenarios depending on the daemon setting
@@ -211,10 +201,7 @@ func waitHandling(p pluginExecutor, timeout time.Duration, daemon bool) (*Respon
 			// If in daemon mode we can return now (succes) since the plugin will continue to run
 			// if not we let the loop continue (to wait for kill)
 			response = w.Response
-			if daemon {
-				log.Println("returning with response")
-				return response, nil
-			}
+			return response, nil
 
 		case pluginResponseBad: // plugin response (invalid) signal received
 			log.Println("plugin response (bad) received")

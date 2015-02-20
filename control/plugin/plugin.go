@@ -8,7 +8,10 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
+	"os"
 	"time"
 )
 
@@ -76,14 +79,31 @@ func (p PluginType) String() string {
 	return types[p]
 }
 
+// Session interface
+type Session interface {
+	Ping(arg PingArgs, b *bool) error
+	Kill(arg KillArgs, b *bool) error
+	Logger() *log.Logger
+	ListenAddress() string
+	SetListenAddress(string)
+	ListenPort() string
+	Token() string
+	KillChan() chan int
+
+	generateResponse(r *Response) []byte
+	heartbeatWatch(killChan chan int)
+	isDaemon() bool
+}
+
 // Started plugin session state
 type SessionState struct {
 	*Arg
-	Token         string
-	ListenAddress string
-	LastPing      time.Time
-	Logger        *log.Logger
-	KillChan      chan int
+	LastPing time.Time
+
+	token         string
+	listenAddress string
+	killChan      chan int
+	logger        *log.Logger
 }
 
 // Arguments passed to startup of Plugin
@@ -92,10 +112,17 @@ type Arg struct {
 	PluginLogPath string
 	// A public key from control used to verify RPC calls - not implemented yet
 	ControlPubKey *rsa.PublicKey
-	// The listen port requested - optional, defaults to 0 via InitSessionState()
-	ListenPort string
-	// Whether to run as daemon to exit after sending response
-	RunAsDaemon bool
+
+	NoDaemon bool
+	// The listen port
+	listenPort string
+}
+
+func NewArg(pubkey *rsa.PublicKey, logpath string) Arg {
+	return Arg{
+		ControlPubKey: pubkey,
+		PluginLogPath: logpath,
+	}
 }
 
 // Arguments passed to ping
@@ -117,54 +144,123 @@ type Response struct {
 	ErrorMessage string
 }
 
+// ConfigPolicy for plugin
 type ConfigPolicy struct {
 }
 
+// PluginMeta for plugin
 type PluginMeta struct {
 	Name    string
 	Version int
+	Type    PluginType
 }
 
+// NewPluginMeta constructs and returns a PluginMeta struct
+func NewPluginMeta(name string, version int, pluginType PluginType) *PluginMeta {
+	return &PluginMeta{
+		Name:    name,
+		Version: version,
+		Type:    pluginType,
+	}
+}
+
+// Ping returns nothing in normal operation
 func (s *SessionState) Ping(arg PingArgs, b *bool) error {
 	// For now we return nil. We can return an error if we are shutting
 	// down or otherwise in a state we should signal poor health.
 	// Reply should contain any context.
 	s.LastPing = time.Now()
-	s.Logger.Println("Ping received")
+	s.logger.Println("Ping received")
 	return nil
 }
 
+// Kill will stop a running plugin
 func (s *SessionState) Kill(arg KillArgs, b *bool) error {
 	// Right now we have no coordination needed. In the future we should
 	// add control to wait on a lock before halting.
-	s.Logger.Printf("Kill called by agent, reason: %s\n", arg.Reason)
+	s.logger.Printf("Kill called by agent, reason: %s\n", arg.Reason)
 	go func() {
 		time.Sleep(time.Second * 2)
-		s.KillChan <- 0
+		s.killChan <- 0
 	}()
 	return nil
 }
 
-func (s *SessionState) generateResponse(r Response) []byte {
+// Logger gets the SessionState logger
+func (s *SessionState) Logger() *log.Logger {
+	return s.logger
+}
+
+// ListenAddress gets the SessionState listen address
+func (s *SessionState) ListenAddress() string {
+	return s.listenAddress
+}
+
+//ListenPort gets the SessionState listen port
+func (s *SessionState) ListenPort() string {
+	return s.listenPort
+}
+
+// SetListenAddress sets SessionState listen address
+func (s *SessionState) SetListenAddress(a string) {
+	s.listenAddress = a
+}
+
+// Token gets the SessionState token
+func (s *SessionState) Token() string {
+	return s.token
+}
+
+// KillChan gets the SessionState killchan
+func (s *SessionState) KillChan() chan int {
+	return s.killChan
+}
+
+func (s *SessionState) isDaemon() bool {
+	return !s.NoDaemon
+}
+
+func (s *SessionState) generateResponse(r *Response) []byte {
 	// Add common plugin response properties
-	r.ListenAddress = s.ListenAddress
-	r.Token = s.Token
+	r.ListenAddress = s.listenAddress
+	r.Token = s.token
 	rs, _ := json.Marshal(r)
 	return rs
 }
 
-func InitSessionState(path, pluginArgsMsg string) (*SessionState, error) {
-	pluginArg := new(Arg)
+func (s *SessionState) heartbeatWatch(killChan chan int) {
+	s.logger.Println("Heartbeat started")
+	count := 0
+	for {
+		if time.Now().Sub(s.LastPing) >= PingTimeoutDuration {
+			count++
+			if count >= PingTimeoutLimit {
+				s.logger.Println("Heartbeat timeout expired")
+				defer close(killChan)
+				return
+			}
+		} else {
+			s.logger.Println("Heartbeat timeout reset")
+			// Reset count
+			count = 0
+		}
+		time.Sleep(PingTimeoutDuration)
+	}
+}
+
+// NewSessionState takes the plugin args and returns a SessionState
+func NewSessionState(pluginArgsMsg string) (*SessionState, error, int) {
+	pluginArg := &Arg{}
 	err := json.Unmarshal([]byte(pluginArgsMsg), pluginArg)
 	if err != nil {
-		return nil, err
+		return nil, err, 2
 	}
 
 	// If no port was provided we let the OS select a port for us.
 	// This is safe as address is returned in the Response and keep
 	// alive prevents unattended plugins.
-	if pluginArg.ListenPort == "" {
-		pluginArg.ListenPort = "0"
+	if pluginArg.listenPort == "" {
+		pluginArg.listenPort = "0"
 	}
 
 	// Generate random token for this session
@@ -172,25 +268,53 @@ func InitSessionState(path, pluginArgsMsg string) (*SessionState, error) {
 	rand.Read(rb)
 	rs := base64.URLEncoding.EncodeToString(rb)
 
-	return &SessionState{Arg: pluginArg, Token: rs, KillChan: make(chan int)}, nil
+	var logger *log.Logger
+	switch lp := pluginArg.PluginLogPath; lp {
+	case "", "/tmp":
+		// Empty means use default tmp log (needs to be removed post-alpha)
+		lf, err := os.OpenFile("/tmp/pulse_plugin.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
+		}
+		logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
+	default:
+		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
+		}
+		logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
+	}
+
+	return &SessionState{
+		Arg:      pluginArg,
+		token:    rs,
+		killChan: make(chan int),
+		logger:   logger}, nil, 0
 }
 
-func (s *SessionState) heartbeatWatch(killChan chan int) {
-	s.Logger.Println("Heartbeat started")
-	count := 0
-	for {
-		if time.Now().Sub(s.LastPing) >= PingTimeoutDuration {
-			count++
-			if count >= PingTimeoutLimit {
-				s.Logger.Println("Heartbeat timeout expired")
-				defer close(killChan)
-				return
-			}
-		} else {
-			s.Logger.Println("Heartbeat timeout reset")
-			// Reset count
-			count = 0
-		}
-		time.Sleep(PingTimeoutDuration)
+// Start starts a plugin
+func Start(m *PluginMeta, c Plugin, p *ConfigPolicy, requestString string) (error, int) {
+
+	sessionState, sErr, retCode := NewSessionState(requestString)
+	if sErr != nil {
+		return sErr, retCode
 	}
+
+	//should we be initializing this
+	sessionState.LastPing = time.Now()
+
+	switch m.Type {
+	case CollectorPluginType:
+		r := &Response{
+			Type:  CollectorPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		err, retCode := StartCollector(c.(CollectorPlugin), sessionState, r)
+		if err != nil {
+			return sErr, retCode
+		}
+	}
+
+	return nil, retCode
 }

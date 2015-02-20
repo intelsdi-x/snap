@@ -22,5 +22,6 @@ func main() {
 	meta := facter.Meta()
 
 	// Start a collector
-	plugin.StartCollector(meta, new(facter.Facter), policy, os.Args[0], os.Args[1])
+	//plugin.StartCollector(meta, new(facter.Facter), policy, os.Args[0], os.Args[1])
+	plugin.Start(meta, new(facter.Facter), policy, os.Args[1])
 }

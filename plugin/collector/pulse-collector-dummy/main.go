@@ -22,5 +22,5 @@ func main() {
 	meta := dummy.Meta()
 
 	// Start a collector
-	plugin.StartCollector(meta, new(dummy.Dummy), policy, os.Args[0], os.Args[1])
+	plugin.Start(meta, new(dummy.Dummy), policy, os.Args[1])
 }

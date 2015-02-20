@@ -9,7 +9,7 @@ import (
 const (
 	Name    = "dummy"
 	Version = 1
-	Type    = "collector"
+	Type    = plugin.CollectorPluginType
 )
 
 // Dummy collector implementation used for testing
@@ -27,11 +27,8 @@ func (f *Dummy) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMet
 	return nil
 }
 
-func Meta() *plugin.PluginMeta { //
-	m := new(plugin.PluginMeta)
-	m.Name = Name
-	m.Version = Version
-	return m
+func Meta() *plugin.PluginMeta {
+	return plugin.NewPluginMeta(Name, Version, Type)
 }
 
 func ConfigPolicy() *plugin.ConfigPolicy {

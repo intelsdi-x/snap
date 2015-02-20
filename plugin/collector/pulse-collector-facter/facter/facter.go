@@ -7,6 +7,7 @@ import (
 const (
 	Name    = "facter"
 	Version = 1
+	Type    = plugin.CollectorPluginType
 )
 
 type Facter struct {
@@ -22,10 +23,7 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 }
 
 func Meta() *plugin.PluginMeta {
-	m := new(plugin.PluginMeta)
-	m.Name = Name
-	m.Version = Version
-	return m
+	return plugin.NewPluginMeta(Name, Version, Type)
 }
 
 func ConfigPolicy() *plugin.ConfigPolicy {

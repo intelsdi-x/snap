@@ -89,7 +89,6 @@ func (r *runner) Stop() []error {
 }
 
 func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
-	// Start plugin in daemon mode
 	e := p.Start()
 	if e != nil {
 		return nil, errors.New("error while starting plugin: " + e.Error())
