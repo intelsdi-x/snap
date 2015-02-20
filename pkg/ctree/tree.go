@@ -40,7 +40,7 @@ func (c *ConfigTree) Add(ns []string, inNode Node) {
 
 func (c *ConfigTree) Get(ns []string) Node {
 	retNodes := new([]Node)
-
+	// Return if no
 	if c.root == nil {
 		return nil
 	}
@@ -52,16 +52,19 @@ func (c *ConfigTree) Get(ns []string) Node {
 	}
 
 	match, remain := ns[:rootKeyLength], ns[rootKeyLength:]
-	if bytes.Compare(nsToByteArray(match), c.root.keysBytes) == 0 {
-		*retNodes = append(*retNodes, c.root.Node)
-		for _, child := range c.root.nodes {
-			childNodes := child.get(remain)
-			if len(*childNodes) > 0 {
-				*retNodes = append(*retNodes, *childNodes...)
-			}
-		}
+	if bytes.Compare(nsToByteArray(match), c.root.keysBytes) != 0 {
+		return nil
 	}
 
+	if c.root.Node != nil {
+		*retNodes = append(*retNodes, c.root.Node)
+	}
+	for _, child := range c.root.nodes {
+		childNodes := child.get(remain)
+		*retNodes = append(*retNodes, *childNodes...)
+	}
+
+	// Call Node.Merge() sequentially on the retNodes
 	rn := (*retNodes)[0]
 	for _, n := range (*retNodes)[1:] {
 		rn.Merge(n)
@@ -168,17 +171,16 @@ func (n *node) get(ns []string) *[]Node {
 	}
 
 	match, remain := ns[:rootKeyLength], ns[rootKeyLength:]
-
 	if bytes.Compare(nsToByteArray(match), n.keysBytes) == 0 {
-		if len(n.nodes) == 0 && !n.empty() {
+		// If Node is present add to the return Nodes
+		if !n.empty() {
 			*retNodes = append(*retNodes, n.Node)
-		} else {
-			for _, child := range n.nodes {
-				childNodes := child.get(remain)
-				if len(*childNodes) > 0 {
-					*retNodes = append(*retNodes, *childNodes...)
-				}
-			}
+		}
+
+		// For any existing children call get
+		for _, child := range n.nodes {
+			childNodes := child.get(remain)
+			*retNodes = append(*retNodes, *childNodes...)
 		}
 	}
 

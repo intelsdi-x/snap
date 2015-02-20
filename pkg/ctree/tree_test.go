@@ -42,11 +42,16 @@ func TestConfigTree(t *testing.T) {
 		d2.data = "b"
 		d3 := newDummyNode()
 		d3.data = "c"
+		d4 := newDummyNode()
+		d4.data = "d"
 		c := New()
-		c.Add([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
-		c.Add([]string{"intel", "sdilabs", "joel", "dan"}, d2)
+		c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
+		c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan"}, d2)
+		c.Add([]string{"intel", "foo", "manhole", "joel", "dan"}, d3)
+		c.Add([]string{"intel", "foo", "manhole", "joel", "dan", "mark"}, d4)
 		c.Freeze()
-		g := c.Get([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
+		c.print()
+		g := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 		fmt.Println(g.(*dummyNode).data)
 	})
 
