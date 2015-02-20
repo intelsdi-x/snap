@@ -1,11 +1,31 @@
 package ctree
 
 import (
-	// "fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+type dummyNode struct {
+	data map[string]string
+}
+
+func (d *dummyNode) Data() interface{} {
+	return d.data
+}
+
+func (d *dummyNode) Merge(dn Node) {
+	m := dn.Data().(map[string]string)
+	for k, v := range m {
+		d.data[k] = v
+	}
+}
+
+func newDummyNode() *dummyNode {
+	return &dummyNode{
+		data: make(map[string]string),
+	}
+}
 
 func TestConfigTree(t *testing.T) {
 	Convey("NewConfigTree()", t, func() {
@@ -17,30 +37,21 @@ func TestConfigTree(t *testing.T) {
 
 	Convey("Add()", t, func() {
 		c := New()
-		c.Add([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, new(DummyNode))
-		c.Add([]string{"intel", "sdilabs", "joel", "dan"}, new(DummyNode))
-		c.Add([]string{"intel", "manhole", "joel", "dan"}, new(DummyNode))
-		c.Freeze()
-		c.print()
+		c.Add([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, newDummyNode())
+		c.Add([]string{"intel", "sdilabs", "joel", "dan"}, newDummyNode())
+		c.Add([]string{"intel", "manhole", "joel", "dan"}, newDummyNode())
 	})
 
 	Convey("Get()", t, func() {
-		d1 := new(DummyNode)
-		d2 := new(DummyNode)
-		// d3 := new(DummyNode)
-
+		d1 := newDummyNode()
+		d1.data["foo"] = "bar"
+		d2 := newDummyNode()
+		d2.data["foo"] = "baz"
 		c := New()
 		c.Add([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
 		c.Add([]string{"intel", "sdilabs", "joel", "dan"}, d2)
-		// c.Add([]string{"intel", "manhole", "joel", "dan"}, d3)
 		c.Freeze()
-		c.print()
-
 		c.Get([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 	})
 
-}
-
-func TestNode(t *testing.T) {
-	Convey("add()", t, func() {})
 }

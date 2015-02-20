@@ -22,12 +22,10 @@ func (c *ConfigTree) Add(ns []string, inNode Node) {
 	c.mutex.Lock()
 	f, remain := ns[0], ns[1:]
 	if c.root == nil {
-		fmt.Println("\nNew node")
 		c.root = &node{
 			keys: []string{f},
 		}
 	} else {
-		fmt.Println("Existing node")
 		if f != c.root.keys[0] {
 			panic("Can't add a new root namespace")
 		}
@@ -40,34 +38,35 @@ func (c *ConfigTree) Add(ns []string, inNode Node) {
 	c.mutex.Unlock()
 }
 
-func (c *ConfigTree) Get(ns []string) *[]Node {
+func (c *ConfigTree) Get(ns []string) Node {
 	retNodes := new([]Node)
 
 	if c.root == nil {
-		return retNodes
+		return nil
 	}
 
 	rootKeyLength := len(c.root.keys)
 
 	if len(ns) < rootKeyLength {
-		return retNodes
+		return nil
 	}
 
 	match, remain := ns[:rootKeyLength], ns[rootKeyLength:]
 
-	fmt.Println(rootKeyLength)
-	fmt.Println(match, remain)
-
 	if strings.Join(match, "/") == c.root.keysString {
-		for _, child := c.root.nodes {
+		for _, child := range c.root.nodes {
 			childNodes := child.get(remain)
-			if len(childNodes) > 0 {
-				retNodes = append(retNodes, childNodes...)
+			if len(*childNodes) > 0 {
+				*retNodes = append(*retNodes, *childNodes...)
 			}
 		}
 	}
 
-	return retNodes
+	rn := (*retNodes)[0]
+	for _, n := range (*retNodes)[1:] {
+		rn.Merge(n)
+	}
+	return rn
 }
 
 func (c *ConfigTree) Freeze() {
@@ -94,10 +93,8 @@ func (c *ConfigTree) print() {
 }
 
 type Node interface {
-}
-
-// REMOVE ME
-type DummyNode struct {
+	Merge(Node)
+	Data() interface{}
 }
 
 type node struct {
@@ -117,9 +114,7 @@ func (n *node) print(p string) {
 
 func (n *node) add(ns []string, inNode Node) {
 	if len(ns) == 0 {
-		fmt.Printf("leaf: %s\n", n.keys[0])
 		n.Node = inNode
-		// fmt.Printf("inNode: %v\n", n.Node)
 		return
 	}
 	f, remain := ns[0], ns[1:]
@@ -143,14 +138,11 @@ func (n *node) compact() {
 	if len(n.nodes) == 1 {
 		if n.empty() {
 			// merge single child into this node
-			fmt.Printf("MERGE! %s <= %s\n", n.keys, n.nodes[0].keys)
 			n.keys = append(n.keys, n.nodes[0].keys...)
 			n.keysString = strings.Join(n.keys, "/")
 
 			n.Node = n.nodes[0].Node
 			n.nodes = n.nodes[0].nodes
-
-			fmt.Printf("now %s\n", n.keys)
 
 			n.compact()
 			return
@@ -165,4 +157,30 @@ func (n *node) compact() {
 
 func (n *node) empty() bool {
 	return n.Node == nil
+}
+
+func (n *node) get(ns []string) *[]Node {
+	retNodes := new([]Node)
+
+	rootKeyLength := len(n.keys)
+	if len(ns) < rootKeyLength {
+		return retNodes
+	}
+
+	match, remain := ns[:rootKeyLength], ns[rootKeyLength:]
+
+	if strings.Join(match, "/") == n.keysString {
+		if len(n.nodes) == 0 && !n.empty() {
+			*retNodes = append(*retNodes, n.Node)
+		} else {
+			for _, child := range n.nodes {
+				childNodes := child.get(remain)
+				if len(*childNodes) > 0 {
+					*retNodes = append(*retNodes, *childNodes...)
+				}
+			}
+		}
+	}
+
+	return retNodes
 }
