@@ -1,8 +1,8 @@
 package ctree
 
 import (
+	"bytes"
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -52,8 +52,8 @@ func (c *ConfigTree) Get(ns []string) Node {
 	}
 
 	match, remain := ns[:rootKeyLength], ns[rootKeyLength:]
-
-	if strings.Join(match, "/") == c.root.keysString {
+	if bytes.Compare(nsToByteArray(match), c.root.keysBytes) == 0 {
+		*retNodes = append(*retNodes, c.root.Node)
 		for _, child := range c.root.nodes {
 			childNodes := child.get(remain)
 			if len(*childNodes) > 0 {
@@ -94,14 +94,13 @@ func (c *ConfigTree) print() {
 
 type Node interface {
 	Merge(Node)
-	Data() interface{}
 }
 
 type node struct {
-	nodes      []*node
-	keys       []string
-	keysString string
-	Node       Node
+	nodes     []*node
+	keys      []string
+	keysBytes []byte
+	Node      Node
 }
 
 func (n *node) print(p string) {
@@ -139,7 +138,8 @@ func (n *node) compact() {
 		if n.empty() {
 			// merge single child into this node
 			n.keys = append(n.keys, n.nodes[0].keys...)
-			n.keysString = strings.Join(n.keys, "/")
+
+			n.keysBytes = nsToByteArray(n.keys)
 
 			n.Node = n.nodes[0].Node
 			n.nodes = n.nodes[0].nodes
@@ -169,7 +169,7 @@ func (n *node) get(ns []string) *[]Node {
 
 	match, remain := ns[:rootKeyLength], ns[rootKeyLength:]
 
-	if strings.Join(match, "/") == n.keysString {
+	if bytes.Compare(nsToByteArray(match), n.keysBytes) == 0 {
 		if len(n.nodes) == 0 && !n.empty() {
 			*retNodes = append(*retNodes, n.Node)
 		} else {
@@ -183,4 +183,12 @@ func (n *node) get(ns []string) *[]Node {
 	}
 
 	return retNodes
+}
+
+func nsToByteArray(str []string) []byte {
+	b := []byte{}
+	for _, s := range str {
+		b = append(b, []byte(s)...)
+	}
+	return b
 }
