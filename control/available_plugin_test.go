@@ -33,7 +33,7 @@ func TestAvailablePlugin(t *testing.T) {
 				PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
 			}
 
-			exPlugin, _ := plugin.NewExecutablePlugin(a, PluginPath, true)
+			exPlugin, _ := plugin.NewExecutablePlugin(a, PluginPath)
 			ap, _ := r.startPlugin(exPlugin)
 
 			err := ap.Stop("testing")
@@ -221,6 +221,32 @@ func TestAvailablePlugins(t *testing.T) {
 
 			err := aps.Remove(ap1)
 			So(err, ShouldResemble, errors.New("Warning: plugin does not exist in table"))
+		})
+		Convey("it returns an error if client cannot be created", func() {
+			resp := &plugin.Response{
+				Meta: plugin.PluginMeta{
+					Name:    "test",
+					Version: 1,
+				},
+				Type:          plugin.CollectorPluginType,
+				ListenAddress: "localhost:",
+			}
+			ap, err := newAvailablePlugin(resp)
+			So(ap, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+		})
+		Convey("it returns an error for unsupported types", func() {
+			resp := &plugin.Response{
+				Meta: plugin.PluginMeta{
+					Name:    "test",
+					Version: 1,
+				},
+				Type:          plugin.ProcessorPluginType,
+				ListenAddress: "localhost:9999",
+			}
+			ap, err := newAvailablePlugin(resp)
+			So(ap, ShouldBeNil)
+			So(err, ShouldNotBeNil)
 		})
 	})
 }
