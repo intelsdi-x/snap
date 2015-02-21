@@ -92,6 +92,8 @@ func (c *ConfigTree) Get(ns []string) Node {
 		c.log(fmt.Sprintf("adding root node (not nil) to nodes to merge (%v)\n", c.root.Node))
 		*retNodes = append(*retNodes, c.root.Node)
 	}
+
+	c.log(fmt.Sprintf("children to get from (%d)\n", len(c.root.nodes)))
 	for _, child := range c.root.nodes {
 		childNodes := child.get(remain)
 		*retNodes = append(*retNodes, *childNodes...)
@@ -101,7 +103,7 @@ func (c *ConfigTree) Get(ns []string) Node {
 	// Call Node.Merge() sequentially on the retNodes
 	rn := (*retNodes)[0]
 	for _, n := range (*retNodes)[1:] {
-		rn.Merge(n)
+		rn = rn.Merge(n)
 	}
 	return rn
 }
@@ -130,7 +132,7 @@ func (c *ConfigTree) Print() {
 }
 
 type Node interface {
-	Merge(Node)
+	Merge(Node) Node
 }
 
 type node struct {
@@ -165,9 +167,8 @@ func (n *node) add(ns []string, inNode Node) {
 			return
 		}
 	}
-	newNode := &node{
-		keys: []string{f},
-	}
+	newNode := new(node)
+	newNode.setKeys([]string{f})
 	newNode.add(remain, inNode)
 	n.nodes = append(n.nodes, newNode)
 }
