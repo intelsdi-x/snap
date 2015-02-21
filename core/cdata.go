@@ -40,12 +40,13 @@ func (c *ConfigDataTree) Freeze() {
 }
 
 type ConfigDataNode struct {
-	mutex sync.Mutex
+	mutex *sync.Mutex
 	table map[string]ConfigValue
 }
 
 func NewConfigDataNode() *ConfigDataNode {
 	return &ConfigDataNode{
+		mutex: new(sync.Mutex),
 		table: make(map[string]ConfigValue),
 	}
 }
