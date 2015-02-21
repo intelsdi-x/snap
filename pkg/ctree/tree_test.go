@@ -11,8 +11,9 @@ type dummyNode struct {
 	data string
 }
 
-func (d *dummyNode) Merge(dn Node) {
+func (d dummyNode) Merge(dn Node) Node {
 	d.data = fmt.Sprintf("%s/%s", d.data, dn.(*dummyNode).data)
+	return d
 }
 
 func newDummyNode() *dummyNode {
@@ -53,7 +54,7 @@ func TestConfigTree(t *testing.T) {
 			c.Print()
 			g := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 			So(g, ShouldNotBeNil)
-			So(g.(*dummyNode).data, ShouldResemble, "b/a")
+			So(g.(dummyNode).data, ShouldResemble, "b/a")
 		})
 
 		Convey("single item ns", func() {
@@ -65,6 +66,21 @@ func TestConfigTree(t *testing.T) {
 			g := c.Get([]string{"1"})
 			So(g, ShouldNotBeNil)
 			So(g.(*dummyNode).data, ShouldResemble, "a")
+		})
+
+		Convey("add 2 nodes that will not change on compression", func() {
+			d1 := newDummyNode()
+			d1.data = "a"
+			d2 := newDummyNode()
+			d2.data = "b"
+			c := New()
+			c.Debug = true
+			c.Add([]string{"1"}, d1)
+			c.Add([]string{"1", "2"}, d2)
+			c.Freeze()
+			g := c.Get([]string{"1", "2"})
+			So(g, ShouldNotBeNil)
+			So(g.(dummyNode).data, ShouldResemble, "a/b")
 		})
 
 		Convey("blank tree return nil", func() {
