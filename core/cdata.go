@@ -6,20 +6,25 @@ import (
 	"github.com/intelsdilabs/pulse/pkg/ctree"
 )
 
+// Allows adding of config data by namespace and retrieving of data from tree
+// at a specific namespace (merging the relevant hiearchy). Uses pkg.ConfigTree.
 type ConfigDataTree struct {
 	cTree *ctree.ConfigTree
 }
 
+// Returns a new ConfigDataTree.
 func NewConfigDataTree() *ConfigDataTree {
 	return &ConfigDataTree{
 		cTree: ctree.New(),
 	}
 }
 
+// Adds a ConfigDataNode at the provided namespace.
 func (c *ConfigDataTree) Add(ns []string, cdn *ConfigDataNode) {
 	c.cTree.Add(ns, cdn)
 }
 
+// Returns a ConfigDataNode that is a merged version of the namespace provided.
 func (c *ConfigDataTree) Get(ns []string) *ConfigDataNode {
 	// Automatically freeze on first Get
 	if !c.cTree.Frozen() {
@@ -35,15 +40,19 @@ func (c *ConfigDataTree) Get(ns []string) *ConfigDataNode {
 	}
 }
 
+// Freezes the ConfigDataTree from future writes (adds) and triggers compression
+// of tree into read-performant version.
 func (c *ConfigDataTree) Freeze() {
 	c.cTree.Freeze()
 }
 
+// Represents a set of configuration data
 type ConfigDataNode struct {
 	mutex *sync.Mutex
 	table map[string]ConfigValue
 }
 
+// Returns a new and empty node.
 func NewConfigDataNode() *ConfigDataNode {
 	return &ConfigDataNode{
 		mutex: new(sync.Mutex),
@@ -51,12 +60,14 @@ func NewConfigDataNode() *ConfigDataNode {
 	}
 }
 
+// Returns the table of configuration items [key(string) / value(core.ConfigValue)].
 func (c *ConfigDataNode) Table() map[string]ConfigValue {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.table
 }
 
+// Adds an item to the ConfigDataNode.
 func (c *ConfigDataNode) AddItem(k string, v ConfigValue) {
 	// And empty is a noop
 	if k == "" {
@@ -67,6 +78,7 @@ func (c *ConfigDataNode) AddItem(k string, v ConfigValue) {
 	c.table[k] = v
 }
 
+// Merges a ConfigDataNode on top of this one (overwriting items where it occurs).
 func (c ConfigDataNode) Merge(n ctree.Node) ctree.Node {
 	// Because Add only allows the ConfigDataNode type we
 	// are safe to convert ctree.Node interface to ConfigDataNode
