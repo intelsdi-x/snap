@@ -3,10 +3,14 @@ package ctree
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sync"
 )
 
 type ConfigTree struct {
+	// Debug turns on verbose logging of the tree functions to stdout
+	Debug bool
+
 	freezeFlag bool
 	root       *node
 	mutex      *sync.Mutex
@@ -18,55 +22,88 @@ func New() *ConfigTree {
 	}
 }
 
+func (c *ConfigTree) log(s string) {
+	if c.Debug {
+		log.Print(s)
+	}
+}
+
 func (c *ConfigTree) Add(ns []string, inNode Node) {
+	c.log(fmt.Sprintf("Adding %v at %s\n", inNode, ns))
 	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if len(ns) == 0 {
+		c.log(fmt.Sprintln("ns is empty - returning with no change to tree"))
 		return
 	}
 	f, remain := ns[0], ns[1:]
+	c.log(fmt.Sprintf("first ns (%s) remain (%s)", f, remain))
 	if c.root == nil {
-		c.root = &node{
-			keys: []string{f},
+		// Create node at root
+		c.root = new(node)
+		c.root.setKeys([]string{f})
+
+		c.log(fmt.Sprintf("Root now = %v\n", c.root.keys))
+
+		// If remain is empty then the inNode belongs at this root level
+		if len(remain) == 0 {
+			c.log(fmt.Sprintf("adding node at root level\n"))
+			c.root.Node = inNode
+			// And return since we are done
+			return
 		}
+
 	} else {
 		if f != c.root.keys[0] {
 			panic("Can't add a new root namespace")
 		}
 	}
 	c.root.add(remain, inNode)
-	c.mutex.Unlock()
+
 }
 
 func (c *ConfigTree) Get(ns []string) Node {
+	c.log(fmt.Sprintf("Get on ns (%s)\n", ns))
+	if !c.Frozen() {
+		panic("must freeze before getting")
+	}
 	retNodes := new([]Node)
-	// Return if no
+	// Return if no root exists (no tree without a root)
 	if c.root == nil {
+		c.log(fmt.Sprintln("ctree: no root - returning nil"))
 		return nil
 	}
 
 	rootKeyLength := len(c.root.keys)
 
 	if len(ns) < rootKeyLength {
+		c.log(fmt.Sprintln("ns less than root key length - returning nil"))
 		return nil
 	}
 
 	match, remain := ns[:rootKeyLength], ns[rootKeyLength:]
 	if bytes.Compare(nsToByteArray(match), c.root.keysBytes) != 0 {
+		c.log(fmt.Sprintf("no match versus root key (match:'%s' != root:'%s')\n", string(nsToByteArray(match)), string(c.root.keysBytes)))
 		return nil
 	}
+	c.log(fmt.Sprintf("Match root key (match:'%s' == root:'%s')\n", string(nsToByteArray(match)), string(c.root.keysBytes)))
 
 	if c.root.Node != nil {
+		c.log(fmt.Sprintf("adding root node (not nil) to nodes to merge (%v)\n", c.root.Node))
 		*retNodes = append(*retNodes, c.root.Node)
 	}
+
+	c.log(fmt.Sprintf("children to get from (%d)\n", len(c.root.nodes)))
 	for _, child := range c.root.nodes {
 		childNodes := child.get(remain)
 		*retNodes = append(*retNodes, *childNodes...)
 	}
 
+	c.log(fmt.Sprintf("nodes to merge count (%d)\n", len(*retNodes)))
 	// Call Node.Merge() sequentially on the retNodes
 	rn := (*retNodes)[0]
 	for _, n := range (*retNodes)[1:] {
-		rn.Merge(n)
+		rn = rn.Merge(n)
 	}
 	return rn
 }
@@ -90,12 +127,12 @@ func (c *ConfigTree) compact() {
 	}
 }
 
-func (c *ConfigTree) print() {
+func (c *ConfigTree) Print() {
 	c.root.print("")
 }
 
 type Node interface {
-	Merge(Node)
+	Merge(Node) Node
 }
 
 type node struct {
@@ -103,6 +140,11 @@ type node struct {
 	keys      []string
 	keysBytes []byte
 	Node      Node
+}
+
+func (n *node) setKeys(k []string) {
+	n.keys = k
+	n.keysBytes = nsToByteArray(n.keys)
 }
 
 func (n *node) print(p string) {
@@ -125,9 +167,8 @@ func (n *node) add(ns []string, inNode Node) {
 			return
 		}
 	}
-	newNode := &node{
-		keys: []string{f},
-	}
+	newNode := new(node)
+	newNode.setKeys([]string{f})
 	newNode.add(remain, inNode)
 	n.nodes = append(n.nodes, newNode)
 }
@@ -139,9 +180,7 @@ func (n *node) compact() {
 	if len(n.nodes) == 1 {
 		if n.empty() {
 			// merge single child into this node
-			n.keys = append(n.keys, n.nodes[0].keys...)
-
-			n.keysBytes = nsToByteArray(n.keys)
+			n.setKeys(append(n.keys, n.nodes[0].keys...))
 
 			n.Node = n.nodes[0].Node
 			n.nodes = n.nodes[0].nodes
