@@ -12,9 +12,13 @@ COVERALLS_TOKEN=t47LG6BQsfLwb9WxB56hXUezvwpED6D11
 set -e
  
 # Automatic checks
+echo "gofmt"
 test -z "$(gofmt -l -d .     | tee /dev/stderr)"
+echo "goimports"
 test -z "$(goimports -l -d . | tee /dev/stderr)"
+echo "golint"
 test -z "$(golint .          | tee /dev/stderr)"
+echo "go vet"
 go vet ./...
 # go test -race ./... - Lets disable for now
  
