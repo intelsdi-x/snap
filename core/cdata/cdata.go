@@ -3,6 +3,7 @@ package core
 import (
 	"sync"
 
+	"github.com/intelsdilabs/pulse/core/ctypes"
 	"github.com/intelsdilabs/pulse/pkg/ctree"
 )
 
@@ -13,7 +14,7 @@ type ConfigDataTree struct {
 }
 
 // Returns a new ConfigDataTree.
-func NewConfigDataTree() *ConfigDataTree {
+func NewTree() *ConfigDataTree {
 	return &ConfigDataTree{
 		cTree: ctree.New(),
 	}
@@ -49,26 +50,26 @@ func (c *ConfigDataTree) Freeze() {
 // Represents a set of configuration data
 type ConfigDataNode struct {
 	mutex *sync.Mutex
-	table map[string]ConfigValue
+	table map[string]ctypes.ConfigValue
 }
 
 // Returns a new and empty node.
-func NewConfigDataNode() *ConfigDataNode {
+func NewNode() *ConfigDataNode {
 	return &ConfigDataNode{
 		mutex: new(sync.Mutex),
-		table: make(map[string]ConfigValue),
+		table: make(map[string]ctypes.ConfigValue),
 	}
 }
 
 // Returns the table of configuration items [key(string) / value(core.ConfigValue)].
-func (c *ConfigDataNode) Table() map[string]ConfigValue {
+func (c *ConfigDataNode) Table() map[string]ctypes.ConfigValue {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.table
 }
 
 // Adds an item to the ConfigDataNode.
-func (c *ConfigDataNode) AddItem(k string, v ConfigValue) {
+func (c *ConfigDataNode) AddItem(k string, v ctypes.ConfigValue) {
 	// And empty is a noop
 	if k == "" {
 		return
