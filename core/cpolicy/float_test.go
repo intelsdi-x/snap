@@ -1,6 +1,7 @@
 package cpolicy
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -81,31 +82,31 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 				v := ctypes.ConfigValueStr{Value: "wat"}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, WrongTypeError)
+				So(e, ShouldResemble, errors.New("type mismatch (thekey wanted type 'string' but provided type 'float')"))
 			})
 
 			Convey("error with value below minimum", func() {
 				r, e := NewFloatRule("thekey", true)
-				r.SetMinimum(1)
-				So(*r.minimum, ShouldEqual, 1)
+				r.SetMinimum(1.987)
+				So(*r.minimum, ShouldEqual, 1.987)
 				So(e, ShouldBeNil)
 
-				v := ctypes.ConfigValueFloat{Value: 0}
+				v := ctypes.ConfigValueFloat{Value: 0.23}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, UnderMinimumError)
+				So(e, ShouldResemble, errors.New("value is under minimum (thekey value 0.230000 < 1.987000)"))
 			})
 
 			Convey("error with value above maximum", func() {
 				r, e := NewFloatRule("thekey", true)
-				r.SetMaximum(127)
-				So(*r.maximum, ShouldEqual, 127)
+				r.SetMaximum(127.127)
+				So(*r.maximum, ShouldEqual, 127.127)
 				So(e, ShouldBeNil)
 
-				v := ctypes.ConfigValueFloat{Value: 200}
+				v := ctypes.ConfigValueFloat{Value: 200.000001}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, OverMaximumError)
+				So(e, ShouldResemble, errors.New("value is over maximum (thekey value 200.000001 > 127.127000)"))
 			})
 
 		})

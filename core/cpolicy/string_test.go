@@ -1,6 +1,7 @@
 package cpolicy
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -65,7 +66,7 @@ func TestConfigPolicyRuleString(t *testing.T) {
 				v := ctypes.ConfigValueInt{Value: 1}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, WrongTypeError)
+				So(e, ShouldResemble, errors.New("type mismatch (thekey wanted type 'integer' but provided type 'string')"))
 			})
 
 		})

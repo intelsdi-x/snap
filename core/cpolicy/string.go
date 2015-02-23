@@ -39,7 +39,7 @@ func (s *stringRule) Key() string {
 func (s *stringRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
 	if cv.Type() != "string" {
-		return WrongTypeError
+		return wrongType(s.key, cv.Type(), "string")
 	}
 	return nil
 }

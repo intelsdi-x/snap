@@ -4,15 +4,13 @@ package cpolicy
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
 var (
-	EmptyKeyError     = errors.New("key cannot be empty")
-	WrongTypeError    = errors.New("type mismatch")
-	UnderMinimumError = errors.New("value is under minimum required")
-	OverMaximumError  = errors.New("value is under minimum required")
+	EmptyKeyError = errors.New("key cannot be empty")
 )
 
 // A rule used to process ConfigData
@@ -21,4 +19,8 @@ type Rule interface {
 	Validate(ctypes.ConfigValue) error
 	Default() ctypes.ConfigValue
 	Required() bool
+}
+
+func wrongType(key, inType, reqType string) error {
+	return errors.New(fmt.Sprintf("type mismatch (%s wanted type '%s' but provided type '%s')", key, inType, reqType))
 }

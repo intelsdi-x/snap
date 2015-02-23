@@ -1,6 +1,7 @@
 package cpolicy
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -81,7 +82,7 @@ func TestConfigPolicyRuleInteger(t *testing.T) {
 				v := ctypes.ConfigValueStr{Value: "wat"}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, WrongTypeError)
+				So(e, ShouldResemble, wrongType("thekey", "string", "integer"))
 			})
 
 			Convey("error with value below minimum", func() {
@@ -93,7 +94,7 @@ func TestConfigPolicyRuleInteger(t *testing.T) {
 				v := ctypes.ConfigValueInt{Value: 0}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, UnderMinimumError)
+				So(e, ShouldResemble, errors.New("value is under minimum (thekey value 0 < 1)"))
 			})
 
 			Convey("error with value above maximum", func() {
@@ -105,7 +106,7 @@ func TestConfigPolicyRuleInteger(t *testing.T) {
 				v := ctypes.ConfigValueInt{Value: 200}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, OverMaximumError)
+				So(e, ShouldResemble, errors.New("value is over maximum (thekey value 200 > 127)"))
 			})
 
 		})

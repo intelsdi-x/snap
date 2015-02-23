@@ -1,6 +1,9 @@
 package cpolicy
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
@@ -41,15 +44,15 @@ func (f *floatRule) Key() string {
 func (f *floatRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
 	if cv.Type() != "float" {
-		return WrongTypeError
+		return wrongType(f.key, cv.Type(), "float")
 	}
 	// Check minimum. Type should be safe now because of the check above.
 	if f.minimum != nil && cv.(ctypes.ConfigValueFloat).Value < *f.minimum {
-		return UnderMinimumError
+		return errors.New(fmt.Sprintf("value is under minimum (%s value %f < %f)", f.key, cv.(ctypes.ConfigValueFloat).Value, *f.minimum))
 	}
 	// Check maximum. Type should be safe now because of the check above.
 	if f.maximum != nil && cv.(ctypes.ConfigValueFloat).Value > *f.maximum {
-		return OverMaximumError
+		return errors.New(fmt.Sprintf("value is over maximum (%s value %f > %f)", f.key, cv.(ctypes.ConfigValueFloat).Value, *f.maximum))
 	}
 	return nil
 }

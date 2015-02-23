@@ -1,6 +1,9 @@
 package cpolicy
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
@@ -41,15 +44,15 @@ func (i *intRule) Key() string {
 func (i *intRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
 	if cv.Type() != "integer" {
-		return WrongTypeError
+		return wrongType(i.key, cv.Type(), "integer")
 	}
 	// Check minimum. Type should be safe now because of the check above.
 	if i.minimum != nil && cv.(ctypes.ConfigValueInt).Value < *i.minimum {
-		return UnderMinimumError
+		return errors.New(fmt.Sprintf("value is under minimum (%s value %d < %d)", i.key, cv.(ctypes.ConfigValueInt).Value, *i.minimum))
 	}
 	// Check maximum. Type should be safe now because of the check above.
 	if i.maximum != nil && cv.(ctypes.ConfigValueInt).Value > *i.maximum {
-		return OverMaximumError
+		return errors.New(fmt.Sprintf("value is over maximum (%s value %d > %d)", i.key, cv.(ctypes.ConfigValueInt).Value, *i.maximum))
 	}
 	return nil
 }
