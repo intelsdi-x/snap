@@ -7,7 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestConfigPolicyRule(t *testing.T) {
+func TestConfigPolicyRuleString(t *testing.T) {
 	Convey("NewStringRule", t, func() {
 
 		Convey("empty key", func() {
@@ -24,13 +24,21 @@ func TestConfigPolicyRule(t *testing.T) {
 
 		Convey("required is set", func() {
 			r, e := NewStringRule("thekey", true)
-			So(r.(*stringRule).required, ShouldEqual, true)
+			So(r.Required(), ShouldEqual, true)
 			So(e, ShouldBeNil)
 		})
 
-		Convey("default exists and points to string", func() {
+		Convey("default is set", func() {
 			r, e := NewStringRule("thekey", true, "wat")
-			So(*(r.(*stringRule).default_), ShouldEqual, "wat")
+			So(r.Default(), ShouldNotBeNil)
+			So(r.Default().Type(), ShouldEqual, "string")
+			So(r.Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
+			So(e, ShouldBeNil)
+		})
+
+		Convey("default is unset", func() {
+			r, e := NewStringRule("thekey", true)
+			So(r.Default(), ShouldBeNil)
 			So(e, ShouldBeNil)
 		})
 
@@ -38,7 +46,8 @@ func TestConfigPolicyRule(t *testing.T) {
 
 			Convey("passes with string config value", func() {
 				r, e := NewStringRule("thekey", true, "wat")
-				So(*(r.(*stringRule).default_), ShouldEqual, "wat")
+				So(r.Default().Type(), ShouldEqual, "string")
+				So(r.Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueStr{Value: "foo"}
@@ -49,7 +58,8 @@ func TestConfigPolicyRule(t *testing.T) {
 
 			Convey("errors with non-string config value", func() {
 				r, e := NewStringRule("thekey", true, "wat")
-				So(*(r.(*stringRule).default_), ShouldEqual, "wat")
+				So(r.Default().Type(), ShouldEqual, "string")
+				So(r.Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueInt{Value: 1}
