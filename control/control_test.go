@@ -317,6 +317,11 @@ func TestUnsubscribeMetric(t *testing.T) {
 			So(func() { c.UnsubscribeMetric([]string{"neg"}, -1) }, ShouldPanic)
 		})
 	})
+	Convey("When no error is returned", t, func() {
+		Convey("it doesn't panic", func() {
+			So(func() { c.UnsubscribeMetric([]string{"hello"}, -1) }, ShouldNotPanic)
+		})
+	})
 }
 
 func TestResolvePlugin(t *testing.T) {

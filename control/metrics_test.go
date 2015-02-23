@@ -88,6 +88,32 @@ func TestMetricCatalog(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(m, ShouldEqual, m35)
 		})
+		Convey("it returns the queried version", func() {
+			lp2 := new(loadedPlugin)
+			lp2.Meta.Version = 2
+			lp35 := new(loadedPlugin)
+			lp35.Meta.Version = 35
+			m2 := newMetricType([]string{"foo", "bar"}, ts, lp2)
+			mc.Add(m2)
+			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
+			mc.Add(m35)
+			m, err := mc.Get([]string{"foo", "bar"}, 2)
+			So(err, ShouldBeNil)
+			So(m, ShouldEqual, m2)
+		})
+		Convey("it returns metric not found if version doesn't exist", func() {
+			lp2 := new(loadedPlugin)
+			lp2.Meta.Version = 2
+			lp35 := new(loadedPlugin)
+			lp35.Meta.Version = 35
+			m2 := newMetricType([]string{"foo", "bar"}, ts, lp2)
+			mc.Add(m2)
+			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
+			mc.Add(m35)
+			_, err := mc.Get([]string{"foo", "bar"}, 7)
+			So(err, ShouldResemble, errMetricNotFound)
+		})
+
 	})
 	Convey("metricCatalog.Table()", t, func() {
 		Convey("returns a copy of the table", func() {
@@ -183,13 +209,18 @@ func TestSubscribe(t *testing.T) {
 		mc.Add(v)
 	}
 	Convey("when the metric is not in the table", t, func() {
-		Convey("then it gets added to the table", func() {
+		Convey("then it returns an error", func() {
+			err := mc.Subscribe([]string{"test4"}, -1)
+			So(err, ShouldResemble, errMetricNotFound)
 		})
 	})
 	Convey("when the metric is in the table", t, func() {
 		Convey("then it gets correctly increments the count", func() {
-		})
-		Convey("then it does not add it twice to the keys array", func() {
+			err := mc.Subscribe([]string{"test1"}, -1)
+			So(err, ShouldBeNil)
+			m, err2 := mc.Get([]string{"test1"}, -1)
+			So(err2, ShouldBeNil)
+			So(m.subscriptions, ShouldEqual, 1)
 		})
 	})
 }
@@ -213,14 +244,25 @@ func TestUnsubscribe(t *testing.T) {
 	}
 	Convey("when the metric is in the table", t, func() {
 		Convey("then its subscription count is decremented", func() {
+			err := mc.Subscribe([]string{"test1"}, -1)
+			So(err, ShouldBeNil)
+			err1 := mc.Unsubscribe([]string{"test1"}, -1)
+			So(err1, ShouldBeNil)
+			m, err2 := mc.Get([]string{"test1"}, -1)
+			So(err2, ShouldBeNil)
+			So(m.subscriptions, ShouldEqual, 0)
 		})
 	})
 	Convey("when the metric is not in the table", t, func() {
-		Convey("then it returns the correct error", func() {
+		Convey("then it returns metric not found error", func() {
+			err := mc.Unsubscribe([]string{"test4"}, -1)
+			So(err, ShouldResemble, errMetricNotFound)
 		})
 	})
 	Convey("when the metric's count is already 0", t, func() {
-		Convey("then it returns the correct error", func() {
+		Convey("then it returns negative subscription count error", func() {
+			err := mc.Unsubscribe([]string{"test1"}, -1)
+			So(err, ShouldResemble, errNegativeSubCount)
 		})
 	})
 }
