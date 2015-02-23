@@ -17,6 +17,11 @@ type metricType struct {
 	namespace               []string
 	lastAdvertisedTimestamp int64
 	subscriptions           int
+	policy                  processesConfigData
+}
+
+type processesConfigData interface {
+	//Process(map[string]cdata.ConfigValue) (*map[string]cdata.ConfigValue, *cpolicy.ProcessingErrors)
 }
 
 func newMetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
@@ -34,6 +39,22 @@ func (m *metricType) Namespace() []string {
 
 func (m *metricType) LastAdvertisedTimestamp() int64 {
 	return m.lastAdvertisedTimestamp
+}
+
+func (m *metricType) Subscribe() {
+	m.subscriptions++
+}
+
+func (m *metricType) Unsubscribe() error {
+	if m.subscriptions == 0 {
+		return errNegativeSubCount
+	}
+	m.subscriptions--
+	return nil
+}
+
+func (m *metricType) SubscriptionCount() int {
+	return m.subscriptions
 }
 
 type metricCatalog struct {
@@ -137,7 +158,7 @@ func (mc *metricCatalog) Subscribe(ns []string, version int) error {
 		return err
 	}
 
-	m.subscriptions++
+	m.Subscribe()
 	return nil
 }
 
@@ -153,12 +174,7 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
 		return err
 	}
 
-	if m.subscriptions == 0 {
-		return errNegativeSubCount
-	}
-
-	m.subscriptions--
-	return nil
+	return m.Unsubscribe()
 }
 
 func (mc *metricCatalog) get(key string, ver int) (*metricType, error) {

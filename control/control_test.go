@@ -297,12 +297,15 @@ func (m *mc) Next() bool {
 
 func TestSubscribeMetric(t *testing.T) {
 	c := New()
-	c.metricCatalog = &mc{}
+	mtrc := &mc{}
+	c.metricCatalog = mtrc
 	Convey("does not retrun error when metricCatalog.Subscribe() does not return an error", t, func() {
+		mtrc.e = 1
 		err := c.SubscribeMetric([]string{""}, -1)
 		So(err, ShouldBeNil)
 	})
 	Convey("returns an error when metricCatalog.Subscribe() returns an error", t, func() {
+		mtrc.e = 0
 		err := c.SubscribeMetric([]string{"nf"}, -1)
 		So(err, ShouldResemble, errMetricNotFound)
 	})

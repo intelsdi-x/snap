@@ -148,10 +148,18 @@ func (p *pluginControl) generateArgs() plugin.Arg {
 
 // subscribes a metric
 func (p *pluginControl) SubscribeMetric(metric []string, ver int) error {
-	err := p.metricCatalog.Subscribe(metric, ver)
+
+	m, err := p.metricCatalog.Get(metric, ver)
 	if err != nil {
 		return err
 	}
+
+	//ncd, errs := m.policy.Process(cd)
+	//if errs.HasErrors() {
+	//	return errs
+	//}
+
+	m.Subscribe()
 
 	e := &control_event.MetricSubscriptionEvent{
 		MetricNamespace: metric,

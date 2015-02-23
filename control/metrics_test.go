@@ -266,3 +266,16 @@ func TestUnsubscribe(t *testing.T) {
 		})
 	})
 }
+
+func TestSubscriptionCount(t *testing.T) {
+	m := newMetricType([]string{"test"}, time.Now().Unix(), &loadedPlugin{})
+	Convey("it returns the subscription count", t, func() {
+		m.Subscribe()
+		So(m.SubscriptionCount(), ShouldEqual, 1)
+		m.Subscribe()
+		m.Subscribe()
+		So(m.SubscriptionCount(), ShouldEqual, 3)
+		m.Unsubscribe()
+		So(m.SubscriptionCount(), ShouldEqual, 2)
+	})
+}
