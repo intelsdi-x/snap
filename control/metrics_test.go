@@ -46,7 +46,7 @@ func TestMetricCatalog(t *testing.T) {
 			mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
 			mc := newMetricCatalog()
 			mc.Add(mt)
-			_mt, err := mc.Get(ns)
+			_mt, err := mc.Get(ns, -1)
 			So(_mt, ShouldResemble, mt)
 			So(err, ShouldBeNil)
 		})
@@ -70,7 +70,7 @@ func TestMetricCatalog(t *testing.T) {
 				mc.Add(v)
 			}
 			for k, v := range ns {
-				_mt, err := mc.Get(v)
+				_mt, err := mc.Get(v, -1)
 				So(_mt, ShouldEqual, mt[k])
 				So(err, ShouldBeNil)
 			}
@@ -84,7 +84,7 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Add(m2)
 			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
 			mc.Add(m35)
-			m, err := mc.Get([]string{"foo", "bar"})
+			m, err := mc.Get([]string{"foo", "bar"}, -1)
 			So(err, ShouldBeNil)
 			So(m, ShouldEqual, m35)
 		})
@@ -105,7 +105,7 @@ func TestMetricCatalog(t *testing.T) {
 			mc := newMetricCatalog()
 			mc.Add(mt)
 			mc.Remove(ns)
-			_mt, err := mc.Get(ns)
+			_mt, err := mc.Get(ns, -1)
 			So(_mt, ShouldBeNil)
 			So(err, ShouldResemble, errors.New("metric not found"))
 		})
@@ -161,6 +161,66 @@ func TestMetricCatalog(t *testing.T) {
 			key, item := mc.Item()
 			So(key, ShouldEqual, getMetricKey(ns[2]))
 			So(item, ShouldResemble, mt[2])
+		})
+	})
+}
+
+func TestSubscribe(t *testing.T) {
+	ns := [][]string{
+		[]string{"test1"},
+		[]string{"test2"},
+		[]string{"test3"},
+	}
+	lp := new(loadedPlugin)
+	ts := time.Now().Unix()
+	mt := []*metricType{
+		newMetricType(ns[0], ts, lp),
+		newMetricType(ns[1], ts, lp),
+		newMetricType(ns[2], ts, lp),
+	}
+	mc := newMetricCatalog()
+	for _, v := range mt {
+		mc.Add(v)
+	}
+	Convey("when the metric is not in the table", t, func() {
+		Convey("then it gets added to the table", func() {
+		})
+	})
+	Convey("when the metric is in the table", t, func() {
+		Convey("then it gets correctly increments the count", func() {
+		})
+		Convey("then it does not add it twice to the keys array", func() {
+		})
+	})
+}
+
+func TestUnsubscribe(t *testing.T) {
+	ns := [][]string{
+		[]string{"test1"},
+		[]string{"test2"},
+		[]string{"test3"},
+	}
+	lp := new(loadedPlugin)
+	ts := time.Now().Unix()
+	mt := []*metricType{
+		newMetricType(ns[0], ts, lp),
+		newMetricType(ns[1], ts, lp),
+		newMetricType(ns[2], ts, lp),
+	}
+	mc := newMetricCatalog()
+	for _, v := range mt {
+		mc.Add(v)
+	}
+	Convey("when the metric is in the table", t, func() {
+		Convey("then its subscription count is decremented", func() {
+		})
+	})
+	Convey("when the metric is not in the table", t, func() {
+		Convey("then it returns the correct error", func() {
+		})
+	})
+	Convey("when the metric's count is already 0", t, func() {
+		Convey("then it returns the correct error", func() {
 		})
 	})
 }
