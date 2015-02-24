@@ -32,13 +32,13 @@ func (c *ConfigPolicyTree) Get(ns []string) *ConfigPolicyNode {
 	n := c.cTree.Get(ns)
 	if n == nil {
 		return nil
-	} else {
-		switch t := n.(type) {
-		case ConfigPolicyNode:
-			return &t
-		default:
-			return t.(*ConfigPolicyNode)
-		}
+	}
+	switch t := n.(type) {
+	case ConfigPolicyNode:
+		return &t
+	default:
+		return t.(*ConfigPolicyNode)
+
 	}
 }
 
