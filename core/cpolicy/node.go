@@ -96,7 +96,16 @@ func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string
 	return &m, pErrors
 }
 
-// Merges a provided policy node over (overwriting) this one and returns the copy.
-func (c ConfigPolicyNode) Merge() ctree.Node {
-	return nil
+// Merges a ConfigPolicyNode on top of this one (overwriting items where it occurs).
+func (c ConfigPolicyNode) Merge(n ctree.Node) ctree.Node {
+	// Because Add only allows the ConfigPolicyNode type we
+	// are safe to convert ctree.Node interface to ConfigPolicyNode
+	cd := n.(*ConfigPolicyNode)
+	// For the rules in the passed ConfigPolicyNode(converted) add each rule to
+	// this ConfigPolicyNode overwritting where needed.
+	for _, r := range cd.rules {
+		c.Add(r)
+	}
+	// Return modified version of ConfigPolicyNode(as ctree.Node)
+	return c
 }
