@@ -60,6 +60,8 @@ func (p *ConfigPolicyNode) Add(rules ...Rule) {
 
 // Validates and returns a processed policy node or nil and error if validation has failed
 func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *ProcessingErrors) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	pErrors := newProcessingErrors()
 	// Loop through each rule and process
 	for key, rule := range c.rules {
