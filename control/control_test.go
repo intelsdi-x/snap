@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdilabs/pulse/core/cpolicy"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -264,7 +267,9 @@ type mc struct {
 
 func (m *mc) Get(ns []string, ver int) (*metricType, error) {
 	if m.e == 1 {
-		return &metricType{}, nil
+		return &metricType{
+			policy: &mockCDProc{},
+		}, nil
 	}
 	return nil, errMetricNotFound
 }
@@ -295,20 +300,44 @@ func (m *mc) Next() bool {
 	return false
 }
 
+type mockCDProc struct {
+}
+
+func (m *mockCDProc) Process(in map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors) {
+	if _, ok := in["fail"]; ok {
+		pe := cpolicy.NewProcessingErrors()
+		pe.AddError(errors.New("test fail"))
+		return nil, pe
+	}
+	return &in, nil
+}
+
 func TestSubscribeMetric(t *testing.T) {
 	c := New()
 	mtrc := &mc{}
 	c.metricCatalog = mtrc
-	Convey("does not retrun error when metricCatalog.Subscribe() does not return an error", t, func() {
+	cd := cdata.NewNode()
+	Convey("does not return errors when metricCatalog.Subscribe() does not return an error", t, func() {
+		cd.AddItem("key", &ctypes.ConfigValueStr{"value"})
 		mtrc.e = 1
-		err := c.SubscribeMetric([]string{""}, -1)
+		_, err := c.SubscribeMetric([]string{""}, -1, cd)
 		So(err, ShouldBeNil)
 	})
-	Convey("returns an error when metricCatalog.Subscribe() returns an error", t, func() {
+	Convey("returns errors when metricCatalog.Subscribe() returns an error", t, func() {
 		mtrc.e = 0
-		err := c.SubscribeMetric([]string{"nf"}, -1)
-		So(err, ShouldResemble, errMetricNotFound)
+		_, err := c.SubscribeMetric([]string{"nf"}, -1, cd)
+		So(len(err.Errors()), ShouldEqual, 1)
+		So(err.Errors()[0], ShouldResemble, errMetricNotFound)
 	})
+	Convey("returns errors when processing fails", t, func() {
+		cd := cdata.NewNode()
+		cd.AddItem("fail", &ctypes.ConfigValueStr{"value"})
+		mtrc.e = 1
+		_, errs := c.SubscribeMetric([]string{""}, -1, cd)
+		So(len(errs.Errors()), ShouldEqual, 1)
+		So(errs.Errors()[0], ShouldResemble, errors.New("test fail"))
+	})
+
 }
 
 func TestUnsubscribeMetric(t *testing.T) {

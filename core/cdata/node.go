@@ -21,6 +21,13 @@ func NewNode() *ConfigDataNode {
 	}
 }
 
+func FromTable(table map[string]ctypes.ConfigValue) *ConfigDataNode {
+	return &ConfigDataNode{
+		mutex: new(sync.Mutex),
+		table: table,
+	}
+}
+
 // Returns the table of configuration items [key(string) / value(core.ConfigValue)].
 func (c *ConfigDataNode) Table() map[string]ctypes.ConfigValue {
 	c.mutex.Lock()

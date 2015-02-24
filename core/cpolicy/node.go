@@ -14,7 +14,7 @@ type ProcessingErrors struct {
 	mutex  *sync.Mutex
 }
 
-func newProcessingErrors() *ProcessingErrors {
+func NewProcessingErrors() *ProcessingErrors {
 	return &ProcessingErrors{
 		errors: []error{},
 		mutex:  &sync.Mutex{},
@@ -62,7 +62,7 @@ func (p *ConfigPolicyNode) Add(rules ...Rule) {
 func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *ProcessingErrors) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	pErrors := newProcessingErrors()
+	pErrors := NewProcessingErrors()
 	// Loop through each rule and process
 	for key, rule := range c.rules {
 		// items exists for rule
