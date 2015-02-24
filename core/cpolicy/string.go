@@ -44,6 +44,7 @@ func (s *stringRule) Validate(cv ctypes.ConfigValue) error {
 	return nil
 }
 
+// Returns a default value is it exists.
 func (s *stringRule) Default() ctypes.ConfigValue {
 	if s.default_ != nil {
 		return &ctypes.ConfigValueStr{Value: *s.default_}
@@ -51,6 +52,7 @@ func (s *stringRule) Default() ctypes.ConfigValue {
 	return nil
 }
 
+// Indicates this rule is required.
 func (s *stringRule) Required() bool {
 	return s.required
 }
