@@ -33,21 +33,21 @@ func (c *job) Metrics() []core.Metric {
 
 // WorkerManager provides a method to get work done
 type WorkManager interface {
-	Work(Job) chan Job
+	Work(Job) Job
 }
 
 type workManager struct {
 }
 
 // Work dispatch jobs to worker pools for processing
-func (w *workManager) Work(j Job) chan Job {
+func (w *workManager) Work(j Job) Job {
 	respChan := make(chan Job)
 	go func() {
 		//TODO send work to worker queue and wait for result
 		//results is sent back as a modified job
 		respChan <- j
 	}()
-	return respChan
+	return <-respChan
 }
 
 // WorkDispatcher

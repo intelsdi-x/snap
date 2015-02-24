@@ -11,7 +11,7 @@ func TestWorkerManager(t *testing.T) {
 		manager := new(workManager)
 		Convey("Work", func() {
 			var job Job = new(job)
-			job = <-manager.Work(job)
+			job = manager.Work(job)
 			So(job.Errors(), ShouldBeNil)
 			So(job.Metrics(), ShouldBeNil)
 		})

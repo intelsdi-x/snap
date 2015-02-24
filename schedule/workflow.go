@@ -38,7 +38,7 @@ func (w *workflow) Start(metricTypes []core.MetricType, manager WorkManager) {
 	job := w.rootStep.CreateJob(metricTypes)
 
 	// dispatch 'collect' job to be worked
-	job = <-manager.Work(job)
+	job = manager.Work(job)
 
 	//process through additional steps (processors, publishers, ...)
 	for _, step := range w.rootStep.Steps() {
@@ -49,7 +49,7 @@ func (w *workflow) Start(metricTypes []core.MetricType, manager WorkManager) {
 func (w *workflow) processStep(step Step, job Job, manager WorkManager) {
 	//do work for current step
 	job = step.CreateJob(job)
-	job = <-manager.Work(job)
+	job = manager.Work(job)
 	//do work for child steps
 	for _, step := range step.Steps() {
 		w.processStep(step, job, manager)
