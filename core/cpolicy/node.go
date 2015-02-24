@@ -67,8 +67,6 @@ func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string
 	for key, rule := range c.rules {
 		// items exists for rule
 		if cv, ok := m[key]; ok {
-			println(cv)
-
 			// Validate versus matching data
 			e := rule.Validate(cv)
 			if e != nil {
