@@ -1,63 +1,35 @@
-package core
+package cdata
 
 import (
 	"sync"
 
+	"github.com/intelsdilabs/pulse/core/ctypes"
 	"github.com/intelsdilabs/pulse/pkg/ctree"
 )
 
-type ConfigDataTree struct {
-	cTree *ctree.ConfigTree
-}
-
-func NewConfigDataTree() *ConfigDataTree {
-	return &ConfigDataTree{
-		cTree: ctree.New(),
-	}
-}
-
-func (c *ConfigDataTree) Add(ns []string, cdn *ConfigDataNode) {
-	c.cTree.Add(ns, cdn)
-}
-
-func (c *ConfigDataTree) Get(ns []string) *ConfigDataNode {
-	// Automatically freeze on first Get
-	if !c.cTree.Frozen() {
-		c.cTree.Freeze()
-	}
-
-	n := c.cTree.Get(ns)
-	if n == nil {
-		return nil
-	} else {
-		cd := n.(ConfigDataNode)
-		return &cd
-	}
-}
-
-func (c *ConfigDataTree) Freeze() {
-	c.cTree.Freeze()
-}
-
+// Represents a set of configuration data
 type ConfigDataNode struct {
 	mutex *sync.Mutex
-	table map[string]ConfigValue
+	table map[string]ctypes.ConfigValue
 }
 
-func NewConfigDataNode() *ConfigDataNode {
+// Returns a new and empty node.
+func NewNode() *ConfigDataNode {
 	return &ConfigDataNode{
 		mutex: new(sync.Mutex),
-		table: make(map[string]ConfigValue),
+		table: make(map[string]ctypes.ConfigValue),
 	}
 }
 
-func (c *ConfigDataNode) Table() map[string]ConfigValue {
+// Returns the table of configuration items [key(string) / value(core.ConfigValue)].
+func (c *ConfigDataNode) Table() map[string]ctypes.ConfigValue {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.table
 }
 
-func (c *ConfigDataNode) AddItem(k string, v ConfigValue) {
+// Adds an item to the ConfigDataNode.
+func (c *ConfigDataNode) AddItem(k string, v ctypes.ConfigValue) {
 	// And empty is a noop
 	if k == "" {
 		return
@@ -67,6 +39,7 @@ func (c *ConfigDataNode) AddItem(k string, v ConfigValue) {
 	c.table[k] = v
 }
 
+// Merges a ConfigDataNode on top of this one (overwriting items where it occurs).
 func (c ConfigDataNode) Merge(n ctree.Node) ctree.Node {
 	// Because Add only allows the ConfigDataNode type we
 	// are safe to convert ctree.Node interface to ConfigDataNode
