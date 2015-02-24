@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdilabs/pulse/core/cpolicy"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -220,30 +223,6 @@ func TestStop(t *testing.T) {
 
 }
 
-func TestSubscribeMetric(t *testing.T) {
-	Convey("adds a subscription", t, func() {
-		c := New()
-		c.SubscribeMetric([]string{"test", "foo"})
-		So(c.subscriptions.Count("test.foo"), ShouldEqual, 1)
-	})
-}
-
-func TestUnsubscribeMetric(t *testing.T) {
-	c := New()
-	Convey("When no error is returned", t, func() {
-		c.SubscribeMetric([]string{"test", "foo"})
-		Convey("it decrements a metric's subscriptions", func() {
-			c.UnsubscribeMetric([]string{"test", "foo"})
-			So(c.subscriptions.Count("test.foo"), ShouldEqual, 0)
-		})
-	})
-	Convey("When an error is returned", t, func() {
-		Convey("it panics", func() {
-			So(func() { c.UnsubscribeMetric([]string{"test", "bar"}) }, ShouldPanic)
-		})
-	})
-}
-
 func TestPluginCatalog(t *testing.T) {
 	ts := time.Now()
 
@@ -282,6 +261,101 @@ func TestPluginCatalog(t *testing.T) {
 
 }
 
+type mc struct {
+	e int
+}
+
+func (m *mc) Get(ns []string, ver int) (*metricType, error) {
+	if m.e == 1 {
+		return &metricType{
+			policy: &mockCDProc{},
+		}, nil
+	}
+	return nil, errMetricNotFound
+}
+
+func (m *mc) Subscribe(ns []string, ver int) error {
+	if ns[0] == "nf" {
+		return errMetricNotFound
+	}
+	return nil
+}
+
+func (m *mc) Unsubscribe(ns []string, ver int) error {
+	if ns[0] == "nf" {
+		return errMetricNotFound
+	}
+	if ns[0] == "neg" {
+		return errNegativeSubCount
+	}
+	return nil
+}
+
+func (m *mc) Add(*metricType)               {}
+func (m *mc) Table() map[string]*metricType { return map[string]*metricType{} }
+func (m *mc) Item() (string, *metricType)   { return "", &metricType{} }
+
+func (m *mc) Next() bool {
+	m.e = 1
+	return false
+}
+
+type mockCDProc struct {
+}
+
+func (m *mockCDProc) Process(in map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors) {
+	if _, ok := in["fail"]; ok {
+		pe := cpolicy.NewProcessingErrors()
+		pe.AddError(errors.New("test fail"))
+		return nil, pe
+	}
+	return &in, nil
+}
+
+func TestSubscribeMetric(t *testing.T) {
+	c := New()
+	mtrc := &mc{}
+	c.metricCatalog = mtrc
+	cd := cdata.NewNode()
+	Convey("does not return errors when metricCatalog.Subscribe() does not return an error", t, func() {
+		cd.AddItem("key", &ctypes.ConfigValueStr{"value"})
+		mtrc.e = 1
+		_, err := c.SubscribeMetric([]string{""}, -1, cd)
+		So(err, ShouldBeNil)
+	})
+	Convey("returns errors when metricCatalog.Subscribe() returns an error", t, func() {
+		mtrc.e = 0
+		_, err := c.SubscribeMetric([]string{"nf"}, -1, cd)
+		So(len(err.Errors()), ShouldEqual, 1)
+		So(err.Errors()[0], ShouldResemble, errMetricNotFound)
+	})
+	Convey("returns errors when processing fails", t, func() {
+		cd := cdata.NewNode()
+		cd.AddItem("fail", &ctypes.ConfigValueStr{"value"})
+		mtrc.e = 1
+		_, errs := c.SubscribeMetric([]string{""}, -1, cd)
+		So(len(errs.Errors()), ShouldEqual, 1)
+		So(errs.Errors()[0], ShouldResemble, errors.New("test fail"))
+	})
+
+}
+
+func TestUnsubscribeMetric(t *testing.T) {
+	c := New()
+	c.metricCatalog = &mc{}
+	Convey("When an error is returned", t, func() {
+		Convey("it panics", func() {
+			So(func() { c.UnsubscribeMetric([]string{"nf"}, -1) }, ShouldPanic)
+			So(func() { c.UnsubscribeMetric([]string{"neg"}, -1) }, ShouldPanic)
+		})
+	})
+	Convey("When no error is returned", t, func() {
+		Convey("it doesn't panic", func() {
+			So(func() { c.UnsubscribeMetric([]string{"hello"}, -1) }, ShouldNotPanic)
+		})
+	})
+}
+
 func TestResolvePlugin(t *testing.T) {
 	Convey(".resolvePlugin()", t, func() {
 		c := New()
@@ -289,12 +363,12 @@ func TestResolvePlugin(t *testing.T) {
 		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
 		c.metricCatalog.Add(mt)
 		Convey("it resolves the plugin", func() {
-			p, err := c.resolvePlugin([]string{"foo", "bar"})
+			p, err := c.resolvePlugin([]string{"foo", "bar"}, -1)
 			So(err, ShouldBeNil)
 			So(p, ShouldEqual, lp)
 		})
 		Convey("it returns an error if the metricType cannot be found", func() {
-			p, err := c.resolvePlugin([]string{"baz", "qux"})
+			p, err := c.resolvePlugin([]string{"baz", "qux"}, -1)
 			So(p, ShouldBeNil)
 			So(err, ShouldResemble, errors.New("metric not found"))
 		})
@@ -315,32 +389,12 @@ func TestExportedMetricCatalog(t *testing.T) {
 	})
 }
 
-type mc struct {
-	e int
-}
-
-func (m *mc) Get([]string) (*metricType, error) {
-	if m.e == 1 {
-		return &metricType{}, nil
-	}
-	return nil, metricNotFound
-}
-
-func (m *mc) Add(*metricType)               {}
-func (m *mc) Table() map[string]*metricType { return map[string]*metricType{} }
-func (m *mc) Item() (string, *metricType)   { return "", &metricType{} }
-
-func (m *mc) Next() bool {
-	m.e = 1
-	return false
-}
-
 func TestMetricExists(t *testing.T) {
 	Convey("MetricExists()", t, func() {
 		c := New()
 		c.metricCatalog = &mc{}
-		So(c.MetricExists([]string{"hi"}), ShouldEqual, false)
+		So(c.MetricExists([]string{"hi"}, -1), ShouldEqual, false)
 		c.metricCatalog.Next()
-		So(c.MetricExists([]string{"hi"}), ShouldEqual, true)
+		So(c.MetricExists([]string{"hi"}, -1), ShouldEqual, true)
 	})
 }
