@@ -4,6 +4,9 @@ import (
 	"errors"
 	"strings"
 	"sync"
+
+	"github.com/intelsdilabs/pulse/core/cpolicy"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
 var (
@@ -21,7 +24,7 @@ type metricType struct {
 }
 
 type processesConfigData interface {
-	//Process(map[string]cdata.ConfigValue) (*map[string]cdata.ConfigValue, *cpolicy.ProcessingErrors)
+	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
 }
 
 func newMetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
@@ -30,6 +33,7 @@ func newMetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
 
 		namespace:               ns,
 		lastAdvertisedTimestamp: last,
+		policy:                  cpolicy.NewPolicyNode(),
 	}
 }
 

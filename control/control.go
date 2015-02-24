@@ -8,6 +8,7 @@ import (
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
@@ -47,6 +48,19 @@ type catalogsMetrics interface {
 	Subscribe([]string, int) error
 	Unsubscribe([]string, int) error
 }
+
+// an interface used to polymorph the return from
+// SubscribeMetric.  Processing config data returns
+// a type which holds a collection of errors.
+type SubscriptionError interface {
+	Errors() []error
+}
+
+type subGetError struct {
+	errs []error
+}
+
+func (s *subGetError) Errors() []error { return s.errs }
 
 // Returns a new pluginControl instance
 func New() *pluginControl {
@@ -146,18 +160,22 @@ func (p *pluginControl) generateArgs() plugin.Arg {
 	return a
 }
 
-// subscribes a metric
-func (p *pluginControl) SubscribeMetric(metric []string, ver int) error {
+// SubscribeMetric validates the given config data, and if valid
+// returns subscribes to the metric.  The return is a collection of errors
+// either from config data processing, or the inability to find the metric.
+func (p *pluginControl) SubscribeMetric(metric []string, ver int, cd *cdata.ConfigDataNode) (*cdata.ConfigDataNode, SubscriptionError) {
 
 	m, err := p.metricCatalog.Get(metric, ver)
 	if err != nil {
-		return err
+		return nil, &subGetError{errs: []error{err}}
 	}
 
-	//ncd, errs := m.policy.Process(cd)
-	//if errs.HasErrors() {
-	//	return errs
-	//}
+	ncdTable, errs := m.policy.Process(cd.Table())
+	if errs != nil && errs.HasErrors() {
+		return nil, errs
+	}
+
+	ncd := cdata.FromTable(*ncdTable)
 
 	m.Subscribe()
 
@@ -166,7 +184,7 @@ func (p *pluginControl) SubscribeMetric(metric []string, ver int) error {
 	}
 	defer p.eventManager.Emit(e)
 
-	return nil
+	return ncd, nil
 }
 
 // unsubscribes a metric
