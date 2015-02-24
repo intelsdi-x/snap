@@ -1,5 +1,9 @@
 package schedule
 
+import (
+	"time"
+)
+
 type Schedule interface {
-	Wait() chan struct{}
+	Wait(time.Time) chan struct{}
 }

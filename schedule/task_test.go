@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -10,7 +11,7 @@ type MockSchedule struct {
 	tick chan struct{}
 }
 
-func (m *MockSchedule) Wait() chan struct{} {
+func (m *MockSchedule) Wait(t time.Time) chan struct{} {
 	return m.tick
 }
 

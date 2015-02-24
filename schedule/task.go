@@ -1,12 +1,16 @@
 package schedule
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type Task struct {
-	killChan chan struct{}
-	schedule Schedule
-	mu       sync.Mutex //protects state
-	state    TaskState
+	killChan     chan struct{}
+	schedule     Schedule
+	mu           sync.Mutex //protects state
+	state        TaskState
+	creationTime time.Time
 }
 
 type TaskState int
@@ -20,9 +24,10 @@ const (
 
 func NewTask(s Schedule) *Task {
 	return &Task{
-		killChan: make(chan struct{}),
-		schedule: s,
-		state:    TaskStopped,
+		killChan:     make(chan struct{}),
+		schedule:     s,
+		state:        TaskStopped,
+		creationTime: time.Now(),
 	}
 }
 
@@ -32,7 +37,7 @@ func (t *Task) Spin() {
 		go func(kc <-chan struct{}) {
 			for {
 				select {
-				case <-t.schedule.Wait():
+				case <-t.schedule.Wait(t.creationTime):
 					t.fire()
 				case <-kc:
 					break
