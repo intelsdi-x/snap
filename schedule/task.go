@@ -1,12 +1,18 @@
 package schedule
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/intelsdilabs/pulse/core"
+)
 
 type Task struct {
-	killChan chan struct{}
-	schedule Schedule
-	mu       sync.Mutex //protects state
-	state    TaskState
+	killChan    chan struct{}
+	schedule    Schedule
+	workflow    Workflow
+	metricTypes []core.MetricType
+	mu          sync.Mutex //protects state
+	state       TaskState
 }
 
 type TaskState int
@@ -23,6 +29,7 @@ func NewTask(s Schedule) *Task {
 		killChan: make(chan struct{}),
 		schedule: s,
 		state:    TaskStopped,
+		workflow: NewWorkflow(),
 	}
 }
 
@@ -62,6 +69,7 @@ func (t *Task) fire() {
 
 	//routine fires to get work done (and waits and then updates state)
 	go func() {
+		t.workflow.Start(t.metricTypes, WorkDispatcher)
 		t.mu.Lock()
 		if t.state == TaskFiring {
 			t.state = TaskSpinning
