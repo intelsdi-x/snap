@@ -238,8 +238,10 @@ func (p *pluginControl) PluginCatalog() PluginCatalog {
 func (p *pluginControl) MetricCatalog() []core.MetricType {
 	var c []core.MetricType
 	for p.metricCatalog.Next() {
-		_, mt := p.metricCatalog.Item()
-		c = append(c, mt)
+		_, mts := p.metricCatalog.Item()
+		for _, mt := range mts {
+			c = append(c, mt)
+		}
 	}
 	return c
 }
