@@ -16,9 +16,8 @@ type Schedule interface {
 
 type ScheduleState int
 
-type ScheduleResponse struct {
-	State                   ScheduleState
-	Error                   error
-	Waited                  time.Duration
-	PreviousMissedIntervals int
+type ScheduleResponse interface {
+	State() ScheduleState
+	Error() error
+	MissedIntervals() []time.Time
 }

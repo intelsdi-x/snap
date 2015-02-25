@@ -11,12 +11,27 @@ type MockSchedule struct {
 	tick bool
 }
 
+type MockScheduleResponse struct {
+}
+
+func (m MockScheduleResponse) State() ScheduleState {
+	return ScheduleActive
+}
+
+func (m MockScheduleResponse) Error() error {
+	return nil
+}
+
+func (m MockScheduleResponse) MissedIntervals() []time.Time {
+	return []time.Time{}
+}
+
 func (m *MockSchedule) Wait(t time.Time) ScheduleResponse {
 	for !m.tick {
 		time.Sleep(time.Millisecond * 100)
 	}
 	m.tick = false
-	return ScheduleResponse{State: ScheduleActive}
+	return MockScheduleResponse{}
 }
 
 func (m *MockSchedule) Tick() {

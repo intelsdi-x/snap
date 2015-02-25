@@ -62,7 +62,7 @@ func (t *Task) spin() {
 		select {
 		case sr := <-t.schResponseChan:
 			// If response show this schedule is stil active we fire
-			if sr.State == ScheduleActive {
+			if sr.State() == ScheduleActive {
 				t.fire()
 			}
 			// TODO stop task on schedule error state or end state
