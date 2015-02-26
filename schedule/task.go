@@ -12,6 +12,7 @@ type Task struct {
 	mu              sync.Mutex //protects state
 	state           TaskState
 	creationTime    time.Time
+	lastFireTime    time.Time
 }
 
 type TaskState int
@@ -30,6 +31,7 @@ func NewTask(s Schedule) *Task {
 		schedule:        s,
 		state:           TaskStopped,
 		creationTime:    time.Now(),
+		lastFireTime:    time.Now(),
 	}
 }
 
@@ -63,6 +65,7 @@ func (t *Task) spin() {
 		case sr := <-t.schResponseChan:
 			// If response show this schedule is stil active we fire
 			if sr.State() == ScheduleActive {
+				t.lastFireTime = time.Now()
 				t.fire()
 			}
 			// TODO stop task on schedule error state or end state
@@ -86,5 +89,5 @@ func (t *Task) fire() {
 }
 
 func (t *Task) waitForSchedule() {
-	t.schResponseChan <- t.schedule.Wait(t.creationTime)
+	t.schResponseChan <- t.schedule.Wait(t.lastFireTime)
 }
