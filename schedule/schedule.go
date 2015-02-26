@@ -19,5 +19,5 @@ type ScheduleState int
 type ScheduleResponse interface {
 	State() ScheduleState
 	Error() error
-	MissedIntervals() []time.Time
+	MissedIntervals() int
 }
