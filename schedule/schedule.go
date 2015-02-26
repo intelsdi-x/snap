@@ -1,5 +1,23 @@
 package schedule
 
+import (
+	"time"
+)
+
+const (
+	ScheduleActive ScheduleState = iota
+	ScheduleEnded
+	ScheduleError
+)
+
 type Schedule interface {
-	Wait() chan struct{}
+	Wait(time.Time) ScheduleResponse
+}
+
+type ScheduleState int
+
+type ScheduleResponse interface {
+	State() ScheduleState
+	Error() error
+	MissedIntervals() int
 }
