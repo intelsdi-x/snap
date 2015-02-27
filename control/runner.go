@@ -34,7 +34,7 @@ type runner struct {
 
 func newRunner() *runner {
 	r := &runner{
-		monitor:          newMonitor(-1),
+		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(),
 	}
 	return r

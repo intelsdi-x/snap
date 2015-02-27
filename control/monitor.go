@@ -1,8 +1,6 @@
 package control
 
-import (
-	"time"
-)
+import "time"
 
 const (
 	MonitorStopped monitorState = iota - 1 // default is stopped
@@ -20,14 +18,30 @@ type monitor struct {
 	quit     chan struct{}
 }
 
-func newMonitor(dur time.Duration) *monitor {
-	if dur < 0 {
-		dur = DefaultMonitorDuration
-	}
-	return &monitor{
-		State: MonitorStopped,
+type option func(m *monitor) option
 
-		duration: dur,
+// Option sets the options specified.
+// Returns an option to optionally restore the last arg's previous value.
+func (m *monitor) Option(opts ...option) (previous option) {
+	for _, opt := range opts {
+		previous = opt(m)
+	}
+	return previous
+}
+
+// MonitorDuration sets monitor's duration to v.
+func MonitorDuration(v time.Duration) option {
+	return func(m *monitor) option {
+		previous := m.duration
+		m.duration = v
+		return MonitorDuration(previous)
+	}
+}
+
+func newMonitor() *monitor {
+	return &monitor{
+		State:    MonitorStopped,
+		duration: DefaultMonitorDuration,
 	}
 }
 
