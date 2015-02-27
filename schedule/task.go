@@ -3,12 +3,16 @@ package schedule
 import (
 	"sync"
 	"time"
+
+	"github.com/intelsdilabs/pulse/core"
 )
 
 type Task struct {
 	schResponseChan chan ScheduleResponse
 	killChan        chan struct{}
 	schedule        Schedule
+	workflow        Workflow
+	metricTypes     []core.MetricType
 	mu              sync.Mutex //protects state
 	state           TaskState
 	creationTime    time.Time
@@ -32,7 +36,12 @@ func NewTask(s Schedule) *Task {
 		state:           TaskStopped,
 		creationTime:    time.Now(),
 		lastFireTime:    time.Now(),
+		workflow:        NewWorkflow(),
 	}
+}
+
+func (t *Task) MetricTypes() []core.MetricType {
+	return t.metricTypes
 }
 
 func (t *Task) Spin() {
@@ -81,10 +90,8 @@ func (t *Task) fire() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// eventual worker manager goes here
-	// simulate work by just a 500ms sleep
 	t.state = TaskFiring
-	time.Sleep(time.Millisecond * 500)
+	t.workflow.Start(t, WorkManager)
 	t.state = TaskSpinning
 }
 
