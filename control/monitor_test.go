@@ -21,12 +21,13 @@ func TestMonitor(t *testing.T) {
 		aps := newAvailablePlugins()
 
 		ap1 := &availablePlugin{
-			Type:    plugin.CollectorPluginType,
-			Version: 1,
-			Name:    "test",
-			Client:  &mockPluginClient{},
+			Type:       plugin.CollectorPluginType,
+			Version:    1,
+			Name:       "test",
+			Client:     new(MockUnhealthyPluginCollectorClient),
+			healthChan: make(chan error, 1),
 
-			eventManager: &gomit.EventController{},
+			eventManager: gomit.NewEventController(),
 		}
 		ap1.makeKey()
 		aps.Insert(ap1)
@@ -54,21 +55,37 @@ func TestMonitor(t *testing.T) {
 		aps.Insert(ap3)
 
 		Convey("newMonitor", func() {
-			m := newMonitor(time.Duration(-1))
+			m := newMonitor()
 			So(m, ShouldHaveSameTypeAs, &monitor{})
 		})
 		Convey("start", func() {
-			m := newMonitor(1 * time.Second)
+			m := newMonitor()
+			m.Option(MonitorDuration(time.Millisecond * 200))
 			m.Start(aps)
+
 			So(m.State, ShouldEqual, MonitorStarted)
 			time.Sleep(1 * time.Second)
+			Convey("health monitor", func() {
+				for aps.Collectors.Next() {
+					_, item := aps.Collectors.Item()
+					So(item, ShouldNotBeNil)
+					So((*item)[0].failedHealthChecks, ShouldBeGreaterThan, 3)
+				}
+			})
 		})
 		Convey("stop", func() {
-			m := newMonitor(time.Duration(-1))
+			m := newMonitor()
 			m.Start(aps)
 			So(m.State, ShouldEqual, MonitorStarted)
 			m.Stop()
 			So(m.State, ShouldEqual, MonitorStopped)
+		})
+		Convey("override MonitorDuration", func() {
+			m := newMonitor()
+			oldOpt := m.Option(MonitorDuration(time.Millisecond * 200))
+			So(m.duration, ShouldResemble, time.Millisecond*200)
+			m.Option(oldOpt)
+			So(m.duration, ShouldResemble, time.Second*60)
 		})
 	})
 }
