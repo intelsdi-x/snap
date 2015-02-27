@@ -21,12 +21,13 @@ func TestMonitor(t *testing.T) {
 		aps := newAvailablePlugins()
 
 		ap1 := &availablePlugin{
-			Type:    plugin.CollectorPluginType,
-			Version: 1,
-			Name:    "test",
-			Client:  &mockPluginClient{},
+			Type:       plugin.CollectorPluginType,
+			Version:    1,
+			Name:       "test",
+			Client:     new(MockUnhealthyPluginCollectorClient),
+			healthChan: make(chan error, 1),
 
-			eventManager: &gomit.EventController{},
+			eventManager: gomit.NewEventController(),
 		}
 		ap1.makeKey()
 		aps.Insert(ap1)
@@ -59,8 +60,18 @@ func TestMonitor(t *testing.T) {
 		})
 		Convey("start", func() {
 			m := newMonitor()
+			m.Option(MonitorDuration(time.Millisecond * 200))
 			m.Start(aps)
+
 			So(m.State, ShouldEqual, MonitorStarted)
+			time.Sleep(1 * time.Second)
+			Convey("health monitor", func() {
+				for aps.Collectors.Next() {
+					_, item := aps.Collectors.Item()
+					So(item, ShouldNotBeNil)
+					So((*item)[0].failedHealthChecks, ShouldBeGreaterThan, 3)
+				}
+			})
 		})
 		Convey("stop", func() {
 			m := newMonitor()

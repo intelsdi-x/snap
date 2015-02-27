@@ -22,7 +22,8 @@ type option func(m *monitor) option
 
 // Option sets the options specified.
 // Returns an option to optionally restore the last arg's previous value.
-func (m *monitor) Option(opts ...option) (previous option) {
+func (m *monitor) Option(opts ...option) option {
+	var previous option
 	for _, opt := range opts {
 		previous = opt(m)
 	}
