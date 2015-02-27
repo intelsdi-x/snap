@@ -4,15 +4,27 @@ import (
 	"errors"
 	"strings"
 	"sync"
+
+	"github.com/intelsdilabs/pulse/core/cpolicy"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
-var metricNotFound = errors.New("metric not found")
+var (
+	errMetricNotFound   = errors.New("metric not found")
+	errNegativeSubCount = errors.New("subscription count cannot be < 0")
+)
 
 type metricType struct {
 	Plugin *loadedPlugin
 
 	namespace               []string
 	lastAdvertisedTimestamp int64
+	subscriptions           int
+	policy                  processesConfigData
+}
+
+type processesConfigData interface {
+	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
 }
 
 func newMetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
@@ -21,6 +33,7 @@ func newMetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
 
 		namespace:               ns,
 		lastAdvertisedTimestamp: last,
+		policy:                  cpolicy.NewPolicyNode(),
 	}
 }
 
@@ -30,6 +43,22 @@ func (m *metricType) Namespace() []string {
 
 func (m *metricType) LastAdvertisedTimestamp() int64 {
 	return m.lastAdvertisedTimestamp
+}
+
+func (m *metricType) Subscribe() {
+	m.subscriptions++
+}
+
+func (m *metricType) Unsubscribe() error {
+	if m.subscriptions == 0 {
+		return errNegativeSubCount
+	}
+	m.subscriptions--
+	return nil
+}
+
+func (m *metricType) SubscriptionCount() int {
+	return m.subscriptions
 }
 
 type metricCatalog struct {
@@ -78,27 +107,11 @@ func (mc *metricCatalog) Table() map[string]*metricType {
 }
 
 // used to transactionally retrieve a loadedPlugin pointer from the table
-func (mc *metricCatalog) Get(ns []string) (*metricType, error) {
+func (mc *metricCatalog) Get(ns []string, version int) (*metricType, error) {
 	mc.Lock()
 	defer mc.Unlock()
-
 	key := getMetricKey(ns)
-	var (
-		ok bool
-		m  *[]*metricType
-		l  *metricType
-	)
-	if m, ok = (*mc.table)[key]; !ok {
-		return nil, metricNotFound
-	}
-
-	if len(*m) > 1 {
-		l = getLatest(m)
-	} else {
-		l = (*m)[0]
-	}
-
-	return l, nil
+	return mc.get(key, version)
 }
 
 // used to lock the plugin table externally,
@@ -137,6 +150,67 @@ func (mc *metricCatalog) Next() bool {
 	return true
 }
 
+// Subscribe atomically increments a metric's subscription count in the table.
+func (mc *metricCatalog) Subscribe(ns []string, version int) error {
+	key := getMetricKey(ns)
+
+	mc.Lock()
+	defer mc.Unlock()
+
+	m, err := mc.get(key, version)
+	if err != nil {
+		return err
+	}
+
+	m.Subscribe()
+	return nil
+}
+
+// Unsubscribe atomically decrements a metric's count in the table
+func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
+	key := getMetricKey(ns)
+
+	mc.Lock()
+	defer mc.Unlock()
+
+	m, err := mc.get(key, version)
+	if err != nil {
+		return err
+	}
+
+	return m.Unsubscribe()
+}
+
+func (mc *metricCatalog) get(key string, ver int) (*metricType, error) {
+	var (
+		ok bool
+		m  *[]*metricType
+	)
+	if m, ok = (*mc.table)[key]; !ok {
+		return nil, errMetricNotFound
+	}
+
+	// handle cases where there are multiple versions of a metric type
+	if len(*m) > 1 {
+
+		// a version IS given
+		if ver >= 0 {
+			l, err := getVersion(m, ver)
+			if err != nil {
+				return nil, err
+			}
+			return l, nil
+		}
+
+		// multiple versions, but -1 was given for the version
+		// meaning, just get the lastest
+		return getLatest(m), nil
+	}
+
+	// only one metric type to return, so get it
+	return (*m)[0], nil
+}
+
 func getMetricKey(metric []string) string {
 	return strings.Join(metric, ".")
 }
@@ -160,4 +234,13 @@ func sort(c *[]*metricType) {
 
 func getLatest(c *[]*metricType) *metricType {
 	return (*c)[len(*c)-1]
+}
+
+func getVersion(c *[]*metricType, ver int) (*metricType, error) {
+	for _, m := range *c {
+		if m.Plugin.Version() == ver {
+			return m, nil
+		}
+	}
+	return nil, errMetricNotFound
 }

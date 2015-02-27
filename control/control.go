@@ -8,6 +8,7 @@ import (
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
@@ -28,7 +29,6 @@ type pluginControl struct {
 	controlPrivKey *rsa.PrivateKey
 	controlPubKey  *rsa.PublicKey
 	eventManager   *gomit.EventController
-	subscriptions  *subscriptions
 	pluginManager  managesPlugins
 	metricCatalog  catalogsMetrics
 }
@@ -40,18 +40,34 @@ type managesPlugins interface {
 }
 
 type catalogsMetrics interface {
-	Get([]string) (*metricType, error)
+	Get([]string, int) (*metricType, error)
 	Add(*metricType)
 	Table() map[string]*metricType
 	Item() (string, *metricType)
 	Next() bool
+	Subscribe([]string, int) error
+	Unsubscribe([]string, int) error
+}
+
+// an interface used to polymorph the return from
+// SubscribeMetric.  Processing config data returns
+// a type which holds a collection of errors.
+type SubscriptionError interface {
+	Errors() []error
+}
+
+type subGetError struct {
+	errs []error
+}
+
+func (s *subGetError) Errors() []error {
+	return s.errs
 }
 
 // Returns a new pluginControl instance
 func New() *pluginControl {
 	c := &pluginControl{
 		eventManager:  gomit.NewEventController(),
-		subscriptions: newSubscriptionsTable(),
 		pluginManager: newPluginManager(),
 		metricCatalog: newMetricCatalog(),
 	}
@@ -146,20 +162,36 @@ func (p *pluginControl) generateArgs() plugin.Arg {
 	return a
 }
 
-// subscribes a metric
-func (p *pluginControl) SubscribeMetric(metric []string) {
-	key := getMetricKey(metric)
-	p.subscriptions.Subscribe(key)
+// SubscribeMetric validates the given config data, and if valid
+// returns subscribes to the metric.  The return is a collection of errors
+// either from config data processing, or the inability to find the metric.
+func (p *pluginControl) SubscribeMetric(metric []string, ver int, cd *cdata.ConfigDataNode) (*cdata.ConfigDataNode, SubscriptionError) {
+
+	m, err := p.metricCatalog.Get(metric, ver)
+	if err != nil {
+		return nil, &subGetError{errs: []error{err}}
+	}
+
+	ncdTable, errs := m.policy.Process(cd.Table())
+	if errs != nil && errs.HasErrors() {
+		return nil, errs
+	}
+
+	ncd := cdata.FromTable(*ncdTable)
+
+	m.Subscribe()
+
 	e := &control_event.MetricSubscriptionEvent{
 		MetricNamespace: metric,
 	}
-	p.eventManager.Emit(e)
+	defer p.eventManager.Emit(e)
+
+	return ncd, nil
 }
 
 // unsubscribes a metric
-func (p *pluginControl) UnsubscribeMetric(metric []string) {
-	key := getMetricKey(metric)
-	err := p.subscriptions.Unsubscribe(key)
+func (p *pluginControl) UnsubscribeMetric(metric []string, ver int) {
+	err := p.metricCatalog.Unsubscribe(metric, ver)
 	if err != nil {
 		// panic because if a metric falls below 0, something bad has happened
 		panic(err.Error())
@@ -170,8 +202,8 @@ func (p *pluginControl) UnsubscribeMetric(metric []string) {
 	p.eventManager.Emit(e)
 }
 
-func (p *pluginControl) resolvePlugin(mns []string) (*loadedPlugin, error) {
-	m, err := p.metricCatalog.Get(mns)
+func (p *pluginControl) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
+	m, err := p.metricCatalog.Get(mns, ver)
 	if err != nil {
 		return nil, err
 	}
@@ -212,8 +244,8 @@ func (p *pluginControl) MetricCatalog() []core.MetricType {
 	return c
 }
 
-func (p *pluginControl) MetricExists(mns []string) bool {
-	_, err := p.metricCatalog.Get(mns)
+func (p *pluginControl) MetricExists(mns []string, ver int) bool {
+	_, err := p.metricCatalog.Get(mns, ver)
 	if err == nil {
 		return true
 	}
