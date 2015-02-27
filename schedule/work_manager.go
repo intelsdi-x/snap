@@ -5,20 +5,17 @@ import "github.com/intelsdilabs/pulse/core"
 // Job interface
 type Job interface {
 	Errors() []error
-	Metrics() []core.Metric
-}
-
-// NewJob taking []core.MetricType creates and returns a Job
-func NewJob(metricTypes []core.MetricType) Job {
-	return &job{
-		metricTypes: metricTypes,
-	}
 }
 
 type job struct {
-	errors      []error
-	metrics     []core.Metric
-	metricTypes []core.MetricType
+	errors []error
+}
+
+// NewJob taking []core.MetricType creates and returns a Job
+func NewCollectorJob(metricTypes []core.MetricType) Job {
+	return &collectorJob{
+		metricTypes: metricTypes,
+	}
 }
 
 // Errors returns the errors that have occured
@@ -26,21 +23,33 @@ func (c *job) Errors() []error {
 	return c.errors
 }
 
+// CollectorJob interface
+type CollectorJob interface {
+	Job
+	Metrics() []core.Metric
+}
+
+type collectorJob struct {
+	job
+	metrics     []core.Metric
+	metricTypes []core.MetricType
+}
+
 // Metrics returns the metrics
-func (c *job) Metrics() []core.Metric {
+func (c *collectorJob) Metrics() []core.Metric {
 	return c.metrics
 }
 
 // WorkerManager provides a method to get work done
-type WorkManager interface {
+type ManagesWork interface {
 	Work(Job) Job
 }
 
-type workManager struct {
+type managesWork struct {
 }
 
 // Work dispatch jobs to worker pools for processing
-func (w *workManager) Work(j Job) Job {
+func (w *managesWork) Work(j Job) Job {
 	respChan := make(chan Job)
 	go func() {
 		//TODO send work to worker queue and wait for result
@@ -51,4 +60,4 @@ func (w *workManager) Work(j Job) Job {
 }
 
 // WorkDispatcher
-var WorkDispatcher *workManager = new(workManager)
+var WorkDispatcher *managesWork = new(managesWork)

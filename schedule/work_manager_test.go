@@ -3,17 +3,19 @@ package schedule
 import (
 	"testing"
 
+	"github.com/intelsdilabs/pulse/core"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestWorkerManager(t *testing.T) {
 	Convey("WorkerManager", t, func() {
-		manager := new(workManager)
+		manager := new(managesWork)
 		Convey("Work", func() {
-			var job Job = new(job)
+			metricTypes := make([]core.MetricType, 0)
+			job := NewCollectorJob(metricTypes)
 			job = manager.Work(job)
 			So(job.Errors(), ShouldBeNil)
-			So(job.Metrics(), ShouldBeNil)
+			So(job.(CollectorJob).Metrics(), ShouldBeNil)
 		})
 	})
 }

@@ -11,7 +11,7 @@ const (
 )
 
 type Workflow interface {
-	Start(metricTypes []core.MetricType, workManager WorkManager)
+	Start(task *Task, managesWork ManagesWork)
 	State() workflowState
 }
 
@@ -33,9 +33,9 @@ func (w *workflow) State() workflowState {
 }
 
 // Start starts a workflow
-func (w *workflow) Start(metricTypes []core.MetricType, manager WorkManager) {
+func (w *workflow) Start(task *Task, manager ManagesWork) {
 	w.state = WorkflowStarted
-	job := w.rootStep.CreateJob(metricTypes)
+	job := w.rootStep.CreateJob(task.MetricTypes())
 
 	// dispatch 'collect' job to be worked
 	job = manager.Work(job)
@@ -46,7 +46,7 @@ func (w *workflow) Start(metricTypes []core.MetricType, manager WorkManager) {
 	}
 }
 
-func (w *workflow) processStep(step Step, job Job, manager WorkManager) {
+func (w *workflow) processStep(step Step, job Job, manager ManagesWork) {
 	//do work for current step
 	job = step.CreateJob(job)
 	job = manager.Work(job)
@@ -107,5 +107,5 @@ type collectorStep struct {
 }
 
 func (c *collectorStep) CreateJob(metricTypes []core.MetricType) Job {
-	return NewJob(metricTypes)
+	return NewCollectorJob(metricTypes)
 }

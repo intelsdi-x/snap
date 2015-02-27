@@ -33,6 +33,10 @@ func NewTask(s Schedule) *Task {
 	}
 }
 
+func (t *Task) MetricTypes() []core.MetricType {
+	return t.metricTypes
+}
+
 func (t *Task) Spin() {
 	if t.state == TaskStopped {
 		t.state = TaskSpinning
@@ -69,7 +73,7 @@ func (t *Task) fire() {
 
 	//routine fires to get work done (and waits and then updates state)
 	go func() {
-		t.workflow.Start(t.metricTypes, WorkDispatcher)
+		t.workflow.Start(t, WorkDispatcher)
 		t.mu.Lock()
 		if t.state == TaskFiring {
 			t.state = TaskSpinning
