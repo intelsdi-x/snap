@@ -1,6 +1,10 @@
 package schedule
 
-import "github.com/intelsdilabs/pulse/core"
+import (
+	"time"
+
+	"github.com/intelsdilabs/pulse/core"
+)
 
 // Job interface
 type Job interface {
@@ -54,10 +58,12 @@ func (w *managesWork) Work(j Job) Job {
 	go func() {
 		//TODO send work to worker queue and wait for result
 		//results is sent back as a modified job
+		// simulate work by just a 500ms sleep
+		time.Sleep(time.Millisecond * 500)
 		respChan <- j
 	}()
 	return <-respChan
 }
 
-// WorkDispatcher
-var WorkDispatcher *managesWork = new(managesWork)
+// WorkManager
+var WorkManager *managesWork = new(managesWork)
