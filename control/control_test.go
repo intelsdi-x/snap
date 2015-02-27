@@ -291,9 +291,9 @@ func (m *mc) Unsubscribe(ns []string, ver int) error {
 	return nil
 }
 
-func (m *mc) Add(*metricType)               {}
-func (m *mc) Table() map[string]*metricType { return map[string]*metricType{} }
-func (m *mc) Item() (string, *metricType)   { return "", &metricType{} }
+func (m *mc) Add(*metricType)                 {}
+func (m *mc) Table() map[string][]*metricType { return map[string][]*metricType{} }
+func (m *mc) Item() (string, []*metricType)   { return "", []*metricType{} }
 
 func (m *mc) Next() bool {
 	m.e = 1

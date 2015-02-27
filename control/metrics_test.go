@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -21,6 +23,14 @@ func TestMetricType(t *testing.T) {
 			mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
 			So(mt.Namespace(), ShouldHaveSameTypeAs, ns)
 			So(mt.Namespace(), ShouldResemble, ns)
+		})
+	})
+	Convey("metricType.Version()", t, func() {
+		Convey("returns the namespace of a metricType", func() {
+			ns := []string{"test"}
+			lp := &loadedPlugin{Meta: plugin.PluginMeta{Version: 1}}
+			mt := newMetricType(ns, time.Now().Unix(), lp)
+			So(mt.Version(), ShouldEqual, 1)
 		})
 	})
 	Convey("metricType.LastAdvertisedTimestamp()", t, func() {
@@ -120,8 +130,8 @@ func TestMetricCatalog(t *testing.T) {
 			mc := newMetricCatalog()
 			mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), &loadedPlugin{})
 			mc.Add(mt)
-			So(mc.Table(), ShouldHaveSameTypeAs, map[string]*metricType{})
-			So(mc.Table()["foo.bar"], ShouldEqual, mt)
+			So(mc.Table(), ShouldHaveSameTypeAs, map[string][]*metricType{})
+			So(mc.Table()["foo.bar"], ShouldResemble, []*metricType{mt})
 		})
 	})
 	Convey("metricCatalog.Remove()", t, func() {
@@ -171,14 +181,14 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Next()
 			key, item := mc.Item()
 			So(key, ShouldEqual, getMetricKey(ns[0]))
-			So(item, ShouldResemble, mt[0])
+			So(item, ShouldResemble, []*metricType{mt[0]})
 		})
 		Convey("return second key and item in table", func() {
 			mc.Next()
 			mc.Next()
 			key, item := mc.Item()
 			So(key, ShouldEqual, getMetricKey(ns[1]))
-			So(item, ShouldResemble, mt[1])
+			So(item, ShouldResemble, []*metricType{mt[1]})
 		})
 		Convey("return third key and item in table", func() {
 			mc.Next()
@@ -186,7 +196,7 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Next()
 			key, item := mc.Item()
 			So(key, ShouldEqual, getMetricKey(ns[2]))
-			So(item, ShouldResemble, mt[2])
+			So(item, ShouldResemble, []*metricType{mt[2]})
 		})
 	})
 }

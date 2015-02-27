@@ -102,10 +102,10 @@ func (mc *metricCatalog) Add(m *metricType) {
 }
 
 // returns a copy of the table
-func (mc *metricCatalog) Table() map[string]*metricType {
-	var m = map[string]*metricType{}
+func (mc *metricCatalog) Table() map[string][]*metricType {
+	var m = map[string][]*metricType{}
 	for k, v := range *mc.table {
-		m[k] = getLatest(v)
+		m[k] = *v
 	}
 	return m
 }
@@ -138,7 +138,7 @@ func (mc *metricCatalog) Remove(ns []string) {
 // to be used when iterating over the table
 func (mc *metricCatalog) Item() (string, []*metricType) {
 	key := (*mc.keys)[mc.currentIter-1]
-	return key, (*mc.table)[key]
+	return key, *(*mc.table)[key]
 }
 
 // Returns true until the "end" of the table is reached.

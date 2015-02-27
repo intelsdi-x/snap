@@ -42,8 +42,7 @@ type managesPlugins interface {
 type catalogsMetrics interface {
 	Get([]string, int) (*metricType, error)
 	Add(*metricType)
-	Table() map[string]*metricType
-	Item() (string, *metricType)
+	Item() (string, []*metricType)
 	Next() bool
 	Subscribe([]string, int) error
 	Unsubscribe([]string, int) error
