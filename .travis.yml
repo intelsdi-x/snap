@@ -1,8 +1,9 @@
 sudo: false
 language: go
 go:
-- 1.3.1
 - 1.4
+rvm:
+- stable
 before_install:
 - cp .netrc ~
 - chmod 600 .netrc
@@ -13,7 +14,6 @@ before_install:
 - go get golang.org/x/tools/cmd/goimports
 - go get github.com/smartystreets/goconvey/convey
 - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
-- apt-get install rubygems
 - gem install facter
 env:
   global:
@@ -25,6 +25,3 @@ install:
 - make
 script:
 - ./scripts/test.sh 2>&1 # Run test suite
-notifications:
-  slack:
-    secure: VkbZLIc2RH8yf3PtIAxUNPdAu3rQQ7yQx0GcK124JhbEnZGaHyK615V0rbG7HcVmYKGPdB0cXqZiLBDKGqGKb2zR1NepOe1nF03jxGSpPq8jIFeEXSJGEYGL34ScDzZZGuG6qwbjFcXiW5lqn6t8igzp7v2+URYBaZo5ktCS2xY=
