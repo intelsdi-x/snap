@@ -6,22 +6,31 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path"
+	//	"path/filepath"
 	"runtime"
 	"syscall"
-	//	"path"
-	//	"path/filepath"
 	//	"time"
 
-	//	"github.com/intelsdilabs/pulse/control"
+	"github.com/intelsdilabs/pulse/control"
 )
 
+var (
+	// PulsePath is the local file path to a pulse build
+	PulsePath = os.Getenv("PULSE_PATH")
+	// CollectorPath is the path to collector plugins within a pulse build
+	CollectorPath = path.Join(PulsePath, "plugin", "collector")
+)
+
+// Pulse Flags for command line
 var version = flag.Bool("version", false, "print Pulse version")
 var maxProcs = flag.Int("max_procs", 0, "max number of CPUs that can be used simultaneously. Default is use all cores.")
 
-type PulseController struct{} //Will hold what modules start and stop
+//type PulseController struct {
+//	pluginController *control.New()
+//} //Will hold what modules start and stop
 
 func main() {
-	//TODO: Parse startup arguments for pulse
 	flag.Parse()
 	if *version {
 		//TODO: Pass in version during build
@@ -29,19 +38,23 @@ func main() {
 		os.Exit(0)
 	}
 
-	pc := &PulseController{}
+	defaultPlugins := discoverDefaultPlugins()
+
 	setMaxProcs()
 
 	//TODO: Start pulse modules
 
-	startInterruptHandling(pc)
+	startInterruptHandling()
 	select {} //run forever and ever
 }
 
 func setMaxProcs() {
 	var _maxProcs int
 	numProcs := runtime.NumCPU()
-	if *maxProcs == 0 {
+	if *maxProcs <= 0 {
+		if *maxProcs < 0 {
+			log.Printf("WARNING: max_procs set to less than zero. Setting GOMAXPROCS to %v", numProcs)
+		}
 		_maxProcs = numProcs
 	} else if *maxProcs > numProcs {
 		log.Printf("WARNING: Not allowed to set GOMAXPROCS above number of processors in system. Setting GOMAXPROCS to %v", numProcs)
@@ -55,11 +68,11 @@ func setMaxProcs() {
 	//Verify setting worked
 	actualNumProcs := runtime.GOMAXPROCS(0)
 	if actualNumProcs != _maxProcs {
-		log.Println("WARNING: Specified max procs of %v but using %v", _maxProcs, actualNumProcs)
+		log.Printf("WARNING: Specified max procs of %v but using %v", _maxProcs, actualNumProcs)
 	}
 }
 
-func startInterruptHandling(pc *PulseController) {
+func startInterruptHandling() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 
@@ -72,22 +85,22 @@ func startInterruptHandling(pc *PulseController) {
 	}()
 }
 
-//var (
-// PulsePath is the local file path to a pulse build
-//	PulsePath = os.Getenv("PULSE_PATH")
-// CollectorPath is the path to collector plugins within a pulse build
-//	CollectorPath = path.Join(PulsePath, "plugin", "collector")
-//)
+func discoverDefaultPlugins() []string {
+	if PulsePath == "" {
+		log.Fatalln("PULSE_PATH not set")
+	}
+	return nil
+}
 
-//func checkError(e error) {
-//	if e != nil {
-//		panic(e)
-//	}
-//}
+func checkError(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
 
-//func isExecutable(p os.FileMode) bool {
-//	return (p & 0111) != 0
-//}
+func isExecutable(p os.FileMode) bool {
+	return (p & 0111) != 0
+}
 
 //func main() {
 //	if PulsePath == "" {
