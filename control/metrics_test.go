@@ -13,14 +13,14 @@ import (
 func TestMetricType(t *testing.T) {
 	Convey("newMetricType()", t, func() {
 		Convey("returns a metricType", func() {
-			mt := newMetricType([]string{"test"}, time.Now().Unix(), new(loadedPlugin))
+			mt := newMetricType([]string{"test"}, time.Now(), new(loadedPlugin))
 			So(mt, ShouldHaveSameTypeAs, new(metricType))
 		})
 	})
 	Convey("metricType.Namespace()", t, func() {
 		Convey("returns the namespace of a metricType", func() {
 			ns := []string{"test"}
-			mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
+			mt := newMetricType(ns, time.Now(), new(loadedPlugin))
 			So(mt.Namespace(), ShouldHaveSameTypeAs, ns)
 			So(mt.Namespace(), ShouldResemble, ns)
 		})
@@ -29,16 +29,16 @@ func TestMetricType(t *testing.T) {
 		Convey("returns the namespace of a metricType", func() {
 			ns := []string{"test"}
 			lp := &loadedPlugin{Meta: plugin.PluginMeta{Version: 1}}
-			mt := newMetricType(ns, time.Now().Unix(), lp)
+			mt := newMetricType(ns, time.Now(), lp)
 			So(mt.Version(), ShouldEqual, 1)
 		})
 	})
 	Convey("metricType.LastAdvertisedTimestamp()", t, func() {
 		Convey("returns the LastAdvertisedTimestamp for the metricType", func() {
-			ts := time.Now().Unix()
+			ts := time.Now()
 			mt := newMetricType([]string{"test"}, ts, new(loadedPlugin))
-			So(mt.LastAdvertisedTimestamp(), ShouldHaveSameTypeAs, ts)
-			So(mt.LastAdvertisedTimestamp(), ShouldResemble, ts)
+			So(mt.LastAdvertisedTime(), ShouldHaveSameTypeAs, ts)
+			So(mt.LastAdvertisedTime(), ShouldResemble, ts)
 		})
 	})
 }
@@ -53,7 +53,7 @@ func TestMetricCatalog(t *testing.T) {
 	Convey("metricCatalog.Add()", t, func() {
 		Convey("adds a metricType to the metricCatalog", func() {
 			ns := []string{"test"}
-			mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
+			mt := newMetricType(ns, time.Now(), new(loadedPlugin))
 			mc := newMetricCatalog()
 			mc.Add(mt)
 			_mt, err := mc.Get(ns, -1)
@@ -63,7 +63,7 @@ func TestMetricCatalog(t *testing.T) {
 	})
 	Convey("metricCatalog.Get()", t, func() {
 		mc := newMetricCatalog()
-		ts := time.Now().Unix()
+		ts := time.Now()
 		Convey("add multiple metricTypes and get them back", func() {
 			ns := [][]string{
 				[]string{"test1"},
@@ -128,7 +128,7 @@ func TestMetricCatalog(t *testing.T) {
 	Convey("metricCatalog.Table()", t, func() {
 		Convey("returns a copy of the table", func() {
 			mc := newMetricCatalog()
-			mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), &loadedPlugin{})
+			mt := newMetricType([]string{"foo", "bar"}, time.Now(), &loadedPlugin{})
 			mc.Add(mt)
 			So(mc.Table(), ShouldHaveSameTypeAs, map[string][]*metricType{})
 			So(mc.Table()["foo.bar"], ShouldResemble, []*metricType{mt})
@@ -137,7 +137,7 @@ func TestMetricCatalog(t *testing.T) {
 	Convey("metricCatalog.Remove()", t, func() {
 		Convey("removes a metricType from the catalog", func() {
 			ns := []string{"test"}
-			mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
+			mt := newMetricType(ns, time.Now(), new(loadedPlugin))
 			mc := newMetricCatalog()
 			mc.Add(mt)
 			mc.Remove(ns)
@@ -148,7 +148,7 @@ func TestMetricCatalog(t *testing.T) {
 	})
 	Convey("metricCatalog.Next()", t, func() {
 		ns := []string{"test"}
-		mt := newMetricType(ns, time.Now().Unix(), new(loadedPlugin))
+		mt := newMetricType(ns, time.Now(), new(loadedPlugin))
 		mc := newMetricCatalog()
 		Convey("returns false on empty table", func() {
 			ok := mc.Next()
@@ -167,7 +167,7 @@ func TestMetricCatalog(t *testing.T) {
 			[]string{"test3"},
 		}
 		lp := new(loadedPlugin)
-		t := time.Now().Unix()
+		t := time.Now()
 		mt := []*metricType{
 			newMetricType(ns[0], t, lp),
 			newMetricType(ns[1], t, lp),
@@ -208,7 +208,7 @@ func TestSubscribe(t *testing.T) {
 		[]string{"test3"},
 	}
 	lp := new(loadedPlugin)
-	ts := time.Now().Unix()
+	ts := time.Now()
 	mt := []*metricType{
 		newMetricType(ns[0], ts, lp),
 		newMetricType(ns[1], ts, lp),
@@ -242,7 +242,7 @@ func TestUnsubscribe(t *testing.T) {
 		[]string{"test3"},
 	}
 	lp := new(loadedPlugin)
-	ts := time.Now().Unix()
+	ts := time.Now()
 	mt := []*metricType{
 		newMetricType(ns[0], ts, lp),
 		newMetricType(ns[1], ts, lp),
@@ -278,7 +278,7 @@ func TestUnsubscribe(t *testing.T) {
 }
 
 func TestSubscriptionCount(t *testing.T) {
-	m := newMetricType([]string{"test"}, time.Now().Unix(), &loadedPlugin{})
+	m := newMetricType([]string{"test"}, time.Now(), &loadedPlugin{})
 	Convey("it returns the subscription count", t, func() {
 		m.Subscribe()
 		So(m.SubscriptionCount(), ShouldEqual, 1)

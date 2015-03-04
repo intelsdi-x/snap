@@ -22,7 +22,7 @@ func (f *Dummy) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply)
 
 func (f *Dummy) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 	reply.MetricTypes = []*plugin.MetricType{
-		plugin.NewMetricType([]string{"foo", "bar"}, time.Now().Unix()),
+		plugin.NewMetricType([]string{"foo", "bar"}, time.Now()),
 	}
 	return nil
 }

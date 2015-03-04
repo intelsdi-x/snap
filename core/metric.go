@@ -1,9 +1,13 @@
 package core
 
+import (
+	"time"
+)
+
 type MetricType interface {
 	Version() int
 	Namespace() []string
-	LastAdvertisedTimestamp() int64
+	LastAdvertisedTime() time.Time
 }
 
 type Metric interface {

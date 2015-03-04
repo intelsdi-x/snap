@@ -76,7 +76,7 @@ func (f *MockPlugin) Collect(args CollectorArgs, reply *CollectorReply) error {
 
 func (c *MockPlugin) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTypesReply) error {
 	reply.MetricTypes = []*MetricType{
-		NewMetricType([]string{"org", "some_metric"}, time.Now().Unix()),
+		NewMetricType([]string{"org", "some_metric"}, time.Now()),
 	}
 	return nil
 }

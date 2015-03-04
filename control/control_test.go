@@ -360,7 +360,7 @@ func TestResolvePlugin(t *testing.T) {
 	Convey(".resolvePlugin()", t, func() {
 		c := New()
 		lp := &loadedPlugin{}
-		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
+		mt := newMetricType([]string{"foo", "bar"}, time.Now(), lp)
 		c.metricCatalog.Add(mt)
 		Convey("it resolves the plugin", func() {
 			p, err := c.resolvePlugin([]string{"foo", "bar"}, -1)
@@ -379,7 +379,7 @@ func TestExportedMetricCatalog(t *testing.T) {
 	Convey(".MetricCatalog()", t, func() {
 		c := New()
 		lp := &loadedPlugin{}
-		mt := newMetricType([]string{"foo", "bar"}, time.Now().Unix(), lp)
+		mt := newMetricType([]string{"foo", "bar"}, time.Now(), lp)
 		c.metricCatalog.Add(mt)
 		Convey("it returns a collection of core.MetricTypes", func() {
 			t := c.MetricCatalog()

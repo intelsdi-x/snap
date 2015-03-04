@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/intelsdilabs/pulse/core/cpolicy"
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -17,23 +18,23 @@ var (
 type metricType struct {
 	Plugin *loadedPlugin
 
-	namespace               []string
-	lastAdvertisedTimestamp int64
-	subscriptions           int
-	policy                  processesConfigData
+	namespace          []string
+	lastAdvertisedTime time.Time
+	subscriptions      int
+	policy             processesConfigData
 }
 
 type processesConfigData interface {
 	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
 }
 
-func newMetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
+func newMetricType(ns []string, last time.Time, plugin *loadedPlugin) *metricType {
 	return &metricType{
 		Plugin: plugin,
 
-		namespace:               ns,
-		lastAdvertisedTimestamp: last,
-		policy:                  cpolicy.NewPolicyNode(),
+		namespace:          ns,
+		lastAdvertisedTime: last,
+		policy:             cpolicy.NewPolicyNode(),
 	}
 }
 
@@ -41,8 +42,8 @@ func (m *metricType) Namespace() []string {
 	return m.namespace
 }
 
-func (m *metricType) LastAdvertisedTimestamp() int64 {
-	return m.lastAdvertisedTimestamp
+func (m *metricType) LastAdvertisedTime() time.Time {
+	return m.lastAdvertisedTime
 }
 
 func (m *metricType) Subscribe() {

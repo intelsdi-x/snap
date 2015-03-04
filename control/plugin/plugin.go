@@ -47,22 +47,22 @@ var (
 )
 
 type MetricType struct {
-	namespace               []string
-	lastAdvertisedTimestamp int64
+	namespace          []string
+	lastAdvertisedTime time.Time
 }
 
 func (m *MetricType) Namespace() []string {
 	return m.namespace
 }
 
-func (m *MetricType) LastAdvertisedTimestamp() int64 {
-	return m.lastAdvertisedTimestamp
+func (m *MetricType) LastAdvertisedTime() time.Time {
+	return m.lastAdvertisedTime
 }
 
-func NewMetricType(ns []string, last int64) *MetricType {
+func NewMetricType(ns []string, last time.Time) *MetricType {
 	return &MetricType{
-		namespace:               ns,
-		lastAdvertisedTimestamp: last,
+		namespace:          ns,
+		lastAdvertisedTime: last,
 	}
 }
 
