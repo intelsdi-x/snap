@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	//	"path"
 	//	"path/filepath"
 	//	"time"
@@ -16,20 +18,24 @@ import (
 var version = flag.Bool("version", false, "print Pulse version")
 var maxProcs = flag.Int("max_procs", 0, "max number of CPUs that can be used simultaneously. Default is use all cores.")
 
-type Pulse struct{} //Will hold what modules start and stop
+type PulseController struct{} //Will hold what modules start and stop
 
 func main() {
 	//TODO: Parse startup arguments for pulse
 	flag.Parse()
-
 	if *version {
 		//TODO: Pass in version during build
 		fmt.Println("Pulse version 1.0.0-alpha\n")
 		os.Exit(0)
 	}
+
+	pc := &PulseController{}
 	setMaxProcs()
 
-	os.Exit(0)
+	//TODO: Start pulse modules
+
+	startInterruptHandling(pc)
+	select {} //run forever and ever
 }
 
 func setMaxProcs() {
@@ -51,6 +57,19 @@ func setMaxProcs() {
 	if actualNumProcs != _maxProcs {
 		log.Println("WARNING: Specified max procs of %v but using %v", _maxProcs, actualNumProcs)
 	}
+}
+
+func startInterruptHandling(pc *PulseController) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
+
+	//Let's block until someone tells us to quit
+	go func() {
+		sig := <-c
+		//TODO: Stop pulse modules on exit signals
+		log.Printf("Exiting given signal: %v", sig)
+		os.Exit(0)
+	}()
 }
 
 //var (
