@@ -50,3 +50,5 @@ if [ "$TRAVIS" == "true" ]
 then
 	goveralls -v -coverprofile=profile.cov -service travis.ci -repotoken $COVERALLS_TOKEN
 fi
+
+facter

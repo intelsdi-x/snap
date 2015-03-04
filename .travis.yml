@@ -12,7 +12,11 @@ before_install:
 - go get golang.org/x/tools/cmd/vet
 - go get golang.org/x/tools/cmd/goimports
 - go get github.com/smartystreets/goconvey/convey
+- if [ ! -d $PULSE_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdilabs; ln -s $TRAVIS_BUILD_DIR $PULSE_SOURCE; fi # CI for forks not from intelsdilabs
+- ls -l $PULSE_SOURCE
 - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+- gem install facter
+- facter
 env:
   global:
     - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdilabs/pulse
@@ -23,6 +27,3 @@ install:
 - make
 script:
 - ./scripts/test.sh 2>&1 # Run test suite
-notifications:
-  slack:
-    secure: VkbZLIc2RH8yf3PtIAxUNPdAu3rQQ7yQx0GcK124JhbEnZGaHyK615V0rbG7HcVmYKGPdB0cXqZiLBDKGqGKb2zR1NepOe1nF03jxGSpPq8jIFeEXSJGEYGL34ScDzZZGuG6qwbjFcXiW5lqn6t8igzp7v2+URYBaZo5ktCS2xY=
