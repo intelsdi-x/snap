@@ -25,8 +25,9 @@ var (
 
 const (
 	//	Name    = "facter" //should it be intel/facter ?
-	Version = 1
-	Type    = plugin.CollectorPluginType
+	Version         = 1
+	Type            = plugin.CollectorPluginType
+	DefaultCacheTTL = 60 * time.Second
 )
 
 type Facter struct {
@@ -51,7 +52,7 @@ func (f *Facter) loadAvailableMetricTypes() error {
 			avaibleMetrics,
 			plugin.NewMetricType(
 				append(namespace, key),
-				f.cacheTimestamp.Unix()))
+				f.cacheTimestamp))
 	}
 
 	f.availableMetricTypes = &avaibleMetrics
@@ -62,7 +63,7 @@ func (f *Facter) loadAvailableMetricTypes() error {
 func NewFacterPlugin() *Facter {
 	f := new(Facter)
 	//TODO read from config
-	f.cacheTTL = 60 * time.Second
+	f.cacheTTL = DefaultCacheTTL
 	return f
 }
 
