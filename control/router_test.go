@@ -2,8 +2,8 @@ package control
 
 import (
 	"fmt"
-	"os"
-	"path"
+	// "os"
+	// "path"
 	"testing"
 	"time"
 
@@ -12,11 +12,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var (
-	PluginName = "pulse-collector-dummy"
-	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
-)
+// var (
+// 	PluginName = "pulse-collector-dummy"
+// 	PulsePath  = os.Getenv("PULSE_PATH")
+// 	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
+// )
 
 type MockMetricType struct {
 	namespace []string
@@ -39,7 +39,11 @@ func TestRouter(t *testing.T) {
 		c := New()
 		c.Start()
 		e := c.Load(PluginPath)
-		fmt.Println(c.PluginCatalog())
+		fmt.Println("\nPlugin Catalog\n*****")
+		for _, p := range c.PluginCatalog() {
+			fmt.Printf("%s %d\n", p.Name(), p.Version())
+		}
+		fmt.Println("\nMetric Catalog\n*****")
 		fmt.Println(c.MetricCatalog(), e)
 
 		mc := newMetricCatalog()

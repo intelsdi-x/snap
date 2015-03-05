@@ -173,10 +173,10 @@ func (lp *loadedPlugin) LoadedTimestamp() int64 {
 // the struct representing the object responsible for
 // loading and unloading plugins
 type pluginManager struct {
+	metricCatalog catalogsMetrics
 	loadedPlugins *loadedPlugins
-
-	privKey *rsa.PrivateKey
-	pubKey  *rsa.PublicKey
+	privKey       *rsa.PrivateKey
+	pubKey        *rsa.PublicKey
 }
 
 func newPluginManager() *pluginManager {
@@ -184,6 +184,10 @@ func newPluginManager() *pluginManager {
 		loadedPlugins: newLoadedPlugins(),
 	}
 	return p
+}
+
+func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
+	p.metricCatalog = mc
 }
 
 // Returns loaded plugins
@@ -218,6 +222,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 		log.Println(err)
 		return nil, err
 	}
+
 	if resp.Type == plugin.CollectorPluginType {
 		ap, err := newAvailablePlugin(resp)
 		if err != nil {
@@ -230,7 +235,12 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 			log.Println(err)
 			return nil, err
 		}
-		fmt.Println(metricTypes)
+		// Add metric types to metric catalog
+		//
+		// For each MT returned we pair the loaded plugin and call AddLoadedMetricType to add
+		for _, mt := range metricTypes {
+			p.metricCatalog.AddLoadedMetricType(lPlugin, mt)
+		}
 	}
 
 	err = ePlugin.Kill()

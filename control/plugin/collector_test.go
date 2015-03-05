@@ -48,6 +48,10 @@ func (s *MockSessionState) Token() string {
 	return s.token
 }
 
+func (m *MockSessionState) ResetHeartbeat() {
+
+}
+
 func (s *MockSessionState) KillChan() chan int {
 	return s.killChan
 }
@@ -70,13 +74,13 @@ type MockPlugin struct {
 	Policy ConfigPolicy
 }
 
-func (f *MockPlugin) CollectMetrics(_ []MetricType) ([]Metric, error) {
-	return []Metric{}, nil
+func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetric, error) {
+	return []PluginMetric{}, nil
 }
 
-func (c *MockPlugin) GetMetricTypes() ([]MetricType, error) {
-	return []MetricType{
-		*NewMetricType([]string{"org", "some_metric"}),
+func (c *MockPlugin) GetMetricTypes() ([]PluginMetricType, error) {
+	return []PluginMetricType{
+		*NewPluginMetricType([]string{"org", "some_metric"}),
 	}, nil
 }
 

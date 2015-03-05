@@ -37,11 +37,13 @@ type managesPlugins interface {
 	LoadPlugin(string) (*loadedPlugin, error)
 	UnloadPlugin(CatalogedPlugin) error
 	LoadedPlugins() *loadedPlugins
+	SetMetricCatalog(catalogsMetrics)
 }
 
 type catalogsMetrics interface {
 	Get([]string, int) (*metricType, error)
 	Add(*metricType)
+	AddLoadedMetricType(*loadedPlugin, core.MetricType)
 	Item() (string, []*metricType)
 	Next() bool
 	Subscribe([]string, int) error
@@ -65,11 +67,21 @@ func (s *subGetError) Errors() []error {
 
 // Returns a new pluginControl instance
 func New() *pluginControl {
-	c := &pluginControl{
-		eventManager:  gomit.NewEventController(),
-		pluginManager: newPluginManager(),
-		metricCatalog: newMetricCatalog(),
-	}
+	c := &pluginControl{}
+	// Initialize components
+	//
+	// 1. Metric Catalog
+	c.metricCatalog = newMetricCatalog()
+
+	// 2. Plugin Manager
+	c.pluginManager = newPluginManager()
+	//    Plugin Manager needs a reference to the metric catalog
+	c.pluginManager.SetMetricCatalog(c.metricCatalog)
+
+	// Event Manager
+	c.eventManager = gomit.NewEventController()
+
+	// Wire event manager
 
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -199,14 +211,6 @@ func (p *pluginControl) UnsubscribeMetric(metric []string, ver int) {
 		MetricNamespace: metric,
 	}
 	p.eventManager.Emit(e)
-}
-
-func (p *pluginControl) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
-	m, err := p.metricCatalog.Get(mns, ver)
-	if err != nil {
-		return nil, err
-	}
-	return m.Plugin, nil
 }
 
 // the public interface for a plugin

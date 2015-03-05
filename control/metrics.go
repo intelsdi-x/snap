@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cpolicy"
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
@@ -82,6 +83,16 @@ func newMetricCatalog() *metricCatalog {
 		currentIter: 0,
 		keys:        &k,
 	}
+}
+
+func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.MetricType) {
+	newMt := metricType{
+		Plugin:             lp,
+		namespace:          mt.Namespace(),
+		lastAdvertisedTime: mt.LastAdvertisedTime(),
+		// policy             processesConfigData, TODO
+	}
+	m.Add(&newMt)
 }
 
 // adds a metricType pointer to the loadedPlugins table
