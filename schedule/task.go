@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
 type Task struct {
@@ -12,7 +13,7 @@ type Task struct {
 	killChan        chan struct{}
 	schedule        Schedule
 	workflow        Workflow
-	metricTypes     []core.MetricType
+	metricTypes     map[core.MetricType]*cdata.ConfigDataNode
 	mu              sync.Mutex //protects state
 	state           TaskState
 	creationTime    time.Time
@@ -28,19 +29,19 @@ const (
 	TaskFiring
 )
 
-func NewTask(s Schedule) *Task {
+func NewTask(s Schedule, mtc map[core.MetricType]*cdata.ConfigDataNode) *Task {
 	return &Task{
 		schResponseChan: make(chan ScheduleResponse),
 		killChan:        make(chan struct{}),
+		metricTypes:     mtc,
 		schedule:        s,
 		state:           TaskStopped,
 		creationTime:    time.Now(),
-		lastFireTime:    time.Now(),
 		workflow:        NewWorkflow(),
 	}
 }
 
-func (t *Task) MetricTypes() []core.MetricType {
+func (t *Task) MetricTypes() map[core.MetricType]*cdata.ConfigDataNode {
 	return t.metricTypes
 }
 
