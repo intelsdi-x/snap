@@ -25,9 +25,10 @@ var (
 
 const (
 	//	Name    = "facter" //should it be intel/facter ?
-	Version         = 1
-	Type            = plugin.CollectorPluginType
-	DefaultCacheTTL = 60 * time.Second
+	Version                   = 1
+	Type                      = plugin.CollectorPluginType
+	DefaultCacheTTL           = 60 * time.Second
+	DefaultAvailableMetricTTL = DefaultCacheTTL
 )
 
 // helper type to deal with json that stores last update moment
@@ -42,20 +43,21 @@ type rawfacts map[string]fact
 
 // wrapper to use facter binnary, responsible for running external binnary and caching
 type Facter struct {
-	availableMetricTypes *[]*plugin.MetricType //map[string]interface{}
+	availableMetricTypes     *[]*plugin.MetricType //map[string]interface{}
+	availableMetricTimestamp time.Time
+	availableMetricTTL       time.Time
 
-	cacheTimestamp time.Time
-	cacheTTL       time.Duration
-	cache          rawfacts
+	cacheTTL time.Duration
+	cache    rawfacts
 }
 
 // fullfill the availableMetricTypes with data from facter
 func (f *Facter) loadAvailableMetricTypes() error {
 
 	// get all facts (empty slice)
-	facterMap, err := getFacts([]string{})
+	facterMap, timestamp, err := getFacts([]string{})
 	if err != nil {
-		log.Fatalln("getting facts fatal error:", err)
+		log.Println("FacterPlugin: getting facts fatal error: ", err)
 		return err
 	}
 
@@ -65,11 +67,11 @@ func (f *Facter) loadAvailableMetricTypes() error {
 			avaibleMetrics,
 			plugin.NewMetricType(
 				append(namespace, key),
-				f.cacheTimestamp.Unix()))
+				timestamp.Unix()))
 	}
 
 	f.availableMetricTypes = &avaibleMetrics
-	f.cacheTimestamp = time.Now()
+
 	return nil
 }
 
@@ -84,9 +86,9 @@ func NewFacterPlugin() *Facter {
  *  pulse interface implmentation  *
  ***********************************/
 
-func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
-	if time.Since(f.cacheTimestamp) > f.cacheTTL {
+	if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
 
 		f.loadAvailableMetricTypes()
 		reply.MetricTypes = *f.availableMetricTypes
@@ -126,7 +128,9 @@ type stringmap map[string]interface{}
 
 // get facts from facter (external command)
 // returns all keys if none requested
-func getFacts(keys []string) (*stringmap, error) {
+func getFacts(keys []string) (*stringmap, *time.Time, error) {
+
+	var timestamp time.Time
 
 	// default options
 	args := []string{"--json"}
@@ -136,16 +140,15 @@ func getFacts(keys []string) (*stringmap, error) {
 	out, err := exec.Command("facter", args...).Output()
 	if err != nil {
 		log.Println("exec returned " + err.Error())
-		return nil, err
+		return nil, nil, err
 	}
+	timestamp = time.Now()
 
-	log.Println("OUT:")
-	log.Println(out)
 	var facterMap stringmap
 	err = json.Unmarshal(out, &facterMap)
 	if err != nil {
 		log.Println("Unmarshal failed " + err.Error())
-		return nil, err
+		return nil, nil, err
 	}
-	return &facterMap, nil
+	return &facterMap, &timestamp, nil
 }
