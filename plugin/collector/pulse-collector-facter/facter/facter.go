@@ -1,3 +1,7 @@
+/*
+# testing
+go test github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-facter/facter
+*/
 package facter
 
 import (
@@ -9,6 +13,10 @@ import (
 	"github.com/intelsdilabs/pulse/control/plugin"
 	. "github.com/intelsdilabs/pulse/plugin/helper"
 )
+
+/*******************
+ *  pulse plugin  *
+ *******************/
 
 var (
 	namespace = []string{"intel", "facter"}
@@ -22,23 +30,39 @@ const (
 )
 
 type Facter struct {
-	avaibleMetrics *[]*plugin.MetricType //map[string]interface{}
+	availableMetricTypes *[]*plugin.MetricType //map[string]interface{}
 
 	cacheTimestamp time.Time
 	cacheTTL       time.Duration
+}
 
-	facterPath string
-	shellPath  string
-	shellArgs  string
+// fullfill the availableMetricTypes with data from facter
+func (f *Facter) loadAvailableMetricTypes() error {
+
+	facterMap, err := getFacts()
+	if err != nil {
+		log.Fatalln("getting facts fatal error:", err)
+		return err
+	}
+
+	avaibleMetrics := make([]*plugin.MetricType, 0, len(*facterMap))
+	for key := range *facterMap {
+		avaibleMetrics = append(
+			avaibleMetrics,
+			plugin.NewMetricType(
+				append(namespace, key),
+				f.cacheTimestamp.Unix()))
+	}
+
+	f.availableMetricTypes = &avaibleMetrics
+	f.cacheTimestamp = time.Now()
+	return nil
 }
 
 func NewFacterPlugin() *Facter {
 	f := new(Facter)
 	//TODO read from config
 	f.cacheTTL = 60 * time.Second
-	f.facterPath = "/usr/bin/facter"
-	f.shellPath = "/usr/bin/sh"
-	f.shellArgs = "-c" //TODO slice of args of course
 	return f
 }
 
@@ -46,41 +70,19 @@ func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.
 
 	if time.Since(f.cacheTimestamp) > f.cacheTTL {
 
-		//TODO create slice, flatten with " " separator
-		out, err := exec.Command(f.shellPath, " ", f.shellArgs, " ", f.facterPath+" -j").Output()
-		if err != nil {
-			log.Println("exec returned " + err.Error())
-			return err
-		}
-		f.cacheTimestamp = time.Now()
-
-		var facterMap map[string]interface{}
-		err = json.Unmarshal(out, &facterMap)
-		if err != nil {
-			log.Println("Unmarshal failed " + err.Error())
-			return err
-		}
-
-		avaibleMetrics := make([]*plugin.MetricType, 0, len(facterMap))
-		for key := range facterMap {
-			avaibleMetrics = append(
-				avaibleMetrics,
-				plugin.NewMetricType(
-					append(namespace, key),
-					f.cacheTimestamp.Unix()))
-		}
-
-		f.avaibleMetrics = &avaibleMetrics
-		reply.MetricTypes = *f.avaibleMetrics
+		f.loadAvailableMetricTypes()
+		reply.MetricTypes = *f.availableMetricTypes
 
 		return nil
 	} else {
-		reply.MetricTypes = *f.avaibleMetrics
+		reply.MetricTypes = *f.availableMetricTypes
 		return nil
 	}
 }
 
 func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
+	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
+	// waits for lynxbat/SDI-98
 
 	//	out, err := exec.Command("sh", "-c", f.facterPath+" -j").Output()
 	return nil
@@ -95,4 +97,29 @@ func ConfigPolicy() *plugin.ConfigPolicy {
 
 	c := new(plugin.ConfigPolicy)
 	return c
+}
+
+/**********************
+ *  facter interface  *
+ **********************/
+
+// get facts from facter (external command)
+func getFacts() (*map[string]interface{}, error) {
+
+	//TODO args: create slice, flatten with " " separator
+	out, err := exec.Command("facter", "--json").Output()
+	if err != nil {
+		log.Println("exec returned " + err.Error())
+		return nil, err
+	}
+
+	log.Println("OUT:")
+	log.Println(out)
+	var facterMap map[string]interface{}
+	err = json.Unmarshal(out, &facterMap)
+	if err != nil {
+		log.Println("Unmarshal failed " + err.Error())
+		return nil, err
+	}
+	return &facterMap, nil
 }

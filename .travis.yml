@@ -1,8 +1,8 @@
 sudo: false
 language: go
 go:
-- 1.3.1
 - 1.4
+# - 1.3.1
 before_install:
 - cp .netrc ~
 - chmod 600 .netrc
@@ -15,13 +15,12 @@ before_install:
 - if [ ! -d $PULSE_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdilabs; ln -s $TRAVIS_BUILD_DIR $PULSE_SOURCE; fi # CI for forks not from intelsdilabs
 - ls -l $PULSE_SOURCE
 - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
-- gem install facter
-- facter
 env:
   global:
     - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdilabs/pulse
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdilabs/pulse/build    
 install:
+- gem install facter
 - cd $PULSE_SOURCE # change dir into source
 - go get -d -v ./... && go build -v ./... # get and build source
 - make
