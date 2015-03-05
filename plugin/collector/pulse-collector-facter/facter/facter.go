@@ -70,8 +70,32 @@ func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.
 
 	if time.Since(f.cacheTimestamp) > f.cacheTTL {
 
-		f.loadAvailableMetricTypes()
-		reply.MetricTypes = *f.availableMetricTypes
+		//TODO args: create slice, flatten with " " separator
+		out, err := exec.Command(f.shellPath, f.shellArgs, f.facterPath+" "+f.facterArgs).Output()
+		if err != nil {
+			log.Println("exec returned " + err.Error())
+			return err
+		}
+		f.cacheTimestamp = time.Now()
+
+		var facterMap map[string]interface{}
+		err = json.Unmarshal(out, &facterMap)
+		if err != nil {
+			log.Println("Unmarshal failed " + err.Error())
+			return err
+		}
+
+		avaibleMetrics := make([]*plugin.MetricType, 0, len(facterMap))
+		for key := range facterMap {
+			avaibleMetrics = append(
+				avaibleMetrics,
+				plugin.NewMetricType(
+					append(namespace, key),
+					f.cacheTimestamp.Unix()))
+		}
+
+		f.avaibleMetrics = &avaibleMetrics
+		reply.MetricTypes = *f.avaibleMetrics
 
 		return nil
 	} else {
