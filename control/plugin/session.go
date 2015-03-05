@@ -21,6 +21,7 @@ type Session interface {
 	ListenPort() string
 	Token() string
 	KillChan() chan int
+	ResetHeartbeat()
 
 	generateResponse(r *Response) []byte
 	heartbeatWatch(killChan chan int)

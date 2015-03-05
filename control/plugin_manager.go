@@ -224,8 +224,13 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 			log.Println(err.Error())
 			return nil, err
 		}
-		col := ap.Client.(client.PluginCollectorClient)
-		col.GetMetricTypes()
+		colClient := ap.Client.(client.PluginCollectorClient)
+		metricTypes, err := colClient.GetMetricTypes()
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		fmt.Println(metricTypes)
 	}
 
 	err = ePlugin.Kill()

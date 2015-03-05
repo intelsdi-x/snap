@@ -14,15 +14,15 @@ const (
 type Dummy struct {
 }
 
-func (f *Dummy) CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error) {
-	m := plugin.Metric{Namespace: []string{"intel", "dummy", "foo"}, Data: 1}
-	ms := []plugin.Metric{m}
+func (f *Dummy) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+	m := plugin.PluginMetric{Namespace_: []string{"intel", "dummy", "foo"}, Data_: 1}
+	ms := []plugin.PluginMetric{m}
 	return ms, nil
 }
 
-func (f *Dummy) GetMetricTypes() ([]plugin.MetricType, error) {
-	m := plugin.NewMetricType([]string{"intel", "dummy", "foo"})
-	return []plugin.MetricType{*m}, nil
+func (f *Dummy) GetMetricTypes() ([]plugin.PluginMetricType, error) {
+	m := plugin.NewPluginMetricType([]string{"intel", "dummy", "foo"})
+	return []plugin.PluginMetricType{*m}, nil
 }
 
 func Meta() *plugin.PluginMeta {

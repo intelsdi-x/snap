@@ -13,8 +13,8 @@ import (
 // Collector plugin
 type CollectorPlugin interface {
 	Plugin
-	CollectMetrics([]MetricType) ([]Metric, error)
-	GetMetricTypes() ([]MetricType, error)
+	CollectMetrics([]PluginMetricType) ([]PluginMetric, error)
+	GetMetricTypes() ([]PluginMetricType, error)
 }
 
 // Execution method for a Collector plugin. Error and exit code (int) returned.

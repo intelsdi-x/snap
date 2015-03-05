@@ -4,30 +4,76 @@ import (
 	"time"
 )
 
-// The metric used by plugin will probably have to be typed by metric data to
-// allow passing over RPC. This can on the agent side meet core.Metric interface
-// by functions supporting conversion.
-type Metric struct {
-	Namespace []string
-	Data      interface{}
+// Represents a collected metric. Only used within plugins and across plugin calls.
+// Converted to core.Metric before being used within modules.
+type PluginMetric struct {
+	Namespace_ []string
+	Data_      interface{}
 }
 
-type MetricType struct {
+func (p PluginMetric) Namespace() []string {
+	return p.Namespace_
+}
+
+func (p PluginMetric) Data() interface{} {
+	return nil
+}
+
+// Represents a metric type. Only used within plugins and across plugin calls.
+// Converted to core.MetricType before being used within modules.
+type PluginMetricType struct {
 	Namespace_          []string
 	LastAdvertisedTime_ time.Time
+	Version_            int
 }
 
-func (m *MetricType) Namespace() []string {
-	return m.Namespace_
+// Returns the namespace.
+func (p PluginMetricType) Namespace() []string {
+	return p.Namespace_
 }
 
-func (m *MetricType) LastAdvertisedTime() time.Time {
-	return m.LastAdvertisedTime_
+// Returns the last time this metric type was received from the plugin.
+func (p PluginMetricType) LastAdvertisedTime() time.Time {
+	return p.LastAdvertisedTime_
 }
 
-func NewMetricType(ns []string) *MetricType {
-	return &MetricType{
+// Returns the namespace.
+func (p PluginMetricType) Version() int {
+	return p.Version_
+}
+
+func NewPluginMetricType(ns []string) *PluginMetricType {
+	return &PluginMetricType{
 		Namespace_:          ns,
 		LastAdvertisedTime_: time.Now(),
 	}
 }
+
+/*
+
+core.Metric(i) (used by pulse modules)
+core.MetricType(i) (used by pulse modules)
+
+PluginMetric (created by plugins and returned, goes over RPC)
+PLuginMetricType (created by plugins and returned, goes over RPC)
+
+Get
+
+agent - call Get
+client - call Get
+plugin - builds array of PluginMetricTypes
+plugin - return array of PluginMetricTypes
+client - returns array of PluginMetricTypes through MetricType interface
+agent - receives MetricTypes
+
+Collect
+
+agent - call Collect pass MetricTypes
+client - call Collect, convert MetricTypes into new (plugin) PluginMetricTypes struct
+plugin - build array of PluginMetric based on (plugin) MetricTypes
+plugin - return array of PluginMetrics
+client - return array of PluginMetrics through core.Metrics interface
+agent - receive array of core.Metrics
+
+
+*/

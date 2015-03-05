@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core"
 )
 
 // Native clients use golang net/rpc for communication to a native rpc server.
@@ -39,19 +40,36 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	return err
 }
 
-func (p *PluginNativeClient) CollectMetrics(mts []plugin.MetricType) ([]plugin.Metric, error) {
+func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.MetricType) ([]core.Metric, error) {
+	// Convert core.MetricType slice into plugin.PluginMetricType slice as we have
+	// to send structs over RPC
+	pluginMetricTypes := make([]plugin.PluginMetricType, len(coreMetricTypes))
+	for i, _ := range coreMetricTypes {
+		pluginMetricTypes[i] = *plugin.NewPluginMetricType(coreMetricTypes[i].Namespace())
+	}
+
 	// TODO return err if mts is empty
-	args := plugin.CollectMetricsArgs{MetricTypes: mts}
+	args := plugin.CollectMetricsArgs{PluginMetricTypes: pluginMetricTypes}
 	reply := plugin.CollectMetricsReply{}
 
 	err := p.connection.Call("Collector.CollectMetrics", args, &reply)
-	return reply.Metrics, err
+
+	retMetrics := make([]core.Metric, len(reply.PluginMetrics))
+	for i, _ := range reply.PluginMetrics {
+		retMetrics[i] = reply.PluginMetrics[i]
+	}
+	return retMetrics, err
 }
 
-func (p *PluginNativeClient) GetMetricTypes() ([]plugin.MetricType, error) {
+func (p *PluginNativeClient) GetMetricTypes() ([]core.MetricType, error) {
 	args := plugin.GetMetricTypesArgs{}
 	reply := plugin.GetMetricTypesReply{}
 
 	err := p.connection.Call("Collector.GetMetricTypes", args, &reply)
-	return reply.MetricTypes, err
+
+	retMetricTypes := make([]core.MetricType, len(reply.PluginMetricTypes))
+	for i, _ := range reply.PluginMetricTypes {
+		retMetricTypes[i] = reply.PluginMetricTypes[i]
+	}
+	return retMetricTypes, err
 }

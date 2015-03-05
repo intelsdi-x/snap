@@ -7,12 +7,12 @@ import (
 
 // Arguments passed to CollectMetrics() for a Collector implementation
 type CollectMetricsArgs struct {
-	MetricTypes []MetricType
+	PluginMetricTypes []PluginMetricType
 }
 
 // Reply assigned by a Collector implementation using CollectMetrics()
 type CollectMetricsReply struct {
-	Metrics []Metric
+	PluginMetrics []PluginMetric
 }
 
 // GetMetricTypesArgs args passed to GetMetricTypes
@@ -21,7 +21,7 @@ type GetMetricTypesArgs struct {
 
 // GetMetricTypesReply assigned by GetMetricTypes() implementation
 type GetMetricTypesReply struct {
-	MetricTypes []MetricType
+	PluginMetricTypes []PluginMetricType
 }
 
 type collectorPluginProxy struct {
@@ -31,20 +31,24 @@ type collectorPluginProxy struct {
 
 func (c *collectorPluginProxy) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTypesReply) error {
 	c.Session.Logger().Println("GetMetricTypes called")
+	// Reset heartbeat
+	c.Session.ResetHeartbeat()
 	mts, err := c.Plugin.GetMetricTypes()
 	if err != nil {
 		return errors.New(fmt.Sprintf("GetMetricTypes call error : %s", err.Error()))
 	}
-	reply.MetricTypes = mts
+	reply.PluginMetricTypes = mts
 	return nil
 }
 
 func (c *collectorPluginProxy) CollectMetrics(args CollectMetricsArgs, reply *CollectMetricsReply) error {
 	c.Session.Logger().Println("CollectMetrics called")
-	ms, err := c.Plugin.CollectMetrics(args.MetricTypes)
+	// Reset heartbeat
+	c.Session.ResetHeartbeat()
+	ms, err := c.Plugin.CollectMetrics(args.PluginMetricTypes)
 	if err != nil {
 		return errors.New(fmt.Sprintf("CollectMetrics call error : %s", err.Error()))
 	}
-	reply.Metrics = ms
+	reply.PluginMetrics = ms
 	return nil
 }
