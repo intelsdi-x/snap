@@ -40,7 +40,8 @@ type Facter struct {
 // fullfill the availableMetricTypes with data from facter
 func (f *Facter) loadAvailableMetricTypes() error {
 
-	facterMap, err := getFacts()
+	// get all facts (empty slice)
+	facterMap, err := getFacts([]string{})
 	if err != nil {
 		log.Fatalln("getting facts fatal error:", err)
 		return err
@@ -52,7 +53,7 @@ func (f *Facter) loadAvailableMetricTypes() error {
 			avaibleMetrics,
 			plugin.NewMetricType(
 				append(namespace, key),
-				f.cacheTimestamp))
+				f.cacheTimestamp.Unix()))
 	}
 
 	f.availableMetricTypes = &avaibleMetrics
@@ -129,10 +130,15 @@ func ConfigPolicy() *plugin.ConfigPolicy {
  **********************/
 
 // get facts from facter (external command)
-func getFacts() (*map[string]interface{}, error) {
+// returns all keys if none requested
+func getFacts(keys []string) (*map[string]interface{}, error) {
 
-	//TODO args: create slice, flatten with " " separator
-	out, err := exec.Command("facter", "--json").Output()
+	// default options
+	args := []string{"--json"}
+	args = append(args, keys...)
+
+	// execute command and capture the output
+	out, err := exec.Command("facter", args...).Output()
 	if err != nil {
 		log.Println("exec returned " + err.Error())
 		return nil, err
