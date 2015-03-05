@@ -50,7 +50,7 @@ func newAvailablePlugin(resp *plugin.Response) (*availablePlugin, error) {
 	// Create RPC Client
 	switch resp.Type {
 	case plugin.CollectorPluginType:
-		c, e := client.NewCollectorClient(resp.ListenAddress, DefaultClientTimeout)
+		c, e := client.NewCollectorNativeClient(resp.ListenAddress, DefaultClientTimeout)
 		ap.Client = c
 		if e != nil {
 			return nil, errors.New("error while creating client connection: " + e.Error())
