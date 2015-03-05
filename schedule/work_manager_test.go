@@ -15,7 +15,7 @@ func TestWorkerManager(t *testing.T) {
 			var j job
 			j = newCollectorJob(metricTypes)
 			j = manager.Work(j)
-			So(j.Errors(), ShouldBeNil)
+			So(j.Errors(), ShouldResemble, []error{})
 			So(j.(*collectorJob).Metrics(), ShouldBeNil)
 		})
 	})

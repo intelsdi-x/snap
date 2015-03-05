@@ -72,11 +72,6 @@ func TestTask(t *testing.T) {
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
-			Convey("Tick arrives from the schedule", func() {
-				mockSchedule.Tick()
-				time.Sleep(time.Millisecond * 200) // it is a race so we slow down the test
-				So(task.state, ShouldEqual, TaskFiring)
-			})
 			Convey("Task is Stopped", func() {
 				task.Stop()
 				time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
