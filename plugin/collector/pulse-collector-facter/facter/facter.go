@@ -30,11 +30,23 @@ const (
 	DefaultCacheTTL = 60 * time.Second
 )
 
+// helper type to deal with json that stores last update moment
+// for a given fact
+type fact struct {
+	value       interface{}
+	lastUpdated time.Time
+}
+
+// collection of facts taken from facter
+type rawfacts map[string]fact
+
+// wrapper to use facter binnary, responsible for running external binnary and caching
 type Facter struct {
 	availableMetricTypes *[]*plugin.MetricType //map[string]interface{}
 
 	cacheTimestamp time.Time
 	cacheTTL       time.Duration
+	cache          rawfacts
 }
 
 // fullfill the availableMetricTypes with data from facter
@@ -67,6 +79,10 @@ func NewFacterPlugin() *Facter {
 	f.cacheTTL = DefaultCacheTTL
 	return f
 }
+
+/***********************************
+ *  pulse interface implmentation  *
+ ***********************************/
 
 func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
@@ -125,13 +141,16 @@ func ConfigPolicy() *plugin.ConfigPolicy {
 	return c
 }
 
-/**********************
- *  facter interface  *
- **********************/
+/****************************
+ *  external facter cmd api *
+ ****************************/
+
+// helper type to deal with json parsing
+type stringmap map[string]interface{}
 
 // get facts from facter (external command)
 // returns all keys if none requested
-func getFacts(keys []string) (*map[string]interface{}, error) {
+func getFacts(keys []string) (*stringmap, error) {
 
 	// default options
 	args := []string{"--json"}
@@ -146,7 +165,7 @@ func getFacts(keys []string) (*map[string]interface{}, error) {
 
 	log.Println("OUT:")
 	log.Println(out)
-	var facterMap map[string]interface{}
+	var facterMap stringmap
 	err = json.Unmarshal(out, &facterMap)
 	if err != nil {
 		log.Println("Unmarshal failed " + err.Error())
