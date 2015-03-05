@@ -10,6 +10,10 @@ import (
 	. "github.com/intelsdilabs/pulse/plugin/helper"
 )
 
+/*******************
+ *  pulse plugin  *
+ *******************/
+
 var (
 	namespace = []string{"intel", "facter"}
 	Name      = GetPluginName(&namespace) //preprocessor needed
@@ -26,26 +30,35 @@ type Facter struct {
 
 	cacheTimestamp time.Time
 	cacheTTL       time.Duration
-
-	facterPath string
-	facterArgs string
-	shellPath  string
-	shellArgs  string
 }
 
-// fullfill the availablePlugins
-// func (f *Facter) getFacts() error {
-//
-// }
+// fullfill the availableMetricTypes with data from facter
+func (f *Facter) loadAvailableMetricTypes() error {
+
+	facterMap, err := getFacts()
+	if err != nil {
+		log.Fatalln("getting facts fatal error:", err)
+		return err
+	}
+
+	avaibleMetrics := make([]*plugin.MetricType, 0, len(*facterMap))
+	for key := range *facterMap {
+		avaibleMetrics = append(
+			avaibleMetrics,
+			plugin.NewMetricType(
+				append(namespace, key),
+				f.cacheTimestamp.Unix()))
+	}
+
+	f.availableMetricTypes = &avaibleMetrics
+	f.cacheTimestamp = time.Now()
+	return nil
+}
 
 func NewFacterPlugin() *Facter {
 	f := new(Facter)
 	//TODO read from config
 	f.cacheTTL = 60 * time.Second
-	f.facterPath = "/usr/bin/facter"
-	f.facterArgs = "-j" //TODO slice of args of course
-	f.shellPath = "/usr/bin/sh"
-	f.shellArgs = "-c" //TODO slice of args of course
 	return f
 }
 
@@ -53,33 +66,7 @@ func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.
 
 	if time.Since(f.cacheTimestamp) > f.cacheTTL {
 
-		//TODO args: create slice, flatten with " " separator
-		out, err := exec.Command(f.shellPath, f.shellArgs, f.facterPath+" "+f.facterArgs).Output()
-		if err != nil {
-			log.Println("exec returned " + err.Error())
-			return err
-		}
-		f.cacheTimestamp = time.Now()
-
-		log.Println("OUT:")
-		log.Println(out)
-		var facterMap map[string]interface{}
-		err = json.Unmarshal(out, &facterMap)
-		if err != nil {
-			log.Println("Unmarshal failed " + err.Error())
-			return err
-		}
-
-		avaibleMetrics := make([]*plugin.MetricType, 0, len(facterMap))
-		for key := range facterMap {
-			avaibleMetrics = append(
-				avaibleMetrics,
-				plugin.NewMetricType(
-					append(namespace, key),
-					f.cacheTimestamp.Unix()))
-		}
-
-		f.availableMetricTypes = &avaibleMetrics
+		f.loadAvailableMetricTypes()
 		reply.MetricTypes = *f.availableMetricTypes
 
 		return nil
@@ -106,4 +93,29 @@ func ConfigPolicy() *plugin.ConfigPolicy {
 
 	c := new(plugin.ConfigPolicy)
 	return c
+}
+
+/**********************
+ *  facter interface  *
+ **********************/
+
+// get facts from facter (external command)
+func getFacts() (*map[string]interface{}, error) {
+
+	//TODO args: create slice, flatten with " " separator
+	out, err := exec.Command("facter", "--json").Output()
+	if err != nil {
+		log.Println("exec returned " + err.Error())
+		return nil, err
+	}
+
+	log.Println("OUT:")
+	log.Println(out)
+	var facterMap map[string]interface{}
+	err = json.Unmarshal(out, &facterMap)
+	if err != nil {
+		log.Println("Unmarshal failed " + err.Error())
+		return nil, err
+	}
+	return &facterMap, nil
 }
