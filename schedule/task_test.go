@@ -49,6 +49,7 @@ func (m *MockSchedule) Validate() error {
 
 func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
+		manager = newWorkManager(int64(5), 1)
 
 		Convey("task + simple schedule", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 100)

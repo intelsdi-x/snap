@@ -27,6 +27,11 @@ var (
 
 // Schedule - Validate() will include ensure that the underlying schedule is
 // still valid.  For example, it doesn't start in the past.
+
+type managesWork interface {
+	Work(job) job
+}
+
 type Schedule interface {
 	Wait(time.Time) ScheduleResponse
 	Validate() error

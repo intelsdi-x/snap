@@ -37,24 +37,24 @@ func (w *workflow) State() workflowState {
 // Start starts a workflow
 func (w *workflow) Start(task *Task) {
 	w.state = WorkflowStarted
-	job := w.rootStep.CreateJob(task.metricTypes)
+	j := w.rootStep.CreateJob(task.MetricTypes())
 
 	// dispatch 'collect' job to be worked
-	job = w.workManager.Work(job)
+	j = manager.Work(j)
 
 	//process through additional steps (processors, publishers, ...)
 	for _, step := range w.rootStep.Steps() {
-		w.processStep(step, job)
+		w.processStep(step, j)
 	}
 }
 
-func (w *workflow) processStep(step Step, job Job) {
+func (w *workflow) processStep(step Step, j job) {
 	//do work for current step
-	job = step.CreateJob(job)
-	job = w.workManager.Work(job)
+	j = step.CreateJob(j)
+	j = manager.Work(j)
 	//do work for child steps
 	for _, step := range step.Steps() {
-		w.processStep(step, job)
+		w.processStep(step, j)
 	}
 }
 
@@ -62,7 +62,7 @@ func (w *workflow) processStep(step Step, job Job) {
 type Step interface {
 	Steps() []Step
 	AddStep(s Step) Step
-	CreateJob(job Job) Job
+	CreateJob(j job) job
 }
 
 type step struct {
@@ -80,7 +80,7 @@ func (s *step) Steps() []Step {
 	return s.steps
 }
 
-func (s *step) CreateJob(j Job) Job {
+func (s *step) CreateJob(j job) job {
 	//modifyJob for publish step and return
 	return j
 }
@@ -108,6 +108,6 @@ type collectorStep struct {
 	step
 }
 
-func (c *collectorStep) CreateJob(metricTypes []core.MetricType) Job {
-	return NewCollectorJob(metricTypes)
+func (c *collectorStep) CreateJob(metricTypes []core.MetricType) job {
+	return newCollectorJob(metricTypes)
 }
