@@ -12,7 +12,7 @@ before_install:
 - go get golang.org/x/tools/cmd/vet
 - go get golang.org/x/tools/cmd/goimports
 - go get github.com/smartystreets/goconvey/convey
-- if [ ! -d $PULSE_SOURCE ]; then ln -s $PULSE_SOURCE $TRAVIS_BUILD_DIR; fi
+- if [ ! -d $PULSE_SOURCE ]; then ln -s $TRAVIS_BUILD_DIR $PULSE_SOURCE; fi
 - ls -l $PULSE_SOURCE
 - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 - gem install facter
