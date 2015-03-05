@@ -7,10 +7,8 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	//	"path/filepath"
 	"runtime"
 	"syscall"
-	//	"time"
 
 	"github.com/intelsdilabs/pulse/control"
 )
@@ -25,25 +23,34 @@ var (
 // Pulse Flags for command line
 var version = flag.Bool("version", false, "print Pulse version")
 var maxProcs = flag.Int("max_procs", 0, "max number of CPUs that can be used simultaneously. Default is use all cores.")
+var pluginController = flag.Bool("plugin_controller", false, "Enable Pulse Plugin Controller")
 
-//type PulseController struct {
-//	pluginController *control.New()
-//} //Will hold what modules start and stop
+type CoreModule interface {
+	Start()
+	Stop()
+}
+
+type PulseControl struct {
+	pluginController CoreModule
+}
 
 func main() {
 	flag.Parse()
 	if *version {
 		//TODO: Pass in version during build
-		fmt.Println("Pulse version 1.0.0-alpha\n")
+		fmt.Println("Pulse version pre-alpha\n")
 		os.Exit(0)
 	}
 
-	defaultPlugins := discoverDefaultPlugins()
-
 	setMaxProcs()
 
-	//TODO: Start pulse modules
+	pulseControl := &PulseControl{}
 
+	if *pluginController {
+		pulseControl.pluginController = control.New()
+	}
+	//TODO: Start pulse modules
+	//TODO: Set module order for starting and stopping
 	startInterruptHandling()
 	select {} //run forever and ever
 }
@@ -84,61 +91,3 @@ func startInterruptHandling() {
 		os.Exit(0)
 	}()
 }
-
-func discoverDefaultPlugins() []string {
-	if PulsePath == "" {
-		log.Fatalln("PULSE_PATH not set")
-	}
-	return nil
-}
-
-func checkError(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
-func isExecutable(p os.FileMode) bool {
-	return (p & 0111) != 0
-}
-
-//func main() {
-//	if PulsePath == "" {
-//		log.Fatalln("PULSE_PATH not set")
-//		os.Exit(1)
-//	}
-//
-//	log.Println("Startup")
-// TODO ERROR missing PULSE_PATH
-// fmt.Println(PulsePath)
-
-//	pluginControl := control.New()
-//	pluginControl.Start()
-//	defer pluginControl.Stop()
-
-// fmt.Println(pluginControl)
-// fmt.Println(CollectorPath)
-
-//	m, err := filepath.Glob(CollectorPath + "/pulse-collector-*")
-//	checkError(err)
-//	for _, d := range m {
-//		f, err := os.Stat(d)
-//		checkError(err)
-//		// Ignore directories
-//		if f.Mode().IsDir() {
-//			continue
-//		}
-//		// Ignore file without executable permission
-//		if !isExecutable(f.Mode().Perm()) {
-//			log.Printf("The plugin [%s] is not executable\n", d)
-//			continue
-//		}
-//		pluginControl.Load(d)
-//	}
-//
-//	for {
-//		time.Sleep(time.Second * 1)
-//	}
-//	// err := pluginControl.Load(collectorPath)
-//
-//}
