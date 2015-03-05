@@ -25,37 +25,36 @@ var (
 
 const (
 	//	Name    = "facter" //should it be intel/facter ?
-	Version         = 1
-	Type            = plugin.CollectorPluginType
-	DefaultCacheTTL = 60 * time.Second
+	Version                   = 1
+	Type                      = plugin.CollectorPluginType
+	DefaultCacheTTL           = 60 * time.Second
+	DefaultAvailableMetricTTL = DefaultCacheTTL
 )
 
 // helper type to deal with json that stores last update moment
 // for a given fact
 type fact struct {
-	value       interface{}
-	lastUpdated time.Time
+	value      interface{}
+	lastUpdate time.Time
 }
-
-// collection of facts taken from facter
-type rawfacts map[string]fact
 
 // wrapper to use facter binnary, responsible for running external binnary and caching
 type Facter struct {
-	availableMetricTypes *[]*plugin.MetricType //map[string]interface{}
+	availableMetricTypes     *[]*plugin.MetricType //map[string]interface{}
+	availableMetricTimestamp time.Time
+	availableMetricTTL       time.Time
 
-	cacheTimestamp time.Time
-	cacheTTL       time.Duration
-	cache          rawfacts
+	cacheTTL time.Duration
+	cache    map[string]*fact
 }
 
 // fullfill the availableMetricTypes with data from facter
 func (f *Facter) loadAvailableMetricTypes() error {
 
 	// get all facts (empty slice)
-	facterMap, err := getFacts([]string{})
+	facterMap, timestamp, err := getFacts([]string{})
 	if err != nil {
-		log.Fatalln("getting facts fatal error:", err)
+		log.Println("FacterPlugin: getting facts fatal error: ", err)
 		return err
 	}
 
@@ -65,11 +64,11 @@ func (f *Facter) loadAvailableMetricTypes() error {
 			avaibleMetrics,
 			plugin.NewMetricType(
 				append(namespace, key),
-				f.cacheTimestamp.Unix()))
+				timestamp.Unix()))
 	}
 
 	f.availableMetricTypes = &avaibleMetrics
-	f.cacheTimestamp = time.Now()
+
 	return nil
 }
 
@@ -77,6 +76,7 @@ func NewFacterPlugin() *Facter {
 	f := new(Facter)
 	//TODO read from config
 	f.cacheTTL = DefaultCacheTTL
+	f.cache = make(map[string]*fact)
 	return f
 }
 
@@ -84,9 +84,9 @@ func NewFacterPlugin() *Facter {
  *  pulse interface implmentation  *
  ***********************************/
 
-func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
-	if time.Since(f.cacheTimestamp) > f.cacheTTL {
+	if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
 
 		//TODO args: create slice, flatten with " " separator
 		out, err := exec.Command(f.shellPath, f.shellArgs, f.facterPath+" "+f.facterArgs).Output()
@@ -125,6 +125,58 @@ func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.
 func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
 	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
 	// waits for lynxbat/SDI-98
+	now := time.Now()
+
+	// TODO: somehow convert CollectorArgs to metricNames
+	requestedNames := []string{"kernel", "uptime"}
+
+	// list of facts that have to be updated or acquired first time
+	namesToUpdate := []string{}
+
+	// collect stale or not existings facts
+	for _, name := range requestedNames {
+		fact, exists := f.cache[name]
+		// fact doesn't exist or is stale
+		stale := false
+		if exists {
+			// is it stale ?
+			stale = now.Sub(fact.lastUpdate) > f.cacheTTL
+		}
+		if !exists || stale {
+			namesToUpdate = append(namesToUpdate, name)
+		}
+	}
+
+	// are cached facts outdated ?
+	if len(namesToUpdate) > 0 {
+		// update cache
+
+		// obtain actual facts
+		facts, receviedAt, err := getFacts(namesToUpdate)
+		if err != nil {
+			return err
+		}
+
+		// merge cache with new facts
+		for _, name := range namesToUpdate {
+			// create fact if not exists yet
+			value := (*facts)[name]
+			if _, exists := f.cache[name]; !exists {
+				f.cache[name] = &fact{
+					lastUpdate: *receviedAt,
+					value:      value,
+				}
+			} else {
+				// just update the value in cache
+				f.cache[name].value = value
+
+			}
+
+		}
+
+	}
+
+	//
 
 	//	out, err := exec.Command("sh", "-c", f.facterPath+" -j").Output()
 	return nil
@@ -150,7 +202,9 @@ type stringmap map[string]interface{}
 
 // get facts from facter (external command)
 // returns all keys if none requested
-func getFacts(keys []string) (*stringmap, error) {
+func getFacts(keys []string) (*stringmap, *time.Time, error) {
+
+	var timestamp time.Time
 
 	// default options
 	args := []string{"--json"}
@@ -160,16 +214,15 @@ func getFacts(keys []string) (*stringmap, error) {
 	out, err := exec.Command("facter", args...).Output()
 	if err != nil {
 		log.Println("exec returned " + err.Error())
-		return nil, err
+		return nil, nil, err
 	}
+	timestamp = time.Now()
 
-	log.Println("OUT:")
-	log.Println(out)
 	var facterMap stringmap
 	err = json.Unmarshal(out, &facterMap)
 	if err != nil {
 		log.Println("Unmarshal failed " + err.Error())
-		return nil, err
+		return nil, nil, err
 	}
-	return &facterMap, nil
+	return &facterMap, &timestamp, nil
 }
