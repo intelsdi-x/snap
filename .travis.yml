@@ -19,7 +19,7 @@ env:
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdilabs/pulse/build    
 install:
 - go get -d -v ./... && go build -v ./... # get and build source
-- ls $PULSE_SOURCE # change dir into source
+- cd $PULSE_SOURCE # change dir into source
 - make
 script:
 - ./scripts/test.sh 2>&1 # Run test suite
