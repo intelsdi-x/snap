@@ -34,12 +34,9 @@ const (
 // helper type to deal with json that stores last update moment
 // for a given fact
 type fact struct {
-	value       interface{}
-	lastUpdated time.Time
+	value      interface{}
+	lastUpdate time.Time
 }
-
-// collection of facts taken from facter
-type rawfacts map[string]fact
 
 // wrapper to use facter binnary, responsible for running external binnary and caching
 type Facter struct {
@@ -48,7 +45,7 @@ type Facter struct {
 	availableMetricTTL       time.Time
 
 	cacheTTL time.Duration
-	cache    rawfacts
+	cache    map[string]*fact
 }
 
 // fullfill the availableMetricTypes with data from facter
@@ -79,6 +76,7 @@ func NewFacterPlugin() *Facter {
 	f := new(Facter)
 	//TODO read from config
 	f.cacheTTL = DefaultCacheTTL
+	f.cache = make(map[string]*fact)
 	return f
 }
 
@@ -103,6 +101,58 @@ func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMe
 func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
 	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
 	// waits for lynxbat/SDI-98
+	now := time.Now()
+
+	// TODO: somehow convert CollectorArgs to metricNames
+	requestedNames := []string{"kernel", "uptime"}
+
+	// list of facts that have to be updated or acquired first time
+	namesToUpdate := []string{}
+
+	// collect stale or not existings facts
+	for _, name := range requestedNames {
+		fact, exists := f.cache[name]
+		// fact is not exists or is stale
+		stale := false
+		if exists {
+			// is it stale ?
+			stale = now.Sub(fact.lastUpdate) > f.cacheTTL
+		}
+		if !exists || stale {
+			namesToUpdate = append(namesToUpdate, name)
+		}
+	}
+
+	// are cached facts outdated ?
+	if len(namesToUpdate) > 0 {
+		// update cache
+
+		// obtain actual facts
+		facts, receviedAt, err := getFacts(namesToUpdate)
+		if err != nil {
+			return err
+		}
+
+		// merge cache with new facts
+		for _, name := range namesToUpdate {
+			// create fact if not exists yet
+			value := (*facts)[name]
+			if _, exists := f.cache[name]; !exists {
+				f.cache[name] = &fact{
+					lastUpdate: *receviedAt,
+					value:      value,
+				}
+			} else {
+				// just update the value in cache
+				f.cache[name].value = value
+
+			}
+
+		}
+
+	}
+
+	//
 
 	//	out, err := exec.Command("sh", "-c", f.facterPath+" -j").Output()
 	return nil
