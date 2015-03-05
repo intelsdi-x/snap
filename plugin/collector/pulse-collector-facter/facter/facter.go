@@ -56,8 +56,6 @@ func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.
 		}
 		f.cacheTimestamp = time.Now()
 
-		log.Println("OUT:")
-		log.Println(out)
 		var facterMap map[string]interface{}
 		err = json.Unmarshal(out, &facterMap)
 		if err != nil {
