@@ -22,7 +22,7 @@ func TestPluginType(t *testing.T) {
 func TestMetricType(t *testing.T) {
 	Convey("MetricType", t, func() {
 		now := time.Now()
-		m := NewMetricType([]string{"foo", "bar"}, now)
+		m := NewMetricType([]string{"foo", "bar"})
 		Convey("New", func() {
 			So(m, ShouldHaveSameTypeAs, &MetricType{})
 		})
@@ -30,7 +30,8 @@ func TestMetricType(t *testing.T) {
 			So(m.Namespace(), ShouldResemble, []string{"foo", "bar"})
 		})
 		Convey("Get LastAdvertisedTimestamp", func() {
-			So(m.LastAdvertisedTime().Unix(), ShouldEqual, now.Unix())
+			So(m.LastAdvertisedTime().Unix(), ShouldBeGreaterThan, now.Unix()-2)
+			So(m.LastAdvertisedTime().Unix(), ShouldBeLessThan, now.Unix()+2)
 		})
 	})
 }

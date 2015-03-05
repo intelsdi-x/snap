@@ -7,28 +7,14 @@ import (
 	"net/rpc"
 )
 
+// Acts as a proxy for RPC calls to a CollectorPlugin. This helps keep the function signature simple
+// within plugins vs. having to match required RPC patterns.
+
 // Collector plugin
 type CollectorPlugin interface {
 	Plugin
-	Collect(CollectorArgs, *CollectorReply) error
-	GetMetricTypes(GetMetricTypesArgs, *GetMetricTypesReply) error
-}
-
-// Arguments passed to Collect() for a Collector implementation
-type CollectorArgs struct {
-}
-
-// Reply assigned by a Collector implementation using Collect()
-type CollectorReply struct {
-}
-
-// GetMetricTypesArgs args passed to GetMetricTypes
-type GetMetricTypesArgs struct {
-}
-
-// GetMetricTypesReply assigned by GetMetricTypes() implementation
-type GetMetricTypesReply struct {
-	MetricTypes []*MetricType
+	CollectMetrics([]MetricType) ([]Metric, error)
+	GetMetricTypes() ([]MetricType, error)
 }
 
 // Execution method for a Collector plugin. Error and exit code (int) returned.
@@ -44,9 +30,13 @@ func StartCollector(c CollectorPlugin, s Session, r *Response) (error, int) {
 	s.Logger().Printf("Listening %s\n", l.Addr())
 	s.Logger().Printf("Session token %s\n", s.Token())
 
-	// We register RPC even in non-daemon mode to ensure it would be successful.
-	// Register the collector RPC methods from plugin implementation
-	rpc.Register(c)
+	// Create our proxy
+	proxy := &collectorPluginProxy{
+		Plugin:  c,
+		Session: s,
+	}
+	// Register the proxy under the "Collector" namespace
+	rpc.RegisterName("Collector", proxy)
 	// Register common plugin methods used for utility reasons
 	e := rpc.Register(s)
 	if e != nil {

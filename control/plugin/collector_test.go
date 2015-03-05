@@ -70,15 +70,14 @@ type MockPlugin struct {
 	Policy ConfigPolicy
 }
 
-func (f *MockPlugin) Collect(args CollectorArgs, reply *CollectorReply) error {
-	return nil
+func (f *MockPlugin) CollectMetrics(_ []MetricType) ([]Metric, error) {
+	return []Metric{}, nil
 }
 
-func (c *MockPlugin) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTypesReply) error {
-	reply.MetricTypes = []*MetricType{
-		NewMetricType([]string{"org", "some_metric"}, time.Now()),
-	}
-	return nil
+func (c *MockPlugin) GetMetricTypes() ([]MetricType, error) {
+	return []MetricType{
+		*NewMetricType([]string{"org", "some_metric"}),
+	}, nil
 }
 
 func TestStartCollector(t *testing.T) {

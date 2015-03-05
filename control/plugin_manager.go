@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/client"
 )
 
 const (
@@ -223,11 +224,8 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 			log.Println(err.Error())
 			return nil, err
 		}
-		col := ap.Client.(plugin.CollectorPlugin)
-		args := new(plugin.GetMetricTypesArgs)
-		var reply *plugin.GetMetricTypesReply
-		//TODO update metric catalog with metric types below
-		_ = col.GetMetricTypes(*args, reply)
+		col := ap.Client.(client.PluginCollectorClient)
+		col.GetMetricTypes()
 	}
 
 	err = ePlugin.Kill()

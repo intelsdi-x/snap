@@ -1,8 +1,6 @@
 package dummy
 
 import (
-	"time"
-
 	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
@@ -16,15 +14,15 @@ const (
 type Dummy struct {
 }
 
-func (f *Dummy) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
-	return nil
+func (f *Dummy) CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error) {
+	m := plugin.Metric{Namespace: []string{"intel", "dummy", "foo"}, Data: 1}
+	ms := []plugin.Metric{m}
+	return ms, nil
 }
 
-func (f *Dummy) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
-	reply.MetricTypes = []*plugin.MetricType{
-		plugin.NewMetricType([]string{"foo", "bar"}, time.Now()),
-	}
-	return nil
+func (f *Dummy) GetMetricTypes() ([]plugin.MetricType, error) {
+	m := plugin.NewMetricType([]string{"intel", "dummy", "foo"})
+	return []plugin.MetricType{*m}, nil
 }
 
 func Meta() *plugin.PluginMeta {
