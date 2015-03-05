@@ -112,7 +112,7 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 	// collect stale or not existings facts
 	for _, name := range requestedNames {
 		fact, exists := f.cache[name]
-		// fact is not exists or is stale
+		// fact doesn't exist or is stale
 		stale := false
 		if exists {
 			// is it stale ?
