@@ -13,8 +13,13 @@ import (
 
 type mockPluginClient struct{}
 
-func (mp *mockPluginClient) Ping() error         { return nil }
-func (mp *mockPluginClient) Kill(r string) error { return nil }
+func (mp *mockPluginClient) Ping() error {
+	return nil
+}
+
+func (mp *mockPluginClient) Kill(r string) error {
+	return nil
+}
 
 func TestMonitor(t *testing.T) {
 	Convey("monitor", t, func() {
