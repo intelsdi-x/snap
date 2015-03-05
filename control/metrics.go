@@ -184,6 +184,14 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
 	return m.Unsubscribe()
 }
 
+func (mc *metricCatalog) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
+	m, err := mc.Get(mns, ver)
+	if err != nil {
+		return nil, err
+	}
+	return m.Plugin, nil
+}
+
 func (mc *metricCatalog) get(key string, ver int) (*metricType, error) {
 	var (
 		ok bool
