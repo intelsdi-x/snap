@@ -318,7 +318,7 @@ func TestSubscribeMetric(t *testing.T) {
 	c.metricCatalog = mtrc
 	cd := cdata.NewNode()
 	Convey("does not return errors when metricCatalog.Subscribe() does not return an error", t, func() {
-		cd.AddItem("key", &ctypes.ConfigValueStr{"value"})
+		cd.AddItem("key", &ctypes.ConfigValueStr{Value: "value"})
 		mtrc.e = 1
 		_, err := c.SubscribeMetric([]string{""}, -1, cd)
 		So(err, ShouldBeNil)
@@ -331,7 +331,7 @@ func TestSubscribeMetric(t *testing.T) {
 	})
 	Convey("returns errors when processing fails", t, func() {
 		cd := cdata.NewNode()
-		cd.AddItem("fail", &ctypes.ConfigValueStr{"value"})
+		cd.AddItem("fail", &ctypes.ConfigValueStr{Value: "value"})
 		mtrc.e = 1
 		_, errs := c.SubscribeMetric([]string{""}, -1, cd)
 		So(len(errs.Errors()), ShouldEqual, 1)

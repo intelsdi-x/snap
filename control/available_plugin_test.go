@@ -2,6 +2,7 @@ package control
 
 import (
 	"errors"
+	"net"
 	"testing"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -9,22 +10,23 @@ import (
 )
 
 func TestAvailablePlugin(t *testing.T) {
-	//TODO: Update this test to use an actual plugin.
-	//Convey("newAvailablePlugin()", t, func() {
-	//	Convey("returns an availablePlugin", func() {
-	//		resp := &plugin.Response{
-	//			Meta: plugin.PluginMeta{
-	//				Name:    "testPlugin",
-	//				Version: 1,
-	//			},
-	//			Type:          plugin.CollectorPluginType,
-	//			ListenAddress: "127.0.0.1:40000",
-	//		}
-	//		ap, err := newAvailablePlugin(resp)
-	//		So(ap, ShouldHaveSameTypeAs, new(availablePlugin))
-	//		So(err, ShouldBeNil)
-	//	})
-	//})
+	Convey("newAvailablePlugin()", t, func() {
+		Convey("returns an availablePlugin", func() {
+			ln, _ := net.Listen("tcp", ":4000")
+			defer ln.Close()
+			resp := &plugin.Response{
+				Meta: plugin.PluginMeta{
+					Name:    "testPlugin",
+					Version: 1,
+				},
+				Type:          plugin.CollectorPluginType,
+				ListenAddress: "127.0.0.1:4000",
+			}
+			ap, err := newAvailablePlugin(resp)
+			So(ap, ShouldHaveSameTypeAs, new(availablePlugin))
+			So(err, ShouldBeNil)
+		})
+	})
 
 	Convey("Stop()", t, func() {
 		Convey("returns nil if plugin successfully stopped", func() {
