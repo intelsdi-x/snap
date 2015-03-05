@@ -22,7 +22,7 @@ const (
 )
 
 type Facter struct {
-	avaibleMetrics *[]*plugin.MetricType //map[string]interface{}
+	availableMetricTypes *[]*plugin.MetricType //map[string]interface{}
 
 	cacheTimestamp time.Time
 	cacheTTL       time.Duration
@@ -32,6 +32,11 @@ type Facter struct {
 	shellPath  string
 	shellArgs  string
 }
+
+// fullfill the availablePlugins
+// func (f *Facter) getFacts() error {
+//
+// }
 
 func NewFacterPlugin() *Facter {
 	f := new(Facter)
@@ -74,17 +79,19 @@ func (f *Facter) GetMetricTypes(kotens plugin.GetMetricTypesArgs, reply *plugin.
 					f.cacheTimestamp.Unix()))
 		}
 
-		f.avaibleMetrics = &avaibleMetrics
-		reply.MetricTypes = *f.avaibleMetrics
+		f.availableMetricTypes = &avaibleMetrics
+		reply.MetricTypes = *f.availableMetricTypes
 
 		return nil
 	} else {
-		reply.MetricTypes = *f.avaibleMetrics
+		reply.MetricTypes = *f.availableMetricTypes
 		return nil
 	}
 }
 
 func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
+	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
+	// waits for lynxbat/SDI-98
 
 	//	out, err := exec.Command("sh", "-c", f.facterPath+" -j").Output()
 	return nil
