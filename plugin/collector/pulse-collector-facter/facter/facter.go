@@ -1,3 +1,7 @@
+/*
+# testing
+go test github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-facter/facter
+*/
 package facter
 
 import (
