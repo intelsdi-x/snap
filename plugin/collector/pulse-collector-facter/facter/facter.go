@@ -19,13 +19,11 @@ import (
  *  pulse plugin  *
  *******************/
 
-var (
-	namespace = []string{"intel", "facter"}
-	Name      = GetPluginName(&namespace) //preprocessor needed
-)
-
 const (
-	//	Name    = "facter" //should it be intel/facter ?
+	namespace = [...]string{"intel", "facter"}
+	Name      = GetPluginName(&namespace) //preprocessor needed / for convention ?
+	// Name    = "facter" //should it be intel/facter ?
+	// Name                      = "Intel (c) Szymon&Pawel bros. Facter plugin 2014"
 	Version                   = 1
 	Type                      = plugin.CollectorPluginType
 	DefaultCacheTTL           = 60 * time.Second
