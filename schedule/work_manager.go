@@ -16,7 +16,7 @@ type job struct {
 }
 
 // NewJob taking []core.MetricType creates and returns a Job
-func NewCollectorJob(metricTypes []*metricType) Job {
+func NewCollectorJob(metricTypes []core.MetricType) Job {
 	return &collectorJob{
 		metricTypes: metricTypes,
 	}
@@ -36,7 +36,7 @@ type CollectorJob interface {
 type collectorJob struct {
 	job
 	metrics     []core.Metric
-	metricTypes []*metricType
+	metricTypes []core.MetricType
 }
 
 // Metrics returns the metrics

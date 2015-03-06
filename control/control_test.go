@@ -317,15 +317,18 @@ func TestSubscribeMetric(t *testing.T) {
 	mtrc := &mc{}
 	c.metricCatalog = mtrc
 	cd := cdata.NewNode()
+	lp := new(loadedPlugin)
 	Convey("does not return errors when metricCatalog.Subscribe() does not return an error", t, func() {
 		cd.AddItem("key", &ctypes.ConfigValueStr{Value: "value"})
 		mtrc.e = 1
-		_, err := c.SubscribeMetric([]string{""}, -1, cd)
+		mt := newMetricType([]string{""}, -1, lp)
+		_, err := c.SubscribeMetricType(mt, cd)
 		So(err, ShouldBeNil)
 	})
 	Convey("returns errors when metricCatalog.Subscribe() returns an error", t, func() {
 		mtrc.e = 0
-		_, err := c.SubscribeMetric([]string{"nf"}, -1, cd)
+		mt := newMetricType([]string{"nf"}, -1, lp)
+		_, err := c.SubscribeMetricType(mt, cd)
 		So(len(err.Errors()), ShouldEqual, 1)
 		So(err.Errors()[0], ShouldResemble, errMetricNotFound)
 	})
@@ -333,7 +336,8 @@ func TestSubscribeMetric(t *testing.T) {
 		cd := cdata.NewNode()
 		cd.AddItem("fail", &ctypes.ConfigValueStr{Value: "value"})
 		mtrc.e = 1
-		_, errs := c.SubscribeMetric([]string{""}, -1, cd)
+		mt := newMetricType([]string{""}, -1, lp)
+		_, errs := c.SubscribeMetricType(mt, cd)
 		So(len(errs.Errors()), ShouldEqual, 1)
 		So(errs.Errors()[0], ShouldResemble, errors.New("test fail"))
 	})
@@ -343,15 +347,19 @@ func TestSubscribeMetric(t *testing.T) {
 func TestUnsubscribeMetric(t *testing.T) {
 	c := New()
 	c.metricCatalog = &mc{}
+	lp := new(loadedPlugin)
 	Convey("When an error is returned", t, func() {
 		Convey("it panics", func() {
-			So(func() { c.UnsubscribeMetric([]string{"nf"}, -1) }, ShouldPanic)
-			So(func() { c.UnsubscribeMetric([]string{"neg"}, -1) }, ShouldPanic)
+			mt := newMetricType([]string{"nf"}, -1, lp)
+			So(func() { c.UnsubscribeMetricType(mt) }, ShouldPanic)
+			mt = newMetricType([]string{"nf"}, -1, lp)
+			So(func() { c.UnsubscribeMetricType(mt) }, ShouldPanic)
 		})
 	})
 	Convey("When no error is returned", t, func() {
 		Convey("it doesn't panic", func() {
-			So(func() { c.UnsubscribeMetric([]string{"hello"}, -1) }, ShouldNotPanic)
+			mt := newMetricType([]string{"hello"}, -1, lp)
+			So(func() { c.UnsubscribeMetricType(mt) }, ShouldNotPanic)
 		})
 	})
 }

@@ -1,5 +1,7 @@
 package schedule
 
+import "github.com/intelsdilabs/pulse/core"
+
 type workflowState int
 
 const (
@@ -104,6 +106,6 @@ type collectorStep struct {
 	step
 }
 
-func (c *collectorStep) CreateJob(metricTypes []*metricType) Job {
+func (c *collectorStep) CreateJob(metricTypes []core.MetricType) Job {
 	return NewCollectorJob(metricTypes)
 }

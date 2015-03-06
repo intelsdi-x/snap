@@ -29,9 +29,11 @@ type ScheduleResponse interface {
 	MissedIntervals() int
 }
 
+// ManagesMetric is implemented by control
+// On startup a scheduler will be created and passed a reference to control
 type ManagesMetric interface {
-	SubscribeMetric(metric []string, ver int, cd *cdata.ConfigDataNode) (*cdata.ConfigDataNode, control.SubscriptionError)
-	UnsubscribeMetric(metric []string, ver int)
+	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, control.SubscriptionError)
+	UnsubscribeMetricType(mt core.MetricType)
 }
 
 type TaskErrors interface {
@@ -62,11 +64,11 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cd *cd
 
 	//subscribe to MT
 	//if we encounter an error we will unwind successful subscriptions
-	subscriptions := make([]*metricType, 0)
+	subscriptions := make([]core.MetricType, 0)
 	for _, m := range mts {
-		config, err := metricManager.SubscribeMetric(m.Namespace(), m.Version(), cd)
+		mt, err := metricManager.SubscribeMetricType(m, cd)
 		if err == nil {
-			mt := newMetricType(m, config)
+			//mt := newMetricType(m, config)
 			//mtc = append(mtc, mt)
 			subscriptions = append(subscriptions, mt)
 		} else {
@@ -77,7 +79,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cd *cd
 	if len(te.errs) > 0 {
 		//unwind successful subscriptions
 		for _, sub := range subscriptions {
-			metricManager.UnsubscribeMetric(sub.Namespace(), sub.Version())
+			metricManager.UnsubscribeMetricType(sub)
 		}
 		return nil, te
 	}

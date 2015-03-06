@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
 const (
@@ -15,44 +14,12 @@ const (
 	TaskFiring
 )
 
-type metricType struct {
-	config                  *cdata.ConfigDataNode
-	namespace               []string
-	lastAdvertisedTimestamp int64
-	version                 int
-}
-
-func (m *metricType) Version() int {
-	return m.version
-}
-
-func (m *metricType) Namespace() []string {
-	return m.namespace
-}
-
-func (m *metricType) LastAdvertisedTimestamp() int64 {
-	return m.lastAdvertisedTimestamp
-}
-
-func (m *metricType) Config() *cdata.ConfigDataNode {
-	return m.config
-}
-
-func newMetricType(mt core.MetricType, config *cdata.ConfigDataNode) *metricType {
-	return &metricType{
-		namespace:               mt.Namespace(),
-		version:                 mt.Version(),
-		lastAdvertisedTimestamp: mt.LastAdvertisedTimestamp(),
-		config:                  config,
-	}
-}
-
 type Task struct {
 	schResponseChan chan ScheduleResponse
 	killChan        chan struct{}
 	schedule        Schedule
 	workflow        Workflow
-	metricTypes     []*metricType
+	metricTypes     []core.MetricType
 	mu              sync.Mutex //protects state
 	state           TaskState
 	creationTime    time.Time
@@ -61,7 +28,7 @@ type Task struct {
 
 type TaskState int
 
-func NewTask(s Schedule, mtc []*metricType) *Task {
+func NewTask(s Schedule, mtc []core.MetricType) *Task {
 	return &Task{
 		schResponseChan: make(chan ScheduleResponse),
 		killChan:        make(chan struct{}),

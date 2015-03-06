@@ -22,6 +22,7 @@ type metricType struct {
 	lastAdvertisedTimestamp int64
 	subscriptions           int
 	policy                  processesConfigData
+	config                  *cdata.ConfigDataNode
 }
 
 type processesConfigData interface {

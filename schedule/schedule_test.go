@@ -17,7 +17,7 @@ type MockMetricManager struct {
 	failuredSoFar              int
 }
 
-func (m *MockMetricManager) SubscribeMetric(metric []string, ver int, cd *cdata.ConfigDataNode) (*cdata.ConfigDataNode, control.SubscriptionError) {
+func (m *MockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, control.SubscriptionError) {
 	if m.failValidatingMetrics {
 		if m.failValidatingMetricsAfter > m.failuredSoFar {
 			m.failuredSoFar++
@@ -32,7 +32,7 @@ func (m *MockMetricManager) SubscribeMetric(metric []string, ver int, cd *cdata.
 	return nil, nil
 }
 
-func (m *MockMetricManager) UnsubscribeMetric(metric []string, ver int) {
+func (m *MockMetricManager) UnsubscribeMetricType(mt core.MetricType) {
 
 }
 
