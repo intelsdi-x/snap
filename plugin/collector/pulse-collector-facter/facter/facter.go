@@ -7,12 +7,12 @@ package facter
 import (
 	"encoding/json"
 	"errors"
+	// "errors"
 	"log"
 	"os/exec"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
-	. "github.com/intelsdilabs/pulse/plugin/helper"
 )
 
 /*******************
@@ -20,10 +20,10 @@ import (
  *******************/
 
 const (
-	namespace = [...]string{"intel", "facter"}
-	Name      = GetPluginName(&namespace) //preprocessor needed / for convention ?
-	// Name    = "facter" //should it be intel/facter ?
-	// Name                      = "Intel (c) Szymon&Pawel bros. Facter plugin 2014"
+	Name   = "Intel Facter Plugin (c) 2015 Intel Corporation "
+	Vendor = "intel"
+	prefix = "facter"
+
 	Version                   = 1
 	Type                      = plugin.CollectorPluginType
 	DefaultCacheTTL           = 60 * time.Second
@@ -69,7 +69,7 @@ func (f *Facter) loadAvailableMetricTypes() error {
 		avaibleMetrics = append(
 			avaibleMetrics,
 			plugin.NewMetricType(
-				append(namespace, key),
+				[]string{Vendor, prefix, key},
 				timestamp.Unix()))
 	}
 
