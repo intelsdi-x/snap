@@ -24,11 +24,15 @@ var (
 )
 
 const (
+	// Plugin Meta consts
 	//	Name    = "facter" //should it be intel/facter ?
-	Version                   = 1
-	Type                      = plugin.CollectorPluginType
+	Version = 1
+	Type    = plugin.CollectorPluginType
+
+	// Default config consts
 	DefaultCacheTTL           = 60 * time.Second
 	DefaultAvailableMetricTTL = DefaultCacheTTL
+	DefautlFacterDeadline     = 5 * time.Second
 )
 
 // helper type to deal with json that stores last update moment
@@ -46,6 +50,8 @@ type Facter struct {
 
 	cacheTTL time.Duration
 	cache    map[string]*fact
+
+	facterExecutionDeadline time.Time
 }
 
 // fullfill the availableMetricTypes with data from facter
@@ -78,6 +84,7 @@ func NewFacterPlugin() *Facter {
 	//TODO read from config
 	f.cacheTTL = DefaultCacheTTL
 	f.cache = make(map[string]*fact)
+	f.facterExecutionDeadline = DefautlFacterDeadline
 	return f
 }
 
@@ -204,7 +211,24 @@ func getFacts(keys []string) (*stringmap, *time.Time, error) {
 	args = append(args, keys...)
 
 	// execute command and capture the output
-	out, err := exec.Command("facter", args...).Output()
+	timeoutChan := make(chan time.Time)
+	jobCompletedChan := make(chan struct{})
+	timeout := time.After(f.facterExecutionDeadline)
+	
+	output := make(byte)
+	
+
+	go func(jobCompletedChan chan<- struct{}, &output, &err) {
+		output, err := exec.Command("facter", args...).Output()
+	}(jobCompletedChan, &output, &err)
+
+	//	select{
+	//		case _ <- timeoutChan:
+	//		break
+	//		case _ <- jobCompletedChan
+	//		break
+	//	}
+
 	if err != nil {
 		log.Println("exec returned " + err.Error())
 		return nil, nil, err
