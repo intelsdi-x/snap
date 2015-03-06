@@ -31,12 +31,26 @@ const (
 	DefautlFacterDeadline     = 5 * time.Second
 )
 
-// helper type to deal with json that stores last update moment
-// for a given fact
-type fact struct {
-	value      interface{}
-	lastUpdate time.Time
+/*****************************************
+ *  pulse public methods implementation  *
+ *****************************************/
+
+// returns PluginMeta
+func Meta() *plugin.PluginMeta {
+	return plugin.NewPluginMeta(Name, Version, Type)
 }
+
+// returns ConfigPolicy
+func ConfigPolicy() *plugin.ConfigPolicy {
+	//TODO What is plugin policy?
+
+	c := new(plugin.ConfigPolicy)
+	return c
+}
+
+/*************
+ *  facter   *
+ *************/
 
 // wrapper to use facter binnary, responsible for running external binnary and caching
 type Facter struct {
@@ -50,8 +64,14 @@ type Facter struct {
 	facterExecutionDeadline time.Duration
 }
 
-func (f *Facter) isMetricAvailable(name string) bool {
-	return false
+// construct new Facter
+func NewFacterPlugin() *Facter {
+	f := new(Facter)
+	//TODO read from config
+	f.cacheTTL = DefaultCacheTTL
+	f.cache = make(map[string]*fact)
+	f.facterExecutionDeadline = DefautlFacterDeadline
+	return f
 }
 
 // fullfill the availableMetricTypes with data from facter
@@ -76,16 +96,6 @@ func (f *Facter) loadAvailableMetricTypes() error {
 	f.availableMetricTypes = &avaibleMetrics
 
 	return nil
-}
-
-// construct new Facter
-func NewFacterPlugin() *Facter {
-	f := new(Facter)
-	//TODO read from config
-	f.cacheTTL = DefaultCacheTTL
-	f.cache = make(map[string]*fact)
-	f.facterExecutionDeadline = DefautlFacterDeadline
-	return f
 }
 
 // responsible for update cache with given list of metrics
@@ -189,22 +199,15 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 	return nil
 }
 
-// returns PluginMeta
-func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(Name, Version, Type)
-}
-
-// returns ConfigPolicy
-func ConfigPolicy() *plugin.ConfigPolicy {
-	//TODO What is plugin policy?
-
-	c := new(plugin.ConfigPolicy)
-	return c
-}
-
 /****************************
  *  external facter cmd api *
  ****************************/
+// helper type to deal with json that stores last update moment
+// for a given fact
+type fact struct {
+	value      interface{}
+	lastUpdate time.Time
+}
 
 // helper type to deal with json parsing
 type stringmap map[string]interface{}
