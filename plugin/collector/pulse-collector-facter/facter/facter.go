@@ -6,7 +6,7 @@ package facter
 
 import (
 	"encoding/json"
-	"errors"
+	// "errors"
 	"log"
 	"os/exec"
 	"time"
@@ -145,21 +145,23 @@ func (f *Facter) updateCache(names []string) error {
 // get available metrics types
 func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
-	// update cache first
-	f.updateCache()
+	// update cache first - get values for all metrics
+	f.updateCache([]string{})
 
-	// TODO: use cache for returining available metrics
-
-	if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
-
-		f.loadAvailableMetricTypes()
-		reply.MetricTypes = *f.availableMetricTypes
-
-		return nil
-	} else {
-		reply.MetricTypes = *f.availableMetricTypes
-		return nil
-	}
+	// // TODO: use cache for returining available metrics
+	// TODO: Szymon
+	//
+	// if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
+	//
+	// 	f.loadAvailableMetricTypes()
+	// 	reply.MetricTypes = *f.availableMetricTypes
+	//
+	// 	return nil
+	// } else {
+	// 	reply.MetricTypes = *f.availableMetricTypes
+	// 	return nil
+	// }
+	return nil
 }
 
 // collect metrics
