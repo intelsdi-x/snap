@@ -4,11 +4,10 @@
 [![Coverage Status](https://coveralls.io/repos/intelsdilabs/pulse/badge.svg?branch=HEAD)](https://coveralls.io/r/intelsdilabs/pulse?branch=HEAD)
 
 
-## Build & testing locally
+## Building & testing locally
 
 ```
 make
-export PULSE_PATH=`pwd`/build
-./scripts/test.sh
+make test
 
 ```

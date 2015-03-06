@@ -6,7 +6,7 @@ package facter
 
 import (
 	"encoding/json"
-	"errors"
+	// "errors"
 	"log"
 	"os/exec"
 	"time"
@@ -19,18 +19,13 @@ import (
  *  pulse plugin  *
  *******************/
 
-var (
-	namespace = []string{"intel", "facter"}
-	Name      = GetPluginName(&namespace) //preprocessor needed
-)
-
 const (
-	// Plugin Meta consts
-	//	Name    = "facter" //should it be intel/facter ?
-	Version = 1
-	Type    = plugin.CollectorPluginType
-
-	// Default config consts
+	namespace = [...]string{"intel", "facter"}
+	Name      = GetPluginName(&namespace) //preprocessor needed / for convention ?
+	// Name    = "facter" //should it be intel/facter ?
+	// Name                      = "Intel (c) Szymon&Pawel bros. Facter plugin 2014"
+	Version                   = 1
+	Type                      = plugin.CollectorPluginType
 	DefaultCacheTTL           = 60 * time.Second
 	DefaultAvailableMetricTTL = DefaultCacheTTL
 	DefautlFacterDeadline     = 5 * time.Second
@@ -53,6 +48,10 @@ type Facter struct {
 	cache    map[string]*fact
 
 	facterExecutionDeadline time.Duration
+}
+
+func (f *Facter) isMetricAvailable(name string) bool {
+	return false
 }
 
 // fullfill the availableMetricTypes with data from facter
@@ -90,6 +89,7 @@ func NewFacterPlugin() *Facter {
 }
 
 // responsible for update cache with given list of metrics
+// empty names means update all facts
 func (f *Facter) updateCache(names []string) error {
 	now := time.Now()
 
@@ -98,6 +98,7 @@ func (f *Facter) updateCache(names []string) error {
 
 	// collect stale or not existings facts
 	for _, name := range names {
+
 		fact, exists := f.cache[name]
 		// fact doesn't exist or is stale
 		stale := false
@@ -146,16 +147,23 @@ func (f *Facter) updateCache(names []string) error {
 // get available metrics types
 func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
-	if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
+	// update cache first - get values for all metrics
+	f.updateCache([]string{})
 
-		f.loadAvailableMetricTypes()
-		reply.MetricTypes = *f.availableMetricTypes
-
-		return nil
-	} else {
-		reply.MetricTypes = *f.availableMetricTypes
-		return nil
-	}
+	// // TODO: use cache for returining available metrics
+	// TODO: Szymon
+	//
+	// if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
+	//
+	// 	f.loadAvailableMetricTypes()
+	// 	reply.MetricTypes = *f.availableMetricTypes
+	//
+	// 	return nil
+	// } else {
+	// 	reply.MetricTypes = *f.availableMetricTypes
+	// 	return nil
+	// }
+	return nil
 }
 
 // collect metrics
