@@ -6,7 +6,7 @@ package facter
 
 import (
 	"encoding/json"
-	// "errors"
+	"errors"
 	"log"
 	"os/exec"
 	"time"
@@ -47,7 +47,7 @@ type Facter struct {
 	cacheTTL time.Duration
 	cache    map[string]*fact
 
-	facterExecutionDeadline time.Time
+	facterExecutionDeadline time.Duration
 }
 
 func (f *Facter) isMetricAvailable(name string) bool {
@@ -58,7 +58,7 @@ func (f *Facter) isMetricAvailable(name string) bool {
 func (f *Facter) loadAvailableMetricTypes() error {
 
 	// get all facts (empty slice)
-	facterMap, timestamp, err := getFacts([]string{})
+	facterMap, timestamp, err := getFacts([]string{}, f.facterExecutionDeadline)
 	if err != nil {
 		log.Println("FacterPlugin: getting facts fatal error: ", err)
 		return err
@@ -116,7 +116,7 @@ func (f *Facter) updateCache(names []string) error {
 		// update cache
 
 		// obtain actual facts
-		facts, receviedAt, err := getFacts(namesToUpdate)
+		facts, receviedAt, err := getFacts(namesToUpdate, f.facterExecutionDeadline)
 		if err != nil {
 			return err
 		}
@@ -211,7 +211,7 @@ type stringmap map[string]interface{}
 
 // get facts from facter (external command)
 // returns all keys if none requested
-func getFacts(keys []string) (*stringmap, *time.Time, error) {
+func getFacts(keys []string, facterTimeout time.Duration) (*stringmap, *time.Time, error) {
 
 	var timestamp time.Time
 
@@ -220,23 +220,23 @@ func getFacts(keys []string) (*stringmap, *time.Time, error) {
 	args = append(args, keys...)
 
 	// execute command and capture the output
-	timeoutChan := make(chan time.Time)
 	jobCompletedChan := make(chan struct{})
-	timeout := time.After(f.facterExecutionDeadline)
-	
-	output := make(byte)
-	
+	timeoutChan := time.After(facterTimeout)
 
-	go func(jobCompletedChan chan<- struct{}, &output, &err) {
-		output, err := exec.Command("facter", args...).Output()
+	var err error
+	output := make([]byte, 0, 1024)
+
+	go func(jobCompletedChan chan<- struct{}, output *[]byte, err *error) {
+		*output, *err = exec.Command("facter", args...).Output()
 	}(jobCompletedChan, &output, &err)
 
-	//	select{
-	//		case _ <- timeoutChan:
-	//		break
-	//		case _ <- jobCompletedChan
-	//		break
-	//	}
+	select {
+	case <-timeoutChan:
+		return nil, nil, errors.New("Timeout")
+		break
+	case <-jobCompletedChan:
+		break
+	}
 
 	if err != nil {
 		log.Println("exec returned " + err.Error())
@@ -245,7 +245,7 @@ func getFacts(keys []string) (*stringmap, *time.Time, error) {
 	timestamp = time.Now()
 
 	var facterMap stringmap
-	err = json.Unmarshal(out, &facterMap)
+	err = json.Unmarshal(output, &facterMap)
 	if err != nil {
 		log.Println("Unmarshal failed " + err.Error())
 		return nil, nil, err
