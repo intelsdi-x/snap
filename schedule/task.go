@@ -16,8 +16,35 @@ const (
 )
 
 type metricType struct {
-	config     *cdata.ConfigDataNode
-	metricType core.MetricType
+	config                  *cdata.ConfigDataNode
+	namespace               []string
+	lastAdvertisedTimestamp int64
+	version                 int
+}
+
+func (m *metricType) Version() int {
+	return m.version
+}
+
+func (m *metricType) Namespace() []string {
+	return m.namespace
+}
+
+func (m *metricType) LastAdvertisedTimestamp() int64 {
+	return m.lastAdvertisedTimestamp
+}
+
+func (m *metricType) Config() *cdata.ConfigDataNode {
+	return m.config
+}
+
+func newMetricType(mt core.MetricType, config *cdata.ConfigDataNode) *metricType {
+	return &metricType{
+		namespace:               mt.Namespace(),
+		version:                 mt.Version(),
+		lastAdvertisedTimestamp: mt.LastAdvertisedTimestamp(),
+		config:                  config,
+	}
 }
 
 type Task struct {
@@ -25,8 +52,8 @@ type Task struct {
 	killChan        chan struct{}
 	schedule        Schedule
 	workflow        Workflow
-	metricTypes     []*metricType //map[core.MetricType]*cdata.ConfigDataNode
-	mu              sync.Mutex    //protects state
+	metricTypes     []*metricType
+	mu              sync.Mutex //protects state
 	state           TaskState
 	creationTime    time.Time
 	lastFireTime    time.Time

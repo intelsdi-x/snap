@@ -49,12 +49,10 @@ func (t *taskErrors) Errors() []error {
 type scheduler struct {
 }
 
-func (scheduler *scheduler) CreateTask(mt []core.MetricType, s Schedule, cd *cdata.ConfigDataNode) (*Task, TaskErrors) {
+func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cd *cdata.ConfigDataNode) (*Task, TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
-	//map MetricType to ConfigDataNode
-	mtc := make([]*metricType, 0) //make(map[core.MetricType]*cdata.ConfigDataNode)
 
 	//validate Schedule
 	if err := s.Validate(); err != nil {
@@ -63,17 +61,14 @@ func (scheduler *scheduler) CreateTask(mt []core.MetricType, s Schedule, cd *cda
 	}
 
 	//subscribe to MT
-	//if we encounter an error we will want to unwind successful subscriptions
-	type subscription struct {
-		namespace []string
-		version   int
-	}
-	subscriptions := make([]subscription, 0)
-	for _, m := range mt {
-		ucd, err := metricManager.SubscribeMetric(m.Namespace(), m.Version(), cd)
+	//if we encounter an error we will unwind successful subscriptions
+	subscriptions := make([]*metricType, 0)
+	for _, m := range mts {
+		config, err := metricManager.SubscribeMetric(m.Namespace(), m.Version(), cd)
 		if err == nil {
-			mtc = append(mtc, &metricType{config: ucd, metricType: m})
-			subscriptions = append(subscriptions, subscription{namespace: m.Namespace(), version: m.Version()})
+			mt := newMetricType(m, config)
+			//mtc = append(mtc, mt)
+			subscriptions = append(subscriptions, mt)
 		} else {
 			te.errs = append(te.errs, err.Errors()...)
 		}
@@ -82,12 +77,12 @@ func (scheduler *scheduler) CreateTask(mt []core.MetricType, s Schedule, cd *cda
 	if len(te.errs) > 0 {
 		//unwind successful subscriptions
 		for _, sub := range subscriptions {
-			metricManager.UnsubscribeMetric(sub.namespace, sub.version)
+			metricManager.UnsubscribeMetric(sub.Namespace(), sub.Version())
 		}
 		return nil, te
 	}
 
-	task := NewTask(s, mtc)
+	task := NewTask(s, subscriptions)
 	return task, nil
 }
 

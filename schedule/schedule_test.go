@@ -48,6 +48,7 @@ type MockMetricType struct {
 	version                 int
 	namespace               []string
 	lastAdvertisedTimestamp int64
+	config                  *cdata.ConfigDataNode
 }
 
 func (m MockMetricType) Version() int {
@@ -60,6 +61,10 @@ func (m MockMetricType) Namespace() []string {
 
 func (m MockMetricType) LastAdvertisedTimestamp() int64 {
 	return m.lastAdvertisedTimestamp
+}
+
+func (m MockMetricType) Config() *cdata.ConfigDataNode {
+	return m.config
 }
 
 func TestScheduler(t *testing.T) {

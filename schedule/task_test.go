@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/core/cdata"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -49,6 +50,17 @@ func (m *MockSchedule) Validate() error {
 
 func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
+		Convey("given a core.MetricType and config create a new MetrictType", func() {
+			m := &MockMetricType{
+				namespace:               []string{"foo", "bar"},
+				version:                 1,
+				lastAdvertisedTimestamp: 0,
+			}
+			config := cdata.NewNode()
+			mt := newMetricType(m, config)
+			So(mt.Config(), ShouldNotBeNil)
+			So(mt.LastAdvertisedTimestamp(), ShouldEqual, 0)
+		})
 
 		Convey("task + simple schedule", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 100)

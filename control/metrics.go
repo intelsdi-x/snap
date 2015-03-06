@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/cpolicy"
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
@@ -63,6 +64,10 @@ func (m *metricType) SubscriptionCount() int {
 
 func (m *metricType) Version() int {
 	return m.Plugin.Version()
+}
+
+func (m *metricType) Config() *cdata.ConfigDataNode {
+	return nil
 }
 
 type metricCatalog struct {
