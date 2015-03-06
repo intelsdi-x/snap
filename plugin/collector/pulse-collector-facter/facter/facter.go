@@ -20,12 +20,10 @@ import (
  *******************/
 
 const (
-	//	Name      = GetPluginName(&namespace) //preprocessor needed / for convention ?
-	Name   = "Intel Facter Plugin (c) 2015 Intel Corporation " //should it be intel/facter ?
+	Name   = "Intel Facter Plugin (c) 2015 Intel Corporation "
 	Vendor = "intel"
 	prefix = "facter"
 
-	// Name                      = "Intel (c) Szymon&Pawel bros. Facter plugin 2014"
 	Version                   = 1
 	Type                      = plugin.CollectorPluginType
 	DefaultCacheTTL           = 60 * time.Second
