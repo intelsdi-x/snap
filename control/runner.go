@@ -40,6 +40,10 @@ func newRunner() *runner {
 	return r
 }
 
+func (r *runner) AvailablePlugins() *availablePlugins {
+	return r.availablePlugins
+}
+
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
 // unregistration on Stop.
 func (r *runner) AddDelegates(delegates ...gomit.Delegator) {

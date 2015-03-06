@@ -146,6 +146,10 @@ func (lp *loadedPlugin) Name() string {
 	return lp.Meta.Name
 }
 
+func (l *loadedPlugin) Key() string {
+	return fmt.Sprintf("%s-%d", l.Name(), l.Version())
+}
+
 // returns plugin version
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Version() int {

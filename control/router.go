@@ -2,44 +2,75 @@
 package control
 
 import (
-	"log"
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
-type Router interface {
-	Collect([]core.MetricType, *cdata.ConfigDataNode, time.Time) *collectionResponse
-}
-
 type RouterResponse interface {
 }
 
 type pluginRouter struct {
-	// Pointer to control metric catalog
-	metricCatalog *metricCatalog
+	metricCatalog catalogsMetrics
+	pluginRunner  runsPlugins
 }
 
-func newRouter(mc *metricCatalog) Router {
-	return &pluginRouter{metricCatalog: mc}
+func newPluginRouter() *pluginRouter {
+	return &pluginRouter{}
+}
+
+type pluginCallSelection struct {
+	Plugin      *loadedPlugin
+	MetricTypes []core.MetricType
 }
 
 // Calls collector plugins for the metric types and returns collection response containing metrics. Blocking method.
-func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) (response *collectionResponse) {
+func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) (response *collectionResponse, err error) {
 	// For each MT sort into plugin types we need to call
-	log.Println(metricTypes)
+	fmt.Println(metricTypes)
 
+	fmt.Println("\nMetric Catalog\n*****")
+	fmt.Println(p.metricCatalog)
+	for k, m := range p.metricCatalog.Table() {
+		fmt.Println(k, m)
+	}
+	fmt.Println("\n")
+
+	pluginCallSelectionMap := make(map[string]pluginCallSelection)
 	// For each plugin type select a matching available plugin to call
 	for _, m := range metricTypes {
-		log.Println(m.Namespace())
-		lp, err := p.metricCatalog.resolvePlugin(m.Namespace(), m.Version())
+
+		// This is set to choose the newest and not pin version. TODO, be sure version is set to -1 if not provided by user on Task creation.
+		lp, err := p.metricCatalog.resolvePlugin(m.Namespace(), -1)
+
+		// fmt.Println("\nMetric Catalog\n*****")
+		// for k, m := range p.metricCatalog.Table() {
+		// 	fmt.Println(k, m)
+		// }
 
 		// TODO handle error here. Single error fails entire operation.
-		log.Println(lp, err)
-	}
+		if err != nil {
+			// can't find a matching plugin, fail - TODO
+		}
 
+		if lp == nil {
+			return nil, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(m.Namespace(), "/")))
+		}
+
+		fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
+		x, _ := pluginCallSelectionMap[lp.Key()]
+		x.Plugin = lp
+		x.MetricTypes = append(x.MetricTypes, m)
+		pluginCallSelectionMap[lp.Key()] = x
+
+	}
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
+	fmt.Println(pluginCallSelectionMap)
+	fmt.Println(p.pluginRunner.AvailablePlugins().Collectors.Table())
 
 	// Wait for all responses(happy) or timeout(unhappy)
 
@@ -47,9 +78,17 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 
 	// (unhappy)return response with timeout state
 
-	return &collectionResponse{}
+	return &collectionResponse{}, nil
 }
 
 type collectionResponse struct {
 	Errors []error
+}
+
+func (p *pluginRouter) SetRunner(r runsPlugins) {
+	p.pluginRunner = r
+}
+
+func (p *pluginRouter) SetMetricCatalog(m catalogsMetrics) {
+	p.metricCatalog = m
 }

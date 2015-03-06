@@ -21,8 +21,9 @@ func (f *Dummy) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetric
 }
 
 func (f *Dummy) GetMetricTypes() ([]plugin.PluginMetricType, error) {
-	m := plugin.NewPluginMetricType([]string{"intel", "dummy", "foo"})
-	return []plugin.PluginMetricType{*m}, nil
+	m1 := plugin.NewPluginMetricType([]string{"intel", "dummy", "foo"})
+	m2 := plugin.NewPluginMetricType([]string{"intel", "dummy", "bar"})
+	return []plugin.PluginMetricType{*m1, *m2}, nil
 }
 
 func Meta() *plugin.PluginMeta {

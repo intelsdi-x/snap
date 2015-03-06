@@ -3,6 +3,7 @@ package control
 import (
 	"crypto/rsa"
 	"errors"
+	"time"
 
 	"github.com/intelsdilabs/gomit"
 
@@ -29,8 +30,21 @@ type pluginControl struct {
 	controlPrivKey *rsa.PrivateKey
 	controlPubKey  *rsa.PublicKey
 	eventManager   *gomit.EventController
-	pluginManager  managesPlugins
-	metricCatalog  catalogsMetrics
+
+	pluginManager managesPlugins
+	metricCatalog catalogsMetrics
+	pluginRunner  runsPlugins
+	pluginRouter  routesToPlugins
+}
+
+type routesToPlugins interface {
+	Collect([]core.MetricType, *cdata.ConfigDataNode, time.Time) (*collectionResponse, error)
+	SetRunner(runsPlugins)
+	SetMetricCatalog(catalogsMetrics)
+}
+
+type runsPlugins interface {
+	AvailablePlugins() *availablePlugins
 }
 
 type managesPlugins interface {
@@ -48,6 +62,8 @@ type catalogsMetrics interface {
 	Next() bool
 	Subscribe([]string, int) error
 	Unsubscribe([]string, int) error
+	Table() map[string][]*metricType
+	resolvePlugin([]string, int) (*loadedPlugin, error)
 }
 
 // an interface used to polymorph the return from
@@ -73,7 +89,15 @@ func New() *pluginControl {
 	// 1. Metric Catalog
 	c.metricCatalog = newMetricCatalog()
 
-	// 2. Plugin Manager
+	// 2. Plugin Runner
+	c.pluginRunner = newRunner()
+
+	// 3. Plugin Router
+	c.pluginRouter = newPluginRouter()
+	c.pluginRouter.SetRunner(c.pluginRunner)
+	c.pluginRouter.SetMetricCatalog(c.metricCatalog)
+
+	// 3. Plugin Manager
 	c.pluginManager = newPluginManager()
 	//    Plugin Manager needs a reference to the metric catalog
 	c.pluginManager.SetMetricCatalog(c.metricCatalog)

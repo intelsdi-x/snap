@@ -2,8 +2,8 @@ package control
 
 import (
 	"fmt"
-	// "os"
-	// "path"
+	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -12,11 +12,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// var (
-// 	PluginName = "pulse-collector-dummy"
-// 	PulsePath  = os.Getenv("PULSE_PATH")
-// 	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
-// )
+var (
+	PluginName = "pulse-collector-dummy"
+	PulsePath  = os.Getenv("PULSE_PATH")
+	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
+)
 
 type MockMetricType struct {
 	namespace []string
@@ -36,23 +36,35 @@ func (m MockMetricType) Version() int {
 
 func TestRouter(t *testing.T) {
 	Convey("given a new router", t, func() {
+		// Create controller
 		c := New()
 		c.Start()
-		e := c.Load(PluginPath)
-		fmt.Println("\nPlugin Catalog\n*****")
-		for _, p := range c.PluginCatalog() {
-			fmt.Printf("%s %d\n", p.Name(), p.Version())
-		}
-		fmt.Println("\nMetric Catalog\n*****")
-		fmt.Println(c.MetricCatalog(), e)
+		// Load plugin
+		c.Load(PluginPath)
+		// fmt.Println("\nPlugin Catalog\n*****")
+		// for _, p := range c.PluginCatalog() {
+		// fmt.Printf("%s %d\n", p.Name(), p.Version())
+		// }
 
-		mc := newMetricCatalog()
-		r := newRouter(mc)
+		// Create router
+		// r := newPluginRouter()
+		// r.metricCatalog = c.metricCatalog
 
-		m := MockMetricType{namespace: []string{"foo", "bar"}}
+		m := []core.MetricType{}
+		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
+		m2 := MockMetricType{namespace: []string{"intel", "dummy", "bar"}}
+		// m3 := MockMetricType{namespace: []string{"intel", "dummy", "baz"}}
+		m = append(m, m1)
+		m = append(m, m2)
+		// m = append(m, m3)
 		cd := cdata.NewNode()
 
-		r.Collect([]core.MetricType{m}, cd, time.Now().Add(time.Second*60))
+		// Call collect on router
+		cr, err := c.pluginRouter.Collect(m, cd, time.Now().Add(time.Second*60))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(cr)
 
 	})
 }
