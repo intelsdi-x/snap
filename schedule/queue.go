@@ -5,32 +5,114 @@ import (
 	"sync"
 )
 
+const (
+	queueStopped queueStatus = iota
+	queueRunning
+	queueWorking
+)
+
 var (
 	errQueueEmpty    = errors.New("queue empty")
 	errLimitExceeded = errors.New("limit exceeded")
 )
 
 type queue struct {
-	handler func(job)
-	limit   int64
-	event   chan job
-	kill    chan struct{}
-	err     chan error
-	items   []job
-	mutex   *sync.Mutex
-	working bool
+	Event   chan job
+	Handler func(job)
+	Err     chan error
+
+	limit  int64
+	kill   chan struct{}
+	items  []job
+	mutex  *sync.Mutex
+	status queueStatus
 }
+
+type queueStatus int
 
 func newQueue(limit int64) *queue {
 	q := &queue{
-		limit: limit,
-		event: make(chan job),
-		kill:  make(chan struct{}),
-		err:   make(chan error),
-		items: make([]job, 0),
-		mutex: &sync.Mutex{},
+		Event: make(chan job),
+		Err:   make(chan error),
+
+		limit:  limit,
+		kill:   make(chan struct{}),
+		items:  make([]job, 0),
+		mutex:  &sync.Mutex{},
+		status: queueStopped,
 	}
 	return q
+}
+
+func (q *queue) Start() {
+
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	if q.status == queueStopped {
+		q.status = queueRunning
+		go q.start()
+	}
+}
+
+func (q *queue) Stop() {
+	q.mutex.Lock()
+	if q.status != queueStopped {
+		close(q.kill)
+		q.status = queueStopped
+	}
+	q.mutex.Unlock()
+}
+
+/*
+   Below is the private, internal functionality of the queue.
+   These functions are not thread-safe, and should not be used
+   outside the queue itself.  The only interaction between a queue
+   and outside consumers should be through the Event chan, the
+   Err chan, Start(), or Stop().
+*/
+
+func (q *queue) start() {
+	for {
+		select {
+		case e := <-q.Event:
+			if err := q.push(e); err != nil {
+				q.Err <- errLimitExceeded
+				continue
+			}
+
+			if q.status == queueRunning {
+				q.status = queueWorking
+				go q.handle()
+			}
+
+		case <-q.kill:
+			// this "officially" closes the Event channel.
+			// after this, an attempt to write to a stopped queue will panic.
+			// otherwise, a goroutine will sleep forever.
+			go func() { close(q.Event) }()
+			<-q.Event
+			return
+		}
+	}
+
+}
+
+func (q *queue) handle() {
+
+	item, err := q.pop()
+
+	if err == errQueueEmpty {
+		q.status = queueRunning
+		return
+	}
+
+	q.Handler(item)
+	q.handle()
+}
+
+func (q *queue) length() int {
+	return len(q.items)
 }
 
 func (q *queue) push(j job) error {
@@ -53,47 +135,4 @@ func (q *queue) pop() (job, error) {
 	q.items = q.items[1:]
 
 	return j, nil
-}
-
-func (q *queue) length() int {
-	return len(q.items)
-}
-
-func (q *queue) start() {
-	for {
-		select {
-		case e := <-q.event:
-			if err := q.push(e); err == errLimitExceeded {
-				q.err <- errLimitExceeded
-				continue
-			}
-
-			if !q.working {
-				q.mutex.Lock()
-				q.working = true
-				go q.handle()
-			}
-
-		case <-q.kill:
-			break
-		}
-	}
-}
-
-func (q *queue) stop() {
-	close(q.kill)
-}
-
-func (q *queue) handle() {
-
-	item, err := q.pop()
-
-	if err == errQueueEmpty {
-		q.working = false
-		q.mutex.Unlock()
-		return
-	}
-
-	q.handler(item)
-	q.handle()
 }

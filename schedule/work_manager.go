@@ -16,8 +16,8 @@ func newWorkManager(cqs int64, cws int) *workManager {
 		collectchan:     make(chan job),
 	}
 
-	wm.collectq.handler = wm.sendToWorker
-	go wm.collectq.start()
+	wm.collectq.Handler = wm.sendToWorker
+	go wm.collectq.Start()
 
 	wm.collectWkrs = make([]*worker, cws)
 	for i := 0; i < cws; i++ {
@@ -31,14 +31,14 @@ func newWorkManager(cqs int64, cws int) *workManager {
 func (w *workManager) start() {
 	for {
 		select {
-		case <-w.collectq.err:
+		case <-w.collectq.Err:
 			// TODO(dpitt): handle queuing error
 		}
 	}
 }
 
 func (w *workManager) stop() {
-	w.collectq.stop()
+	w.collectq.Stop()
 	close(workerKillChan)
 }
 
@@ -46,7 +46,7 @@ func (w *workManager) stop() {
 func (w *workManager) Work(j job) job {
 	switch j.Type() {
 	case collectJobType:
-		w.collectq.event <- j
+		w.collectq.Event <- j
 	}
 	<-j.ReplChan()
 	return j
