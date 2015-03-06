@@ -9,5 +9,23 @@
 ```
 make
 make test
-
 ```
+
+## Contributing
+
+### File organization
+
+* package declaration
+* imports
+* public section
+    * constants
+    * interfaces 
+    * vars
+    * structs and for each: 
+        * constructors
+        * public methods
+        * private methods
+    * public functions
+
+* private section
+    * the same order as in public section
