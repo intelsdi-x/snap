@@ -57,6 +57,11 @@ func TestFacterGetMetrics(t *testing.T) {
 
 func TestFacterCollect(t *testing.T) {
 	Convey("TestFacterCollect tests", t, func() {
+		f := NewFacterPlugin()
+		Convey("update ache", func() {
+			f.updateCache([]string{"foo"})
+		})
+
 		Convey("Collect returns nil", func() {
 			facter := NewFacterPlugin()
 			var pluginArgs plugin.CollectorArgs

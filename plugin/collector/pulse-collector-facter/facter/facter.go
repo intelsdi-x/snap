@@ -6,6 +6,7 @@ package facter
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os/exec"
 	"time"
@@ -48,6 +49,10 @@ type Facter struct {
 	cache    map[string]*fact
 }
 
+func (f *Facter) isMetricAvailable(name string) bool {
+	return false
+}
+
 // fullfill the availableMetricTypes with data from facter
 func (f *Facter) loadAvailableMetricTypes() error {
 
@@ -82,6 +87,7 @@ func NewFacterPlugin() *Facter {
 }
 
 // responsible for update cache with given list of metrics
+// empty names means update all facts
 func (f *Facter) updateCache(names []string) error {
 	now := time.Now()
 
@@ -90,6 +96,7 @@ func (f *Facter) updateCache(names []string) error {
 
 	// collect stale or not existings facts
 	for _, name := range names {
+
 		fact, exists := f.cache[name]
 		// fact doesn't exist or is stale
 		stale := false
@@ -137,6 +144,11 @@ func (f *Facter) updateCache(names []string) error {
 
 // get available metrics types
 func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+
+	// update cache first
+	f.updateCache()
+
+	// TODO: use cache for returining available metrics
 
 	if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
 
