@@ -8,20 +8,6 @@ import (
 	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
-type Task struct {
-	schResponseChan chan ScheduleResponse
-	killChan        chan struct{}
-	schedule        Schedule
-	workflow        Workflow
-	metricTypes     map[core.MetricType]*cdata.ConfigDataNode
-	mu              sync.Mutex //protects state
-	state           TaskState
-	creationTime    time.Time
-	lastFireTime    time.Time
-}
-
-type TaskState int
-
 const (
 	//Task states
 	TaskStopped TaskState = iota
@@ -29,7 +15,26 @@ const (
 	TaskFiring
 )
 
-func NewTask(s Schedule, mtc map[core.MetricType]*cdata.ConfigDataNode) *Task {
+type metricType struct {
+	config     *cdata.ConfigDataNode
+	metricType core.MetricType
+}
+
+type Task struct {
+	schResponseChan chan ScheduleResponse
+	killChan        chan struct{}
+	schedule        Schedule
+	workflow        Workflow
+	metricTypes     []*metricType //map[core.MetricType]*cdata.ConfigDataNode
+	mu              sync.Mutex    //protects state
+	state           TaskState
+	creationTime    time.Time
+	lastFireTime    time.Time
+}
+
+type TaskState int
+
+func NewTask(s Schedule, mtc []*metricType) *Task {
 	return &Task{
 		schResponseChan: make(chan ScheduleResponse),
 		killChan:        make(chan struct{}),
@@ -39,10 +44,6 @@ func NewTask(s Schedule, mtc map[core.MetricType]*cdata.ConfigDataNode) *Task {
 		creationTime:    time.Now(),
 		workflow:        NewWorkflow(),
 	}
-}
-
-func (t *Task) MetricTypes() map[core.MetricType]*cdata.ConfigDataNode {
-	return t.metricTypes
 }
 
 func (t *Task) Spin() {

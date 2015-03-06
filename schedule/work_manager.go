@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
 // Job interface
@@ -17,7 +16,7 @@ type job struct {
 }
 
 // NewJob taking []core.MetricType creates and returns a Job
-func NewCollectorJob(metricTypes map[core.MetricType]*cdata.ConfigDataNode) Job {
+func NewCollectorJob(metricTypes []*metricType) Job {
 	return &collectorJob{
 		metricTypes: metricTypes,
 	}
@@ -37,7 +36,7 @@ type CollectorJob interface {
 type collectorJob struct {
 	job
 	metrics     []core.Metric
-	metricTypes map[core.MetricType]*cdata.ConfigDataNode
+	metricTypes []*metricType
 }
 
 // Metrics returns the metrics

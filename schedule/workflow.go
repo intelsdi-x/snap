@@ -1,10 +1,5 @@
 package schedule
 
-import (
-	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/cdata"
-)
-
 type workflowState int
 
 const (
@@ -38,7 +33,7 @@ func (w *workflow) State() workflowState {
 // Start starts a workflow
 func (w *workflow) Start(task *Task, manager ManagesWork) {
 	w.state = WorkflowStarted
-	job := w.rootStep.CreateJob(task.MetricTypes())
+	job := w.rootStep.CreateJob(task.metricTypes)
 
 	// dispatch 'collect' job to be worked
 	job = manager.Work(job)
@@ -109,6 +104,6 @@ type collectorStep struct {
 	step
 }
 
-func (c *collectorStep) CreateJob(metricTypes map[core.MetricType]*cdata.ConfigDataNode) Job {
+func (c *collectorStep) CreateJob(metricTypes []*metricType) Job {
 	return NewCollectorJob(metricTypes)
 }

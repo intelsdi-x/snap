@@ -54,7 +54,7 @@ func (scheduler *scheduler) CreateTask(mt []core.MetricType, s Schedule, cd *cda
 		errs: make([]error, 0),
 	}
 	//map MetricType to ConfigDataNode
-	mtc := make(map[core.MetricType]*cdata.ConfigDataNode)
+	mtc := make([]*metricType, 0) //make(map[core.MetricType]*cdata.ConfigDataNode)
 
 	//validate Schedule
 	if err := s.Validate(); err != nil {
@@ -72,7 +72,7 @@ func (scheduler *scheduler) CreateTask(mt []core.MetricType, s Schedule, cd *cda
 	for _, m := range mt {
 		ucd, err := metricManager.SubscribeMetric(m.Namespace(), m.Version(), cd)
 		if err == nil {
-			mtc[m] = ucd
+			mtc = append(mtc, &metricType{config: ucd, metricType: m})
 			subscriptions = append(subscriptions, subscription{namespace: m.Namespace(), version: m.Version()})
 		} else {
 			te.errs = append(te.errs, err.Errors()...)
