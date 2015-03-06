@@ -72,6 +72,7 @@ func (f *Facter) loadAvailableMetricTypes() error {
 	return nil
 }
 
+// construct new Facter
 func NewFacterPlugin() *Facter {
 	f := new(Facter)
 	//TODO read from config
@@ -80,37 +81,15 @@ func NewFacterPlugin() *Facter {
 	return f
 }
 
-/***********************************
- *  pulse interface implmentation  *
- ***********************************/
-
-func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
-
-	if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
-
-		f.loadAvailableMetricTypes()
-		reply.MetricTypes = *f.availableMetricTypes
-
-		return nil
-	} else {
-		reply.MetricTypes = *f.availableMetricTypes
-		return nil
-	}
-}
-
-func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
-	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
-	// waits for lynxbat/SDI-98
+// responsible for update cache with given list of metrics
+func (f *Facter) updateCache(names []string) error {
 	now := time.Now()
-
-	// TODO: somehow convert CollectorArgs to metricNames
-	requestedNames := []string{"kernel", "uptime"}
 
 	// list of facts that have to be updated or acquired first time
 	namesToUpdate := []string{}
 
 	// collect stale or not existings facts
-	for _, name := range requestedNames {
+	for _, name := range names {
 		fact, exists := f.cache[name]
 		// fact doesn't exist or is stale
 		stale := false
@@ -145,23 +124,61 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 			} else {
 				// just update the value in cache
 				f.cache[name].value = value
-
 			}
 
 		}
-
 	}
-
-	//
-
-	//	out, err := exec.Command("sh", "-c", f.facterPath+" -j").Output()
 	return nil
 }
 
+/******************************************
+ *  Pulse plugin interface implmentation  *
+ ******************************************/
+
+// get available metrics types
+func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+
+	if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
+
+		f.loadAvailableMetricTypes()
+		reply.MetricTypes = *f.availableMetricTypes
+
+		return nil
+	} else {
+		reply.MetricTypes = *f.availableMetricTypes
+		return nil
+	}
+}
+
+// collect metrics
+func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
+	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
+	// waits for lynxbat/SDI-98
+
+	// TODO: INPUT: read CollectorArgs structure to extrac requested metrics
+	requestedNames := []string{"kernel", "uptime"}
+
+	// prepare cache to have all we need
+	err := f.updateCache(requestedNames)
+	if err != nil {
+		return err
+	}
+
+	// TODO: OUTPUT: fullfill reply structure with requested metrics
+	// for _, name := range requestedNames {
+	// 	// convert it some how if required
+	// 	reply.metrics[name] = f.cache[name].value
+	// }
+
+	return nil
+}
+
+// returns PluginMeta
 func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(Name, Version, Type)
 }
 
+// returns ConfigPolicy
 func ConfigPolicy() *plugin.ConfigPolicy {
 	//TODO What is plugin policy?
 
