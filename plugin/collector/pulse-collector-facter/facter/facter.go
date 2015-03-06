@@ -7,7 +7,6 @@ package facter
 import (
 	"encoding/json"
 	"errors"
-	// "errors"
 	"log"
 	"os/exec"
 	"time"
@@ -20,7 +19,7 @@ import (
  *******************/
 
 const (
-	Name   = "Intel Facter Plugin (c) 2015 Intel Corporation "
+	Name   = "Intel Facter Plugin (c) 2015 Intel Corporation"
 	Vendor = "intel"
 	prefix = "facter"
 
@@ -74,33 +73,34 @@ func NewFacterPlugin() *Facter {
 	return f
 }
 
-// fullfill the availableMetricTypes with data from facter
-func (f *Facter) loadAvailableMetricTypes() error {
+//// fullfill the availableMetricTypes with data from facter
+//func (f *Facter) loadAvailableMetricTypes() error {
 
-	// get all facts (empty slice)
-	facterMap, timestamp, err := getFacts([]string{}, f.facterExecutionDeadline)
-	if err != nil {
-		log.Println("FacterPlugin: getting facts fatal error: ", err)
-		return err
-	}
+//	// get all facts (empty slice)
+//	facterMap, timestamp, err := getFacts([]string{}, f.facterExecutionDeadline)
+//	if err != nil {
+//		log.Println("FacterPlugin: getting facts fatal error: ", err)
+//		return err
+//	}
 
-	avaibleMetrics := make([]*plugin.MetricType, 0, len(*facterMap))
-	for key := range *facterMap {
-		avaibleMetrics = append(
-			avaibleMetrics,
-			plugin.NewMetricType(
-				[]string{Vendor, prefix, key},
-				timestamp.Unix()))
-	}
+//	avaibleMetrics := make([]*plugin.MetricType, 0, len(*facterMap))
+//	for key := range *facterMap {
+//		avaibleMetrics = append(
+//			avaibleMetrics,
+//			plugin.NewMetricType(
+//				[]string{Vendor, prefix, key},
+//				timestamp.Unix()))
+//	}
 
-	f.availableMetricTypes = &avaibleMetrics
+//	f.availableMetricTypes = &avaibleMetrics
 
-	return nil
-}
+//	return nil
+//}
 
-// responsible for update cache with given list of metrics
-// empty names means update all facts
-func (f *Facter) updateCache(names []string) error {
+// responsible for updating stale metrics in cache
+// names is slice with list of metrics to synchronize
+// empty names means synchronize all facts
+func (f *Facter) synchronizeCache(names []string) error {
 	now := time.Now()
 
 	// list of facts that have to be updated or acquired first time
@@ -123,28 +123,36 @@ func (f *Facter) updateCache(names []string) error {
 
 	// are cached facts outdated ?
 	if len(namesToUpdate) > 0 {
-		// update cache
-
-		// obtain actual facts
-		facts, receviedAt, err := getFacts(namesToUpdate, f.facterExecutionDeadline)
+		err := f.updateCache(namesToUpdate)
 		if err != nil {
 			return err
 		}
 
-		// merge cache with new facts
-		for _, name := range namesToUpdate {
-			// create fact if not exists yet
-			value := (*facts)[name]
-			if _, exists := f.cache[name]; !exists {
-				f.cache[name] = &fact{
-					lastUpdate: *receviedAt,
-					value:      value,
-				}
-			} else {
-				// just update the value in cache
-				f.cache[name].value = value
-			}
+	}
+	return nil
+}
 
+// Updates cache entries with current values
+func (f *Facter) updateCache(names []string) error {
+
+	// obtain actual facts
+	facts, receviedAt, err := getFacts(names, f.facterExecutionDeadline)
+	if err != nil {
+		return err
+	}
+
+	// merge cache with new facts
+	for _, name := range names {
+		// create fact if not exists yet
+		value := (*facts)[name]
+		if _, exists := f.cache[name]; !exists {
+			f.cache[name] = &fact{
+				lastUpdate: *receviedAt,
+				value:      value,
+			}
+		} else {
+			// just update the value in cache
+			f.cache[name].value = value
 		}
 	}
 	return nil
@@ -158,7 +166,7 @@ func (f *Facter) updateCache(names []string) error {
 func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
 	// update cache first - get values for all metrics
-	f.updateCache([]string{})
+	f.synchronizeCache([]string{})
 
 	// // TODO: use cache for returining available metrics
 	// TODO: Szymon
@@ -185,7 +193,7 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 	requestedNames := []string{"kernel", "uptime"}
 
 	// prepare cache to have all we need
-	err := f.updateCache(requestedNames)
+	err := f.synchronizeCache(requestedNames)
 	if err != nil {
 		return err
 	}
@@ -231,13 +239,15 @@ func getFacts(keys []string, facterTimeout time.Duration) (*stringmap, *time.Tim
 
 	go func(jobCompletedChan chan<- struct{}, output *[]byte, err *error) {
 		*output, *err = exec.Command("facter", args...).Output()
+		jobCompletedChan <- struct{}{}
 	}(jobCompletedChan, &output, &err)
 
 	select {
 	case <-timeoutChan:
-		return nil, nil, errors.New("Timeout")
+		return nil, nil, errors.New("Facter plugin: fact gathering timeout")
 		break
 	case <-jobCompletedChan:
+		// success
 		break
 	}
 

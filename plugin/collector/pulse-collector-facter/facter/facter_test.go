@@ -85,7 +85,7 @@ func TestFacterCollect(t *testing.T) {
 
 		f := NewFacterPlugin()
 		Convey("update ache", func() {
-			f.updateCache([]string{"foo"})
+			f.synchronizeCache([]string{"foo"})
 		})
 
 		Convey("Collect returns nil", func() {
@@ -104,7 +104,7 @@ func TestFacterPluginMeta(t *testing.T) {
 			So(meta, ShouldNotBeNil)
 		})
 		Convey("Name should be intel/facter", func() {
-			So(meta.Name, ShouldResemble, "Intel Facter Plugin (c) 2015 Intel Corporation ")
+			So(meta.Name, ShouldResemble, "Intel Facter Plugin (c) 2015 Intel Corporation")
 		})
 		Convey("Version should be 1", func() {
 			So(meta.Version, ShouldEqual, 1)
