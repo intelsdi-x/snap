@@ -266,7 +266,6 @@ func getFacts(keys []string, facterTimeout time.Duration) (*stringmap, *time.Tim
 	select {
 	case <-timeoutChan:
 		return nil, nil, errors.New("Facter plugin: fact gathering timeout")
-		break
 	case <-jobCompletedChan:
 		// success
 		break
