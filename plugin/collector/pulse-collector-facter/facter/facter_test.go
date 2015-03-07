@@ -1,3 +1,7 @@
+/*
+# testing
+go test -v github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-facter/facter
+*/
 package facter
 
 import (
@@ -17,7 +21,7 @@ func TestGetFacts(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("returns something withing given time", func() {
+		Convey("returns all something within given time", func() {
 			start := time.Now()
 			// 4 seconds because default time for goconvey
 			facts, when, err := getFacts([]string{}, 4*time.Second)
@@ -26,23 +30,44 @@ func TestGetFacts(t *testing.T) {
 			So(*when, ShouldHappenBetween, start, time.Now())
 		})
 
+		Convey("returns right thing when asked eg. os", func() {
+			// 4 seconds because default time for goconvey
+			facts, _, err := getFacts([]string{"os"}, 4*time.Second)
+			So(err, ShouldBeNil)
+			So(facts, ShouldNotBeEmpty)
+			So(len(*facts), ShouldEqual, 1)
+			fact, exist := (*facts)["os"]
+			So(exist, ShouldEqual, true)
+			So(fact, ShouldNotBeNil)
+		})
+
+		Convey("returns nil in fact value when for non existing fact", func() {
+			// 4 seconds because default time for goconvey
+			facts, _, err := getFacts([]string{"thereisnosuchfact"}, 4*time.Second)
+			So(err, ShouldBeNil)
+			So(facts, ShouldNotBeEmpty)
+			So(len(*facts), ShouldEqual, 1)
+			fact, exist := (*facts)["thereisnosuchfact"]
+			So(exist, ShouldEqual, true)
+			So(fact, ShouldBeNil)
+		})
+
 	})
 }
 
 // TODO:
-func TODOTestCacheUpdate(t *testing.T) {
+func TestCacheUpdate(t *testing.T) {
 
 	Convey("Facter cache update works", t, func() {
 
 		f := NewFacterPlugin()
 
-		SkipConvey("empty for start", func() {
+		Convey("empty for start", func() {
 			So(f.cache, ShouldBeEmpty)
 		})
 
 		Convey("updated after first all update", func() {
 			err := f.updateCacheAll()
-			Printf("\n%v", err)
 			So(err, ShouldBeNil)
 			So(f.cache, ShouldNotBeEmpty)
 		})
@@ -71,7 +96,7 @@ func TODOTestCacheUpdate(t *testing.T) {
 	})
 }
 
-func XTestFacterGetMetrics(t *testing.T) {
+func TestFacterGetMetrics(t *testing.T) {
 
 	// TODO:not implemented! - fullfill GetMetricTypes
 	SkipConvey("GetMetricTypes tests", t, func() {
