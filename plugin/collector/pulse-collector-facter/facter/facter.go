@@ -1,7 +1,3 @@
-/*
-# testing
-go test github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-facter/facter
-*/
 package facter
 
 import (
@@ -146,6 +142,14 @@ func (f *Facter) updateCache(names []string) error {
 	if err != nil {
 		return err
 	}
+
+	// if names was empty, we want update all facts
+	if len(names) == 0 {
+		for factName, _ := range *facts {
+			names = append(names, factName)
+		}
+	}
+
 	// merge cache with new facts
 	for _, name := range names {
 		// create fact if not exists yet
