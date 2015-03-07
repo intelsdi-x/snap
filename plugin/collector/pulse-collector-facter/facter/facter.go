@@ -132,7 +132,13 @@ func (f *Facter) synchronizeCache(names []string) error {
 	return nil
 }
 
+// Updates all cache entries unconditionally (just a wrapper for updateCache)
+func (f *Facter) updateCacheAll() error {
+	return f.updateCache([]string{})
+}
+
 // Updates cache entries with current values
+// pass empty names to update all entries
 func (f *Facter) updateCache(names []string) error {
 
 	// obtain actual facts
@@ -221,7 +227,7 @@ type fact struct {
 type stringmap map[string]interface{}
 
 // get facts from facter (external command)
-// returns all keys if none requested
+// returns all keys if none expliclty requested
 func getFacts(keys []string, facterTimeout time.Duration) (*stringmap, *time.Time, error) {
 
 	var timestamp time.Time
