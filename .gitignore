@@ -23,6 +23,7 @@ _testmain.go
 *.test
 .idea
 tmp/
+*.tmp
 scratch/
 build/
 *.swp
