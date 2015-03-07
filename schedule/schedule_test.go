@@ -7,6 +7,7 @@ import (
 	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -101,8 +102,11 @@ func TestScheduler(t *testing.T) {
 				tick: false,
 				failValidatingSchedule: false,
 			}
-
-			_, err := scheduler.CreateTask(mt, mockSchedule, nil)
+			cdt := cdata.NewTree()
+			cd := cdata.NewNode()
+			cd.AddItem("foo", ctypes.ConfigValueInt{Value: 1})
+			cdt.Add([]string{"foo", "bar"}, cd)
+			_, err := scheduler.CreateTask(mt, mockSchedule, cdt)
 			So(err, ShouldNotBeNil)
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
 			So(err.Errors()[0], ShouldResemble, errors.New("metric validation error"))

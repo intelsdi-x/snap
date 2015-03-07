@@ -53,7 +53,7 @@ func (t *taskErrors) Errors() []error {
 type scheduler struct {
 }
 
-func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cd *cdata.ConfigDataNode) (*Task, TaskErrors) {
+func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree) (*Task, TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
@@ -68,6 +68,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cd *cd
 	//if we encounter an error we will unwind successful subscriptions
 	subscriptions := make([]core.MetricType, 0)
 	for _, m := range mts {
+		cd := cdt.Get(m.Namespace())
 		mt, err := metricManager.SubscribeMetricType(m, cd)
 		if err == nil {
 			//mt := newMetricType(m, config)
