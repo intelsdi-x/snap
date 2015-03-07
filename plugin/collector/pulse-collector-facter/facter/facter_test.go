@@ -30,13 +30,13 @@ func TestGetFacts(t *testing.T) {
 			So(*when, ShouldHappenBetween, start, time.Now())
 		})
 
-		Convey("returns right thing when asked eg. os", func() {
+		Convey("returns right thing when asked eg. kernel => linux", func() {
 			// 4 seconds because default time for goconvey
-			facts, _, err := getFacts([]string{"os"}, 4*time.Second)
+			facts, _, err := getFacts([]string{"kernel"}, 4*time.Second)
 			So(err, ShouldBeNil)
 			So(facts, ShouldNotBeEmpty)
 			So(len(*facts), ShouldEqual, 1)
-			fact, exist := (*facts)["os"]
+			fact, exist := (*facts)["kernel"]
 			So(exist, ShouldEqual, true)
 			So(fact, ShouldNotBeNil)
 		})
