@@ -138,7 +138,7 @@ func (f *Facter) updateCacheAll() error {
 }
 
 // Updates cache entries with current values
-// pass empty names to update all entries
+// pass empty to update all facts in cache
 func (f *Facter) updateCache(names []string) error {
 
 	// obtain actual facts
@@ -165,8 +165,6 @@ func (f *Facter) updateCache(names []string) error {
 	}
 	return nil
 }
-
-//cache    map[string]fact
 
 func prepareMetricTypes(factMap *map[string]fact) ([]*plugin.MetricType, time.Time) {
 	metricTypes := make([]*plugin.MetricType, 0, len(*factMap))
@@ -240,7 +238,7 @@ type fact struct {
 type stringmap map[string]interface{}
 
 // get facts from facter (external command)
-// returns all keys if none expliclty requested
+// returns all keys if none requested
 func getFacts(keys []string, facterTimeout time.Duration) (*stringmap, *time.Time, error) {
 
 	var timestamp time.Time
@@ -264,6 +262,7 @@ func getFacts(keys []string, facterTimeout time.Duration) (*stringmap, *time.Tim
 	select {
 	case <-timeoutChan:
 		return nil, nil, errors.New("Facter plugin: fact gathering timeout")
+		break
 	case <-jobCompletedChan:
 		// success
 		break
