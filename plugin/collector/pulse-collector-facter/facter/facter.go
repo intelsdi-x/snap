@@ -19,11 +19,11 @@ const (
 	Vendor = "intel"
 	prefix = "facter"
 
-	Version                   = 1
-	Type                      = plugin.CollectorPluginType
-	DefaultCacheTTL           = 60 * time.Second
-	DefaultAvailableMetricTTL = DefaultCacheTTL
-	DefautlFacterDeadline     = 5 * time.Second
+	Version               = 1
+	Type                  = plugin.CollectorPluginType
+	DefaultCacheTTL       = 60 * time.Second
+	DefaultMetricTypesTTL = DefaultCacheTTL
+	DefautlFacterDeadline = 5 * time.Second
 )
 
 /*****************************************
@@ -49,12 +49,12 @@ func ConfigPolicy() *plugin.ConfigPolicy {
 
 // wrapper to use facter binnary, responsible for running external binnary and caching
 type Facter struct {
-	availableMetricTypes     *[]*plugin.MetricType //map[string]interface{}
-	availableMetricTimestamp time.Time
-	availableMetricTTL       time.Time
+	metricTypes          []*plugin.MetricType //map[string]interface{}
+	metricTypesLastCheck time.Time
+	metricTypesTTL       time.Time
 
 	cacheTTL time.Duration
-	cache    map[string]*fact
+	cache    map[string]fact
 
 	facterExecutionDeadline time.Duration
 }
@@ -64,7 +64,7 @@ func NewFacterPlugin() *Facter {
 	f := new(Facter)
 	//TODO read from config
 	f.cacheTTL = DefaultCacheTTL
-	f.cache = make(map[string]*fact)
+	f.cache = make(map[string]fact)
 	f.facterExecutionDeadline = DefautlFacterDeadline
 	return f
 }
@@ -117,7 +117,7 @@ func (f *Facter) synchronizeCache(names []string) error {
 		}
 	}
 
-	// are cached facts outdated ?
+	// update outdated cache
 	if len(namesToUpdate) > 0 {
 		err := f.updateCache(namesToUpdate)
 		if err != nil {
@@ -155,16 +155,34 @@ func (f *Facter) updateCache(names []string) error {
 		// create fact if not exists yet
 		value := (*facts)[name]
 		if _, exists := f.cache[name]; !exists {
-			f.cache[name] = &fact{
+			f.cache[name] = fact{
 				lastUpdate: *receviedAt,
 				value:      value,
 			}
 		} else {
 			// just update the value in cache
-			f.cache[name].value = value
+			fact := f.cache[name]
+			fact.lastUpdate = *receviedAt
+			fact.value = value
+			f.cache[name] = fact // golang defect #3117
 		}
 	}
 	return nil
+}
+
+//cache    map[string]fact
+
+func prepareMetricTypes(factMap *map[string]fact) ([]*plugin.MetricType, time.Time) {
+	metricTypes := make([]*plugin.MetricType, 0, len(*factMap))
+	var timestamp time.Time
+	for factName, value := range *factMap {
+		timestamp = value.lastUpdate
+		metricTypes = append(metricTypes,
+			plugin.NewMetricType([]string{Vendor, prefix, factName},
+				timestamp.Unix()))
+	}
+
+	return metricTypes, timestamp
 }
 
 /******************************************
@@ -174,22 +192,18 @@ func (f *Facter) updateCache(names []string) error {
 // get available metrics types
 func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
-	// update cache first - get values for all metrics
-	f.synchronizeCache([]string{})
+	if DefaultMetricTypesTTL > time.Since(f.metricTypesLastCheck) {
+		err := f.synchronizeCache([]string{})
+		if err != nil {
+			log.Println("Facter: synchronizeCache returned error: " + err.Error())
+			return err
+		}
+		var timestamp time.Time
+		f.metricTypes, timestamp = prepareMetricTypes(&f.cache)
+		f.metricTypesLastCheck = timestamp
+	}
+	reply.MetricTypes = f.metricTypes
 
-	// // TODO: use cache for returining available metrics
-	// TODO: Szymon
-	//
-	// if time.Since(f.availableMetricTimestamp) > f.cacheTTL {
-	//
-	// 	f.loadAvailableMetricTypes()
-	// 	reply.MetricTypes = *f.availableMetricTypes
-	//
-	// 	return nil
-	// } else {
-	// 	reply.MetricTypes = *f.availableMetricTypes
-	// 	return nil
-	// }
 	return nil
 }
 

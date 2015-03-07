@@ -156,7 +156,7 @@ func TestFacterPluginMeta(t *testing.T) {
 		Convey("Meta is not nil", func() {
 			So(meta, ShouldNotBeNil)
 		})
-		Convey("Name should be intel/facter", func() {
+		Convey("Name should be Intel Facter Plugin (c) 2015 Intel Corporation", func() {
 			So(meta.Name, ShouldResemble, "Intel Facter Plugin (c) 2015 Intel Corporation")
 		})
 		Convey("Version should be 1", func() {
