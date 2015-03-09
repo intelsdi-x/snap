@@ -1,4 +1,4 @@
-// Tests for communication with external cmd facter
+// Tests for communication with external cmd facter (executable)
 
 package facter
 
@@ -10,7 +10,7 @@ import (
 )
 
 func TestGetFacts(t *testing.T) {
-	Convey("getFacts ", t, func() {
+	Convey("getFacts from real facter", t, func() {
 
 		Convey("time outs", func() {
 			_, _, err := getFacts([]string{}, 0*time.Second)
@@ -49,4 +49,7 @@ func TestGetFacts(t *testing.T) {
 		})
 
 	})
+
+	// TODO: prepare fake facter executable to better stress our part
+	// Convey("getFacts with fake facter")
 }
