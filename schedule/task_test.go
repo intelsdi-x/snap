@@ -52,17 +52,22 @@ func TestTask(t *testing.T) {
 
 		Convey("task + simple schedule", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 100)
-			task := NewTask(sch, nil)
+			workManager := new(managesWork)
+			wf := NewWorkflow(workManager)
+			task := NewTask(sch, nil, wf)
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
+			task.Stop()
 		})
 
 		Convey("Task is created and starts to spin", func() {
 			mockSchedule := &MockSchedule{
 				tick: false,
 			}
-			task := NewTask(mockSchedule, nil)
+			workManager := new(managesWork)
+			wf := NewWorkflow(workManager)
+			task := NewTask(mockSchedule, nil, wf)
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)

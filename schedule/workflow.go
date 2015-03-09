@@ -6,24 +6,26 @@ type workflowState int
 
 const (
 	//Workflow states
-	WorkflowStopped workflowState = iota - 1
+	WorkflowStopped workflowState = iota
 	WorkflowStarted
 )
 
 type Workflow interface {
-	Start(task *Task, managesWork ManagesWork)
+	Start(task *Task)
 	State() workflowState
 }
 
 type workflow struct {
-	rootStep *collectorStep
-	state    workflowState
+	workManager ManagesWork
+	rootStep    *collectorStep
+	state       workflowState
 }
 
 // NewWorkflow creates and returns a workflow
-func NewWorkflow() *workflow {
+func NewWorkflow(workManager ManagesWork) *workflow {
 	return &workflow{
-		rootStep: new(collectorStep),
+		rootStep:    new(collectorStep),
+		workManager: workManager,
 	}
 }
 
@@ -33,26 +35,26 @@ func (w *workflow) State() workflowState {
 }
 
 // Start starts a workflow
-func (w *workflow) Start(task *Task, manager ManagesWork) {
+func (w *workflow) Start(task *Task) {
 	w.state = WorkflowStarted
 	job := w.rootStep.CreateJob(task.metricTypes)
 
 	// dispatch 'collect' job to be worked
-	job = manager.Work(job)
+	job = w.workManager.Work(job)
 
 	//process through additional steps (processors, publishers, ...)
 	for _, step := range w.rootStep.Steps() {
-		w.processStep(step, job, manager)
+		w.processStep(step, job)
 	}
 }
 
-func (w *workflow) processStep(step Step, job Job, manager ManagesWork) {
+func (w *workflow) processStep(step Step, job Job) {
 	//do work for current step
 	job = step.CreateJob(job)
-	job = manager.Work(job)
+	job = w.workManager.Work(job)
 	//do work for child steps
 	for _, step := range step.Steps() {
-		w.processStep(step, job, manager)
+		w.processStep(step, job)
 	}
 }
 
