@@ -40,9 +40,9 @@ func ConfigPolicy() *plugin.ConfigPolicy {
 	return c
 }
 
-/*************
- *  facter   *
- *************/
+/*******************
+ *  Facter struct  *
+ *******************/
 
 // wrapper to use facter binnary, responsible for running external binnary and caching
 type Facter struct {
@@ -66,29 +66,52 @@ func NewFacterPlugin() *Facter {
 	return f
 }
 
-//// fullfill the availableMetricTypes with data from facter
-//func (f *Facter) loadAvailableMetricTypes() error {
+// Pulse plugin interface implmentation
+// ------------------------------------
 
-//	// get all facts (empty slice)
-//	facterMap, timestamp, err := getFacts([]string{}, f.facterExecutionDeadline)
-//	if err != nil {
-//		log.Println("FacterPlugin: getting facts fatal error: ", err)
-//		return err
-//	}
+// get available metrics types
+func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
-//	avaibleMetrics := make([]*plugin.MetricType, 0, len(*facterMap))
-//	for key := range *facterMap {
-//		avaibleMetrics = append(
-//			avaibleMetrics,
-//			plugin.NewMetricType(
-//				[]string{Vendor, prefix, key},
-//				timestamp.Unix()))
-//	}
+	if DefaultMetricTypesTTL > time.Since(f.metricTypesLastCheck) {
+		err := f.synchronizeCache([]string{})
+		if err != nil {
+			log.Println("Facter: synchronizeCache returned error: " + err.Error())
+			return err
+		}
+		var timestamp time.Time
+		f.metricTypes, timestamp = prepareMetricTypes(&f.cache)
+		f.metricTypesLastCheck = timestamp
+	}
+	reply.MetricTypes = f.metricTypes
 
-//	f.availableMetricTypes = &avaibleMetrics
+	return nil
+}
 
-//	return nil
-//}
+// collect metrics
+func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
+	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
+	// waits for lynxbat/SDI-98
+
+	// TODO: INPUT: read CollectorArgs structure to extrac requested metrics
+	requestedNames := []string{"kernel", "uptime"}
+
+	// prepare cache to have all we need
+	err := f.synchronizeCache(requestedNames)
+	if err != nil {
+		return err
+	}
+
+	// TODO: OUTPUT: fullfill reply structure with requested metrics
+	// for _, name := range requestedNames {
+	// 	// convert it some how if required
+	// 	reply.metrics[name] = f.cache[name].value
+	// }
+
+	return nil
+}
+
+// internals (cache managment)
+// ------------------------------------
 
 // responsible for updating stale metrics in cache
 // names is slice with list of metrics to synchronize
@@ -167,6 +190,10 @@ func (f *Facter) updateCache(names []string) error {
 	return nil
 }
 
+/***********************
+ *  utility functions  *
+ ***********************/
+
 func prepareMetricTypes(factMap *map[string]fact) ([]*plugin.MetricType, time.Time) {
 	metricTypes := make([]*plugin.MetricType, 0, len(*factMap))
 	var timestamp time.Time
@@ -178,49 +205,4 @@ func prepareMetricTypes(factMap *map[string]fact) ([]*plugin.MetricType, time.Ti
 	}
 
 	return metricTypes, timestamp
-}
-
-/******************************************
- *  Pulse plugin interface implmentation  *
- ******************************************/
-
-// get available metrics types
-func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
-
-	if DefaultMetricTypesTTL > time.Since(f.metricTypesLastCheck) {
-		err := f.synchronizeCache([]string{})
-		if err != nil {
-			log.Println("Facter: synchronizeCache returned error: " + err.Error())
-			return err
-		}
-		var timestamp time.Time
-		f.metricTypes, timestamp = prepareMetricTypes(&f.cache)
-		f.metricTypesLastCheck = timestamp
-	}
-	reply.MetricTypes = f.metricTypes
-
-	return nil
-}
-
-// collect metrics
-func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
-	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
-	// waits for lynxbat/SDI-98
-
-	// TODO: INPUT: read CollectorArgs structure to extrac requested metrics
-	requestedNames := []string{"kernel", "uptime"}
-
-	// prepare cache to have all we need
-	err := f.synchronizeCache(requestedNames)
-	if err != nil {
-		return err
-	}
-
-	// TODO: OUTPUT: fullfill reply structure with requested metrics
-	// for _, name := range requestedNames {
-	// 	// convert it some how if required
-	// 	reply.metrics[name] = f.cache[name].value
-	// }
-
-	return nil
 }
