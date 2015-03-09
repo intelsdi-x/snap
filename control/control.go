@@ -3,9 +3,8 @@ package control
 import (
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"time"
-
-	// "fmt"
 
 	"github.com/intelsdilabs/gomit"
 
@@ -66,21 +65,6 @@ type catalogsMetrics interface {
 	Unsubscribe([]string, int) error
 	Table() map[string][]*metricType
 	resolvePlugin([]string, int) (*loadedPlugin, error)
-}
-
-// an interface used to polymorph the return from
-// SubscribeMetric.  Processing config data returns
-// a type which holds a collection of errors.
-type SubscriptionError interface {
-	Errors() []error
-}
-
-type subGetError struct {
-	errs []error
-}
-
-func (s *subGetError) Errors() []error {
-	return s.errs
 }
 
 // Returns a new pluginControl instance
@@ -202,16 +186,22 @@ func (p *pluginControl) generateArgs() plugin.Arg {
 // SubscribeMetricType validates the given config data, and if valid
 // returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
-func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, SubscriptionError) {
+func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
+	subErrs := make([]error, 0)
 
 	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 	if err != nil {
-		return nil, &subGetError{errs: []error{err}}
+		subErrs = append(subErrs, err)
+		return nil, subErrs
 	}
 
+	// No metric found return error.
 	if m == nil {
-		return nil, nil
+		subErrs = append(subErrs, errors.New(fmt.Sprintf("no metric found cannot subscribe: (%s) version(%d)", mt.Namespace(), mt.Version())))
+		return nil, subErrs
 	}
+
+	fmt.Println(m)
 
 	// fmt.Println(m.Plugin.)
 	// if m.policy == nil {
@@ -234,9 +224,7 @@ func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.Config
 	}
 	defer p.eventManager.Emit(e)
 
-	return nil, nil
-
-	// return m, nil
+	return m, nil
 }
 
 // UnsubscribeMetricType unsubscribes a MetricType
