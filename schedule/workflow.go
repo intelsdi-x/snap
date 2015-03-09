@@ -11,7 +11,7 @@ const (
 )
 
 type Workflow interface {
-	Start(task *Task)
+	Start(task *Task, manager managesWork)
 	State() workflowState
 }
 
@@ -35,7 +35,7 @@ func (w *workflow) State() workflowState {
 }
 
 // Start starts a workflow
-func (w *workflow) Start(task *Task) {
+func (w *workflow) Start(task *Task, manager managesWork) {
 	w.state = WorkflowStarted
 	j := w.rootStep.CreateJob(task.MetricTypes())
 
@@ -44,17 +44,17 @@ func (w *workflow) Start(task *Task) {
 
 	//process through additional steps (processors, publishers, ...)
 	for _, step := range w.rootStep.Steps() {
-		w.processStep(step, j)
+		w.processStep(step, j, manager)
 	}
 }
 
-func (w *workflow) processStep(step Step, j job) {
+func (w *workflow) processStep(step Step, j job, manager managesWork) {
 	//do work for current step
 	j = step.CreateJob(j)
 	j = manager.Work(j)
 	//do work for child steps
 	for _, step := range step.Steps() {
-		w.processStep(step, j)
+		w.processStep(step, j, manager)
 	}
 }
 

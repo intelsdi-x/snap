@@ -28,7 +28,7 @@ func (mj *mockJob) Run() {
 func TestWorkerManager(t *testing.T) {
 	Convey(".Work()", t, func() {
 		Convey("Sends / receives work to / from worker", func() {
-			manager = newWorkManager(int64(5), 1)
+			manager := newWorkManager(int64(5), 1)
 			var j job
 			j = &mockJob{
 				worked:    false,
@@ -48,5 +48,4 @@ func TestWorkerManager(t *testing.T) {
 			So(mgr.collectq.status, ShouldEqual, queueStopped)
 		})
 	})
-
 }

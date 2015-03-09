@@ -1,13 +1,12 @@
 package schedule
 
-import "fmt"
-
 type workManager struct {
 	collectq       *queue
 	collectqSize   int64
 	collectWkrs    []*worker
 	collectWkrSize int
 	collectchan    chan job
+	kill           chan struct{}
 }
 
 func newWorkManager(cqs int64, cws int) *workManager {
@@ -16,10 +15,11 @@ func newWorkManager(cqs int64, cws int) *workManager {
 		collectq:       newQueue(cqs),
 		collectWkrSize: cws,
 		collectchan:    make(chan job),
+		kill:           make(chan struct{}),
 	}
 
 	wm.collectq.Handler = wm.sendToWorker
-	go wm.collectq.Start()
+	wm.collectq.Start()
 
 	wm.collectWkrs = make([]*worker, cws)
 	for i := 0; i < cws; i++ {
@@ -35,8 +35,7 @@ func (w *workManager) Start() {
 		select {
 		case <-w.collectq.Err:
 			// TODO(dpitt): handle queuing error
-		case <-workerKillChan:
-			fmt.Println("STOPPING WM")
+		case <-w.kill:
 			return
 		}
 	}
@@ -44,8 +43,8 @@ func (w *workManager) Start() {
 
 func (w *workManager) Stop() {
 	w.collectq.Stop()
-	fmt.Println("CLOSING KILL CHAN")
 	close(workerKillChan)
+	close(w.kill)
 }
 
 // Work dispatches jobs to worker pools for processing

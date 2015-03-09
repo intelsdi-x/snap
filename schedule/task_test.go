@@ -49,13 +49,9 @@ func (m *MockSchedule) Validate() error {
 
 func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
-		manager = newWorkManager(int64(5), 1)
-
 		Convey("task + simple schedule", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 100)
-			workManager := new(managesWork)
-			wf := NewWorkflow(workManager)
-			task := NewTask(sch, nil, wf)
+			task := NewTask(sch, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
@@ -66,9 +62,7 @@ func TestTask(t *testing.T) {
 			mockSchedule := &MockSchedule{
 				tick: false,
 			}
-			workManager := new(managesWork)
-			wf := NewWorkflow(workManager)
-			task := NewTask(mockSchedule, nil, wf)
+			task := NewTask(mockSchedule, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)

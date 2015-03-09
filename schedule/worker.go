@@ -1,7 +1,6 @@
 package schedule
 
 import (
-	"fmt"
 	"time"
 
 	"code.google.com/p/go-uuid/uuid"
@@ -40,7 +39,6 @@ func (w *worker) start() {
 
 		//the broadcast that kills all workers
 		case <-workerKillChan:
-			fmt.Println("KILLING WORKER")
 			return
 
 		}
