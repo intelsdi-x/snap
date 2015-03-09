@@ -11,7 +11,13 @@ func TestWorkerManager(t *testing.T) {
 	Convey("WorkerManager", t, func() {
 		manager := new(managesWork)
 		Convey("Work", func() {
-			metricTypes := make([]core.MetricType, 0)
+			metricTypes := []core.MetricType{
+				&MockMetricType{
+					namespace:               []string{"foo", "bar"},
+					version:                 1,
+					lastAdvertisedTimestamp: 0,
+				},
+			}
 			job := NewCollectorJob(metricTypes)
 			job = manager.Work(job)
 			So(job.Errors(), ShouldBeNil)

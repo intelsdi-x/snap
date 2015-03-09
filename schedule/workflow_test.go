@@ -2,16 +2,9 @@ package schedule
 
 import (
 	"testing"
-	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
-
-type mockSchedule struct{}
-
-func (m *mockSchedule) Wait(t time.Time) ScheduleResponse {
-	return nil
-}
 
 func TestWorkflow(t *testing.T) {
 	Convey("Workflow", t, func() {
@@ -23,8 +16,8 @@ func TestWorkflow(t *testing.T) {
 			So(wf.rootStep, ShouldNotBeNil)
 			So(wf.rootStep.Steps(), ShouldNotBeNil)
 			Convey("Start", func() {
-				schedule := new(mockSchedule)
-				task := NewTask(schedule)
+				schedule := new(MockSchedule)
+				task := NewTask(schedule, nil)
 				manager := new(managesWork)
 				wf.Start(task, manager)
 				So(wf.State(), ShouldEqual, WorkflowStarted)

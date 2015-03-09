@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"errors"
 	"time"
 )
 
@@ -29,6 +30,13 @@ func (s *SimpleSchedule) Wait(last time.Time) ScheduleResponse {
 	// Wait until predicted interval fires
 	time.Sleep(time.Duration(waitDuration))
 	return SimpleScheduleResponse{state: ScheduleActive, misses: int(missed)}
+}
+
+func (s *SimpleSchedule) Validate() error {
+	if s.interval <= 0 {
+		return errors.New("Interval must be greater than 0.")
+	}
+	return nil
 }
 
 // A response from SimpleSchedule conforming to ScheduleResponse interface
