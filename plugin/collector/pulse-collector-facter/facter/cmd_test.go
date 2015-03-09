@@ -3,11 +3,9 @@
 package facter
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/control/plugin"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
