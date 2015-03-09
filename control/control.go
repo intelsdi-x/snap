@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	// "fmt"
+
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -207,12 +209,17 @@ func (p *pluginControl) SubscribeMetric(metric []string, ver int, cd *cdata.Conf
 		return nil, &subGetError{errs: []error{err}}
 	}
 
-	ncdTable, errs := m.policy.Process(cd.Table())
-	if errs != nil && errs.HasErrors() {
-		return nil, errs
-	}
+	// fmt.Println(m.Plugin.)
+	// if m.policy == nil {
+	// 	panic("NIL!")
+	// }
+	// ncdTable, errs := m.policy.Process(cd.Table())
+	// if errs != nil && errs.HasErrors() {
+	// 	return nil, errs
+	// }
 
-	ncd := cdata.FromTable(*ncdTable)
+	// panic(1)
+	// ncd := cdata.FromTable(*ncdTable)
 
 	m.Subscribe()
 
@@ -221,7 +228,7 @@ func (p *pluginControl) SubscribeMetric(metric []string, ver int, cd *cdata.Conf
 	}
 	defer p.eventManager.Emit(e)
 
-	return ncd, nil
+	return nil, nil
 }
 
 // unsubscribes a metric

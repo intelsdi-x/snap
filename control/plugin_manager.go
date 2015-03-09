@@ -147,7 +147,7 @@ func (lp *loadedPlugin) Name() string {
 }
 
 func (l *loadedPlugin) Key() string {
-	return fmt.Sprintf("%s-%d", l.Name(), l.Version())
+	return fmt.Sprintf("%s:%d", l.Name(), l.Version())
 }
 
 // returns plugin version

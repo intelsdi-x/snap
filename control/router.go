@@ -28,6 +28,10 @@ type pluginCallSelection struct {
 	MetricTypes []core.MetricType
 }
 
+func (p *pluginCallSelection) Count() int {
+	return len(p.MetricTypes)
+}
+
 // Calls collector plugins for the metric types and returns collection response containing metrics. Blocking method.
 func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) (response *collectionResponse, err error) {
 	// For each MT sort into plugin types we need to call
@@ -69,8 +73,15 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 
 	}
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
-	fmt.Println(pluginCallSelectionMap)
-	fmt.Println(p.pluginRunner.AvailablePlugins().Collectors.Table())
+
+	fmt.Println("")
+	for pluginKey, metrics := range pluginCallSelectionMap {
+		fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
+
+		p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
+	}
+
+	// fmt.Println(p.pluginRunner.AvailablePlugins().Collectors.Table()["dummy:1"])
 
 	// Wait for all responses(happy) or timeout(unhappy)
 

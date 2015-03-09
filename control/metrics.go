@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/cpolicy"
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
@@ -22,11 +21,10 @@ type metricType struct {
 	namespace          []string
 	lastAdvertisedTime time.Time
 	subscriptions      int
-	policy             processesConfigData
 }
 
 type processesConfigData interface {
-	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
+	Process(map[string]ctypes.ConfigValue) *map[string]ctypes.ConfigValue
 }
 
 func newMetricType(ns []string, last time.Time, plugin *loadedPlugin) *metricType {
@@ -35,7 +33,6 @@ func newMetricType(ns []string, last time.Time, plugin *loadedPlugin) *metricTyp
 
 		namespace:          ns,
 		lastAdvertisedTime: last,
-		policy:             cpolicy.NewPolicyNode(),
 	}
 }
 
@@ -90,7 +87,6 @@ func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.MetricType
 		Plugin:             lp,
 		namespace:          mt.Namespace(),
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
-		// policy             processesConfigData, TODO
 	}
 	m.Add(&newMt)
 }

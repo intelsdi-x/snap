@@ -58,13 +58,19 @@ func TestRouter(t *testing.T) {
 		m = append(m, m2)
 		// m = append(m, m3)
 		cd := cdata.NewNode()
+		fmt.Println(cd.Table())
+
+		fmt.Println(m1.Namespace(), m1.Version(), cd)
+		// Subscribe
+		c.SubscribeMetric(m1.Namespace(), m1.Version(), cd)
+		// fmt.Println(a, e)
 
 		// Call collect on router
 		cr, err := c.pluginRouter.Collect(m, cd, time.Now().Add(time.Second*60))
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(cr)
+		fmt.Printf("\nresponse: %+v\n", cr)
 
 	})
 }

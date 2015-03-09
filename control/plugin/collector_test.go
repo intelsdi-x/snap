@@ -70,8 +70,7 @@ func (s *MockSessionState) heartbeatWatch(killChan chan int) {
 }
 
 type MockPlugin struct {
-	Meta   PluginMeta
-	Policy ConfigPolicy
+	Meta PluginMeta
 }
 
 func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetric, error) {

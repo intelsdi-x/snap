@@ -2,6 +2,7 @@ package dummy
 
 import (
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 const (
@@ -30,7 +31,7 @@ func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(Name, Version, Type)
 }
 
-func ConfigPolicy() *plugin.ConfigPolicy {
-	c := new(plugin.ConfigPolicy)
+func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
+	c := cpolicy.NewTree()
 	return c
 }
