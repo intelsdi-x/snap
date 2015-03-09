@@ -9,6 +9,15 @@ import (
 	"time"
 )
 
+// configuration variables
+var (
+	// where to find facter executable
+	// tip: somehow golang is able to find executable within PATH, so just a name is enough
+	// even if facter is just a ruby script
+	// overriden durning tests
+	facter_executable = "facter"
+)
+
 // helper type to deal with json that stores last update moment
 // for a given fact
 type fact struct {
@@ -37,7 +46,7 @@ func getFacts(keys []string, facterTimeout time.Duration) (*stringmap, *time.Tim
 	output := make([]byte, 0, 1024)
 
 	go func(jobCompletedChan chan<- struct{}, output *[]byte, err *error) {
-		*output, *err = exec.Command("facter", args...).Output()
+		*output, *err = exec.Command(facter_executable, args...).Output()
 		jobCompletedChan <- struct{}{}
 	}(jobCompletedChan, &output, &err)
 
