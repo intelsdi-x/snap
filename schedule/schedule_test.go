@@ -102,7 +102,7 @@ func TestScheduler(t *testing.T) {
 				lastAdvertisedTimestamp: 0,
 			},
 		}
-		scheduler := New()
+		scheduler := New(1, 5)
 		cdt := cdata.NewTree()
 		cd := cdata.NewNode()
 		cd.AddItem("foo", ctypes.ConfigValueInt{Value: 1})
@@ -112,8 +112,8 @@ func TestScheduler(t *testing.T) {
 		Convey("returns errors when metrics do not validate", func() {
 			c.failValidatingMetrics = true
 			c.failValidatingMetricsAfter = 2
-			scheduler := New()
-			scheduler.MetricManager = c
+			scheduler := New(1, 5)
+			scheduler.metricManager = c
 			scheduler.Start()
 			mockSchedule := &MockSchedule{
 				tick: false,

@@ -1,13 +1,24 @@
 package schedule
 
+import "sync"
+
+const (
+	workManagerStopped workManagerState = iota
+	workManagerRunning
+)
+
 type workManager struct {
+	state          workManagerState
 	collectq       *queue
 	collectqSize   int64
 	collectWkrs    []*worker
 	collectWkrSize int
 	collectchan    chan job
 	kill           chan struct{}
+	mutex          *sync.Mutex
 }
+
+type workManagerState int
 
 func newWorkManager(cqs int64, cws int) *workManager {
 
@@ -16,6 +27,7 @@ func newWorkManager(cqs int64, cws int) *workManager {
 		collectWkrSize: cws,
 		collectchan:    make(chan job),
 		kill:           make(chan struct{}),
+		mutex:          &sync.Mutex{},
 	}
 
 	wm.collectq.Handler = wm.sendToWorker
@@ -31,13 +43,22 @@ func newWorkManager(cqs int64, cws int) *workManager {
 }
 
 func (w *workManager) Start() {
-	for {
-		select {
-		case <-w.collectq.Err:
-			// TODO(dpitt): handle queuing error
-		case <-w.kill:
-			return
-		}
+
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	if w.state == workManagerStopped {
+		w.state = workManagerRunning
+		go func() {
+			for {
+				select {
+				case <-w.collectq.Err:
+					// TODO(dpitt): handle queuing error
+				case <-w.kill:
+					return
+				}
+			}
+		}()
 	}
 }
 

@@ -38,6 +38,7 @@ func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, manager managesWork
 		state:           TaskStopped,
 		creationTime:    time.Now(),
 		manager:         manager,
+		workflow:        wf,
 	}
 }
 

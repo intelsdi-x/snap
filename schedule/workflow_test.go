@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/intelsdilabs/pulse/core"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -22,8 +23,8 @@ func TestWorkflow(t *testing.T) {
 			Convey("Start", func() {
 				workerKillChan = make(chan struct{})
 				manager := newWorkManager(int64(5), 1)
-				schedule := new(mockSchedule)
-				task := NewTask(schedule, manager)
+				schedule := new(MockSchedule)
+				task := NewTask(schedule, []core.MetricType{}, manager)
 				wf.Start(task, manager)
 				So(wf.State(), ShouldEqual, WorkflowStarted)
 			})

@@ -37,7 +37,7 @@ func (w *workflow) State() workflowState {
 // Start starts a workflow
 func (w *workflow) Start(task *Task, manager managesWork) {
 	w.state = WorkflowStarted
-	j := w.rootStep.CreateJob(task.MetricTypes())
+	j := w.rootStep.CreateJob(task.metricTypes)
 
 	// dispatch 'collect' job to be worked
 	j = manager.Work(j)
