@@ -199,14 +199,18 @@ func (p *pluginControl) generateArgs() plugin.Arg {
 	return a
 }
 
-// SubscribeMetric validates the given config data, and if valid
-// returns subscribes to the metric.  The return is a collection of errors
+// SubscribeMetricType validates the given config data, and if valid
+// returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
-func (p *pluginControl) SubscribeMetric(metric []string, ver int, cd *cdata.ConfigDataNode) (*cdata.ConfigDataNode, SubscriptionError) {
+func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, SubscriptionError) {
 
-	m, err := p.metricCatalog.Get(metric, ver)
+	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 	if err != nil {
 		return nil, &subGetError{errs: []error{err}}
+	}
+
+	if m == nil {
+		return nil, nil
 	}
 
 	// fmt.Println(m.Plugin.)
@@ -221,25 +225,30 @@ func (p *pluginControl) SubscribeMetric(metric []string, ver int, cd *cdata.Conf
 	// panic(1)
 	// ncd := cdata.FromTable(*ncdTable)
 
+	// m.config = cdata.FromTable(*ncdTable)
+
 	m.Subscribe()
 
 	e := &control_event.MetricSubscriptionEvent{
-		MetricNamespace: metric,
+		MetricNamespace: m.Namespace(),
 	}
 	defer p.eventManager.Emit(e)
 
 	return nil, nil
+
+	// return m, nil
 }
 
-// unsubscribes a metric
-func (p *pluginControl) UnsubscribeMetric(metric []string, ver int) {
-	err := p.metricCatalog.Unsubscribe(metric, ver)
+// UnsubscribeMetricType unsubscribes a MetricType
+// If subscriptions fall below zero we will panic.
+func (p *pluginControl) UnsubscribeMetricType(mt core.MetricType) {
+	err := p.metricCatalog.Unsubscribe(mt.Namespace(), mt.Version())
 	if err != nil {
 		// panic because if a metric falls below 0, something bad has happened
 		panic(err.Error())
 	}
 	e := &control_event.MetricUnsubscriptionEvent{
-		MetricNamespace: metric,
+		MetricNamespace: mt.Namespace(),
 	}
 	p.eventManager.Emit(e)
 }

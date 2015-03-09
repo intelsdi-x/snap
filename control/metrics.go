@@ -6,7 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
@@ -16,15 +18,16 @@ var (
 )
 
 type metricType struct {
-	Plugin *loadedPlugin
-
+	Plugin             *loadedPlugin
 	namespace          []string
 	lastAdvertisedTime time.Time
 	subscriptions      int
+	policy             processesConfigData
+	config             *cdata.ConfigDataNode
 }
 
 type processesConfigData interface {
-	Process(map[string]ctypes.ConfigValue) *map[string]ctypes.ConfigValue
+	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
 }
 
 func newMetricType(ns []string, last time.Time, plugin *loadedPlugin) *metricType {
@@ -62,6 +65,10 @@ func (m *metricType) SubscriptionCount() int {
 
 func (m *metricType) Version() int {
 	return m.Plugin.Version()
+}
+
+func (m *metricType) Config() *cdata.ConfigDataNode {
+	return nil
 }
 
 type metricCatalog struct {

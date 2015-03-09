@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
+
 	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/client"
@@ -132,6 +134,17 @@ func newAPCollection() *apCollection {
 		keys:        &k,
 		currentIter: 0,
 	}
+}
+
+func (c *apCollection) GetPluginPool(key string) int {
+	c.Lock()
+	defer c.Unlock()
+
+	for k, v := range *c.table {
+		fmt.Println(k, v)
+	}
+	// panic(1)
+	return 1
 }
 
 // Table returns a copy of the apCollection table

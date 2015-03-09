@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"time"
+
+	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
 // Represents a collected metric. Only used within plugins and across plugin calls.
@@ -40,6 +42,11 @@ func (p PluginMetricType) LastAdvertisedTime() time.Time {
 // Returns the namespace.
 func (p PluginMetricType) Version() int {
 	return p.Version_
+}
+
+// This version of MetricType never implements cdata.ConfigDataNode
+func (p PluginMetricType) Config() *cdata.ConfigDataNode {
+	return nil
 }
 
 func NewPluginMetricType(ns []string) *PluginMetricType {
