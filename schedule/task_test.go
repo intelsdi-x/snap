@@ -53,7 +53,7 @@ func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
 		Convey("task + simple schedule", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 100)
-			task := NewTask(sch, []core.MetricType{}, newWorkManager(int64(5), 1))
+			task := NewTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
@@ -64,7 +64,7 @@ func TestTask(t *testing.T) {
 			mockSchedule := &MockSchedule{
 				tick: false,
 			}
-			task := NewTask(mockSchedule, []core.MetricType{}, newWorkManager(int64(5), 1))
+			task := NewTask(mockSchedule, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
@@ -88,7 +88,7 @@ func TestTask(t *testing.T) {
 		})
 		Convey("task fires", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 10)
-			task := NewTask(sch, []core.MetricType{}, newWorkManager(int64(5), 1))
+			task := NewTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 20)
 			task.Stop()

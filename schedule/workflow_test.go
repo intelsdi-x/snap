@@ -10,7 +10,7 @@ import (
 
 func TestWorkflow(t *testing.T) {
 	Convey("Workflow", t, func() {
-		workManager := new(managesWork)
+		workManager := new(workManager)
 		wf := NewWorkflow(workManager)
 		So(wf.workManager, ShouldNotBeNil)
 		So(wf.state, ShouldNotBeNil)
@@ -24,7 +24,7 @@ func TestWorkflow(t *testing.T) {
 				workerKillChan = make(chan struct{})
 				manager := newWorkManager(int64(5), 1)
 				schedule := new(MockSchedule)
-				task := NewTask(schedule, []core.MetricType{}, manager)
+				task := NewTask(schedule, []core.MetricType{}, &mockWorkflow{}, manager)
 				wf.Start(task, manager)
 				So(wf.State(), ShouldEqual, WorkflowStarted)
 			})

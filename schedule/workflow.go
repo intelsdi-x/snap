@@ -16,13 +16,13 @@ type Workflow interface {
 }
 
 type workflow struct {
-	workManager ManagesWork
+	workManager managesWork
 	rootStep    *collectorStep
 	state       workflowState
 }
 
 // NewWorkflow creates and returns a workflow
-func NewWorkflow(workManager ManagesWork) *workflow {
+func NewWorkflow(workManager managesWork) *workflow {
 	return &workflow{
 		rootStep:    new(collectorStep),
 		workManager: workManager,

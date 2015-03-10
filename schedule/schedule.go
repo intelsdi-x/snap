@@ -21,8 +21,8 @@ const (
 )
 
 var (
-	metricManagerNotSet = errors.New("MetricManager is not set.")
-	schedulerNotStarted = errors.New("Scheduler is not started.")
+	MetricManagerNotSet = errors.New("MetricManager is not set.")
+	SchedulerNotStarted = errors.New("Scheduler is not started.")
 )
 
 // Schedule - Validate() will include ensure that the underlying schedule is
@@ -119,9 +119,9 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 // Start starts the scheduler
 func (s *scheduler) Start() error {
 	if s.metricManager == nil {
-		return metricManagerNotSet
+		return MetricManagerNotSet
 	}
-	s.state = schedulerStarted
+	s.state = SchedulerStarted
 	return nil
 }
 
