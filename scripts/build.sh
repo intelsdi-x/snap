@@ -12,18 +12,21 @@ BINDIR=$BUILDDIR/bin
 COLLECTORDIR=$BUILDDIR/$PLUGINDIR/collector
 PUBLISHERDIR=$BUILDDIR/$PLUGINDIR/publisher
 
+# Clean build bin dir
+rm -rf $BINDIR/*
+
 # Make dir
 mkdir -p $BINDIR
 mkdir -p $COLLECTORDIR
 mkdir -p $PUBLISHERDIR
 
 # Binaries
-# 
+#
 echo "Source Dir = $SOURCEDIR"
 echo "$SPLUGIN"
 echo "$SPLUGINFOLDER"
 echo " Building Pulse Agent"	
-go build -o $BINDIR/pulse-agent . || exit 1
+go build -ldflags "-X main.gitversion `git describe`" -o $BINDIR/pulse-agent . || exit 1
 
 if [ "$SPLUGIN" ] && [ -n "$SPLUGINFOLDER" ]
 then
@@ -37,10 +40,10 @@ then
 	cd $SOURCEDIR
 else
 	# Clean build
-	rm -rf $BUILDDIR/*
+	rm -rf $COLLECTORDIR/*
 	echo " Building Collector Plugin(s)"
 	# Built-in Collector Plugin building
-	cd $SOURCEDIR/plugin/collector/
+	cd $SOURCEDIR/$PLUGINDIR/collector
 	for d in *; do
 		if [[ -d $d ]]; then
 			echo "    $d => $COLLECTORDIR/$d"		

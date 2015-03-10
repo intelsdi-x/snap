@@ -39,8 +39,7 @@ type PulseControl struct {
 func main() {
 	flag.Parse()
 	if *version {
-		//TODO: Pass in version during build
-		fmt.Println("Pulse version: ", gitversion)
+		fmt.Println("Pulse version:", gitversion)
 		os.Exit(0)
 	}
 
