@@ -6,35 +6,28 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path"
 	"runtime"
 	"syscall"
 
 	"github.com/intelsdilabs/pulse/control"
-)
-
-var (
-	// PulsePath is the local file path to a pulse build
-	PulsePath = os.Getenv("PULSE_PATH")
-	// CollectorPath is the path to collector plugins within a pulse build
-	CollectorPath = path.Join(PulsePath, "plugin", "collector")
+	"github.com/intelsdilabs/pulse/schedule"
 )
 
 // Pulse Flags for command line
 var version = flag.Bool("version", false, "print Pulse version")
 var maxProcs = flag.Int("max_procs", 0, "max number of CPUs that can be used simultaneously. Default is use all cores.")
-var pluginController = flag.Bool("plugin_controller", false, "Enable Pulse Plugin Controller")
 
 var gitversion string
 
 type CoreModule interface {
-	Start()
+	Start() error
 	Stop()
 }
 
-type PulseControl struct {
-	pluginController CoreModule
-}
+//type PulseControl struct {
+//	pluginController CoreModule
+//	scheduler        CoreModule
+//}
 
 func main() {
 	flag.Parse()
@@ -45,14 +38,24 @@ func main() {
 
 	setMaxProcs()
 
-	pulseControl := &PulseControl{}
+	//pulseControl := &PulseControl{}
 
-	if *pluginController {
-		pulseControl.pluginController = control.New()
+	c := control.New()
+	s := schedule.New()
+	s.MetricManager = c
+
+	//  Start our modules
+	if err := startModule("Plugin Controller", c); err != nil {
+		printErrorAndExit("Plugin Controller", err)
 	}
-	//TODO: Start pulse modules
-	//TODO: Set module order for starting and stopping
-	startInterruptHandling()
+	if err := startModule("Scheduler", s); err != nil {
+		if c.Started {
+			c.Stop()
+		}
+		printErrorAndExit("Scheduler", err)
+	}
+
+	startInterruptHandling(c, s)
 	select {} //run forever and ever
 }
 
@@ -80,14 +83,28 @@ func setMaxProcs() {
 	}
 }
 
-func startInterruptHandling() {
+func startModule(name string, m CoreModule) error {
+	log.Printf("Starting Pulse Agent %s module", name)
+	return m.Start()
+}
+
+func printErrorAndExit(name string, err error) {
+	log.Println("ERROR:", err)
+	log.Println("ERROR: Error starting Pulse Agent %s module. Exiting now.")
+	os.Exit(1)
+}
+
+func startInterruptHandling(modules ...CoreModule) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 
 	//Let's block until someone tells us to quit
 	go func() {
 		sig := <-c
-		//TODO: Stop pulse modules on exit signals
+		log.Println("Stopping Pulse Agent modules")
+		for _, m := range modules {
+			m.Stop()
+		}
 		log.Printf("Exiting given signal: %v", sig)
 		os.Exit(0)
 	}()
