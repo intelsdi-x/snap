@@ -1,6 +1,7 @@
 package facter
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -46,9 +47,9 @@ func ConfigPolicy() *plugin.ConfigPolicy {
 
 // wrapper to use facter binary, responsible for running external binary and caching
 type Facter struct {
-	metricTypes          []*plugin.MetricType //map[string]interface{}
-	metricTypesLastCheck time.Time
-	metricTypesTTL       time.Time
+	metricTypes           []*plugin.MetricType //map[string]interface{}
+	metricTypesLastUpdate time.Time
+	metricTypesTTL        time.Time
 
 	cacheTTL time.Duration
 	cache    map[string]fact
@@ -61,7 +62,7 @@ type Facter struct {
 }
 
 // construct new Facter
-func NewFacterPlugin() *Facter {
+func NewFacter() *Facter {
 	f := new(Facter)
 	//TODO read from config
 	f.cacheTTL = DefaultCacheTTL
@@ -72,21 +73,30 @@ func NewFacterPlugin() *Facter {
 }
 
 // Pulse plugin interface implementation
-// ------------------------------------
+// TODO: to be rewritten to be compatible to pulse API
+// ----------------------------------------------------
 
 // get available metrics types
 func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
-	if DefaultMetricTypesTTL > time.Since(f.metricTypesLastCheck) {
-		err := f.synchronizeCache([]string{})
+	// TODO: handle plugin.GetMetricTypesArgs somehow
+
+	// synchronize cache conditionally as a whole
+	timeElapsed := time.Since(f.metricTypesLastUpdate)
+	needUpdate := timeElapsed > DefaultMetricTypesTTL
+	if needUpdate {
+		// synchronize cache conditionally for fields
+		err := f.updateCacheAll()
 		if err != nil {
 			log.Println("Facter: synchronizeCache returned error: " + err.Error())
 			return err
 		}
-		var timestamp time.Time
-		f.metricTypes, timestamp = prepareMetricTypes(&f.cache)
-		f.metricTypesLastCheck = timestamp
+
+		// transform internal cache to metricTypes
+		f.prepareMetricTypes()
+
 	}
+	// return metricTypes prepared earlier
 	reply.MetricTypes = f.metricTypes
 
 	return nil
@@ -144,10 +154,16 @@ func (f *Facter) getNamesToUpdate(names []string) []string {
 	return namesToUpdate
 }
 
-// responsible for updating metrics in cache (conditionally)
+// synchronizeCache is responsible for updating metrics in cache (conditionally)
+// only if there a need for that
 // names is slice with list of metrics to synchronize
-// empty names means synchronize all facts
+// names cannot be empty
 func (f *Facter) synchronizeCache(names []string) error {
+
+	// check not empty argument
+	if len(names) == 0 {
+		return errors.New("I cannot synchronize cache for empty name list!")
+	}
 
 	// what is needed to be updated
 	namesToUpdate := f.getNamesToUpdate(names)
@@ -163,8 +179,8 @@ func (f *Facter) synchronizeCache(names []string) error {
 	return nil
 }
 
-// Updates (refresh) cache (unconditionally) entries with current values
-// pass empty to update all facts in cache
+// updateCache updates (refresh) cache  entries (unconditionally) with current values
+// from facter, pass empty collection to update all facts in cache
 func (f *Facter) updateCache(names []string) error {
 
 	// obtain actual facts
@@ -200,35 +216,36 @@ func (f *Facter) updateCache(names []string) error {
 	return nil
 }
 
-// Updates all cache entries unconditionally (just a wrapper for updateCache)
+// updateCacheAll updates all cache entries unconditionally (just a wrapper for updateCache for all metrics)
 func (f *Facter) updateCacheAll() error {
 	return f.updateCache([]string{})
 }
 
-/*****************
- *  fact struct  *
- *****************/
+// prepareMetricTypes fills metricTypes internal collection ready to send back to pulse
+func (f *Facter) prepareMetricTypes() {
+
+	// new temporary collection (to not mess with
+	metricTypes := make([]*plugin.MetricType, 0, len(f.cache))
+
+	// rewrite values from cache to another colllection accetable by pulse
+	for factName, value := range f.cache {
+		metricTypes = append(metricTypes,
+			plugin.NewMetricType(
+				[]string{Vendor, prefix, factName}, // namespace
+				value.lastUpdate.Unix()),           // lastAdvertisedTimestamp TODO would be time.Now()
+		)
+	}
+
+	// update Facter state
+	f.metricTypes = metricTypes
+
+	// remember the last the metricTypes was filled
+	f.metricTypesLastUpdate = time.Now()
+}
 
 // helper type to deal with json that stores last update moment
 // allows to implement a local cache in PluginFacter
 type fact struct {
 	value      interface{}
 	lastUpdate time.Time
-}
-
-/***********************
- *  utility functions  *
- ***********************/
-
-func prepareMetricTypes(factMap *map[string]fact) ([]*plugin.MetricType, time.Time) {
-	metricTypes := make([]*plugin.MetricType, 0, len(*factMap))
-	var timestamp time.Time
-	for factName, value := range *factMap {
-		timestamp = value.lastUpdate
-		metricTypes = append(metricTypes,
-			plugin.NewMetricType([]string{Vendor, prefix, factName},
-				timestamp.Unix()))
-	}
-
-	return metricTypes, timestamp
 }

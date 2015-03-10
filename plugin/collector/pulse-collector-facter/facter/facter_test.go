@@ -40,7 +40,7 @@ func TestCacheUpdate(t *testing.T) {
 
 	Convey("facter cache update works at all", t, func() {
 
-		f := NewFacterPlugin()
+		f := NewFacter()
 
 		Convey("empty for start", func() {
 			So(f.cache, ShouldBeEmpty)
@@ -56,7 +56,7 @@ func TestCacheUpdate(t *testing.T) {
 
 	Convey("cache update policy", t, func() {
 
-		f := NewFacterPlugin()
+		f := NewFacter()
 
 		Convey("missing value always force refresh", func() {
 			// make sure is empty
@@ -88,7 +88,7 @@ func TestCacheUpdate(t *testing.T) {
 
 	Convey("cache synchronization", t, func() {
 
-		f := NewFacterPlugin()
+		f := NewFacter()
 
 		Convey("when not synchronized cache is empty and asked for existing fact",
 			withFakeFacter(f, stringmap{"foo": 1}, func() {
@@ -123,7 +123,7 @@ func TestCacheUpdate(t *testing.T) {
 						// invalidate value in cache by overriding lastUpdate field
 						fact := f.cache["foo"]
 						fact.lastUpdate = longAgo
-						So(fact.value, ShouldEqual, 1) // still because of outer convey
+						So(fact.value, ShouldEqual, 1) // still 1 because already set in outer convey
 						f.cache["foo"] = fact
 
 						// synchronize and check
@@ -151,33 +151,40 @@ func TestCacheUpdate(t *testing.T) {
 func TestFacterGetMetrics(t *testing.T) {
 
 	// TODO:not implemented! - fullfill GetMetricTypes
-	SkipConvey("GetMetricTypes tests", t, func() {
+	Convey("GetMetricTypes tests", t, func() {
 
-		facter := NewFacterPlugin()
-		var pluginArgs plugin.GetMetricTypesArgs
-		var reply plugin.GetMetricTypesReply
+		f := NewFacter()
+
+		pluginArgs := plugin.GetMetricTypesArgs{}
+		reply := plugin.GetMetricTypesReply{}
+
 		Convey("GetMetricsTypes returns no error", func() {
-			err := facter.GetMetricTypes(pluginArgs, &reply)
+			// exectues without error
+			err := f.GetMetricTypes(pluginArgs, &reply)
 			So(err, ShouldBeNil)
+
 			Convey("metricTypesReply should contain more than zero metrics", func() {
-				So(len(reply.MetricTypes), ShouldBeGreaterThan, 0)
+				So(reply.MetricTypes, ShouldNotBeEmpty)
 			})
+
 			Convey("metricTypesReply contains metric namespace \"intel/facter/kernel\"", func() {
+
+				// we exepect that all metric has the same advertised timestamp (because its get together)
 				expectedTimestamp := reply.MetricTypes[0].LastAdvertisedTimestamp()
 				expectedNamespace := []string{"intel", "facter", "kernel"}
+
+				// we are looking for this one in reply
 				expectedMetricType := plugin.NewMetricType(expectedNamespace, expectedTimestamp)
-				//					Printf("\n expected: %v\n", expectedMetricType)
-				success := false
-				for idx, elem := range reply.MetricTypes {
+
+				found := false
+				for _, elem := range reply.MetricTypes {
 					if reflect.DeepEqual(expectedMetricType, elem) {
-						So(reply.MetricTypes[idx], ShouldResemble, expectedMetricType)
-						success = true
+						found = true
 						break
 					}
 				}
-				if !success {
-					// ShouldContain compares through pointers - SO THIS WILL FAIL
-					So(reply.MetricTypes, ShouldContain, expectedMetricType)
+				if !found {
+					t.Error("It was expected to find intel/facter/kernel metricType (but it wasn't there)")
 				}
 			})
 		})
@@ -185,19 +192,15 @@ func TestFacterGetMetrics(t *testing.T) {
 }
 
 func TestFacterCollect(t *testing.T) {
-	// TODO: time outs after 5 seconds because of goroutine
 	Convey("TestFacterCollect tests", t, func() {
 
-		f := NewFacterPlugin()
-		Convey("update cache", func() {
-			f.synchronizeCache([]string{"foo"})
-		})
-
-		Convey("Collect returns nil", func() {
-			facter := NewFacterPlugin()
-			var pluginArgs plugin.CollectorArgs
+		Convey("Collect executes without error", func() {
+			f := NewFacter()
+			// output
 			var reply plugin.CollectorReply
-			So(facter.Collect(pluginArgs, &reply), ShouldBeNil)
+			So(f.Collect(plugin.CollectorArgs{}, &reply), ShouldBeNil)
+			// TODO: check reply when defined - awaits for PR SDI-98 #61
+			// So(reply, ShouldResemble, {})
 		})
 	})
 }
@@ -209,13 +212,13 @@ func TestFacterPluginMeta(t *testing.T) {
 			So(meta, ShouldNotBeNil)
 		})
 		Convey("Name should be Intel Facter Plugin (c) 2015 Intel Corporation", func() {
-			So(meta.Name, ShouldResemble, "Intel Facter Plugin (c) 2015 Intel Corporation")
+			So(meta.Name, ShouldEqual, "Intel Facter Plugin (c) 2015 Intel Corporation")
 		})
 		Convey("Version should be 1", func() {
 			So(meta.Version, ShouldEqual, 1)
 		})
 		Convey("Type should be plugin.CollectorPluginType", func() {
-			So(meta.Type, ShouldResemble, plugin.CollectorPluginType)
+			So(meta.Type, ShouldEqual, plugin.CollectorPluginType)
 		})
 	})
 }
