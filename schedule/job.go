@@ -47,6 +47,7 @@ func newCollectorJob(metricTypes []core.MetricType) *collectorJob {
 		jtype:       collectJobType,
 		deadline:    defaultDeadline,
 		metricTypes: metricTypes,
+		metrics:     []core.Metric{},
 		errors:      make([]error, 0),
 		starttime:   time.Now().Unix(),
 		replchan:    make(chan struct{}),

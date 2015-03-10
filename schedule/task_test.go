@@ -86,6 +86,12 @@ func TestTask(t *testing.T) {
 				})
 			})
 		})
-
+		Convey("task fires", func() {
+			sch := NewSimpleSchedule(time.Millisecond * 10)
+			task := NewTask(sch, []core.MetricType{}, newWorkManager(int64(5), 1))
+			task.Spin()
+			time.Sleep(time.Millisecond * 20)
+			task.Stop()
+		})
 	})
 }

@@ -16,10 +16,19 @@ var (
 	errLimitExceeded = errors.New("limit exceeded")
 )
 
+type queuingError struct {
+	Job job
+	Err error
+}
+
+func (qe *queuingError) Error() string {
+	return qe.Err.Error()
+}
+
 type queue struct {
 	Event   chan job
 	Handler func(job)
-	Err     chan error
+	Err     chan *queuingError
 
 	limit  int64
 	kill   chan struct{}
@@ -33,7 +42,7 @@ type queueStatus int
 func newQueue(limit int64) *queue {
 	q := &queue{
 		Event: make(chan job),
-		Err:   make(chan error),
+		Err:   make(chan *queuingError),
 
 		limit:  limit,
 		kill:   make(chan struct{}),
@@ -77,7 +86,11 @@ func (q *queue) start() {
 		select {
 		case e := <-q.Event:
 			if err := q.push(e); err != nil {
-				q.Err <- errLimitExceeded
+				qe := &queuingError{
+					Err: err,
+					Job: e,
+				}
+				q.Err <- qe
 				continue
 			}
 

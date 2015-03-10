@@ -52,8 +52,9 @@ func (w *workManager) Start() {
 		go func() {
 			for {
 				select {
-				case <-w.collectq.Err:
-					// TODO(dpitt): handle queuing error
+				case qe := <-w.collectq.Err:
+					qe.Job.ReplChan() <- struct{}{}
+					//TODO: log error
 				case <-w.kill:
 					return
 				}

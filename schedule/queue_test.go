@@ -57,7 +57,7 @@ func TestQueue(t *testing.T) {
 		}
 		err := <-q.Err
 		So(err, ShouldNotBeNil)
-		So(err, ShouldResemble, errLimitExceeded)
+		So(err.Err, ShouldResemble, errLimitExceeded)
 		q.Stop()
 	})
 
