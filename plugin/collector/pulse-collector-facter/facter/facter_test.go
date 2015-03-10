@@ -123,7 +123,7 @@ func TestCacheUpdate(t *testing.T) {
 						// invalidate value in cache by overriding lastUpdate field
 						fact := f.cache["foo"]
 						fact.lastUpdate = longAgo
-						So(fact.value, ShouldEqual, 1) // still because of outer convey
+						So(fact.value, ShouldEqual, 1) // still 1 because already set in outer convey
 						f.cache["foo"] = fact
 
 						// synchronize and check
@@ -151,13 +151,15 @@ func TestCacheUpdate(t *testing.T) {
 func TestFacterGetMetrics(t *testing.T) {
 
 	// TODO:not implemented! - fullfill GetMetricTypes
-	SkipConvey("GetMetricTypes tests", t, func() {
+	Convey("GetMetricTypes tests", t, func() {
 
-		facter := NewFacter()
-		var pluginArgs plugin.GetMetricTypesArgs
-		var reply plugin.GetMetricTypesReply
+		f := NewFacter()
+
+		pluginArgs := plugin.GetMetricTypesArgs{}
+		reply := plugin.GetMetricTypesReply{}
+
 		Convey("GetMetricsTypes returns no error", func() {
-			err := facter.GetMetricTypes(pluginArgs, &reply)
+			err := f.GetMetricTypes(pluginArgs, &reply)
 			So(err, ShouldBeNil)
 			Convey("metricTypesReply should contain more than zero metrics", func() {
 				So(len(reply.MetricTypes), ShouldBeGreaterThan, 0)
@@ -185,19 +187,15 @@ func TestFacterGetMetrics(t *testing.T) {
 }
 
 func TestFacterCollect(t *testing.T) {
-	// TODO: time outs after 5 seconds because of goroutine
 	Convey("TestFacterCollect tests", t, func() {
 
-		f := NewFacter()
-		Convey("update cache", func() {
-			f.synchronizeCache([]string{"foo"})
-		})
-
-		Convey("Collect returns nil", func() {
-			facter := NewFacter()
-			var pluginArgs plugin.CollectorArgs
+		Convey("Collect executes without error", func() {
+			f := NewFacter()
+			// output
 			var reply plugin.CollectorReply
-			So(facter.Collect(pluginArgs, &reply), ShouldBeNil)
+			So(f.Collect(plugin.CollectorArgs{}, &reply), ShouldBeNil)
+			// TODO: check reply when defined - awaits for PR SDI-98 #61
+			// So(reply, ShouldResemble, {})
 		})
 	})
 }
@@ -209,13 +207,13 @@ func TestFacterPluginMeta(t *testing.T) {
 			So(meta, ShouldNotBeNil)
 		})
 		Convey("Name should be Intel Facter Plugin (c) 2015 Intel Corporation", func() {
-			So(meta.Name, ShouldResemble, "Intel Facter Plugin (c) 2015 Intel Corporation")
+			So(meta.Name, ShouldEqual, "Intel Facter Plugin (c) 2015 Intel Corporation")
 		})
 		Convey("Version should be 1", func() {
 			So(meta.Version, ShouldEqual, 1)
 		})
 		Convey("Type should be plugin.CollectorPluginType", func() {
-			So(meta.Type, ShouldResemble, plugin.CollectorPluginType)
+			So(meta.Type, ShouldEqual, plugin.CollectorPluginType)
 		})
 	})
 }
