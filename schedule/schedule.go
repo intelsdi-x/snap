@@ -67,8 +67,8 @@ type scheduler struct {
 
 type SchedulerState int
 
-//CreateTask creates a task
-func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow) (*Task, TaskErrors) {
+// CreateTask creates and returns task
+func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow, opts ...option) (*Task, TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
@@ -107,7 +107,8 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 		return nil, te
 	}
 
-	task := NewTask(s, subscriptions, wf)
+	task := NewTask(s, subscriptions, wf, opts...)
+
 	return task, nil
 }
 

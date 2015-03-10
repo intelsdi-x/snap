@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"testing"
+	"time"
 
 	"github.com/intelsdilabs/pulse/core"
 	. "github.com/smartystreets/goconvey/convey"
@@ -19,7 +20,9 @@ func TestWorkerManager(t *testing.T) {
 					lastAdvertisedTimestamp: 0,
 				},
 			}
-			job := NewCollectorJob(metricTypes)
+			deadline := time.Now().Add(1 * time.Second)
+			job := NewCollectorJob(metricTypes, deadline)
+			So(job.(CollectorJob).Deadline(), ShouldResemble, deadline)
 			job = manager.Work(job)
 			So(job.Errors(), ShouldBeNil)
 			So(job.(CollectorJob).Metrics(), ShouldBeNil)

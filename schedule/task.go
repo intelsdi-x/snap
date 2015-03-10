@@ -12,32 +12,65 @@ const (
 	TaskStopped TaskState = iota
 	TaskSpinning
 	TaskFiring
+
+	DefaultDeadlineDuration = time.Second * 5
 )
 
 type Task struct {
-	schResponseChan chan ScheduleResponse
-	killChan        chan struct{}
-	schedule        Schedule
-	workflow        Workflow
-	metricTypes     []core.MetricType
-	mu              sync.Mutex //protects state
-	state           TaskState
-	creationTime    time.Time
-	lastFireTime    time.Time
+	schResponseChan  chan ScheduleResponse
+	killChan         chan struct{}
+	schedule         Schedule
+	workflow         Workflow
+	metricTypes      []core.MetricType
+	mu               sync.Mutex //protects state
+	state            TaskState
+	creationTime     time.Time
+	lastFireTime     time.Time
+	deadlineDuration time.Duration
 }
 
 type TaskState int
 
-func NewTask(s Schedule, mtc []core.MetricType, wf Workflow) *Task {
-	return &Task{
-		schResponseChan: make(chan ScheduleResponse),
-		killChan:        make(chan struct{}),
-		metricTypes:     mtc,
-		schedule:        s,
-		state:           TaskStopped,
-		creationTime:    time.Now(),
-		workflow:        wf,
+type option func(t *Task) option
+
+// Option sets the options specified.
+// Returns an option to optionally restore the last arg's previous value.
+func (t *Task) Option(opts ...option) option {
+	var previous option
+	for _, opt := range opts {
+		previous = opt(t)
 	}
+	return previous
+}
+
+// TaskDeadlineDuration sets the tasks deadline.
+// The deadline is the amount of time that can pass before a worker begins
+// processing the tasks collect job.
+func TaskDeadlineDuration(v time.Duration) option {
+	return func(t *Task) option {
+		previous := t.deadlineDuration
+		t.deadlineDuration = v
+		return TaskDeadlineDuration(previous)
+	}
+}
+
+//NewTask creates a Task
+func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, opts ...option) *Task {
+	task := &Task{
+		schResponseChan:  make(chan ScheduleResponse),
+		killChan:         make(chan struct{}),
+		metricTypes:      mtc,
+		schedule:         s,
+		state:            TaskStopped,
+		creationTime:     time.Now(),
+		workflow:         wf,
+		deadlineDuration: DefaultDeadlineDuration,
+	}
+	//set options
+	for _, opt := range opts {
+		opt(task)
+	}
+	return task
 }
 
 func (t *Task) Spin() {

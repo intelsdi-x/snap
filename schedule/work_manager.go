@@ -16,9 +16,10 @@ type job struct {
 }
 
 // NewJob taking []core.MetricType creates and returns a Job
-func NewCollectorJob(metricTypes []core.MetricType) Job {
+func NewCollectorJob(metricTypes []core.MetricType, deadline time.Time) Job {
 	return &collectorJob{
 		metricTypes: metricTypes,
+		deadline:    deadline,
 	}
 }
 
@@ -30,11 +31,13 @@ func (c *job) Errors() []error {
 // CollectorJob interface
 type CollectorJob interface {
 	Job
+	Deadline() time.Time
 	Metrics() []core.Metric
 }
 
 type collectorJob struct {
 	job
+	deadline    time.Time
 	metrics     []core.Metric
 	metricTypes []core.MetricType
 }
@@ -42,6 +45,11 @@ type collectorJob struct {
 // Metrics returns the metrics
 func (c *collectorJob) Metrics() []core.Metric {
 	return c.metrics
+}
+
+// Deadline returns the time after which the job should be considered a noop
+func (c *collectorJob) Deadline() time.Time {
+	return c.deadline
 }
 
 // WorkerManager provides a method to get work done
