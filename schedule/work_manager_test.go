@@ -10,6 +10,7 @@ import (
 func TestWorkerManager(t *testing.T) {
 	Convey("WorkerManager", t, func() {
 		manager := new(managesWork)
+		So(manager, ShouldNotBeNil)
 		Convey("Work", func() {
 			metricTypes := []core.MetricType{
 				&MockMetricType{
