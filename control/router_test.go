@@ -2,8 +2,8 @@ package control
 
 import (
 	"fmt"
-	// "os"
-	// "path"
+	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -12,11 +12,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// var (
-// 	PluginName = "pulse-collector-dummy"
-// 	PulsePath  = os.Getenv("PULSE_PATH")
-// 	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
-// )
+var (
+	PluginName = "pulse-collector-dummy"
+	PulsePath  = os.Getenv("PULSE_PATH")
+	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
+)
 
 type MockMetricType struct {
 	namespace []string
@@ -66,13 +66,13 @@ func TestRouter(t *testing.T) {
 
 		fmt.Println(m1.Namespace(), m1.Version(), cd)
 		// Subscribe
-		c.SubscribeMetricType(m1, cd)
-		// fmt.Println(a, e)
+		a, b := c.SubscribeMetricType(m1, cd)
+		fmt.Println(a, b)
 
 		// Call collect on router
 		cr, err := c.pluginRouter.Collect(m, cd, time.Now().Add(time.Second*60))
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 		fmt.Printf("\nresponse: %+v\n", cr)
 

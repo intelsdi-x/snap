@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/routing"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 )
@@ -14,13 +15,22 @@ import (
 type RouterResponse interface {
 }
 
+type RoutingStrategy interface {
+}
+
 type pluginRouter struct {
+	Strategy         RoutingStrategy
+	SelectionTimeout time.Duration
+
 	metricCatalog catalogsMetrics
 	pluginRunner  runsPlugins
 }
 
 func newPluginRouter() *pluginRouter {
-	return &pluginRouter{}
+	return &pluginRouter{
+		Strategy:         &routing.RoundRobinStrategy{},
+		SelectionTimeout: time.Second * 30,
+	}
 }
 
 type pluginCallSelection struct {
@@ -78,7 +88,27 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 	for pluginKey, metrics := range pluginCallSelectionMap {
 		fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
 
-		p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
+		apPluginPool := p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
+
+		if apPluginPool == nil {
+			// return error because this plugin has no pool
+			return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
+		}
+
+		// Lock this apPool so we are the only one operating on it.
+		if apPluginPool.Count() == 0 {
+			// return error indicating we have no available plugins to call for Collect
+		}
+		// Use a router strategy to select an available plugin from the pool
+		// This blocks on selection of a non-busy node or timeout expiring
+		ap, err := apPluginPool.SelectUsingStrategy(p.Strategy, p.SelectionTimeout)
+		// ap, err := p.Strategy.Select(apPluginPool, p.SelectionTimeout)
+		// Call CollectMetrics on the client
+		// metrics, err := ap.Client.CollectMetrics(metricTypes, config)
+		fmt.Println(ap, err)
+		if err != nil {
+			// We had an error on collection return
+		}
 	}
 
 	// fmt.Println(p.pluginRunner.AvailablePlugins().Collectors.Table()["dummy:1"])

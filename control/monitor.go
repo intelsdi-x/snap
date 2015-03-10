@@ -60,7 +60,7 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 					availablePlugins.Collectors.Lock()
 					for availablePlugins.Collectors.Next() {
 						_, apc := availablePlugins.Collectors.Item()
-						for _, ap := range *apc {
+						for _, ap := range *apc.Plugins {
 							go ap.CheckHealth()
 						}
 					}
@@ -70,7 +70,7 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 					availablePlugins.Publishers.Lock()
 					for availablePlugins.Publishers.Next() {
 						_, apc := availablePlugins.Publishers.Item()
-						for _, ap := range *apc {
+						for _, ap := range *apc.Plugins {
 							go ap.CheckHealth()
 						}
 					}
@@ -80,7 +80,7 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 					availablePlugins.Processors.Lock()
 					for availablePlugins.Processors.Next() {
 						_, apc := availablePlugins.Processors.Item()
-						for _, ap := range *apc {
+						for _, ap := range *apc.Plugins {
 							go ap.CheckHealth()
 						}
 					}
