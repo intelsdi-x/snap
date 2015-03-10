@@ -44,7 +44,7 @@ func ConfigPolicy() *plugin.ConfigPolicy {
  *  Facter struct  *
  *******************/
 
-// wrapper to use facter binnary, responsible for running external binnary and caching
+// wrapper to use facter binary, responsible for running external binary and caching
 type Facter struct {
 	metricTypes          []*plugin.MetricType //map[string]interface{}
 	metricTypesLastCheck time.Time
@@ -54,6 +54,10 @@ type Facter struct {
 	cache    map[string]fact
 
 	facterExecutionDeadline time.Duration
+
+	// injects implementation for getting facts - defaults to use getFacts from cmd.go
+	// but allows to replace with fake during tests
+	getFacts func(keys []string, facterTimeout time.Duration) (*stringmap, *time.Time, error)
 }
 
 // construct new Facter
@@ -63,10 +67,11 @@ func NewFacterPlugin() *Facter {
 	f.cacheTTL = DefaultCacheTTL
 	f.cache = make(map[string]fact)
 	f.facterExecutionDeadline = DefautlFacterDeadline
+	f.getFacts = getFacts
 	return f
 }
 
-// Pulse plugin interface implmentation
+// Pulse plugin interface implementation
 // ------------------------------------
 
 // get available metrics types
@@ -92,7 +97,7 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
 	// waits for lynxbat/SDI-98
 
-	// TODO: INPUT: read CollectorArgs structure to extrac requested metrics
+	// TODO: INPUT: read CollectorArgs structure to extract requested metrics
 	requestedNames := []string{"kernel", "uptime"}
 
 	// prepare cache to have all we need
@@ -101,7 +106,7 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 		return err
 	}
 
-	// TODO: OUTPUT: fullfill reply structure with requested metrics
+	// TODO: OUTPUT: fulfill reply structure with requested metrics
 	// for _, name := range requestedNames {
 	// 	// convert it some how if required
 	// 	reply.metrics[name] = f.cache[name].value
@@ -110,19 +115,19 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 	return nil
 }
 
-// internals (cache managment)
+// internals (cache management)
 // ------------------------------------
 
-// responsible for updating stale metrics in cache
-// names is slice with list of metrics to synchronize
-// empty names means synchronize all facts
-func (f *Facter) synchronizeCache(names []string) error {
+// compare given facts with cache state and prepare a list of stale or non-existing ones
+// returns the names of metrics that have to be updated
+func (f *Facter) getNamesToUpdate(names []string) []string {
+
 	now := time.Now()
 
-	// list of facts that have to be updated or acquired first time
+	// list of facts that have to be updated because are old
+	// or acquired first time
+	// so collect stale or not existing facts
 	namesToUpdate := []string{}
-
-	// collect stale or not existings facts
 	for _, name := range names {
 
 		fact, exists := f.cache[name]
@@ -136,29 +141,34 @@ func (f *Facter) synchronizeCache(names []string) error {
 			namesToUpdate = append(namesToUpdate, name)
 		}
 	}
+	return namesToUpdate
+}
 
-	// update outdated cache
+// responsible for updating metrics in cache (conditionally)
+// names is slice with list of metrics to synchronize
+// empty names means synchronize all facts
+func (f *Facter) synchronizeCache(names []string) error {
+
+	// what is needed to be updated
+	namesToUpdate := f.getNamesToUpdate(names)
+
+	// if there is something that has to refreshed - refresh it
 	if len(namesToUpdate) > 0 {
+
 		err := f.updateCache(namesToUpdate)
 		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
 
-// Updates all cache entries unconditionally (just a wrapper for updateCache)
-func (f *Facter) updateCacheAll() error {
-	return f.updateCache([]string{})
-}
-
-// Updates cache entries with current values
+// Updates (refresh) cache (unconditionally) entries with current values
 // pass empty to update all facts in cache
 func (f *Facter) updateCache(names []string) error {
 
 	// obtain actual facts
-	facts, receviedAt, err := getFacts(names, f.facterExecutionDeadline)
+	facts, receviedAt, err := f.getFacts(names, f.facterExecutionDeadline)
 	if err != nil {
 		return err
 	}
@@ -184,10 +194,26 @@ func (f *Facter) updateCache(names []string) error {
 			fact := f.cache[name]
 			fact.lastUpdate = *receviedAt
 			fact.value = value
-			f.cache[name] = fact // golang defect #3117
+			f.cache[name] = fact // updating a field in non-addressable value in map golang defect #3117
 		}
 	}
 	return nil
+}
+
+// Updates all cache entries unconditionally (just a wrapper for updateCache)
+func (f *Facter) updateCacheAll() error {
+	return f.updateCache([]string{})
+}
+
+/*****************
+ *  fact struct  *
+ *****************/
+
+// helper type to deal with json that stores last update moment
+// allows to implement a local cache in PluginFacter
+type fact struct {
+	value      interface{}
+	lastUpdate time.Time
 }
 
 /***********************
