@@ -159,27 +159,32 @@ func TestFacterGetMetrics(t *testing.T) {
 		reply := plugin.GetMetricTypesReply{}
 
 		Convey("GetMetricsTypes returns no error", func() {
+			// exectues without error
 			err := f.GetMetricTypes(pluginArgs, &reply)
 			So(err, ShouldBeNil)
+
 			Convey("metricTypesReply should contain more than zero metrics", func() {
-				So(len(reply.MetricTypes), ShouldBeGreaterThan, 0)
+				So(reply.MetricTypes, ShouldNotBeEmpty)
 			})
+
 			Convey("metricTypesReply contains metric namespace \"intel/facter/kernel\"", func() {
+
+				// we exepect that all metric has the same advertised timestamp (because its get together)
 				expectedTimestamp := reply.MetricTypes[0].LastAdvertisedTimestamp()
 				expectedNamespace := []string{"intel", "facter", "kernel"}
+
+				// we are looking for this one in reply
 				expectedMetricType := plugin.NewMetricType(expectedNamespace, expectedTimestamp)
-				//					Printf("\n expected: %v\n", expectedMetricType)
-				success := false
-				for idx, elem := range reply.MetricTypes {
+
+				found := false
+				for _, elem := range reply.MetricTypes {
 					if reflect.DeepEqual(expectedMetricType, elem) {
-						So(reply.MetricTypes[idx], ShouldResemble, expectedMetricType)
-						success = true
+						found = true
 						break
 					}
 				}
-				if !success {
-					// ShouldContain compares through pointers - SO THIS WILL FAIL
-					So(reply.MetricTypes, ShouldContain, expectedMetricType)
+				if !found {
+					t.Error("It was expected to find intel/facter/kernel metricType (but it wasn't there)")
 				}
 			})
 		})
