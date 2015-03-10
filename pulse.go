@@ -25,6 +25,8 @@ var version = flag.Bool("version", false, "print Pulse version")
 var maxProcs = flag.Int("max_procs", 0, "max number of CPUs that can be used simultaneously. Default is use all cores.")
 var pluginController = flag.Bool("plugin_controller", false, "Enable Pulse Plugin Controller")
 
+var gitversion string
+
 type CoreModule interface {
 	Start()
 	Stop()
@@ -38,7 +40,7 @@ func main() {
 	flag.Parse()
 	if *version {
 		//TODO: Pass in version during build
-		fmt.Println("Pulse version pre-alpha\n")
+		fmt.Println("Pulse version: ", gitversion)
 		os.Exit(0)
 	}
 
