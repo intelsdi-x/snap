@@ -18,13 +18,6 @@ var (
 	facter_executable = "facter"
 )
 
-// helper type to deal with json that stores last update moment
-// for a given fact
-type fact struct {
-	value      interface{}
-	lastUpdate time.Time
-}
-
 // helper type to deal with json parsing
 type stringmap map[string]interface{}
 
