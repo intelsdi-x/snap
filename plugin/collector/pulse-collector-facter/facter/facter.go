@@ -61,7 +61,7 @@ type Facter struct {
 }
 
 // construct new Facter
-func NewFacterPlugin() *Facter {
+func NewFacter() *Facter {
 	f := new(Facter)
 	//TODO read from config
 	f.cacheTTL = DefaultCacheTTL

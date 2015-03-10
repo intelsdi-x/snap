@@ -40,7 +40,7 @@ func TestCacheUpdate(t *testing.T) {
 
 	Convey("facter cache update works at all", t, func() {
 
-		f := NewFacterPlugin()
+		f := NewFacter()
 
 		Convey("empty for start", func() {
 			So(f.cache, ShouldBeEmpty)
@@ -56,7 +56,7 @@ func TestCacheUpdate(t *testing.T) {
 
 	Convey("cache update policy", t, func() {
 
-		f := NewFacterPlugin()
+		f := NewFacter()
 
 		Convey("missing value always force refresh", func() {
 			// make sure is empty
@@ -88,7 +88,7 @@ func TestCacheUpdate(t *testing.T) {
 
 	Convey("cache synchronization", t, func() {
 
-		f := NewFacterPlugin()
+		f := NewFacter()
 
 		Convey("when not synchronized cache is empty and asked for existing fact",
 			withFakeFacter(f, stringmap{"foo": 1}, func() {
@@ -153,7 +153,7 @@ func TestFacterGetMetrics(t *testing.T) {
 	// TODO:not implemented! - fullfill GetMetricTypes
 	SkipConvey("GetMetricTypes tests", t, func() {
 
-		facter := NewFacterPlugin()
+		facter := NewFacter()
 		var pluginArgs plugin.GetMetricTypesArgs
 		var reply plugin.GetMetricTypesReply
 		Convey("GetMetricsTypes returns no error", func() {
@@ -188,13 +188,13 @@ func TestFacterCollect(t *testing.T) {
 	// TODO: time outs after 5 seconds because of goroutine
 	Convey("TestFacterCollect tests", t, func() {
 
-		f := NewFacterPlugin()
+		f := NewFacter()
 		Convey("update cache", func() {
 			f.synchronizeCache([]string{"foo"})
 		})
 
 		Convey("Collect returns nil", func() {
-			facter := NewFacterPlugin()
+			facter := NewFacter()
 			var pluginArgs plugin.CollectorArgs
 			var reply plugin.CollectorReply
 			So(facter.Collect(pluginArgs, &reply), ShouldBeNil)
