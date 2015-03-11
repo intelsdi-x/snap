@@ -12,8 +12,9 @@ import (
  *  pulse plugin  *
  *******************/
 
+// TODO: all this should be private
 const (
-	Name   = "Intel Facter Plugin (c) 2015 Intel Corporation"
+	name   = "Intel Facter Plugin (c) 2015 Intel Corporation"
 	Vendor = "intel"
 	prefix = "facter"
 
@@ -30,7 +31,7 @@ const (
 
 // returns PluginMeta
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(Name, Version, Type)
+	return plugin.NewPluginMeta(name, Version, Type)
 }
 
 // returns ConfigPolicy
@@ -58,7 +59,7 @@ type Facter struct {
 
 	// injects implementation for getting facts - defaults to use getFacts from cmd.go
 	// but allows to replace with fake during tests
-	getFacts func(keys []string, facterTimeout time.Duration) (*stringmap, *time.Time, error)
+	getFacts func(keys []string, facterTimeout time.Duration, cmdConfig *cmdConfig) (*stringmap, *time.Time, error)
 }
 
 // construct new Facter
@@ -183,8 +184,12 @@ func (f *Facter) synchronizeCache(names []string) error {
 // from facter, pass empty collection to update all facts in cache
 func (f *Facter) updateCache(names []string) error {
 
-	// obtain actual facts
-	facts, receviedAt, err := f.getFacts(names, f.facterExecutionDeadline)
+	// obtain actual facts (with default cmd config)
+	facts, receviedAt, err := f.getFacts(
+		names, // what
+		f.facterExecutionDeadline, // timeout
+		nil, // default options "facter --json"
+	)
 	if err != nil {
 		return err
 	}

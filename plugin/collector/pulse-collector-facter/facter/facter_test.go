@@ -17,7 +17,7 @@ import (
 func withFakeFacter(facter *Facter, output stringmap, f func()) func() {
 
 	// getFactsMock
-	getFactsMock := func(keys []string, facterTimeout time.Duration) (*stringmap, *time.Time, error) {
+	getFactsMock := func(keys []string, _ time.Duration, _ *cmdConfig) (*stringmap, *time.Time, error) {
 		now := time.Now()
 		return &output, &now, nil
 	}
