@@ -15,14 +15,14 @@ import (
 // TODO: all this should be private
 const (
 	name   = "Intel Facter Plugin (c) 2015 Intel Corporation"
-	Vendor = "intel"
+	vendor = "intel"
 	prefix = "facter"
 
-	Version               = 1
-	Type                  = plugin.CollectorPluginType
-	DefaultCacheTTL       = 60 * time.Second
-	DefaultMetricTypesTTL = DefaultCacheTTL
-	DefautlFacterDeadline = 5 * time.Second
+	version               = 1
+	pluginType            = plugin.CollectorPluginType
+	defaultCacheTTL       = 60 * time.Second
+	defaultMetricTypesTTL = defaultCacheTTL
+	defaultFacterDeadline = 5 * time.Second
 )
 
 /*****************************************
@@ -31,7 +31,11 @@ const (
 
 // returns PluginMeta
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(name, Version, Type)
+	return plugin.NewPluginMeta(
+		name,
+		version,
+		pluginType,
+	)
 }
 
 // returns ConfigPolicy
@@ -66,9 +70,9 @@ type Facter struct {
 func NewFacter() *Facter {
 	f := new(Facter)
 	//TODO read from config
-	f.cacheTTL = DefaultCacheTTL
+	f.cacheTTL = defaultCacheTTL
 	f.cache = make(map[string]fact)
-	f.facterExecutionDeadline = DefautlFacterDeadline
+	f.facterExecutionDeadline = defaultFacterDeadline
 	f.getFacts = getFacts
 	return f
 }
@@ -84,7 +88,7 @@ func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMe
 
 	// synchronize cache conditionally as a whole
 	timeElapsed := time.Since(f.metricTypesLastUpdate)
-	needUpdate := timeElapsed > DefaultMetricTypesTTL
+	needUpdate := timeElapsed > defaultMetricTypesTTL
 	if needUpdate {
 		// synchronize cache conditionally for fields
 		err := f.updateCacheAll()
@@ -236,7 +240,7 @@ func (f *Facter) prepareMetricTypes() {
 	for factName, value := range f.cache {
 		metricTypes = append(metricTypes,
 			plugin.NewMetricType(
-				[]string{Vendor, prefix, factName}, // namespace
+				[]string{vendor, prefix, factName}, // namespace
 				value.lastUpdate.Unix()),           // lastAdvertisedTimestamp TODO would be time.Now()
 		)
 	}

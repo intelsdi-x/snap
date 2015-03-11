@@ -36,7 +36,7 @@ func withFakeFacter(facter *Facter, output stringmap, f func()) func() {
 func TestCacheUpdate(t *testing.T) {
 
 	// enough time to be treaeted as stale value in cache
-	longAgo := time.Now().Add(-(2 * DefaultCacheTTL))
+	longAgo := time.Now().Add(-(2 * defaultCacheTTL))
 
 	Convey("facter cache update works at all", t, func() {
 

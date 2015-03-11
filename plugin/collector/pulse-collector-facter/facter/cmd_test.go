@@ -19,13 +19,13 @@ func TestDefaultConfig(t *testing.T) {
 
 func TestCmdCommunication(t *testing.T) {
 	Convey("error when facter binary isn't found", t, func() {
-		_, _, err := getFacts([]string{"whatever"}, DefautlFacterDeadline, &cmdConfig{executable: "wrongbin"})
+		_, _, err := getFacts([]string{"whatever"}, defaultFacterDeadline, &cmdConfig{executable: "wrongbin"})
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "file not found") // isn't ubuntu specific ?
 	})
 
 	Convey("error when facter output isn't parsable", t, func() {
-		_, _, err := getFacts([]string{"whatever"}, DefautlFacterDeadline, &cmdConfig{executable: "facter", options: []string{}})
+		_, _, err := getFacts([]string{"whatever"}, defaultFacterDeadline, &cmdConfig{executable: "facter", options: []string{}})
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "unexpected end of JSON input")
 	})
