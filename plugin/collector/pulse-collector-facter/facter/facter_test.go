@@ -17,7 +17,7 @@ import (
 func withFakeFacter(facter *Facter, output stringmap, f func()) func() {
 
 	// getFactsMock
-	getFactsMock := func(keys []string, facterTimeout time.Duration) (*stringmap, *time.Time, error) {
+	getFactsMock := func(keys []string, _ time.Duration, _ *cmdConfig) (*stringmap, *time.Time, error) {
 		now := time.Now()
 		return &output, &now, nil
 	}
@@ -36,7 +36,7 @@ func withFakeFacter(facter *Facter, output stringmap, f func()) func() {
 func TestCacheUpdate(t *testing.T) {
 
 	// enough time to be treaeted as stale value in cache
-	longAgo := time.Now().Add(-(2 * DefaultCacheTTL))
+	longAgo := time.Now().Add(-(2 * defaultCacheTTL))
 
 	Convey("facter cache update works at all", t, func() {
 
@@ -211,8 +211,8 @@ func TestFacterPluginMeta(t *testing.T) {
 		Convey("Meta is not nil", func() {
 			So(meta, ShouldNotBeNil)
 		})
-		Convey("Name should be Intel Facter Plugin (c) 2015 Intel Corporation", func() {
-			So(meta.Name, ShouldEqual, "Intel Facter Plugin (c) 2015 Intel Corporation")
+		Convey("Name should be right", func() {
+			So(meta.Name, ShouldEqual, "Intel Fact Gathering Plugin")
 		})
 		Convey("Version should be 1", func() {
 			So(meta.Version, ShouldEqual, 1)

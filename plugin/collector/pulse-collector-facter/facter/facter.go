@@ -12,16 +12,17 @@ import (
  *  pulse plugin  *
  *******************/
 
+// TODO: all this should be private
 const (
-	Name   = "Intel Facter Plugin (c) 2015 Intel Corporation"
-	Vendor = "intel"
+	name   = "Intel Fact Gathering Plugin"
+	vendor = "intel"
 	prefix = "facter"
 
-	Version               = 1
-	Type                  = plugin.CollectorPluginType
-	DefaultCacheTTL       = 60 * time.Second
-	DefaultMetricTypesTTL = DefaultCacheTTL
-	DefautlFacterDeadline = 5 * time.Second
+	version               = 1
+	pluginType            = plugin.CollectorPluginType
+	defaultCacheTTL       = 60 * time.Second
+	defaultMetricTypesTTL = defaultCacheTTL
+	defaultFacterDeadline = 5 * time.Second
 )
 
 /*****************************************
@@ -30,7 +31,11 @@ const (
 
 // returns PluginMeta
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(Name, Version, Type)
+	return plugin.NewPluginMeta(
+		name,
+		version,
+		pluginType,
+	)
 }
 
 // returns ConfigPolicy
@@ -58,16 +63,16 @@ type Facter struct {
 
 	// injects implementation for getting facts - defaults to use getFacts from cmd.go
 	// but allows to replace with fake during tests
-	getFacts func(keys []string, facterTimeout time.Duration) (*stringmap, *time.Time, error)
+	getFacts func(keys []string, facterTimeout time.Duration, cmdConfig *cmdConfig) (*stringmap, *time.Time, error)
 }
 
 // construct new Facter
 func NewFacter() *Facter {
 	f := new(Facter)
 	//TODO read from config
-	f.cacheTTL = DefaultCacheTTL
+	f.cacheTTL = defaultCacheTTL
 	f.cache = make(map[string]fact)
-	f.facterExecutionDeadline = DefautlFacterDeadline
+	f.facterExecutionDeadline = defaultFacterDeadline
 	f.getFacts = getFacts
 	return f
 }
@@ -83,7 +88,7 @@ func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMe
 
 	// synchronize cache conditionally as a whole
 	timeElapsed := time.Since(f.metricTypesLastUpdate)
-	needUpdate := timeElapsed > DefaultMetricTypesTTL
+	needUpdate := timeElapsed > defaultMetricTypesTTL
 	if needUpdate {
 		// synchronize cache conditionally for fields
 		err := f.updateCacheAll()
@@ -183,8 +188,12 @@ func (f *Facter) synchronizeCache(names []string) error {
 // from facter, pass empty collection to update all facts in cache
 func (f *Facter) updateCache(names []string) error {
 
-	// obtain actual facts
-	facts, receviedAt, err := f.getFacts(names, f.facterExecutionDeadline)
+	// obtain actual facts (with default cmd config)
+	facts, receviedAt, err := f.getFacts(
+		names, // what
+		f.facterExecutionDeadline, // timeout
+		nil, // default options "facter --json"
+	)
 	if err != nil {
 		return err
 	}
@@ -231,7 +240,7 @@ func (f *Facter) prepareMetricTypes() {
 	for factName, value := range f.cache {
 		metricTypes = append(metricTypes,
 			plugin.NewMetricType(
-				[]string{Vendor, prefix, factName}, // namespace
+				[]string{vendor, prefix, factName}, // namespace
 				value.lastUpdate.Unix()),           // lastAdvertisedTimestamp TODO would be time.Now()
 		)
 	}
