@@ -16,15 +16,6 @@ var (
 	errLimitExceeded = errors.New("limit exceeded")
 )
 
-type queuingError struct {
-	Job job
-	Err error
-}
-
-func (qe *queuingError) Error() string {
-	return qe.Err.Error()
-}
-
 type queue struct {
 	Event   chan job
 	Handler func(job)
@@ -39,18 +30,26 @@ type queue struct {
 
 type queueStatus int
 
+type queuingError struct {
+	Job job
+	Err error
+}
+
+func (qe *queuingError) Error() string {
+	return qe.Err.Error()
+}
+
 func newQueue(limit int64) *queue {
-	q := &queue{
+	return &queue{
 		Event: make(chan job),
 		Err:   make(chan *queuingError),
 
 		limit:  limit,
 		kill:   make(chan struct{}),
-		items:  make([]job, 0),
+		items:  []job{},
 		mutex:  &sync.Mutex{},
 		status: queueStopped,
 	}
-	return q
 }
 
 // begins the queue handling loop
@@ -68,12 +67,14 @@ func (q *queue) Start() {
 // Stop closes both Err and Event channels, and
 // causes the handling loop to exit.
 func (q *queue) Stop() {
+
 	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
 	if q.status != queueStopped {
 		close(q.kill)
 		q.status = queueStopped
 	}
-	q.mutex.Unlock()
 }
 
 /*
