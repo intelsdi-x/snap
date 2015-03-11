@@ -155,4 +155,14 @@ func TestScheduler(t *testing.T) {
 		})
 
 	})
+	Convey("Stop()", t, func() {
+		Convey("Should set scheduler state to SchedulerStopped", func() {
+			scheduler := New()
+			c := new(MockMetricManager)
+			scheduler.MetricManager = c
+			scheduler.Start()
+			scheduler.Stop()
+			So(scheduler.state, ShouldEqual, SchedulerStopped)
+		})
+	})
 }
