@@ -7,6 +7,20 @@ const (
 	workManagerRunning
 )
 
+/*
+                             job queue
+    workManager.Work(j) ----> [jjjjjjj]
+                   ^                 |
+ 		   |	             | workManager.sendToWorker(j)
+                   |                 V
+         job.Run() |            +---------+
+ <-job.ReplyChan() |            | w  w  w |
+                   +----------  |  w w  w | worker pool
+ 			        |  w   w  |
+ 			        +---------+
+
+*/
+
 type workManager struct {
 	state          workManagerState
 	collectq       *queue
@@ -42,6 +56,7 @@ func newWorkManager(cqs int64, cws int) *workManager {
 	return wm
 }
 
+// workManager's loop just handles queuing errors.
 func (w *workManager) Start() {
 
 	w.mutex.Lock()
@@ -69,7 +84,9 @@ func (w *workManager) Stop() {
 	close(w.kill)
 }
 
-// Work dispatches jobs to worker pools for processing
+// Work dispatches jobs to worker pools for processing.
+// a job is queued, a worker receives it, and then replies
+// on the job's  reply channel.
 func (w *workManager) Work(j job) job {
 	switch j.Type() {
 	case collectJobType:
@@ -86,6 +103,8 @@ func (w *workManager) AddCollectWorker() {
 	w.collectWkrSize++
 }
 
+// sendToWorker is the handler given to the queue.
+// it dispatches work to the worker pool.
 func (w *workManager) sendToWorker(j job) {
 	switch j.Type() {
 	case collectJobType:

@@ -53,6 +53,7 @@ func newQueue(limit int64) *queue {
 	return q
 }
 
+// begins the queue handling loop
 func (q *queue) Start() {
 
 	q.mutex.Lock()
@@ -64,6 +65,8 @@ func (q *queue) Start() {
 	}
 }
 
+// Stop closes both Err and Event channels, and
+// causes the handling loop to exit.
 func (q *queue) Stop() {
 	q.mutex.Lock()
 	if q.status != queueStopped {
@@ -102,7 +105,8 @@ func (q *queue) start() {
 		case <-q.kill:
 			// this "officially" closes the Event channel.
 			// after this, an attempt to write to a stopped queue will panic.
-			// otherwise, a goroutine will sleep forever.
+			// otherwise, a goroutine will sleep forever, waiting for a reader
+			// of Event.
 			go func() { close(q.Event) }()
 			<-q.Event
 			return

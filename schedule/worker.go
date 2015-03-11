@@ -22,10 +22,12 @@ func newWorker(rChan <-chan job) *worker {
 	}
 }
 
+// begin a worker
 func (w *worker) start() {
 	for {
 		select {
 		case j := <-w.rcv:
+			// assert that deadline is not exceeded
 			if time.Now().Unix() < (j.StartTime() + j.Deadline()) {
 				j.Run()
 				continue

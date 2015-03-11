@@ -14,7 +14,9 @@ const (
 	defaultDeadline = int64(5 * time.Second)
 )
 
-// job interface
+// Primary type for job inside
+// the scheduler.  Job encompasses all
+// all job types -- collect, process, and publish.
 type job interface {
 	Errors() []error
 	StartTime() int64
