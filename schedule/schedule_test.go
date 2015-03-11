@@ -68,13 +68,13 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 	return m.config
 }
 
-type MockWorkflow struct {
+type mockWorkflow struct {
 }
 
-func (w *MockWorkflow) Start(t *Task) {
+func (w *mockWorkflow) Start(t *Task) {
 }
 
-func (w *MockWorkflow) State() workflowState {
+func (w *mockWorkflow) State() workflowState {
 	return WorkflowStarted
 }
 
@@ -102,18 +102,18 @@ func TestScheduler(t *testing.T) {
 				lastAdvertisedTimestamp: 0,
 			},
 		}
-		scheduler := New()
+		scheduler := New(1, 5)
 		cdt := cdata.NewTree()
 		cd := cdata.NewNode()
 		cd.AddItem("foo", ctypes.ConfigValueInt{Value: 1})
 		cdt.Add([]string{"foo", "bar"}, cd)
-		mockWF := new(MockWorkflow)
+		mockWF := new(mockWorkflow)
 
 		Convey("returns errors when metrics do not validate", func() {
 			c.failValidatingMetrics = true
 			c.failValidatingMetricsAfter = 2
-			scheduler := New()
-			scheduler.MetricManager = c
+			scheduler := New(1, 5)
+			scheduler.metricManager = c
 			scheduler.Start()
 			mockSchedule := &MockSchedule{
 				tick: false,
@@ -139,7 +139,7 @@ func TestScheduler(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
 			So(err.Errors()[0], ShouldResemble, SchedulerNotStarted)
-			scheduler.MetricManager = c
+			scheduler.metricManager = c
 			scheduler.Start()
 			_, err = scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
 			So(err.Errors()[0], ShouldResemble, errors.New("schedule error"))
@@ -147,7 +147,7 @@ func TestScheduler(t *testing.T) {
 		})
 
 		Convey("returns an a task", func() {
-			scheduler.MetricManager = c
+			scheduler.metricManager = c
 			scheduler.Start()
 			task, err := scheduler.CreateTask(nil, mockSchedule, cdt, mockWF)
 			So(err, ShouldBeNil)

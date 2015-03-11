@@ -4,14 +4,13 @@ import (
 	"testing"
 
 	"github.com/intelsdilabs/pulse/core"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestWorkflow(t *testing.T) {
 	Convey("Workflow", t, func() {
-		workManager := new(managesWork)
-		wf := NewWorkflow(workManager)
-		So(wf.workManager, ShouldNotBeNil)
+		wf := NewWorkflow()
 		So(wf.state, ShouldNotBeNil)
 		Convey("Add steps", func() {
 			pubStep := new(publishStep)
@@ -20,9 +19,10 @@ func TestWorkflow(t *testing.T) {
 			So(wf.rootStep, ShouldNotBeNil)
 			So(wf.rootStep.Steps(), ShouldNotBeNil)
 			Convey("Start", func() {
+				workerKillChan = make(chan struct{})
+				manager := newWorkManager(int64(5), 1)
 				schedule := new(MockSchedule)
-				mts := make([]core.MetricType, 0)
-				task := NewTask(schedule, mts, wf)
+				task := NewTask(schedule, []core.MetricType{}, &mockWorkflow{}, manager)
 				wf.Start(task)
 				So(wf.State(), ShouldEqual, WorkflowStarted)
 			})
