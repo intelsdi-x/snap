@@ -15,8 +15,8 @@ func TestWorker(t *testing.T) {
 		go w.start()
 		mj := &mockJob{
 			replchan:  make(chan struct{}),
-			starttime: time.Now().Unix(),
-			deadline:  int64(1000),
+			starttime: time.Now(),
+			deadline:  time.Duration(10 * time.Second),
 		}
 		rcv <- mj
 		So(mj.worked, ShouldEqual, true)
@@ -28,8 +28,8 @@ func TestWorker(t *testing.T) {
 		go w.start()
 		mj := &mockJob{
 			replchan:  make(chan struct{}),
-			starttime: time.Now().Unix(),
-			deadline:  int64(1),
+			starttime: time.Now(),
+			deadline:  time.Duration(1 * time.Second),
 		}
 		time.Sleep(time.Millisecond * 1500)
 		rcv <- mj

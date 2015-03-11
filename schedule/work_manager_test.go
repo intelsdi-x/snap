@@ -12,13 +12,13 @@ type mockJob struct {
 	errors    []error
 	worked    bool
 	replchan  chan struct{}
-	deadline  int64
-	starttime int64
+	deadline  time.Duration
+	starttime time.Time
 }
 
 func (mj *mockJob) Errors() []error         { return mj.errors }
-func (mj *mockJob) StartTime() int64        { return mj.starttime }
-func (mj *mockJob) Deadline() int64         { return mj.deadline }
+func (mj *mockJob) StartTime() time.Time    { return mj.starttime }
+func (mj *mockJob) Deadline() time.Duration { return mj.deadline }
 func (mj *mockJob) Type() jobType           { return collectJobType }
 func (mj *mockJob) ReplChan() chan struct{} { return mj.replchan }
 
@@ -36,8 +36,8 @@ func TestWorkerManager(t *testing.T) {
 			j = &mockJob{
 				worked:    false,
 				replchan:  make(chan struct{}),
-				deadline:  int64(1),
-				starttime: time.Now().Unix(),
+				deadline:  time.Duration(1 * time.Second),
+				starttime: time.Now(),
 			}
 			j = manager.Work(j)
 			So(j.(*mockJob).worked, ShouldEqual, true)
@@ -49,22 +49,22 @@ func TestWorkerManager(t *testing.T) {
 				errors:    []error{errors.New("j1")},
 				worked:    false,
 				replchan:  make(chan struct{}),
-				deadline:  int64(1),
-				starttime: time.Now().Unix(),
+				deadline:  time.Duration(1 * time.Second),
+				starttime: time.Now(),
 			}
 			j2 := &mockJob{
 				errors:    []error{errors.New("j2")},
 				worked:    false,
 				replchan:  make(chan struct{}),
-				deadline:  int64(1),
-				starttime: time.Now().Unix(),
+				deadline:  time.Duration(1 * time.Second),
+				starttime: time.Now(),
 			}
 			j3 := &mockJob{
 				errors:    []error{errors.New("j3")},
 				worked:    false,
 				replchan:  make(chan struct{}),
-				deadline:  int64(1),
-				starttime: time.Now().Unix(),
+				deadline:  time.Duration(1 * time.Second),
+				starttime: time.Now(),
 			}
 			go manager.Work(j1)
 			go manager.Work(j2)

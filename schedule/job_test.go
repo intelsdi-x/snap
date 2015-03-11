@@ -19,7 +19,7 @@ func TestCollectorJob(t *testing.T) {
 	Convey("StartTime()", t, func() {
 		Convey("it should return the job starttime", func() {
 			cj := newCollectorJob([]core.MetricType{})
-			So(cj.StartTime(), ShouldHaveSameTypeAs, time.Now().Unix())
+			So(cj.StartTime(), ShouldHaveSameTypeAs, time.Now())
 		})
 	})
 	Convey("Deadline()", t, func() {

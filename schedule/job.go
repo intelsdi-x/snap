@@ -11,7 +11,7 @@ const (
 )
 
 const (
-	defaultDeadline = int64(5 * time.Second)
+	defaultDeadline = time.Duration(5 * time.Second)
 )
 
 // Primary type for job inside
@@ -19,8 +19,8 @@ const (
 // all job types -- collect, process, and publish.
 type job interface {
 	Errors() []error
-	StartTime() int64
-	Deadline() int64
+	StartTime() time.Time
+	Deadline() time.Duration
 	Type() jobType
 	ReplChan() chan struct{}
 	Run()
@@ -36,8 +36,8 @@ type collectJob interface {
 
 type collectorJob struct {
 	jtype       jobType
-	deadline    int64
-	starttime   int64
+	deadline    time.Duration
+	starttime   time.Time
 	errors      []error
 	metrics     []core.Metric
 	metricTypes []core.MetricType
@@ -51,16 +51,16 @@ func newCollectorJob(metricTypes []core.MetricType) *collectorJob {
 		metricTypes: metricTypes,
 		metrics:     []core.Metric{},
 		errors:      make([]error, 0),
-		starttime:   time.Now().Unix(),
+		starttime:   time.Now(),
 		replchan:    make(chan struct{}),
 	}
 }
 
-func (c *collectorJob) StartTime() int64 {
+func (c *collectorJob) StartTime() time.Time {
 	return c.starttime
 }
 
-func (c *collectorJob) Deadline() int64 {
+func (c *collectorJob) Deadline() time.Duration {
 	return c.deadline
 }
 

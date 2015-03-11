@@ -28,7 +28,7 @@ func (w *worker) start() {
 		select {
 		case j := <-w.rcv:
 			// assert that deadline is not exceeded
-			if time.Now().Unix() < (j.StartTime() + j.Deadline()) {
+			if time.Since(j.StartTime()) < j.Deadline() {
 				j.Run()
 				continue
 			}
