@@ -14,14 +14,13 @@ import (
 
 // TODO: all this should be private
 const (
-	name   = "Intel Fact Gathering Plugin"
 	vendor = "intel"
 	prefix = "facter"
-
-	version               = 1
-	pluginType            = plugin.CollectorPluginType
-	defaultCacheTTL       = 60 * time.Second
+	// how long we are caching the date from external binary to prevent overuse of resources
+	defaultCacheTTL = 60 * time.Second
+	// how long are we going to cacha avaiable types of metrics
 	defaultMetricTypesTTL = defaultCacheTTL
+	// deadline a.k.a. timeout we are ready to wait for external binary to gather the data
 	defaultFacterDeadline = 5 * time.Second
 )
 
@@ -32,32 +31,31 @@ const (
 // returns PluginMeta
 func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(
-		name,
-		version,
-		pluginType,
+		"Intel Fact Gathering Plugin", // name
+		1, // version
+		plugin.CollectorPluginType, // pluginType
 	)
 }
 
 // returns ConfigPolicy
+//TODO What is plugin policy? just mock for now
 func ConfigPolicy() *plugin.ConfigPolicy {
-	//TODO What is plugin policy?
-
-	c := new(plugin.ConfigPolicy)
-	return c
+	return new(plugin.ConfigPolicy)
 }
 
-/*******************
- *  Facter struct  *
- *******************/
+/**********
+ * Facter *
+ **********/
 
-// wrapper to use facter binary, responsible for running external binary and caching
+// Facter implements API to communicate with Pulse
 type Facter struct {
-	metricTypes           []*plugin.MetricType //map[string]interface{}
+	// available metrics that can me returned
+	metricTypes           []*plugin.MetricType
 	metricTypesLastUpdate time.Time
-	metricTypesTTL        time.Time
+	metricTypesTTL        time.Duration
 
-	cacheTTL time.Duration
 	cache    map[string]fact
+	cacheTTL time.Duration
 
 	facterExecutionDeadline time.Duration
 
@@ -66,38 +64,38 @@ type Facter struct {
 	getFacts func(keys []string, facterTimeout time.Duration, cmdConfig *cmdConfig) (*stringmap, *time.Time, error)
 }
 
-// construct new Facter
+// NewFacter constructs new Facter with default values
 func NewFacter() *Facter {
-	f := new(Facter)
-	//TODO read from config
-	f.cacheTTL = defaultCacheTTL
-	f.cache = make(map[string]fact)
-	f.facterExecutionDeadline = defaultFacterDeadline
-	f.getFacts = getFacts
-	return f
+	return &Facter{
+		metricTypesTTL: defaultMetricTypesTTL,
+		cacheTTL:       defaultCacheTTL,
+		cache:          map[string]fact{},
+		facterExecutionDeadline: defaultFacterDeadline,
+		getFacts:                getFacts,
+	}
 }
 
 // Pulse plugin interface implementation
 // TODO: to be rewritten to be compatible to pulse API
 // ----------------------------------------------------
 
-// get available metrics types
+// GetMetricTypes returns available metrics types
 func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 
 	// TODO: handle plugin.GetMetricTypesArgs somehow
 
 	// synchronize cache conditionally as a whole
 	timeElapsed := time.Since(f.metricTypesLastUpdate)
-	needUpdate := timeElapsed > defaultMetricTypesTTL
+	needUpdate := timeElapsed > f.metricTypesTTL
 	if needUpdate {
-		// synchronize cache conditionally for fields
-		err := f.updateCacheAll()
+		// synchronize cache conditionally for all fields
+		err := f.updateCacheAll() // fills internal f.fcache
 		if err != nil {
 			log.Println("Facter: synchronizeCache returned error: " + err.Error())
 			return err
 		}
 
-		// transform internal cache to metricTypes
+		// fill f.metricTypes based on f.cache
 		f.prepareMetricTypes()
 
 	}
@@ -107,7 +105,8 @@ func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMe
 	return nil
 }
 
-// collect metrics
+// Collect collects metrics from external binary a returns them in form
+// acceptble by Pulse
 func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
 	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
 	// waits for lynxbat/SDI-98
@@ -115,7 +114,7 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 	// TODO: INPUT: read CollectorArgs structure to extract requested metrics
 	requestedNames := []string{"kernel", "uptime"}
 
-	// prepare cache to have all we need
+	// synchronize cache (stale of missing data) to have all we need
 	err := f.synchronizeCache(requestedNames)
 	if err != nil {
 		return err
@@ -123,7 +122,7 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 
 	// TODO: OUTPUT: fulfill reply structure with requested metrics
 	// for _, name := range requestedNames {
-	// 	// convert it some how if required
+	// 	// convert it some how to required format
 	// 	reply.metrics[name] = f.cache[name].value
 	// }
 
@@ -133,20 +132,19 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 // internals (cache management)
 // ------------------------------------
 
-// compare given facts with cache state and prepare a list of stale or non-existing ones
-// returns the names of metrics that have to be updated
+// getNamesToUpdate compares given fact names with cache state
+// and prepare a list of stale or non-existing ones
+// returns the names of metrics that should have to be updated
 func (f *Facter) getNamesToUpdate(names []string) []string {
 
 	now := time.Now()
 
-	// list of facts that have to be updated because are old
-	// or acquired first time
-	// so collect stale or not existing facts
+	// check every cache entry is ok (stale/exists?)
 	namesToUpdate := []string{}
 	for _, name := range names {
 
 		fact, exists := f.cache[name]
-		// fact doesn't exist or is stale
+		// assume it is stale
 		stale := false
 		if exists {
 			// is it stale ?
