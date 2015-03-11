@@ -14,7 +14,7 @@ import (
 
 // TODO: all this should be private
 const (
-	name   = "Intel Facter Plugin (c) 2015 Intel Corporation"
+	name   = "Intel Fact Gathering Plugin"
 	vendor = "intel"
 	prefix = "facter"
 
