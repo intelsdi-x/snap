@@ -159,7 +159,7 @@ func (f *Facter) getNamesToUpdate(names []string) []string {
 }
 
 // synchronizeCache is responsible for updating metrics in cache (conditionally)
-// only if there a need for that
+// only if there is a need for that
 // names is slice with list of metrics to synchronize
 // names cannot be empty
 func (f *Facter) synchronizeCache(names []string) error {
@@ -183,13 +183,14 @@ func (f *Facter) synchronizeCache(names []string) error {
 	return nil
 }
 
-// updateCache updates (refresh) cache  entries (unconditionally) with current values
-// from facter, pass empty collection to update all facts in cache
+// updateCache updates (refresh) cache entries (unconditionally) with current values
+// from external binary
+// you can pass empty names collection to force update everything
 func (f *Facter) updateCache(names []string) error {
 
 	// obtain actual facts (with default cmd config)
 	facts, receviedAt, err := f.getFacts(
-		names, // what
+		names, // facts: what to update
 		f.facterExecutionDeadline, // timeout
 		nil, // default options "facter --json"
 	)
@@ -232,7 +233,7 @@ func (f *Facter) updateCacheAll() error {
 // prepareMetricTypes fills metricTypes internal collection ready to send back to pulse
 func (f *Facter) prepareMetricTypes() {
 
-	// new temporary collection (to not mess with
+	// new temporary collection
 	metricTypes := make([]*plugin.MetricType, 0, len(f.cache))
 
 	// rewrite values from cache to another colllection accetable by pulse
@@ -240,19 +241,24 @@ func (f *Facter) prepareMetricTypes() {
 		metricTypes = append(metricTypes,
 			plugin.NewMetricType(
 				[]string{vendor, prefix, factName}, // namespace
-				value.lastUpdate.Unix()),           // lastAdvertisedTimestamp TODO would be time.Now()
+				value.lastUpdate.Unix(),            // lastAdvertisedTimestamp TODO would be time.Now()
+			),
 		)
 	}
 
-	// update Facter state
+	// update internal state
 	f.metricTypes = metricTypes
 
 	// remember the last the metricTypes was filled
+	// to be confrontend with f.metricTypesTTL
 	f.metricTypesLastUpdate = time.Now()
 }
 
-// helper type to deal with json that stores last update moment
-// allows to implement a local cache in PluginFacter
+/**********************
+ *  helper fact type  *
+ **********************/
+
+// helper type to deal with json values which additonly stores last update moment
 type fact struct {
 	value      interface{}
 	lastUpdate time.Time
