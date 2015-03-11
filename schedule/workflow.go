@@ -11,21 +11,19 @@ const (
 )
 
 type Workflow interface {
-	Start(task *Task, manager managesWork)
+	Start(task *Task)
 	State() workflowState
 }
 
 type workflow struct {
-	workManager managesWork
-	rootStep    *collectorStep
-	state       workflowState
+	rootStep *collectorStep
+	state    workflowState
 }
 
 // NewWorkflow creates and returns a workflow
-func NewWorkflow(workManager managesWork) *workflow {
+func NewWorkflow() *workflow {
 	return &workflow{
-		rootStep:    new(collectorStep),
-		workManager: workManager,
+		rootStep: new(collectorStep),
 	}
 }
 
@@ -35,16 +33,16 @@ func (w *workflow) State() workflowState {
 }
 
 // Start starts a workflow
-func (w *workflow) Start(task *Task, manager managesWork) {
+func (w *workflow) Start(task *Task) {
 	w.state = WorkflowStarted
 	j := w.rootStep.CreateJob(task.metricTypes)
 
 	// dispatch 'collect' job to be worked
-	j = manager.Work(j)
+	j = task.manager.Work(j)
 
 	//process through additional steps (processors, publishers, ...)
 	for _, step := range w.rootStep.Steps() {
-		w.processStep(step, j, manager)
+		w.processStep(step, j, task.manager)
 	}
 }
 

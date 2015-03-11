@@ -10,9 +10,7 @@ import (
 
 func TestWorkflow(t *testing.T) {
 	Convey("Workflow", t, func() {
-		workManager := new(workManager)
-		wf := NewWorkflow(workManager)
-		So(wf.workManager, ShouldNotBeNil)
+		wf := NewWorkflow()
 		So(wf.state, ShouldNotBeNil)
 		Convey("Add steps", func() {
 			pubStep := new(publishStep)
@@ -25,7 +23,7 @@ func TestWorkflow(t *testing.T) {
 				manager := newWorkManager(int64(5), 1)
 				schedule := new(MockSchedule)
 				task := NewTask(schedule, []core.MetricType{}, &mockWorkflow{}, manager)
-				wf.Start(task, manager)
+				wf.Start(task)
 				So(wf.State(), ShouldEqual, WorkflowStarted)
 			})
 		})

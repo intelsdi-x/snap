@@ -71,7 +71,7 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 type mockWorkflow struct {
 }
 
-func (w *mockWorkflow) Start(t *Task, wm managesWork) {
+func (w *mockWorkflow) Start(t *Task) {
 }
 
 func (w *mockWorkflow) State() workflowState {

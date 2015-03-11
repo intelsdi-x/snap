@@ -89,7 +89,7 @@ func (t *Task) fire() {
 	defer t.mu.Unlock()
 
 	t.state = TaskFiring
-	t.workflow.Start(t, t.manager)
+	t.workflow.Start(t)
 	t.state = TaskSpinning
 }
 
