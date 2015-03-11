@@ -5,17 +5,6 @@ import (
 	"sync"
 )
 
-const (
-	// queue not running
-	queueStopped queueStatus = iota
-	// queue running, but not working
-	// the queue must be in the is state before entering handle
-	queueRunning
-	// queue is currently being worked (a goroutine is currently
-	// inside q.handle())
-	queueWorking
-)
-
 var (
 	errQueueEmpty    = errors.New("queue empty")
 	errLimitExceeded = errors.New("limit exceeded")
@@ -34,6 +23,12 @@ type queue struct {
 }
 
 type queueStatus int
+
+const (
+	queueStopped queueStatus = iota // queue not running
+	queueRunning                    // queue running, but not working. the queue must be in the is state before entering handle
+	queueWorking                    // queue is currently being worked (a goroutine is currently inside q.handle())
+)
 
 type jobHandler func(job)
 

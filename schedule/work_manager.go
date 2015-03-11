@@ -2,22 +2,17 @@ package schedule
 
 import "sync"
 
-const (
-	workManagerStopped workManagerState = iota
-	workManagerRunning
-)
-
 /*
                              job queue
     workManager.Work(j) ----> [jjjjjjj]
                    ^                 |
- 		   |	             | workManager.sendToWorker(j)
+                   |                 | workManager.sendToWorker(j)
                    |                 V
          job.Run() |            +---------+
  <-job.ReplyChan() |            | w  w  w |
                    +----------  |  w w  w | worker pool
- 			        |  w   w  |
- 			        +---------+
+                                |  w   w  |
+                                +---------+
 
 */
 
@@ -33,6 +28,11 @@ type workManager struct {
 }
 
 type workManagerState int
+
+const (
+	workManagerStopped workManagerState = iota
+	workManagerRunning
+)
 
 func newWorkManager(cqs int64, cws int) *workManager {
 
