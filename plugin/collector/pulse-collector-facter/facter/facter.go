@@ -144,13 +144,14 @@ func (f *Facter) getNamesToUpdate(names []string) []string {
 	for _, name := range names {
 
 		fact, exists := f.cache[name]
+
 		// assume it is stale
-		stale := false
+		// stale also stays true for not existin ones
+		stale := true
 		if exists {
-			// is it stale ?
 			stale = now.Sub(fact.lastUpdate) > f.cacheTTL
 		}
-		if !exists || stale {
+		if stale {
 			namesToUpdate = append(namesToUpdate, name)
 		}
 	}
