@@ -6,8 +6,13 @@ import (
 )
 
 const (
+	// queue not running
 	queueStopped queueStatus = iota
+	// queue running, but not working
+	// the queue must be in the is state before entering handle
 	queueRunning
+	// queue is currently being worked (a goroutine is currently
+	// inside q.handle())
 	queueWorking
 )
 
@@ -17,18 +22,20 @@ var (
 )
 
 type queue struct {
-	Event   chan job
-	Handler func(job)
-	Err     chan *queuingError
+	Event chan job
+	Err   chan *queuingError
 
-	limit  int64
-	kill   chan struct{}
-	items  []job
-	mutex  *sync.Mutex
-	status queueStatus
+	handler func(job)
+	limit   int64
+	kill    chan struct{}
+	items   []job
+	mutex   *sync.Mutex
+	status  queueStatus
 }
 
 type queueStatus int
+
+type jobHandler func(job)
 
 type queuingError struct {
 	Job job
@@ -39,16 +46,17 @@ func (qe *queuingError) Error() string {
 	return qe.Err.Error()
 }
 
-func newQueue(limit int64) *queue {
+func newQueue(limit int64, handler jobHandler) *queue {
 	return &queue{
 		Event: make(chan job),
 		Err:   make(chan *queuingError),
 
-		limit:  limit,
-		kill:   make(chan struct{}),
-		items:  []job{},
-		mutex:  &sync.Mutex{},
-		status: queueStopped,
+		handler: handler,
+		limit:   limit,
+		kill:    make(chan struct{}),
+		items:   []job{},
+		mutex:   &sync.Mutex{},
+		status:  queueStopped,
 	}
 }
 
@@ -98,10 +106,14 @@ func (q *queue) start() {
 				continue
 			}
 
+			q.mutex.Lock()
 			if q.status == queueRunning {
 				q.status = queueWorking
+				q.mutex.Unlock()
 				go q.handle()
+				continue
 			}
+			q.mutex.Unlock()
 
 		case <-q.kill:
 			// this "officially" closes the Event channel.
@@ -117,16 +129,16 @@ func (q *queue) start() {
 }
 
 func (q *queue) handle() {
-
-	item, err := q.pop()
-
-	if err == errQueueEmpty {
-		q.status = queueRunning
-		return
+	for {
+		item, err := q.pop()
+		if err == errQueueEmpty {
+			q.mutex.Lock()
+			q.status = queueRunning
+			q.mutex.Unlock()
+			return
+		}
+		q.handler(item)
 	}
-
-	q.Handler(item)
-	q.handle()
 }
 
 func (q *queue) length() int {
@@ -134,6 +146,10 @@ func (q *queue) length() int {
 }
 
 func (q *queue) push(j job) error {
+
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
 	if q.limit == 0 || int64(q.length()+1) <= q.limit {
 		q.items = append(q.items, j)
 		return nil
@@ -143,9 +159,12 @@ func (q *queue) push(j job) error {
 
 func (q *queue) pop() (job, error) {
 
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
 	var j job
 
-	if q.items == nil || len(q.items) == 0 {
+	if q.length() == 0 {
 		return j, errQueueEmpty
 	}
 

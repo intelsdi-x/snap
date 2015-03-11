@@ -37,14 +37,13 @@ type workManagerState int
 func newWorkManager(cqs int64, cws int) *workManager {
 
 	wm := &workManager{
-		collectq:       newQueue(cqs),
 		collectWkrSize: cws,
 		collectchan:    make(chan job),
 		kill:           make(chan struct{}),
 		mutex:          &sync.Mutex{},
 	}
 
-	wm.collectq.Handler = wm.sendToWorker
+	wm.collectq = newQueue(cqs, wm.sendToWorker)
 	wm.collectq.Start()
 
 	wm.collectWkrs = make([]*worker, cws)
