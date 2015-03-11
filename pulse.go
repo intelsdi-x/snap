@@ -24,11 +24,6 @@ type CoreModule interface {
 	Stop()
 }
 
-//type PulseControl struct {
-//	pluginController CoreModule
-//	scheduler        CoreModule
-//}
-
 func main() {
 	flag.Parse()
 	if *version {
@@ -37,8 +32,6 @@ func main() {
 	}
 
 	setMaxProcs()
-
-	//pulseControl := &PulseControl{}
 
 	c := control.New()
 	s := schedule.New()
