@@ -64,6 +64,3 @@ func (w *managesWork) Work(j Job) Job {
 	}()
 	return <-respChan
 }
-
-// WorkManager
-var WorkManager *managesWork = new(managesWork)

@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -8,7 +9,8 @@ import (
 )
 
 type MockSchedule struct {
-	tick bool
+	tick                   bool
+	failValidatingSchedule bool
 }
 
 type MockScheduleResponse struct {
@@ -38,22 +40,34 @@ func (m *MockSchedule) Tick() {
 	m.tick = true
 }
 
+func (m *MockSchedule) Validate() error {
+	if m.failValidatingSchedule {
+		return errors.New("schedule error")
+	}
+	return nil
+}
+
 func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
 
 		Convey("task + simple schedule", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 100)
-			task := NewTask(sch)
+			workManager := new(managesWork)
+			wf := NewWorkflow(workManager)
+			task := NewTask(sch, nil, wf)
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
+			task.Stop()
 		})
 
 		Convey("Task is created and starts to spin", func() {
 			mockSchedule := &MockSchedule{
 				tick: false,
 			}
-			task := NewTask(mockSchedule)
+			workManager := new(managesWork)
+			wf := NewWorkflow(workManager)
+			task := NewTask(mockSchedule, nil, wf)
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)

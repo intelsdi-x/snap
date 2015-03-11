@@ -2,20 +2,17 @@ package schedule
 
 import (
 	"testing"
-	"time"
 
+	"github.com/intelsdilabs/pulse/core"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type mockSchedule struct{}
-
-func (m *mockSchedule) Wait(t time.Time) ScheduleResponse {
-	return nil
-}
-
 func TestWorkflow(t *testing.T) {
 	Convey("Workflow", t, func() {
-		wf := NewWorkflow()
+		workManager := new(managesWork)
+		wf := NewWorkflow(workManager)
+		So(wf.workManager, ShouldNotBeNil)
+		So(wf.state, ShouldNotBeNil)
 		Convey("Add steps", func() {
 			pubStep := new(publishStep)
 			procStep := new(processStep)
@@ -23,10 +20,10 @@ func TestWorkflow(t *testing.T) {
 			So(wf.rootStep, ShouldNotBeNil)
 			So(wf.rootStep.Steps(), ShouldNotBeNil)
 			Convey("Start", func() {
-				schedule := new(mockSchedule)
-				task := NewTask(schedule)
-				manager := new(managesWork)
-				wf.Start(task, manager)
+				schedule := new(MockSchedule)
+				mts := make([]core.MetricType, 0)
+				task := NewTask(schedule, mts, wf)
+				wf.Start(task)
 				So(wf.State(), ShouldEqual, WorkflowStarted)
 			})
 		})

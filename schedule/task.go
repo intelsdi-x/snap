@@ -7,6 +7,13 @@ import (
 	"github.com/intelsdilabs/pulse/core"
 )
 
+const (
+	//Task states
+	TaskStopped TaskState = iota
+	TaskSpinning
+	TaskFiring
+)
+
 type Task struct {
 	schResponseChan chan ScheduleResponse
 	killChan        chan struct{}
@@ -21,27 +28,16 @@ type Task struct {
 
 type TaskState int
 
-const (
-	//Task states
-	TaskStopped TaskState = iota
-	TaskSpinning
-	TaskFiring
-)
-
-func NewTask(s Schedule) *Task {
+func NewTask(s Schedule, mtc []core.MetricType, wf Workflow) *Task {
 	return &Task{
 		schResponseChan: make(chan ScheduleResponse),
 		killChan:        make(chan struct{}),
+		metricTypes:     mtc,
 		schedule:        s,
 		state:           TaskStopped,
 		creationTime:    time.Now(),
-		lastFireTime:    time.Now(),
-		workflow:        NewWorkflow(),
+		workflow:        wf,
 	}
-}
-
-func (t *Task) MetricTypes() []core.MetricType {
-	return t.metricTypes
 }
 
 func (t *Task) Spin() {
@@ -91,7 +87,7 @@ func (t *Task) fire() {
 	defer t.mu.Unlock()
 
 	t.state = TaskFiring
-	t.workflow.Start(t, WorkManager)
+	t.workflow.Start(t)
 	t.state = TaskSpinning
 }
 

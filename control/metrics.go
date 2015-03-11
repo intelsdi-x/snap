@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/cpolicy"
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
@@ -21,6 +22,7 @@ type metricType struct {
 	lastAdvertisedTimestamp int64
 	subscriptions           int
 	policy                  processesConfigData
+	config                  *cdata.ConfigDataNode
 }
 
 type processesConfigData interface {
@@ -63,6 +65,10 @@ func (m *metricType) SubscriptionCount() int {
 
 func (m *metricType) Version() int {
 	return m.Plugin.Version()
+}
+
+func (m *metricType) Config() *cdata.ConfigDataNode {
+	return nil
 }
 
 type metricCatalog struct {
