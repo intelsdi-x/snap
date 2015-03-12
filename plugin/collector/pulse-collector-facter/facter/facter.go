@@ -1,3 +1,5 @@
+// This modules converts implements Pulse API to become an plugin.
+// Additionaly it caches all data to protect the system against overuse.
 package facter
 
 import (
@@ -8,11 +10,6 @@ import (
 	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
-/*******************
- *  pulse plugin  *
- *******************/
-
-// TODO: all this should be private
 const (
 	vendor = "intel"
 	prefix = "facter"
@@ -61,7 +58,11 @@ type Facter struct {
 
 	// injects implementation for getting facts - defaults to use getFacts from cmd.go
 	// but allows to replace with fake during tests
-	getFacts func(keys []string, facterTimeout time.Duration, cmdConfig *cmdConfig) (*stringmap, *time.Time, error)
+	getFacts func(
+		keys []string,
+		facterTimeout time.Duration,
+		cmdConfig *cmdConfig,
+	) (*stringmap, *time.Time, error)
 }
 
 // NewFacter constructs new Facter with default values
