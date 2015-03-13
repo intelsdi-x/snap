@@ -17,15 +17,16 @@ const (
 )
 
 type Task struct {
-	schResponseChan  chan ScheduleResponse
-	killChan         chan struct{}
-	schedule         Schedule
-	workflow         Workflow
-	metricTypes      []core.MetricType
-	mu               sync.Mutex //protects state
-	state            TaskState
-	creationTime     time.Time
-	lastFireTime     time.Time
+	schResponseChan chan ScheduleResponse
+	killChan        chan struct{}
+	schedule        Schedule
+	workflow        Workflow
+	metricTypes     []core.MetricType
+	mu              sync.Mutex //protects state
+	state           TaskState
+	creationTime    time.Time
+	lastFireTime    time.Time
+	manager         managesWork
 	deadlineDuration time.Duration
 }
 
@@ -64,6 +65,7 @@ func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, opts ...option) *Ta
 		state:            TaskStopped,
 		creationTime:     time.Now(),
 		workflow:         wf,
+		manager:         manager,
 		deadlineDuration: DefaultDeadlineDuration,
 	}
 	//set options

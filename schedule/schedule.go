@@ -25,6 +25,10 @@ var (
 	SchedulerNotStarted = errors.New("Scheduler is not started.")
 )
 
+type managesWork interface {
+	Work(job) job
+}
+
 // Schedule - Validate() will include ensure that the underlying schedule is
 // still valid.  For example, it doesn't start in the past.
 type Schedule interface {
@@ -42,7 +46,7 @@ type ScheduleResponse interface {
 
 // ManagesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
-type ManagesMetric interface {
+type managesMetric interface {
 	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, control.SubscriptionError)
 	UnsubscribeMetricType(mt core.MetricType)
 }
@@ -60,8 +64,8 @@ func (t *taskErrors) Errors() []error {
 }
 
 type scheduler struct {
-	workManager   ManagesWork
-	MetricManager ManagesMetric
+	workManager   *workManager
+	metricManager managesMetric
 	state         SchedulerState
 }
 
@@ -89,7 +93,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 	subscriptions := make([]core.MetricType, 0)
 	for _, m := range mts {
 		cd := cdt.Get(m.Namespace())
-		mt, err := scheduler.MetricManager.SubscribeMetricType(m, cd)
+		mt, err := scheduler.metricManager.SubscribeMetricType(m, cd)
 		if err == nil {
 			//mt := newMetricType(m, config)
 			//mtc = append(mtc, mt)
@@ -102,7 +106,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 	if len(te.errs) > 0 {
 		//unwind successful subscriptions
 		for _, sub := range subscriptions {
-			scheduler.MetricManager.UnsubscribeMetricType(sub)
+			scheduler.metricManager.UnsubscribeMetricType(sub)
 		}
 		return nil, te
 	}
@@ -114,7 +118,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 
 // Start starts the scheduler
 func (s *scheduler) Start() error {
-	if s.MetricManager == nil {
+	if s.metricManager == nil {
 		return MetricManagerNotSet
 	}
 	s.state = SchedulerStarted
@@ -124,8 +128,12 @@ func (s *scheduler) Start() error {
 // New returns an instance of the schduler
 // The MetricManager must be set before the scheduler can be started.
 // The MetricManager must be started before it can be used.
-func New() *scheduler {
-	return &scheduler{
-		workManager: new(managesWork),
-	}
+
+func New(poolSize, queueSize int) *scheduler {
+	s := &scheduler{}
+
+	s.workManager = newWorkManager(int64(queueSize), poolSize)
+	s.workManager.Start()
+
+	return s
 }
