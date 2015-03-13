@@ -44,10 +44,10 @@ type collectorJob struct {
 	replchan    chan struct{}
 }
 
-func newCollectorJob(metricTypes []core.MetricType, deadline time.Time) *collectorJob {
+func newCollectorJob(metricTypes []core.MetricType, deadlineDuration time.Duration) *collectorJob {
 	return &collectorJob{
 		jtype:       collectJobType,
-		deadline:    deadline,
+		deadline:    time.Now().Add(deadlineDuration),
 		metricTypes: metricTypes,
 		metrics:     []core.Metric{},
 		errors:      make([]error, 0),

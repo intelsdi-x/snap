@@ -39,8 +39,7 @@ func (w *workflow) State() workflowState {
 // Start starts a workflow
 func (w *workflow) Start(task *Task) {
 	w.state = WorkflowStarted
-	deadline := time.Now().Add(task.deadlineDuration)
-	j := w.rootStep.CreateJob(task.metricTypes, deadline)
+	j := w.rootStep.CreateJob(task.metricTypes, task.deadlineDuration)
 
 	// dispatch 'collect' job to be worked
 	j = task.manager.Work(j)
@@ -111,6 +110,6 @@ type collectorStep struct {
 	step
 }
 
-func (c *collectorStep) CreateJob(metricTypes []core.MetricType, deadline time.Time) job {
-	return newCollectorJob(metricTypes, deadline)
+func (c *collectorStep) CreateJob(metricTypes []core.MetricType, deadlineDuration time.Duration) job {
+	return newCollectorJob(metricTypes, deadlineDuration)
 }
