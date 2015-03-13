@@ -32,16 +32,19 @@ func TestQueue(t *testing.T) {
 	})
 
 	Convey("it works the jobs in order", t, func() {
-		x := []time.Duration{}
+		x := []time.Time{}
 		q := newQueue(5, func(j job) { x = append(x, j.Deadline()) })
 		q.Start()
 		for i := 0; i < 4; i++ {
 			j := &collectorJob{}
-			j.deadline = time.Duration(time.Duration(i) * time.Second)
+			j.deadline = time.Now().Add(time.Duration(i) * time.Second)
 			q.Event <- j
 		}
 		time.Sleep(time.Millisecond * 10)
-		So(x, ShouldResemble, []time.Duration{time.Duration(0), time.Duration(1 * time.Second), time.Duration(2 * time.Second), time.Duration(3 * time.Second)})
+		//So(x, ShouldResemble, []time.Duration{time.Duration(0), time.Duration(1 * time.Second), time.Duration(2 * time.Second), time.Duration(3 * time.Second)})
+		So(x[0].Unix(), ShouldBeLessThan, x[1].Unix())
+		So(x[1].Unix(), ShouldBeLessThan, x[2].Unix())
+		So(x[2].Unix(), ShouldBeLessThan, x[3].Unix())
 		q.Stop()
 	})
 

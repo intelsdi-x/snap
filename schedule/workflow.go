@@ -27,8 +27,7 @@ type workflow struct {
 // NewWorkflow creates and returns a workflow
 func NewWorkflow() *workflow {
 	return &workflow{
-		rootStep:    new(collectorStep),
-		workManager: workManager,
+		rootStep: new(collectorStep),
 	}
 }
 
@@ -52,13 +51,13 @@ func (w *workflow) Start(task *Task) {
 	}
 }
 
-func (w *workflow) processStep(step Step, job Job) {
+func (w *workflow) processStep(step Step, j job, m managesWork) {
 	//do work for current step
 	j = step.CreateJob(j)
-	j = manager.Work(j)
+	j = m.Work(j)
 	//do work for child steps
 	for _, step := range step.Steps() {
-		w.processStep(step, j)
+		w.processStep(step, j, m)
 	}
 }
 
@@ -113,5 +112,5 @@ type collectorStep struct {
 }
 
 func (c *collectorStep) CreateJob(metricTypes []core.MetricType, deadline time.Time) job {
-	return NewCollectorJob(metricTypes, deadline)
+	return newCollectorJob(metricTypes, deadline)
 }

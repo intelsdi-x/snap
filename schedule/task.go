@@ -17,16 +17,16 @@ const (
 )
 
 type Task struct {
-	schResponseChan chan ScheduleResponse
-	killChan        chan struct{}
-	schedule        Schedule
-	workflow        Workflow
-	metricTypes     []core.MetricType
-	mu              sync.Mutex //protects state
-	state           TaskState
-	creationTime    time.Time
-	lastFireTime    time.Time
-	manager         managesWork
+	schResponseChan  chan ScheduleResponse
+	killChan         chan struct{}
+	schedule         Schedule
+	workflow         Workflow
+	metricTypes      []core.MetricType
+	mu               sync.Mutex //protects state
+	state            TaskState
+	creationTime     time.Time
+	lastFireTime     time.Time
+	manager          managesWork
 	deadlineDuration time.Duration
 }
 
@@ -56,7 +56,7 @@ func TaskDeadlineDuration(v time.Duration) option {
 }
 
 //NewTask creates a Task
-func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, opts ...option) *Task {
+func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, m *workManager, opts ...option) *Task {
 	task := &Task{
 		schResponseChan:  make(chan ScheduleResponse),
 		killChan:         make(chan struct{}),
@@ -65,7 +65,7 @@ func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, opts ...option) *Ta
 		state:            TaskStopped,
 		creationTime:     time.Now(),
 		workflow:         wf,
-		manager:         manager,
+		manager:          m,
 		deadlineDuration: DefaultDeadlineDuration,
 	}
 	//set options

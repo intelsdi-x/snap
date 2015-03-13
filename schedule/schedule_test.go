@@ -157,7 +157,7 @@ func TestScheduler(t *testing.T) {
 		})
 
 		Convey("returns a task with a 6 second deadline duration", func() {
-			scheduler.MetricManager = c
+			scheduler.metricManager = c
 			scheduler.Start()
 			task, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF, TaskDeadlineDuration(6*time.Second))
 			So(err, ShouldBeNil)

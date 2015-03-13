@@ -111,7 +111,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 		return nil, te
 	}
 
-	task := NewTask(s, subscriptions, wf, opts...)
+	task := NewTask(s, subscriptions, wf, scheduler.workManager, opts...)
 
 	return task, nil
 }
