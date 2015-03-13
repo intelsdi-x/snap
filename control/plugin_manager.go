@@ -13,6 +13,7 @@ import (
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/client"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 const (
@@ -132,12 +133,13 @@ func (l *loadedPlugins) Next() bool {
 
 // the struct representing a plugin that is loaded into Pulse
 type loadedPlugin struct {
-	Meta       plugin.PluginMeta
-	Path       string
-	Type       plugin.PluginType
-	State      pluginState
-	Token      string
-	LoadedTime time.Time
+	Meta             plugin.PluginMeta
+	Path             string
+	Type             plugin.PluginType
+	State            pluginState
+	Token            string
+	LoadedTime       time.Time
+	ConfigPolicyTree *cpolicy.ConfigPolicyTree
 }
 
 // returns plugin name
@@ -207,7 +209,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(), lPlugin.Path)
+	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(), lPlugin.Path)
 
 	if err != nil {
 		log.Println(err)
@@ -226,6 +228,9 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 		log.Println(err)
 		return nil, err
 	}
+
+	// Add config policy tree to loaded plugin
+	lPlugin.ConfigPolicyTree = &resp.ConfigPolicyTree
 
 	if resp.Type == plugin.CollectorPluginType {
 		ap, err := newAvailablePlugin(resp)
@@ -318,6 +323,6 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 	return nil
 }
 
-func (p *pluginManager) generateArgs() plugin.Arg {
-	return plugin.NewArg(p.pubKey, "/tmp/pulse-plugin.log")
+func (p *pluginManager) GenerateArgs() plugin.Arg {
+	return plugin.NewArg(p.pubKey, "/tmp/pulse-plugin-foo.log")
 }

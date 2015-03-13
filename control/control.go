@@ -9,6 +9,7 @@ import (
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/control_event"
@@ -45,7 +46,12 @@ type routesToPlugins interface {
 }
 
 type runsPlugins interface {
+	Start() error
+	Stop() []error
 	AvailablePlugins() *availablePlugins
+	AddDelegates(delegates ...gomit.Delegator)
+	SetMetricCatalog(c catalogsMetrics)
+	SetPluginManager(m managesPlugins)
 }
 
 type managesPlugins interface {
@@ -53,6 +59,7 @@ type managesPlugins interface {
 	UnloadPlugin(CatalogedPlugin) error
 	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
+	GenerateArgs() plugin.Arg
 }
 
 type catalogsMetrics interface {
@@ -64,7 +71,7 @@ type catalogsMetrics interface {
 	Subscribe([]string, int) error
 	Unsubscribe([]string, int) error
 	Table() map[string][]*metricType
-	resolvePlugin([]string, int) (*loadedPlugin, error)
+	GetPlugin([]string, int) (*loadedPlugin, error)
 }
 
 // Returns a new pluginControl instance
@@ -72,26 +79,35 @@ func New() *pluginControl {
 	c := &pluginControl{}
 	// Initialize components
 	//
-	// 1. Metric Catalog
+	// Event Manager
+	c.eventManager = gomit.NewEventController()
+
+	// Metric Catalog
 	c.metricCatalog = newMetricCatalog()
 
-	// 2. Plugin Runner
-	c.pluginRunner = newRunner()
-
-	// 3. Plugin Router
-	c.pluginRouter = newPluginRouter()
-	c.pluginRouter.SetRunner(c.pluginRunner)
-	c.pluginRouter.SetMetricCatalog(c.metricCatalog)
-
-	// 3. Plugin Manager
+	// Plugin Manager
 	c.pluginManager = newPluginManager()
 	//    Plugin Manager needs a reference to the metric catalog
 	c.pluginManager.SetMetricCatalog(c.metricCatalog)
 
-	// Event Manager
-	c.eventManager = gomit.NewEventController()
+	// Plugin Runner
+	c.pluginRunner = newRunner()
+	c.pluginRunner.AddDelegates(c.eventManager)
+	c.pluginRunner.SetMetricCatalog(c.metricCatalog)
+	c.pluginRunner.SetPluginManager(c.pluginManager)
+
+	// Plugin Router
+	c.pluginRouter = newPluginRouter()
+	c.pluginRouter.SetRunner(c.pluginRunner)
+	c.pluginRouter.SetMetricCatalog(c.metricCatalog)
 
 	// Wire event manager
+
+	// Start stuff
+	err := c.pluginRunner.Start()
+	if err != nil {
+		panic(err)
+	}
 
 	// c.loadRequestsChan = make(chan LoadedPlugin)
 	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -201,26 +217,19 @@ func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.Config
 		return nil, subErrs
 	}
 
-	fmt.Println(m)
-
-	// fmt.Println(m.Plugin.)
-	// if m.policy == nil {
-	// 	panic("NIL!")
-	// }
-	// ncdTable, errs := m.policy.Process(cd.Table())
-	// if errs != nil && errs.HasErrors() {
-	// 	return nil, errs
-	// }
-
-	// panic(1)
-	// ncd := cdata.FromTable(*ncdTable)
-
-	// m.config = cdata.FromTable(*ncdTable)
+	if m.policy == nil {
+		m.policy = cpolicy.NewPolicyNode()
+	}
+	ncdTable, errs := m.policy.Process(cd.Table())
+	if errs != nil && errs.HasErrors() {
+		return nil, errs.Errors()
+	}
+	m.config = cdata.FromTable(*ncdTable)
 
 	m.Subscribe()
-
 	e := &control_event.MetricSubscriptionEvent{
 		MetricNamespace: m.Namespace(),
+		Version:         m.Version(),
 	}
 	defer p.eventManager.Emit(e)
 

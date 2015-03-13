@@ -115,7 +115,7 @@ func TestArg(t *testing.T) {
 func TestPlugin(t *testing.T) {
 	Convey("Start", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
-		mockConfigPolicyTree := new(cpolicy.ConfigPolicyTree)
+		mockConfigPolicyTree := cpolicy.NewTree()
 		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
 		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicyTree, mockPluginArgs)
 		So(err, ShouldBeNil)
@@ -123,7 +123,7 @@ func TestPlugin(t *testing.T) {
 	})
 	Convey("Start with invalid args", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
-		mockConfigPolicyTree := new(cpolicy.ConfigPolicyTree)
+		mockConfigPolicyTree := cpolicy.NewTree()
 		var mockPluginArgs string = ""
 		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicyTree, mockPluginArgs)
 		So(err, ShouldNotBeNil)

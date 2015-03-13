@@ -1,8 +1,6 @@
 package plugin
 
-// Config Policy
-// task > control > default
-
+// WARNING! Do not import "fmt" and print from a plugin to stdout!
 import (
 	"crypto/rsa"
 	"time"

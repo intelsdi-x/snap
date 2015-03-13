@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	. "github.com/smartystreets/goconvey/convey"
@@ -40,19 +41,16 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 
 func TestRouter(t *testing.T) {
 	Convey("given a new router", t, func() {
+		// adjust HB timeouts for test
+		plugin.PingTimeoutLimit = 1
+		plugin.PingTimeoutDuration = time.Second * 1
+
 		// Create controller
 		c := New()
+		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		// Load plugin
 		c.Load(PluginPath)
-		// fmt.Println("\nPlugin Catalog\n*****")
-		// for _, p := range c.PluginCatalog() {
-		// fmt.Printf("%s %d\n", p.Name(), p.Version())
-		// }
-
-		// Create router
-		// r := newPluginRouter()
-		// r.metricCatalog = c.metricCatalog
 
 		m := []core.MetricType{}
 		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
@@ -68,13 +66,20 @@ func TestRouter(t *testing.T) {
 		// Subscribe
 		a, b := c.SubscribeMetricType(m1, cd)
 		fmt.Println(a, b)
+		time.Sleep(time.Millisecond * 100)
+		c.SubscribeMetricType(m2, cd)
+		time.Sleep(time.Millisecond * 200)
 
 		// Call collect on router
-		cr, err := c.pluginRouter.Collect(m, cd, time.Now().Add(time.Second*60))
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Printf("\nresponse: %+v\n", cr)
 
+		for x := 0; x < 5; x++ {
+			fmt.Println("\n *  Calling Collect")
+			cr, err := c.pluginRouter.Collect(m, cd, time.Now().Add(time.Second*60))
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Printf(" *  Collect Response: %+v\n", cr)
+		}
+		time.Sleep(time.Millisecond * 200)
 	})
 }

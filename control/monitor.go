@@ -1,12 +1,15 @@
 package control
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	MonitorStopped monitorState = iota - 1 // default is stopped
 	MonitorStarted
 
-	DefaultMonitorDuration = time.Second * 60
+	// Changed to one second until we get proper control of duration runtime into this.
+	DefaultMonitorDuration = time.Second * 1
 )
 
 type monitorState int

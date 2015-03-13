@@ -33,5 +33,9 @@ func Meta() *plugin.PluginMeta {
 
 func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
 	c := cpolicy.NewTree()
+	rule, _ := cpolicy.NewStringRule("name", false, "bob")
+	p := cpolicy.NewPolicyNode()
+	p.Add(rule)
+	c.Add([]string{"intel", "dummy"}, p)
 	return c
 }

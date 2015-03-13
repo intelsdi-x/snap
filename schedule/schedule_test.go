@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -19,16 +18,14 @@ type MockMetricManager struct {
 	failuredSoFar              int
 }
 
-func (m *MockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, control.SubscriptionError) {
+func (m *MockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
 	if m.failValidatingMetrics {
 		if m.failValidatingMetricsAfter > m.failuredSoFar {
 			m.failuredSoFar++
 			return nil, nil
 		}
-		return nil, &MockMetricManagerError{
-			errs: []error{
-				errors.New("metric validation error"),
-			},
+		return nil, []error{
+			errors.New("metric validation error"),
 		}
 	}
 	return nil, nil
@@ -40,10 +37,6 @@ func (m *MockMetricManager) UnsubscribeMetricType(mt core.MetricType) {
 
 type MockMetricManagerError struct {
 	errs []error
-}
-
-func (m *MockMetricManagerError) Errors() []error {
-	return m.errs
 }
 
 type MockMetricType struct {

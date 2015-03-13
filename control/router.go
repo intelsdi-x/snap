@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin/client"
 	"github.com/intelsdilabs/pulse/control/routing"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
@@ -16,11 +17,11 @@ type RouterResponse interface {
 }
 
 type RoutingStrategy interface {
+	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
 }
 
 type pluginRouter struct {
-	Strategy         RoutingStrategy
-	SelectionTimeout time.Duration
+	Strategy RoutingStrategy
 
 	metricCatalog catalogsMetrics
 	pluginRunner  runsPlugins
@@ -28,8 +29,7 @@ type pluginRouter struct {
 
 func newPluginRouter() *pluginRouter {
 	return &pluginRouter{
-		Strategy:         &routing.RoundRobinStrategy{},
-		SelectionTimeout: time.Second * 30,
+		Strategy: &routing.RoundRobinStrategy{},
 	}
 }
 
@@ -44,33 +44,19 @@ func (p *pluginCallSelection) Count() int {
 
 // Calls collector plugins for the metric types and returns collection response containing metrics. Blocking method.
 func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) (response *collectionResponse, err error) {
-	// For each MT sort into plugin types we need to call
-	fmt.Println(metricTypes)
-
-	fmt.Println("\nMetric Catalog\n*****")
-	fmt.Println(p.metricCatalog)
-	for k, m := range p.metricCatalog.Table() {
-		fmt.Println(k, m)
-	}
-	fmt.Println("\n")
-
 	pluginCallSelectionMap := make(map[string]pluginCallSelection)
 	// For each plugin type select a matching available plugin to call
 	for _, m := range metricTypes {
 
 		// This is set to choose the newest and not pin version. TODO, be sure version is set to -1 if not provided by user on Task creation.
-		lp, err := p.metricCatalog.resolvePlugin(m.Namespace(), -1)
+		lp, err := p.metricCatalog.GetPlugin(m.Namespace(), -1)
 
-		// fmt.Println("\nMetric Catalog\n*****")
-		// for k, m := range p.metricCatalog.Table() {
-		// 	fmt.Println(k, m)
-		// }
-
-		// TODO handle error here. Single error fails entire operation.
+		// Single error fails entire operation.
 		if err != nil {
-			// can't find a matching plugin, fail - TODO
+			return nil, err
 		}
 
+		// Single error fails entire operation.
 		if lp == nil {
 			return nil, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(m.Namespace(), "/")))
 		}
@@ -82,9 +68,9 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 		pluginCallSelectionMap[lp.Key()] = x
 
 	}
-	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 
-	fmt.Println("")
+	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
+	var selectedAP *availablePlugin
 	for pluginKey, metrics := range pluginCallSelectionMap {
 		fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
 
@@ -98,32 +84,34 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 		// Lock this apPool so we are the only one operating on it.
 		if apPluginPool.Count() == 0 {
 			// return error indicating we have no available plugins to call for Collect
+			return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
 		}
+
 		// Use a router strategy to select an available plugin from the pool
-		// This blocks on selection of a non-busy node or timeout expiring
-		ap, err := apPluginPool.SelectUsingStrategy(p.Strategy, p.SelectionTimeout)
-		// ap, err := p.Strategy.Select(apPluginPool, p.SelectionTimeout)
-		// Call CollectMetrics on the client
-		// metrics, err := ap.Client.CollectMetrics(metricTypes, config)
-		fmt.Println(ap, err)
+		fmt.Printf("%d available plugin in pool for (%s)\n", apPluginPool.Count(), pluginKey)
+		ap, err := apPluginPool.SelectUsingStrategy(p.Strategy)
+
 		if err != nil {
-			// We had an error on collection return
+			return nil, err
 		}
+
+		if ap == nil {
+			return nil, errors.New(fmt.Sprintf("no available plugin selected (%s)", pluginKey))
+		}
+		selectedAP = ap
 	}
 
-	// fmt.Println(p.pluginRunner.AvailablePlugins().Collectors.Table()["dummy:1"])
-
-	// Wait for all responses(happy) or timeout(unhappy)
-
-	// (happy)reduce responses into single collection response and return
-
-	// (unhappy)return response with timeout state
-
-	return &collectionResponse{}, nil
-}
-
-type collectionResponse struct {
-	Errors []error
+	resp := newCollectionResponse()
+	// Attempt collection on selected available plugin
+	selectedAP.hitCount++
+	selectedAP.lastHitTime = time.Now()
+	metrics, err := selectedAP.Client.(client.PluginCollectorClient).CollectMetrics(metricTypes)
+	if err != nil {
+		resp.Errors = append(resp.Errors, err)
+		return resp, nil
+	}
+	resp.Metrics = metrics
+	return resp, nil
 }
 
 func (p *pluginRouter) SetRunner(r runsPlugins) {
@@ -132,4 +120,16 @@ func (p *pluginRouter) SetRunner(r runsPlugins) {
 
 func (p *pluginRouter) SetMetricCatalog(m catalogsMetrics) {
 	p.metricCatalog = m
+}
+
+type collectionResponse struct {
+	Metrics []core.Metric
+	Errors  []error
+}
+
+func newCollectionResponse() *collectionResponse {
+	return &collectionResponse{
+		Metrics: make([]core.Metric, 0),
+		Errors:  make([]error, 0),
+	}
 }

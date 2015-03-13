@@ -10,6 +10,7 @@ import (
 	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/client"
+	"github.com/intelsdilabs/pulse/control/routing"
 	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
@@ -30,6 +31,8 @@ type availablePlugin struct {
 	Client  client.PluginClient
 	Index   int
 
+	hitCount           int
+	lastHitTime        time.Time
 	eventManager       *gomit.EventController
 	failedHealthChecks int
 	healthChan         chan error
@@ -45,6 +48,7 @@ func newAvailablePlugin(resp *plugin.Response) (*availablePlugin, error) {
 
 		eventManager: new(gomit.EventController),
 		healthChan:   make(chan error, 1),
+		lastHitTime:  time.Now(),
 	}
 
 	// Create RPC Client
@@ -94,7 +98,7 @@ func (ap *availablePlugin) healthCheckFailed() {
 		pde := &control_event.DisabledPluginEvent{
 			Name:    ap.Name,
 			Version: ap.Version,
-			Type:    ap.Type,
+			Type:    int(ap.Type),
 			Key:     ap.Key,
 			Index:   ap.Index,
 		}
@@ -103,9 +107,17 @@ func (ap *availablePlugin) healthCheckFailed() {
 	hcfe := &control_event.HealthCheckFailedEvent{
 		Name:    ap.Name,
 		Version: ap.Version,
-		Type:    ap.Type,
+		Type:    int(ap.Type),
 	}
 	defer ap.eventManager.Emit(hcfe)
+}
+
+func (a *availablePlugin) HitCount() int {
+	return a.hitCount
+}
+
+func (a *availablePlugin) LastHit() time.Time {
+	return a.lastHitTime
 }
 
 // makeKey creates the ap.Key from the ap.Name and ap.Version
@@ -142,6 +154,14 @@ func (c *apCollection) GetPluginPool(key string) *availablePluginPool {
 		return ap
 	}
 	return nil
+}
+
+func (c *apCollection) PluginPoolHasAP(key string) bool {
+	a := c.GetPluginPool(key)
+	if a != nil && a.Count() > 0 {
+		return true
+	}
+	return false
 }
 
 // Table returns a copy of the apCollection table
@@ -334,7 +354,17 @@ func (a *availablePluginPool) resetIndexes() {
 	}
 }
 
-func (a *availablePluginPool) SelectUsingStrategy(strat RoutingStrategy, timeout time.Duration) (*availablePlugin, error) {
+func (a *availablePluginPool) SelectUsingStrategy(strat RoutingStrategy) (*availablePlugin, error) {
+	a.Lock()
+	defer a.Unlock()
 
-	return nil, nil
+	sp := make([]routing.SelectablePlugin, len(*a.Plugins))
+	for i, _ := range *a.Plugins {
+		sp[i] = (*a.Plugins)[i]
+	}
+	sap, err := strat.Select(a, sp)
+	if err != nil || sap == nil {
+		return nil, err
+	}
+	return sap.(*availablePlugin), err
 }

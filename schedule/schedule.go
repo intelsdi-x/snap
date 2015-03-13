@@ -3,7 +3,6 @@ package schedule
 import (
 	"time"
 
-	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 )
@@ -34,7 +33,7 @@ type ScheduleResponse interface {
 // ManagesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
 type ManagesMetric interface {
-	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, control.SubscriptionError)
+	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error)
 	UnsubscribeMetricType(mt core.MetricType)
 }
 
@@ -75,7 +74,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 			//mtc = append(mtc, mt)
 			subscriptions = append(subscriptions, mt)
 		} else {
-			te.errs = append(te.errs, err.Errors()...)
+			te.errs = append(te.errs, err...)
 		}
 	}
 

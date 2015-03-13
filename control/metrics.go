@@ -90,16 +90,27 @@ func newMetricCatalog() *metricCatalog {
 }
 
 func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.MetricType) {
+	if lp.ConfigPolicyTree == nil {
+		panic("NO")
+	}
+
 	newMt := metricType{
 		Plugin:             lp,
 		namespace:          mt.Namespace(),
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
+		// This caches the config policy node within the metric type
+		// Disabled until ctree + cpolicy is RPC compatible
+		// policy: lp.ConfigPolicyTree.Get(mt.Namespace()),
 	}
 	m.Add(&newMt)
 }
 
 // adds a metricType pointer to the loadedPlugins table
 func (mc *metricCatalog) Add(m *metricType) {
+	// if m.policy == nil {
+	// 	// Set an empty config policy tree if not provided
+	// 	m.policy = cpolicy.NewTree()
+	// }
 
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
@@ -198,7 +209,7 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
 	return m.Unsubscribe()
 }
 
-func (mc *metricCatalog) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
+func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, error) {
 	m, err := mc.Get(mns, ver)
 	if err != nil {
 		return nil, err
