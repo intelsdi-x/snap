@@ -92,7 +92,7 @@ func startModule(name string, m coreModule) error {
 
 func printErrorAndExit(name string, err error) {
 	log.Println("ERROR:", err)
-	log.Println("ERROR: Error starting Pulse Agent %s module. Exiting now.", name)
+	log.Printf("ERROR: Error starting Pulse Agent %s module. Exiting now.", name)
 	os.Exit(1)
 }
 
