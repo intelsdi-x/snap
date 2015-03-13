@@ -94,7 +94,7 @@ func TestSwapPlugin(t *testing.T) {
 				err := c.SwapPlugins(facterPath, dummy)
 				pc = c.PluginCatalog()
 				So(err, ShouldBeNil)
-				So(pc[0].Name(), ShouldEqual, "facter")
+				So(pc[0].Name(), ShouldEqual, "Intel Fact Gathering Plugin")
 			})
 
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
@@ -110,7 +110,7 @@ func TestSwapPlugin(t *testing.T) {
 
 				err := c.SwapPlugins(PluginPath, dummy)
 				So(err, ShouldNotBeNil)
-				So(pc[0].Name(), ShouldEqual, "facter")
+				So(pc[0].Name(), ShouldEqual, "Intel Fact Gathering Plugin")
 			})
 
 			Convey("rollback failure returns error", func() {
