@@ -74,7 +74,7 @@ func TestMonitor(t *testing.T) {
 				for aps.Collectors.Next() {
 					_, item := aps.Collectors.Item()
 					So(item, ShouldNotBeNil)
-					So((*item)[0].failedHealthChecks, ShouldBeGreaterThan, 3)
+					So((*(*item).Plugins)[0].failedHealthChecks, ShouldBeGreaterThan, 3)
 				}
 			})
 		})
@@ -90,7 +90,7 @@ func TestMonitor(t *testing.T) {
 			oldOpt := m.Option(MonitorDuration(time.Millisecond * 200))
 			So(m.duration, ShouldResemble, time.Millisecond*200)
 			m.Option(oldOpt)
-			So(m.duration, ShouldResemble, time.Second*60)
+			So(m.duration, ShouldResemble, time.Second*1)
 		})
 	})
 }

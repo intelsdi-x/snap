@@ -2,8 +2,6 @@ package control
 
 import (
 	"fmt"
-	"os"
-	"path"
 	"testing"
 	"time"
 
@@ -11,12 +9,6 @@ import (
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	. "github.com/smartystreets/goconvey/convey"
-)
-
-var (
-	PluginName = "pulse-collector-dummy"
-	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
 )
 
 type MockMetricType struct {

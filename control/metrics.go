@@ -64,6 +64,9 @@ func (m *metricType) SubscriptionCount() int {
 }
 
 func (m *metricType) Version() int {
+	if m.Plugin == nil {
+		return -1
+	}
 	return m.Plugin.Version()
 }
 

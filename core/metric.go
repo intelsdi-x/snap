@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/intelsdilabs/pulse/core/cdata"
 	"time"
+
+	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
 type MetricType interface {

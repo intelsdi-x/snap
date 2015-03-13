@@ -47,6 +47,10 @@ func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {
 
 }
 
+func (m *MockPluginManagerBadSwap) GenerateArgs() plugin.Arg {
+	return plugin.Arg{}
+}
+
 func TestControlNew(t *testing.T) {
 
 }
@@ -274,6 +278,10 @@ func (m *mc) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
 	return nil, nil
 }
 
+func (m *mc) GetPlugin([]string, int) (*loadedPlugin, error) {
+	return nil, nil
+}
+
 func (m *mc) Get(ns []string, ver int) (*metricType, error) {
 	if m.e == 1 {
 		return &metricType{
@@ -342,8 +350,8 @@ func TestSubscribeMetric(t *testing.T) {
 		mtrc.e = 0
 		mt := newMetricType([]string{"nf"}, time.Now(), lp)
 		_, err := c.SubscribeMetricType(mt, cd)
-		So(len(err.Errors()), ShouldEqual, 1)
-		So(err.Errors()[0], ShouldResemble, errMetricNotFound)
+		So(len(err), ShouldEqual, 1)
+		So(err[0], ShouldResemble, errMetricNotFound)
 	})
 	// Refactoring (nweaver)
 	// Convey("returns errors when processing fails", t, func() {

@@ -181,6 +181,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		if err != nil {
 			// log this error # TODO with logging
 			fmt.Println(err)
+			return
 		}
 		fmt.Printf("Plugin is (%s)\n", mt.Plugin.Key())
 
