@@ -30,12 +30,15 @@ func main() {
 		fmt.Println("Pulse version:", gitversion)
 		os.Exit(0)
 	}
-
+	// Set Max Processors for the Pulse agent.
 	setMaxProcs()
 
 	c := control.New()
 	s := schedule.New()
 	s.MetricManager = c
+
+	// Set interrupt handling so we can die gracefully.
+	startInterruptHandling(c, s)
 
 	//  Start our modules
 	if err := startModule("Plugin Controller", c); err != nil {
@@ -48,7 +51,6 @@ func main() {
 		printErrorAndExit("Scheduler", err)
 	}
 
-	startInterruptHandling(c, s)
 	select {} //run forever and ever
 }
 
