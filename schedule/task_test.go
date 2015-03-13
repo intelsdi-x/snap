@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/core"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -49,28 +51,23 @@ func (m *MockSchedule) Validate() error {
 
 func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
-
 		Convey("task + simple schedule", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 100)
-			task := NewTask(sch, nil)
+			task := NewTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
+			task.Stop()
 		})
 
 		Convey("Task is created and starts to spin", func() {
 			mockSchedule := &MockSchedule{
 				tick: false,
 			}
-			task := NewTask(mockSchedule, nil)
+			task := NewTask(mockSchedule, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
-			Convey("Tick arrives from the schedule", func() {
-				mockSchedule.Tick()
-				time.Sleep(time.Millisecond * 200) // it is a race so we slow down the test
-				So(task.state, ShouldEqual, TaskFiring)
-			})
 			Convey("Task is Stopped", func() {
 				task.Stop()
 				time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
@@ -89,6 +86,12 @@ func TestTask(t *testing.T) {
 				})
 			})
 		})
-
+		Convey("task fires", func() {
+			sch := NewSimpleSchedule(time.Millisecond * 10)
+			task := NewTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+			task.Spin()
+			time.Sleep(time.Millisecond * 20)
+			task.Stop()
+		})
 	})
 }

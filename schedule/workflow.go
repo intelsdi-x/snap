@@ -6,12 +6,12 @@ type workflowState int
 
 const (
 	//Workflow states
-	WorkflowStopped workflowState = iota - 1
+	WorkflowStopped workflowState = iota
 	WorkflowStarted
 )
 
 type Workflow interface {
-	Start(task *Task, managesWork ManagesWork)
+	Start(task *Task)
 	State() workflowState
 }
 
@@ -33,26 +33,26 @@ func (w *workflow) State() workflowState {
 }
 
 // Start starts a workflow
-func (w *workflow) Start(task *Task, manager ManagesWork) {
+func (w *workflow) Start(task *Task) {
 	w.state = WorkflowStarted
-	job := w.rootStep.CreateJob(task.metricTypes)
+	j := w.rootStep.CreateJob(task.metricTypes)
 
 	// dispatch 'collect' job to be worked
-	job = manager.Work(job)
+	j = task.manager.Work(j)
 
 	//process through additional steps (processors, publishers, ...)
 	for _, step := range w.rootStep.Steps() {
-		w.processStep(step, job, manager)
+		w.processStep(step, j, task.manager)
 	}
 }
 
-func (w *workflow) processStep(step Step, job Job, manager ManagesWork) {
+func (w *workflow) processStep(step Step, j job, manager managesWork) {
 	//do work for current step
-	job = step.CreateJob(job)
-	job = manager.Work(job)
+	j = step.CreateJob(j)
+	j = manager.Work(j)
 	//do work for child steps
 	for _, step := range step.Steps() {
-		w.processStep(step, job, manager)
+		w.processStep(step, j, manager)
 	}
 }
 
@@ -60,7 +60,7 @@ func (w *workflow) processStep(step Step, job Job, manager ManagesWork) {
 type Step interface {
 	Steps() []Step
 	AddStep(s Step) Step
-	CreateJob(job Job) Job
+	CreateJob(j job) job
 }
 
 type step struct {
@@ -78,7 +78,7 @@ func (s *step) Steps() []Step {
 	return s.steps
 }
 
-func (s *step) CreateJob(j Job) Job {
+func (s *step) CreateJob(j job) job {
 	//modifyJob for publish step and return
 	return j
 }
@@ -106,6 +106,6 @@ type collectorStep struct {
 	step
 }
 
-func (c *collectorStep) CreateJob(metricTypes []core.MetricType) Job {
-	return NewCollectorJob(metricTypes)
+func (c *collectorStep) CreateJob(metricTypes []core.MetricType) job {
+	return newCollectorJob(metricTypes)
 }

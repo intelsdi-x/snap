@@ -24,11 +24,12 @@ type Task struct {
 	state           TaskState
 	creationTime    time.Time
 	lastFireTime    time.Time
+	manager         managesWork
 }
 
 type TaskState int
 
-func NewTask(s Schedule, mtc []core.MetricType) *Task {
+func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, manager managesWork) *Task {
 	return &Task{
 		schResponseChan: make(chan ScheduleResponse),
 		killChan:        make(chan struct{}),
@@ -36,7 +37,8 @@ func NewTask(s Schedule, mtc []core.MetricType) *Task {
 		schedule:        s,
 		state:           TaskStopped,
 		creationTime:    time.Now(),
-		workflow:        NewWorkflow(),
+		manager:         manager,
+		workflow:        wf,
 	}
 }
 
@@ -87,7 +89,7 @@ func (t *Task) fire() {
 	defer t.mu.Unlock()
 
 	t.state = TaskFiring
-	t.workflow.Start(t, WorkManager)
+	t.workflow.Start(t)
 	t.state = TaskSpinning
 }
 

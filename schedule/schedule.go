@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"errors"
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
@@ -8,15 +9,28 @@ import (
 )
 
 const (
+	//Schedule states
 	ScheduleActive ScheduleState = iota
 	ScheduleEnded
 	ScheduleError
+
+	//Scheduler states
+	SchedulerStopped SchedulerState = iota
+	SchedulerStarted
 )
 
-var metricManager ManagesMetric
+var (
+	MetricManagerNotSet = errors.New("MetricManager is not set.")
+	SchedulerNotStarted = errors.New("Scheduler is not started.")
+)
 
 // Schedule - Validate() will include ensure that the underlying schedule is
 // still valid.  For example, it doesn't start in the past.
+
+type managesWork interface {
+	Work(job) job
+}
+
 type Schedule interface {
 	Wait(time.Time) ScheduleResponse
 	Validate() error
@@ -32,7 +46,7 @@ type ScheduleResponse interface {
 
 // ManagesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
-type ManagesMetric interface {
+type managesMetric interface {
 	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error)
 	UnsubscribeMetricType(mt core.MetricType)
 }
@@ -50,11 +64,22 @@ func (t *taskErrors) Errors() []error {
 }
 
 type scheduler struct {
+	workManager   *workManager
+	metricManager managesMetric
+	state         SchedulerState
 }
 
-func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree) (*Task, TaskErrors) {
+type SchedulerState int
+
+//CreateTask creates a task
+func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow) (*Task, TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
+	}
+
+	if scheduler.state != SchedulerStarted {
+		te.errs = append(te.errs, SchedulerNotStarted)
+		return nil, te
 	}
 
 	//validate Schedule
@@ -68,7 +93,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 	subscriptions := make([]core.MetricType, 0)
 	for _, m := range mts {
 		cd := cdt.Get(m.Namespace())
-		mt, err := metricManager.SubscribeMetricType(m, cd)
+		mt, err := scheduler.metricManager.SubscribeMetricType(m, cd)
 		if err == nil {
 			//mt := newMetricType(m, config)
 			//mtc = append(mtc, mt)
@@ -81,16 +106,33 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 	if len(te.errs) > 0 {
 		//unwind successful subscriptions
 		for _, sub := range subscriptions {
-			metricManager.UnsubscribeMetricType(sub)
+			scheduler.metricManager.UnsubscribeMetricType(sub)
 		}
 		return nil, te
 	}
 
-	task := NewTask(s, subscriptions)
+	task := NewTask(s, subscriptions, wf, scheduler.workManager)
 	return task, nil
 }
 
-func New(m ManagesMetric) *scheduler {
-	metricManager = m
-	return &scheduler{}
+// Start starts the scheduler
+func (s *scheduler) Start() error {
+	if s.metricManager == nil {
+		return MetricManagerNotSet
+	}
+	s.state = SchedulerStarted
+	return nil
+}
+
+// New returns an instance of the schduler
+// The MetricManager must be set before the scheduler can be started.
+// The MetricManager must be started before it can be used.
+
+func New(poolSize, queueSize int) *scheduler {
+	s := &scheduler{}
+
+	s.workManager = newWorkManager(int64(queueSize), poolSize)
+	s.workManager.Start()
+
+	return s
 }
