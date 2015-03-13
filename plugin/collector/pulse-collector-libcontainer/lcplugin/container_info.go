@@ -1,4 +1,4 @@
-package container
+package lcplugin
 
 import (
 	"encoding/json"
@@ -12,14 +12,14 @@ import (
 func getContainerInfo(containerPath string) (*libcontainer.Config, *libcontainer.State, *libcontainer.ContainerStats, error) {
 	state, err := getState(filepath.Join(containerPath, "state.json"))
 	if err != nil {
-		log.Printf("Libcontainer: error %s when accessing path %d\n",
+		log.Printf("Libcontainer: error %s when accessing path %s\n",
 			err.Error(), filepath.Join(containerPath, "state.json"))
 		return nil, nil, nil, err
 	}
 
 	config, err := getConfig(filepath.Join(containerPath, "container.json"))
 	if err != nil {
-		log.Printf("Libcontainer: error %s when accessing path %d\n",
+		log.Printf("Libcontainer: error %s when accessing path %s\n",
 			err.Error(), filepath.Join(containerPath, "container.json"))
 		return nil, nil, nil, err
 	}

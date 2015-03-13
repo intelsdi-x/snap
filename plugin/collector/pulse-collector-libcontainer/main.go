@@ -3,9 +3,8 @@ package main
 import (
 	"os"
 
-	// Import the pulse plugin library
 	"github.com/intelsdilabs/pulse/control/plugin"
-	// Import our collector plugin implementation
+	"github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-libcontainer/lcplugin"
 )
 
 func main() {
@@ -15,12 +14,12 @@ func main() {
 	//   the collector configuration policy satifying plugin.ConfigRules
 
 	// Define default policy
-	policy := libcontainer.ConfigPolicy()
+	policy := lcplugin.ConfigPolicy()
 
 	// Define metadata about Plugin
-	meta := libcontainer.Meta()
+	meta := lcplugin.Meta()
 
 	// Start a collector
 	//plugin.StartCollector(meta, new(facter.Facter), policy, os.Args[0], os.Args[1])
-	plugin.Start(meta, new(libcontainer.Libcontainer), policy, os.Args[1])
+	plugin.Start(meta, new(lcplugin.Libcontainer), policy, os.Args[1])
 }
