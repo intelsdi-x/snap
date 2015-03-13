@@ -19,7 +19,7 @@ var maxProcs = flag.Int("max_procs", 0, "max number of CPUs that can be used sim
 
 var gitversion string
 
-type CoreModule interface {
+type coreModule interface {
 	Start() error
 	Stop()
 }
@@ -76,18 +76,18 @@ func setMaxProcs() {
 	}
 }
 
-func startModule(name string, m CoreModule) error {
+func startModule(name string, m coreModule) error {
 	log.Printf("Starting Pulse Agent %s module", name)
 	return m.Start()
 }
 
 func printErrorAndExit(name string, err error) {
 	log.Println("ERROR:", err)
-	log.Println("ERROR: Error starting Pulse Agent %s module. Exiting now.")
+	log.Println("ERROR: Error starting Pulse Agent %s module. Exiting now.", name)
 	os.Exit(1)
 }
 
-func startInterruptHandling(modules ...CoreModule) {
+func startInterruptHandling(modules ...coreModule) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 
