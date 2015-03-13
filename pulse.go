@@ -13,11 +13,18 @@ import (
 	"github.com/intelsdilabs/pulse/schedule"
 )
 
-// Pulse Flags for command line
-var version = flag.Bool("version", false, "print Pulse version")
-var maxProcs = flag.Int("max_procs", 0, "max number of CPUs that can be used simultaneously. Default is use all cores.")
+var (
+	// Pulse Flags for command line
+	version  = flag.Bool("version", false, "print Pulse version")
+	maxProcs = flag.Int("max_procs", 1, "max number of CPUs that can be used simultaneously. Default is use all cores.")
 
-var gitversion string
+	gitversion string
+)
+
+const (
+	defaultQueueSize int = 25
+	defaultPoolSize  int = 4
+)
 
 type coreModule interface {
 	Start() error
@@ -34,8 +41,8 @@ func main() {
 	setMaxProcs()
 
 	c := control.New()
-	s := schedule.New()
-	s.MetricManager = c
+	s := schedule.New(defaultPoolSize, defaultQueueSize)
+	s.SetMetricManager(c)
 
 	// Set interrupt handling so we can die gracefully.
 	startInterruptHandling(c, s)
@@ -59,9 +66,9 @@ func setMaxProcs() {
 	numProcs := runtime.NumCPU()
 	if *maxProcs <= 0 {
 		if *maxProcs < 0 {
-			log.Printf("WARNING: max_procs set to less than zero. Setting GOMAXPROCS to %v", numProcs)
+			log.Println("WARNING: max_procs set to less than zero. Setting GOMAXPROCS to default of 1")
 		}
-		_maxProcs = numProcs
+		_maxProcs = 1
 	} else if *maxProcs > numProcs {
 		log.Printf("WARNING: Not allowed to set GOMAXPROCS above number of processors in system. Setting GOMAXPROCS to %v", numProcs)
 		_maxProcs = numProcs
