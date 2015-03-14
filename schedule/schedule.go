@@ -25,13 +25,12 @@ var (
 	SchedulerNotStarted = errors.New("Scheduler is not started.")
 )
 
-// Schedule - Validate() will include ensure that the underlying schedule is
-// still valid.  For example, it doesn't start in the past.
-
 type managesWork interface {
 	Work(job) job
 }
 
+// Schedule - Validate() will include ensure that the underlying schedule is
+// still valid.  For example, it doesn't start in the past.
 type Schedule interface {
 	Wait(time.Time) ScheduleResponse
 	Validate() error
@@ -72,8 +71,8 @@ type scheduler struct {
 
 type SchedulerState int
 
-//CreateTask creates a task
-func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow) (*Task, TaskErrors) {
+// CreateTask creates and returns task
+func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow, opts ...option) (*Task, TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
@@ -112,7 +111,8 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 		return nil, te
 	}
 
-	task := NewTask(s, subscriptions, wf, scheduler.workManager)
+	task := NewTask(s, subscriptions, wf, scheduler.workManager, opts...)
+
 	return task, nil
 }
 

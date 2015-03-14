@@ -3,6 +3,7 @@ package schedule
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/core"
@@ -146,12 +147,25 @@ func TestScheduler(t *testing.T) {
 
 		})
 
-		Convey("returns an a task", func() {
+		Convey("returns a task", func() {
 			scheduler.metricManager = c
 			scheduler.Start()
-			task, err := scheduler.CreateTask(nil, mockSchedule, cdt, mockWF)
+			task, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
 			So(err, ShouldBeNil)
 			So(task, ShouldNotBeNil)
+			So(task.deadlineDuration, ShouldResemble, DefaultDeadlineDuration)
+		})
+
+		Convey("returns a task with a 6 second deadline duration", func() {
+			scheduler.metricManager = c
+			scheduler.Start()
+			task, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF, TaskDeadlineDuration(6*time.Second))
+			So(err, ShouldBeNil)
+			So(task.deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
+			prev := task.Option(TaskDeadlineDuration(1 * time.Second))
+			So(task.deadlineDuration, ShouldResemble, time.Duration(1*time.Second))
+			task.Option(prev)
+			So(task.deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 		})
 
 	})
