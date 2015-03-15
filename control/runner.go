@@ -2,11 +2,16 @@ package control
 
 import (
 	"errors"
+	"fmt"
+	"sync"
 	"time"
+
+	"strings"
 
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core/control_event"
 )
 
 const (
@@ -16,6 +21,9 @@ const (
 	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
 	PluginStopped
 	PluginDisabled
+
+	// Until more advanced decisioning on starting exists this is the max number to spawn.
+	MaximumRunningPlugins = 3
 )
 
 // TBD
@@ -30,14 +38,30 @@ type runner struct {
 	delegates        []gomit.Delegator
 	monitor          *monitor
 	availablePlugins *availablePlugins
+	metricCatalog    catalogsMetrics
+	pluginManager    managesPlugins
+	mutex            *sync.Mutex
 }
 
 func newRunner() *runner {
 	r := &runner{
 		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(),
+		mutex:            &sync.Mutex{},
 	}
 	return r
+}
+
+func (r *runner) SetMetricCatalog(c catalogsMetrics) {
+	r.metricCatalog = c
+}
+
+func (r *runner) SetPluginManager(m managesPlugins) {
+	r.pluginManager = m
+}
+
+func (r *runner) AvailablePlugins() *availablePlugins {
+	return r.availablePlugins
 }
 
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
@@ -140,5 +164,45 @@ func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
 // Empty handler acting as placeholder until implementation. This helps tests
 // pass to ensure registration works.
 func (r *runner) HandleGomitEvent(e gomit.Event) {
-	// to do
+
+	switch v := e.Body.(type) {
+	case *control_event.MetricSubscriptionEvent:
+		fmt.Println("runner")
+		fmt.Println(v.Namespace())
+		fmt.Printf("Metric subscription (%s v%d)\n", strings.Join(v.MetricNamespace, "/"), v.Version)
+
+		// Our logic here is simple for alpha. We should replace with parameter managed logic.
+		//
+		// 1. Get the loaded plugin for the subscription.
+		// 2. Check that at least one available plugin of that type is running
+		// 3. If not start one
+
+		mt, err := r.metricCatalog.Get(v.MetricNamespace, v.Version)
+		if err != nil {
+			// log this error # TODO with logging
+			fmt.Println(err)
+			return
+		}
+		fmt.Printf("Plugin is (%s)\n", mt.Plugin.Key())
+
+		pool := r.availablePlugins.Collectors.GetPluginPool(mt.Plugin.Key())
+		if pool != nil && pool.Count() >= MaximumRunningPlugins {
+			// if r.availablePlugins.Collectors.PluginPoolHasAP(mt.Plugin.Key()) {
+			fmt.Println("We have at least one running!")
+			return
+		}
+
+		fmt.Println("No APs running!")
+		ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(), mt.Plugin.Path)
+		if err != nil {
+			fmt.Println(err)
+		}
+		ap, err := r.startPlugin(ePlugin)
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		fmt.Println("NEW AP")
+		fmt.Println(ap)
+	}
 }

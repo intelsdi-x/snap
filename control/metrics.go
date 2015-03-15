@@ -4,9 +4,11 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
-	"github.com/intelsdilabs/pulse/core/cpolicy"
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
@@ -16,26 +18,24 @@ var (
 )
 
 type metricType struct {
-	Plugin *loadedPlugin
-
-	namespace               []string
-	lastAdvertisedTimestamp int64
-	subscriptions           int
-	policy                  processesConfigData
-	config                  *cdata.ConfigDataNode
+	Plugin             *loadedPlugin
+	namespace          []string
+	lastAdvertisedTime time.Time
+	subscriptions      int
+	policy             processesConfigData
+	config             *cdata.ConfigDataNode
 }
 
 type processesConfigData interface {
 	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
 }
 
-func newMetricType(ns []string, last int64, plugin *loadedPlugin) *metricType {
+func newMetricType(ns []string, last time.Time, plugin *loadedPlugin) *metricType {
 	return &metricType{
 		Plugin: plugin,
 
-		namespace:               ns,
-		lastAdvertisedTimestamp: last,
-		policy:                  cpolicy.NewPolicyNode(),
+		namespace:          ns,
+		lastAdvertisedTime: last,
 	}
 }
 
@@ -43,8 +43,8 @@ func (m *metricType) Namespace() []string {
 	return m.namespace
 }
 
-func (m *metricType) LastAdvertisedTimestamp() int64 {
-	return m.lastAdvertisedTimestamp
+func (m *metricType) LastAdvertisedTime() time.Time {
+	return m.lastAdvertisedTime
 }
 
 func (m *metricType) Subscribe() {
@@ -64,6 +64,9 @@ func (m *metricType) SubscriptionCount() int {
 }
 
 func (m *metricType) Version() int {
+	if m.Plugin == nil {
+		return -1
+	}
 	return m.Plugin.Version()
 }
 
@@ -89,8 +92,28 @@ func newMetricCatalog() *metricCatalog {
 	}
 }
 
+func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.MetricType) {
+	if lp.ConfigPolicyTree == nil {
+		panic("NO")
+	}
+
+	newMt := metricType{
+		Plugin:             lp,
+		namespace:          mt.Namespace(),
+		lastAdvertisedTime: mt.LastAdvertisedTime(),
+		// This caches the config policy node within the metric type
+		// Disabled until ctree + cpolicy is RPC compatible
+		// policy: lp.ConfigPolicyTree.Get(mt.Namespace()),
+	}
+	m.Add(&newMt)
+}
+
 // adds a metricType pointer to the loadedPlugins table
 func (mc *metricCatalog) Add(m *metricType) {
+	// if m.policy == nil {
+	// 	// Set an empty config policy tree if not provided
+	// 	m.policy = cpolicy.NewTree()
+	// }
 
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
@@ -187,6 +210,14 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
 	}
 
 	return m.Unsubscribe()
+}
+
+func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, error) {
+	m, err := mc.Get(mns, ver)
+	if err != nil {
+		return nil, err
+	}
+	return m.Plugin, nil
 }
 
 func (mc *metricCatalog) get(key string, ver int) (*metricType, error) {

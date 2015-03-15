@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -19,16 +18,14 @@ type MockMetricManager struct {
 	failuredSoFar              int
 }
 
-func (m *MockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, control.SubscriptionError) {
+func (m *MockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
 	if m.failValidatingMetrics {
 		if m.failValidatingMetricsAfter > m.failuredSoFar {
 			m.failuredSoFar++
 			return nil, nil
 		}
-		return nil, &MockMetricManagerError{
-			errs: []error{
-				errors.New("metric validation error"),
-			},
+		return nil, []error{
+			errors.New("metric validation error"),
 		}
 	}
 	return nil, nil
@@ -42,15 +39,11 @@ type MockMetricManagerError struct {
 	errs []error
 }
 
-func (m *MockMetricManagerError) Errors() []error {
-	return m.errs
-}
-
 type MockMetricType struct {
-	version                 int
-	namespace               []string
-	lastAdvertisedTimestamp int64
-	config                  *cdata.ConfigDataNode
+	version            int
+	namespace          []string
+	lastAdvertisedTime time.Time
+	config             *cdata.ConfigDataNode
 }
 
 func (m MockMetricType) Version() int {
@@ -61,8 +54,8 @@ func (m MockMetricType) Namespace() []string {
 	return m.namespace
 }
 
-func (m MockMetricType) LastAdvertisedTimestamp() int64 {
-	return m.lastAdvertisedTimestamp
+func (m MockMetricType) LastAdvertisedTime() time.Time {
+	return m.lastAdvertisedTime
 }
 
 func (m MockMetricType) Config() *cdata.ConfigDataNode {
@@ -88,19 +81,19 @@ func TestScheduler(t *testing.T) {
 		}
 		mt := []core.MetricType{
 			&MockMetricType{
-				namespace:               []string{"foo", "bar"},
-				version:                 1,
-				lastAdvertisedTimestamp: 0,
+				namespace:          []string{"foo", "bar"},
+				version:            1,
+				lastAdvertisedTime: time.Now(),
 			},
 			&MockMetricType{
-				namespace:               []string{"foo2", "bar2"},
-				version:                 1,
-				lastAdvertisedTimestamp: 0,
+				namespace:          []string{"foo2", "bar2"},
+				version:            1,
+				lastAdvertisedTime: time.Now(),
 			},
 			&MockMetricType{
-				namespace:               []string{"foo2", "bar2"},
-				version:                 1,
-				lastAdvertisedTimestamp: 0,
+				namespace:          []string{"foo2", "bar2"},
+				version:            1,
+				lastAdvertisedTime: time.Now(),
 			},
 		}
 		scheduler := New(1, 5)

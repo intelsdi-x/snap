@@ -1,12 +1,15 @@
 package control
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	MonitorStopped monitorState = iota - 1 // default is stopped
 	MonitorStarted
 
-	DefaultMonitorDuration = time.Second * 60
+	// Changed to one second until we get proper control of duration runtime into this.
+	DefaultMonitorDuration = time.Second * 1
 )
 
 type monitorState int
@@ -60,7 +63,7 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 					availablePlugins.Collectors.Lock()
 					for availablePlugins.Collectors.Next() {
 						_, apc := availablePlugins.Collectors.Item()
-						for _, ap := range *apc {
+						for _, ap := range *apc.Plugins {
 							go ap.CheckHealth()
 						}
 					}
@@ -70,7 +73,7 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 					availablePlugins.Publishers.Lock()
 					for availablePlugins.Publishers.Next() {
 						_, apc := availablePlugins.Publishers.Item()
-						for _, ap := range *apc {
+						for _, ap := range *apc.Plugins {
 							go ap.CheckHealth()
 						}
 					}
@@ -80,7 +83,7 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 					availablePlugins.Processors.Lock()
 					for availablePlugins.Processors.Next() {
 						_, apc := availablePlugins.Processors.Item()
-						for _, ap := range *apc {
+						for _, ap := range *apc.Plugins {
 							go ap.CheckHealth()
 						}
 					}

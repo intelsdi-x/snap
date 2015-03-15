@@ -1,6 +1,8 @@
 package cpolicy
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"sync"
@@ -47,6 +49,21 @@ func NewPolicyNode() *ConfigPolicyNode {
 		rules: make(map[string]Rule),
 		mutex: &sync.Mutex{},
 	}
+}
+
+func (c *ConfigPolicyNode) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	if err := encoder.Encode(&c.rules); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+func (c *ConfigPolicyNode) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+	return decoder.Decode(&c.rules)
 }
 
 // Adds a rule to this policy node

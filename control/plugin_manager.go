@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/client"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 const (
@@ -131,18 +133,23 @@ func (l *loadedPlugins) Next() bool {
 
 // the struct representing a plugin that is loaded into Pulse
 type loadedPlugin struct {
-	Meta       plugin.PluginMeta
-	Path       string
-	Type       plugin.PluginType
-	State      pluginState
-	Token      string
-	LoadedTime time.Time
+	Meta             plugin.PluginMeta
+	Path             string
+	Type             plugin.PluginType
+	State            pluginState
+	Token            string
+	LoadedTime       time.Time
+	ConfigPolicyTree *cpolicy.ConfigPolicyTree
 }
 
 // returns plugin name
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Name() string {
 	return lp.Meta.Name
+}
+
+func (l *loadedPlugin) Key() string {
+	return fmt.Sprintf("%s:%d", l.Name(), l.Version())
 }
 
 // returns plugin version
@@ -172,10 +179,10 @@ func (lp *loadedPlugin) LoadedTimestamp() int64 {
 // the struct representing the object responsible for
 // loading and unloading plugins
 type pluginManager struct {
+	metricCatalog catalogsMetrics
 	loadedPlugins *loadedPlugins
-
-	privKey *rsa.PrivateKey
-	pubKey  *rsa.PublicKey
+	privKey       *rsa.PrivateKey
+	pubKey        *rsa.PublicKey
 }
 
 func newPluginManager() *pluginManager {
@@ -183,6 +190,10 @@ func newPluginManager() *pluginManager {
 		loadedPlugins: newLoadedPlugins(),
 	}
 	return p
+}
+
+func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
+	p.metricCatalog = mc
 }
 
 // Returns loaded plugins
@@ -198,7 +209,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p.generateArgs(), lPlugin.Path)
+	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(), lPlugin.Path)
 
 	if err != nil {
 		log.Println(err)
@@ -217,17 +228,28 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 		log.Println(err)
 		return nil, err
 	}
+
+	// Add config policy tree to loaded plugin
+	lPlugin.ConfigPolicyTree = &resp.ConfigPolicyTree
+
 	if resp.Type == plugin.CollectorPluginType {
 		ap, err := newAvailablePlugin(resp)
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
 		}
-		col := ap.Client.(plugin.CollectorPlugin)
-		args := new(plugin.GetMetricTypesArgs)
-		var reply *plugin.GetMetricTypesReply
-		//TODO update metric catalog with metric types below
-		_ = col.GetMetricTypes(*args, reply)
+		colClient := ap.Client.(client.PluginCollectorClient)
+		metricTypes, err := colClient.GetMetricTypes()
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		// Add metric types to metric catalog
+		//
+		// For each MT returned we pair the loaded plugin and call AddLoadedMetricType to add
+		for _, mt := range metricTypes {
+			p.metricCatalog.AddLoadedMetricType(lPlugin, mt)
+		}
 	}
 
 	err = ePlugin.Kill()
@@ -301,6 +323,6 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 	return nil
 }
 
-func (p *pluginManager) generateArgs() plugin.Arg {
-	return plugin.NewArg(p.pubKey, "/tmp/pulse-plugin.log")
+func (p *pluginManager) GenerateArgs() plugin.Arg {
+	return plugin.NewArg(p.pubKey, "/tmp/pulse-plugin-foo.log")
 }

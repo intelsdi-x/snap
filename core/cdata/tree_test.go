@@ -1,6 +1,7 @@
 package cdata
 
 import (
+	"encoding/gob"
 	"testing"
 
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -70,6 +71,34 @@ func TestConfigDataTree(t *testing.T) {
 				So(t["i"].(ctypes.ConfigValueInt).Value, ShouldEqual, 1)
 				So(t["f"].Type(), ShouldEqual, "float")
 				So(t["f"].(ctypes.ConfigValueFloat).Value, ShouldEqual, 2.3)
+
+				Convey("encode & decode", func() {
+					gob.Register(&ConfigDataNode{})
+					gob.Register(ctypes.ConfigValueStr{})
+					gob.Register(ctypes.ConfigValueInt{})
+					gob.Register(ctypes.ConfigValueFloat{})
+					buf, err := cdt.GobEncode()
+					So(err, ShouldBeNil)
+					So(buf, ShouldNotBeNil)
+					cdt2 := NewTree()
+					err = cdt2.GobDecode(buf)
+					So(err, ShouldBeNil)
+					So(cdt2.cTree, ShouldNotBeNil)
+
+					a2 := cdt2.Get([]string{"1", "2"})
+					So(a2, ShouldNotBeNil)
+
+					t2 := a2.Table()
+					So(t2["s"].Type(), ShouldEqual, "string")
+					So(t2["s"].(ctypes.ConfigValueStr).Value, ShouldEqual, "bar")
+					So(t2["x"].Type(), ShouldEqual, "string")
+					So(t2["x"].(ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
+					So(t2["i"].Type(), ShouldEqual, "integer")
+					So(t2["i"].(ctypes.ConfigValueInt).Value, ShouldEqual, 1)
+					So(t2["f"].Type(), ShouldEqual, "float")
+					So(t2["f"].(ctypes.ConfigValueFloat).Value, ShouldEqual, 2.3)
+
+				})
 			})
 
 		})

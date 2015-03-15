@@ -15,12 +15,12 @@ func main() {
 	//   the implementation satfiying plugin.CollectorPlugin
 	//   the collector configuration policy satifying plugin.ConfigRules
 
-	// Define default policy
-	policy := dummy.ConfigPolicy()
+	// Define default policy tree
+	policyTree := dummy.ConfigPolicyTree()
 
 	// Define metadata about Plugin
 	meta := dummy.Meta()
 
 	// Start a collector
-	plugin.Start(meta, new(dummy.Dummy), policy, os.Args[1])
+	plugin.Start(meta, new(dummy.Dummy), policyTree, os.Args[1])
 }

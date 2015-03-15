@@ -1,6 +1,7 @@
 package cpolicy
 
 import (
+	"encoding/gob"
 	"testing"
 
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -29,6 +30,25 @@ func TestConfigPolicyTree(t *testing.T) {
 				So(gc.rules["username"].Required(), ShouldEqual, false)
 				So(gc.rules["username"].Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "root")
 				So(gc.rules["password"].Required(), ShouldEqual, true)
+			})
+			Convey("encode & decode", func() {
+				gob.Register(NewPolicyNode())
+				gob.Register(&stringRule{})
+				buf, err := t.GobEncode()
+				So(err, ShouldBeNil)
+				So(buf, ShouldNotBeNil)
+				t2 := NewTree()
+				err = t2.GobDecode(buf)
+				So(err, ShouldBeNil)
+				So(t2.cTree, ShouldNotBeNil)
+				gc := t2.Get([]string{"one", "two", "potato"})
+				So(gc, ShouldNotBeNil)
+				So(gc.rules["username"], ShouldNotBeNil)
+				So(gc.rules["username"].Required(), ShouldEqual, false)
+				So(gc.rules["password"].Required(), ShouldEqual, true)
+				So(gc.rules["username"].Default(), ShouldNotBeNil)
+				So(gc.rules["password"].Default(), ShouldBeNil)
+				So(gc.rules["username"].Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "root")
 			})
 
 		})

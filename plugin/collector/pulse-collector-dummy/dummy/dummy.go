@@ -1,9 +1,8 @@
 package dummy
 
 import (
-	"time"
-
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 const (
@@ -16,22 +15,27 @@ const (
 type Dummy struct {
 }
 
-func (f *Dummy) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
-	return nil
+func (f *Dummy) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+	m := plugin.PluginMetric{Namespace_: []string{"intel", "dummy", "foo"}, Data_: 1}
+	ms := []plugin.PluginMetric{m}
+	return ms, nil
 }
 
-func (f *Dummy) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
-	reply.MetricTypes = []*plugin.MetricType{
-		plugin.NewMetricType([]string{"foo", "bar"}, time.Now().Unix()),
-	}
-	return nil
+func (f *Dummy) GetMetricTypes() ([]plugin.PluginMetricType, error) {
+	m1 := plugin.NewPluginMetricType([]string{"intel", "dummy", "foo"})
+	m2 := plugin.NewPluginMetricType([]string{"intel", "dummy", "bar"})
+	return []plugin.PluginMetricType{*m1, *m2}, nil
 }
 
 func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(Name, Version, Type)
 }
 
-func ConfigPolicy() *plugin.ConfigPolicy {
-	c := new(plugin.ConfigPolicy)
+func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
+	c := cpolicy.NewTree()
+	rule, _ := cpolicy.NewStringRule("name", false, "bob")
+	p := cpolicy.NewPolicyNode()
+	p.Add(rule)
+	c.Add([]string{"intel", "dummy"}, p)
 	return c
 }
