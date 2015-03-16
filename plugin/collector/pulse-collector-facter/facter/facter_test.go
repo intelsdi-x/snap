@@ -14,12 +14,12 @@ import (
 )
 
 // allows to use fake facter within tests
-func withFakeFacter(facter *Facter, output stringmap, f func()) func() {
+func withFakeFacter(facter *Facter, mockFacts facts, f func()) func() {
 
 	// getFactsMock
-	getFactsMock := func(keys []string, _ time.Duration, _ *cmdConfig) (*stringmap, *time.Time, error) {
+	getFactsMock := func(names []string, _ time.Duration, _ *cmdConfig) (*facts, *time.Time, error) {
 		now := time.Now()
-		return &output, &now, nil
+		return &mockFacts, &now, nil
 	}
 
 	return func() {
@@ -68,7 +68,7 @@ func TestCacheUpdate(t *testing.T) {
 
 		Convey("existing fresh key needn't be refreshed", func() {
 			// add fresh key
-			f.cache["foo"] = fact{value: 1, lastUpdate: time.Now()}
+			f.cache["foo"] = entry{value: 1, lastUpdate: time.Now()}
 
 			// find out what's need to be refreshed
 			namesToUpdate := f.getNamesToUpdate([]string{"foo"})
@@ -77,7 +77,7 @@ func TestCacheUpdate(t *testing.T) {
 
 		Convey("stale key need to be refreshed", func() {
 			// add stale key
-			f.cache["foo"] = fact{value: 1, lastUpdate: longAgo}
+			f.cache["foo"] = entry{value: 1, lastUpdate: longAgo}
 
 			// find out what's need to be refreshed
 			namesToUpdate := f.getNamesToUpdate([]string{"foo"})
@@ -91,7 +91,7 @@ func TestCacheUpdate(t *testing.T) {
 		f := NewFacter()
 
 		Convey("when not synchronized cache is empty and asked for existing fact",
-			withFakeFacter(f, stringmap{"foo": 1}, func() {
+			withFakeFacter(f, facts{"foo": 1}, func() {
 				// make sure it is empty
 				So(f.cache, ShouldBeEmpty)
 				err := f.synchronizeCache([]string{"foo"})
@@ -102,7 +102,7 @@ func TestCacheUpdate(t *testing.T) {
 			}))
 
 		Convey("cache value with faked facter for foo",
-			withFakeFacter(f, stringmap{"foo": 1}, func() {
+			withFakeFacter(f, facts{"foo": 1}, func() {
 				err := f.synchronizeCache([]string{"foo"})
 				So(err, ShouldBeNil)
 				fact, exists := f.cache["foo"]
@@ -110,7 +110,7 @@ func TestCacheUpdate(t *testing.T) {
 				So(fact.value, ShouldEqual, 1)
 
 				Convey("cache which not need to be resynchronized",
-					withFakeFacter(f, stringmap{"foo": 2}, func() {
+					withFakeFacter(f, facts{"foo": 2}, func() {
 						err := f.synchronizeCache([]string{"foo"})
 						So(err, ShouldBeNil)
 						fact, _ := f.cache["foo"]
@@ -118,7 +118,7 @@ func TestCacheUpdate(t *testing.T) {
 					}))
 
 				Convey("cache which needs to be resynchronized",
-					withFakeFacter(f, stringmap{"foo": 2}, func() {
+					withFakeFacter(f, facts{"foo": 2}, func() {
 
 						// invalidate value in cache by overriding lastUpdate field
 						fact := f.cache["foo"]
@@ -136,7 +136,7 @@ func TestCacheUpdate(t *testing.T) {
 
 		// what about that is having nil returned to pulse is good way to handle this ?
 		Convey("refresh for no available metric - stores nil in cache",
-			withFakeFacter(f, stringmap{}, func() {
+			withFakeFacter(f, facts{}, func() {
 				err := f.synchronizeCache([]string{"foo"})
 				So(err, ShouldBeNil)
 				fact, exists := f.cache["foo"]

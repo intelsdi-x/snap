@@ -1,5 +1,15 @@
-// This modules converts implements Pulse API to become an plugin.
-// Additionaly it caches all data to protect the system against overuse.
+/* This modules converts implements Pulse API to become an plugin.
+Additionaly it caches all data to protect the system against overuse.
+
+Iplementation details:
+legend:
+- metric - represents value of metric from Pulse side
+- name - is string identifier of metric from the Pulse side, so name points to metric
+- fact - representas a value about a system gathered from Facter
+- factName - is string identifier from the Facter side, factName points to fact
+
+*/
+
 package facter
 
 import (
@@ -51,7 +61,7 @@ type Facter struct {
 	metricTypesLastUpdate time.Time
 	metricTypesTTL        time.Duration
 
-	cache    map[string]fact
+	cache    map[string]entry
 	cacheTTL time.Duration
 
 	facterExecutionDeadline time.Duration
@@ -59,10 +69,10 @@ type Facter struct {
 	// injects implementation for getting facts - defaults to use getFacts from cmd.go
 	// but allows to replace with fake during tests
 	getFacts func(
-		keys []string,
+		names []string,
 		facterTimeout time.Duration,
 		cmdConfig *cmdConfig,
-	) (*stringmap, *time.Time, error)
+	) (*facts, *time.Time, error)
 }
 
 // NewFacter constructs new Facter with default values
@@ -70,7 +80,7 @@ func NewFacter() *Facter {
 	return &Facter{
 		metricTypesTTL: defaultMetricTypesTTL,
 		cacheTTL:       defaultCacheTTL,
-		cache:          map[string]fact{},
+		cache:          map[string]entry{},
 		facterExecutionDeadline: defaultFacterDeadline,
 		getFacts:                getFacts,
 	}
@@ -113,10 +123,10 @@ func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply
 	// waits for lynxbat/SDI-98
 
 	// TODO: INPUT: read CollectorArgs structure to extract requested metrics
-	requestedNames := []string{"kernel", "uptime"}
+	names := []string{"kernel", "uptime"}
 
 	// synchronize cache (stale of missing data) to have all we need
-	err := f.synchronizeCache(requestedNames)
+	err := f.synchronizeCache(names)
 	if err != nil {
 		return err
 	}
@@ -200,28 +210,22 @@ func (f *Facter) updateCache(names []string) error {
 	}
 
 	// if names was empty, we want update all facts
+	// so extract all fact names
 	if len(names) == 0 {
-		for factName, _ := range *facts {
-			names = append(names, factName)
+		for name, _ := range *facts {
+			names = append(names, name)
 		}
 	}
 
-	// merge cache with new facts
+	// update cache with new fact values
 	for _, name := range names {
-		// create fact if not exists yet
-		value := (*facts)[name]
-		if _, exists := f.cache[name]; !exists {
-			f.cache[name] = fact{
-				lastUpdate: *receviedAt,
-				value:      value,
-			}
-		} else {
-			// just update the value in cache
-			fact := f.cache[name]
-			fact.lastUpdate = *receviedAt
-			fact.value = value
-			f.cache[name] = fact // updating a field in non-addressable value in map golang defect #3117
-		}
+
+		// update unconditionally value in cache
+		entry := f.cache[name]
+		entry.lastUpdate = *receviedAt
+		entry.value = (*facts)[name] // extract raw fact value recived from Facter
+		f.cache[name] = entry
+
 	}
 	return nil
 }
@@ -260,7 +264,7 @@ func (f *Facter) prepareMetricTypes() {
  **********************/
 
 // helper type to deal with json values which additonly stores last update moment
-type fact struct {
+type entry struct {
 	value      interface{}
 	lastUpdate time.Time
 }
