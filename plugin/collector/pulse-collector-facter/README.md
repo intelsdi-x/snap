@@ -1,18 +1,10 @@
-## Pulse Fact Collector Plugin 
+## Pulse Collector Plugin Structure
+---
 
-Collect facts from Facter and convert them into Pulse metrics.
-
-Features:
-
-* robust
-* configurable
-* caching layer that protects system against overuse
-
-#### Entry point
+#### Plugin binary
 
 ./main.go
 
-facter package content:
+##### Collector Implementation
 
-* facter.go - implements Pulse plugin API (discover&collect) and caching
-* cmd.go - abstraction over external binary to collects fact from Facter 
+./collector/collector.go
