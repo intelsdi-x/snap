@@ -50,8 +50,9 @@ func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
 		Convey("starts successfully", func() {
 			c := New()
-			c.Start()
+			err := c.Start()
 			So(c.Started, ShouldBeTrue)
+			So(err, ShouldBeNil)
 		})
 	})
 }

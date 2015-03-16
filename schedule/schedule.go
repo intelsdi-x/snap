@@ -125,6 +125,15 @@ func (s *scheduler) Start() error {
 	return nil
 }
 
+func (s *scheduler) Stop() {
+	s.state = SchedulerStopped
+}
+
+// Set metricManager for scheduler
+func (s *scheduler) SetMetricManager(mm managesMetric) {
+	s.metricManager = mm
+}
+
 // New returns an instance of the schduler
 // The MetricManager must be set before the scheduler can be started.
 // The MetricManager must be started before it can be used.

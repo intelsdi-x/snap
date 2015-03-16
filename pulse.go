@@ -1,69 +1,123 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
-	"path"
-	"path/filepath"
-	"time"
+	"os/signal"
+	"runtime"
+	"syscall"
 
 	"github.com/intelsdilabs/pulse/control"
+	"github.com/intelsdilabs/pulse/schedule"
 )
 
 var (
-	// PulsePath is the local file path to a pulse build
-	PulsePath = os.Getenv("PULSE_PATH")
-	// CollectorPath is the path to collector plugins within a pulse build
-	CollectorPath = path.Join(PulsePath, "plugin", "collector")
+	// Pulse Flags for command line
+	version  = flag.Bool("version", false, "Print Pulse version")
+	maxProcs = flag.Int("max_procs", 0, "Set max cores to use for Pulse Agent. Default is 1 core.")
+
+	gitversion string
 )
 
-func checkError(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
+const (
+	defaultQueueSize int = 25
+	defaultPoolSize  int = 4
+)
 
-func isExecutable(p os.FileMode) bool {
-	return (p & 0111) != 0
+type coreModule interface {
+	Start() error
+	Stop()
 }
 
 func main() {
-	if PulsePath == "" {
-		log.Fatalln("PULSE_PATH not set")
-		os.Exit(1)
+	flag.Parse()
+	if *version {
+		fmt.Println("Pulse version:", gitversion)
+		os.Exit(0)
 	}
+	// Set Max Processors for the Pulse agent.
+	setMaxProcs()
 
-	log.Println("Startup")
-	// TODO ERROR missing PULSE_PATH
-	// fmt.Println(PulsePath)
+	c := control.New()
+	s := schedule.New(defaultPoolSize, defaultQueueSize)
+	s.SetMetricManager(c)
 
-	pluginControl := control.New()
-	pluginControl.Start()
-	defer pluginControl.Stop()
+	// Set interrupt handling so we can die gracefully.
+	startInterruptHandling(c, s)
 
-	// fmt.Println(pluginControl)
-	// fmt.Println(CollectorPath)
-
-	m, err := filepath.Glob(CollectorPath + "/pulse-collector-*")
-	checkError(err)
-	for _, d := range m {
-		f, err := os.Stat(d)
-		checkError(err)
-		// Ignore directories
-		if f.Mode().IsDir() {
-			continue
+	//  Start our modules
+	if err := startModule("Plugin Controller", c); err != nil {
+		printErrorAndExit("Plugin Controller", err)
+	}
+	if err := startModule("Scheduler", s); err != nil {
+		if c.Started {
+			c.Stop()
 		}
-		// Ignore file without executable permission
-		if !isExecutable(f.Mode().Perm()) {
-			log.Printf("The plugin [%s] is not executable\n", d)
-			continue
+		printErrorAndExit("Scheduler", err)
+	}
+
+	select {} //run forever and ever
+}
+
+func setMaxProcs() {
+	var _maxProcs int
+	envGoMaxProcs := runtime.GOMAXPROCS(-1)
+	numProcs := runtime.NumCPU()
+	if *maxProcs == 0 && envGoMaxProcs <= numProcs {
+		// By default if max_procs is not set, we set _maxProcs to the ENV variable GOMAXPROCS on the system. If this variable is not set by the user or is a negative number, runtime.GOMAXPROCS(-1) returns 1
+		_maxProcs = envGoMaxProcs
+	} else if envGoMaxProcs > numProcs {
+		// We do not allow the user to exceed the number of cores in the system.
+		log.Printf("WARNING: ENV variable GOMAXPROCS greater than number of cores in the system. Setting Pulse to use the number of cores in the system.")
+		_maxProcs = numProcs
+	} else if *maxProcs > 0 && *maxProcs <= numProcs {
+		// Our flag override is set. Use this value
+		_maxProcs = *maxProcs
+	} else if *maxProcs > numProcs {
+		// Do not let the user set a value larger than number of cores in the system
+		log.Printf("WARNING: Flag max_procs exceeds number of cores in the system. Setting Pulse to use the number of cores in the system")
+		_maxProcs = numProcs
+	} else if *maxProcs < 0 {
+		// Do not let the user set a negative value to get around number of cores limit
+		log.Printf("WARNING: Flag max_procs set to negative number. Setting Pulse to use 1 core.")
+		_maxProcs = 1
+	}
+
+	log.Printf("Setting GOMAXPROCS to %v\n", _maxProcs)
+	runtime.GOMAXPROCS(_maxProcs)
+
+	//Verify setting worked
+	actualNumProcs := runtime.GOMAXPROCS(0)
+	if actualNumProcs != _maxProcs {
+		log.Printf("WARNING: Specified max procs of %v but using %v", _maxProcs, actualNumProcs)
+	}
+}
+
+func startModule(name string, m coreModule) error {
+	log.Printf("Starting Pulse Agent %s module", name)
+	return m.Start()
+}
+
+func printErrorAndExit(name string, err error) {
+	log.Println("ERROR:", err)
+	log.Printf("ERROR: Error starting Pulse Agent %s module. Exiting now.", name)
+	os.Exit(1)
+}
+
+func startInterruptHandling(modules ...coreModule) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
+
+	//Let's block until someone tells us to quit
+	go func() {
+		sig := <-c
+		log.Println("Stopping Pulse Agent modules")
+		for _, m := range modules {
+			m.Stop()
 		}
-		pluginControl.Load(d)
-	}
-
-	for {
-		time.Sleep(time.Second * 1)
-	}
-	// err := pluginControl.Load(collectorPath)
-
+		log.Printf("Exiting given signal: %v", sig)
+		os.Exit(0)
+	}()
 }

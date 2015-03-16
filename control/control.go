@@ -86,7 +86,7 @@ func New() *pluginControl {
 }
 
 // Begin handling load, unload, and inventory
-func (p *pluginControl) Start() {
+func (p *pluginControl) Start() error {
 	// begin controlling
 
 	// Start load handler. We only start one to keep load requests handled in
@@ -95,6 +95,7 @@ func (p *pluginControl) Start() {
 
 	// Start pluginManager when pluginControl starts
 	p.Started = true
+	return nil
 }
 
 func (p *pluginControl) Stop() {
