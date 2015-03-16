@@ -20,7 +20,7 @@ const (
 type job interface {
 	Errors() []error
 	StartTime() time.Time
-	Deadline() time.Duration
+	Deadline() time.Time
 	Type() jobType
 	ReplChan() chan struct{}
 	Run()
@@ -36,7 +36,7 @@ type collectJob interface {
 
 type collectorJob struct {
 	jtype       jobType
-	deadline    time.Duration
+	deadline    time.Time
 	starttime   time.Time
 	errors      []error
 	metrics     []core.Metric
@@ -44,10 +44,10 @@ type collectorJob struct {
 	replchan    chan struct{}
 }
 
-func newCollectorJob(metricTypes []core.MetricType) *collectorJob {
+func newCollectorJob(metricTypes []core.MetricType, deadlineDuration time.Duration) *collectorJob {
 	return &collectorJob{
 		jtype:       collectJobType,
-		deadline:    defaultDeadline,
+		deadline:    time.Now().Add(deadlineDuration),
 		metricTypes: metricTypes,
 		metrics:     []core.Metric{},
 		errors:      make([]error, 0),
@@ -60,7 +60,7 @@ func (c *collectorJob) StartTime() time.Time {
 	return c.starttime
 }
 
-func (c *collectorJob) Deadline() time.Duration {
+func (c *collectorJob) Deadline() time.Time {
 	return c.deadline
 }
 

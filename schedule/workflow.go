@@ -1,6 +1,10 @@
 package schedule
 
-import "github.com/intelsdilabs/pulse/core"
+import (
+	"time"
+
+	"github.com/intelsdilabs/pulse/core"
+)
 
 type workflowState int
 
@@ -35,7 +39,7 @@ func (w *workflow) State() workflowState {
 // Start starts a workflow
 func (w *workflow) Start(task *Task) {
 	w.state = WorkflowStarted
-	j := w.rootStep.CreateJob(task.metricTypes)
+	j := w.rootStep.CreateJob(task.metricTypes, task.deadlineDuration)
 
 	// dispatch 'collect' job to be worked
 	j = task.manager.Work(j)
@@ -46,13 +50,13 @@ func (w *workflow) Start(task *Task) {
 	}
 }
 
-func (w *workflow) processStep(step Step, j job, manager managesWork) {
+func (w *workflow) processStep(step Step, j job, m managesWork) {
 	//do work for current step
 	j = step.CreateJob(j)
-	j = manager.Work(j)
+	j = m.Work(j)
 	//do work for child steps
 	for _, step := range step.Steps() {
-		w.processStep(step, j, manager)
+		w.processStep(step, j, m)
 	}
 }
 
@@ -106,6 +110,6 @@ type collectorStep struct {
 	step
 }
 
-func (c *collectorStep) CreateJob(metricTypes []core.MetricType) job {
-	return newCollectorJob(metricTypes)
+func (c *collectorStep) CreateJob(metricTypes []core.MetricType, deadlineDuration time.Duration) job {
+	return newCollectorJob(metricTypes, deadlineDuration)
 }
