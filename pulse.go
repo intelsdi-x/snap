@@ -15,8 +15,8 @@ import (
 
 var (
 	// Pulse Flags for command line
-	version  = flag.Bool("version", false, "print Pulse version")
-	maxProcs = flag.Int("max_procs", 1, "max number of CPUs that can be used simultaneously. Default is use all cores.")
+	version  = flag.Bool("version", false, "Print Pulse version")
+	maxProcs = flag.Int("max_procs", 0, "Set max cores to use for Pulse Agent. Default is 1 core.")
 
 	gitversion string
 )
@@ -75,6 +75,7 @@ func setMaxProcs() {
 	} else {
 		_maxProcs = *maxProcs
 	}
+
 	log.Printf("Setting GOMAXPROCS to %v\n", _maxProcs)
 	runtime.GOMAXPROCS(_maxProcs)
 
