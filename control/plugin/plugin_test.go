@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -21,16 +23,17 @@ func TestPluginType(t *testing.T) {
 
 func TestMetricType(t *testing.T) {
 	Convey("MetricType", t, func() {
-		now := time.Now().Unix()
-		m := NewMetricType([]string{"foo", "bar"}, now)
+		now := time.Now()
+		m := NewPluginMetricType([]string{"foo", "bar"})
 		Convey("New", func() {
-			So(m, ShouldHaveSameTypeAs, &MetricType{})
+			So(m, ShouldHaveSameTypeAs, &PluginMetricType{})
 		})
 		Convey("Get Namespace", func() {
 			So(m.Namespace(), ShouldResemble, []string{"foo", "bar"})
 		})
 		Convey("Get LastAdvertisedTimestamp", func() {
-			So(m.LastAdvertisedTimestamp(), ShouldEqual, now)
+			So(m.LastAdvertisedTime().Unix(), ShouldBeGreaterThan, now.Unix()-2)
+			So(m.LastAdvertisedTime().Unix(), ShouldBeLessThan, now.Unix()+2)
 		})
 	})
 }
@@ -112,17 +115,17 @@ func TestArg(t *testing.T) {
 func TestPlugin(t *testing.T) {
 	Convey("Start", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
-		mockConfigPolicy := new(ConfigPolicy)
+		mockConfigPolicyTree := cpolicy.NewTree()
 		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
-		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicy, mockPluginArgs)
+		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicyTree, mockPluginArgs)
 		So(err, ShouldBeNil)
 		So(rc, ShouldEqual, 0)
 	})
 	Convey("Start with invalid args", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
-		mockConfigPolicy := new(ConfigPolicy)
+		mockConfigPolicyTree := cpolicy.NewTree()
 		var mockPluginArgs string = ""
-		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicy, mockPluginArgs)
+		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicyTree, mockPluginArgs)
 		So(err, ShouldNotBeNil)
 		So(rc, ShouldNotEqual, 0)
 	})

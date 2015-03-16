@@ -48,6 +48,10 @@ func (s *MockSessionState) Token() string {
 	return s.token
 }
 
+func (m *MockSessionState) ResetHeartbeat() {
+
+}
+
 func (s *MockSessionState) KillChan() chan int {
 	return s.killChan
 }
@@ -66,19 +70,17 @@ func (s *MockSessionState) heartbeatWatch(killChan chan int) {
 }
 
 type MockPlugin struct {
-	Meta   PluginMeta
-	Policy ConfigPolicy
+	Meta PluginMeta
 }
 
-func (f *MockPlugin) Collect(args CollectorArgs, reply *CollectorReply) error {
-	return nil
+func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetric, error) {
+	return []PluginMetric{}, nil
 }
 
-func (c *MockPlugin) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTypesReply) error {
-	reply.MetricTypes = []*MetricType{
-		NewMetricType([]string{"org", "some_metric"}, time.Now().Unix()),
-	}
-	return nil
+func (c *MockPlugin) GetMetricTypes() ([]PluginMetricType, error) {
+	return []PluginMetricType{
+		*NewPluginMetricType([]string{"org", "some_metric"}),
+	}, nil
 }
 
 func TestStartCollector(t *testing.T) {

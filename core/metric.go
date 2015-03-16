@@ -1,11 +1,15 @@
 package core
 
-import "github.com/intelsdilabs/pulse/core/cdata"
+import (
+	"time"
+
+	"github.com/intelsdilabs/pulse/core/cdata"
+)
 
 type MetricType interface {
 	Version() int
 	Namespace() []string
-	LastAdvertisedTimestamp() int64
+	LastAdvertisedTime() time.Time
 	Config() *cdata.ConfigDataNode
 }
 

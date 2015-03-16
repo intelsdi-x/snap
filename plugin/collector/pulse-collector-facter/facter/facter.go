@@ -2,6 +2,7 @@ package facter
 
 import (
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 const (
@@ -13,20 +14,22 @@ const (
 type Facter struct {
 }
 
-func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
-	//reply *[]*plugin.MetricType
-	return nil
+func (f *Facter) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+	m := plugin.PluginMetric{Namespace_: []string{"intel", "facter", "foo"}, Data_: 1}
+	ms := []plugin.PluginMetric{m}
+	return ms, nil
 }
 
-func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
-	return nil
+func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
+	m := plugin.NewPluginMetricType([]string{"intel", "facter", "foo"})
+	return []plugin.PluginMetricType{*m}, nil
 }
 
 func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(Name, Version, Type)
 }
 
-func ConfigPolicy() *plugin.ConfigPolicy {
-	c := new(plugin.ConfigPolicy)
+func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
+	c := cpolicy.NewTree()
 	return c
 }

@@ -1,6 +1,9 @@
 package cpolicy
 
 import (
+	"bytes"
+	"encoding/gob"
+
 	"github.com/intelsdilabs/pulse/pkg/ctree"
 )
 
@@ -15,6 +18,22 @@ func NewTree() *ConfigPolicyTree {
 	return &ConfigPolicyTree{
 		cTree: ctree.New(),
 	}
+}
+
+func (c *ConfigPolicyTree) GobEncode() ([]byte, error) {
+	//todo throw an error if not frozen
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	if err := encoder.Encode(c.cTree); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+func (c *ConfigPolicyTree) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+	return decoder.Decode(&c.cTree)
 }
 
 // Adds a ConfigDataNode at the provided namespace.

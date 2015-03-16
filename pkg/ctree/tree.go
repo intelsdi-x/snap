@@ -2,6 +2,7 @@ package ctree
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"sync"
@@ -26,6 +27,28 @@ func (c *ConfigTree) log(s string) {
 	if c.Debug {
 		log.Print(s)
 	}
+}
+
+func (c *ConfigTree) GobEncode() ([]byte, error) {
+	//todo throw an error if not frozen
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	if err := encoder.Encode(c.root); err != nil {
+		return nil, err
+	}
+	if err := encoder.Encode(c.freezeFlag); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+func (c *ConfigTree) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+	if err := decoder.Decode(&c.root); err != nil {
+		return err
+	}
+	return decoder.Decode(&c.freezeFlag)
 }
 
 func (c *ConfigTree) Add(ns []string, inNode Node) {
@@ -140,6 +163,39 @@ type node struct {
 	keys      []string
 	keysBytes []byte
 	Node      Node
+}
+
+func (n *node) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	if err := encoder.Encode(n.nodes); err != nil {
+		return nil, err
+	}
+	if err := encoder.Encode(n.keys); err != nil {
+		return nil, err
+	}
+	if err := encoder.Encode(n.keysBytes); err != nil {
+		return nil, err
+	}
+	if err := encoder.Encode(&n.Node); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+func (n *node) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+	if err := decoder.Decode(&n.nodes); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&n.keys); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&n.keysBytes); err != nil {
+		return err
+	}
+	return decoder.Decode(&n.Node)
 }
 
 func (n *node) setKeys(k []string) {
