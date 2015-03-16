@@ -33,7 +33,7 @@ type availablePlugin struct {
 
 	hitCount           int
 	lastHitTime        time.Time
-	eventManager       *gomit.EventController
+	eventManager       gomit.Emitter // ap needs a way to emits signals about state of plugin (health checks,
 	failedHealthChecks int
 	healthChan         chan error
 }
