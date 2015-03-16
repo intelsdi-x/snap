@@ -22,6 +22,7 @@ type cmdConfig struct {
 	executable string
 	// default options passed to facter to get json output
 	// overriden during tests to get non parseable output
+	// by options I mean flags as -h -v or --json (not positional arguments like foo bar)
 	options []string
 }
 

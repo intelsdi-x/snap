@@ -1,12 +1,11 @@
 /* This modules converts implements Pulse API to become an plugin.
-Additionaly it caches all data to protect the system against overuse.
+Additionally it caches all data to protect the system against overuse.
 
-Iplementation details:
+Implementation details:
 legend:
 - metric - represents value of metric from Pulse side
-- name - is string identifier of metric from the Pulse side, so name points to metric
-- fact - representas a value about a system gathered from Facter
-- factName - is string identifier from the Facter side, factName points to fact
+- fact - represents a value about a system gathered from Facter
+- name - is string identifier that refers to metric from the Pulse side, so name points to metric
 
 */
 
@@ -25,7 +24,7 @@ const (
 	prefix = "facter"
 	// how long we are caching the date from external binary to prevent overuse of resources
 	defaultCacheTTL = 60 * time.Second
-	// how long are we going to cacha avaiable types of metrics
+	// how long are we going to cache available types of metrics
 	defaultMetricTypesTTL = defaultCacheTTL
 	// deadline a.k.a. timeout we are ready to wait for external binary to gather the data
 	defaultFacterDeadline = 5 * time.Second
@@ -117,7 +116,7 @@ func (f *Facter) GetMetricTypes(_ plugin.GetMetricTypesArgs, reply *plugin.GetMe
 }
 
 // Collect collects metrics from external binary a returns them in form
-// acceptble by Pulse
+// acceptable by Pulse
 func (f *Facter) Collect(args plugin.CollectorArgs, reply *plugin.CollectorReply) error {
 	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
 	// waits for lynxbat/SDI-98
@@ -223,7 +222,7 @@ func (f *Facter) updateCache(names []string) error {
 		// update unconditionally value in cache
 		entry := f.cache[name]
 		entry.lastUpdate = *receviedAt
-		entry.value = (*facts)[name] // extract raw fact value recived from Facter
+		entry.value = (*facts)[name] // extract raw fact value received from Facter
 		f.cache[name] = entry
 
 	}
@@ -241,7 +240,7 @@ func (f *Facter) prepareMetricTypes() {
 	// new temporary collection
 	metricTypes := make([]*plugin.MetricType, 0, len(f.cache))
 
-	// rewrite values from cache to another colllection accetable by pulse
+	// rewrite values from cache to another collection acceptable by Pulse
 	for factName, value := range f.cache {
 		metricTypes = append(metricTypes,
 			plugin.NewMetricType(
@@ -255,7 +254,7 @@ func (f *Facter) prepareMetricTypes() {
 	f.metricTypes = metricTypes
 
 	// remember the last the metricTypes was filled
-	// to be confrontend with f.metricTypesTTL
+	// to be confronted with f.metricTypesTTL
 	f.metricTypesLastUpdate = time.Now()
 }
 
@@ -263,7 +262,7 @@ func (f *Facter) prepareMetricTypes() {
  *  helper fact type  *
  **********************/
 
-// helper type to deal with json values which additonly stores last update moment
+// helper type to deal with json values which additionally stores last update moment
 type entry struct {
 	value      interface{}
 	lastUpdate time.Time
