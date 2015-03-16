@@ -63,17 +63,26 @@ func main() {
 
 func setMaxProcs() {
 	var _maxProcs int
+	envGoMaxProcs := runtime.GOMAXPROCS(-1)
 	numProcs := runtime.NumCPU()
-	if *maxProcs <= 0 {
-		if *maxProcs < 0 {
-			log.Println("WARNING: max_procs set to less than zero. Setting GOMAXPROCS to default of 1")
-		}
-		_maxProcs = 1
-	} else if *maxProcs > numProcs {
-		log.Printf("WARNING: Not allowed to set GOMAXPROCS above number of processors in system. Setting GOMAXPROCS to %v", numProcs)
+	if *maxProcs == 0 && envGoMaxProcs <= numProcs {
+		// By default if max_procs is not set, we set _maxProcs to the ENV variable GOMAXPROCS on the system. If this variable is not set by the user or is a negative number, runtime.GOMAXPROCS(-1) returns 1
+		_maxProcs = envGoMaxProcs
+	} else if envGoMaxProcs > numProcs {
+		// We do not allow the user to exceed the number of cores in the system.
+		log.Printf("WARNING: ENV variable GOMAXPROCS greater than number of cores in the system. Setting Pulse to use the number of cores in the system.")
 		_maxProcs = numProcs
-	} else {
+	} else if *maxProcs > 0 && *maxProcs <= numProcs {
+		// Our flag override is set. Use this value
 		_maxProcs = *maxProcs
+	} else if *maxProcs > numProcs {
+		// Do not let the user set a value larger than number of cores in the system
+		log.Printf("WARNING: Flag max_procs exceeds number of cores in the system. Setting Pulse to use the number of cores in the system")
+		_maxProcs = numProcs
+	} else if *maxProcs < 0 {
+		// Do not let the user set a negative value to get around number of cores limit
+		log.Printf("WARNING: Flag max_procs set to negative number. Setting Pulse to use 1 core.")
+		_maxProcs = 1
 	}
 
 	log.Printf("Setting GOMAXPROCS to %v\n", _maxProcs)
