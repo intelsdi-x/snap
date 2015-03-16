@@ -33,10 +33,10 @@ func getContainerInfo(containerPath string) (*libcontainer.Config, *libcontainer
 	return config, state, stats, nil
 }
 
-func getState(state_config string) (*libcontainer.State, error) {
-	f, err := os.Open(state_config)
+func getState(stateConfig string) (*libcontainer.State, error) {
+	f, err := os.Open(stateConfig)
 	if err != nil {
-		log.Printf("failed to open %s - %s\n", state_config, err)
+		log.Printf("failed to open %s - %s\n", stateConfig, err)
 		return nil, err
 	}
 	defer f.Close()
@@ -47,10 +47,10 @@ func getState(state_config string) (*libcontainer.State, error) {
 	return retstate, nil
 }
 
-func getConfig(container_config string) (*libcontainer.Config, error) {
-	f, err := os.Open(container_config)
+func getConfig(containerConfig string) (*libcontainer.Config, error) {
+	f, err := os.Open(containerConfig)
 	if err != nil {
-		log.Printf("failed to open %s - %s\n", container_config, err)
+		log.Printf("failed to open %s - %s\n", containerConfig, err)
 		return nil, err
 	}
 	defer f.Close()
