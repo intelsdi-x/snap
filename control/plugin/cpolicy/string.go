@@ -1,6 +1,9 @@
 package cpolicy
 
 import (
+	"bytes"
+	"encoding/gob"
+
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
@@ -28,6 +31,43 @@ func NewStringRule(key string, req bool, opts ...string) (*stringRule, error) {
 		required: req,
 		default_: def,
 	}, nil
+}
+
+func (s *stringRule) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	if err := encoder.Encode(s.key); err != nil {
+		return nil, err
+	}
+	if err := encoder.Encode(s.required); err != nil {
+		return nil, err
+	}
+	if s.default_ == nil {
+		encoder.Encode(false)
+	} else {
+		encoder.Encode(true)
+		if err := encoder.Encode(&s.default_); err != nil {
+			return nil, err
+		}
+	}
+	return w.Bytes(), nil
+}
+
+func (s *stringRule) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+	if err := decoder.Decode(&s.key); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&s.required); err != nil {
+		return err
+	}
+	var is_default_set bool
+	decoder.Decode(&is_default_set)
+	if is_default_set {
+		return decoder.Decode(&s.default_)
+	}
+	return nil
 }
 
 // Returns the key

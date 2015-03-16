@@ -1,6 +1,9 @@
 package cdata
 
 import (
+	"bytes"
+	"encoding/gob"
+
 	"github.com/intelsdilabs/pulse/pkg/ctree"
 )
 
@@ -15,6 +18,21 @@ func NewTree() *ConfigDataTree {
 	return &ConfigDataTree{
 		cTree: ctree.New(),
 	}
+}
+
+func (c *ConfigDataTree) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	if err := encoder.Encode(c.cTree); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+func (c *ConfigDataTree) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+	return decoder.Decode(&c.cTree)
 }
 
 // Adds a ConfigDataNode at the provided namespace.

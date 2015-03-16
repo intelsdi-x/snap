@@ -1,6 +1,8 @@
 package cdata
 
 import (
+	"bytes"
+	"encoding/gob"
 	"sync"
 
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -11,6 +13,22 @@ import (
 type ConfigDataNode struct {
 	mutex *sync.Mutex
 	table map[string]ctypes.ConfigValue
+}
+
+func (c *ConfigDataNode) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	if err := encoder.Encode(&c.table); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+func (c *ConfigDataNode) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	c.mutex = new(sync.Mutex)
+	decoder := gob.NewDecoder(r)
+	return decoder.Decode(&c.table)
 }
 
 // Returns a new and empty node.

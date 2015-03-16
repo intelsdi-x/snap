@@ -1,6 +1,8 @@
 package ctree
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"testing"
 
@@ -14,6 +16,27 @@ type dummyNode struct {
 func (d dummyNode) Merge(dn Node) Node {
 	d.data = fmt.Sprintf("%s/%s", d.data, dn.(*dummyNode).data)
 	return d
+}
+
+func (n *dummyNode) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+
+	if err := encoder.Encode(n.data); err != nil {
+		return nil, err
+	}
+
+	return w.Bytes(), nil
+}
+
+func (n *dummyNode) GobDecode(buf []byte) error {
+	if len(buf) == 0 {
+		//there is nothing to do
+		return nil
+	}
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+	return decoder.Decode(&n.data)
 }
 
 func newDummyNode() *dummyNode {
@@ -55,6 +78,21 @@ func TestConfigTree(t *testing.T) {
 			g := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 			So(g, ShouldNotBeNil)
 			So(g.(dummyNode).data, ShouldResemble, "b/a")
+
+			Convey("GobEncode/GobDecode", func() {
+				gob.Register(&dummyNode{})
+				buf, err := c.GobEncode()
+				So(err, ShouldBeNil)
+				So(buf, ShouldNotBeNil)
+				c2 := New()
+				err = c2.GobDecode(buf)
+				So(err, ShouldBeNil)
+				So(c2.root, ShouldNotBeNil)
+				So(c2.root.keys, ShouldNotBeEmpty)
+				g2 := c2.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
+				So(g2, ShouldNotBeNil)
+				So(g2.(dummyNode).data, ShouldResemble, "b/a")
+			})
 		})
 
 		Convey("single item ns", func() {
