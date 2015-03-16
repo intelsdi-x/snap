@@ -21,5 +21,5 @@ func main() {
 
 	// Start a collector
 	//plugin.StartCollector(meta, new(facter.Facter), policy, os.Args[0], os.Args[1])
-	plugin.Start(meta, new(lcplugin.Libcontainer), policy, os.Args[1])
+	plugin.Start(meta, lcplugin.NewLibCntr(), policy, os.Args[1])
 }

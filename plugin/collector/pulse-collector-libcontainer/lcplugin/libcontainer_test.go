@@ -13,7 +13,7 @@ func TestGetMetrics(t *testing.T) {
 	//TODO unskip when fixtures are tarballed
 	SkipConvey("Libcontainer cache s", t, func() {
 
-		lc := newLibCntr()
+		lc := NewLibCntr()
 
 		Convey("empty for start", func() {
 			So(lc.cache, ShouldBeEmpty)

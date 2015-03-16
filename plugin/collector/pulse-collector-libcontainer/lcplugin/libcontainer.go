@@ -81,6 +81,16 @@ func (l *libcntr) Collect(args plugin.CollectorArgs, reply *plugin.CollectorRepl
 	return nil
 }
 
+func NewLibCntr() *libcntr {
+	l := new(libcntr)
+	//TODO read from config
+	l.dockerFolder = defaultDockerFolder
+	l.cacheTTL = defaultCacheTTL
+	//	l.cache = make(map[string]metric)
+	l.lcExecDeadline = defautlLibcontainerDeadline
+	return l
+}
+
 /****************/
 /* Private part */
 /****************/
@@ -127,16 +137,6 @@ type libcntr struct {
 
 	dockerFolder   string
 	lcExecDeadline time.Duration // libcontainer execution deadline
-}
-
-func newLibCntr() *libcntr {
-	l := new(libcntr)
-	//TODO read from config
-	l.dockerFolder = defaultDockerFolder
-	l.cacheTTL = defaultCacheTTL
-	//	l.cache = make(map[string]metric)
-	l.lcExecDeadline = defautlLibcontainerDeadline
-	return l
 }
 
 //TODO merge with Nick's metric (type)
