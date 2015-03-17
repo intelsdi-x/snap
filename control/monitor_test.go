@@ -32,7 +32,7 @@ func TestMonitor(t *testing.T) {
 			Client:     new(MockUnhealthyPluginCollectorClient),
 			healthChan: make(chan error, 1),
 
-			eventManager: gomit.NewEventController(),
+			Emitter: gomit.NewEventController(),
 		}
 		ap1.makeKey()
 		aps.Insert(ap1)
@@ -43,7 +43,7 @@ func TestMonitor(t *testing.T) {
 			Name:    "test",
 			Client:  &mockPluginClient{},
 
-			eventManager: &gomit.EventController{},
+			Emitter: &gomit.EventController{},
 		}
 		ap2.makeKey()
 		aps.Insert(ap2)
@@ -54,7 +54,7 @@ func TestMonitor(t *testing.T) {
 			Name:    "test",
 			Client:  &mockPluginClient{},
 
-			eventManager: &gomit.EventController{},
+			Emitter: &gomit.EventController{},
 		}
 		ap3.makeKey()
 		aps.Insert(ap3)
