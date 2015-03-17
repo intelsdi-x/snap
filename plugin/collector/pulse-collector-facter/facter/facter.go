@@ -13,6 +13,7 @@ package facter
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -51,7 +52,7 @@ func Meta() *plugin.PluginMeta {
 // Facter implements API to communicate with Pulse
 type Facter struct {
 	// available metrics that can me returned
-	metricTypes           []*plugin.MetricType
+	metricTypes           []plugin.PluginMetricType
 	metricTypesLastUpdate time.Time
 	metricTypesTTL        time.Duration
 
@@ -94,7 +95,7 @@ func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 		err := f.updateCacheAll() // fills internal f.fcache
 		if err != nil {
 			log.Println("Facter: synchronizeCache returned error: " + err.Error())
-			return err
+			return nil, err
 		}
 
 		// fill f.metricTypes based on f.cache
@@ -102,153 +103,69 @@ func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 
 	}
 	// return metricTypes prepared earlier
-	reply.MetricTypes = f.metricTypes
-
-	m := plugin.NewPluginMetricType([]string{"intel", "facter", "foo"})
-	return []plugin.PluginMetricType{*m}, nil
+	metricTypes := []plugin.PluginMetricType{}
+	for _, metricType := range f.metricTypes {
+		metricTypes = append(metricTypes, metricType)
+	}
+	return metricTypes, nil
 }
 
 // Collect collects metrics from external binary a returns them in form
 // acceptable by Pulse
-func (f *Facter) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
-	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
-	// waits for lynxbat/SDI-98
+func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
 
-	// TODO: INPUT: read CollectorArgs structure to extract requested metrics
-	names := []string{"kernel", "uptime"}
+	// parse input
+
+	// requested names
+	names := []string{}
+	for _, metricType := range metricTypes {
+		namespace := metricType.Namespace()
+		// check namespace intel(vendor)/facter(prefix)/FACTNAME
+		if len(namespace) != 3 {
+			return nil, errors.New(fmt.Sprintf("unknown metricType %s (should containt just 3 segments)", namespace))
+		}
+		if namespace[0] != vendor {
+			return nil, errors.New(fmt.Sprintf("unknown metricType %s (expected vendor %s)", namespace, vendor))
+		}
+
+		if namespace[1] != prefix {
+			return nil, errors.New(fmt.Sprintf("unknown metricType %s (expected prefix %s)", namespace, prefix))
+		}
+
+		// name of fact - last part of namespace
+		name := namespace[2]
+		names = append(names, name)
+	}
 
 	// synchronize cache (stale of missing data) to have all we need
 	err := f.synchronizeCache(names)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// TODO: OUTPUT: fulfill reply structure with requested metrics
-	// for _, name := range requestedNames {
-	// 	// convert it some how to required format
-	// 	reply.metrics[name] = f.cache[name].value
-	// }
+	// read data from cache and preapre PluginMetric slice
+	ms := []plugin.PluginMetric{}
+	for _, name := range names {
+		fact := f.cache[name]
+		metric := plugin.NewPluginMetric(namespace(name), fact.value)
+		ms = append(ms, *metric)
+	}
 
-	m := plugin.PluginMetric{Namespace_: []string{"intel", "facter", "foo"}, Data_: 1}
-	ms := []plugin.PluginMetric{m}
 	return ms, nil
 }
 
-// required by PulseAPI
-func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
-	c := cpolicy.NewTree()
-	return c
-}
-
-// internals (cache management)
-// ------------------------------------
-
-// getNamesToUpdate compares given fact names with cache state
-// and prepare a list of stale or non-existing ones
-// returns the names of metrics that should have to be updated
-func (f *Facter) getNamesToUpdate(names []string) []string {
-
-	now := time.Now()
-
-	// check every cache entry is ok (stale/exists?)
-	namesToUpdate := []string{}
-	for _, name := range names {
-
-		fact, exists := f.cache[name]
-
-		// assume it is stale
-		// stale also stays true for not existin ones
-		stale := true
-		if exists {
-			stale = now.Sub(fact.lastUpdate) > f.cacheTTL
-		}
-		if stale {
-			namesToUpdate = append(namesToUpdate, name)
-		}
-	}
-	return namesToUpdate
-}
-
-// synchronizeCache is responsible for updating metrics in cache (conditionally)
-// only if there is a need for that
-// names is slice with list of metrics to synchronize
-// names cannot be empty
-func (f *Facter) synchronizeCache(names []string) error {
-
-	// check not empty argument
-	if len(names) == 0 {
-		return errors.New("I cannot synchronize cache for empty name list!")
-	}
-
-	// what is needed to be updated
-	namesToUpdate := f.getNamesToUpdate(names)
-
-	// if there is something that has to refreshed - refresh it
-	if len(namesToUpdate) > 0 {
-
-		err := f.updateCache(namesToUpdate)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// updateCache updates (refresh) cache entries (unconditionally) with current values
-// from external binary
-// you can pass empty names collection to force update everything
-func (f *Facter) updateCache(names []string) error {
-
-	// obtain actual facts (with default cmd config)
-	facts, receviedAt, err := f.getFacts(
-		names, // facts: what to update
-		f.facterExecutionDeadline, // timeout
-		nil, // default options "facter --json"
-	)
-	if err != nil {
-		return err
-	}
-
-	// if names was empty, we want update all facts
-	// so extract all fact names
-	if len(names) == 0 {
-		for name, _ := range *facts {
-			names = append(names, name)
-		}
-	}
-
-	// update cache with new fact values
-	for _, name := range names {
-
-		// update unconditionally value in cache
-		entry := f.cache[name]
-		entry.lastUpdate = *receviedAt
-		entry.value = (*facts)[name] // extract raw fact value received from Facter
-		f.cache[name] = entry
-
-	}
-	return nil
-}
-
-// updateCacheAll updates all cache entries unconditionally (just a wrapper for updateCache for all metrics)
-func (f *Facter) updateCacheAll() error {
-	return f.updateCache([]string{})
-}
+// helper functions to support CollectMetrics & GetMetricTypes
 
 // prepareMetricTypes fills metricTypes internal collection ready to send back to pulse
 func (f *Facter) prepareMetricTypes() {
 
 	// new temporary collection
-	metricTypes := make([]*plugin.MetricType, 0, len(f.cache))
+	metricTypes := make([]plugin.PluginMetricType, 0, len(f.cache))
 
 	// rewrite values from cache to another collection acceptable by Pulse
-	for factName, value := range f.cache {
-		metricTypes = append(metricTypes,
-			plugin.NewMetricType(
-				[]string{vendor, prefix, factName}, // namespace
-				value.lastUpdate.Unix(),            // lastAdvertisedTimestamp TODO would be time.Now()
-			),
-		)
+	for name, _ := range f.cache {
+		metricType := plugin.NewPluginMetricType(namespace(name))
+		metricTypes = append(metricTypes, *metricType)
 	}
 
 	// update internal state
@@ -259,12 +176,15 @@ func (f *Facter) prepareMetricTypes() {
 	f.metricTypesLastUpdate = time.Now()
 }
 
-/**********************
- *  helper fact type  *
- **********************/
+// required by PulseAPI
+func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
+	c := cpolicy.NewTree()
+	return c
+}
 
-// helper type to deal with json values which additionally stores last update moment
-type entry struct {
-	value      interface{}
-	lastUpdate time.Time
+// namspace returns namespace slice of strings
+// composed from: vendor, prefix and fact name
+func namespace(name string) []string {
+	return []string{vendor, prefix, name}
+
 }
