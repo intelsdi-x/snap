@@ -50,7 +50,7 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 	resp := newCollectionResponse()
 	for key, _ := range *selections {
 
-		// ??????? wyciagnij tym razem z runner pool of plugins to do what ???
+		// find the right pool by loadedPlugin.Key()
 		pool := p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(key)
 
 		// is pool can be used
