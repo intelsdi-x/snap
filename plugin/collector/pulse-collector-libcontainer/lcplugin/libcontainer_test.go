@@ -162,3 +162,21 @@ func TestCollectMetrics(t *testing.T) {
 		})
 	})
 }
+
+func TestPluginMeta(t *testing.T) {
+
+	Convey("Meta returns proper metadata", t, func() {
+		meta := Meta()
+		So(meta.Name, ShouldResemble, name)
+		So(meta.Version, ShouldResemble, version)
+		So(meta.Type, ShouldResemble, plugin.CollectorPluginType)
+	})
+}
+
+func TestConfigPolicyTree(t *testing.T) {
+
+	Convey("ConfigPolicyTree returns non nil object", t, func() {
+		ct := ConfigPolicyTree()
+		So(ct, ShouldNotBeNil)
+	})
+}

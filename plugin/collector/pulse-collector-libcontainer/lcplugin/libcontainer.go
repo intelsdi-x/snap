@@ -124,25 +124,6 @@ func (lc *libcntr) CollectMetrics(reqMetrics []plugin.PluginMetricType) ([]plugi
 
 		}
 	}
-
-	//	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
-	//	// waits for lynxbat/SDI-98
-
-	//	// TODO: INPUT: read CollectorArgs structure to extrac requested metrics
-	//	requestedNames := []string{"kernel", "uptime"}
-
-	//	// prepare cache to have all we need
-	//	err := f.synchronizeCache(requestedNames)
-	//	if err != nil {
-	//		return err
-	//	}
-
-	//	// TODO: OUTPUT: fullfill reply structure with requested metrics
-	//	// for _, name := range requestedNames {
-	//	// 	// convert it some how if required
-	//	// 	reply.metrics[name] = f.cache[name].value
-	//	// }
-
 	return retVals, nil
 }
 
