@@ -19,7 +19,7 @@ env:
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdilabs/pulse/build    
 install:
 - cd $PULSE_SOURCE # change dir into source
-- go get -u github.com/docker/libcontainer
+- go get -d github.com/docker/libcontainer
 - cd ../../docker/libcontainer; git checkout tags/v1.4.0; cd - # we need exact version of libcontainer
 - go get -d -v ./... && go build -v ./... # get and build source
 - make

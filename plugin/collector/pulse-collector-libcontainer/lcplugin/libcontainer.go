@@ -1,6 +1,8 @@
 package lcplugin
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -56,7 +58,83 @@ func (lc *libcntr) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 }
 
 // collect metrics
-func (l *libcntr) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+func (lc *libcntr) CollectMetrics(reqMetrics []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+
+	retVals := make([]plugin.PluginMetric, 0, len(reqMetrics))
+	cacheKeys := make([]string, 0, len(reqMetrics))     //- list of metrics that will be read from cache
+	staleKeys := make([]([]string), 0, len(reqMetrics)) //- list of metric that will be refreshed
+	now := time.Now()
+	for _, mt := range reqMetrics {
+
+		//- validation
+		if mt.Version() != version {
+			errs := fmt.Sprintf("Libcontainer: invalid metric version: %d, LC version is %d\n",
+				mt.Version(), version)
+			log.Printf(errs)
+			return nil, errors.New(errs)
+		}
+
+		ns := mt.Namespace()
+		//		plugNs := ns[2:len(ns)]
+		if ns[0] != vendor && ns[1] != prefix {
+			errs := fmt.Sprintf("Libcontainer: invalid metric signature: %s/%s, needs %s/%s\n",
+				ns[0], ns[1], vendor, prefix)
+			log.Printf(errs)
+			return nil, errors.New(errs)
+		}
+
+		//- check for stale entries
+		key := strings.Join(ns, nsSeparator)
+		cacheKeys = append(cacheKeys, key)
+		metric, exists := lc.cache[key]
+		if exists {
+			cacheDeadline := metric.lastUpdate.Add(lc.cacheTTL)
+			fmt.Println("befor cachedeadline")
+			if cacheDeadline.Before(now) {
+				fmt.Println("added stale")
+				//- cache timeout, add metric to be refreshed
+				staleKeys = append(staleKeys, ns)
+			}
+		} else {
+			fmt.Println("no entry")
+			//- no entry in cache (it should be), add to staleKeys
+			staleKeys = append(staleKeys, ns)
+		}
+	}
+
+	//- Refresh proper cache entries
+	if len(staleKeys) > 0 {
+		fmt.Println("stalekeys: ", staleKeys)
+		//TODO refresh only buckets that need refreshing
+		//TODO parallel and with barrier
+		_, err := lc.GetMetricTypes()
+		if err != nil {
+			log.Printf("libcontainer: could not refresh metrics")
+			return nil, err
+		}
+	}
+
+	fmt.Println("cachekeys")
+	fmt.Printf("cache: %##v\n", lc.cache)
+	for _, key := range cacheKeys {
+		metric, exists := lc.cache[key]
+		fmt.Println("key: ", key)
+		fmt.Printf("metric: %##v\n", metric)
+		if exists {
+			fmt.Println("exist")
+			fmt.Println("metVal: ", metric.value)
+			retVals = append(retVals,
+				plugin.PluginMetric{Namespace_: metric.namespace,
+					Data_: metric.value})
+			fmt.Printf("retvals: %##v\n", retVals)
+		} else {
+			fmt.Println("nonexoistan")
+			retVals = append(retVals,
+				plugin.PluginMetric{Namespace_: metric.namespace,
+					Data_: nil})
+		}
+	}
+
 	//	// it would be: CollectMetrics([]plugin.MetricType) ([]plugin.Metric, error)
 	//	// waits for lynxbat/SDI-98
 
@@ -75,7 +153,7 @@ func (l *libcntr) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetr
 	//	// 	reply.metrics[name] = f.cache[name].value
 	//	// }
 
-	return nil, nil
+	return retVals, nil
 }
 
 func NewLibCntr() *libcntr {
@@ -83,7 +161,7 @@ func NewLibCntr() *libcntr {
 	//TODO read from config
 	l.dockerFolder = defaultDockerFolder
 	l.cacheTTL = defaultCacheTTL
-	//	l.cache = make(map[string]metric)
+	l.cache = make(map[string]metric)
 	l.lcExecDeadline = defautlLibcontainerDeadline
 	return l
 }
@@ -136,16 +214,17 @@ type libcntr struct {
 	lcExecDeadline time.Duration // libcontainer execution deadline
 }
 
-//TODO merge with Nick's metric (type)
 type metric struct {
+	namespace  []string // full namespace, with vendor + prefix + ... + metric_name
 	value      interface{}
 	lastUpdate time.Time
 }
 
-func newMetric(value interface{}, lastUpdate time.Time) metric {
+func newMetric(value interface{}, lastUpdate time.Time, namespace []string) metric {
 	var m metric
 	m.value = value
 	m.lastUpdate = lastUpdate
+	m.namespace = namespace
 	return m
 }
 
@@ -203,12 +282,13 @@ func getAllMetrics(dockerFolder string) (map[string]metric, error) {
 	}
 
 	// add metrics common to all containers
+	ns := []string{vendor, prefix, common}
 	commonMetrics := map[string]metric{}
 
 	//TODO gathering common metrics should go to different function
-	commonMetrics["count"] = newMetric(len(contIds), timestamp)
-	commonMetrics["container_ids"] = newMetric(strings.Join(contIds, ";"), timestamp)
-	metricBckts = append(metricBckts, cacheBucket{namespace: []string{common}, metrics: commonMetrics})
+	commonMetrics["count"] = newMetric(len(contIds), timestamp, append(ns, "count"))
+	commonMetrics["container_ids"] = newMetric(strings.Join(contIds, ";"), timestamp, append(ns, "container_ids"))
+	metricBckts = append(metricBckts, cacheBucket{namespace: ns, metrics: commonMetrics})
 
 	// merge all buckets into cache
 	retCache := applyBucketsToCache(map[string]metric{}, metricBckts)
@@ -220,11 +300,10 @@ func getAllMetrics(dockerFolder string) (map[string]metric, error) {
 func prepareMetricTypes(metrics map[string]metric, prefix []string) ([]plugin.PluginMetricType, time.Time) {
 	metricTypes := make([]plugin.PluginMetricType, 0, len(metrics))
 	var timestamp time.Time
-	for key, value := range metrics {
+	for _, value := range metrics {
 		timestamp = value.lastUpdate
 		metricTypes = append(metricTypes,
-			*plugin.NewPluginMetricType(append(prefix,
-				strings.Split(key, nsSeparator)...)))
+			*plugin.NewPluginMetricType(value.namespace))
 	}
 
 	return metricTypes, timestamp
