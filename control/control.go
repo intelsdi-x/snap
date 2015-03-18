@@ -13,6 +13,7 @@ import (
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/control_event"
+	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
 // control private key (RSA private key)
@@ -27,7 +28,6 @@ type pluginControl struct {
 	// TODO, going to need coordination on changing of these
 	RunningPlugins executablePlugins
 	Started        bool
-	// loadRequestsChan chan LoadedPlugin
 
 	controlPrivKey *rsa.PrivateKey
 	controlPubKey  *rsa.PublicKey
@@ -76,28 +76,34 @@ type catalogsMetrics interface {
 
 // Returns a new pluginControl instance
 func New() *pluginControl {
+
 	c := &pluginControl{}
 	// Initialize components
 	//
 	// Event Manager
 	c.eventManager = gomit.NewEventController()
+	logger.Debug("control.initialization", "event controller created")
 
 	// Metric Catalog
 	c.metricCatalog = newMetricCatalog()
+	logger.Debug("control", "metric catalog created")
 
 	// Plugin Manager
 	c.pluginManager = newPluginManager()
+	logger.Debug("control", "plugin manager created")
 	//    Plugin Manager needs a reference to the metric catalog
 	c.pluginManager.SetMetricCatalog(c.metricCatalog)
 
 	// Plugin Runner
 	c.pluginRunner = newRunner()
+	logger.Debug("control", "runner created")
 	c.pluginRunner.AddDelegates(c.eventManager)
 	c.pluginRunner.SetMetricCatalog(c.metricCatalog)
 	c.pluginRunner.SetPluginManager(c.pluginManager)
 
 	// Plugin Router
 	c.pluginRouter = newPluginRouter()
+	logger.Debug("control", "router created")
 	c.pluginRouter.SetRunner(c.pluginRunner)
 	c.pluginRouter.SetMetricCatalog(c.metricCatalog)
 

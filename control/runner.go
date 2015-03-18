@@ -12,6 +12,7 @@ import (
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/core/control_event"
+	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
 const (
@@ -73,6 +74,7 @@ func (r *runner) AddDelegates(delegates ...gomit.Delegator) {
 
 // Begin handing events and managing available plugins
 func (r *runner) Start() error {
+	logger.Debug("runner", "starting")
 	// Delegates must be added before starting if none exist
 	// then this Runner can do nothing and should not start.
 	if len(r.delegates) == 0 {
@@ -90,6 +92,7 @@ func (r *runner) Start() error {
 	// Start the monitor
 	r.monitor.Start(r.availablePlugins)
 
+	logger.Debug("runner", "started")
 	return nil
 }
 
