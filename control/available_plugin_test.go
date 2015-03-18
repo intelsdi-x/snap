@@ -29,6 +29,9 @@ func TestAvailablePlugin(t *testing.T) {
 	})
 
 	Convey("Stop()", t, func() {
+		// we cannot actually test stoping plugin, until is wasn't started correctly
+		SetDefaultFailureMode(FailureHalts)
+
 		Convey("returns nil if plugin successfully stopped", func() {
 			r := newRunner()
 			a := plugin.Arg{
@@ -36,9 +39,13 @@ func TestAvailablePlugin(t *testing.T) {
 			}
 
 			exPlugin, _ := plugin.NewExecutablePlugin(a, PluginPath)
-			ap, _ := r.startPlugin(exPlugin)
+			ap, err := r.startPlugin(exPlugin)
+			So(err, ShouldBeNil)
 
-			err := ap.Stop("testing")
+			// or we have nil pointer dereference below
+			So(ap.Client, ShouldNotBeNil)
+
+			err = ap.Stop("testing")
 			So(err, ShouldBeNil)
 		})
 	})
