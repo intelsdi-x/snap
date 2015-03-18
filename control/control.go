@@ -4,11 +4,12 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/client"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
@@ -40,9 +41,7 @@ type pluginControl struct {
 }
 
 type routesToPlugins interface {
-	Collect([]core.MetricType, *cdata.ConfigDataNode, time.Time) (*collectionResponse, error)
-	SetRunner(runsPlugins)
-	SetMetricCatalog(catalogsMetrics)
+	Strategy() RoutingStrategy
 }
 
 type runsPlugins interface {
@@ -98,8 +97,6 @@ func New() *pluginControl {
 
 	// Plugin Router
 	c.pluginRouter = newPluginRouter()
-	c.pluginRouter.SetRunner(c.pluginRunner)
-	c.pluginRouter.SetMetricCatalog(c.metricCatalog)
 
 	// Wire event manager
 
@@ -293,4 +290,183 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 		return true
 	}
 	return false
+}
+
+// --------------------------- CollectMetrics -----------------
+
+// CollectMetrics returns metrics
+// Metrics returned are gathered from selected available plugin from pool based on startegy in router
+func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType) ([]core.Metric, error) {
+	// TODO: just a stub to be reimplemented later
+	// selection is a mapping from key -> metricTypes
+	// selection -> (lp, mts)
+	// selections -> key -> (lp, mts)
+
+	// generate selections
+	selections, err := groupMetricTypesByLoadedPlugin(metricTypes, p.metricCatalog.GetPlugin)
+	if err != nil {
+		return nil, err
+	}
+
+	// extract plugins keys from selections - something like selections.Keys()
+	pluginKeys := []string{}
+	for pluginKey := range selections {
+		pluginKeys = append(pluginKeys, pluginKey)
+	}
+
+	// prepare pools for every pluginKey
+	pools, err := getAvailablePluginPools(pluginKeys, p.pluginRunner)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: replace with something like this from Joel PR
+	// availablePlugins, err := getAvailablePlugins(pools, p.pluginRunner)
+	// but for now:
+	availablePlugins := []availablePlugin{}
+	for _, pool := range pools {
+		// choose one availablePlugin to be used for collecting metrics
+		ap, err := pool.SelectUsingStrategy(p.pluginRouter.Strategy())
+		if err != nil {
+			return nil, err
+		}
+		availablePlugins = append(availablePlugins, *ap)
+	}
+
+	// TODO: replace me with something sensbile but that requires changes in Joel code
+	// the ugly thing: match every avaiablePlugin and selection.MetricTypes
+	// based on index in availablePlugin slice,
+	// should be more like a map with pluginKey as key
+	// it works only because we assume the same number of selections, pools and available plugins!
+	// so a little assertion there
+	if len(availablePlugins) != len(selections) {
+		return nil, errors.New("assertion failed: expected equal size of collections")
+	}
+
+	// collect metrics from availablePlugins
+	// response
+	metrics := []core.Metric{}
+	idx := 0 // availablePlugins index
+	for _, selection := range selections {
+		// get ap by idx
+		ap := availablePlugins[idx]
+
+		// cast ap.client to being collector client
+		client, ok := ap.Client.(client.PluginCollectorClient)
+		if !ok {
+			return nil, errors.New("couldn't cast availablePlugin.Client to PluginCollectorClient!")
+		}
+
+		// collect metrics using client casted to CollectorClient
+		apMetrics, err := client.CollectMetrics(selection.metricTypes)
+		if err != nil {
+			return nil, err
+		}
+		// merge metrics together
+		metrics = append(metrics, apMetrics...)
+		idx++
+	}
+
+	return metrics, nil
+}
+
+//
+// ----------------- helper private types & functions to support CollectMetrics functionallity -------------
+//
+
+type pluginCallSelection struct {
+	plugin      *loadedPlugin
+	metricTypes []core.MetricType
+}
+
+func (p *pluginCallSelection) Count() int {
+	return len(p.metricTypes)
+}
+
+// loadedPlugin.Key() -> pluginCallSelection
+type pluginCallSelections map[string]*pluginCallSelection
+
+// groupMetricTypesByLoadedPlugin - take a bunch of metricTypes and return
+// a mapping from loadedPlugin.Key() -> collection of metricTypes (called selection)
+// return errors when there is no such metricType available
+// actually it is a constructor for collection of pluginCallSelections
+func groupMetricTypesByLoadedPlugin(
+	metricTypes []core.MetricType,
+	getLoadedPlugin func(namespace []string, version int) (*loadedPlugin, error),
+) (map[string]*pluginCallSelection, error) {
+
+	// group metricsTypes by loadedPlugin.key (key = name + version)
+	selections := pluginCallSelections{}
+
+	// For each plugin type select a matching available plugin to call
+	for _, m := range metricTypes {
+
+		// This is set to choose the newest and not pin version. TODO, be sure version is set to -1 if not provided by user on Task creation.
+		lp, err := getLoadedPlugin(m.Namespace(), -1)
+
+		// Single error fails entire operation - propagate the error received from catalog
+		if err != nil {
+			return nil, err
+		}
+
+		// Single error fails entire operation - there is plugin to handle these metricTypes
+		if lp == nil {
+			return nil, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(m.Namespace(), "/")))
+		}
+
+		fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
+
+		// group them
+		sel, ok := selections[lp.Key()]
+		if ok {
+			// selection already exists, just update the collections of metricTypes inside
+			sel.metricTypes = append(sel.metricTypes, m)
+		} else {
+			// create new selection structure
+			selections[lp.Key()] = &pluginCallSelection{
+				plugin:      lp,
+				metricTypes: []core.MetricType{m},
+			}
+
+		}
+	}
+	return selections, nil
+}
+
+// getAvailablePluginPools - find a pools for given pluginKeys
+func getAvailablePluginPools(pluginKeys []string, runner runsPlugins) ([]*availablePluginPool, error) {
+
+	pools := []*availablePluginPool{}
+	for _, pluginKey := range pluginKeys {
+		pool, err := getPluginPoolFromRunner(pluginKey, runner)
+		if err != nil {
+			return nil, err
+		}
+		pools = append(pools, pool)
+	}
+	return pools, nil
+}
+
+// getPluginPool for loadedPlugin.Key() name+version
+// returns the pool which have at least one availablePlugin running
+func getPluginPoolFromRunner(
+	key string,
+	runner runsPlugins,
+) (*availablePluginPool, error) {
+
+	// find the right pool by loadedPlugin.Key()
+	pool := runner.AvailablePlugins().Collectors.GetPluginPool(key)
+
+	// is pool can be used
+	if pool == nil {
+		// return error because this plugin has no pool
+		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", key))
+	}
+
+	// Lock this apPool so we are the only one operating on it.
+	if pool.Count() == 0 {
+		// return error indicating we have no available plugins to call for Collect
+		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", key))
+	}
+	return pool, nil
 }

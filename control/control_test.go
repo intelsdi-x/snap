@@ -430,3 +430,71 @@ func TestMetricExists(t *testing.T) {
 		So(c.MetricExists([]string{"hi"}, -1), ShouldEqual, true)
 	})
 }
+
+// --------------------------- collect metrics tests ----------------
+
+type MockMetricType struct {
+	namespace []string
+}
+
+func (m MockMetricType) Namespace() []string {
+	return m.namespace
+}
+
+func (m MockMetricType) LastAdvertisedTime() time.Time {
+	return time.Now()
+}
+
+func (m MockMetricType) Version() int {
+	return 1
+}
+
+func (m MockMetricType) Config() *cdata.ConfigDataNode {
+	return nil
+}
+
+// TODO: implement this some how
+func TestCollectMetrics(t *testing.T) {
+	Convey("test collect workflow", t, func() {
+		// adjust HB timeouts for test
+		plugin.PingTimeoutLimit = 1
+		plugin.PingTimeoutDuration = time.Second * 1
+
+		// Create controller
+		c := New()
+		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
+		c.Start()
+		// Load plugin
+		c.Load(PluginPath)
+
+		m := []core.MetricType{}
+		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
+		m2 := MockMetricType{namespace: []string{"intel", "dummy", "bar"}}
+		// m3 := MockMetricType{namespace: []string{"intel", "dummy", "baz"}}
+		m = append(m, m1)
+		m = append(m, m2)
+		// m = append(m, m3)
+		cd := cdata.NewNode()
+		fmt.Println(cd.Table())
+
+		fmt.Println(m1.Namespace(), m1.Version(), cd)
+		// Subscribe
+		a, b := c.SubscribeMetricType(m1, cd)
+		fmt.Println(a, b)
+		time.Sleep(time.Millisecond * 100)
+		c.SubscribeMetricType(m2, cd)
+		time.Sleep(time.Millisecond * 200)
+
+		// Call collect on router
+
+		// for x := 0; x < 5; x++ {
+		// 	fmt.Println("\n *  Calling Collect")
+		// 	cr, err := c.pluginRouter.CollectMetrics(m, cd, time.Now().Add(time.Second*60))
+		// 	if err != nil {
+		// 		fmt.Println(err)
+		// 	}
+		// 	fmt.Printf(" *  Collect Response: %+v\n", cr)
+		// }
+		// time.Sleep(time.Millisecond * 200)
+	})
+}
