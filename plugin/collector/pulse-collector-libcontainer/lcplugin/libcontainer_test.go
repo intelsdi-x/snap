@@ -21,9 +21,9 @@ func TestCache(t *testing.T) {
 	})
 }
 
+//TODO unskip when fixtures are tarballed | Integration tests
 func TestGetMetricsTypes(t *testing.T) {
 
-	//TODO unskip when fixtures are tarballed
 	SkipConvey("Libcontainer TestGetMetricsTypes", t, func() {
 
 		lc := NewLibCntr()
@@ -64,6 +64,7 @@ func TestGetMetricsTypes(t *testing.T) {
 	})
 }
 
+//TODO unskip when fixtures are tarballed | Integration tests
 func TestCollectMetrics(t *testing.T) {
 
 	SkipConvey("Libcontainer cache s", t, func() {
@@ -74,12 +75,56 @@ func TestCollectMetrics(t *testing.T) {
 			So(lc.cache, ShouldBeEmpty)
 		})
 
-		SkipConvey("Get non-stale metric from cache", func() {
+		Convey("Invalid version returns error", func() {
+			input := make([]plugin.PluginMetricType, 0, 1)
+			mns := []string{vendor, prefix, common, "inval_version"}
+			input = append(input, plugin.PluginMetricType{Namespace_: mns, Version_: 668})
+
+			retVal, err := lc.CollectMetrics(input)
+			So(err, ShouldNotBeNil)
+			So(retVal, ShouldBeNil)
+			So(err.Error(), ShouldContainSubstring, "invalid metric version")
+		})
+
+		Convey("Invalid vendor returns error", func() {
+			input := make([]plugin.PluginMetricType, 0, 1)
+			mns := []string{"LongBeardCo", prefix, common, "inval_vendor"}
+			input = append(input, plugin.PluginMetricType{Namespace_: mns, Version_: 1})
+
+			retVal, err := lc.CollectMetrics(input)
+			So(err, ShouldNotBeNil)
+			So(retVal, ShouldBeNil)
+			So(err.Error(), ShouldContainSubstring, "invalid metric signature")
+		})
+
+		Convey("Invalid prefix returns error", func() {
+			input := make([]plugin.PluginMetricType, 0, 1)
+			mns := []string{vendor, "other otter", common, "inval_prefix"}
+			input = append(input, plugin.PluginMetricType{Namespace_: mns, Version_: 1})
+
+			retVal, err := lc.CollectMetrics(input)
+			So(err, ShouldNotBeNil)
+			So(retVal, ShouldBeNil)
+			So(err.Error(), ShouldContainSubstring, "invalid metric signature")
+		})
+
+		Convey("Invalid prefix AND vendor returns error", func() {
+			input := make([]plugin.PluginMetricType, 0, 1)
+			mns := []string{"LongBeardCo", "other otter", common, "inval_prefix"}
+			input = append(input, plugin.PluginMetricType{Namespace_: mns, Version_: 1})
+
+			retVal, err := lc.CollectMetrics(input)
+			So(err, ShouldNotBeNil)
+			So(retVal, ShouldBeNil)
+			So(err.Error(), ShouldContainSubstring, "invalid metric signature")
+		})
+
+		Convey("Get non-stale metric from cache", func() {
 
 			mval := 558
 			mtmsp := time.Now()
 			mns := []string{vendor, prefix, common, "fake_metric"}
-			lc.cache["fake_metric"] = newMetric(mval, mtmsp, mns)
+			lc.cache[strings.Join(mns, nsSeparator)] = newMetric(mval, mtmsp, mns)
 
 			input := make([]plugin.PluginMetricType, 0, 1)
 			input = append(input, plugin.PluginMetricType{Namespace_: mns, Version_: 1})
@@ -101,12 +146,19 @@ func TestCollectMetrics(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(retVal), ShouldEqual, 1)
 			So(retVal[0].Namespace(), ShouldResemble, mns)
-			//			var intVal interface{}
-			//			intVal = 1
-			//			So(retVal[0].Data(), ShouldEqual, intVal)
+			So(retVal[0].Data(), ShouldEqual, 1)
+		})
 
+		Convey("Get non-existan metric from cache", func() {
+			mns := []string{vendor, prefix, common, "non-existant"}
+			input := make([]plugin.PluginMetricType, 0, 1)
+			input = append(input, plugin.PluginMetricType{Namespace_: mns, Version_: 1})
+
+			retVal, err := lc.CollectMetrics(input)
+			So(err, ShouldBeNil)
+			So(len(retVal), ShouldEqual, 1)
+			So(retVal[0].Namespace(), ShouldResemble, mns)
+			So(retVal[0].Data(), ShouldBeNil)
 		})
 	})
-
-	//TODO unskip when fixtures are tarballed
 }

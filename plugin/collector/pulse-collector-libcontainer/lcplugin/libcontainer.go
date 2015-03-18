@@ -20,7 +20,6 @@ import (
 
 // returns PluginMeta
 func Meta() *plugin.PluginMeta {
-	//	var statsy libcontainer.Stats.CgroupStats
 	return plugin.NewPluginMeta(name, version, pluginType)
 }
 
@@ -75,8 +74,7 @@ func (lc *libcntr) CollectMetrics(reqMetrics []plugin.PluginMetricType) ([]plugi
 		}
 
 		ns := mt.Namespace()
-		//		plugNs := ns[2:len(ns)]
-		if ns[0] != vendor && ns[1] != prefix {
+		if ns[0] != vendor || ns[1] != prefix {
 			errs := fmt.Sprintf("Libcontainer: invalid metric signature: %s/%s, needs %s/%s\n",
 				ns[0], ns[1], vendor, prefix)
 			log.Printf(errs)
@@ -89,14 +87,11 @@ func (lc *libcntr) CollectMetrics(reqMetrics []plugin.PluginMetricType) ([]plugi
 		metric, exists := lc.cache[key]
 		if exists {
 			cacheDeadline := metric.lastUpdate.Add(lc.cacheTTL)
-			fmt.Println("befor cachedeadline")
 			if cacheDeadline.Before(now) {
-				fmt.Println("added stale")
 				//- cache timeout, add metric to be refreshed
 				staleKeys = append(staleKeys, ns)
 			}
 		} else {
-			fmt.Println("no entry")
 			//- no entry in cache (it should be), add to staleKeys
 			staleKeys = append(staleKeys, ns)
 		}
@@ -104,7 +99,6 @@ func (lc *libcntr) CollectMetrics(reqMetrics []plugin.PluginMetricType) ([]plugi
 
 	//- Refresh proper cache entries
 	if len(staleKeys) > 0 {
-		fmt.Println("stalekeys: ", staleKeys)
 		//TODO refresh only buckets that need refreshing
 		//TODO parallel and with barrier
 		_, err := lc.GetMetricTypes()
@@ -114,24 +108,20 @@ func (lc *libcntr) CollectMetrics(reqMetrics []plugin.PluginMetricType) ([]plugi
 		}
 	}
 
-	fmt.Println("cachekeys")
-	fmt.Printf("cache: %##v\n", lc.cache)
 	for _, key := range cacheKeys {
 		metric, exists := lc.cache[key]
-		fmt.Println("key: ", key)
-		fmt.Printf("metric: %##v\n", metric)
 		if exists {
-			fmt.Println("exist")
-			fmt.Println("metVal: ", metric.value)
 			retVals = append(retVals,
 				plugin.PluginMetric{Namespace_: metric.namespace,
 					Data_: metric.value})
-			fmt.Printf("retvals: %##v\n", retVals)
 		} else {
-			fmt.Println("nonexoistan")
+			// append nil metric to cache for caching purposes
+			ns := strings.Split(key, nsSeparator)
+			lc.cache[key] = newMetric(nil, time.Now(), ns)
 			retVals = append(retVals,
-				plugin.PluginMetric{Namespace_: metric.namespace,
+				plugin.PluginMetric{Namespace_: ns,
 					Data_: nil})
+
 		}
 	}
 
