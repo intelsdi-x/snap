@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+	"github.com/intelsdilabs/pulse/control/routing"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -428,5 +430,53 @@ func TestMetricExists(t *testing.T) {
 		So(c.MetricExists([]string{"hi"}, -1), ShouldEqual, false)
 		c.metricCatalog.Next()
 		So(c.MetricExists([]string{"hi"}, -1), ShouldEqual, true)
+	})
+}
+
+func TestGetAvailablePlugins(t *testing.T) {
+	Convey("getAvailablePlugins()", t, func() {
+		test1 := &availablePlugin{
+			Type:    plugin.CollectorPluginType,
+			Name:    "test1",
+			Version: 1,
+			Index:   0,
+		}
+		test2 := &availablePlugin{
+			Type:    plugin.CollectorPluginType,
+			Name:    "test2",
+			Version: 1,
+			Index:   0,
+		}
+		plugins := &[]*availablePlugin{
+			test1,
+			test2,
+		}
+		pools := []*availablePluginPool{
+			&availablePluginPool{
+				Plugins: plugins,
+				mutex:   &sync.Mutex{},
+			},
+		}
+		strat := new(routing.RoundRobinStrategy)
+		Convey("returns available plugins", func() {
+			aps, err := getAvailablePlugins(pools, strat)
+			So(err, ShouldBeNil)
+			So(aps, ShouldNotBeNil)
+			So(aps, ShouldNotBeEmpty)
+			So(aps[0], ShouldNotBeNil)
+			So(aps[0], ShouldEqual, test1)
+		})
+		Convey("returns an error", func() {
+			plugins = &[]*availablePlugin{}
+			pools = []*availablePluginPool{
+				&availablePluginPool{
+					Plugins: plugins,
+					mutex:   &sync.Mutex{},
+				},
+			}
+			aps, err := getAvailablePlugins(pools, strat)
+			So(err, ShouldNotBeNil)
+			So(aps, ShouldBeNil)
+		})
 	})
 }

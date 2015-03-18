@@ -294,3 +294,16 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 	}
 	return false
 }
+
+func getAvailablePlugins(pools []*availablePluginPool, strat RoutingStrategy) ([]*availablePlugin, error) {
+	selectedAvailablePlugins := make([]*availablePlugin, 0)
+	for _, pool := range pools {
+		// Use router strategy to select an available plugin from the pool
+		ap, err := pool.SelectUsingStrategy(strat)
+		if err != nil || ap == nil {
+			return nil, err
+		}
+		selectedAvailablePlugins = append(selectedAvailablePlugins, ap)
+	}
+	return selectedAvailablePlugins, nil
+}
