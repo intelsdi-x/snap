@@ -64,6 +64,10 @@ func (r *runner) AvailablePlugins() *availablePlugins {
 	return r.availablePlugins
 }
 
+func (r *runner) Monitor() *monitor {
+	return r.monitor
+}
+
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
 // unregistration on Stop.
 func (r *runner) AddDelegates(delegates ...gomit.Delegator) {

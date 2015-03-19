@@ -21,12 +21,12 @@ type monitor struct {
 	quit     chan struct{}
 }
 
-type option func(m *monitor) option
+type monitorOption func(m *monitor) monitorOption
 
 // Option sets the options specified.
 // Returns an option to optionally restore the last arg's previous value.
-func (m *monitor) Option(opts ...option) option {
-	var previous option
+func (m *monitor) Option(opts ...monitorOption) monitorOption {
+	var previous monitorOption
 	for _, opt := range opts {
 		previous = opt(m)
 	}
@@ -34,19 +34,24 @@ func (m *monitor) Option(opts ...option) option {
 }
 
 // MonitorDuration sets monitor's duration to v.
-func MonitorDuration(v time.Duration) option {
-	return func(m *monitor) option {
+func MonitorDurationOption(v time.Duration) monitorOption {
+	return func(m *monitor) monitorOption {
 		previous := m.duration
 		m.duration = v
-		return MonitorDuration(previous)
+		return MonitorDurationOption(previous)
 	}
 }
 
-func newMonitor() *monitor {
-	return &monitor{
+func newMonitor(opts ...monitorOption) *monitor {
+	mon := &monitor{
 		State:    MonitorStopped,
 		duration: DefaultMonitorDuration,
 	}
+	//set options
+	for _, opt := range opts {
+		opt(mon)
+	}
+	return mon
 }
 
 // start the monitor

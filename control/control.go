@@ -52,6 +52,7 @@ type runsPlugins interface {
 	AddDelegates(delegates ...gomit.Delegator)
 	SetMetricCatalog(c catalogsMetrics)
 	SetPluginManager(m managesPlugins)
+	Monitor() *monitor
 }
 
 type managesPlugins interface {
@@ -249,6 +250,11 @@ func (p *pluginControl) UnsubscribeMetricType(mt core.MetricType) {
 		MetricNamespace: mt.Namespace(),
 	}
 	p.eventManager.Emit(e)
+}
+
+// SetMonitorOptions exposes monitors options
+func (p *pluginControl) SetMonitorOptions(options ...monitorOption) {
+	p.pluginRunner.Monitor().Option(options...)
 }
 
 // the public interface for a plugin
