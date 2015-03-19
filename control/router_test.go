@@ -2,12 +2,14 @@ package control
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdilabs/pulse/pkg/logger"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -32,7 +34,10 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 }
 
 func TestRouter(t *testing.T) {
+
 	Convey("given a new router", t, func() {
+		logger.SetLevel(logger.DebugLevel)
+		logger.Output = os.Stdout
 		// adjust HB timeouts for test
 		plugin.PingTimeoutLimit = 1
 		plugin.PingTimeoutDuration = time.Second * 1
@@ -52,12 +57,16 @@ func TestRouter(t *testing.T) {
 		m = append(m, m2)
 		// m = append(m, m3)
 		cd := cdata.NewNode()
-		fmt.Println(cd.Table())
+		// fmt.Println(cd.Table())
 
-		fmt.Println(m1.Namespace(), m1.Version(), cd)
+		// fmt.Println(m1.Namespace(), m1.Version(), cd)
 		// Subscribe
-		a, b := c.SubscribeMetricType(m1, cd)
-		fmt.Println(a, b)
+		// a, b :=
+		c.SubscribeMetricType(m1, cd)
+		c.SubscribeMetricType(m1, cd)
+		c.SubscribeMetricType(m1, cd)
+		c.SubscribeMetricType(m1, cd)
+		// fmt.Println(a, b)
 		time.Sleep(time.Millisecond * 100)
 		c.SubscribeMetricType(m2, cd)
 		time.Sleep(time.Millisecond * 200)
@@ -65,13 +74,13 @@ func TestRouter(t *testing.T) {
 		// Call collect on router
 
 		for x := 0; x < 5; x++ {
-			fmt.Println("\n *  Calling Collect")
-			cr, err := c.pluginRouter.Collect(m, cd, time.Now().Add(time.Second*60))
+			// fmt.Println("\n *  Calling Collect")
+			_, err := c.pluginRouter.Collect(m, cd, time.Now().Add(time.Second*60))
 			if err != nil {
 				fmt.Println(err)
 			}
-			fmt.Printf(" *  Collect Response: %+v\n", cr)
+			// fmt.Printf(" *  Collect Response: %+v\n", cr)
 		}
-		time.Sleep(time.Millisecond * 200)
+		time.Sleep(time.Millisecond * 1000)
 	})
 }
