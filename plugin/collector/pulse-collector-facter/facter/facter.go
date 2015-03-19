@@ -56,28 +56,14 @@ type Facter struct {
 	metricTypesLastUpdate time.Time
 	metricTypesTTL        time.Duration
 
-	cache    map[string]entry
-	cacheTTL time.Duration
-
-	facterExecutionDeadline time.Duration
-
-	// injects implementation for getting facts - defaults to use getFacts from cmd.go
-	// but allows to replace with fake during tests
-	getFacts func(
-		names []string,
-		facterTimeout time.Duration,
-		cmdConfig *cmdConfig,
-	) (*facts, *time.Time, error)
+	metricCache *metricCache
 }
 
 // NewFacter constructs new Facter with default values
 func NewFacter() *Facter {
 	return &Facter{
 		metricTypesTTL: defaultMetricTypesTTL,
-		cacheTTL:       defaultCacheTTL,
-		cache:          map[string]entry{},
-		facterExecutionDeadline: defaultFacterDeadline,
-		getFacts:                getFacts,
+		metricCache:    newMetricCache(defaultCacheTTL, defaultFacterDeadline),
 	}
 }
 
@@ -92,7 +78,7 @@ func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 	needUpdate := timeElapsed > f.metricTypesTTL
 	if needUpdate {
 		// synchronize cache conditionally for all fields
-		err := f.updateCacheAll() // fills internal f.fcache
+		err := f.metricCache.updateCacheAll() // fills internal f.fcache
 		if err != nil {
 			log.Println("Facter: synchronizeCache returned error: " + err.Error())
 			return nil, err
@@ -138,7 +124,7 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 	}
 
 	// synchronize cache (stale of missing data) to have all we need
-	err := f.synchronizeCache(names)
+	err := f.metricCache.synchronizeCache(names)
 	if err != nil {
 		return nil, err
 	}
@@ -146,8 +132,8 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 	// read data from cache and preapre PluginMetric slice
 	ms := []plugin.PluginMetric{}
 	for _, name := range names {
-		fact := f.cache[name]
-		metric := plugin.NewPluginMetric(namespace(name), fact.value)
+		entry := f.metricCache.getEntry(name)
+		metric := plugin.NewPluginMetric(namespace(name), entry.value)
 		ms = append(ms, *metric)
 	}
 
@@ -160,10 +146,11 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 func (f *Facter) prepareMetricTypes() {
 
 	// new temporary collection
-	metricTypes := make([]plugin.PluginMetricType, 0, len(f.cache))
+	metricTypes := make([]plugin.PluginMetricType, 0, f.metricCache.size())
 
 	// rewrite values from cache to another collection acceptable by Pulse
-	for name, _ := range f.cache {
+	entries := f.metricCache.entries()
+	for name, _ := range entries {
 		metricType := plugin.NewPluginMetricType(namespace(name))
 		metricTypes = append(metricTypes, *metricType)
 	}

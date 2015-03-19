@@ -6,10 +6,50 @@ import (
 	"time"
 )
 
+// metricCache caches values received from cmd to not overuse system under monitor
+type metricCache struct {
+	ttl  time.Duration
+	data map[string]entry
+	// injects implementation for getting facts - defaults to use getFacts from cmd.go
+	// but allows to replace with fake during tests
+	getFacts func(
+		names []string,
+		facterTimeout time.Duration,
+		cmdConfig *cmdConfig,
+	) (*facts, *time.Time, error)
+	// how much time we are ready to wait for getting result from cmd
+	facterExecutionDeadline time.Duration
+}
+
+// newMetricCache create new metricCache object with given ttl and deadline for cmd
+func newMetricCache(ttl, facterExecutionDeadline time.Duration) *metricCache {
+	return &metricCache{
+		ttl:                     ttl,
+		data:                    map[string]entry{},
+		getFacts:                getFacts,
+		facterExecutionDeadline: facterExecutionDeadline,
+	}
+}
+
+// getEntry allow to extrac just one entry from cache
+func (c *metricCache) getEntry(name string) entry {
+	return c.data[name]
+}
+
+// size returns number of all entries actully in cache
+func (c *metricCache) size() int {
+	return len(c.data)
+}
+
+// size returns number of all entries actully in cache
+func (c *metricCache) entries() map[string]entry {
+	return c.data
+}
+
 // getNamesToUpdate compares given fact names with cache state
 // and prepare a list of stale or non-existing ones
 // returns the names of metrics that should have to be updated
-func (f *Facter) getNamesToUpdate(names []string) []string {
+func (c *metricCache) getNamesToUpdate(names []string) []string {
 
 	now := time.Now()
 
@@ -17,13 +57,13 @@ func (f *Facter) getNamesToUpdate(names []string) []string {
 	namesToUpdate := []string{}
 	for _, name := range names {
 
-		fact, exists := f.cache[name]
+		fact, exists := c.data[name]
 
 		// assume it is stale
 		// stale also stays true for not existin ones
 		stale := true
 		if exists {
-			stale = now.Sub(fact.lastUpdate) > f.cacheTTL
+			stale = now.Sub(fact.lastUpdate) > c.ttl
 		}
 		if stale {
 			namesToUpdate = append(namesToUpdate, name)
@@ -36,7 +76,7 @@ func (f *Facter) getNamesToUpdate(names []string) []string {
 // only if there is a need for that
 // names is slice with list of metrics to synchronize
 // names cannot be empty
-func (f *Facter) synchronizeCache(names []string) error {
+func (c *metricCache) synchronizeCache(names []string) error {
 
 	// check not empty argument
 	if len(names) == 0 {
@@ -44,12 +84,12 @@ func (f *Facter) synchronizeCache(names []string) error {
 	}
 
 	// what is needed to be updated
-	namesToUpdate := f.getNamesToUpdate(names)
+	namesToUpdate := c.getNamesToUpdate(names)
 
 	// if there is something that has to refreshed - refresh it
 	if len(namesToUpdate) > 0 {
 
-		err := f.updateCache(namesToUpdate)
+		err := c.updateCache(namesToUpdate)
 		if err != nil {
 			return err
 		}
@@ -60,12 +100,14 @@ func (f *Facter) synchronizeCache(names []string) error {
 // updateCache updates (refresh) cache entries (unconditionally) with current values
 // from external binary
 // you can pass empty names collection to force update everything
-func (f *Facter) updateCache(names []string) error {
+func (c *metricCache) updateCache(
+	names []string,
+) error {
 
 	// obtain actual facts (with default cmd config)
-	facts, receviedAt, err := f.getFacts(
+	facts, receviedAt, err := c.getFacts(
 		names, // facts: what to update
-		f.facterExecutionDeadline, // timeout
+		c.facterExecutionDeadline, // timeout
 		nil, // default options "facter --json"
 	)
 	if err != nil {
@@ -84,23 +126,21 @@ func (f *Facter) updateCache(names []string) error {
 	for _, name := range names {
 
 		// update unconditionally value in cache
-		entry := f.cache[name]
+		entry := c.data[name]
 		entry.lastUpdate = *receviedAt
 		entry.value = (*facts)[name] // extract raw fact value received from Facter
-		f.cache[name] = entry
+		c.data[name] = entry
 
 	}
 	return nil
 }
 
 // updateCacheAll updates all cache entries unconditionally (just a wrapper for updateCache for all metrics)
-func (f *Facter) updateCacheAll() error {
-	return f.updateCache([]string{})
+func (c *metricCache) updateCacheAll() error {
+	return c.updateCache([]string{})
 }
 
-/**********************
- *  helper fact type  *
- **********************/
+// --------------- helper types for metricCache ----------------
 
 // helper type to deal with json values which additionally stores last update moment
 type entry struct {
