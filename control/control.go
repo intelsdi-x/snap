@@ -289,41 +289,6 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 	return false
 }
 
-// getAvailablePlugin finds a pool and finds a ap in that pool
-func (p *pluginControl) getPool(pluginKey string) (*availablePluginPool, error) {
-
-	pool := p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
-
-	if pool == nil {
-		// return error because this plugin has no pool
-		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
-	}
-
-	// TODO: Lock this apPool so we are the only one operating on it.
-	if pool.Count() == 0 {
-		// return error indicating we have no available plugins to call for Collect
-		return nil, errors.New(fmt.Sprintf("there is no availablePlugins in pool (%s)", pluginKey))
-	}
-	return pool, nil
-}
-
-func (p *pluginControl) getAvailablePlugin(pool *availablePluginPool) (*availablePlugin, error) {
-
-	// Use a router strategy to select an available plugin from the pool
-	// fmt.Printf("%d available plugin in pool for (%s)\n", pool.Count(), pluginKey)
-	ap, err := pool.SelectUsingStrategy(p.strategy)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if ap == nil {
-		return nil, errors.New(fmt.Sprintf("no available plugin selected in pool %v", pool))
-	}
-
-	return ap, nil
-}
-
 // Calls collector plugins for the metric types and returns collection response containing metrics. Blocking method.
 func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) ([]core.Metric, error) {
 
@@ -369,6 +334,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cd
 
 // ------------------- helper struct and function for grouping metrics types ------
 
+// just a tuple of loadedPlugin and metricType slice
 type pluginMetricTypes struct {
 	plugin      *loadedPlugin
 	metricTypes []core.MetricType
@@ -378,6 +344,7 @@ func (p *pluginMetricTypes) Count() int {
 	return len(p.metricTypes)
 }
 
+// groupMetricTypesByPlugin groups metricTypes by a plugin.Key() and returns appropriate structure
 func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType) (map[string]pluginMetricTypes, error) {
 	pmts := make(map[string]pluginMetricTypes)
 	// For each plugin type select a matching available plugin to call
@@ -395,11 +362,48 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType
 
 		// fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
 
-		pmt, _ := pmts[lp.Key()]
+		key := lp.Key()
+
+		//
+		pmt, _ := pmts[key]
 		pmt.plugin = lp
 		pmt.metricTypes = append(pmt.metricTypes, mt)
-		pmts[lp.Key()] = pmt
+		pmts[key] = pmt
 
 	}
 	return pmts, nil
+}
+
+// getPool finds a pool for a given pluginKey and checks is not empty
+func (p *pluginControl) getPool(pluginKey string) (*availablePluginPool, error) {
+
+	pool := p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
+
+	if pool == nil {
+		// return error because this plugin has no pool
+		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
+	}
+
+	// TODO: Lock this apPool so we are the only one operating on it.
+	if pool.Count() == 0 {
+		// return error indicating we have no available plugins to call for Collect
+		return nil, errors.New(fmt.Sprintf("there is no availablePlugins in pool (%s)", pluginKey))
+	}
+	return pool, nil
+}
+
+// getAvailablePlugin finds a "best" availablePlugin to be asked for metrics
+func (p *pluginControl) getAvailablePlugin(pool *availablePluginPool) (*availablePlugin, error) {
+
+	// Use a router strategy to select an available plugin from the pool
+	ap, err := pool.SelectUsingStrategy(p.strategy)
+	if err != nil {
+		return nil, err
+	}
+
+	if ap == nil {
+		return nil, errors.New(fmt.Sprintf("no available plugin selected in pool %v", pool))
+	}
+
+	return ap, nil
 }
