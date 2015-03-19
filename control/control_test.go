@@ -57,11 +57,15 @@ func TestControlNew(t *testing.T) {
 
 func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
+		c := New()
 		Convey("starts successfully", func() {
-			c := New()
 			err := c.Start()
 			So(c.Started, ShouldBeTrue)
 			So(err, ShouldBeNil)
+		})
+		Convey("sets monitor duration", func() {
+			c.SetMonitorOptions(MonitorDurationOption(time.Millisecond * 100))
+			So(c.pluginRunner.Monitor().duration, ShouldResemble, 100*time.Millisecond)
 		})
 	})
 }

@@ -60,12 +60,13 @@ func TestMonitor(t *testing.T) {
 		aps.Insert(ap3)
 
 		Convey("newMonitor", func() {
-			m := newMonitor()
+			m := newMonitor(MonitorDurationOption(time.Millisecond * 123))
 			So(m, ShouldHaveSameTypeAs, &monitor{})
+			So(m.duration, ShouldResemble, time.Millisecond*123)
 		})
 		Convey("start", func() {
 			m := newMonitor()
-			m.Option(MonitorDuration(time.Millisecond * 200))
+			m.Option(MonitorDurationOption(time.Millisecond * 200))
 			m.Start(aps)
 
 			So(m.State, ShouldEqual, MonitorStarted)
@@ -87,7 +88,7 @@ func TestMonitor(t *testing.T) {
 		})
 		Convey("override MonitorDuration", func() {
 			m := newMonitor()
-			oldOpt := m.Option(MonitorDuration(time.Millisecond * 200))
+			oldOpt := m.Option(MonitorDurationOption(time.Millisecond * 200))
 			So(m.duration, ShouldResemble, time.Millisecond*200)
 			m.Option(oldOpt)
 			So(m.duration, ShouldResemble, time.Second*1)
