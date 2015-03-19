@@ -297,19 +297,18 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cd
 		return []core.Metric{}, err
 	}
 
-	//
 	metrics := []core.Metric{}
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
 		// fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
 
-		pool, err := p.getPool(pluginKey)
+		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins())
 		if err != nil {
 			return nil, err
 		}
 
-		ap, err := p.getAvailablePlugin(pool)
+		ap, err := getAvailablePlugin(pool, p.strategy)
 		if err != nil {
 			return nil, err
 		}
@@ -375,9 +374,9 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType
 }
 
 // getPool finds a pool for a given pluginKey and checks is not empty
-func (p *pluginControl) getPool(pluginKey string) (*availablePluginPool, error) {
+func getPool(pluginKey string, availablePlugins *availablePlugins) (*availablePluginPool, error) {
 
-	pool := p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
+	pool := availablePlugins.Collectors.GetPluginPool(pluginKey)
 
 	if pool == nil {
 		// return error because this plugin has no pool
@@ -393,10 +392,10 @@ func (p *pluginControl) getPool(pluginKey string) (*availablePluginPool, error) 
 }
 
 // getAvailablePlugin finds a "best" availablePlugin to be asked for metrics
-func (p *pluginControl) getAvailablePlugin(pool *availablePluginPool) (*availablePlugin, error) {
+func getAvailablePlugin(pool *availablePluginPool, strategy RoutingStrategy) (*availablePlugin, error) {
 
 	// Use a router strategy to select an available plugin from the pool
-	ap, err := pool.SelectUsingStrategy(p.strategy)
+	ap, err := pool.SelectUsingStrategy(strategy)
 	if err != nil {
 		return nil, err
 	}
