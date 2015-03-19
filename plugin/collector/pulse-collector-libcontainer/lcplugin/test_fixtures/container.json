@@ -1,0 +1,245 @@
+{
+    "mount_config": {
+        "mounts": [
+            {
+                "type": "bind",
+                "source": "/var/lib/docker/containers/014fe3fbf5e6f0cccd051dcafaa5ca54f565d1f59fe3e59414a4ed9a3fca44eb/resolv.conf",
+                "destination": "/etc/resolv.conf",
+                "writable": true,
+                "private": true
+            },
+            {
+                "type": "bind",
+                "source": "/var/lib/docker/containers/014fe3fbf5e6f0cccd051dcafaa5ca54f565d1f59fe3e59414a4ed9a3fca44eb/hostname",
+                "destination": "/etc/hostname",
+                "writable": true,
+                "private": true
+            },
+            {
+                "type": "bind",
+                "source": "/var/lib/docker/containers/014fe3fbf5e6f0cccd051dcafaa5ca54f565d1f59fe3e59414a4ed9a3fca44eb/hosts",
+                "destination": "/etc/hosts",
+                "writable": true,
+                "private": true
+            }
+        ],
+        "device_nodes": [
+            {
+                "type": 99,
+                "path": "/dev/fuse",
+                "major_number": 10,
+                "minor_number": 229,
+                "cgroup_permissions": "rwm"
+            },
+            {
+                "type": 99,
+                "path": "/dev/null",
+                "major_number": 1,
+                "minor_number": 3,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/zero",
+                "major_number": 1,
+                "minor_number": 5,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/full",
+                "major_number": 1,
+                "minor_number": 7,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/tty",
+                "major_number": 5,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/urandom",
+                "major_number": 1,
+                "minor_number": 9,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/random",
+                "major_number": 1,
+                "minor_number": 8,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            }
+        ],
+        "mount_label": "system_u:object_r:svirt_sandbox_file_t:s0:c264,c636"
+    },
+    "root_fs": "/var/lib/docker/devicemapper/mnt/014fe3fbf5e6f0cccd051dcafaa5ca54f565d1f59fe3e59414a4ed9a3fca44eb/rootfs",
+    "hostname": "014fe3fbf5e6",
+    "environment": [
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "HOSTNAME=014fe3fbf5e6"
+    ],
+    "namespaces": [
+        {
+            "type": "NEWNS"
+        },
+        {
+            "type": "NEWUTS"
+        },
+        {
+            "type": "NEWIPC"
+        },
+        {
+            "type": "NEWPID"
+        },
+        {
+            "type": "NEWNET"
+        }
+    ],
+    "capabilities": [
+        "CHOWN",
+        "DAC_OVERRIDE",
+        "FSETID",
+        "FOWNER",
+        "MKNOD",
+        "NET_RAW",
+        "SETGID",
+        "SETUID",
+        "SETFCAP",
+        "SETPCAP",
+        "NET_BIND_SERVICE",
+        "SYS_CHROOT",
+        "KILL",
+        "AUDIT_WRITE"
+    ],
+    "networks": [
+        {
+            "type": "loopback",
+            "address": "127.0.0.1/0",
+            "gateway": "localhost",
+            "mtu": 1500
+        },
+        {
+            "type": "veth",
+            "bridge": "docker0",
+            "veth_prefix": "veth",
+            "mac_address": "02:42:ac:11:00:03",
+            "address": "172.17.0.3/16",
+            "gateway": "172.17.42.1",
+            "mtu": 1500
+        }
+    ],
+    "cgroups": {
+        "name": "014fe3fbf5e6f0cccd051dcafaa5ca54f565d1f59fe3e59414a4ed9a3fca44eb",
+        "parent": "docker",
+        "allowed_devices": [
+            {
+                "type": 99,
+                "major_number": -1,
+                "minor_number": -1,
+                "cgroup_permissions": "m"
+            },
+            {
+                "type": 98,
+                "major_number": -1,
+                "minor_number": -1,
+                "cgroup_permissions": "m"
+            },
+            {
+                "type": 99,
+                "path": "/dev/console",
+                "major_number": 5,
+                "minor_number": 1,
+                "cgroup_permissions": "rwm"
+            },
+            {
+                "type": 99,
+                "path": "/dev/tty0",
+                "major_number": 4,
+                "cgroup_permissions": "rwm"
+            },
+            {
+                "type": 99,
+                "path": "/dev/tty1",
+                "major_number": 4,
+                "minor_number": 1,
+                "cgroup_permissions": "rwm"
+            },
+            {
+                "type": 99,
+                "major_number": 136,
+                "minor_number": -1,
+                "cgroup_permissions": "rwm"
+            },
+            {
+                "type": 99,
+                "major_number": 5,
+                "minor_number": 2,
+                "cgroup_permissions": "rwm"
+            },
+            {
+                "type": 99,
+                "major_number": 10,
+                "minor_number": 200,
+                "cgroup_permissions": "rwm"
+            },
+            {
+                "type": 99,
+                "path": "/dev/null",
+                "major_number": 1,
+                "minor_number": 3,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/zero",
+                "major_number": 1,
+                "minor_number": 5,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/full",
+                "major_number": 1,
+                "minor_number": 7,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/tty",
+                "major_number": 5,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/urandom",
+                "major_number": 1,
+                "minor_number": 9,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            },
+            {
+                "type": 99,
+                "path": "/dev/random",
+                "major_number": 1,
+                "minor_number": 8,
+                "cgroup_permissions": "rwm",
+                "file_mode": 438
+            }
+        ]
+    },
+    "process_label": "system_u:system_r:svirt_lxc_net_t:s0:c264,c636",
+    "restrict_sys": true
+}
