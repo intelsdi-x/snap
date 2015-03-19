@@ -4,12 +4,15 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/intelsdilabs/gomit"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/client"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+	"github.com/intelsdilabs/pulse/control/routing"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/control_event"
@@ -36,13 +39,8 @@ type pluginControl struct {
 	pluginManager managesPlugins
 	metricCatalog catalogsMetrics
 	pluginRunner  runsPlugins
-	pluginRouter  routesToPlugins
-}
 
-type routesToPlugins interface {
-	Collect([]core.MetricType, *cdata.ConfigDataNode, time.Time) (*collectionResponse, error)
-	SetRunner(runsPlugins)
-	SetMetricCatalog(catalogsMetrics)
+	strategy RoutingStrategy
 }
 
 type runsPlugins interface {
@@ -102,11 +100,8 @@ func New() *pluginControl {
 	c.pluginRunner.SetMetricCatalog(c.metricCatalog)
 	c.pluginRunner.SetPluginManager(c.pluginManager)
 
-	// Plugin Router
-	c.pluginRouter = newPluginRouter()
-	logger.Debug("control.init", "router created")
-	c.pluginRouter.SetRunner(c.pluginRunner)
-	c.pluginRouter.SetMetricCatalog(c.metricCatalog)
+	// Strategy
+	c.strategy = &routing.RoundRobinStrategy{}
 
 	// Wire event manager
 
@@ -294,58 +289,85 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 	return false
 }
 
-// Calls collector plugins for the metric types and returns collection response containing metrics. Blocking method.
-func (p *pluginControl) Collect(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) ([]core.Metric, error) {
+// getAvailablePlugin finds a pool and finds a ap in that pool
+func (p *pluginControl) getPool(pluginKey string) (*availablePluginPool, error) {
 
-	pluginToMetricMap, err := groupMetricTypesByPlugin(p.managesMetrics, metricTypes)
+	pool := p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
+
+	if pool == nil {
+		// return error because this plugin has no pool
+		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
+	}
+
+	// TODO: Lock this apPool so we are the only one operating on it.
+	if pool.Count() == 0 {
+		// return error indicating we have no available plugins to call for Collect
+		return nil, errors.New(fmt.Sprintf("there is no availablePlugins in pool (%s)", pluginKey))
+	}
+	return pool, nil
+}
+
+func (p *pluginControl) getAvailablePlugin(pool *availablePluginPool) (*availablePlugin, error) {
+
+	// Use a router strategy to select an available plugin from the pool
+	// fmt.Printf("%d available plugin in pool for (%s)\n", pool.Count(), pluginKey)
+	ap, err := pool.SelectUsingStrategy(p.strategy)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if ap == nil {
+		return nil, errors.New(fmt.Sprintf("no available plugin selected in pool %v", pool))
+	}
+
+	return ap, nil
+}
+
+// Calls collector plugins for the metric types and returns collection response containing metrics. Blocking method.
+func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) ([]core.Metric, error) {
+
+	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
 		return []core.Metric{}, err
 	}
 
+	//
+	metrics := []core.Metric{}
+
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
-	var selectedAP *availablePlugin
-	for pluginKey, _ := range pluginCallSelectionMap {
+	for pluginKey, pmt := range pluginToMetricMap {
 		// fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
 
-		apPluginPool := p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
-
-		if apPluginPool == nil {
-			// return error because this plugin has no pool
-			return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
-		}
-
-		// Lock this apPool so we are the only one operating on it.
-		if apPluginPool.Count() == 0 {
-			// return error indicating we have no available plugins to call for Collect
-			return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
-		}
-
-		// Use a router strategy to select an available plugin from the pool
-		// fmt.Printf("%d available plugin in pool for (%s)\n", apPluginPool.Count(), pluginKey)
-		ap, err := apPluginPool.SelectUsingStrategy(p.Strategy)
-
+		pool, err := p.getPool(pluginKey)
 		if err != nil {
 			return nil, err
 		}
 
-		if ap == nil {
-			return nil, errors.New(fmt.Sprintf("no available plugin selected (%s)", pluginKey))
+		ap, err := p.getAvailablePlugin(pool)
+		if err != nil {
+			return nil, err
 		}
-		selectedAP = ap
+
+		// Attempt collection on selected available plugin
+		ap.hitCount++
+		ap.lastHitTime = time.Now()
+
+		cli, ok := ap.Client.(client.PluginCollectorClient)
+		if !ok {
+			return []core.Metric{}, errors.New("unable to cast client to PluginCollectorClient")
+		}
+
+		metrics, err = cli.CollectMetrics(pmt.metricTypes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	resp := newCollectionResponse()
-	// Attempt collection on selected available plugin
-	selectedAP.hitCount++
-	selectedAP.lastHitTime = time.Now()
-	metrics, err := selectedAP.Client.(client.PluginCollectorClient).CollectMetrics(metricTypes)
-	if err != nil {
-		resp.Errors = append(resp.Errors, err)
-		return resp, nil
-	}
-	resp.Metrics = metrics
-	return resp, nil
+	return metrics, nil
 }
+
+// ------------------- helper struct and function for grouping metrics types ------
 
 type pluginMetricTypes struct {
 	plugin      *loadedPlugin
@@ -353,7 +375,7 @@ type pluginMetricTypes struct {
 }
 
 func (p *pluginMetricTypes) Count() int {
-	return len(p.MetricTypes)
+	return len(p.metricTypes)
 }
 
 func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType) (map[string]pluginMetricTypes, error) {
@@ -375,7 +397,7 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType
 
 		pmt, _ := pmts[lp.Key()]
 		pmt.plugin = lp
-		pmt.metricTypes = append(pmts.metricTypes, mt)
+		pmt.metricTypes = append(pmt.metricTypes, mt)
 		pmts[lp.Key()] = pmt
 
 	}
