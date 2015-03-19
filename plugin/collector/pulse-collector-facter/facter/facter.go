@@ -7,6 +7,20 @@ legend:
 - fact - represents a value about a system gathered from Facter
 - name - is string identifier that refers to metric from the Pulse side, so name points to metric
 
+
+    GetMetricTypes  +------------+
+            +-------> typesCache |
+            |       +-----+------+
+Pulse   +---+----+        |
+  +-----> Facter |        | getEntries
+        +---+----+        |
+            |       +-----v--------+   +----------------+
+            +-------> metricsCache +--->   getFacts     |
+    CollectMetric   +--------------+   +-------+--------+
+                                               | run in goroutine
+                                       +-------v--------+
+                                       |   ./facter     |
+                                       +----------------+
 */
 
 package facter
@@ -52,18 +66,15 @@ func Meta() *plugin.PluginMeta {
 // Facter implements API to communicate with Pulse
 type Facter struct {
 	// available metrics that can me returned
-	metricTypes           []plugin.PluginMetricType
-	metricTypesLastUpdate time.Time
-	metricTypesTTL        time.Duration
-
+	typesCache  *typesCache
 	metricCache *metricCache
 }
 
 // NewFacter constructs new Facter with default values
 func NewFacter() *Facter {
 	return &Facter{
-		metricTypesTTL: defaultMetricTypesTTL,
-		metricCache:    newMetricCache(defaultCacheTTL, defaultFacterDeadline),
+		typesCache:  newTypesCache(defaultMetricTypesTTL),
+		metricCache: newMetricCache(defaultCacheTTL, defaultFacterDeadline),
 	}
 }
 
@@ -71,36 +82,28 @@ func NewFacter() *Facter {
 // ----------------------------------------------------
 
 // GetMetricTypes returns available metrics types
+// idea: if types cache is stale then update metrics cache and based on this fill cache for types
+// and return types from cache
 func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 
-	// synchronize cache conditionally as a whole
-	timeElapsed := time.Since(f.metricTypesLastUpdate)
-	needUpdate := timeElapsed > f.metricTypesTTL
-	if needUpdate {
+	// synchronize metrics cache conditionally if metrics cache is stale
+	if f.typesCache.needUpdate() {
 		// synchronize cache conditionally for all fields
 		err := f.metricCache.updateCacheAll() // fills internal f.fcache
 		if err != nil {
 			log.Println("Facter: synchronizeCache returned error: " + err.Error())
 			return nil, err
 		}
-
-		// fill f.metricTypes based on f.cache
-		f.prepareMetricTypes()
+		// fill typesCache.metricTypes cache
+		f.typesCache.cacheMetricTypes(f.metricCache.entries())
 
 	}
-	// return metricTypes prepared earlier
-	metricTypes := []plugin.PluginMetricType{}
-	for _, metricType := range f.metricTypes {
-		metricTypes = append(metricTypes, metricType)
-	}
-	return metricTypes, nil
+	return f.typesCache.getMetricTypes(), nil
 }
 
 // Collect collects metrics from external binary a returns them in form
 // acceptable by Pulse
 func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
-
-	// parse input
 
 	// requested names
 	names := []string{}
@@ -123,6 +126,11 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 		names = append(names, name)
 	}
 
+	if len(names) == 0 {
+		// nothing request, none returned
+		return []plugin.PluginMetric(nil), nil
+	}
+
 	// synchronize cache (stale of missing data) to have all we need
 	err := f.metricCache.synchronizeCache(names)
 	if err != nil {
@@ -141,27 +149,6 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 }
 
 // helper functions to support CollectMetrics & GetMetricTypes
-
-// prepareMetricTypes fills metricTypes internal collection ready to send back to pulse
-func (f *Facter) prepareMetricTypes() {
-
-	// new temporary collection
-	metricTypes := make([]plugin.PluginMetricType, 0, f.metricCache.size())
-
-	// rewrite values from cache to another collection acceptable by Pulse
-	entries := f.metricCache.entries()
-	for name, _ := range entries {
-		metricType := plugin.NewPluginMetricType(namespace(name))
-		metricTypes = append(metricTypes, *metricType)
-	}
-
-	// update internal state
-	f.metricTypes = metricTypes
-
-	// remember the last the metricTypes was filled
-	// to be confronted with f.metricTypesTTL
-	f.metricTypesLastUpdate = time.Now()
-}
 
 // required by PulseAPI
 func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {

@@ -3,13 +3,15 @@ package facter
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
 // metricCache caches values received from cmd to not overuse system under monitor
 type metricCache struct {
-	ttl  time.Duration
-	data map[string]entry
+	ttl   time.Duration
+	data  map[string]entry
+	mutex sync.Mutex
 	// injects implementation for getting facts - defaults to use getFacts from cmd.go
 	// but allows to replace with fake during tests
 	getFacts func(
@@ -26,6 +28,7 @@ func newMetricCache(ttl, facterExecutionDeadline time.Duration) *metricCache {
 	return &metricCache{
 		ttl:                     ttl,
 		data:                    map[string]entry{},
+		mutex:                   sync.Mutex{},
 		getFacts:                getFacts,
 		facterExecutionDeadline: facterExecutionDeadline,
 	}
@@ -33,23 +36,36 @@ func newMetricCache(ttl, facterExecutionDeadline time.Duration) *metricCache {
 
 // getEntry allow to extrac just one entry from cache
 func (c *metricCache) getEntry(name string) entry {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	return c.data[name]
 }
 
 // size returns number of all entries actully in cache
 func (c *metricCache) size() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	return len(c.data)
 }
 
-// size returns number of all entries actully in cache
+// entries returns a copy of cache as map of entries
 func (c *metricCache) entries() map[string]entry {
-	return c.data
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	m := make(map[string]entry, len(c.data))
+	for name, entry := range c.data {
+		m[name] = entry
+	}
+	return m
 }
 
 // getNamesToUpdate compares given fact names with cache state
 // and prepare a list of stale or non-existing ones
 // returns the names of metrics that should have to be updated
 func (c *metricCache) getNamesToUpdate(names []string) []string {
+	// protect the c.data
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	now := time.Now()
 
@@ -121,6 +137,10 @@ func (c *metricCache) updateCache(
 			names = append(names, name)
 		}
 	}
+
+	// protect the c.data
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	// update cache with new fact values
 	for _, name := range names {
