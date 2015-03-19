@@ -66,7 +66,7 @@ func main() {
 			logger.Error("main", fmt.Sprintf("bad log path(%s) - %s\n", *logPath, err.Error()))
 		}
 		defer file.Close()
-		logger.SetOutput(file)
+		logger.Output = file
 	}
 
 	// Set Max Processors for the Pulse agent.
@@ -119,7 +119,7 @@ func setMaxProcs() {
 		_maxProcs = 1
 	}
 
-	logger.Info("main", fmt.Sprintf("GOMAXPROCS=%v\n", _maxProcs))
+	logger.Debug("main", fmt.Sprintf("GOMAXPROCS=%v\n", _maxProcs))
 	runtime.GOMAXPROCS(_maxProcs)
 
 	//Verify setting worked

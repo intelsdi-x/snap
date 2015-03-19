@@ -82,28 +82,28 @@ func New() *pluginControl {
 	//
 	// Event Manager
 	c.eventManager = gomit.NewEventController()
-	logger.Debug("control.initialization", "event controller created")
+	logger.Debug("control.init", "event controller created")
 
 	// Metric Catalog
 	c.metricCatalog = newMetricCatalog()
-	logger.Debug("control", "metric catalog created")
+	logger.Debug("control.init", "metric catalog created")
 
 	// Plugin Manager
 	c.pluginManager = newPluginManager()
-	logger.Debug("control", "plugin manager created")
+	logger.Debug("control.init", "plugin manager created")
 	//    Plugin Manager needs a reference to the metric catalog
 	c.pluginManager.SetMetricCatalog(c.metricCatalog)
 
 	// Plugin Runner
 	c.pluginRunner = newRunner()
-	logger.Debug("control", "runner created")
+	logger.Debug("control.init", "runner created")
 	c.pluginRunner.AddDelegates(c.eventManager)
 	c.pluginRunner.SetMetricCatalog(c.metricCatalog)
 	c.pluginRunner.SetPluginManager(c.pluginManager)
 
 	// Plugin Router
 	c.pluginRouter = newPluginRouter()
-	logger.Debug("control", "router created")
+	logger.Debug("control.init", "router created")
 	c.pluginRouter.SetRunner(c.pluginRunner)
 	c.pluginRouter.SetMetricCatalog(c.metricCatalog)
 
@@ -115,42 +115,27 @@ func New() *pluginControl {
 		panic(err)
 	}
 
-	// c.loadRequestsChan = make(chan LoadedPlugin)
-	// privatekey, err := rsa.GenerateKey(rand.Reader, 4096)
-
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// // Future use for securing.
-	// c.controlPrivKey = privatekey
-	// c.controlPubKey = &privatekey.PublicKey
-
 	return c
 }
 
 // Begin handling load, unload, and inventory
 func (p *pluginControl) Start() error {
-	// begin controlling
-
-	// Start load handler. We only start one to keep load requests handled in
-	// a linear fashion for now as this is a low priority.
-	// go p.HandleLoadRequests()
-
 	// Start pluginManager when pluginControl starts
 	p.Started = true
+	logger.Debug("control.start", "started")
 	return nil
 }
 
 func (p *pluginControl) Stop() {
-	// close(p.loadRequestsChan)
 	p.Started = false
+	logger.Debug("control.stop", "stopped")
 }
 
 // Load is the public method to load a plugin into
 // the LoadedPlugins array and issue an event when
 // successful.
 func (p *pluginControl) Load(path string) error {
+	// logger.Debug("control.load", fmt.Sprintf("load called on path: %s", path))
 	if !p.Started {
 		return errors.New("Must start Controller before calling Load()")
 	}
@@ -210,6 +195,7 @@ func (p *pluginControl) generateArgs() plugin.Arg {
 // returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
 func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
+	logger.Info("control.subscribe", fmt.Sprintf("subscription called with: %s", mt.Namespace()))
 	subErrs := make([]error, 0)
 
 	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
@@ -246,6 +232,7 @@ func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.Config
 // UnsubscribeMetricType unsubscribes a MetricType
 // If subscriptions fall below zero we will panic.
 func (p *pluginControl) UnsubscribeMetricType(mt core.MetricType) {
+	logger.Info("control.subscribe", fmt.Sprintf("unsubscription called with: %s", mt.Namespace()))
 	err := p.metricCatalog.Unsubscribe(mt.Namespace(), mt.Version())
 	if err != nil {
 		// panic because if a metric falls below 0, something bad has happened

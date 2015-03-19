@@ -2,8 +2,10 @@ package routing
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
 	"math/rand"
+
+	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
 type RoundRobinStrategy struct {
@@ -12,7 +14,7 @@ type RoundRobinStrategy struct {
 func (r *RoundRobinStrategy) Select(spp SelectablePluginPool, spa []SelectablePlugin) (SelectablePlugin, error) {
 	var h int = -1
 	var index int = -1
-	fmt.Printf("Using round robin selection on pool of %d plugins\n", len(spa))
+	logger.Debugf("routing.rr", "Using round robin selection on pool of %d plugins\n", len(spa))
 	for i, sp := range spa {
 		// look for the lowest hit count
 		if sp.HitCount() < h || h == -1 {
@@ -28,7 +30,7 @@ func (r *RoundRobinStrategy) Select(spp SelectablePluginPool, spa []SelectablePl
 		}
 	}
 	if index > -1 {
-		fmt.Printf("Selecting plugin at index (%d) with hitcount of (%d)\n", index, spa[index].HitCount())
+		logger.Debugf("routing.rr", "Selecting plugin at index (%s) with hitcount of (%d)\n", spa[index].String(), spa[index].HitCount())
 		return spa[index], nil
 	}
 	return nil, errors.New("could not select a plugin (round robin strategy)")

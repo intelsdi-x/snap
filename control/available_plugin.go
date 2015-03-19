@@ -2,6 +2,7 @@ package control
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"github.com/intelsdilabs/pulse/control/plugin/client"
 	"github.com/intelsdilabs/pulse/control/routing"
 	"github.com/intelsdilabs/pulse/core/control_event"
+	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
 const (
@@ -31,6 +33,7 @@ type availablePlugin struct {
 	Client  client.PluginClient
 	Index   int
 
+	id                 int
 	hitCount           int
 	lastHitTime        time.Time
 	eventManager       *gomit.EventController
@@ -40,7 +43,7 @@ type availablePlugin struct {
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
-func newAvailablePlugin(resp *plugin.Response) (*availablePlugin, error) {
+func newAvailablePlugin(resp *plugin.Response, id int) (*availablePlugin, error) {
 	ap := &availablePlugin{
 		Name:    resp.Meta.Name,
 		Version: resp.Meta.Version,
@@ -49,6 +52,7 @@ func newAvailablePlugin(resp *plugin.Response) (*availablePlugin, error) {
 		eventManager: new(gomit.EventController),
 		healthChan:   make(chan error, 1),
 		lastHitTime:  time.Now(),
+		id:           id,
 	}
 
 	// Create RPC Client
@@ -67,8 +71,17 @@ func newAvailablePlugin(resp *plugin.Response) (*availablePlugin, error) {
 	return ap, nil
 }
 
+func (a *availablePlugin) Id() int {
+	return a.id
+}
+
+func (a *availablePlugin) String() string {
+	return fmt.Sprintf("%s:v%d:id%d", a.Name, a.Version, a.id)
+}
+
 // Stop halts a running availablePlugin
 func (ap *availablePlugin) Stop(r string) error {
+	logger.Debug("availableplugin", fmt.Sprintf(ap.Name, ap.Version))
 	return ap.Client.Kill(r)
 }
 
@@ -81,6 +94,7 @@ func (ap *availablePlugin) CheckHealth() {
 	select {
 	case err := <-ap.healthChan:
 		if err == nil {
+			logger.Debugf("healthcheck", "ok (%s)", ap.String())
 			ap.failedHealthChecks = 0
 		} else {
 			ap.healthCheckFailed()
@@ -93,8 +107,10 @@ func (ap *availablePlugin) CheckHealth() {
 // healthCheckFailed increments ap.failedHealthChecks and emits a DisabledPluginEvent
 // and a HealthCheckFailedEvent
 func (ap *availablePlugin) healthCheckFailed() {
+	logger.Debugf("heartbeat", "missed (%s)", ap.String())
 	ap.failedHealthChecks++
 	if ap.failedHealthChecks >= DefaultHealthCheckFailureLimit {
+		logger.Debugf("hearbeat", "failed (%s)", ap.String())
 		pde := &control_event.DisabledPluginEvent{
 			Name:    ap.Name,
 			Version: ap.Version,
@@ -178,6 +194,7 @@ func (c *apCollection) Table() map[string][]*availablePlugin {
 
 // Add adds an availablePlugin to the apCollection table
 func (c *apCollection) Add(ap *availablePlugin) error {
+	logger.Debugf("apcollection", "available plugin added %s", ap.String())
 	c.Lock()
 	defer c.Unlock()
 
@@ -208,6 +225,7 @@ func (c *apCollection) Remove(ap *availablePlugin) error {
 	}
 
 	(*c.table)[ap.Key].Remove(ap)
+	logger.Debug("ap.removed", fmt.Sprintf(ap.Name, ap.Version))
 	return nil
 }
 

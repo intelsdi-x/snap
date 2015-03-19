@@ -34,6 +34,18 @@ type executablePlugin interface {
 	WaitForResponse(time.Duration) (*plugin.Response, error)
 }
 
+type idCounter struct {
+	id    int
+	mutex *sync.Mutex
+}
+
+func (i *idCounter) Next() int {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+	i.id++
+	return i.id
+}
+
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type runner struct {
 	delegates        []gomit.Delegator
@@ -42,6 +54,7 @@ type runner struct {
 	metricCatalog    catalogsMetrics
 	pluginManager    managesPlugins
 	mutex            *sync.Mutex
+	apIdCounter      *idCounter
 }
 
 func newRunner() *runner {
@@ -49,6 +62,7 @@ func newRunner() *runner {
 		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(),
 		mutex:            &sync.Mutex{},
+		apIdCounter:      &idCounter{mutex: &sync.Mutex{}},
 	}
 	return r
 }
@@ -74,7 +88,6 @@ func (r *runner) AddDelegates(delegates ...gomit.Delegator) {
 
 // Begin handing events and managing available plugins
 func (r *runner) Start() error {
-	logger.Debug("runner", "starting")
 	// Delegates must be added before starting if none exist
 	// then this Runner can do nothing and should not start.
 	if len(r.delegates) == 0 {
@@ -92,7 +105,7 @@ func (r *runner) Start() error {
 	// Start the monitor
 	r.monitor.Start(r.availablePlugins)
 
-	logger.Debug("runner", "started")
+	logger.Debug("runner.start", "started")
 	return nil
 }
 
@@ -112,13 +125,16 @@ func (r *runner) Stop() []error {
 			errs = append(errs, e)
 		}
 	}
+	defer logger.Debug("runner.stop", "stopped")
 	return errs
 }
 
 func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	e := p.Start()
 	if e != nil {
-		return nil, errors.New("error while starting plugin: " + e.Error())
+		e_ := errors.New("error while starting plugin: " + e.Error())
+		defer logger.Error("runner.startplugin", e_.Error())
+		return nil, e_
 	}
 
 	// Wait for plugin response
@@ -136,7 +152,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// build availablePlugin
-	ap, err := newAvailablePlugin(resp)
+	ap, err := newAvailablePlugin(resp, r.apIdCounter.Next())
 	if err != nil {
 		return nil, err
 	}
@@ -148,6 +164,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	r.availablePlugins.Insert(ap)
+	logger.Infof("runner.events", "available plugin started (%s)", ap.String())
 
 	return ap, nil
 }
@@ -170,9 +187,9 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 	switch v := e.Body.(type) {
 	case *control_event.MetricSubscriptionEvent:
-		fmt.Println("runner")
-		fmt.Println(v.Namespace())
-		fmt.Printf("Metric subscription (%s v%d)\n", strings.Join(v.MetricNamespace, "/"), v.Version)
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
+		logger.Debugf("runner.events", "handling metric subscription event (%s v%d)", strings.Join(v.MetricNamespace, "/"), v.Version)
 
 		// Our logic here is simple for alpha. We should replace with parameter managed logic.
 		//
@@ -186,26 +203,28 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			fmt.Println(err)
 			return
 		}
-		fmt.Printf("Plugin is (%s)\n", mt.Plugin.Key())
+		logger.Debugf("runner.events", "plugin is (%s) for (%s v%d)", mt.Plugin.Key(), strings.Join(v.MetricNamespace, "/"), v.Version)
 
 		pool := r.availablePlugins.Collectors.GetPluginPool(mt.Plugin.Key())
 		if pool != nil && pool.Count() >= MaximumRunningPlugins {
 			// if r.availablePlugins.Collectors.PluginPoolHasAP(mt.Plugin.Key()) {
-			fmt.Println("We have at least one running!")
+			logger.Debugf("runner.events", "(%s) has %d available plugin running (need %d)", mt.Plugin.Key(), pool.Count(), MaximumRunningPlugins)
 			return
 		}
+		if pool == nil {
+			logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", 0, mt.Plugin.Key(), MaximumRunningPlugins)
+		} else {
+			logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", pool.Count(), mt.Plugin.Key(), MaximumRunningPlugins)
+		}
 
-		fmt.Println("No APs running!")
 		ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(), mt.Plugin.Path)
 		if err != nil {
 			fmt.Println(err)
 		}
-		ap, err := r.startPlugin(ePlugin)
+		_, err = r.startPlugin(ePlugin)
 		if err != nil {
 			fmt.Println(err)
 			panic(err)
 		}
-		fmt.Println("NEW AP")
-		fmt.Println(ap)
 	}
 }

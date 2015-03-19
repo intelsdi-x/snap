@@ -61,7 +61,7 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 			return nil, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(m.Namespace(), "/")))
 		}
 
-		fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
+		// fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
 		x, _ := pluginCallSelectionMap[lp.Key()]
 		x.Plugin = lp
 		x.MetricTypes = append(x.MetricTypes, m)
@@ -71,8 +71,8 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	var selectedAP *availablePlugin
-	for pluginKey, metrics := range pluginCallSelectionMap {
-		fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
+	for pluginKey, _ := range pluginCallSelectionMap {
+		// fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
 
 		apPluginPool := p.pluginRunner.AvailablePlugins().Collectors.GetPluginPool(pluginKey)
 
@@ -88,7 +88,7 @@ func (p *pluginRouter) Collect(metricTypes []core.MetricType, config *cdata.Conf
 		}
 
 		// Use a router strategy to select an available plugin from the pool
-		fmt.Printf("%d available plugin in pool for (%s)\n", apPluginPool.Count(), pluginKey)
+		// fmt.Printf("%d available plugin in pool for (%s)\n", apPluginPool.Count(), pluginKey)
 		ap, err := apPluginPool.SelectUsingStrategy(p.Strategy)
 
 		if err != nil {
