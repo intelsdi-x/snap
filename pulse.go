@@ -10,13 +10,16 @@ import (
 	"syscall"
 
 	"github.com/intelsdilabs/pulse/control"
+	"github.com/intelsdilabs/pulse/mgmt/rest"
 	"github.com/intelsdilabs/pulse/pkg/logger"
+	"github.com/intelsdilabs/pulse/rest"
 	"github.com/intelsdilabs/pulse/scheduler"
 )
 
 var (
 	// Pulse Flags for command line
 	version  = flag.Bool("version", false, "Print Pulse version")
+	restMgmt = flag.Bool("rest", false, "start rest interface for Pulse")
 	maxProcs = flag.Int("max_procs", 0, "Set max cores to use for Pulse Agent. Default is 1 core.")
 	logPath  = flag.String("log_path", "", "Path for logs. Empty path logs to stdout.")
 	logLevel = flag.Int("log_level", 2, "1-5 (Debug, Info, Warning, Error, Fatal")
@@ -89,6 +92,14 @@ func main() {
 			c.Stop()
 		}
 		printErrorAndExit("scheduler", err)
+	}
+
+	// init rest mgmt interface
+	if *restMgmt {
+		r := rest.New()
+		r.BindMetricManager(c)
+		r.BindTaskManager(s)
+		r.Start(":8181")
 	}
 
 	select {} //run forever and ever

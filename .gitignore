@@ -28,3 +28,4 @@ scratch/
 build/
 *.swp
 profile.cov
+gin-bin

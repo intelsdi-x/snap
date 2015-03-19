@@ -48,10 +48,10 @@ func (l *loadedPlugins) Append(lp *loadedPlugin) error {
 	l.Lock()
 	defer l.Unlock()
 
-	// make sure we don't already  have a pointer to this plugin in the table
+	// make sure we don't already have this plugin in the table
 	for i, pl := range *l.table {
-		if lp == pl {
-			return errors.New("plugin already loaded at index " + strconv.Itoa(i))
+		if lp.Meta.Name == pl.Meta.Name && lp.Meta.Version == pl.Meta.Version {
+			return errors.New("plugin [" + lp.Meta.Name + ":" + strconv.Itoa(lp.Meta.Version) + "] already loaded at index " + strconv.Itoa(i))
 		}
 	}
 
