@@ -36,6 +36,10 @@ func TestCacheUpdate(t *testing.T) {
 
 		c := newMetricCache(defaultCacheTTL, defaultFacterDeadline)
 
+		Convey("check size for empty", func() {
+			So(c.size(), ShouldEqual, 0)
+		})
+
 		Convey("empty for start", func() {
 			So(c.data, ShouldBeEmpty)
 		})
@@ -83,6 +87,11 @@ func TestCacheUpdate(t *testing.T) {
 	Convey("cache synchronization", t, func() {
 
 		c := newMetricCache(defaultCacheTTL, defaultFacterDeadline)
+
+		Convey("errors when asked for nothing", func() {
+			err := c.synchronizeCache(nil) // pass an nilslice
+			So(err, ShouldNotBeNil)
+		})
 
 		Convey("when not synchronized cache is empty and asked for existing fact",
 			withFakeFacter(c, facts{"foo": 1}, func() {

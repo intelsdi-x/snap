@@ -97,16 +97,10 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 	names := []string{}
 	for _, metricType := range metricTypes {
 		namespace := metricType.Namespace()
-		// check namespace intel(vendor)/facter(prefix)/FACTNAME
-		if len(namespace) != 3 {
-			return nil, errors.New(fmt.Sprintf("unknown metricType %s (should containt just 3 segments)", namespace))
-		}
-		if namespace[0] != vendor {
-			return nil, errors.New(fmt.Sprintf("unknown metricType %s (expected vendor %s)", namespace, vendor))
-		}
 
-		if namespace[1] != prefix {
-			return nil, errors.New(fmt.Sprintf("unknown metricType %s (expected prefix %s)", namespace, prefix))
+		err := validateNamespace(namespace)
+		if err != nil {
+			return nil, err
 		}
 
 		// name of fact - last part of namespace
@@ -134,6 +128,21 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 	}
 
 	return ms, nil
+}
+
+// validateNamespace checks namespace intel(vendor)/facter(prefix)/FACTNAME
+func validateNamespace(namespace []string) error {
+	if len(namespace) != 3 {
+		return errors.New(fmt.Sprintf("unknown metricType %s (should containt just 3 segments)", namespace))
+	}
+	if namespace[0] != vendor {
+		return errors.New(fmt.Sprintf("unknown metricType %s (expected vendor %s)", namespace, vendor))
+	}
+
+	if namespace[1] != prefix {
+		return errors.New(fmt.Sprintf("unknown metricType %s (expected prefix %s)", namespace, prefix))
+	}
+	return nil
 }
 
 // ------------ helper functions --------------

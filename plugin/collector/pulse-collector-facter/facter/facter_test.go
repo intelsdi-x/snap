@@ -5,8 +5,10 @@ go test -v github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-facter
 package facter
 
 import (
+	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	. "github.com/smartystreets/goconvey/convey"
@@ -17,6 +19,25 @@ import (
 const existingFact = "kernel"
 
 var existingNamespace = []string{vendor, prefix, existingFact}
+
+// allows to use fake facter within tests - that returns error every time
+func withBrokenFacter(facter *Facter, f func()) func() {
+
+	// getFactsMock
+	getFactsMock := func(_ []string, _ time.Duration, _ *cmdConfig) (*facts, *time.Time, error) {
+		return nil, nil, errors.New("dummy error")
+	}
+
+	return func() {
+		// set mock
+		facter.metricCache.getFacts = getFactsMock
+		// set reset function to restore original version of getFacts
+		Reset(func() {
+			facter.metricCache.getFacts = getFacts
+		})
+		f()
+	}
+}
 
 func TestFacterCollectMetrics(t *testing.T) {
 	Convey("TestFacterCollect tests", t, func() {
@@ -40,7 +61,66 @@ func TestFacterCollectMetrics(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(metrics, ShouldNotBeEmpty)
 		})
+
+		Convey("ask for inappriopriate metrics", func() {
+			f := NewFacter()
+			Convey("wrong number of parts", func() {
+				_, err := f.CollectMetrics(
+					[]plugin.PluginMetricType{
+						*plugin.NewPluginMetricType(
+							[]string{"where are my other parts"},
+						),
+					},
+				)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, "segments")
+			})
+
+			Convey("wrong vendor", func() {
+				_, err := f.CollectMetrics(
+					[]plugin.PluginMetricType{
+						*plugin.NewPluginMetricType(
+							[]string{"nonintelvendor", prefix, existingFact},
+						),
+					},
+				)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, "expected vendor")
+			})
+
+			Convey("wrong prefix", func() {
+				_, err := f.CollectMetrics(
+					[]plugin.PluginMetricType{
+						*plugin.NewPluginMetricType(
+							[]string{vendor, "this is wrong prefix", existingFact},
+						),
+					},
+				)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, "expected prefix")
+			})
+
+		})
 	})
+}
+
+func TestFacterReturnsErrors(t *testing.T) {
+
+	f := NewFacter()
+
+	Convey("returns errors as expected when cmd isn't working", t, withBrokenFacter(f, func() {
+
+		_, err := f.CollectMetrics([]plugin.PluginMetricType{
+			*plugin.NewPluginMetricType(
+				existingNamespace,
+			),
+		},
+		)
+		So(err, ShouldNotBeNil)
+
+		_, err = f.GetMetricTypes()
+		So(err, ShouldNotBeNil)
+	}))
 }
 
 func TestFacterGetMetricsTypes(t *testing.T) {
