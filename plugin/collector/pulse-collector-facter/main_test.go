@@ -18,7 +18,7 @@ var (
 	PluginPath = path.Join(PulsePath, "plugin", PluginType, PluginName)
 )
 
-func TestDummyPluginLoad(t *testing.T) {
+func TestPluginLoads(t *testing.T) {
 	// These tests only work if PULSE_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
