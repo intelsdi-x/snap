@@ -7,7 +7,7 @@
 
 * Improve the deployment model and flexibility of a telemetry tools.
 * Allow dynamic control of collection for one system or many at once.
-* Make it easy to wire in processing on telemetry at the agent for use cases like machine learning.
+* Make it easy to inject processing on telemetry at the agent for use cases like machine learning.
 * Reduce the friction of pointing Pulse to any telemetry ingesting system.
 * Provide operational improvements that make collecting on a very large cluster of systems easier.
 
