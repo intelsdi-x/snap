@@ -24,9 +24,9 @@
 
 **Pulse** needs:
 
-* Feedback: try it and tell us about it.
-* Contributors: We need plugins, schedules, testing, and more.
-* Integrations: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), [Riemann](https://github.com/aphyr/riemann), [InfluxDB](https://github.com/influxdb/influxdb), and more.
+* _Feedback_: try it and tell us about it.
+* _Contributors_: We need plugins, schedules, testing, and more.
+* _Integrations_: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), [Riemann](https://github.com/aphyr/riemann), [InfluxDB](https://github.com/influxdb/influxdb), and more.
 
 ## License
 
