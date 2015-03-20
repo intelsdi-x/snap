@@ -10,7 +10,7 @@
 * Three types of plugins: collectors, processors, and publishers.
 * Open plugin model allows for loading built-in, community, or proprietary plugins into **Pulse**.
 * Dynamic loading, unloading, and swapping of plugins.
-* Adding a newer version of a plugin automatically upgrades the next scheduled actions (when not pinned to a version).
+* Adding a newer version of a plugin automatically upgrades the next scheduled actions _(when not pinned to a version)_.
 * Powerful control using viral clustering of **Pulse** instances into a Tribe.
 * Ability to run **Pulse** in distributed role deployment models.
 * Extensible source allowing addition of extended scheduling, plugins, routing, and more.
@@ -26,7 +26,7 @@
 
 * Feedback: try it and tell us about it.
 * Contributors: We need plugins, schedules, testing, and more.
-* Integrations: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for Ceilometer, vCOPs, Riemann, InfluxDB, and more.
+* Integrations: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for Ceilometer(https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), [Riemann](https://github.com/aphyr/riemann), [InfluxDB](https://github.com/influxdb/influxdb), and more.
 
 ## License
 
