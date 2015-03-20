@@ -53,7 +53,7 @@ make
 ## Contributing
 
 * [Please read our development guidelines](https://github.com/intelsdilabs/pulse/wiki/Development-guidelines)
-* <TODO CLA>
+* [ ] TODO - CLA
 
 ## Testing
 
