@@ -3,7 +3,7 @@
 
 ## Description
 
-**Pulse** is a framework for enabling the gathering of telemetry from systems. The goal of this projecy is:
+**Pulse** is a framework for enabling the gathering of telemetry from systems. The goal of this project is:
 
 * Improve the deployment model and flexibility of a telemetry tools.
 * Allow dynamic control of collection for one system or many at once.
