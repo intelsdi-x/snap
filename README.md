@@ -60,9 +60,7 @@ make test
 
 ## Releases
 
-## Contibutors
-
-
+## Contributors
 
 * Joel Cooklin - [@jcooklin](http://github.com/jcooklin) - Intel Corporation
 * Justin Guidroz - [@geauxvirtual](http://github.com/jcooklin) - Intel Corporation
