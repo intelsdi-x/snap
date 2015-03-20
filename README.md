@@ -32,3 +32,12 @@ make test
 ## Releases
 
 ## Contibutors
+
+
+
+* Joel Cooklin - [@jcooklin](http://github.com/jcooklin) - Intel Corporation
+* Justin Guidroz - [@geauxvirtual](http://github.com/jcooklin) - Intel Corporation
+* Szymon Konefal - [@skonefal](http://github.com/jcooklin) - Intel Corporation
+* Pawel Palucki - [@ppalucki](http://github.com/jcooklin) - Intel Corporation
+* Daniel Pittman - [@danielscottt](http://github.com/jcooklin) - Intel Corporation
+* Nicholas Weaver - [@lynxbat](http://github.com/jcooklin) - Intel Corporation
