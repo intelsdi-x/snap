@@ -118,10 +118,11 @@ func (s *SessionState) heartbeatWatch(killChan chan int) {
 	s.logger.Println("Heartbeat started")
 	count := 0
 	for {
-		if time.Now().Sub(s.LastPing) >= PingTimeoutDuration {
+		if time.Now().Sub(s.LastPing) >= s.PingTimeoutDuration {
 			count++
+			s.logger.Printf("Heartbeat timeout %v of %v.  (Duration between checks %v)", count, PingTimeoutLimit, s.PingTimeoutDuration)
 			if count >= PingTimeoutLimit {
-				s.logger.Println("Heartbeat timeout expired")
+				s.logger.Println("Heartbeat timeout expired!")
 				defer close(killChan)
 				return
 			}
@@ -130,7 +131,7 @@ func (s *SessionState) heartbeatWatch(killChan chan int) {
 			// Reset count
 			count = 0
 		}
-		time.Sleep(PingTimeoutDuration)
+		time.Sleep(s.PingTimeoutDuration)
 	}
 }
 
@@ -148,6 +149,12 @@ func NewSessionState(pluginArgsMsg string) (*SessionState, error, int) {
 	if pluginArg.listenPort == "" {
 		pluginArg.listenPort = "0"
 	}
+
+	// If no PingTimeoutDuration was provided we need to set it
+	if pluginArg.PingTimeoutDuration == 0 {
+		pluginArg.PingTimeoutDuration = PingTimeoutDurationDefault
+	}
+	// pluginArg.PingTimeoutDuration = 500 * time.Millisecond
 
 	// Generate random token for this session
 	rb := make([]byte, 32)
