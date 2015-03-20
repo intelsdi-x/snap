@@ -294,7 +294,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cd
 
 	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
-		return []core.Metric{}, err
+		return nil, err
 	}
 
 	metrics := []core.Metric{}
@@ -319,7 +319,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cd
 
 		cli, ok := ap.Client.(client.PluginCollectorClient)
 		if !ok {
-			return []core.Metric{}, errors.New("unable to cast client to PluginCollectorClient")
+			return nil, errors.New("unable to cast client to PluginCollectorClient")
 		}
 
 		metrics, err = cli.CollectMetrics(pmt.metricTypes)
@@ -352,11 +352,11 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType
 		// This is set to choose the newest and not pin version. TODO, be sure version is set to -1 if not provided by user on Task creation.
 		lp, err := cat.GetPlugin(mt.Namespace(), -1)
 		if err != nil {
-			return map[string]pluginMetricTypes{}, err
+			return nil, err
 		}
 		// if loaded plugin is nil, we have failed.  return error
 		if lp == nil {
-			return map[string]pluginMetricTypes{}, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(mt.Namespace(), "/")))
+			return nil, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(mt.Namespace(), "/")))
 		}
 
 		// fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
