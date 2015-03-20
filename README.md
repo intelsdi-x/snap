@@ -3,7 +3,7 @@
 
 ## Description
 
-**Pulse** is a framework for enabling the gathering of telemetry from systems. It aims to make collection, processing, and distribution of data (telemetry) from running systems easier to schedule and deploy. We want to reduce the friction in gathering important system data into something that provides value with that data.
+**Pulse** is a framework for enabling the gathering of telemetry from systems. It aims to make collection, processing, and distribution of data _(telemetry)_ from running systems easier to schedule and deploy. We want to reduce the friction in gathering important system data into something that provides value with that data.
 
 **Pulse** provides several specific features:
 
