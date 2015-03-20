@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -75,31 +74,5 @@ func TestFacterGetMetricsTypes(t *testing.T) {
 				}
 			})
 		})
-	})
-}
-
-func TestFacterPluginMeta(t *testing.T) {
-	Convey("PluginMeta tests", t, func() {
-		meta := Meta()
-		Convey("Meta is not nil", func() {
-			So(meta, ShouldNotBeNil)
-		})
-		Convey("Name should be right", func() {
-			So(meta.Name, ShouldEqual, "Intel Fact Gathering Plugin")
-		})
-		Convey("Version should be 1", func() {
-			So(meta.Version, ShouldEqual, 1)
-		})
-		Convey("Type should be plugin.CollectorPluginType", func() {
-			So(meta.Type, ShouldEqual, plugin.CollectorPluginType)
-		})
-	})
-}
-
-func TestFacterConfigPolicy(t *testing.T) {
-	Convey("config policy has right type", t, func() {
-		expectedCPT := ConfigPolicyTree()
-		gotCPT := cpolicy.NewTree()
-		So(expectedCPT, ShouldHaveSameTypeAs, gotCPT)
 	})
 }

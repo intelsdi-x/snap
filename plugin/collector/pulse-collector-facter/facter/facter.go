@@ -32,10 +32,10 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 const (
+	// parts of returned namescape
 	vendor = "intel"
 	prefix = "facter"
 	// how long we are caching the date from external binary to prevent overuse of resources
@@ -46,29 +46,18 @@ const (
 	defaultFacterDeadline = 5 * time.Second
 )
 
-/*****************************************
- *  pulse public methods implementation  *
- *****************************************/
-
-// returns PluginMeta
-func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(
-		"Intel Fact Gathering Plugin", // name
-		1, // version
-		plugin.CollectorPluginType, // pluginType
-	)
-}
-
 /**********
  * Facter *
  **********/
 
 // Facter implements API to communicate with Pulse
 type Facter struct {
-	// available metrics that can me returned
 	typesCache  *typesCache
 	metricCache *metricCache
 }
+
+// make sure that we actually satisify requierd interface
+var _ plugin.CollectorPlugin = (*Facter)(nil)
 
 // NewFacter constructs new Facter with default values
 func NewFacter() *Facter {
@@ -78,8 +67,7 @@ func NewFacter() *Facter {
 	}
 }
 
-// Pulse plugin interface implementation
-// ----------------------------------------------------
+// ------------ Pulse plugin interface implementation --------------
 
 // GetMetricTypes returns available metrics types
 // idea: if types cache is stale then update metrics cache and based on this fill cache for types
@@ -148,13 +136,7 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 	return ms, nil
 }
 
-// helper functions to support CollectMetrics & GetMetricTypes
-
-// required by PulseAPI
-func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
-	c := cpolicy.NewTree()
-	return c
-}
+// ------------ helper functions --------------
 
 // namspace returns namespace slice of strings
 // composed from: vendor, prefix and fact name

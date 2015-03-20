@@ -1,3 +1,5 @@
+// cache of metric types - requires a entries passed from "metrics cache"
+// protected by mutexes, so can be accessed from mulitple goroutines
 package facter
 
 import (
@@ -7,16 +9,15 @@ import (
 	"github.com/intelsdilabs/pulse/control/plugin"
 )
 
+// typesCache is a cache that stores metrics types
 type typesCache struct {
-
-	// TODO; extrac metricTypes functionallity to anotther struct
-	// typesCache:
 	data       []plugin.PluginMetricType
 	mutex      sync.Mutex
 	lastUpdate time.Time
 	ttl        time.Duration
 }
 
+// newTypesCache is constuctor for typesCache
 func newTypesCache(ttl time.Duration) *typesCache {
 	return &typesCache{
 		data:  []plugin.PluginMetricType{},
@@ -25,6 +26,7 @@ func newTypesCache(ttl time.Duration) *typesCache {
 	}
 }
 
+// getMetricTypes returns a copy of cache, that can be returned to Pulse
 func (t *typesCache) getMetricTypes() []plugin.PluginMetricType {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
@@ -53,9 +55,10 @@ func (t *typesCache) cacheMetricTypes(entries map[string]entry) {
 	// remember the last the metricTypes was filled
 	// to be confronted with f.metricTypesTTL
 	t.lastUpdate = time.Now()
-	return
 }
 
+// needUpdate returns true if types stored in cache are stale
+// (older that ttl allows to be)
 func (t *typesCache) needUpdate() bool {
 	timeElapsed := time.Since(t.lastUpdate)
 	return timeElapsed > t.ttl

@@ -1,4 +1,4 @@
-// internals of facter cache management
+// metricCache that caches all values received from comand
 package facter
 
 import (
@@ -20,6 +20,7 @@ type metricCache struct {
 		cmdConfig *cmdConfig,
 	) (*facts, *time.Time, error)
 	// how much time we are ready to wait for getting result from cmd
+	// is going to be passed to facterTimeout parameter in getFacts
 	facterExecutionDeadline time.Duration
 }
 
@@ -115,7 +116,7 @@ func (c *metricCache) synchronizeCache(names []string) error {
 
 // updateCache updates (refresh) cache entries (unconditionally) with current values
 // from external binary
-// you can pass empty names collection to force update everything
+// One can pass empty names collection to force update of everything
 func (c *metricCache) updateCache(
 	names []string,
 ) error {
