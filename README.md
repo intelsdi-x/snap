@@ -34,6 +34,11 @@
 * _Contributors_: We need plugins, schedules, testing, and more.
 * _Integrations_: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), [Riemann](https://github.com/aphyr/riemann), [InfluxDB](https://github.com/influxdb/influxdb), and more.
 
+**Pulse** architecture
+
+* Written in Go
+* Decoupled internal structure with a focus on event-driven handling
+
 ## License
 
 <DO NOT PUT SOMETHING HERE YET>
