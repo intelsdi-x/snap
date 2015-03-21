@@ -329,12 +329,12 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cd
 
 		wg.Add(1)
 
-		go func() {
+		go func(mt []core.MetricType) {
 			select {
 			case <-killChan:
 				return
 			default:
-				metrics, err = cli.CollectMetrics(pmt.metricTypes)
+				metrics, err = cli.CollectMetrics(mt)
 				if err != nil {
 					//return nil, err
 					mChan <- err
@@ -342,7 +342,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cd
 					mChan <- metrics
 				}
 			}
-		}()
+		}(pmt.metricTypes)
 
 	}
 
