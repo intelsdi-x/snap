@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/intelsdilabs/gomit"
@@ -298,6 +299,10 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cd
 	}
 
 	metrics := []core.Metric{}
+	mChan := make(chan interface{})
+	killChan := make(chan struct{})
+	defer close(killChan)
+	var wg sync.WaitGroup
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
@@ -322,9 +327,41 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cd
 			return []core.Metric{}, errors.New("unable to cast client to PluginCollectorClient")
 		}
 
-		metrics, err = cli.CollectMetrics(pmt.metricTypes)
-		if err != nil {
-			return nil, err
+		wg.Add(1)
+
+		go func() {
+			select {
+			case <-killChan:
+				return
+			default:
+				metrics, err = cli.CollectMetrics(pmt.metricTypes)
+				if err != nil {
+					//return nil, err
+					mChan <- err
+				} else {
+					mChan <- metrics
+				}
+			}
+		}()
+
+	}
+
+	go func() {
+		wg.Wait()
+		close(mChan)
+	}()
+
+	for n := range mChan {
+		switch n.(type) {
+		case []core.Metric:
+			metrics = append(metrics, n.([]core.Metric)...)
+			wg.Done()
+		case error:
+			collErr := n.(error)
+			killChan <- struct{}{}
+			return nil, collErr
+		default:
+			panic("Unexpected type")
 		}
 	}
 
