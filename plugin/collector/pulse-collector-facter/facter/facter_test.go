@@ -16,42 +16,28 @@ import (
 
 // fact expected to be available on every system
 // can be allways received from Facter for test purposes
-const existingFact = "kernel"
+const someFact = "kernel"
+const someValue = "linux 1234"
 
-var existingNamespace = []string{vendor, prefix, existingFact}
-
-// allows to use fake facter within tests - that returns error every time
-func withBrokenFacter(facter *Facter, f func()) func() {
-
-	// getFactsMock
-	getFactsMock := func(_ []string, _ time.Duration, _ *cmdConfig) (*facts, *time.Time, error) {
-		return nil, nil, errors.New("dummy error")
-	}
-
-	return func() {
-		// set mock
-		facter.metricCache.getFacts = getFactsMock
-		// set reset function to restore original version of getFacts
-		Reset(func() {
-			facter.metricCache.getFacts = getFacts
-		})
-		f()
-	}
-}
+var existingNamespace = []string{vendor, prefix, someFact}
 
 func TestFacterCollectMetrics(t *testing.T) {
 	Convey("TestFacterCollect tests", t, func() {
 
+		f := NewFacter()
+		// always return at least one metric
+		f.getFacts = func(_ []string, _ time.Duration, _ *cmdConfig) (facts, error) {
+			return facts{someFact: someValue}, nil
+		}
+
 		Convey("asked for nothgin returns nothing", func() {
-			f := NewFacter()
 			metricTypes := []plugin.PluginMetricType{}
 			metrics, err := f.CollectMetrics(metricTypes)
 			So(err, ShouldBeNil)
 			So(metrics, ShouldBeEmpty)
 		})
 
-		Convey("asked for somehting returns somthing", func() {
-			f := NewFacter()
+		Convey("asked for somehting returns something", func() {
 			metricTypes := []plugin.PluginMetricType{
 				*plugin.NewPluginMetricType(
 					existingNamespace,
@@ -60,10 +46,15 @@ func TestFacterCollectMetrics(t *testing.T) {
 			metrics, err := f.CollectMetrics(metricTypes)
 			So(err, ShouldBeNil)
 			So(metrics, ShouldNotBeEmpty)
+			So(len(metrics), ShouldEqual, 1)
+
+			// check just one metric
+			metric := metrics[0]
+			So(metric.Namespace()[2], ShouldResemble, someFact)
+			So(metric.Data().(string), ShouldEqual, someValue)
 		})
 
 		Convey("ask for inappriopriate metrics", func() {
-			f := NewFacter()
 			Convey("wrong number of parts", func() {
 				_, err := f.CollectMetrics(
 					[]plugin.PluginMetricType{
@@ -80,7 +71,7 @@ func TestFacterCollectMetrics(t *testing.T) {
 				_, err := f.CollectMetrics(
 					[]plugin.PluginMetricType{
 						*plugin.NewPluginMetricType(
-							[]string{"nonintelvendor", prefix, existingFact},
+							[]string{"nonintelvendor", prefix, someFact},
 						),
 					},
 				)
@@ -92,7 +83,7 @@ func TestFacterCollectMetrics(t *testing.T) {
 				_, err := f.CollectMetrics(
 					[]plugin.PluginMetricType{
 						*plugin.NewPluginMetricType(
-							[]string{vendor, "this is wrong prefix", existingFact},
+							[]string{vendor, "this is wrong prefix", someFact},
 						),
 					},
 				)
@@ -104,11 +95,14 @@ func TestFacterCollectMetrics(t *testing.T) {
 	})
 }
 
-func TestFacterReturnsErrors(t *testing.T) {
+func TestFacterInvalidBehavior(t *testing.T) {
 
-	f := NewFacter()
-
-	Convey("returns errors as expected when cmd isn't working", t, withBrokenFacter(f, func() {
+	Convey("returns errors as expected when cmd isn't working", t, func() {
+		f := NewFacter()
+		// mock that getFacts returns error every time
+		f.getFacts = func(_ []string, _ time.Duration, _ *cmdConfig) (facts, error) {
+			return nil, errors.New("dummy error")
+		}
 
 		_, err := f.CollectMetrics([]plugin.PluginMetricType{
 			*plugin.NewPluginMetricType(
@@ -120,7 +114,26 @@ func TestFacterReturnsErrors(t *testing.T) {
 
 		_, err = f.GetMetricTypes()
 		So(err, ShouldNotBeNil)
-	}))
+	})
+	Convey("returns not as much values as asked", t, func() {
+
+		f := NewFacter()
+		// mock that getFacts returns error every time
+		//returns zero elements even when asked for one
+		f.getFacts = func(_ []string, _ time.Duration, _ *cmdConfig) (facts, error) {
+			return nil, nil
+		}
+
+		_, err := f.CollectMetrics([]plugin.PluginMetricType{
+			*plugin.NewPluginMetricType(
+				existingNamespace,
+			),
+		},
+		)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "more/less")
+	})
+
 }
 
 func TestFacterGetMetricsTypes(t *testing.T) {

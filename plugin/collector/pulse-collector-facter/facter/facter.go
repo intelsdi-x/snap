@@ -1,26 +1,23 @@
 /* This modules converts implements Pulse API to become an plugin.
-Additionally it caches all data to protect the system against overuse.
 
-Implementation details:
 legend:
 - metric - represents value of metric from Pulse side
 - fact - represents a value about a system gathered from Facter
 - name - is string identifier that refers to metric from the Pulse side, so name points to metric
 
+ Implementation details:
 
-    GetMetricTypes  +------------+
-            +-------> typesCache |
-            |       +-----+------+
-Pulse   +---+----+        |
-  +-----> Facter |        | getEntries
-        +---+----+        |
-            |       +-----v--------+   +----------------+
-            +-------> metricsCache +--->   getFacts     |
-    CollectMetric   +--------------+   +-------+--------+
-                                               | run in goroutine
-                                       +-------v--------+
-                                       |   ./facter     |
-                                       +----------------+
+ GetMetricTypes()
+      +
+      |                 +------------------+
+ +----v---+  getFacts() |                  |
+ | Facter +-------------> ./facter --json  |
+ +----^---+             |    (goroutine)   |
+      |                 +------------------+
+      +
+ CollectMetrics()
+
+
 */
 
 package facter
@@ -28,7 +25,6 @@ package facter
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -42,8 +38,8 @@ const (
 	defaultCacheTTL = 60 * time.Second
 	// how long are we going to cache available types of metrics
 	defaultMetricTypesTTL = defaultCacheTTL
-	// deadline a.k.a. timeout we are ready to wait for external binary to gather the data
-	defaultFacterDeadline = 5 * time.Second
+	// timeout we are ready to wait for external binary to gather the data
+	defaultFacterTimeout = 5 * time.Second
 )
 
 /**********
@@ -52,8 +48,17 @@ const (
 
 // Facter implements API to communicate with Pulse
 type Facter struct {
-	typesCache  *typesCache
-	metricCache *metricCache
+	ttl time.Duration
+	// injects implementation for getting facts - defaults to use getFacts from cmd.go
+	// but allows to replace with fake during tests
+	getFacts func(
+		names []string,
+		facterTimeout time.Duration,
+		cmdConfig *cmdConfig,
+	) (facts, error)
+	// how much time we are ready to wait for getting result from cmd
+	// is going to be passed to facterTimeout parameter in getFacts
+	facterTimeout time.Duration
 }
 
 // make sure that we actually satisify requierd interface
@@ -62,38 +67,46 @@ var _ plugin.CollectorPlugin = (*Facter)(nil)
 // NewFacter constructs new Facter with default values
 func NewFacter() *Facter {
 	return &Facter{
-		typesCache:  newTypesCache(defaultMetricTypesTTL),
-		metricCache: newMetricCache(defaultCacheTTL, defaultFacterDeadline),
+		// injection of default implementation for gathering facts from Facter
+		getFacts:      getFacts,
+		facterTimeout: defaultFacterTimeout,
 	}
 }
 
 // ------------ Pulse plugin interface implementation --------------
 
 // GetMetricTypes returns available metrics types
-// idea: if types cache is stale then update metrics cache and based on this fill cache for types
-// and return types from cache
 func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 
-	// synchronize metrics cache conditionally if metrics cache is stale
-	if f.typesCache.needUpdate() {
-		// synchronize cache conditionally for all fields
-		err := f.metricCache.updateCacheAll() // fills internal f.fcache
-		if err != nil {
-			log.Println("Facter: synchronizeCache returned error: " + err.Error())
-			return nil, err
-		}
-		// fill typesCache.metricTypes cache
-		f.typesCache.cacheMetricTypes(f.metricCache.entries())
-
+	// facts composed of entries
+	facts, err := f.getFacts(
+		nil, // ask for everything
+		f.facterTimeout,
+		nil, //default cmd configuration
+	)
+	if err != nil {
+		return nil, err
 	}
-	return f.typesCache.getMetricTypes(), nil
+
+	// capacity - we are going to return all the facts
+	metricTypes := make([]plugin.PluginMetricType, 0, len(facts))
+
+	// create types withing given namespace
+	for name, _ := range facts {
+		namespace := createNamespace(name)
+		metricType := *plugin.NewPluginMetricType(namespace)
+		metricTypes = append(metricTypes, metricType)
+	}
+
+	return metricTypes, nil
 }
 
 // Collect collects metrics from external binary a returns them in form
-// acceptable by Pulse
+// acceptable by Pulse, only returns collects that were asked for and return nothing when asked for none
+// the order of requested and received metrics isn't guaranted
 func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
 
-	// requested names
+	// parse and check requested names of metrics
 	names := []string{}
 	for _, metricType := range metricTypes {
 		namespace := metricType.Namespace()
@@ -110,25 +123,32 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 
 	if len(names) == 0 {
 		// nothing request, none returned
-		return []plugin.PluginMetric(nil), nil
+		// !because returned by value, it would return nil slice
+		return nil, nil
 	}
 
-	// synchronize cache (stale of missing data) to have all we need
-	err := f.metricCache.synchronizeCache(names)
+	// facts composed of entries
+	facts, err := f.getFacts(names, f.facterTimeout, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// read data from cache and preapre PluginMetric slice
-	ms := []plugin.PluginMetric{}
-	for _, name := range names {
-		entry := f.metricCache.getEntry(name)
-		metric := plugin.NewPluginMetric(namespace(name), entry.value)
-		ms = append(ms, *metric)
+	// make sure that recevied len of names equals asked
+	if len(facts) != len(names) {
+		return nil, errors.New("assertion: getFacts returns more/less than asked!")
 	}
 
-	return ms, nil
+	// convert facts into PluginMetrics
+	metrics := make([]plugin.PluginMetric, 0, len(facts))
+	for name, value := range facts {
+		namespace := createNamespace(name)
+		metric := *plugin.NewPluginMetric(namespace, value)
+		metrics = append(metrics, metric)
+	}
+	return metrics, nil
 }
+
+// ------------ helper functions --------------
 
 // validateNamespace checks namespace intel(vendor)/facter(prefix)/FACTNAME
 func validateNamespace(namespace []string) error {
@@ -145,11 +165,15 @@ func validateNamespace(namespace []string) error {
 	return nil
 }
 
-// ------------ helper functions --------------
-
 // namspace returns namespace slice of strings
 // composed from: vendor, prefix and fact name
-func namespace(name string) []string {
+func createNamespace(name string) []string {
 	return []string{vendor, prefix, name}
 
+}
+
+// helper type to deal with json values which additionally stores last update moment
+type entry struct {
+	value      interface{}
+	lastUpdate time.Time
 }

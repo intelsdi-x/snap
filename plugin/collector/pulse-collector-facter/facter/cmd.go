@@ -41,7 +41,7 @@ func getFacts(
 	names []string,
 	facterTimeout time.Duration,
 	cmdConfig *cmdConfig,
-) (*facts, *time.Time, error) {
+) (facts, error) {
 
 	// nil means use defaults
 	if cmdConfig == nil {
@@ -72,26 +72,24 @@ func getFacts(
 	select {
 	case <-timeoutChan:
 		// timeout
-		return nil, nil, errors.New("Facter plugin: fact gathering timeout")
+		return nil, errors.New("Facter plugin: fact gathering timeout")
 	case <-jobCompletedChan:
 		// success
 	}
 
 	if err != nil {
 		log.Printf("Exec failed: %s\n", err)
-		return nil, nil, err
+		return nil, err
 	}
 
-	// remember time of execution ended
-	timestamp := time.Now()
-
+	// place to unmarsha values received from Facter
 	facts := make(facts)
 
 	// parse output
 	err = json.Unmarshal(output, &facts)
 	if err != nil {
 		log.Printf("Unmarshal failed: %s\n", err)
-		return nil, nil, err
+		return nil, err
 	}
-	return &facts, &timestamp, nil
+	return facts, nil
 }

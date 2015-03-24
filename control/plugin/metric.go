@@ -28,7 +28,7 @@ func (p PluginMetric) Namespace() []string {
 
 // getter for Data
 func (p PluginMetric) Data() interface{} {
-	return nil
+	return p.Data_
 }
 
 // Represents a metric type. Only used within plugins and across plugin calls.
