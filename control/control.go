@@ -289,46 +289,61 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 	return false
 }
 
-// Calls collector plugins for the metric types and returns collection response containing metrics. Blocking method.
-func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) ([]core.Metric, error) {
+// Calls collector plugins for the metric types and returns collection response containing metrics.
+// Blocking method.
+// returns both metrics and and all errors independtly
+// is up to the client logic to ignore received metrics and check errors or partialy used received metrics
+func (p *pluginControl) CollectMetrics(
+	metricTypes []core.MetricType,
+	config *cdata.ConfigDataNode,
+	deadline time.Time,
+) (metrics []core.Metric, errs []error) {
 
 	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
-		return nil, err
+		errs = append(errs, err)
+		return
 	}
-
-	metrics := []core.Metric{}
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
-		// fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
 
+		// resolve a pool (from catalog)
 		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins())
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 
+		// resolve a available plugin from pool
 		ap, err := getAvailablePlugin(pool, p.strategy)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 
-		// Attempt collection on selected available plugin
-		ap.hitCount++
-		ap.lastHitTime = time.Now()
-
+		// cast client to PluginCollectorClient
 		cli, ok := ap.Client.(client.PluginCollectorClient)
 		if !ok {
-			return nil, errors.New("unable to cast client to PluginCollectorClient")
+			err := errors.New("unable to cast client to PluginCollectorClient")
+			errs = append(errs, err)
+			continue
 		}
 
+		// get a metrics
 		metrics, err = cli.CollectMetrics(pmt.metricTypes)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
+
+		// update statics about plugin usage - only when succesful
+		ap.hitCount++
+		ap.lastHitTime = time.Now()
 	}
 
-	return metrics, nil
+	// return both collected metrics and all errors
+	return
 }
 
 // ------------------- helper struct and function for grouping metrics types ------
