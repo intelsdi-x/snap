@@ -346,7 +346,7 @@ func (p *pluginControl) CollectMetrics(
 			}
 		}(pmt.metricTypes)
 
-		// update statics about plugin usage - only when succesful
+		// update statics about plugin
 		ap.hitCount++
 		ap.lastHitTime = time.Now()
 	}
