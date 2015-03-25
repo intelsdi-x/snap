@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/intelsdilabs/gomit"
@@ -289,10 +290,9 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 	return false
 }
 
-// Calls collector plugins for the metric types and returns collection response containing metrics.
-// Blocking method.
-// returns both metrics and and all errors independtly
-// is up to the client logic to ignore received metrics and check errors or partialy used received metrics
+// CollectMetrics is a blocking call to collector plugins returning a collection
+// of metrics and errors.  If an error is encountered no metrics will be
+// returned.
 func (p *pluginControl) CollectMetrics(
 	metricTypes []core.MetricType,
 	config *cdata.ConfigDataNode,
@@ -304,6 +304,10 @@ func (p *pluginControl) CollectMetrics(
 		errs = append(errs, err)
 		return
 	}
+
+	cMetrics := make(chan []core.Metric)
+	cError := make(chan error)
+	var wg sync.WaitGroup
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
@@ -330,19 +334,44 @@ func (p *pluginControl) CollectMetrics(
 			continue
 		}
 
-		// get a metrics
-		metrics, err = cli.CollectMetrics(pmt.metricTypes)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
+		wg.Add(1)
 
-		// update statics about plugin usage - only when succesful
+		// get a metrics
+		go func(mt []core.MetricType) {
+			metrics, err = cli.CollectMetrics(mt)
+			if err != nil {
+				cError <- err
+			} else {
+				cMetrics <- metrics
+			}
+		}(pmt.metricTypes)
+
+		// update statics about plugin
 		ap.hitCount++
 		ap.lastHitTime = time.Now()
 	}
 
-	// return both collected metrics and all errors
+	go func() {
+		for m := range cMetrics {
+			metrics = append(metrics, m...)
+			wg.Done()
+		}
+	}()
+
+	go func() {
+		for e := range cError {
+			errs = append(errs, e)
+			wg.Done()
+		}
+	}()
+
+	wg.Wait()
+	close(cMetrics)
+	close(cError)
+
+	if len(errs) > 0 {
+		return nil, errs
+	}
 	return
 }
 
