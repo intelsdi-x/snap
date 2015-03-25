@@ -290,82 +290,89 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 	return false
 }
 
-// Calls collector plugins for the metric types and returns collection response containing metrics. Blocking method.
-func (p *pluginControl) CollectMetrics(metricTypes []core.MetricType, config *cdata.ConfigDataNode, deadline time.Time) ([]core.Metric, error) {
+// CollectMetrics is a blocking call to collector plugins returning a collection
+// of metrics and errors.  If an error is encountered no metrics will be
+// returned.
+func (p *pluginControl) CollectMetrics(
+	metricTypes []core.MetricType,
+	config *cdata.ConfigDataNode,
+	deadline time.Time,
+) (metrics []core.Metric, errs []error) {
 
 	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
-		return []core.Metric{}, err
+		errs = append(errs, err)
+		return
 	}
 
-	metrics := []core.Metric{}
-	mChan := make(chan interface{})
-	killChan := make(chan struct{})
-	defer close(killChan)
+	cMetrics := make(chan []core.Metric)
+	cError := make(chan error)
 	var wg sync.WaitGroup
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
-		// fmt.Printf("plugin: (%s) has (%d) metrics to gather\n", pluginKey, metrics.Count())
 
+		// resolve a pool (from catalog)
 		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins())
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 
+		// resolve a available plugin from pool
 		ap, err := getAvailablePlugin(pool, p.strategy)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 
-		// Attempt collection on selected available plugin
-		ap.hitCount++
-		ap.lastHitTime = time.Now()
-
+		// cast client to PluginCollectorClient
 		cli, ok := ap.Client.(client.PluginCollectorClient)
 		if !ok {
-			return []core.Metric{}, errors.New("unable to cast client to PluginCollectorClient")
+			err := errors.New("unable to cast client to PluginCollectorClient")
+			errs = append(errs, err)
+			continue
 		}
 
 		wg.Add(1)
 
+		// get a metrics
 		go func(mt []core.MetricType) {
-			select {
-			case <-killChan:
-				return
-			default:
-				metrics, err = cli.CollectMetrics(mt)
-				if err != nil {
-					//return nil, err
-					mChan <- err
-				} else {
-					mChan <- metrics
-				}
+			metrics, err = cli.CollectMetrics(mt)
+			if err != nil {
+				cError <- err
+			} else {
+				cMetrics <- metrics
 			}
 		}(pmt.metricTypes)
 
+		// update statics about plugin usage - only when succesful
+		ap.hitCount++
+		ap.lastHitTime = time.Now()
 	}
 
 	go func() {
-		wg.Wait()
-		close(mChan)
+		for m := range cMetrics {
+			metrics = append(metrics, m...)
+			wg.Done()
+		}
 	}()
 
-	for n := range mChan {
-		switch n.(type) {
-		case []core.Metric:
-			metrics = append(metrics, n.([]core.Metric)...)
+	go func() {
+		for e := range cError {
+			errs = append(errs, e)
 			wg.Done()
-		case error:
-			collErr := n.(error)
-			killChan <- struct{}{}
-			return nil, collErr
-		default:
-			panic("Unexpected type")
 		}
-	}
+	}()
 
-	return metrics, nil
+	wg.Wait()
+	close(cMetrics)
+	close(cError)
+
+	if len(errs) > 0 {
+		return nil, errs
+	}
+	return
 }
 
 // ------------------- helper struct and function for grouping metrics types ------
@@ -389,11 +396,11 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType
 		// This is set to choose the newest and not pin version. TODO, be sure version is set to -1 if not provided by user on Task creation.
 		lp, err := cat.GetPlugin(mt.Namespace(), -1)
 		if err != nil {
-			return map[string]pluginMetricTypes{}, err
+			return nil, err
 		}
 		// if loaded plugin is nil, we have failed.  return error
 		if lp == nil {
-			return map[string]pluginMetricTypes{}, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(mt.Namespace(), "/")))
+			return nil, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(mt.Namespace(), "/")))
 		}
 
 		// fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
