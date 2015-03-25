@@ -73,3 +73,13 @@ func (p *PluginNativeClient) GetMetricTypes() ([]core.MetricType, error) {
 	}
 	return retMetricTypes, err
 }
+
+func (p *PluginNativeClient) PublishMetrics(metrics []core.MetricType) error {
+	//	args := plugin.GetMetricTypesArgs{}
+	reply := plugin.GetMetricTypesReply{}
+
+	args := metrics
+	err := p.connection.Call("Publisher.Publish", args, &reply)
+
+	return err
+}

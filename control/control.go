@@ -309,7 +309,7 @@ func (p *pluginControl) CollectMetrics(
 	for pluginKey, pmt := range pluginToMetricMap {
 
 		// resolve a pool (from catalog)
-		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins())
+		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins(), plugin.CollectorPluginType)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -344,6 +344,42 @@ func (p *pluginControl) CollectMetrics(
 
 	// return both collected metrics and all errors
 	return
+}
+
+func (p *pluginControl) PublishMetrics(
+	metricTypes []core.MetricType,
+	publisherPlugin string,
+	config *cdata.ConfigDataNode,
+	deadline time.Time,
+) (errs error) {
+
+	// resolve a pool (from catalog)
+	pool, err := getPool(publisherPlugin, p.pluginRunner.AvailablePlugins(), plugin.PublisherPluginType)
+	if err != nil {
+		return err
+	}
+
+	//	 resolve a available plugin from pool
+	ap, err := getAvailablePlugin(pool, p.strategy)
+	if err != nil {
+		return err
+	}
+
+	// cast client to PluginCollectorClient
+	cli, ok := ap.Client.(client.PluginPublisherClient)
+	if !ok {
+		return errors.New("unable to cast client to PluginPublisherClient")
+	}
+
+	err = cli.PublishMetrics(metricTypes)
+	if err != nil {
+		return err
+	} else {
+		ap.hitCount++
+		ap.lastHitTime = time.Now()
+	}
+
+	return nil
 }
 
 // ------------------- helper struct and function for grouping metrics types ------
@@ -389,9 +425,22 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType
 }
 
 // getPool finds a pool for a given pluginKey and checks is not empty
-func getPool(pluginKey string, availablePlugins *availablePlugins) (*availablePluginPool, error) {
+func getPool(pluginKey string,
+	availablePlugins *availablePlugins,
+	pluginType plugin.PluginType) (*availablePluginPool, error) {
 
-	pool := availablePlugins.Collectors.GetPluginPool(pluginKey)
+	//	getPluginPool := availablePlugins.Collectors.GetPluginPool
+
+	var pool *availablePluginPool
+	if plugin.CollectorPluginType == pluginType {
+		pool = availablePlugins.Collectors.GetPluginPool(pluginKey)
+	} else if plugin.PublisherPluginType == pluginType {
+		pool = availablePlugins.Publishers.GetPluginPool(pluginKey)
+	} else if plugin.ProcessorPluginType == pluginType {
+		pool = availablePlugins.Processors.GetPluginPool(pluginKey)
+	} else {
+		return nil, errors.New(fmt.Sprintf("Control: Invalid pluginType %d in getPool", pluginType))
+	}
 
 	if pool == nil {
 		// return error because this plugin has no pool

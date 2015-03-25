@@ -23,3 +23,8 @@ type PluginProcessorClient interface {
 	PluginClient
 	ProcessMetricData()
 }
+
+type PluginPublisherClient interface {
+	PluginClient
+	PublishMetrics([]core.MetricType) error
+}
