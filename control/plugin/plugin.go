@@ -127,6 +127,19 @@ func Start(m *PluginMeta, c Plugin, t *cpolicy.ConfigPolicyTree, requestString s
 		if err != nil {
 			return sErr, retCode
 		}
+	case PublisherPluginType:
+		r := &Response{
+			Type:             PublisherPluginType,
+			State:            PluginSuccess,
+			Meta:             *m,
+			ConfigPolicyTree: *t,
+		}
+		err, retCode := StartPublisher(c.(PublisherPlugin), sessionState, r)
+		if err != nil {
+			return sErr, retCode
+		}
+	default:
+		// TODO some error should be here in case of unsupported plugin type
 	}
 
 	return nil, retCode
