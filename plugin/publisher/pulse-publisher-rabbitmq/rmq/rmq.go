@@ -1,6 +1,8 @@
 package rmq
 
 import (
+	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -18,28 +20,41 @@ func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
 	return c
 }
 
-func (rmq *rmqPublisher) Publish(data []byte) error {
-	err := publishDataToRmq(data, rmq.rmqAddress, rmq.rmqExName, rmq.rmqRtKey, rmq.rmqExKind)
+//var _ rmqPublisher = (*plugin.PublisherPlugin)(nil)
+
+func (rmq *RmqPublisher) PublishMetrics(metrics []plugin.PluginMetric) error {
+
+	marshalledData, err := json.Marshal(metrics)
+	if err != nil {
+		errString := "RMQ Publisher: Error while marshalling data"
+		log.Println(errString)
+		return errors.New(errString)
+	}
+
+	data := []byte(marshalledData)
+	err = publishDataToRmq(data, rmq.rmqAddress, rmq.rmqExName, rmq.rmqRtKey, rmq.rmqExKind)
 	return err
 }
 
-func NewRmqPublisher() rmqPublisher {
+func NewRmqPublisher() *RmqPublisher {
 	//TODO get data from config
-	rmqpub := new(rmqPublisher)
+	rmqpub := new(RmqPublisher)
 	rmqpub.rmqAddress = defaultRmqAddress
 	rmqpub.rmqExName = defaultExchangeName
 	rmqpub.rmqExKind = defaultExchangeKind
 	rmqpub.rmqRtKey = defaultRoutingKey
-	return *rmqpub
+	return rmqpub
 
 }
 
-type rmqPublisher struct {
+type RmqPublisher struct {
 	rmqAddress string
 	rmqExName  string
 	rmqExKind  string
 	rmqRtKey   string
 }
+
+var _ plugin.PublisherPlugin = (*RmqPublisher)(nil)
 
 const (
 	name       = "Intel RMQ Publisher Plugin (c) 2015 Intel Corporation"
