@@ -51,6 +51,20 @@ else
 			# chmod -x ../../$COLLECTORDIR/$d / for testing non-executable builds
 		fi
 	done
+	
+	# Publisher build
+	rm -rf $PUBLISHERDIR/*
+	echo " Building Publisher Plugin(s)"
+	# Built-in Collector Plugin building
+	cd $SOURCEDIR/$PLUGINDIR/publisher
+	for d in *; do
+		if [[ -d $d ]]; then
+			echo "    $d => $PUBLISHERDIR/$d"		
+			go build -o $PUBLISHERDIR/$d ./$d/ || exit 2
+			# chmod -x ../../$PUBLISHERDIR/$d / for testing non-executable builds
+		fi
+	done
+	
 	cd $SOURCEDIR
 
 	# Built-in Publisher Plugin building
