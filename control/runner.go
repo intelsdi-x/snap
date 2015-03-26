@@ -216,7 +216,6 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 		pool := r.availablePlugins.Collectors.GetPluginPool(mt.Plugin.Key())
 		if pool != nil && pool.Count() >= MaximumRunningPlugins {
-			// if r.availablePlugins.Collectors.PluginPoolHasAP(mt.Plugin.Key()) {
 			logger.Debugf("runner.events", "(%s) has %d available plugin running (need %d)", mt.Plugin.Key(), pool.Count(), MaximumRunningPlugins)
 			return
 		}
@@ -229,11 +228,17 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(), mt.Plugin.Path)
 		if err != nil {
 			fmt.Println(err)
+			panic(err)
 		}
-		_, err = r.startPlugin(ePlugin)
+		ap, err := r.startPlugin(ePlugin)
 		if err != nil {
 			fmt.Println(err)
 			panic(err)
 		}
+
+		// -- send itself as an event
+		// example usage: within tests we can wait for a moment when availablePlugin was started
+		// and receive reference to this plugin
+		ap.emitter.Emit(ap)
 	}
 }
