@@ -2,6 +2,7 @@
 package rmq
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -14,25 +15,34 @@ import (
 // integration test
 func TestPublish(t *testing.T) {
 	Convey("Publish []data in RabbitMQ", t, func() {
-		data := []byte("RabbitMQ test string")
+		dataSlice := make([]plugin.PluginMetric, 0, 2)
+		dataSlice = append(dataSlice, plugin.PluginMetric{
+			Namespace_: []string{"intel", "test"}, Data_: 42})
+		dataSlice = append(dataSlice, plugin.PluginMetric{
+			Namespace_: []string{"intel", "test2"}, Data_: 84})
+		//		data := []byte("RabbitMQ test string")
+		marshalledData, err := json.Marshal(dataSlice)
+		if err != nil {
+			t.Fatalf("Marshalling returned error: %s", err)
+		}
 		rmqPub := NewRmqPublisher()
-		err := rmqPub.Publish(data)
+		err = rmqPub.PublishMetrics(dataSlice)
 		Convey("No errors are returned from Publish function", func() {
 			So(err, ShouldBeNil)
 		})
 		Convey("We can receive posted message", func() {
 			cKill := make(chan struct{})
-			cMetrics, err := connectToAmqp(&rmqPub, cKill)
+			cMetrics, err := connectToAmqp(rmqPub, cKill)
 			So(err, ShouldBeNil)
 			if err != nil {
 				t.Fatal("Error while executing tests: cannot connect to AMQP ", err)
 			}
-			err = rmqPub.Publish(data)
+			err = rmqPub.PublishMetrics(dataSlice)
 			timeout := time.After(time.Second * 2)
 			if err == nil {
 				select {
 				case metric := <-cMetrics:
-					So(data, ShouldResemble, []byte(metric))
+					So(marshalledData, ShouldResemble, []byte(metric))
 					cKill <- struct{}{}
 				case _ = <-timeout:
 					t.Fatal("Timeout when waiting for AMQP message")
@@ -43,7 +53,7 @@ func TestPublish(t *testing.T) {
 	})
 }
 
-func connectToAmqp(rmqpub *rmqPublisher, cKill <-chan struct{}) (chan []byte, error) {
+func connectToAmqp(rmqpub *RmqPublisher, cKill <-chan struct{}) (chan []byte, error) {
 	conn, err := amqp.Dial("amqp://" + rmqpub.rmqAddress)
 	if err != nil {
 		return nil, err
