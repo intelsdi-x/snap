@@ -49,13 +49,14 @@ type runsPlugins interface {
 	Stop() []error
 	AvailablePlugins() *availablePlugins
 	AddDelegates(delegates ...gomit.Delegator)
+	SetEmitter(emitter gomit.Emitter)
 	SetMetricCatalog(c catalogsMetrics)
 	SetPluginManager(m managesPlugins)
 	Monitor() *monitor
 }
 
 type managesPlugins interface {
-	LoadPlugin(string) (*loadedPlugin, error)
+	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error)
 	UnloadPlugin(CatalogedPlugin) error
 	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
@@ -98,6 +99,7 @@ func New() *pluginControl {
 	c.pluginRunner = newRunner()
 	logger.Debug("control.init", "runner created")
 	c.pluginRunner.AddDelegates(c.eventManager)
+	c.pluginRunner.SetEmitter(c.eventManager) // emitter is passed to created availablePlugins
 	c.pluginRunner.SetMetricCatalog(c.metricCatalog)
 	c.pluginRunner.SetPluginManager(c.pluginManager)
 
@@ -137,7 +139,7 @@ func (p *pluginControl) Load(path string) error {
 		return errors.New("Must start Controller before calling Load()")
 	}
 
-	if _, err := p.pluginManager.LoadPlugin(path); err != nil {
+	if _, err := p.pluginManager.LoadPlugin(path, p.eventManager); err != nil {
 		return err
 	}
 
@@ -160,7 +162,7 @@ func (p *pluginControl) Unload(pl CatalogedPlugin) error {
 
 func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
 
-	lp, err := p.pluginManager.LoadPlugin(inPath)
+	lp, err := p.pluginManager.LoadPlugin(inPath, p.eventManager)
 	if err != nil {
 		return err
 	}

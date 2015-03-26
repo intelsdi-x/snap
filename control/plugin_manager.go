@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/client"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
@@ -203,7 +204,7 @@ func (p *pluginManager) LoadedPlugins() *loadedPlugins {
 
 // Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
-func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
+func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedPlugin, error) {
 	// log.Printf("Attempting to load: %s\v", path)
 	lPlugin := new(loadedPlugin)
 	lPlugin.Path = path
@@ -233,7 +234,7 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	lPlugin.ConfigPolicyTree = &resp.ConfigPolicyTree
 
 	if resp.Type == plugin.CollectorPluginType {
-		ap, err := newAvailablePlugin(resp, -1)
+		ap, err := newAvailablePlugin(resp, -1, emitter)
 		if err != nil {
 			// log.Println(err.Error())
 			return nil, err
