@@ -1,8 +1,6 @@
 package rmq
 
 import (
-	"encoding/json"
-	"errors"
 	"log"
 	"time"
 
@@ -20,39 +18,28 @@ func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
 	return c
 }
 
-func (rmq *RmqPublisher) PublishMetrics(metrics []plugin.PluginMetric) error {
-
-	marshalledData, err := json.Marshal(metrics)
-	if err != nil {
-		errString := "RMQ Publisher: Error while marshalling data"
-		log.Println(errString)
-		return errors.New(errString)
-	}
-
-	data := []byte(marshalledData)
-	err = publishDataToRmq(data, rmq.rmqAddress, rmq.rmqExName, rmq.rmqRtKey, rmq.rmqExKind)
+func (rmq *rmqPublisher) Publish(data []byte) error {
+	err := publishDataToRmq(data, rmq.rmqAddress, rmq.rmqExName, rmq.rmqRtKey, rmq.rmqExKind)
 	return err
 }
 
-func NewRmqPublisher() *RmqPublisher {
+func NewRmqPublisher() rmqPublisher {
 	//TODO get data from config
-	rmqpub := new(RmqPublisher)
+	rmqpub := new(rmqPublisher)
 	rmqpub.rmqAddress = defaultRmqAddress
 	rmqpub.rmqExName = defaultExchangeName
 	rmqpub.rmqExKind = defaultExchangeKind
 	rmqpub.rmqRtKey = defaultRoutingKey
-	return rmqpub
+	return *rmqpub
 
 }
 
-type RmqPublisher struct {
+type rmqPublisher struct {
 	rmqAddress string
 	rmqExName  string
 	rmqExKind  string
 	rmqRtKey   string
 }
-
-var _ plugin.PublisherPlugin = (*RmqPublisher)(nil)
 
 const (
 	name       = "Intel RMQ Publisher Plugin (c) 2015 Intel Corporation"
@@ -93,8 +80,6 @@ func publishDataToRmq(data []byte, address string, exName string, rtKey string, 
 
 	err = c.Publish(exName, rtKey, false, false, msg)
 	if err != nil {
-		// Since publish is asynchronous this can happen if the network connection
-		// is reset or if the server has run out of resources.
 		log.Printf("RMQ Publisher: cannot publish metric %v", err)
 		return err
 	}
