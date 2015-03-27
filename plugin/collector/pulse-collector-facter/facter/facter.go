@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 const (
@@ -146,6 +147,17 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 		metrics = append(metrics, metric)
 	}
 	return metrics, nil
+}
+
+func (f *Facter) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
+	c := cpolicy.NewTree()
+	rule, _ := cpolicy.NewStringRule("name", false, "bob")
+	rule2, _ := cpolicy.NewStringRule("password", true)
+	p := cpolicy.NewPolicyNode()
+	p.Add(rule)
+	p.Add(rule2)
+	c.Add([]string{"intel", "facter", "foo"}, p)
+	return *c, nil
 }
 
 // ------------ helper functions --------------

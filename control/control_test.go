@@ -328,35 +328,22 @@ func (m *mockCDProc) Process(in map[string]ctypes.ConfigValue) (*map[string]ctyp
 
 func TestSubscribeMetric(t *testing.T) {
 	c := New()
-	mtrc := &mc{}
-	c.metricCatalog = mtrc
-	cd := cdata.NewNode()
-	lp := new(loadedPlugin)
+	c.Start()
+	c.Load(PluginPath)
+	c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 	Convey("does not return errors when metricCatalog.Subscribe() does not return an error", t, func() {
-		cd.AddItem("key", &ctypes.ConfigValueStr{Value: "value"})
-		mtrc.e = 1
-		mt := newMetricType([]string{""}, time.Now(), lp)
+		cd := cdata.NewNode()
+		cd.AddItem("password", &ctypes.ConfigValueStr{Value: "value"})
+		mt := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		_, err := c.SubscribeMetricType(mt, cd)
 		So(err, ShouldBeNil)
 	})
 	Convey("returns errors when metricCatalog.Subscribe() returns an error", t, func() {
-		mtrc.e = 0
-		mt := newMetricType([]string{"nf"}, time.Now(), lp)
+		cd := cdata.NewNode()
+		mt := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		_, err := c.SubscribeMetricType(mt, cd)
-		So(len(err), ShouldEqual, 1)
-		So(err[0], ShouldResemble, errMetricNotFound)
+		So(err, ShouldNotBeEmpty)
 	})
-	// Refactoring (nweaver)
-	// Convey("returns errors when processing fails", t, func() {
-	// 	cd := cdata.NewNode()
-	// 	cd.AddItem("fail", &ctypes.ConfigValueStr{Value: "value"})
-	// 	mtrc.e = 1
-	// 	mt := newMetricType([]string{""}, time.Now(), lp)
-	// 	_, errs := c.SubscribeMetricType(mt, cd)
-	// 	So(len(errs.Errors()), ShouldEqual, 1)
-	// 	So(errs.Errors()[0], ShouldResemble, errors.New("test fail"))
-	// })
-
 }
 
 func TestUnsubscribeMetric(t *testing.T) {
@@ -464,17 +451,20 @@ func TestCollectMetrics(t *testing.T) {
 		m := []core.MetricType{}
 		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		m2 := MockMetricType{namespace: []string{"intel", "dummy", "bar"}}
-		// m3 := MockMetricType{namespace: []string{"intel", "dummy", "baz"}}
+
 		m = append(m, m1)
 		m = append(m, m2)
-		// m = append(m, m3)
-		cd := cdata.NewNode()
-		// fmt.Println(cd.Table())
 
-		// fmt.Println(m1.Namespace(), m1.Version(), cd)
-		// Subscribe
-		// a, b :=
-		c.SubscribeMetricType(m1, cd)
+		cd := cdata.NewNode()
+		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+
+		mt, errs := c.SubscribeMetricType(m1, cd)
+		for _, er := range errs {
+			logger.Infof("TestCollectMetrics", "errs: %#v", er)
+		}
+		So(mt, ShouldNotBeNil)
+		So(errs, ShouldBeEmpty)
+
 		c.SubscribeMetricType(m1, cd)
 		c.SubscribeMetricType(m1, cd)
 		c.SubscribeMetricType(m1, cd)

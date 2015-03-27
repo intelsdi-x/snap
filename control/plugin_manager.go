@@ -230,24 +230,29 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, err
 	}
 
-	// Add config policy tree to loaded plugin
-	lPlugin.ConfigPolicyTree = &resp.ConfigPolicyTree
-
 	if resp.Type == plugin.CollectorPluginType {
 		ap, err := newAvailablePlugin(resp, -1, emitter)
 		if err != nil {
 			// log.Println(err.Error())
 			return nil, err
 		}
+
 		colClient := ap.Client.(client.PluginCollectorClient)
-		metricTypes, err := colClient.GetMetricTypes()
+
+		// Get the ConfigPolicyTree and add it to the loaded plugin
+		cpt, err := colClient.GetConfigPolicyTree()
 		if err != nil {
-			// log.Println(err)
 			return nil, err
 		}
+		lPlugin.ConfigPolicyTree = &cpt
+
+		// Get metric types
+		metricTypes, err := colClient.GetMetricTypes()
+		if err != nil {
+			return nil, err
+		}
+
 		// Add metric types to metric catalog
-		//
-		// For each MT returned we pair the loaded plugin and call AddLoadedMetricType to add
 		for _, mt := range metricTypes {
 			p.metricCatalog.AddLoadedMetricType(lPlugin, mt)
 		}
@@ -255,12 +260,10 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	err = ePlugin.Kill()
 	if err != nil {
-		// log.Println(err)
 		return nil, err
 	}
 
 	if resp.State != plugin.PluginSuccess {
-		// log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 		return nil, fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 	}
 

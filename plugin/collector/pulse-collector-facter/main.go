@@ -5,7 +5,6 @@ import (
 	// Import the pulse plugin library
 	"github.com/intelsdilabs/pulse/control/plugin"
 	// Import our collector plugin implementation
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-facter/facter"
 )
 
@@ -21,7 +20,6 @@ func main() {
 	plugin.Start(
 		plugin.NewPluginMeta(name, version, pluginType),
 		facter.NewFacter(), // CollectorPlugin interface
-		cpolicy.NewTree(),
 		os.Args[1],
 	)
 }

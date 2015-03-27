@@ -2,6 +2,7 @@ package client
 
 import (
 	// "github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
 )
 
@@ -16,6 +17,7 @@ type PluginCollectorClient interface {
 	PluginClient
 	CollectMetrics([]core.MetricType) ([]core.Metric, error)
 	GetMetricTypes() ([]core.MetricType, error)
+	GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error)
 }
 
 // A client providing processor specific plugin method calls.

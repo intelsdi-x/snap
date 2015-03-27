@@ -61,6 +61,7 @@ func (c *ConfigPolicyNode) GobEncode() ([]byte, error) {
 }
 
 func (c *ConfigPolicyNode) GobDecode(buf []byte) error {
+	c.mutex = &sync.Mutex{}
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
 	return decoder.Decode(&c.rules)

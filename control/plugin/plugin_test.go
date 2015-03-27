@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
-
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -115,17 +113,15 @@ func TestArg(t *testing.T) {
 func TestPlugin(t *testing.T) {
 	Convey("Start", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
-		mockConfigPolicyTree := cpolicy.NewTree()
-		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/pulse_plugin.log\", \"PingTimeoutDuration\": 1000000000}"
-		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicyTree, mockPluginArgs)
+		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
+		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldBeNil)
 		So(rc, ShouldEqual, 0)
 	})
 	Convey("Start with invalid args", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
-		mockConfigPolicyTree := cpolicy.NewTree()
 		var mockPluginArgs string = ""
-		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicyTree, mockPluginArgs)
+		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldNotBeNil)
 		So(rc, ShouldNotEqual, 0)
 	})

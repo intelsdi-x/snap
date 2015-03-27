@@ -4,8 +4,6 @@ package plugin
 import (
 	"crypto/rsa"
 	"time"
-
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 var (
@@ -76,11 +74,10 @@ func NewArg(pubkey *rsa.PublicKey, logpath string) Arg {
 
 // Response from started plugin
 type Response struct {
-	Meta             PluginMeta
-	ListenAddress    string
-	Token            string
-	Type             PluginType
-	ConfigPolicyTree cpolicy.ConfigPolicyTree
+	Meta          PluginMeta
+	ListenAddress string
+	Token         string
+	Type          PluginType
 	// State is a signal from plugin to control that it passed
 	// its own loading requirements
 	State        PluginResponseState
@@ -108,8 +105,7 @@ func NewPluginMeta(name string, version int, pluginType PluginType) *PluginMeta 
 }
 
 // Start starts a plugin
-func Start(m *PluginMeta, c Plugin, t *cpolicy.ConfigPolicyTree, requestString string) (error, int) {
-
+func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	sessionState, sErr, retCode := NewSessionState(requestString)
 	if sErr != nil {
 		return sErr, retCode
@@ -121,10 +117,9 @@ func Start(m *PluginMeta, c Plugin, t *cpolicy.ConfigPolicyTree, requestString s
 	switch m.Type {
 	case CollectorPluginType:
 		r := &Response{
-			Type:             CollectorPluginType,
-			State:            PluginSuccess,
-			Meta:             *m,
-			ConfigPolicyTree: *t,
+			Type:  CollectorPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
 		}
 		err, retCode := StartCollector(c.(CollectorPlugin), sessionState, r)
 		if err != nil {
