@@ -36,23 +36,23 @@ type availablePlugin struct {
 	id                 int
 	hitCount           int
 	lastHitTime        time.Time
-	eventManager       *gomit.EventController
+	emitter            gomit.Emitter
 	failedHealthChecks int
 	healthChan         chan error
 }
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
-func newAvailablePlugin(resp *plugin.Response, id int) (*availablePlugin, error) {
+func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter) (*availablePlugin, error) {
 	ap := &availablePlugin{
 		Name:    resp.Meta.Name,
 		Version: resp.Meta.Version,
 		Type:    resp.Type,
 
-		eventManager: new(gomit.EventController),
-		healthChan:   make(chan error, 1),
-		lastHitTime:  time.Now(),
-		id:           id,
+		emitter:     emitter,
+		healthChan:  make(chan error, 1),
+		lastHitTime: time.Now(),
+		id:          id,
 	}
 
 	// Create RPC Client
@@ -118,14 +118,14 @@ func (ap *availablePlugin) healthCheckFailed() {
 			Key:     ap.Key,
 			Index:   ap.Index,
 		}
-		defer ap.eventManager.Emit(pde)
+		defer ap.emitter.Emit(pde)
 	}
 	hcfe := &control_event.HealthCheckFailedEvent{
 		Name:    ap.Name,
 		Version: ap.Version,
 		Type:    int(ap.Type),
 	}
-	defer ap.eventManager.Emit(hcfe)
+	defer ap.emitter.Emit(hcfe)
 }
 
 func (a *availablePlugin) HitCount() int {

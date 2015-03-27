@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
@@ -33,29 +34,14 @@ type MockPluginManagerBadSwap struct {
 	ExistingPlugin CatalogedPlugin
 }
 
-func (m *MockPluginManagerBadSwap) LoadPlugin(string) (*loadedPlugin, error) {
+func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error) {
 	return new(loadedPlugin), nil
 }
-
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c CatalogedPlugin) error {
-	return errors.New("fake")
-}
-
-func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins {
-	return nil
-}
-
-func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {
-
-}
-
-func (m *MockPluginManagerBadSwap) GenerateArgs() plugin.Arg {
-	return plugin.Arg{}
-}
-
-func TestControlNew(t *testing.T) {
-
-}
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c CatalogedPlugin) error { return errors.New("fake") }
+func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins        { return nil }
+func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)     {}
+func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)             {}
+func (m *MockPluginManagerBadSwap) GenerateArgs() plugin.Arg             { return plugin.Arg{} }
 
 func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
@@ -100,7 +86,7 @@ func TestSwapPlugin(t *testing.T) {
 				err := c.SwapPlugins(facterPath, dummy)
 				pc = c.PluginCatalog()
 				So(err, ShouldBeNil)
-				So(pc[0].Name(), ShouldEqual, "facter")
+				So(pc[0].Name(), ShouldEqual, "Intel Fact Gathering Plugin")
 			})
 
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
@@ -116,7 +102,7 @@ func TestSwapPlugin(t *testing.T) {
 
 				err := c.SwapPlugins(PluginPath, dummy)
 				So(err, ShouldNotBeNil)
-				So(pc[0].Name(), ShouldEqual, "facter")
+				So(pc[0].Name(), ShouldEqual, "Intel Fact Gathering Plugin")
 			})
 
 			Convey("rollback failure returns error", func() {

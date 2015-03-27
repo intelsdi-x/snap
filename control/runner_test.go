@@ -118,6 +118,10 @@ func (mucc *MockUnhealthyPluginCollectorClient) Kill(string) error {
 	return errors.New("Fail")
 }
 
+type MockEmitter struct{}
+
+func (me *MockEmitter) Emit(gomit.EventBody) (int, error) { return 0, nil }
+
 func TestRunnerState(t *testing.T) {
 	Convey("pulse/control", t, func() {
 
@@ -129,6 +133,7 @@ func TestRunnerState(t *testing.T) {
 					r := newRunner()
 
 					r.AddDelegates(new(MockHandlerDelegate))
+					r.SetEmitter(new(MockEmitter))
 					So(len(r.delegates), ShouldEqual, 1)
 				})
 
@@ -253,6 +258,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 				if PulsePath != "" {
 					Convey("should return an AvailablePlugin", func() {
 						r := newRunner()
+						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 							// Daemon:        true,
@@ -277,6 +283,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 					Convey("availablePlugins should include returned availablePlugin", func() {
 						r := newRunner()
+						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -298,6 +305,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 					Convey("healthcheck on healthy plugin does not increment failedHealthChecks", func() {
 						r := newRunner()
+						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -316,6 +324,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 					Convey("healthcheck on unhealthy plugin increments failedHealthChecks", func() {
 						r := newRunner()
+						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -334,6 +343,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 					Convey("successful healthcheck resets failedHealthChecks", func() {
 						r := newRunner()
+						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin-foo.log",
 						}
@@ -356,6 +366,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 					Convey("three consecutive failedHealthChecks disables the plugin", func() {
 						r := newRunner()
+						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
@@ -376,6 +387,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 					Convey("should return error for WaitForResponse error", func() {
 						r := newRunner()
+						r.SetEmitter(new(MockEmitter))
 						exPlugin := new(MockExecutablePlugin)
 						exPlugin.Timeout = true // set to not response
 						ap, e := r.startPlugin(exPlugin)

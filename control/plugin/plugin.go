@@ -9,7 +9,7 @@ import (
 var (
 	// Timeout settings
 	// How much time must elapse before a lack of Ping results in a timeout
-	PingTimeoutDuration = time.Second * 5
+	PingTimeoutDuration = time.Second * 1
 	// How many succesive PingTimeouts must occur to equal a failure.
 	PingTimeoutLimit = 3
 )
