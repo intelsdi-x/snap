@@ -118,7 +118,7 @@ func (s *SessionState) heartbeatWatch(killChan chan int) {
 	s.logger.Println("Heartbeat started")
 	count := 0
 	for {
-		if time.Now().Sub(s.LastPing) >= s.PingTimeoutDuration {
+		if time.Since(s.LastPing) >= s.PingTimeoutDuration {
 			count++
 			s.logger.Printf("Heartbeat timeout %v of %v.  (Duration between checks %v)", count, PingTimeoutLimit, s.PingTimeoutDuration)
 			if count >= PingTimeoutLimit {
