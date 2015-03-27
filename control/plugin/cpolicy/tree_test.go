@@ -79,7 +79,7 @@ func TestConfigPolicyTree(t *testing.T) {
 
 			Convey("base node is nil", func() {
 				gc := t.Get([]string{"one"})
-				So(gc, ShouldBeNil)
+				So(gc, ShouldResemble, NewPolicyNode())
 			})
 
 			Convey("two is correct", func() {

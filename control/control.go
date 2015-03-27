@@ -12,7 +12,6 @@ import (
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/client"
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/control/routing"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
@@ -209,14 +208,11 @@ func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.Config
 		return nil, subErrs
 	}
 
-	// If the metric type has a policy config node process it
-	if m.policy.(*cpolicy.ConfigPolicyNode) != nil {
-		ncdTable, errs := m.policy.Process(cd.Table())
-		if errs != nil && errs.HasErrors() {
-			return nil, errs.Errors()
-		}
-		m.config = cdata.FromTable(*ncdTable)
+	ncdTable, errs := m.policy.Process(cd.Table())
+	if errs != nil && errs.HasErrors() {
+		return nil, errs.Errors()
 	}
+	m.config = cdata.FromTable(*ncdTable)
 
 	m.Subscribe()
 	e := &control_event.MetricSubscriptionEvent{
