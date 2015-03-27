@@ -14,7 +14,6 @@ import (
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/client"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
-	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
 const (
@@ -242,7 +241,6 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 		// Get the ConfigPolicyTree and add it to the loaded plugin
 		cpt, err := colClient.GetConfigPolicyTree()
 		if err != nil {
-			logger.Errorf("LoadPlugin", "%v", err)
 			return nil, err
 		}
 		lPlugin.ConfigPolicyTree = &cpt
