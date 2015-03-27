@@ -1,3 +1,5 @@
+// +build linux
+
 // Tests for communication with external cmd facter (executable)
 
 package facter
