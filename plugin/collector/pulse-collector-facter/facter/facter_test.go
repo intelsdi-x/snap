@@ -1,3 +1,5 @@
+// +build linux
+
 /*
 # testing
 go test -v github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-facter/facter
