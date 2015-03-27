@@ -11,7 +11,7 @@ import (
 var (
 	// Timeout settings
 	// How much time must elapse before a lack of Ping results in a timeout
-	PingTimeoutDuration = time.Second * 5
+	PingTimeoutDurationDefault = time.Millisecond * 1500
 	// How many succesive PingTimeouts must occur to equal a failure.
 	PingTimeoutLimit = 3
 )
@@ -58,6 +58,8 @@ type Arg struct {
 	PluginLogPath string
 	// A public key from control used to verify RPC calls - not implemented yet
 	ControlPubKey *rsa.PublicKey
+	// Ping timeout duration
+	PingTimeoutDuration time.Duration
 
 	NoDaemon bool
 	// The listen port
@@ -66,8 +68,9 @@ type Arg struct {
 
 func NewArg(pubkey *rsa.PublicKey, logpath string) Arg {
 	return Arg{
-		ControlPubKey: pubkey,
-		PluginLogPath: logpath,
+		ControlPubKey:       pubkey,
+		PluginLogPath:       logpath,
+		PingTimeoutDuration: PingTimeoutDurationDefault,
 	}
 }
 

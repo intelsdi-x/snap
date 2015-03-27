@@ -452,7 +452,7 @@ func TestCollectMetrics(t *testing.T) {
 		logger.Output = os.Stdout
 		// adjust HB timeouts for test
 		plugin.PingTimeoutLimit = 1
-		plugin.PingTimeoutDuration = time.Second * 1
+		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
 		c := New()
