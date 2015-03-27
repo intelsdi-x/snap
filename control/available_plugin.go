@@ -386,3 +386,9 @@ func (a *availablePluginPool) SelectUsingStrategy(strat RoutingStrategy) (*avail
 	}
 	return sap.(*availablePlugin), err
 }
+
+// Namespace (as string) implements gomit.EventBody interface that availplugin can be used as
+// event send by gomit to interested entites eg. withing tests
+func (a *availablePlugin) Namespace() string {
+	return a.Name
+}

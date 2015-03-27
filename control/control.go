@@ -209,22 +209,31 @@ func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.Config
 		return nil, subErrs
 	}
 
+	// set default policy is not set yet
 	if m.policy == nil {
 		m.policy = cpolicy.NewPolicyNode()
 	}
+
+	// based on configDataNode and assigned policy
+	// build a config and assign it to metric
 	ncdTable, errs := m.policy.Process(cd.Table())
 	if errs != nil && errs.HasErrors() {
 		return nil, errs.Errors()
 	}
 	m.config = cdata.FromTable(*ncdTable)
 
+	// increment number of subscriptions
 	m.Subscribe()
+
+	// create and sent an event to all listeners - by this I mean runner - to start addtionall
+	// availablePlugin (running plugins)
 	e := &control_event.MetricSubscriptionEvent{
 		MetricNamespace: m.Namespace(),
 		Version:         m.Version(),
 	}
 	defer p.eventManager.Emit(e)
 
+	// we return
 	return m, nil
 }
 
@@ -299,12 +308,16 @@ func (p *pluginControl) CollectMetrics(
 	metricTypes []core.MetricType,
 	config *cdata.ConfigDataNode,
 	deadline time.Time,
-) (metrics []core.Metric, errs []error) {
+) ([]core.Metric, []error) {
+
+	// expliclity create collections of errors and metrics
+	metrics := []core.Metric{}
+	errs := []error{}
 
 	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
 		errs = append(errs, err)
-		return
+		return nil, errs
 	}
 
 	cMetrics := make(chan []core.Metric)
@@ -340,11 +353,11 @@ func (p *pluginControl) CollectMetrics(
 
 		// get a metrics
 		go func(mt []core.MetricType) {
-			metrics, err = cli.CollectMetrics(mt)
+			ms, err := cli.CollectMetrics(mt)
 			if err != nil {
 				cError <- err
 			} else {
-				cMetrics <- metrics
+				cMetrics <- ms
 			}
 		}(pmt.metricTypes)
 
@@ -374,7 +387,7 @@ func (p *pluginControl) CollectMetrics(
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	return
+	return metrics, errs
 }
 
 // ------------------- helper struct and function for grouping metrics types ------
