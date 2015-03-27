@@ -95,8 +95,6 @@ func publishDataToRmq(data []byte, address string, exName string, rtKey string, 
 
 	err = c.Publish(exName, rtKey, false, false, msg)
 	if err != nil {
-		// Since publish is asynchronous this can happen if the network connection
-		// is reset or if the server has run out of resources.
 		log.Printf("RMQ Publisher: cannot publish metric %v", err)
 		return err
 	}
