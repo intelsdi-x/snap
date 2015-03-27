@@ -13,10 +13,20 @@ type PluginMetric struct {
 	Data_      interface{}
 }
 
+// PluginMetric Constructor
+func NewPluginMetric(namespace []string, data interface{}) *PluginMetric {
+	return &PluginMetric{
+		Namespace_: namespace,
+		Data_:      data,
+	}
+}
+
+// getter for namespace
 func (p PluginMetric) Namespace() []string {
 	return p.Namespace_
 }
 
+// getter for Data
 func (p PluginMetric) Data() interface{} {
 	return p.Data_
 }
@@ -27,6 +37,13 @@ type PluginMetricType struct {
 	Namespace_          []string
 	LastAdvertisedTime_ time.Time
 	Version_            int
+}
+
+func NewPluginMetricType(ns []string) *PluginMetricType {
+	return &PluginMetricType{
+		Namespace_:          ns,
+		LastAdvertisedTime_: time.Now(),
+	}
 }
 
 // Returns the namespace.
@@ -47,13 +64,6 @@ func (p PluginMetricType) Version() int {
 // This version of MetricType never implements cdata.ConfigDataNode
 func (p PluginMetricType) Config() *cdata.ConfigDataNode {
 	return nil
-}
-
-func NewPluginMetricType(ns []string) *PluginMetricType {
-	return &PluginMetricType{
-		Namespace_:          ns,
-		LastAdvertisedTime_: time.Now(),
-	}
 }
 
 /*
