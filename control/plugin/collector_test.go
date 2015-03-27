@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -71,6 +72,10 @@ func (s *MockSessionState) heartbeatWatch(killChan chan int) {
 
 type MockPlugin struct {
 	Meta PluginMeta
+}
+
+func (f *MockPlugin) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
+	return cpolicy.ConfigPolicyTree{}, nil
 }
 
 func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetric, error) {

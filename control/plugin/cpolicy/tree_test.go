@@ -33,11 +33,12 @@ func TestConfigPolicyTree(t *testing.T) {
 			})
 			Convey("encode & decode", func() {
 				gob.Register(NewPolicyNode())
-				gob.Register(&stringRule{})
+				gob.Register(&StringRule{})
 				buf, err := t.GobEncode()
 				So(err, ShouldBeNil)
 				So(buf, ShouldNotBeNil)
-				t2 := NewTree()
+				// t2 := NewTree()
+				t2 := &ConfigPolicyTree{}
 				err = t2.GobDecode(buf)
 				So(err, ShouldBeNil)
 				So(t2.cTree, ShouldNotBeNil)

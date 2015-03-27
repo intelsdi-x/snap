@@ -25,11 +25,17 @@ func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 	return []plugin.PluginMetricType{*m}, nil
 }
 
-func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(Name, Version, Type)
+func (f *Facter) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
+	c := cpolicy.NewTree()
+	rule, _ := cpolicy.NewStringRule("name", false, "bob")
+	rule2, _ := cpolicy.NewStringRule("password", true)
+	p := cpolicy.NewPolicyNode()
+	p.Add(rule)
+	p.Add(rule2)
+	c.Add([]string{"intel", "facter", "foo"}, p)
+	return *c, nil
 }
 
-func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
-	c := cpolicy.NewTree()
-	return c
+func Meta() *plugin.PluginMeta {
+	return plugin.NewPluginMeta(Name, Version, Type)
 }

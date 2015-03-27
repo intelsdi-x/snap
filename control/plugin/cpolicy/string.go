@@ -8,14 +8,14 @@ import (
 )
 
 // A rule validating against string-typed config
-type stringRule struct {
+type StringRule struct {
 	key      string
 	required bool
 	default_ *string
 }
 
 // Returns a new string-typed rule. Arguments are key(string), required(bool), default(string).
-func NewStringRule(key string, req bool, opts ...string) (*stringRule, error) {
+func NewStringRule(key string, req bool, opts ...string) (*StringRule, error) {
 	// Return error if key is empty
 	if key == "" {
 		return nil, EmptyKeyError
@@ -26,14 +26,14 @@ func NewStringRule(key string, req bool, opts ...string) (*stringRule, error) {
 		def = &opts[0]
 	}
 
-	return &stringRule{
+	return &StringRule{
 		key:      key,
 		required: req,
 		default_: def,
 	}, nil
 }
 
-func (s *stringRule) GobEncode() ([]byte, error) {
+func (s *StringRule) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
 	if err := encoder.Encode(s.key); err != nil {
@@ -53,7 +53,7 @@ func (s *stringRule) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
-func (s *stringRule) GobDecode(buf []byte) error {
+func (s *StringRule) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
 	if err := decoder.Decode(&s.key); err != nil {
@@ -71,12 +71,12 @@ func (s *stringRule) GobDecode(buf []byte) error {
 }
 
 // Returns the key
-func (s *stringRule) Key() string {
+func (s *StringRule) Key() string {
 	return s.key
 }
 
 // Validates a config value against this rule.
-func (s *stringRule) Validate(cv ctypes.ConfigValue) error {
+func (s *StringRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
 	if cv.Type() != "string" {
 		return wrongType(s.key, cv.Type(), "string")
@@ -85,7 +85,7 @@ func (s *stringRule) Validate(cv ctypes.ConfigValue) error {
 }
 
 // Returns a default value is it exists.
-func (s *stringRule) Default() ctypes.ConfigValue {
+func (s *StringRule) Default() ctypes.ConfigValue {
 	if s.default_ != nil {
 		return &ctypes.ConfigValueStr{Value: *s.default_}
 	}
@@ -93,6 +93,6 @@ func (s *stringRule) Default() ctypes.ConfigValue {
 }
 
 // Indicates this rule is required.
-func (s *stringRule) Required() bool {
+func (s *StringRule) Required() bool {
 	return s.required
 }

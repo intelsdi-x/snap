@@ -101,9 +101,7 @@ func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.MetricType
 		Plugin:             lp,
 		namespace:          mt.Namespace(),
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
-		// This caches the config policy node within the metric type
-		// Disabled until ctree + cpolicy is RPC compatible
-		// policy: lp.ConfigPolicyTree.Get(mt.Namespace()),
+		policy:             lp.ConfigPolicyTree.Get(mt.Namespace()),
 	}
 	m.Add(&newMt)
 }
