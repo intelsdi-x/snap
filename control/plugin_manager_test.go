@@ -65,7 +65,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := p.LoadPlugin(PluginPath)
+				lp, err := p.LoadPlugin(PluginPath, nil)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.LoadedPlugins(), ShouldNotBeEmpty)
@@ -75,7 +75,7 @@ func TestLoadPlugin(t *testing.T) {
 
 			Convey("error is returned on a bad PluginPath", func() {
 				p := newPluginManager()
-				lp, err := p.LoadPlugin("")
+				lp, err := p.LoadPlugin("", nil)
 
 				So(lp, ShouldBeNil)
 				So(err, ShouldNotBeNil)
@@ -94,7 +94,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then it is removed from the loadedPlugins", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := p.LoadPlugin(PluginPath)
+					_, err := p.LoadPlugin(PluginPath, nil)
 
 					num_plugins_loaded := len(p.LoadedPlugins().Table())
 					lp, _ := p.LoadedPlugins().Get(0)
@@ -109,7 +109,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := p.LoadPlugin(PluginPath)
+					_, err := p.LoadPlugin(PluginPath, nil)
 					lp, _ := p.LoadedPlugins().Get(0)
 					lp.State = DetectedState
 					err = p.UnloadPlugin(lp)
@@ -121,7 +121,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := p.LoadPlugin(PluginPath)
+					_, err := p.LoadPlugin(PluginPath, nil)
 
 					plugin, _ := p.LoadedPlugins().Get(0)
 					err = p.UnloadPlugin(plugin)

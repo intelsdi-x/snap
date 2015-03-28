@@ -49,6 +49,7 @@ func (i *idCounter) Next() int {
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type runner struct {
 	delegates        []gomit.Delegator
+	emitter          gomit.Emitter
 	monitor          *monitor
 	availablePlugins *availablePlugins
 	metricCatalog    catalogsMetrics
@@ -69,6 +70,10 @@ func newRunner() *runner {
 
 func (r *runner) SetMetricCatalog(c catalogsMetrics) {
 	r.metricCatalog = c
+}
+
+func (r *runner) SetEmitter(e gomit.Emitter) {
+	r.emitter = e
 }
 
 func (r *runner) SetPluginManager(m managesPlugins) {
@@ -156,7 +161,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// build availablePlugin
-	ap, err := newAvailablePlugin(resp, r.apIdCounter.Next())
+	ap, err := newAvailablePlugin(resp, r.apIdCounter.Next(), r.emitter)
 	if err != nil {
 		return nil, err
 	}

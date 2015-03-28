@@ -10,6 +10,8 @@ import (
 	"log"
 	"os/exec"
 	"time"
+
+	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
 const (
@@ -44,7 +46,31 @@ type waitSignalValue struct {
 
 // Starts the plugin and returns error if one occurred. This is non blocking.
 func (e *ExecutablePlugin) Start() error {
+	e.connectStdErrToLogs()
 	return e.cmd.Start()
+}
+
+// connectStdErrToLogs connects plugin stderr
+// and sends them to logs
+// it's not required to stop this goroutine explicilty because it stops when cmd stops
+// on the plugin side you should redirect all logs (warnings, errors) to stderr - panic goes there by default
+func (e *ExecutablePlugin) connectStdErrToLogs() {
+
+	// ignore the error because we
+	stderr, err := e.cmd.StderrPipe()
+	if err != nil {
+		logger.Errorf("execution.stderr - error when connecting to executablePlugin %s: %s", e.cmd.Path, err)
+	}
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		// this automaticly ends when EOR received eg. process is killed/stoped
+		for scanner.Scan() {
+			logger.Debug("execution.stderr", scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			logger.Debug("execution.stderr", "got error when reading:", err.Error())
+		}
+	}()
 }
 
 // Kills the plugin and returns error if one occurred. This is blocking.

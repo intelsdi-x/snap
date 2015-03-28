@@ -14,12 +14,14 @@ before_install:
 - go get golang.org/x/tools/cmd/vet
 - go get golang.org/x/tools/cmd/goimports
 - go get github.com/smartystreets/goconvey/convey
+- if [ ! -d $PULSE_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdilabs; ln -s $TRAVIS_BUILD_DIR $PULSE_SOURCE; fi # CI for forks not from intelsdilabs
 - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 env:
   global:
     - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdilabs/pulse
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdilabs/pulse/build    
 install:
+- gem install facter
 - cd $PULSE_SOURCE # change dir into source
 - go get -d -v ./... && go build -v ./... # get and build source
 - make

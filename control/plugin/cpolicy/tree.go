@@ -50,7 +50,7 @@ func (c *ConfigPolicyTree) Get(ns []string) *ConfigPolicyNode {
 
 	n := c.cTree.Get(ns)
 	if n == nil {
-		return nil
+		return NewPolicyNode()
 	}
 	switch t := n.(type) {
 	case ConfigPolicyNode:

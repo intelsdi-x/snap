@@ -2,6 +2,7 @@ default: build-pulse
 
 deps:
 	go get -u github.com/smartystreets/goconvey
+	go get -u github.com/smartystreets/assertions
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u github.com/streadway/amqp
 	go get -u github.com/docker/libcontainer
