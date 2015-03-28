@@ -11,6 +11,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+// Collector plugin
 var (
 	PluginName = "pulse-collector-dummy"
 	PulsePath  = os.Getenv("PULSE_PATH")

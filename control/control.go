@@ -235,10 +235,21 @@ func (p *pluginControl) UnsubscribeMetricType(mt core.MetricType) {
 		// panic because if a metric falls below 0, something bad has happened
 		panic(err.Error())
 	}
+	//TODO this event does not have a listener
 	e := &control_event.MetricUnsubscriptionEvent{
 		MetricNamespace: mt.Namespace(),
 	}
 	p.eventManager.Emit(e)
+}
+
+func (p *pluginControl) SubscribePublisher(publisher string, version int) {
+	// TODO probably we will need to store a list of all subscribed publishers, so we wont't start new every time
+
+	e := &control_event.PublisherSubscriptionEvent{
+		PublisherPlugin: publisher,
+		Version:         version,
+	}
+	defer p.eventManager.Emit(e)
 }
 
 // SetMonitorOptions exposes monitors options
@@ -376,7 +387,7 @@ func (p *pluginControl) CollectMetrics(
 }
 
 func (p *pluginControl) PublishMetrics(
-	metricTypes []core.MetricType,
+	metrics []core.Metric,
 	publisherPlugin string,
 	config *cdata.ConfigDataNode,
 	deadline time.Time,
@@ -400,7 +411,7 @@ func (p *pluginControl) PublishMetrics(
 		return errors.New("unable to cast client to PluginPublisherClient")
 	}
 
-	err = cli.PublishMetrics(metricTypes)
+	err = cli.PublishMetrics(metrics)
 	if err != nil {
 		return err
 	} else {
@@ -473,7 +484,7 @@ func getPool(pluginKey string,
 
 	if pool == nil {
 		// return error because this plugin has no pool
-		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
+		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginType))
 	}
 
 	// TODO: Lock this apPool so we are the only one operating on it.

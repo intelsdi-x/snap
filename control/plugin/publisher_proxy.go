@@ -6,8 +6,11 @@ import (
 )
 
 // Arguments passed to PublishMetricsArgs() for a Publisher implementation
-type PublishMetricsArgs struct {
-	PluginMetrics []PluginMetric
+type PublishArgs struct {
+	Data []byte
+}
+
+type PublishReply struct {
 }
 
 type publisherPluginProxy struct {
@@ -15,11 +18,11 @@ type publisherPluginProxy struct {
 	Session Session
 }
 
-func (p *publisherPluginProxy) PublishMetrics(args PublishMetricsArgs) error {
+func (p *publisherPluginProxy) Publish(args PublishArgs, reply *PublishReply) error {
 	p.Session.Logger().Println("Publish called")
 	// Reset heartbeat
 	p.Session.ResetHeartbeat()
-	err := p.Plugin.PublishMetrics(args.PluginMetrics)
+	err := p.Plugin.Publish(args.Data)
 	if err != nil {
 		return errors.New(fmt.Sprintf("PublishMetrics call error : %s", err.Error()))
 	}

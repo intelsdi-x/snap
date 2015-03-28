@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -459,6 +460,19 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 	return nil
 }
 
+type MockMetric struct {
+	namespace []string
+	data      interface{}
+}
+
+func (m MockMetric) Namespace() []string {
+	return m.namespace
+}
+
+func (m MockMetric) Data() interface{} {
+	return m.data
+}
+
 func TestCollectMetrics(t *testing.T) {
 
 	Convey("given a new router", t, func() {
@@ -506,5 +520,46 @@ func TestCollectMetrics(t *testing.T) {
 			// fmt.Printf(" *  Collect Response: %+v\n", cr)
 		}
 		time.Sleep(time.Millisecond * 1000)
+	})
+}
+
+// Publisher plugin
+var (
+	PublisherPluginName           = "rabbitmq:1"
+	PublisherFolderName           = "pulse-publisher-rabbitmq"
+	PublisherPluginNamePulsePath  = os.Getenv("PULSE_PATH")
+	PublisherPluginNamePluginPath = path.Join(PulsePath, "plugin", "publisher", PublisherFolderName)
+)
+
+func TestPublishMetrics(t *testing.T) {
+
+	Convey("TestPublishMetrics", t, func() {
+		logger.SetLevel(logger.DebugLevel)
+		logger.Output = os.Stdout
+		// adjust HB timeouts for test
+		plugin.PingTimeoutLimit = 1
+		plugin.PingTimeoutDuration = time.Second * 1
+
+		// Create controller
+		c := New()
+		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
+		c.Start()
+		// Load plugin
+		c.Load(PluginPath)
+		err := c.Load(PublisherPluginNamePluginPath)
+		So(err, ShouldBeNil)
+
+		m := []core.Metric{}
+		m1 := MockMetric{namespace: []string{"intel", "dummy", "foo"}, data: 42}
+		m2 := MockMetric{namespace: []string{"intel", "dummy", "bar"}, data: 84}
+		m = append(m, m1)
+		m = append(m, m2)
+		cd := cdata.NewNode()
+
+		c.SubscribePublisher("rabbitmq", 1)
+		time.Sleep(time.Millisecond * 100)
+
+		err = c.PublishMetrics(m, PublisherPluginName, cd, time.Now().Add(time.Second*60))
+		So(err, ShouldBeNil)
 	})
 }

@@ -230,5 +230,47 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			fmt.Println(err)
 			panic(err)
 		}
+	case *control_event.PublisherSubscriptionEvent:
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
+		logger.Debugf("runner.events", "handling publisher subscription event (%s v%d)", v.PublisherPlugin, v.Version)
+
+		pl := getPluginByName(v.PublisherPlugin, v.Version, r.pluginManager.LoadedPlugins().Table())
+		if pl == nil {
+			logger.Debugf("runner.events", "plugin %s, version %d has not been found in available plugin collection\n", v.PublisherPlugin, v.Version)
+			return
+		}
+
+		// TODO this is common for Metrics and Publisher subscription, refactor
+		pool := r.availablePlugins.Publishers.GetPluginPool(v.PublisherPlugin)
+		if pool != nil && pool.Count() >= MaximumRunningPlugins {
+			// if r.availablePlugins.Collectors.PluginPoolHasAP(mt.Plugin.Key()) {
+			logger.Debugf("runner.events", "(%s) has %d available plugin running (need %d)", pl.Meta.Name, pool.Count(), MaximumRunningPlugins)
+			return
+		}
+		if pool == nil {
+			logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", 0, pl.Meta.Name, MaximumRunningPlugins)
+		} else {
+			logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", pool.Count(), pl.Meta.Name, MaximumRunningPlugins)
+		}
+
+		ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(), pl.Path)
+		if err != nil {
+			fmt.Println(err)
+		}
+		_, err = r.startPlugin(ePlugin)
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
 	}
+}
+
+func getPluginByName(name string, version int, loadedPlugins []*loadedPlugin) *loadedPlugin {
+	for _, lp := range loadedPlugins {
+		if lp.Name() == name && lp.Version() == version {
+			return lp
+		}
+	}
+	return nil
 }

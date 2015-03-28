@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"log"
 	// "log"
 	"strconv"
 	"sync"
@@ -204,7 +205,7 @@ func (p *pluginManager) LoadedPlugins() *loadedPlugins {
 // Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
 func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
-	// log.Printf("Attempting to load: %s\v", path)
+	//	log.Printf("Attempting to load: %s\v", path)
 	lPlugin := new(loadedPlugin)
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
@@ -212,20 +213,17 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(), lPlugin.Path)
 
 	if err != nil {
-		// log.Println(err)
 		return nil, err
 	}
 
 	err = ePlugin.Start()
 	if err != nil {
-		// log.Println("Start error" + err.Error())
 		return nil, err
 	}
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
 	if err != nil {
-		// log.Println(err)
 		return nil, err
 	}
 
@@ -235,13 +233,13 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 	if resp.Type == plugin.CollectorPluginType {
 		ap, err := newAvailablePlugin(resp, -1)
 		if err != nil {
-			// log.Println(err.Error())
+			log.Println(err.Error())
 			return nil, err
 		}
 		colClient := ap.Client.(client.PluginCollectorClient)
 		metricTypes, err := colClient.GetMetricTypes()
 		if err != nil {
-			// log.Println(err)
+			log.Println(err)
 			return nil, err
 		}
 		// Add metric types to metric catalog
@@ -254,12 +252,11 @@ func (p *pluginManager) LoadPlugin(path string) (*loadedPlugin, error) {
 
 	err = ePlugin.Kill()
 	if err != nil {
-		// log.Println(err)
+		fmt.Println(err)
 		return nil, err
 	}
 
 	if resp.State != plugin.PluginSuccess {
-		// log.Printf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 		return nil, fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 	}
 

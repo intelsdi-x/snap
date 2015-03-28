@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"net"
 	"net/rpc"
 	"time"
@@ -15,6 +16,18 @@ type PluginNativeClient struct {
 }
 
 func NewCollectorNativeClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
+	// Attempt to dial address error on timeout or problem
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	// Return nil RPCClient and err if encoutered
+	if err != nil {
+		return nil, err
+	}
+	r := rpc.NewClient(conn)
+	p := &PluginNativeClient{connection: r}
+	return p, nil
+}
+
+func NewPublisherNativeClient(address string, timeout time.Duration) (PluginPublisherClient, error) {
 	// Attempt to dial address error on timeout or problem
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	// Return nil RPCClient and err if encoutered
@@ -74,12 +87,21 @@ func (p *PluginNativeClient) GetMetricTypes() ([]core.MetricType, error) {
 	return retMetricTypes, err
 }
 
-func (p *PluginNativeClient) PublishMetrics(metrics []core.MetricType) error {
-	//	args := plugin.GetMetricTypesArgs{}
-	reply := plugin.GetMetricTypesReply{}
+func (p *PluginNativeClient) PublishMetrics(metrics []core.Metric) error {
+	reply := new(plugin.PublishReply)
 
-	args := metrics
-	err := p.connection.Call("Publisher.Publish", args, &reply)
+	pluginMetrics := make([]plugin.PluginMetric, len(metrics))
+	for i, _ := range metrics {
+		pluginMetrics[i] = plugin.PluginMetric{
+			Namespace_: metrics[i].Namespace(),
+			Data_:      metrics[i].Data()}
+	}
 
+	data, err := json.Marshal(pluginMetrics)
+	if err != nil {
+		return err
+	}
+	pubArgs := plugin.PublishArgs{Data: data}
+	err = p.connection.Call("Publisher.Publish", pubArgs, reply)
 	return err
 }

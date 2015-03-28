@@ -10,7 +10,7 @@ import (
 // Publisher plugin
 type PublisherPlugin interface {
 	Plugin
-	PublishMetrics(metrics []PluginMetric) error
+	Publish(metrics []byte) error
 }
 
 // Execution method for a Publisher plugin. Error and exit code (int) returned.
@@ -31,7 +31,7 @@ func StartPublisher(p PublisherPlugin, s Session, r *Response) (error, int) {
 		Plugin:  p,
 		Session: s,
 	}
-	// Register the proxy under the "Collector" namespace
+	// Register the proxy under the "Publisher" namespace
 	rpc.RegisterName("Publisher", proxy)
 	// Register common plugin methods used for utility reasons
 	e := rpc.Register(s)

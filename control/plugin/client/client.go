@@ -26,5 +26,5 @@ type PluginProcessorClient interface {
 
 type PluginPublisherClient interface {
 	PluginClient
-	PublishMetrics([]core.MetricType) error
+	PublishMetrics([]core.Metric) error
 }
