@@ -28,6 +28,8 @@ type Task struct {
 	lastFireTime     time.Time
 	manager          managesWork
 	deadlineDuration time.Duration
+	hitCount         uint
+	missedIntervals  uint
 }
 
 type TaskState int
@@ -105,8 +107,10 @@ func (t *Task) spin() {
 		case sr := <-t.schResponseChan:
 			// If response show this schedule is stil active we fire
 			if sr.State() == ScheduleActive {
+				t.missedIntervals += sr.MissedIntervals()
 				t.lastFireTime = time.Now()
 				t.fire()
+				t.hitCount++
 			}
 			// TODO stop task on schedule error state or end state
 		case <-t.killChan:

@@ -29,7 +29,7 @@ func (s *SimpleSchedule) Wait(last time.Time) ScheduleResponse {
 	waitDuration := nanoInterval - remainder
 	// Wait until predicted interval fires
 	time.Sleep(time.Duration(waitDuration))
-	return SimpleScheduleResponse{state: ScheduleActive, misses: int(missed)}
+	return SimpleScheduleResponse{state: ScheduleActive, misses: uint(missed)}
 }
 
 func (s *SimpleSchedule) Validate() error {
@@ -43,7 +43,7 @@ func (s *SimpleSchedule) Validate() error {
 type SimpleScheduleResponse struct {
 	err    error
 	state  ScheduleState
-	misses int
+	misses uint
 }
 
 // Returns the state of the Schedule
@@ -57,6 +57,6 @@ func (s SimpleScheduleResponse) Error() error {
 }
 
 // Returns any missed intervals
-func (s SimpleScheduleResponse) MissedIntervals() int {
+func (s SimpleScheduleResponse) MissedIntervals() uint {
 	return s.misses
 }
