@@ -233,10 +233,21 @@ func (p *pluginControl) UnsubscribeMetricType(mt core.MetricType) {
 		// panic because if a metric falls below 0, something bad has happened
 		panic(err.Error())
 	}
+	//TODO this event does not have a listener
 	e := &control_event.MetricUnsubscriptionEvent{
 		MetricNamespace: mt.Namespace(),
 	}
 	p.eventManager.Emit(e)
+}
+
+func (p *pluginControl) SubscribePublisher(publisher string, version int) {
+	// TODO probably we will need to store a list of all subscribed publishers, so we wont't start new every time
+
+	e := &control_event.PublisherSubscriptionEvent{
+		PublisherPlugin: publisher,
+		Version:         version,
+	}
+	defer p.eventManager.Emit(e)
 }
 
 // SetMonitorOptions exposes monitors options
@@ -311,7 +322,7 @@ func (p *pluginControl) CollectMetrics(
 	for pluginKey, pmt := range pluginToMetricMap {
 
 		// resolve a pool (from catalog)
-		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins())
+		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins(), plugin.CollectorPluginType)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -373,6 +384,42 @@ func (p *pluginControl) CollectMetrics(
 	return
 }
 
+func (p *pluginControl) PublishMetrics(
+	metrics []core.Metric,
+	publisherPlugin string,
+	config *cdata.ConfigDataNode,
+	deadline time.Time,
+) (errs error) {
+
+	// resolve a pool (from catalog)
+	pool, err := getPool(publisherPlugin, p.pluginRunner.AvailablePlugins(), plugin.PublisherPluginType)
+	if err != nil {
+		return err
+	}
+
+	//	 resolve a available plugin from pool
+	ap, err := getAvailablePlugin(pool, p.strategy)
+	if err != nil {
+		return err
+	}
+
+	// cast client to PluginCollectorClient
+	cli, ok := ap.Client.(client.PluginPublisherClient)
+	if !ok {
+		return errors.New("unable to cast client to PluginPublisherClient")
+	}
+
+	err = cli.PublishMetrics(metrics)
+	if err != nil {
+		return err
+	} else {
+		ap.hitCount++
+		ap.lastHitTime = time.Now()
+	}
+
+	return nil
+}
+
 // ------------------- helper struct and function for grouping metrics types ------
 
 // just a tuple of loadedPlugin and metricType slice
@@ -416,13 +463,26 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType
 }
 
 // getPool finds a pool for a given pluginKey and checks is not empty
-func getPool(pluginKey string, availablePlugins *availablePlugins) (*availablePluginPool, error) {
+func getPool(pluginKey string,
+	availablePlugins *availablePlugins,
+	pluginType plugin.PluginType) (*availablePluginPool, error) {
 
-	pool := availablePlugins.Collectors.GetPluginPool(pluginKey)
+	//	getPluginPool := availablePlugins.Collectors.GetPluginPool
+
+	var pool *availablePluginPool
+	if plugin.CollectorPluginType == pluginType {
+		pool = availablePlugins.Collectors.GetPluginPool(pluginKey)
+	} else if plugin.PublisherPluginType == pluginType {
+		pool = availablePlugins.Publishers.GetPluginPool(pluginKey)
+	} else if plugin.ProcessorPluginType == pluginType {
+		pool = availablePlugins.Processors.GetPluginPool(pluginKey)
+	} else {
+		return nil, errors.New(fmt.Sprintf("Control: Invalid pluginType %d in getPool", pluginType))
+	}
 
 	if pool == nil {
 		// return error because this plugin has no pool
-		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
+		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginType))
 	}
 
 	// TODO: Lock this apPool so we are the only one operating on it.

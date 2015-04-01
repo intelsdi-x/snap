@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"encoding/gob"
 	"net"
 	"net/rpc"
@@ -17,6 +18,18 @@ type PluginNativeClient struct {
 }
 
 func NewCollectorNativeClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
+	// Attempt to dial address error on timeout or problem
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	// Return nil RPCClient and err if encoutered
+	if err != nil {
+		return nil, err
+	}
+	r := rpc.NewClient(conn)
+	p := &PluginNativeClient{connection: r}
+	return p, nil
+}
+
+func NewPublisherNativeClient(address string, timeout time.Duration) (PluginPublisherClient, error) {
 	// Attempt to dial address error on timeout or problem
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	// Return nil RPCClient and err if encoutered
@@ -90,4 +103,23 @@ func (p *PluginNativeClient) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, er
 	}
 
 	return reply.PolicyTree, nil
+}
+
+func (p *PluginNativeClient) PublishMetrics(metrics []core.Metric) error {
+	reply := new(plugin.PublishReply)
+
+	pluginMetrics := make([]plugin.PluginMetric, len(metrics))
+	for i, _ := range metrics {
+		pluginMetrics[i] = plugin.PluginMetric{
+			Namespace_: metrics[i].Namespace(),
+			Data_:      metrics[i].Data()}
+	}
+
+	data, err := json.Marshal(pluginMetrics)
+	if err != nil {
+		return err
+	}
+	pubArgs := plugin.PublishArgs{Data: data}
+	err = p.connection.Call("Publisher.Publish", pubArgs, reply)
+	return err
 }

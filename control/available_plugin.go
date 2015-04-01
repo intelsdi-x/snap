@@ -63,6 +63,12 @@ func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter) (*
 		if e != nil {
 			return nil, errors.New("error while creating client connection: " + e.Error())
 		}
+	case plugin.PublisherPluginType:
+		c, e := client.NewPublisherNativeClient(resp.ListenAddress, DefaultClientTimeout)
+		ap.Client = c
+		if e != nil {
+			return nil, errors.New("error while creating client connection: " + e.Error())
+		}
 	default:
 		return nil, errors.New("Cannot create a client for a plugin of the type: " + resp.Type.String())
 	}

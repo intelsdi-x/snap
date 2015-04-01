@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"log"
 	// "log"
 	"strconv"
 	"sync"
@@ -213,27 +214,24 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(), lPlugin.Path)
 
 	if err != nil {
-		// log.Println(err)
 		return nil, err
 	}
 
 	err = ePlugin.Start()
 	if err != nil {
-		// log.Println("Start error" + err.Error())
 		return nil, err
 	}
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
 	if err != nil {
-		// log.Println(err)
 		return nil, err
 	}
 
 	if resp.Type == plugin.CollectorPluginType {
 		ap, err := newAvailablePlugin(resp, -1, emitter)
 		if err != nil {
-			// log.Println(err.Error())
+			log.Println(err.Error())
 			return nil, err
 		}
 
