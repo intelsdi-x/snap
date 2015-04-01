@@ -12,8 +12,9 @@ import (
 type LogLevel int
 
 var (
-	mutex  = sync.Mutex{}
-	level  = DebugLevel
+	mutex = sync.Mutex{}
+	// Default to Warning level
+	level  = WarningLevel
 	Output io.Writer
 	logger *log.Logger
 )

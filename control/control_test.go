@@ -435,8 +435,6 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 func TestCollectMetrics(t *testing.T) {
 
 	Convey("given a new router", t, func() {
-		logger.SetLevel(logger.DebugLevel)
-		logger.Output = os.Stdout
 		// adjust HB timeouts for test
 		plugin.PingTimeoutLimit = 1
 		plugin.PingTimeoutDurationDefault = time.Second * 1
