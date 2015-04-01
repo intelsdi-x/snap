@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	Name    = "dummy"
-	Version = 1
+	Name    = "dummy2"
+	Version = 2
 	Type    = plugin.CollectorPluginType
 )
 

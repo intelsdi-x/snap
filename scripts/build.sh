@@ -26,7 +26,7 @@ echo "Source Dir = $SOURCEDIR"
 echo "$SPLUGIN"
 echo "$SPLUGINFOLDER"
 echo " Building Pulse Agent"	
-go build -ldflags "-X main.gitversion `git describe`" -o $BINDIR/pulse-agent . || exit 1
+go build -ldflags "-X main.gitversion `git describe --always`" -o $BINDIR/pulse-agent . || exit 1
 
 if [ "$SPLUGIN" ] && [ -n "$SPLUGINFOLDER" ]
 then

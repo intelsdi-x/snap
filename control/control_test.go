@@ -78,31 +78,31 @@ func TestSwapPlugin(t *testing.T) {
 
 			So(e, ShouldBeNil)
 
-			facterPath := strings.Replace(PluginPath, "pulse-collector-dummy", "pulse-collector-facter", 1)
+			dummy2Path := strings.Replace(PluginPath, "pulse-collector-dummy1", "pulse-collector-dummy2", 1)
 			pc := c.PluginCatalog()
 			dummy := pc[0]
 
 			Convey("successfully swaps plugins", func() {
-				err := c.SwapPlugins(facterPath, dummy)
+				err := c.SwapPlugins(dummy2Path, dummy)
 				pc = c.PluginCatalog()
 				So(err, ShouldBeNil)
-				So(pc[0].Name(), ShouldEqual, "Intel Fact Gathering Plugin")
+				So(pc[0].Name(), ShouldEqual, "dummy2")
 			})
 
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
 				err := c.SwapPlugins("/fake/plugin/path", pc[0])
 				So(err, ShouldNotBeNil)
-				So(pc[0].Name(), ShouldEqual, "dummy")
+				So(pc[0].Name(), ShouldEqual, "dummy1")
 			})
 
 			Convey("rollsback loaded plugin & returns an error if it cannot unload a plugin", func() {
 				dummy := pc[0]
-				c.SwapPlugins(facterPath, dummy)
+				c.SwapPlugins(dummy2Path, dummy)
 				pc = c.PluginCatalog()
 
 				err := c.SwapPlugins(PluginPath, dummy)
 				So(err, ShouldNotBeNil)
-				So(pc[0].Name(), ShouldEqual, "Intel Fact Gathering Plugin")
+				So(pc[0].Name(), ShouldEqual, "dummy2")
 			})
 
 			Convey("rollback failure returns error", func() {
@@ -111,7 +111,7 @@ func TestSwapPlugin(t *testing.T) {
 				pm.ExistingPlugin = dummy
 				c.pluginManager = pm
 
-				err := c.SwapPlugins(facterPath, dummy)
+				err := c.SwapPlugins(dummy2Path, dummy)
 				So(err, ShouldNotBeNil)
 			})
 		})
@@ -202,7 +202,7 @@ func TestUnload(t *testing.T) {
 				err = c.Unload(pc[0])
 				So(err, ShouldBeNil)
 				err = c.Unload(pc[0])
-				So(err, ShouldResemble, errors.New("plugin [dummy] -- [1] not found (has it already been unloaded?)"))
+				So(err, ShouldResemble, errors.New("plugin [dummy1] -- [1] not found (has it already been unloaded?)"))
 			})
 		})
 

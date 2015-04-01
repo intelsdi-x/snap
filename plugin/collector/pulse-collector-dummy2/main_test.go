@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	PluginName = "pulse-collector-dummy"
+	PluginName = "pulse-collector-dummy2"
 	PluginType = "collector"
 	PulsePath  = os.Getenv("PULSE_PATH")
 	PluginPath = path.Join(PulsePath, "plugin", PluginType, PluginName)
