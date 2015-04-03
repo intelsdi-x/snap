@@ -1,8 +1,11 @@
 package plugin
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
+
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 // Arguments passed to CollectMetrics() for a Collector implementation
@@ -22,6 +25,12 @@ type GetMetricTypesArgs struct {
 // GetMetricTypesReply assigned by GetMetricTypes() implementation
 type GetMetricTypesReply struct {
 	PluginMetricTypes []PluginMetricType
+}
+
+type GetConfigPolicyTreeArgs struct{}
+
+type GetConfigPolicyTreeReply struct {
+	PolicyTree cpolicy.ConfigPolicyTree
 }
 
 type collectorPluginProxy struct {
@@ -50,5 +59,21 @@ func (c *collectorPluginProxy) CollectMetrics(args CollectMetricsArgs, reply *Co
 		return errors.New(fmt.Sprintf("CollectMetrics call error : %s", err.Error()))
 	}
 	reply.PluginMetrics = ms
+	return nil
+}
+
+func (c *collectorPluginProxy) GetConfigPolicyTree(args GetConfigPolicyTreeArgs, reply *GetConfigPolicyTreeReply) error {
+	// Only types that will be transferred as implementations of interface
+	// values need to be registered.
+	gob.Register(cpolicy.NewPolicyNode())
+	gob.Register(&cpolicy.StringRule{})
+
+	c.Session.Logger().Println("GetConfigPolicyTree called")
+	policy, err := c.Plugin.GetConfigPolicyTree()
+
+	if err != nil {
+		return errors.New(fmt.Sprintf("ConfigPolicyTree call error : %s", err.Error()))
+	}
+	reply.PolicyTree = policy
 	return nil
 }

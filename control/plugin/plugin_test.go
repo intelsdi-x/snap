@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
-
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -43,6 +41,7 @@ func TestSessionState(t *testing.T) {
 		now := time.Now()
 		ss := &SessionState{
 			LastPing: now,
+			Arg:      &Arg{PingTimeoutDuration: 500 * time.Millisecond},
 		}
 		flag := true
 		ss.logger = log.New(os.Stdout, ">>>", log.Ldate|log.Ltime)
@@ -66,12 +65,13 @@ func TestSessionState(t *testing.T) {
 			So(r.Token, ShouldEqual, "asdf")
 		})
 		Convey("InitSessionState", func() {
-			var mockPluginArgs string = "{\"RunAsDaemon\": false}"
+			var mockPluginArgs string = "{\"RunAsDaemon\": true, \"PingTimeoutDuration\": 2000000000}"
 			sessionState, err, rc := NewSessionState(mockPluginArgs)
 			So(sessionState.ListenAddress(), ShouldEqual, "")
 			So(rc, ShouldEqual, 0)
 			So(err, ShouldBeNil)
 			So(sessionState, ShouldNotBeNil)
+			So(sessionState.PingTimeoutDuration, ShouldResemble, 2*time.Second)
 		})
 		Convey("InitSessionState with invalid args", func() {
 			var mockPluginArgs string = ""
@@ -86,7 +86,6 @@ func TestSessionState(t *testing.T) {
 			So(sessionState, ShouldNotBeNil)
 		})
 		Convey("heartbeatWatch timeout expired", func() {
-			PingTimeoutDuration = time.Millisecond * 100
 			PingTimeoutLimit = 1
 			ss.LastPing = now.Truncate(time.Minute)
 			killChan := make(chan int)
@@ -95,7 +94,6 @@ func TestSessionState(t *testing.T) {
 			So(rc, ShouldEqual, 0)
 		})
 		Convey("heatbeatWatch reset", func() {
-			PingTimeoutDuration = time.Millisecond * 500
 			PingTimeoutLimit = 2
 			killChan := make(chan int)
 			ss.heartbeatWatch(killChan)
@@ -115,17 +113,15 @@ func TestArg(t *testing.T) {
 func TestPlugin(t *testing.T) {
 	Convey("Start", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
-		mockConfigPolicyTree := cpolicy.NewTree()
 		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
-		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicyTree, mockPluginArgs)
+		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldBeNil)
 		So(rc, ShouldEqual, 0)
 	})
 	Convey("Start with invalid args", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
-		mockConfigPolicyTree := cpolicy.NewTree()
 		var mockPluginArgs string = ""
-		err, rc := Start(mockPluginMeta, new(MockPlugin), mockConfigPolicyTree, mockPluginArgs)
+		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldNotBeNil)
 		So(rc, ShouldNotEqual, 0)
 	})

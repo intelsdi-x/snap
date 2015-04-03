@@ -3,11 +3,11 @@ package control
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/gomit"
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
@@ -33,29 +33,14 @@ type MockPluginManagerBadSwap struct {
 	ExistingPlugin CatalogedPlugin
 }
 
-func (m *MockPluginManagerBadSwap) LoadPlugin(string) (*loadedPlugin, error) {
+func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error) {
 	return new(loadedPlugin), nil
 }
-
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c CatalogedPlugin) error {
-	return errors.New("fake")
-}
-
-func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins {
-	return nil
-}
-
-func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {
-
-}
-
-func (m *MockPluginManagerBadSwap) GenerateArgs() plugin.Arg {
-	return plugin.Arg{}
-}
-
-func TestControlNew(t *testing.T) {
-
-}
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c CatalogedPlugin) error { return errors.New("fake") }
+func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins        { return nil }
+func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)     {}
+func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)             {}
+func (m *MockPluginManagerBadSwap) GenerateArgs() plugin.Arg             { return plugin.Arg{} }
 
 func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
@@ -100,7 +85,7 @@ func TestSwapPlugin(t *testing.T) {
 				err := c.SwapPlugins(facterPath, dummy)
 				pc = c.PluginCatalog()
 				So(err, ShouldBeNil)
-				So(pc[0].Name(), ShouldEqual, "facter")
+				So(pc[0].Name(), ShouldEqual, "Intel Fact Gathering Plugin")
 			})
 
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
@@ -116,7 +101,7 @@ func TestSwapPlugin(t *testing.T) {
 
 				err := c.SwapPlugins(PluginPath, dummy)
 				So(err, ShouldNotBeNil)
-				So(pc[0].Name(), ShouldEqual, "facter")
+				So(pc[0].Name(), ShouldEqual, "Intel Fact Gathering Plugin")
 			})
 
 			Convey("rollback failure returns error", func() {
@@ -342,35 +327,22 @@ func (m *mockCDProc) Process(in map[string]ctypes.ConfigValue) (*map[string]ctyp
 
 func TestSubscribeMetric(t *testing.T) {
 	c := New()
-	mtrc := &mc{}
-	c.metricCatalog = mtrc
-	cd := cdata.NewNode()
-	lp := new(loadedPlugin)
+	c.Start()
+	c.Load(PluginPath)
+	c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 	Convey("does not return errors when metricCatalog.Subscribe() does not return an error", t, func() {
-		cd.AddItem("key", &ctypes.ConfigValueStr{Value: "value"})
-		mtrc.e = 1
-		mt := newMetricType([]string{""}, time.Now(), lp)
+		cd := cdata.NewNode()
+		cd.AddItem("password", &ctypes.ConfigValueStr{Value: "value"})
+		mt := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		_, err := c.SubscribeMetricType(mt, cd)
 		So(err, ShouldBeNil)
 	})
 	Convey("returns errors when metricCatalog.Subscribe() returns an error", t, func() {
-		mtrc.e = 0
-		mt := newMetricType([]string{"nf"}, time.Now(), lp)
+		cd := cdata.NewNode()
+		mt := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		_, err := c.SubscribeMetricType(mt, cd)
-		So(len(err), ShouldEqual, 1)
-		So(err[0], ShouldResemble, errMetricNotFound)
+		So(err, ShouldNotBeEmpty)
 	})
-	// Refactoring (nweaver)
-	// Convey("returns errors when processing fails", t, func() {
-	// 	cd := cdata.NewNode()
-	// 	cd.AddItem("fail", &ctypes.ConfigValueStr{Value: "value"})
-	// 	mtrc.e = 1
-	// 	mt := newMetricType([]string{""}, time.Now(), lp)
-	// 	_, errs := c.SubscribeMetricType(mt, cd)
-	// 	So(len(errs.Errors()), ShouldEqual, 1)
-	// 	So(errs.Errors()[0], ShouldResemble, errors.New("test fail"))
-	// })
-
 }
 
 func TestUnsubscribeMetric(t *testing.T) {
@@ -462,11 +434,9 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 func TestCollectMetrics(t *testing.T) {
 
 	Convey("given a new router", t, func() {
-		logger.SetLevel(logger.DebugLevel)
-		logger.Output = os.Stdout
 		// adjust HB timeouts for test
 		plugin.PingTimeoutLimit = 1
-		plugin.PingTimeoutDuration = time.Second * 1
+		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
 		c := New()
@@ -478,17 +448,20 @@ func TestCollectMetrics(t *testing.T) {
 		m := []core.MetricType{}
 		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		m2 := MockMetricType{namespace: []string{"intel", "dummy", "bar"}}
-		// m3 := MockMetricType{namespace: []string{"intel", "dummy", "baz"}}
+
 		m = append(m, m1)
 		m = append(m, m2)
-		// m = append(m, m3)
-		cd := cdata.NewNode()
-		// fmt.Println(cd.Table())
 
-		// fmt.Println(m1.Namespace(), m1.Version(), cd)
-		// Subscribe
-		// a, b :=
-		c.SubscribeMetricType(m1, cd)
+		cd := cdata.NewNode()
+		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+
+		mt, errs := c.SubscribeMetricType(m1, cd)
+		for _, er := range errs {
+			logger.Infof("TestCollectMetrics", "errs: %#v", er)
+		}
+		So(mt, ShouldNotBeNil)
+		So(errs, ShouldBeEmpty)
+
 		c.SubscribeMetricType(m1, cd)
 		c.SubscribeMetricType(m1, cd)
 		c.SubscribeMetricType(m1, cd)

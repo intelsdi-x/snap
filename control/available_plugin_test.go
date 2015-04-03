@@ -22,7 +22,7 @@ func TestAvailablePlugin(t *testing.T) {
 				Type:          plugin.CollectorPluginType,
 				ListenAddress: "127.0.0.1:4000",
 			}
-			ap, err := newAvailablePlugin(resp, -1)
+			ap, err := newAvailablePlugin(resp, -1, nil)
 			So(ap, ShouldHaveSameTypeAs, new(availablePlugin))
 			So(err, ShouldBeNil)
 		})
@@ -233,7 +233,7 @@ func TestAvailablePlugins(t *testing.T) {
 				Type:          plugin.CollectorPluginType,
 				ListenAddress: "localhost:",
 			}
-			ap, err := newAvailablePlugin(resp, -1)
+			ap, err := newAvailablePlugin(resp, -1, nil)
 			So(ap, ShouldBeNil)
 			So(err, ShouldNotBeNil)
 		})
@@ -246,7 +246,7 @@ func TestAvailablePlugins(t *testing.T) {
 				Type:          plugin.ProcessorPluginType,
 				ListenAddress: "localhost:9999",
 			}
-			ap, err := newAvailablePlugin(resp, -1)
+			ap, err := newAvailablePlugin(resp, -1, nil)
 			So(ap, ShouldBeNil)
 			So(err, ShouldNotBeNil)
 		})

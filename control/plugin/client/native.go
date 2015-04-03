@@ -1,11 +1,13 @@
 package client
 
 import (
+	"encoding/gob"
 	"net"
 	"net/rpc"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
 )
 
@@ -72,4 +74,20 @@ func (p *PluginNativeClient) GetMetricTypes() ([]core.MetricType, error) {
 		retMetricTypes[i] = reply.PluginMetricTypes[i]
 	}
 	return retMetricTypes, err
+}
+
+func (p *PluginNativeClient) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
+	// Only types that will be transferred as implementations of interface
+	// values need to be registered.
+	gob.Register(cpolicy.NewPolicyNode())
+	gob.Register(&cpolicy.StringRule{})
+
+	args := plugin.GetConfigPolicyTreeArgs{}
+	reply := plugin.GetConfigPolicyTreeReply{PolicyTree: *cpolicy.NewTree()}
+	err := p.connection.Call("Collector.GetConfigPolicyTree", args, &reply)
+	if err != nil {
+		return cpolicy.ConfigPolicyTree{}, err
+	}
+
+	return reply.PolicyTree, nil
 }

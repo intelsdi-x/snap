@@ -10,17 +10,13 @@ import (
 )
 
 func main() {
-	// Three things provided:
+	// Provided:
 	//   the definition of the plugin metadata
 	//   the implementation satfiying plugin.CollectorPlugin
-	//   the collector configuration policy satifying plugin.ConfigRules
-
-	// Define default policy tree
-	policyTree := dummy.ConfigPolicyTree()
 
 	// Define metadata about Plugin
 	meta := dummy.Meta()
 
 	// Start a collector
-	plugin.Start(meta, new(dummy.Dummy), policyTree, os.Args[1])
+	plugin.Start(meta, new(dummy.Dummy), os.Args[1])
 }

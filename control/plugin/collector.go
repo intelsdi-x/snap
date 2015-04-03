@@ -5,6 +5,8 @@ import (
 	"log" // TODO proper logging to file or elsewhere
 	"net"
 	"net/rpc"
+
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 // Acts as a proxy for RPC calls to a CollectorPlugin. This helps keep the function signature simple
@@ -15,6 +17,7 @@ type CollectorPlugin interface {
 	Plugin
 	CollectMetrics([]PluginMetricType) ([]PluginMetric, error)
 	GetMetricTypes() ([]PluginMetricType, error)
+	GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error)
 }
 
 // Execution method for a Collector plugin. Error and exit code (int) returned.
