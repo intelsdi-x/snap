@@ -40,7 +40,7 @@ type ScheduleState int
 type ScheduleResponse interface {
 	State() ScheduleState
 	Error() error
-	MissedIntervals() int
+	MissedIntervals() uint
 }
 
 // ManagesMetric is implemented by control

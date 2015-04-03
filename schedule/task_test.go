@@ -26,7 +26,7 @@ func (m MockScheduleResponse) Error() error {
 	return nil
 }
 
-func (m MockScheduleResponse) MissedIntervals() int {
+func (m MockScheduleResponse) MissedIntervals() uint {
 	return 0
 }
 
@@ -90,7 +90,9 @@ func TestTask(t *testing.T) {
 			sch := NewSimpleSchedule(time.Millisecond * 10)
 			task := NewTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
-			time.Sleep(time.Millisecond * 20)
+			time.Sleep(time.Millisecond * 100)
+			So(task.hitCount, ShouldBeGreaterThan, 2)
+			So(task.missedIntervals, ShouldBeGreaterThan, 2)
 			task.Stop()
 		})
 	})

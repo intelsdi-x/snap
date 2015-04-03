@@ -66,6 +66,7 @@ type mockWorkflow struct {
 }
 
 func (w *mockWorkflow) Start(t *Task) {
+	time.Sleep(15 * time.Millisecond)
 }
 
 func (w *mockWorkflow) State() workflowState {

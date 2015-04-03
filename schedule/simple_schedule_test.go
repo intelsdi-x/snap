@@ -26,7 +26,7 @@ func TestSimpleSchedule(t *testing.T) {
 			after := time.Now().Sub(before)
 
 			So(r.State(), ShouldEqual, ScheduleActive)
-			So(r.MissedIntervals(), ShouldResemble, 4)
+			So(r.MissedIntervals(), ShouldResemble, uint(4))
 			So(r.Error(), ShouldEqual, nil)
 			// We are ok at this precision with being within 10% over or under (10ms)
 			afterMS := after.Nanoseconds() / 1000 / 1000
