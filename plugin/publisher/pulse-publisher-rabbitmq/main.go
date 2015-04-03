@@ -6,11 +6,7 @@ import (
 	// Import the pulse plugin library
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/plugin/publisher/pulse-publisher-rabbitmq/rmq"
-
-	// Import our publisher plugin implementation
 )
-
-// docker run -d -p 5672:5672 -p 15672:15672 dockerfile/rabbitmq
 
 func main() {
 	// Three things provided:
