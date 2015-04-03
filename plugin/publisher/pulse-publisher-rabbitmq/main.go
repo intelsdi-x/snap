@@ -18,13 +18,9 @@ func main() {
 	//   the implementation satfiying plugin.CollectorPlugin
 	//   the collector configuration policy satifying plugin.ConfigRules
 
-	// Define default policy
-	policyTree := rmq.ConfigPolicyTree()
-
 	// Define metadata about Plugin
 	meta := rmq.Meta()
 
 	// Start a collector
-	//plugin.StartCollector(meta, new(facter.Facter), policy, os.Args[0], os.Args[1])
-	plugin.Start(meta, rmq.NewRmqPublisher(), policyTree, os.Args[1])
+	plugin.Start(meta, rmq.NewRmqPublisher(), os.Args[1])
 }

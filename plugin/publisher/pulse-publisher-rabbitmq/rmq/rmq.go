@@ -23,14 +23,14 @@ func (rmq *rmqPublisher) Publish(data []byte) error {
 	return err
 }
 
-func NewRmqPublisher() rmqPublisher {
+func NewRmqPublisher() *rmqPublisher {
 	//TODO get data from config
 	rmqpub := new(rmqPublisher)
 	rmqpub.rmqAddress = defaultRmqAddress
 	rmqpub.rmqExName = defaultExchangeName
 	rmqpub.rmqExKind = defaultExchangeKind
 	rmqpub.rmqRtKey = defaultRoutingKey
-	return *rmqpub
+	return rmqpub
 
 }
 
@@ -42,7 +42,7 @@ type rmqPublisher struct {
 }
 
 const (
-	name       = "Intel RMQ Publisher Plugin (c) 2015 Intel Corporation"
+	name       = "rabbitmq"
 	version    = 1
 	pluginType = plugin.PublisherPluginType
 
