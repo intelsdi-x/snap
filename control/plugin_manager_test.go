@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	PluginName = "pulse-collector-dummy"
+	PluginName = "pulse-collector-dummy1"
 	PulsePath  = os.Getenv("PULSE_PATH")
 	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
 )
@@ -126,7 +126,7 @@ func TestUnloadPlugin(t *testing.T) {
 					err = p.UnloadPlugin(plugin)
 
 					err = p.UnloadPlugin(plugin)
-					So(err, ShouldResemble, errors.New("plugin [dummy] -- [1] not found (has it already been unloaded?)"))
+					So(err, ShouldResemble, errors.New("plugin [dummy1] -- [1] not found (has it already been unloaded?)"))
 
 				})
 			})

@@ -25,6 +25,7 @@ package facter
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -86,6 +87,12 @@ func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 		nil, //default cmd configuration
 	)
 	if err != nil {
+		if strings.Contains(err.Error(), "executable file not found") {
+			// Facter cannot be found. Since this is called on load we should
+			// not send an error as loading a plugin should not fail based on
+			// whether or not a dynamic path is set.
+			return []plugin.PluginMetricType{}, nil
+		}
 		return nil, err
 	}
 
