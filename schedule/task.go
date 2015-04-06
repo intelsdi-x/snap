@@ -1,29 +1,44 @@
 package schedule
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"time"
+
+	"code.google.com/p/go-uuid/uuid"
 
 	"github.com/intelsdilabs/pulse/core"
 )
 
 const (
 	//Task states
-	TaskStopped TaskState = iota
+	TaskStopped taskState = iota
 	TaskSpinning
 	TaskFiring
 
 	DefaultDeadlineDuration = time.Second * 5
 )
 
-type Task struct {
+type Task interface {
+	Id() string
+	Status() workflowState
+	State() taskState
+	HitCount() uint
+	MissedCount() uint
+	LastRunTime() time.Time
+	CreationTime() time.Time
+}
+
+type task struct {
+	id               string
 	schResponseChan  chan ScheduleResponse
 	killChan         chan struct{}
 	schedule         Schedule
 	workflow         Workflow
 	metricTypes      []core.MetricType
 	mu               sync.Mutex //protects state
-	state            TaskState
+	state            taskState
 	creationTime     time.Time
 	lastFireTime     time.Time
 	manager          managesWork
@@ -32,13 +47,13 @@ type Task struct {
 	missedIntervals  uint
 }
 
-type TaskState int
+type taskState int
 
-type option func(t *Task) option
+type option func(t *task) option
 
 // Option sets the options specified.
 // Returns an option to optionally restore the last arg's previous value.
-func (t *Task) Option(opts ...option) option {
+func (t *task) option(opts ...option) option {
 	var previous option
 	for _, opt := range opts {
 		previous = opt(t)
@@ -49,17 +64,18 @@ func (t *Task) Option(opts ...option) option {
 // TaskDeadlineDuration sets the tasks deadline.
 // The deadline is the amount of time that can pass before a worker begins
 // processing the tasks collect job.
-func TaskDeadlineDuration(v time.Duration) option {
-	return func(t *Task) option {
+func taskDeadlineDuration(v time.Duration) option {
+	return func(t *task) option {
 		previous := t.deadlineDuration
 		t.deadlineDuration = v
-		return TaskDeadlineDuration(previous)
+		return taskDeadlineDuration(previous)
 	}
 }
 
 //NewTask creates a Task
-func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, m *workManager, opts ...option) *Task {
-	task := &Task{
+func newTask(s Schedule, mtc []core.MetricType, wf Workflow, m *workManager, opts ...option) *task {
+	task := &task{
+		id:               uuid.New(),
 		schResponseChan:  make(chan ScheduleResponse),
 		killChan:         make(chan struct{}),
 		metricTypes:      mtc,
@@ -77,7 +93,44 @@ func NewTask(s Schedule, mtc []core.MetricType, wf Workflow, m *workManager, opt
 	return task
 }
 
-func (t *Task) Spin() {
+// CreateTime returns the time the task was created.
+func (t *task) CreationTime() time.Time {
+	return t.creationTime
+}
+
+// HitCount returns the number of times the task has fired.
+func (t *task) HitCount() uint {
+	return t.hitCount
+}
+
+// Id returns the tasks Id.
+func (t *task) Id() string {
+	return t.id
+}
+
+// LastRunTime returns the time of the tasks last run.
+func (t *task) LastRunTime() time.Time {
+	return t.lastFireTime
+}
+
+// MissedCount retruns the number of intervals missed.
+func (t *task) MissedCount() uint {
+	return t.missedIntervals
+}
+
+// State returns state of the task.
+func (t *task) State() taskState {
+	return t.state
+}
+
+// Status returns the state of the workflow.
+func (t *task) Status() workflowState {
+	return t.workflow.State()
+}
+
+// Spin will start a task spinning in its own routine while it waits for its
+// schedule.
+func (t *task) Spin() {
 	// We need to lock long enough to change state
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -88,7 +141,7 @@ func (t *Task) Spin() {
 	}
 }
 
-func (t *Task) Stop() {
+func (t *task) Stop() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.state != TaskStopped {
@@ -96,7 +149,7 @@ func (t *Task) Stop() {
 	}
 }
 
-func (t *Task) spin() {
+func (t *task) spin() {
 	for {
 		// Start go routine to wait on schedule
 		go t.waitForSchedule()
@@ -121,7 +174,7 @@ func (t *Task) spin() {
 	}
 }
 
-func (t *Task) fire() {
+func (t *task) fire() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -130,6 +183,56 @@ func (t *Task) fire() {
 	t.state = TaskSpinning
 }
 
-func (t *Task) waitForSchedule() {
+func (t *task) waitForSchedule() {
 	t.schResponseChan <- t.schedule.Wait(t.lastFireTime)
+}
+
+type taskCollection struct {
+	*sync.Mutex
+	table map[string]Task
+}
+
+func newTaskCollection() *taskCollection {
+	return &taskCollection{
+		table: make(map[string]Task),
+		Mutex: &sync.Mutex{},
+	}
+}
+
+// Get given a task id returns a Task or nil if not found
+func (t *taskCollection) Get(id string) Task {
+	t.Lock()
+	defer t.Unlock()
+
+	if t, ok := t.table[id]; ok {
+		return t
+	}
+	return nil
+}
+
+// Add given a reference to a task adds it to the collection of tasks.  An
+// error is returned if the task alredy exists in the collection.
+func (t *taskCollection) add(task *task) error {
+	t.Lock()
+	defer t.Unlock()
+
+	if _, ok := t.table[task.id]; !ok {
+		//If we don't already have this task in the collection save it
+		t.table[task.id] = task
+	} else {
+		return errors.New(fmt.Sprintf("A task with Id '%s' has already been added.", task.id))
+	}
+
+	return nil
+}
+
+// Table returns a copy of the taskCollection
+func (t *taskCollection) Table() map[string]Task {
+	t.Lock()
+	defer t.Unlock()
+	tasks := make(map[string]Task)
+	for k, v := range t.table {
+		tasks[k] = v
+	}
+	return tasks
 }

@@ -63,14 +63,16 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 }
 
 type mockWorkflow struct {
+	state workflowState
 }
 
-func (w *mockWorkflow) Start(t *Task) {
+func (w *mockWorkflow) Start(t *task) {
+	w.state = WorkflowStarted
 	time.Sleep(15 * time.Millisecond)
 }
 
 func (w *mockWorkflow) State() workflowState {
-	return WorkflowStarted
+	return w.state
 }
 
 func TestScheduler(t *testing.T) {
@@ -141,24 +143,39 @@ func TestScheduler(t *testing.T) {
 
 		})
 
-		Convey("returns a task", func() {
+		Convey("create a task", func() {
 			scheduler.metricManager = c
 			scheduler.Start()
 			task, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
 			So(err, ShouldBeNil)
 			So(task, ShouldNotBeNil)
 			So(task.deadlineDuration, ShouldResemble, DefaultDeadlineDuration)
+			So(len(scheduler.GetTasks()), ShouldEqual, 1)
+			Convey("error when attempting to add duplicate task", func() {
+				err := scheduler.tasks.add(task)
+				So(err, ShouldNotBeNil)
+			})
+			Convey("get created task", func() {
+				t, err := scheduler.GetTask(task.Id())
+				So(err, ShouldBeNil)
+				So(t, ShouldEqual, task)
+			})
+			Convey("error when attempting to get a task that doesn't exist", func() {
+				t, err := scheduler.GetTask("1234")
+				So(err, ShouldNotBeNil)
+				So(t, ShouldBeNil)
+			})
 		})
 
 		Convey("returns a task with a 6 second deadline duration", func() {
 			scheduler.metricManager = c
 			scheduler.Start()
-			task, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF, TaskDeadlineDuration(6*time.Second))
+			task, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF, taskDeadlineDuration(6*time.Second))
 			So(err, ShouldBeNil)
 			So(task.deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
-			prev := task.Option(TaskDeadlineDuration(1 * time.Second))
+			prev := task.option(taskDeadlineDuration(1 * time.Second))
 			So(task.deadlineDuration, ShouldResemble, time.Duration(1*time.Second))
-			task.Option(prev)
+			task.option(prev)
 			So(task.deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 		})
 
