@@ -6,6 +6,32 @@ import (
 	"github.com/intelsdilabs/pulse/core"
 )
 
+/*
+Given a trie like this:
+
+        root
+         /\
+        /  \
+      foo  bar
+     /\      /\
+    /  \    /  \
+   a    b  c    d
+
+The result of a Get query like so: Get([]{"root", "foo"})
+would return a slice of the MetricTypes found in nodes a & b.
+Get collects all children of a given node and returns the values
+in all leaves.
+
+This query is needed primarily for the REST interface, where it
+can be used to make efficient lookups of Metric Types in a RESTful
+manner:
+
+GET /metric/root/foo -> trie.Get([]string{"root", "foo"}) ->
+    [a,b]
+
+*/
+
+// ErrNotFound is returned when Get cannot find the given namespace
 var ErrNotFound = errors.New("namespace not found in trie")
 
 type mttNode struct {
@@ -13,10 +39,12 @@ type mttNode struct {
 	mt       core.MetricType
 }
 
+// The root in the trie
 type MTTrie struct {
 	*mttNode
 }
 
+// New() returns an empty trie
 func New() *MTTrie {
 	m := &mttNode{
 		children: map[string]*mttNode{},
@@ -24,6 +52,8 @@ func New() *MTTrie {
 	return &MTTrie{m}
 }
 
+// Add adds a node with the given namespace with the
+// given MetricType
 func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
 	node, index := mtt.walk(ns)
 	if index == len(ns) {
@@ -42,6 +72,8 @@ func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
 	node.mt = mt
 }
 
+// Get collects all children below a given namespace
+// and concatenates their metric types into a single slice
 func (mtt *mttNode) Get(ns []string) ([]core.MetricType, error) {
 	node, index := mtt.walk(ns)
 	if index != len(ns) {
