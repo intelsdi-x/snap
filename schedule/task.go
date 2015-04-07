@@ -63,11 +63,11 @@ func (t *task) option(opts ...option) option {
 // TaskDeadlineDuration sets the tasks deadline.
 // The deadline is the amount of time that can pass before a worker begins
 // processing the tasks collect job.
-func taskDeadlineDuration(v time.Duration) option {
+func TaskDeadlineDuration(v time.Duration) option {
 	return func(t *task) option {
 		previous := t.deadlineDuration
 		t.deadlineDuration = v
-		return taskDeadlineDuration(previous)
+		return TaskDeadlineDuration(previous)
 	}
 }
 

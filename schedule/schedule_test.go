@@ -146,19 +146,19 @@ func TestScheduler(t *testing.T) {
 		Convey("create a task", func() {
 			scheduler.metricManager = c
 			scheduler.Start()
-			task, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
+			tsk, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
 			So(err, ShouldBeNil)
-			So(task, ShouldNotBeNil)
-			So(task.deadlineDuration, ShouldResemble, DefaultDeadlineDuration)
+			So(tsk, ShouldNotBeNil)
+			So(tsk.(*task).deadlineDuration, ShouldResemble, DefaultDeadlineDuration)
 			So(len(scheduler.GetTasks()), ShouldEqual, 1)
 			Convey("error when attempting to add duplicate task", func() {
-				err := scheduler.tasks.add(task)
+				err := scheduler.tasks.add(tsk.(*task))
 				So(err, ShouldNotBeNil)
 			})
 			Convey("get created task", func() {
-				t, err := scheduler.GetTask(task.Id())
+				t, err := scheduler.GetTask(tsk.Id())
 				So(err, ShouldBeNil)
-				So(t, ShouldEqual, task)
+				So(t, ShouldEqual, tsk)
 			})
 			Convey("error when attempting to get a task that doesn't exist", func() {
 				t, err := scheduler.GetTask(uint64(1234))
@@ -170,13 +170,13 @@ func TestScheduler(t *testing.T) {
 		Convey("returns a task with a 6 second deadline duration", func() {
 			scheduler.metricManager = c
 			scheduler.Start()
-			task, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF, taskDeadlineDuration(6*time.Second))
+			tsk, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF, TaskDeadlineDuration(6*time.Second))
 			So(err, ShouldBeNil)
-			So(task.deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
-			prev := task.option(taskDeadlineDuration(1 * time.Second))
-			So(task.deadlineDuration, ShouldResemble, time.Duration(1*time.Second))
-			task.option(prev)
-			So(task.deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
+			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
+			prev := tsk.(*task).option(TaskDeadlineDuration(1 * time.Second))
+			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(1*time.Second))
+			tsk.(*task).option(prev)
+			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 		})
 
 	})
