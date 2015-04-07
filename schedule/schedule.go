@@ -132,7 +132,7 @@ func (scheduler *scheduler) GetTasks() map[uint64]Task {
 func (scheduler *scheduler) GetTask(id uint64) (Task, error) {
 	task := scheduler.tasks.Get(id)
 	if task == nil {
-		return nil, errors.New(fmt.Sprintf("No task with Id '%s'", id))
+		return nil, errors.New(fmt.Sprintf("No task with Id '%v'", id))
 	}
 	return task, nil
 }

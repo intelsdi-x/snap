@@ -219,7 +219,7 @@ func (t *taskCollection) add(task *task) error {
 		//If we don't already have this task in the collection save it
 		t.table[task.id] = task
 	} else {
-		return errors.New(fmt.Sprintf("A task with Id '%s' has already been added.", task.id))
+		return errors.New(fmt.Sprintf("A task with Id '%v' has already been added.", task.id))
 	}
 
 	return nil
