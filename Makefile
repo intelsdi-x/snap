@@ -4,6 +4,7 @@ deps:
 	go get -u github.com/smartystreets/goconvey
 	go get -u github.com/smartystreets/assertions
 	go get -u golang.org/x/tools/cmd/cover
+	go get -u github.com/streadway/amqp
 	go get -u github.com/docker/libcontainer
 	cd ../../docker/libcontainer; git checkout tags/v1.4.0; cd -
 
