@@ -161,7 +161,7 @@ func TestScheduler(t *testing.T) {
 				So(t, ShouldEqual, task)
 			})
 			Convey("error when attempting to get a task that doesn't exist", func() {
-				t, err := scheduler.GetTask("1234")
+				t, err := scheduler.GetTask(uint64(1234))
 				So(err, ShouldNotBeNil)
 				So(t, ShouldBeNil)
 			})

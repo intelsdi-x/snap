@@ -130,8 +130,13 @@ func TestTask(t *testing.T) {
 			})
 
 			Convey("Attempt to get task with an invalid Id", func() {
-				t := taskCollection.Get("1234")
+				t := taskCollection.Get(uint64(1234))
 				So(t, ShouldBeNil)
+			})
+
+			Convey("Create another task and compare the id", func() {
+				task2 := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+				So(task2.id, ShouldEqual, task.id+1)
 			})
 
 		})

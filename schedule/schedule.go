@@ -124,12 +124,12 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 }
 
 //GetTasks returns a copy of the tasks in a map where the task id is the key
-func (scheduler *scheduler) GetTasks() map[string]Task {
+func (scheduler *scheduler) GetTasks() map[uint64]Task {
 	return scheduler.tasks.Table()
 }
 
 //GetTask provided the task id a task is returned
-func (scheduler *scheduler) GetTask(id string) (Task, error) {
+func (scheduler *scheduler) GetTask(id uint64) (Task, error) {
 	task := scheduler.tasks.Get(id)
 	if task == nil {
 		return nil, errors.New(fmt.Sprintf("No task with Id '%s'", id))

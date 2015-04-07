@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
-
-	"code.google.com/p/go-uuid/uuid"
 
 	"github.com/intelsdilabs/pulse/core"
 )
@@ -21,7 +20,7 @@ const (
 )
 
 type Task interface {
-	Id() string
+	Id() uint64
 	Status() workflowState
 	State() taskState
 	HitCount() uint
@@ -31,7 +30,7 @@ type Task interface {
 }
 
 type task struct {
-	id               string
+	id               uint64
 	schResponseChan  chan ScheduleResponse
 	killChan         chan struct{}
 	schedule         Schedule
@@ -75,7 +74,7 @@ func taskDeadlineDuration(v time.Duration) option {
 //NewTask creates a Task
 func newTask(s Schedule, mtc []core.MetricType, wf Workflow, m *workManager, opts ...option) *task {
 	task := &task{
-		id:               uuid.New(),
+		id:               id(),
 		schResponseChan:  make(chan ScheduleResponse),
 		killChan:         make(chan struct{}),
 		metricTypes:      mtc,
@@ -104,7 +103,7 @@ func (t *task) HitCount() uint {
 }
 
 // Id returns the tasks Id.
-func (t *task) Id() string {
+func (t *task) Id() uint64 {
 	return t.id
 }
 
@@ -189,18 +188,18 @@ func (t *task) waitForSchedule() {
 
 type taskCollection struct {
 	*sync.Mutex
-	table map[string]Task
+	table map[uint64]Task
 }
 
 func newTaskCollection() *taskCollection {
 	return &taskCollection{
-		table: make(map[string]Task),
+		table: make(map[uint64]Task),
 		Mutex: &sync.Mutex{},
 	}
 }
 
 // Get given a task id returns a Task or nil if not found
-func (t *taskCollection) Get(id string) Task {
+func (t *taskCollection) Get(id uint64) Task {
 	t.Lock()
 	defer t.Unlock()
 
@@ -227,12 +226,19 @@ func (t *taskCollection) add(task *task) error {
 }
 
 // Table returns a copy of the taskCollection
-func (t *taskCollection) Table() map[string]Task {
+func (t *taskCollection) Table() map[uint64]Task {
 	t.Lock()
 	defer t.Unlock()
-	tasks := make(map[string]Task)
+	tasks := make(map[uint64]Task)
 	for k, v := range t.table {
 		tasks[k] = v
 	}
 	return tasks
+}
+
+var idCounter uint64
+
+// id generates the sequential next id (starting from 0)
+func id() uint64 {
+	return atomic.AddUint64(&idCounter, 1)
 }
