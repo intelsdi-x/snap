@@ -15,7 +15,7 @@ const (
 )
 
 type Workflow interface {
-	Start(task *Task)
+	Start(task *task)
 	State() workflowState
 }
 
@@ -37,7 +37,7 @@ func (w *workflow) State() workflowState {
 }
 
 // Start starts a workflow
-func (w *workflow) Start(task *Task) {
+func (w *workflow) Start(task *task) {
 	w.state = WorkflowStarted
 	j := w.rootStep.CreateJob(task.metricTypes, task.deadlineDuration)
 

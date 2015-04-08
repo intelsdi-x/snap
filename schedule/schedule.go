@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
@@ -40,7 +41,7 @@ type ScheduleState int
 type ScheduleResponse interface {
 	State() ScheduleState
 	Error() error
-	MissedIntervals() int
+	MissedIntervals() uint
 }
 
 // ManagesMetric is implemented by control
@@ -65,13 +66,14 @@ func (t *taskErrors) Errors() []error {
 type scheduler struct {
 	workManager   *workManager
 	metricManager managesMetric
+	tasks         *taskCollection
 	state         SchedulerState
 }
 
 type SchedulerState int
 
 // CreateTask creates and returns task
-func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow, opts ...option) (*Task, TaskErrors) {
+func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow, opts ...option) (Task, TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
@@ -110,8 +112,28 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 		return nil, te
 	}
 
-	task := NewTask(s, subscriptions, wf, scheduler.workManager, opts...)
+	task := newTask(s, subscriptions, wf, scheduler.workManager, opts...)
 
+	// Add task to taskCollection
+	if err := scheduler.tasks.add(task); err != nil {
+		te.errs = append(te.errs, err)
+		return nil, te
+	}
+
+	return task, nil
+}
+
+//GetTasks returns a copy of the tasks in a map where the task id is the key
+func (scheduler *scheduler) GetTasks() map[uint64]Task {
+	return scheduler.tasks.Table()
+}
+
+//GetTask provided the task id a task is returned
+func (scheduler *scheduler) GetTask(id uint64) (Task, error) {
+	task := scheduler.tasks.Get(id)
+	if task == nil {
+		return nil, errors.New(fmt.Sprintf("No task with Id '%v'", id))
+	}
 	return task, nil
 }
 
@@ -133,12 +155,14 @@ func (s *scheduler) SetMetricManager(mm managesMetric) {
 	s.metricManager = mm
 }
 
-// New returns an instance of the schduler
+// New returns an instance of the scheduler
 // The MetricManager must be set before the scheduler can be started.
 // The MetricManager must be started before it can be used.
 
 func New(poolSize, queueSize int) *scheduler {
-	s := &scheduler{}
+	s := &scheduler{
+		tasks: newTaskCollection(),
+	}
 
 	s.workManager = newWorkManager(int64(queueSize), poolSize)
 	s.workManager.Start()

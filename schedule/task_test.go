@@ -26,7 +26,7 @@ func (m MockScheduleResponse) Error() error {
 	return nil
 }
 
-func (m MockScheduleResponse) MissedIntervals() int {
+func (m MockScheduleResponse) MissedIntervals() uint {
 	return 0
 }
 
@@ -53,7 +53,7 @@ func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
 		Convey("task + simple schedule", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 100)
-			task := NewTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
@@ -64,7 +64,7 @@ func TestTask(t *testing.T) {
 			mockSchedule := &MockSchedule{
 				tick: false,
 			}
-			task := NewTask(mockSchedule, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+			task := newTask(mockSchedule, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, TaskSpinning)
@@ -86,12 +86,60 @@ func TestTask(t *testing.T) {
 				})
 			})
 		})
+
 		Convey("task fires", func() {
 			sch := NewSimpleSchedule(time.Millisecond * 10)
-			task := NewTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
 			task.Spin()
-			time.Sleep(time.Millisecond * 20)
+			time.Sleep(time.Millisecond * 100)
+			So(task.hitCount, ShouldBeGreaterThan, 2)
+			So(task.missedIntervals, ShouldBeGreaterThan, 2)
 			task.Stop()
 		})
+	})
+
+	Convey("Create task collection", t, func() {
+
+		sch := NewSimpleSchedule(time.Millisecond * 10)
+		task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+		So(task.id, ShouldNotBeEmpty)
+		So(task.id, ShouldNotBeNil)
+		taskCollection := newTaskCollection()
+
+		Convey("Add task to collection", func() {
+
+			err := taskCollection.add(task)
+			So(err, ShouldBeNil)
+			So(len(taskCollection.table), ShouldEqual, 1)
+
+			Convey("Attempt to add the same task again", func() {
+				err := taskCollection.add(task)
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("Get task from collection", func() {
+				t := taskCollection.Get(task.id)
+				So(t, ShouldNotBeNil)
+				So(t.Id(), ShouldEqual, task.id)
+				So(t.CreationTime().Nanosecond(), ShouldBeLessThan, time.Now().Nanosecond())
+				So(t.HitCount(), ShouldEqual, 0)
+				So(t.MissedCount(), ShouldEqual, 0)
+				So(t.State(), ShouldEqual, TaskStopped)
+				So(t.Status(), ShouldEqual, WorkflowStopped)
+				So(t.LastRunTime().IsZero(), ShouldBeTrue)
+			})
+
+			Convey("Attempt to get task with an invalid Id", func() {
+				t := taskCollection.Get(uint64(1234))
+				So(t, ShouldBeNil)
+			})
+
+			Convey("Create another task and compare the id", func() {
+				task2 := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+				So(task2.id, ShouldEqual, task.id+1)
+			})
+
+		})
+
 	})
 }

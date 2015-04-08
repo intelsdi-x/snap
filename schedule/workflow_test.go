@@ -22,7 +22,7 @@ func TestWorkflow(t *testing.T) {
 				workerKillChan = make(chan struct{})
 				manager := newWorkManager(int64(5), 1)
 				schedule := new(MockSchedule)
-				task := NewTask(schedule, []core.MetricType{}, &mockWorkflow{}, manager)
+				task := newTask(schedule, []core.MetricType{}, &mockWorkflow{}, manager)
 				wf.Start(task)
 				So(wf.State(), ShouldEqual, WorkflowStarted)
 			})
