@@ -3,7 +3,6 @@ package scheduler
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
@@ -21,27 +20,11 @@ const (
 	schedulerStarted
 )
 
-type managesWork interface {
-	Work(job) job
-}
-
-// ManagesMetric is implemented by control
+// managesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
 type managesMetric interface {
 	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error)
 	UnsubscribeMetricType(mt core.MetricType)
-}
-
-type TaskErrors interface {
-	Errors() []error
-}
-
-type taskErrors struct {
-	errs []error
-}
-
-func (t *taskErrors) Errors() []error {
-	return t.errs
 }
 
 type scheduler struct {
@@ -49,6 +32,10 @@ type scheduler struct {
 	metricManager managesMetric
 	tasks         *taskCollection
 	state         SchedulerState
+}
+
+type managesWork interface {
+	Work(job) job
 }
 
 // New returns an instance of the scheduler
@@ -65,13 +52,21 @@ func New(poolSize, queueSize int) *scheduler {
 	return s
 }
 
+type taskErrors struct {
+	errs []error
+}
+
+func (t *taskErrors) Errors() []error {
+	return t.errs
+}
+
 // CreateTask creates and returns task
-func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow, opts ...option) (Task, TaskErrors) {
+func (s *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow, opts ...option) (Task, TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
 
-	if scheduler.state != SchedulerStarted {
+	if s.state != SchedulerStarted {
 		te.errs = append(te.errs, SchedulerNotStarted)
 		return nil, te
 	}
@@ -87,7 +82,7 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 	subscriptions := make([]core.MetricType, 0)
 	for _, m := range mts {
 		cd := cdt.Get(m.Namespace())
-		mt, err := scheduler.metricManager.SubscribeMetricType(m, cd)
+		mt, err := s.metricManager.SubscribeMetricType(m, cd)
 		if err == nil {
 			//mt := newMetricType(m, config)
 			//mtc = append(mtc, mt)
@@ -100,15 +95,15 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 	if len(te.errs) > 0 {
 		//unwind successful subscriptions
 		for _, sub := range subscriptions {
-			scheduler.metricManager.UnsubscribeMetricType(sub)
+			s.metricManager.UnsubscribeMetricType(sub)
 		}
 		return nil, te
 	}
 
-	task := newTask(s, subscriptions, wf, scheduler.workManager, opts...)
+	task := newTask(s, subscriptions, wf, s.workManager, opts...)
 
 	// Add task to taskCollection
-	if err := scheduler.tasks.add(task); err != nil {
+	if err := s.tasks.add(task); err != nil {
 		te.errs = append(te.errs, err)
 		return nil, te
 	}
@@ -117,13 +112,13 @@ func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *c
 }
 
 //GetTasks returns a copy of the tasks in a map where the task id is the key
-func (scheduler *scheduler) GetTasks() map[uint64]Task {
-	return scheduler.tasks.Table()
+func (s *scheduler) GetTasks() map[uint64]Task {
+	return s.tasks.Table()
 }
 
 //GetTask provided the task id a task is returned
-func (scheduler *scheduler) GetTask(id uint64) (Task, error) {
-	task := scheduler.tasks.Get(id)
+func (s *scheduler) GetTask(id uint64) (Task, error) {
+	task := s.tasks.Get(id)
 	if task == nil {
 		return nil, errors.New(fmt.Sprintf("No task with Id '%v'", id))
 	}

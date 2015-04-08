@@ -11,23 +11,8 @@ import (
 )
 
 const (
-	//Task states
-	TaskStopped taskState = iota
-	TaskSpinning
-	TaskFiring
-
 	DefaultDeadlineDuration = time.Second * 5
 )
-
-type Task interface {
-	Id() uint64
-	Status() workflowState
-	State() taskState
-	HitCount() uint
-	MissedCount() uint
-	LastRunTime() time.Time
-	CreationTime() time.Time
-}
 
 type task struct {
 	id               uint64
@@ -45,8 +30,6 @@ type task struct {
 	hitCount         uint
 	missedIntervals  uint
 }
-
-type taskState int
 
 type option func(t *task) option
 
@@ -72,7 +55,7 @@ func TaskDeadlineDuration(v time.Duration) option {
 }
 
 //NewTask creates a Task
-func newTask(s Schedule, mtc []core.MetricType, wf Workflow, m *workManager, opts ...option) *task {
+func newTask(s schedule, mtc []core.MetricType, wf Workflow, m *workManager, opts ...option) *task {
 	task := &task{
 		id:               id(),
 		schResponseChan:  make(chan ScheduleResponse),
@@ -187,14 +170,16 @@ func (t *task) waitForSchedule() {
 }
 
 type taskCollection struct {
-	*sync.Mutex
-	table map[uint64]Task
+	sync.Mutex
+
+	table map[uint64]*task
 }
 
 func newTaskCollection() *taskCollection {
 	return &taskCollection{
-		table: make(map[uint64]Task),
-		Mutex: &sync.Mutex{},
+		Mutex: sync.Mutex{},
+
+		table: make(map[uint64]*task),
 	}
 }
 
@@ -229,7 +214,7 @@ func (t *taskCollection) add(task *task) error {
 func (t *taskCollection) Table() map[uint64]Task {
 	t.Lock()
 	defer t.Unlock()
-	tasks := make(map[uint64]Task)
+	tasks := make(map[uint64]core.Task)
 	for k, v := range t.table {
 		tasks[k] = v
 	}

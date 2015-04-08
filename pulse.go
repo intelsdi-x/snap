@@ -11,7 +11,7 @@ import (
 
 	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/pkg/logger"
-	"github.com/intelsdilabs/pulse/schedule"
+	"github.com/intelsdilabs/pulse/scheduler"
 )
 
 var (

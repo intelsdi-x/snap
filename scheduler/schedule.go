@@ -1,6 +1,10 @@
 package scheduler
 
-import "github.com/intelsdilabs/pulse/core"
+import (
+	"time"
+
+	"github.com/intelsdilabs/pulse/core"
+)
 
 type scheduleState int
 
@@ -15,7 +19,7 @@ const (
 type schedule interface {
 	core.Schedule
 
-	Wait(time.Time) ScheduleResponse
+	Wait(time.Time) scheduleResponse
 }
 
 type scheduleResponse interface {

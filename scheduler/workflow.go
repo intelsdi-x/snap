@@ -6,38 +6,31 @@ import (
 	"github.com/intelsdilabs/pulse/core"
 )
 
-type workflowState int
+type workflow interface {
+	core.Workflow
 
-const (
-	//Workflow states
-	WorkflowStopped workflowState = iota
-	WorkflowStarted
-)
-
-type Workflow interface {
 	Start(task *task)
-	State() workflowState
 }
 
-type workflow struct {
+type wf struct {
 	rootStep *collectorStep
-	state    workflowState
+	state    core.WorkflowState
 }
 
 // NewWorkflow creates and returns a workflow
-func NewWorkflow() *workflow {
-	return &workflow{
+func newWorkflow() *wf {
+	return &wf{
 		rootStep: new(collectorStep),
 	}
 }
 
 // State returns current workflow state
-func (w *workflow) State() workflowState {
+func (w *wf) State() core.WorkflowState {
 	return w.state
 }
 
 // Start starts a workflow
-func (w *workflow) Start(task *task) {
+func (w *wf) Start(task *task) {
 	w.state = WorkflowStarted
 	j := w.rootStep.CreateJob(task.metricTypes, task.deadlineDuration)
 
@@ -50,7 +43,7 @@ func (w *workflow) Start(task *task) {
 	}
 }
 
-func (w *workflow) processStep(step Step, j job, m managesWork) {
+func (w *wf) processStep(step Step, j job, m managesWork) {
 	//do work for current step
 	j = step.CreateJob(j)
 	j = m.Work(j)
