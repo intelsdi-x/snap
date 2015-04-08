@@ -78,7 +78,7 @@ func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
 
 // Collect collects all children below a given namespace
 // and concatenates their metric types into a single slice
-func (mtt *mttNode) Collect(ns []string) ([]core.MetricType, error) {
+func (mtt *mttNode) Fetch(ns []string) ([]core.MetricType, error) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err

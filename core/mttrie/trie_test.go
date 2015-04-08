@@ -25,12 +25,12 @@ func TestTrie(t *testing.T) {
 		So(trie, ShouldNotBeNil)
 		So(trie, ShouldHaveSameTypeAs, &MTTrie{})
 	})
-	Convey("Collect", t, func() {
+	Convey("Fetch", t, func() {
 		trie := New()
 		Convey("Add and collect split namespace", func() {
 			trie.Add([]string{"intel", "foo"}, mockMetricType{namespace: []string{"intel", "foo"}})
 			trie.Add([]string{"intel", "baz", "qux"}, mockMetricType{namespace: []string{"intel", "baz", "qux"}})
-			in, err := trie.Collect([]string{"intel"})
+			in, err := trie.Fetch([]string{"intel"})
 			So(err, ShouldBeNil)
 			So(len(in), ShouldEqual, 2)
 			for _, mt := range in {
@@ -42,29 +42,29 @@ func TestTrie(t *testing.T) {
 			trie.Add([]string{"intel", "foo", "bar"}, mockMetricType{namespace: []string{"intel", "foo", "bar"}})
 			trie.Add([]string{"intel", "foo"}, mockMetricType{namespace: []string{"intel", "foo"}})
 			trie.Add([]string{"intel", "baz", "qux"}, mockMetricType{namespace: []string{"intel", "baz", "qux"}})
-			in, err := trie.Collect([]string{"intel"})
+			in, err := trie.Fetch([]string{"intel"})
 			So(err, ShouldBeNil)
 			So(len(in), ShouldEqual, 3)
 		})
 		Convey("Add and collect at node with mt and children", func() {
 			trie.Add([]string{"intel", "foo", "bar"}, mockMetricType{namespace: []string{"intel", "foo", "bar"}})
 			trie.Add([]string{"intel", "foo"}, mockMetricType{namespace: []string{"intel", "foo"}})
-			in, err := trie.Collect([]string{"intel", "foo"})
+			in, err := trie.Fetch([]string{"intel", "foo"})
 			So(err, ShouldBeNil)
 			So(len(in), ShouldEqual, 2)
 		})
 		Convey("add and collect single depth namespace", func() {
 			trie.Add([]string{"test"}, mockMetricType{namespace: []string{"test"}})
-			t, err := trie.Collect([]string{"test"})
+			t, err := trie.Fetch([]string{"test"})
 			So(err, ShouldBeNil)
 			So(t[0].Namespace(), ShouldResemble, []string{"test"})
 		})
 		Convey("add and longer length with single child", func() {
 			trie.Add([]string{"d", "a", "n", "b", "a", "r"}, mockMetricType{namespace: []string{"d", "a", "n", "b", "a", "r"}})
-			d, err := trie.Collect([]string{"d", "a", "n", "b", "a", "r"})
+			d, err := trie.Fetch([]string{"d", "a", "n", "b", "a", "r"})
 			So(err, ShouldBeNil)
 			So(d[0].Namespace(), ShouldResemble, []string{"d", "a", "n", "b", "a", "r"})
-			dd, err := trie.Collect([]string{"d", "a", "n"})
+			dd, err := trie.Fetch([]string{"d", "a", "n"})
 			So(err, ShouldBeNil)
 			So(dd[0].Namespace(), ShouldResemble, []string{"d", "a", "n", "b", "a", "r"})
 		})
@@ -77,18 +77,18 @@ func TestTrie(t *testing.T) {
 				namespace: []string{"intel", "foo"},
 				version:   2,
 			})
-			n, err := trie.Collect([]string{"intel"})
+			n, err := trie.Fetch([]string{"intel"})
 			So(err, ShouldBeNil)
 			So(len(n), ShouldEqual, 2)
 		})
-		Convey("Collect with error: not found", func() {
-			_, err := trie.Collect([]string{"not", "present"})
+		Convey("Fetch with error: not found", func() {
+			_, err := trie.Fetch([]string{"not", "present"})
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, ErrNotFound)
 		})
-		Convey("Collect with error: depth exceeded", func() {
+		Convey("Fetch with error: depth exceeded", func() {
 			trie.Add([]string{"intel", "baz", "qux"}, mockMetricType{namespace: []string{"intel", "baz", "qux"}})
-			_, err := trie.Collect([]string{"intel", "baz", "qux", "foo"})
+			_, err := trie.Fetch([]string{"intel", "baz", "qux", "foo"})
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, ErrNotFound)
 		})
