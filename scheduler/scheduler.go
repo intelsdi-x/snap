@@ -9,39 +9,20 @@ import (
 	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
-const (
-	//Schedule states
-	ScheduleActive ScheduleState = iota
-	ScheduleEnded
-	ScheduleError
-
-	//Scheduler states
-	SchedulerStopped SchedulerState = iota
-	SchedulerStarted
-)
-
 var (
 	MetricManagerNotSet = errors.New("MetricManager is not set.")
 	SchedulerNotStarted = errors.New("Scheduler is not started.")
 )
 
+type schedulerState int
+
+const (
+	schedulerStopped schedulerState = iota
+	schedulerStarted
+)
+
 type managesWork interface {
 	Work(job) job
-}
-
-// Schedule - Validate() will include ensure that the underlying schedule is
-// still valid.  For example, it doesn't start in the past.
-type Schedule interface {
-	Wait(time.Time) ScheduleResponse
-	Validate() error
-}
-
-type ScheduleState int
-
-type ScheduleResponse interface {
-	State() ScheduleState
-	Error() error
-	MissedIntervals() uint
 }
 
 // ManagesMetric is implemented by control
@@ -70,7 +51,19 @@ type scheduler struct {
 	state         SchedulerState
 }
 
-type SchedulerState int
+// New returns an instance of the scheduler
+// The MetricManager must be set before the scheduler can be started.
+// The MetricManager must be started before it can be used.
+func New(poolSize, queueSize int) *scheduler {
+	s := &scheduler{
+		tasks: newTaskCollection(),
+	}
+
+	s.workManager = newWorkManager(int64(queueSize), poolSize)
+	s.workManager.Start()
+
+	return s
+}
 
 // CreateTask creates and returns task
 func (scheduler *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow, opts ...option) (Task, TaskErrors) {
@@ -153,19 +146,4 @@ func (s *scheduler) Stop() {
 // Set metricManager for scheduler
 func (s *scheduler) SetMetricManager(mm managesMetric) {
 	s.metricManager = mm
-}
-
-// New returns an instance of the scheduler
-// The MetricManager must be set before the scheduler can be started.
-// The MetricManager must be started before it can be used.
-
-func New(poolSize, queueSize int) *scheduler {
-	s := &scheduler{
-		tasks: newTaskCollection(),
-	}
-
-	s.workManager = newWorkManager(int64(queueSize), poolSize)
-	s.workManager.Start()
-
-	return s
 }

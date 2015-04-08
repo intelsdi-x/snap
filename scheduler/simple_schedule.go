@@ -6,18 +6,18 @@ import (
 )
 
 // A schedule that only implements an endless repeating interval
-type SimpleSchedule struct {
+type simpleSchedule struct {
 	interval time.Duration
 }
 
-func NewSimpleSchedule(interval time.Duration) *SimpleSchedule {
+func newSimpleSchedule(interval time.Duration) *simpleSchedule {
 	return &SimpleSchedule{interval}
 }
 
 // Waits until net interval and returns true. Returning false signals a Schedule is no
 // longer valid and should be halted. A SimpleSchedule has no end and as long as start
 // is not in the future we will always in practice return true.
-func (s *SimpleSchedule) Wait(last time.Time) ScheduleResponse {
+func (s *simpleSchedule) Wait(last time.Time) ScheduleResponse {
 	// Get the difference in time.Duration since last in nanoseconds (int64)
 	timeDiff := time.Now().Sub(last).Nanoseconds()
 	// cache our schedule interval in nanseconds
@@ -32,7 +32,7 @@ func (s *SimpleSchedule) Wait(last time.Time) ScheduleResponse {
 	return SimpleScheduleResponse{state: ScheduleActive, misses: uint(missed)}
 }
 
-func (s *SimpleSchedule) Validate() error {
+func (s *simpleSchedule) Validate() error {
 	if s.interval <= 0 {
 		return errors.New("Interval must be greater than 0.")
 	}
@@ -40,23 +40,23 @@ func (s *SimpleSchedule) Validate() error {
 }
 
 // A response from SimpleSchedule conforming to ScheduleResponse interface
-type SimpleScheduleResponse struct {
+type simpleScheduleResponse struct {
 	err    error
 	state  ScheduleState
 	misses uint
 }
 
 // Returns the state of the Schedule
-func (s SimpleScheduleResponse) State() ScheduleState {
+func (s simpleScheduleResponse) state() ScheduleState {
 	return s.state
 }
 
 // Returns last error
-func (s SimpleScheduleResponse) Error() error {
+func (s simpleScheduleResponse) err() error {
 	return s.err
 }
 
 // Returns any missed intervals
-func (s SimpleScheduleResponse) MissedIntervals() uint {
+func (s simpleScheduleResponse) missedIntervals() uint {
 	return s.misses
 }

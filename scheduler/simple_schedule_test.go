@@ -17,17 +17,17 @@ func TestSimpleSchedule(t *testing.T) {
 			last := time.Now()
 
 			time.Sleep(time.Millisecond * time.Duration(overage))
-			s := NewSimpleSchedule(time.Millisecond * time.Duration(interval))
+			s := newSimpleSchedule(time.Millisecond * time.Duration(interval))
 			err := s.Validate()
 			So(err, ShouldBeNil)
 
 			before := time.Now()
 			r := s.Wait(last)
-			after := time.Now().Sub(before)
+			after := time.Since(before)
 
-			So(r.State(), ShouldEqual, ScheduleActive)
-			So(r.MissedIntervals(), ShouldResemble, uint(4))
-			So(r.Error(), ShouldEqual, nil)
+			So(r.state(), ShouldEqual, ScheduleActive)
+			So(r.missedIntervals(), ShouldResemble, uint(4))
+			So(r.err(), ShouldEqual, nil)
 			// We are ok at this precision with being within 10% over or under (10ms)
 			afterMS := after.Nanoseconds() / 1000 / 1000
 			So(afterMS, ShouldBeGreaterThan, shouldWait-10)
@@ -35,7 +35,7 @@ func TestSimpleSchedule(t *testing.T) {
 		})
 
 		Convey("invalid schedule", func() {
-			s := NewSimpleSchedule(0)
+			s := newSimpleSchedule(0)
 			err := s.Validate()
 			So(err, ShouldResemble, errors.New("Interval must be greater than 0."))
 		})

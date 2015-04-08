@@ -12,13 +12,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type MockMetricManager struct {
+type mockMetricManager struct {
 	failValidatingMetrics      bool
 	failValidatingMetricsAfter int
 	failuredSoFar              int
 }
 
-func (m *MockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
+func (m *mockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
 	if m.failValidatingMetrics {
 		if m.failValidatingMetricsAfter > m.failuredSoFar {
 			m.failuredSoFar++
@@ -31,34 +31,34 @@ func (m *MockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.Co
 	return nil, nil
 }
 
-func (m *MockMetricManager) UnsubscribeMetricType(mt core.MetricType) {
+func (m *mockMetricManager) UnsubscribeMetricType(mt core.MetricType) {
 
 }
 
-type MockMetricManagerError struct {
+type mockMetricManagerError struct {
 	errs []error
 }
 
-type MockMetricType struct {
+type mockMetricType struct {
 	version            int
 	namespace          []string
 	lastAdvertisedTime time.Time
 	config             *cdata.ConfigDataNode
 }
 
-func (m MockMetricType) Version() int {
+func (m mockMetricType) Version() int {
 	return m.version
 }
 
-func (m MockMetricType) Namespace() []string {
+func (m mockMetricType) Namespace() []string {
 	return m.namespace
 }
 
-func (m MockMetricType) LastAdvertisedTime() time.Time {
+func (m mockMetricType) LastAdvertisedTime() time.Time {
 	return m.lastAdvertisedTime
 }
 
-func (m MockMetricType) Config() *cdata.ConfigDataNode {
+func (m mockMetricType) Config() *cdata.ConfigDataNode {
 	return m.config
 }
 
@@ -77,23 +77,23 @@ func (w *mockWorkflow) State() workflowState {
 
 func TestScheduler(t *testing.T) {
 	Convey("new", t, func() {
-		c := new(MockMetricManager)
-		mockSchedule := &MockSchedule{
+		c := new(mockMetricManager)
+		mockSchedule := &mockSchedule{
 			tick: false,
 			failValidatingSchedule: false,
 		}
 		mt := []core.MetricType{
-			&MockMetricType{
+			&mockMetricType{
 				namespace:          []string{"foo", "bar"},
 				version:            1,
 				lastAdvertisedTime: time.Now(),
 			},
-			&MockMetricType{
+			&mockMetricType{
 				namespace:          []string{"foo2", "bar2"},
 				version:            1,
 				lastAdvertisedTime: time.Now(),
 			},
-			&MockMetricType{
+			&mockMetricType{
 				namespace:          []string{"foo2", "bar2"},
 				version:            1,
 				lastAdvertisedTime: time.Now(),
@@ -112,7 +112,7 @@ func TestScheduler(t *testing.T) {
 			scheduler := New(1, 5)
 			scheduler.metricManager = c
 			scheduler.Start()
-			mockSchedule := &MockSchedule{
+			mockSchedule := &mockSchedule{
 				tick: false,
 				failValidatingSchedule: false,
 			}
@@ -183,7 +183,7 @@ func TestScheduler(t *testing.T) {
 	Convey("Stop()", t, func() {
 		Convey("Should set scheduler state to SchedulerStopped", func() {
 			scheduler := New(1, 5)
-			c := new(MockMetricManager)
+			c := new(mockMetricManager)
 			scheduler.metricManager = c
 			scheduler.Start()
 			scheduler.Stop()
@@ -193,7 +193,7 @@ func TestScheduler(t *testing.T) {
 	Convey("SetMetricManager()", t, func() {
 		Convey("Should set metricManager for scheduler", func() {
 			scheduler := New(1, 5)
-			c := new(MockMetricManager)
+			c := new(mockMetricManager)
 			scheduler.SetMetricManager(c)
 			So(scheduler.metricManager, ShouldEqual, c)
 		})
