@@ -17,7 +17,7 @@ Given a trie like this:
     /  \    /  \
    a    b  c    d
 
-The result of a Get query like so: Get([]{"root", "foo"})
+The result of a collect query like so: Collect([]string{"root", "foo"})
 would return a slice of the MetricTypes found in nodes a & b.
 Get collects all children of a given node and returns the values
 in all leaves.
@@ -26,7 +26,7 @@ This query is needed primarily for the REST interface, where it
 can be used to make efficient lookups of Metric Types in a RESTful
 manner:
 
-GET /metric/root/foo -> trie.Get([]string{"root", "foo"}) ->
+GET /metric/root/foo -> trie.Collect([]string{"root", "foo"}) ->
     [a,b]
 
 */
@@ -36,7 +36,7 @@ var ErrNotFound = errors.New("namespace not found in trie")
 
 type mttNode struct {
 	children map[string]*mttNode
-	mt       core.MetricType
+	mts      map[int]core.MetricType
 }
 
 // The root in the trie
@@ -57,7 +57,10 @@ func New() *MTTrie {
 func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
 	node, index := mtt.walk(ns)
 	if index == len(ns) {
-		node.mt = mt
+		if node.mts == nil {
+			node.mts = make(map[int]core.MetricType)
+		}
+		node.mts[mt.Version()] = mt
 		return
 	}
 	// walk through the remaining namespace and build out the
@@ -69,29 +72,50 @@ func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
 		node.children[n] = &mttNode{}
 		node = node.children[n]
 	}
-	node.mt = mt
+	node.mts = make(map[int]core.MetricType)
+	node.mts[mt.Version()] = mt
 }
 
-// Get collects all children below a given namespace
+// Collect collects all children below a given namespace
 // and concatenates their metric types into a single slice
+func (mtt *mttNode) Collect(ns []string) ([]core.MetricType, error) {
+	node, err := mtt.find(ns)
+	if err != nil {
+		return nil, err
+	}
+
+	var children []*mttNode
+	if node.mts != nil {
+		children = append(children, node)
+	}
+	if node.children != nil {
+		children = gatherChildren(children, node)
+	}
+
+	var mts []core.MetricType
+	for _, child := range children {
+		for _, mt := range child.mts {
+			mts = append(mts, mt)
+		}
+	}
+
+	return mts, nil
+}
+
+// Get works like collect, but only returns the MT at the given node
+// and does not gather the node's children.
 func (mtt *mttNode) Get(ns []string) ([]core.MetricType, error) {
-	node, index := mtt.walk(ns)
-	if index != len(ns) {
+	node, err := mtt.find(ns)
+	if err != nil {
+		return nil, err
+	}
+	if node.mts == nil {
 		return nil, ErrNotFound
 	}
-
-	var c []*mttNode
-	if node.children == nil {
-		c = append(c, node)
-	} else {
-		c = gatherChildren(c, node)
+	mts := make([]core.MetricType, len(node.mts))
+	for i, mt := range node.mts {
+		mts[i] = mt
 	}
-
-	mts := make([]core.MetricType, len(c))
-	for i, cc := range c {
-		mts[i] = cc.mt
-	}
-
 	return mts, nil
 }
 
@@ -113,11 +137,18 @@ func (mtt *mttNode) walk(ns []string) (*mttNode, int) {
 	return parent, len(ns)
 }
 
+func (mtt *mttNode) find(ns []string) (*mttNode, error) {
+	node, index := mtt.walk(ns)
+	if index != len(ns) {
+		return nil, ErrNotFound
+	}
+	return node, nil
+}
+
 func gatherChildren(children []*mttNode, node *mttNode) []*mttNode {
 	for _, child := range node.children {
 		if child.children != nil {
 			children = gatherChildren(children, child)
-			continue
 		}
 		children = append(children, child)
 	}
