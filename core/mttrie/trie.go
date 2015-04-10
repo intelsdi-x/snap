@@ -17,7 +17,7 @@ Given a trie like this:
     /  \    /  \
    a    b  c    d
 
-The result of a collect query like so: Collect([]string{"root", "foo"})
+The result of a collect query like so: Fetch([]string{"root", "foo"})
 would return a slice of the MetricTypes found in nodes a & b.
 Get collects all children of a given node and returns the values
 in all leaves.
@@ -26,13 +26,13 @@ This query is needed primarily for the REST interface, where it
 can be used to make efficient lookups of Metric Types in a RESTful
 manner:
 
-GET /metric/root/foo -> trie.Collect([]string{"root", "foo"}) ->
+FETCH /metric/root/foo -> trie.Fetch([]string{"root", "foo"}) ->
     [a,b]
 
 */
 
 // ErrNotFound is returned when Get cannot find the given namespace
-var ErrNotFound = errors.New("namespace not found in trie")
+var ErrNotFound = errors.New("metric not found")
 
 type mttNode struct {
 	children map[string]*mttNode
@@ -102,7 +102,24 @@ func (mtt *mttNode) Fetch(ns []string) ([]core.MetricType, error) {
 	return mts, nil
 }
 
-// Get works like collect, but only returns the MT at the given node
+// Remove removes all children below a given namespace
+func (mtt *mttNode) Remove(ns []string) error {
+	_, err := mtt.find(ns)
+	if err != nil {
+		return err
+	}
+
+	//remove node from parent
+	parent, err := mtt.find(ns[:len(ns)-1])
+	if err != nil {
+		return err
+	}
+	delete(parent.children, ns[len(ns)-1:][0])
+
+	return nil
+}
+
+// Get works like fetch, but only returns the MT at the given node
 // and does not gather the node's children.
 func (mtt *mttNode) Get(ns []string) ([]core.MetricType, error) {
 	node, err := mtt.find(ns)
@@ -112,9 +129,9 @@ func (mtt *mttNode) Get(ns []string) ([]core.MetricType, error) {
 	if node.mts == nil {
 		return nil, ErrNotFound
 	}
-	mts := make([]core.MetricType, len(node.mts))
-	for i, mt := range node.mts {
-		mts[i] = mt
+	var mts []core.MetricType
+	for _, mt := range node.mts {
+		mts = append(mts, mt)
 	}
 	return mts, nil
 }

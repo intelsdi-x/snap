@@ -1,4 +1,6 @@
-// rmq_test.go
+//
+// +build integration
+
 package rmq
 
 import (
