@@ -10,7 +10,6 @@ import (
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/ctypes"
-	"github.com/intelsdilabs/pulse/core/mttrie"
 )
 
 var (
@@ -76,7 +75,7 @@ func (m *metricType) Config() *cdata.ConfigDataNode {
 }
 
 type metricCatalog struct {
-	tree        *mttrie.MTTrie
+	tree        *MTTrie
 	mutex       *sync.Mutex
 	keys        []string
 	currentIter int
@@ -85,7 +84,7 @@ type metricCatalog struct {
 func newMetricCatalog() *metricCatalog {
 	var k []string
 	return &metricCatalog{
-		tree:        mttrie.New(),
+		tree:        NewMTTrie(),
 		mutex:       &sync.Mutex{},
 		currentIter: 0,
 		keys:        k,
@@ -114,38 +113,27 @@ func (mc *metricCatalog) Add(m *metricType) {
 	key := getMetricKey(m.Namespace())
 	mc.keys = appendIfMissing(mc.keys, key)
 
-	mc.tree.Add(m.Namespace(), m)
+	mc.tree.Add(m)
 }
 
 // Get retrieves a loadedPlugin given a namespace and version.
 // If provided a version of -1 the latest plugin will be returned.
 func (mc *metricCatalog) Get(ns []string, version int) (*metricType, error) {
-	mc.Lock()
-	defer mc.Unlock()
-	//key := getMetricKey(ns)
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
 	return mc.get(ns, version)
 }
 
 // Fetch transactionally retrieves all loadedPlugins
-func (mc *metricCatalog) Fetch(ns []string) ([]core.MetricType, error) {
-	mc.Lock()
-	defer mc.Unlock()
+func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, error) {
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
 
 	mtsi, err := mc.tree.Fetch(ns)
 	if err != nil {
 		return nil, err
 	}
 	return mtsi, nil
-}
-
-// used to lock the plugin table externally,
-// when iterating in unsafe scenarios
-func (mc *metricCatalog) Lock() {
-	mc.mutex.Lock()
-}
-
-func (mc *metricCatalog) Unlock() {
-	mc.mutex.Unlock()
 }
 
 func (mc *metricCatalog) Remove(ns []string) {
@@ -162,7 +150,7 @@ func (mc *metricCatalog) Item() (string, []*metricType) {
 	mtsi, _ := mc.tree.Get(ns)
 	var mts []*metricType
 	for _, mt := range mtsi {
-		mts = append(mts, mt.(*metricType))
+		mts = append(mts, mt)
 	}
 	return key, mts
 }
@@ -181,8 +169,8 @@ func (mc *metricCatalog) Next() bool {
 
 // Subscribe atomically increments a metric's subscription count in the table.
 func (mc *metricCatalog) Subscribe(ns []string, version int) error {
-	mc.Lock()
-	defer mc.Unlock()
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
 
 	m, err := mc.get(ns, version)
 	if err != nil {
@@ -195,8 +183,8 @@ func (mc *metricCatalog) Subscribe(ns []string, version int) error {
 
 // Unsubscribe atomically decrements a metric's count in the table
 func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
-	mc.Lock()
-	defer mc.Unlock()
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
 
 	m, err := mc.get(ns, version)
 	if err != nil {
@@ -227,17 +215,14 @@ func (mc *metricCatalog) get(ns []string, ver int) (*metricType, error) {
 			if err != nil {
 				return nil, err
 			}
-			//TODO Can we avoid this type assert?
-			return l.(*metricType), nil
+			return l, nil
 		}
-
-		// multiple versions but -1 was given for the version
-		// meaning get the latest
-		return getLatest(mts).(*metricType), nil
+		// ver is less than 0 get the latest
+		return getLatest(mts), nil
 	}
 
 	//only one version so return it
-	return mts[0].(*metricType), nil
+	return mts[0], nil
 
 }
 
@@ -245,7 +230,7 @@ func getMetricKey(metric []string) string {
 	return strings.Join(metric, ".")
 }
 
-func getLatest(c []core.MetricType) core.MetricType {
+func getLatest(c []*metricType) *metricType {
 	cur := c[0]
 	for _, mt := range c {
 		if mt.Version() > cur.Version() {
@@ -265,10 +250,9 @@ func appendIfMissing(keys []string, ns string) []string {
 	return append(keys, ns)
 }
 
-//TODO ? The trie could expose a GetByVersion eliminating the need for this
-func getVersion(c []core.MetricType, ver int) (core.MetricType, error) {
+func getVersion(c []*metricType, ver int) (*metricType, error) {
 	for _, m := range c {
-		if m.(*metricType).Plugin.Version() == ver {
+		if m.Plugin.Version() == ver {
 			return m, nil
 		}
 	}

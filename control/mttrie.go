@@ -1,10 +1,6 @@
-package mttrie
+package control
 
-import (
-	"errors"
-
-	"github.com/intelsdilabs/pulse/core"
-)
+import "errors"
 
 /*
 Given a trie like this:
@@ -36,7 +32,7 @@ var ErrNotFound = errors.New("metric not found")
 
 type mttNode struct {
 	children map[string]*mttNode
-	mts      map[int]core.MetricType
+	mts      map[int]*metricType
 }
 
 // The root in the trie
@@ -45,7 +41,7 @@ type MTTrie struct {
 }
 
 // New() returns an empty trie
-func New() *MTTrie {
+func NewMTTrie() *MTTrie {
 	m := &mttNode{
 		children: map[string]*mttNode{},
 	}
@@ -54,11 +50,12 @@ func New() *MTTrie {
 
 // Add adds a node with the given namespace with the
 // given MetricType
-func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
+func (mtt *mttNode) Add(mt *metricType) {
+	ns := mt.Namespace()
 	node, index := mtt.walk(ns)
 	if index == len(ns) {
 		if node.mts == nil {
-			node.mts = make(map[int]core.MetricType)
+			node.mts = make(map[int]*metricType)
 		}
 		node.mts[mt.Version()] = mt
 		return
@@ -72,13 +69,13 @@ func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
 		node.children[n] = &mttNode{}
 		node = node.children[n]
 	}
-	node.mts = make(map[int]core.MetricType)
+	node.mts = make(map[int]*metricType)
 	node.mts[mt.Version()] = mt
 }
 
 // Collect collects all children below a given namespace
 // and concatenates their metric types into a single slice
-func (mtt *mttNode) Fetch(ns []string) ([]core.MetricType, error) {
+func (mtt *mttNode) Fetch(ns []string) ([]*metricType, error) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
@@ -92,7 +89,7 @@ func (mtt *mttNode) Fetch(ns []string) ([]core.MetricType, error) {
 		children = gatherChildren(children, node)
 	}
 
-	var mts []core.MetricType
+	var mts []*metricType
 	for _, child := range children {
 		for _, mt := range child.mts {
 			mts = append(mts, mt)
@@ -121,7 +118,7 @@ func (mtt *mttNode) Remove(ns []string) error {
 
 // Get works like fetch, but only returns the MT at the given node
 // and does not gather the node's children.
-func (mtt *mttNode) Get(ns []string) ([]core.MetricType, error) {
+func (mtt *mttNode) Get(ns []string) ([]*metricType, error) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
@@ -129,7 +126,7 @@ func (mtt *mttNode) Get(ns []string) ([]core.MetricType, error) {
 	if node.mts == nil {
 		return nil, ErrNotFound
 	}
-	var mts []core.MetricType
+	var mts []*metricType
 	for _, mt := range node.mts {
 		mts = append(mts, mt)
 	}

@@ -266,7 +266,7 @@ type mc struct {
 	e int
 }
 
-func (m *mc) Fetch(ns []string) ([]core.MetricType, error) {
+func (m *mc) Fetch(ns []string) ([]*metricType, error) {
 	return nil, nil
 }
 
