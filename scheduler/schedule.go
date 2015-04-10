@@ -1,29 +1,28 @@
 package scheduler
 
 import (
+	"errors"
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
 )
 
-type scheduleState int
-
-const (
-	scheduleActive scheduleState = iota
-	scheduleEnded
-	scheduleError
-)
-
-// schedule - Validate() will include ensure that the underlying schedule is
-// still valid.  For example, it doesn't start in the past.
 type schedule interface {
 	core.Schedule
 
 	Wait(time.Time) scheduleResponse
 }
 
+func assertSchedule(sched core.Schedule) (schedule, error) {
+	switch val := sched.(type) {
+	case *core.SimpleSchedule:
+		return newSimpleSchedule(val), nil
+	}
+	return nil, errors.New("unknown schedule type")
+}
+
 type scheduleResponse interface {
 	err() error
-	state() scheduleState
+	state() core.ScheduleState
 	missedIntervals() uint
 }

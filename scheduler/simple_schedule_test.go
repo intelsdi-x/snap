@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/core"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -17,7 +19,7 @@ func TestSimpleSchedule(t *testing.T) {
 			last := time.Now()
 
 			time.Sleep(time.Millisecond * time.Duration(overage))
-			s := newSimpleSchedule(time.Millisecond * time.Duration(interval))
+			s := newSimpleSchedule(core.NewSimpleSchedule(time.Millisecond * time.Duration(interval)))
 			err := s.Validate()
 			So(err, ShouldBeNil)
 
@@ -25,7 +27,7 @@ func TestSimpleSchedule(t *testing.T) {
 			r := s.Wait(last)
 			after := time.Since(before)
 
-			So(r.state(), ShouldEqual, ScheduleActive)
+			So(r.state(), ShouldEqual, core.ScheduleActive)
 			So(r.missedIntervals(), ShouldResemble, uint(4))
 			So(r.err(), ShouldEqual, nil)
 			// We are ok at this precision with being within 10% over or under (10ms)
@@ -35,9 +37,9 @@ func TestSimpleSchedule(t *testing.T) {
 		})
 
 		Convey("invalid schedule", func() {
-			s := newSimpleSchedule(0)
+			s := newSimpleSchedule(core.NewSimpleSchedule(0))
 			err := s.Validate()
-			So(err, ShouldResemble, errors.New("Interval must be greater than 0."))
+			So(err, ShouldResemble, errors.New("Simple Schedule interval must be greater than 0"))
 		})
 
 	})

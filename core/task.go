@@ -5,7 +5,6 @@ import "time"
 type TaskState int
 
 const (
-	//Task states
 	TaskStopped TaskState = iota
 	TaskSpinning
 	TaskFiring

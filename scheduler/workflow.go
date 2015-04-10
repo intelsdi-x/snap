@@ -24,14 +24,24 @@ func newWorkflow() *wf {
 	}
 }
 
+func newWorkflowFromMap(m core.WfMap) *wf {
+	w := &wf{}
+	w.fromMap(m)
+	return w
+}
+
 // State returns current workflow state
 func (w *wf) State() core.WorkflowState {
 	return w.state
 }
 
+func (w *wf) Map() core.WfMap {
+	return core.WfMap{}
+}
+
 // Start starts a workflow
 func (w *wf) Start(task *task) {
-	w.state = WorkflowStarted
+	w.state = core.WorkflowStarted
 	j := w.rootStep.CreateJob(task.metricTypes, task.deadlineDuration)
 
 	// dispatch 'collect' job to be worked
@@ -51,6 +61,9 @@ func (w *wf) processStep(step Step, j job, m managesWork) {
 	for _, step := range step.Steps() {
 		w.processStep(step, j, m)
 	}
+}
+
+func (w *wf) fromMap(m core.WfMap) {
 }
 
 // Step interface for a workflow step

@@ -8,6 +8,8 @@ const (
 )
 
 type Workflow interface {
-	Map()
+	Map() WfMap
 	State() WorkflowState
 }
+
+type WfMap struct{}

@@ -31,7 +31,7 @@ type scheduler struct {
 	workManager   *workManager
 	metricManager managesMetric
 	tasks         *taskCollection
-	state         SchedulerState
+	state         schedulerState
 }
 
 type managesWork interface {
@@ -61,18 +61,18 @@ func (t *taskErrors) Errors() []error {
 }
 
 // CreateTask creates and returns task
-func (s *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.ConfigDataTree, wf Workflow, opts ...option) (Task, TaskErrors) {
+func (s *scheduler) CreateTask(mts []core.MetricType, sch core.Schedule, cdt *cdata.ConfigDataTree, wf core.Workflow, opts ...option) (core.Task, core.TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
 
-	if s.state != SchedulerStarted {
+	if s.state != schedulerStarted {
 		te.errs = append(te.errs, SchedulerNotStarted)
 		return nil, te
 	}
 
 	//validate Schedule
-	if err := s.Validate(); err != nil {
+	if err := sch.Validate(); err != nil {
 		te.errs = append(te.errs, err)
 		return nil, te
 	}
@@ -100,7 +100,14 @@ func (s *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.Con
 		return nil, te
 	}
 
-	task := newTask(s, subscriptions, wf, s.workManager, opts...)
+	sched, err := assertSchedule(sch)
+	if err != nil {
+		te.errs = append(te.errs, err)
+		return nil, te
+	}
+
+	workf := newWorkflowFromMap(wf.Map())
+	task := newTask(sched, subscriptions, workf, s.workManager, opts...)
 
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {
@@ -112,12 +119,16 @@ func (s *scheduler) CreateTask(mts []core.MetricType, s Schedule, cdt *cdata.Con
 }
 
 //GetTasks returns a copy of the tasks in a map where the task id is the key
-func (s *scheduler) GetTasks() map[uint64]Task {
-	return s.tasks.Table()
+func (s *scheduler) GetTasks() map[uint64]core.Task {
+	tasks := make(map[uint64]core.Task)
+	for id, t := range s.tasks.Table() {
+		tasks[id] = t
+	}
+	return tasks
 }
 
 //GetTask provided the task id a task is returned
-func (s *scheduler) GetTask(id uint64) (Task, error) {
+func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 	task := s.tasks.Get(id)
 	if task == nil {
 		return nil, errors.New(fmt.Sprintf("No task with Id '%v'", id))
@@ -130,12 +141,12 @@ func (s *scheduler) Start() error {
 	if s.metricManager == nil {
 		return MetricManagerNotSet
 	}
-	s.state = SchedulerStarted
+	s.state = schedulerStarted
 	return nil
 }
 
 func (s *scheduler) Stop() {
-	s.state = SchedulerStopped
+	s.state = schedulerStopped
 }
 
 // Set metricManager for scheduler

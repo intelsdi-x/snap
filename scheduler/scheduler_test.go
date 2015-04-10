@@ -63,25 +63,41 @@ func (m mockMetricType) Config() *cdata.ConfigDataNode {
 }
 
 type mockWorkflow struct {
-	state workflowState
+	state core.WorkflowState
 }
 
 func (w *mockWorkflow) Start(t *task) {
-	w.state = WorkflowStarted
+	w.state = core.WorkflowStarted
 	time.Sleep(15 * time.Millisecond)
 }
 
-func (w *mockWorkflow) State() workflowState {
+func (w *mockWorkflow) State() core.WorkflowState {
 	return w.state
+}
+
+func (w *mockWorkflow) Map() core.WfMap {
+	return core.WfMap{}
+}
+
+type mockScheduleResponse struct {
+}
+
+func (m mockScheduleResponse) state() core.ScheduleState {
+	return core.ScheduleActive
+}
+
+func (m mockScheduleResponse) err() error {
+	return nil
+}
+
+func (m mockScheduleResponse) missedIntervals() uint {
+	return 0
 }
 
 func TestScheduler(t *testing.T) {
 	Convey("new", t, func() {
 		c := new(mockMetricManager)
-		mockSchedule := &mockSchedule{
-			tick: false,
-			failValidatingSchedule: false,
-		}
+		sch := core.NewSimpleSchedule(time.Millisecond * 5)
 		mt := []core.MetricType{
 			&mockMetricType{
 				namespace:          []string{"foo", "bar"},
@@ -112,11 +128,7 @@ func TestScheduler(t *testing.T) {
 			scheduler := New(1, 5)
 			scheduler.metricManager = c
 			scheduler.Start()
-			mockSchedule := &mockSchedule{
-				tick: false,
-				failValidatingSchedule: false,
-			}
-			_, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
+			_, err := scheduler.CreateTask(mt, sch, cdt, mockWF)
 			So(err, ShouldNotBeNil)
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
 			So(err.Errors()[0], ShouldResemble, errors.New("metric validation error"))
@@ -131,22 +143,23 @@ func TestScheduler(t *testing.T) {
 		})
 
 		Convey("returns an error when a schedule does not validate", func() {
-			mockSchedule.failValidatingSchedule = true
-			_, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
+			sch.Interval = 0
+			_, err := scheduler.CreateTask(mt, sch, cdt, mockWF)
 			So(err, ShouldNotBeNil)
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
 			So(err.Errors()[0], ShouldResemble, SchedulerNotStarted)
 			scheduler.metricManager = c
 			scheduler.Start()
-			_, err = scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
-			So(err.Errors()[0], ShouldResemble, errors.New("schedule error"))
+			_, err = scheduler.CreateTask(mt, sch, cdt, mockWF)
+			So(err.Errors()[0], ShouldResemble, errors.New("Simple Schedule interval must be greater than 0"))
 
 		})
 
 		Convey("create a task", func() {
+			sch.Interval = time.Duration(time.Second * 5)
 			scheduler.metricManager = c
 			scheduler.Start()
-			tsk, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF)
+			tsk, err := scheduler.CreateTask(mt, sch, cdt, mockWF)
 			So(err, ShouldBeNil)
 			So(tsk, ShouldNotBeNil)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, DefaultDeadlineDuration)
@@ -168,9 +181,10 @@ func TestScheduler(t *testing.T) {
 		})
 
 		Convey("returns a task with a 6 second deadline duration", func() {
+			sch.Interval = time.Duration(time.Second * 6)
 			scheduler.metricManager = c
 			scheduler.Start()
-			tsk, err := scheduler.CreateTask(mt, mockSchedule, cdt, mockWF, TaskDeadlineDuration(6*time.Second))
+			tsk, err := scheduler.CreateTask(mt, sch, cdt, mockWF, TaskDeadlineDuration(6*time.Second))
 			So(err, ShouldBeNil)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 			prev := tsk.(*task).option(TaskDeadlineDuration(1 * time.Second))
@@ -187,7 +201,7 @@ func TestScheduler(t *testing.T) {
 			scheduler.metricManager = c
 			scheduler.Start()
 			scheduler.Stop()
-			So(scheduler.state, ShouldEqual, SchedulerStopped)
+			So(scheduler.state, ShouldEqual, schedulerStopped)
 		})
 	})
 	Convey("SetMetricManager()", t, func() {
