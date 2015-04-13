@@ -1,7 +1,6 @@
-package schedule
+package scheduler
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -10,68 +9,26 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type MockSchedule struct {
-	tick                   bool
-	failValidatingSchedule bool
-}
-
-type MockScheduleResponse struct {
-}
-
-func (m MockScheduleResponse) State() ScheduleState {
-	return ScheduleActive
-}
-
-func (m MockScheduleResponse) Error() error {
-	return nil
-}
-
-func (m MockScheduleResponse) MissedIntervals() uint {
-	return 0
-}
-
-func (m *MockSchedule) Wait(t time.Time) ScheduleResponse {
-	for !m.tick {
-		time.Sleep(time.Millisecond * 100)
-	}
-	m.tick = false
-	return MockScheduleResponse{}
-}
-
-func (m *MockSchedule) Tick() {
-	m.tick = true
-}
-
-func (m *MockSchedule) Validate() error {
-	if m.failValidatingSchedule {
-		return errors.New("schedule error")
-	}
-	return nil
-}
-
 func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
 		Convey("task + simple schedule", func() {
-			sch := NewSimpleSchedule(time.Millisecond * 100)
-			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+			sch := newSimpleSchedule(core.NewSimpleSchedule(time.Millisecond * 100))
+			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(5, 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
-			So(task.state, ShouldEqual, TaskSpinning)
+			So(task.state, ShouldEqual, core.TaskSpinning)
 			task.Stop()
 		})
 
 		Convey("Task is created and starts to spin", func() {
-			mockSchedule := &MockSchedule{
-				tick: false,
-			}
-			task := newTask(mockSchedule, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+			sch := newSimpleSchedule(core.NewSimpleSchedule(time.Second * 5))
+			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(5, 1))
 			task.Spin()
-			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
-			So(task.state, ShouldEqual, TaskSpinning)
+			So(task.state, ShouldEqual, core.TaskSpinning)
 			Convey("Task is Stopped", func() {
 				task.Stop()
 				time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
-				So(task.state, ShouldEqual, TaskStopped)
+				So(task.state, ShouldEqual, core.TaskStopped)
 				Convey("Stopping a stopped tasks should not send to kill channel", func() {
 					task.Stop()
 					b := false
@@ -81,15 +38,15 @@ func TestTask(t *testing.T) {
 					default:
 						b = false
 					}
-					So(task.state, ShouldEqual, TaskStopped)
+					So(task.state, ShouldEqual, core.TaskStopped)
 					So(b, ShouldBeFalse)
 				})
 			})
 		})
 
 		Convey("task fires", func() {
-			sch := NewSimpleSchedule(time.Millisecond * 10)
-			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+			sch := newSimpleSchedule(core.NewSimpleSchedule(time.Millisecond * 10))
+			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(5, 1))
 			task.Spin()
 			time.Sleep(time.Millisecond * 100)
 			So(task.hitCount, ShouldBeGreaterThan, 2)
@@ -100,8 +57,8 @@ func TestTask(t *testing.T) {
 
 	Convey("Create task collection", t, func() {
 
-		sch := NewSimpleSchedule(time.Millisecond * 10)
-		task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+		sch := newSimpleSchedule(core.NewSimpleSchedule(time.Millisecond * 10))
+		task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(5, 1))
 		So(task.id, ShouldNotBeEmpty)
 		So(task.id, ShouldNotBeNil)
 		taskCollection := newTaskCollection()
@@ -124,18 +81,18 @@ func TestTask(t *testing.T) {
 				So(t.CreationTime().Nanosecond(), ShouldBeLessThan, time.Now().Nanosecond())
 				So(t.HitCount(), ShouldEqual, 0)
 				So(t.MissedCount(), ShouldEqual, 0)
-				So(t.State(), ShouldEqual, TaskStopped)
-				So(t.Status(), ShouldEqual, WorkflowStopped)
+				So(t.State(), ShouldEqual, core.TaskStopped)
+				So(t.Status(), ShouldEqual, core.WorkflowStopped)
 				So(t.LastRunTime().IsZero(), ShouldBeTrue)
 			})
 
 			Convey("Attempt to get task with an invalid Id", func() {
-				t := taskCollection.Get(uint64(1234))
+				t := taskCollection.Get(1234)
 				So(t, ShouldBeNil)
 			})
 
 			Convey("Create another task and compare the id", func() {
-				task2 := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(int64(5), 1))
+				task2 := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(5, 1))
 				So(task2.id, ShouldEqual, task.id+1)
 			})
 

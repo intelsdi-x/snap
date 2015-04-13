@@ -1,4 +1,4 @@
-package schedule
+package scheduler
 
 import (
 	"time"
@@ -6,39 +6,42 @@ import (
 	"github.com/intelsdilabs/pulse/core"
 )
 
-type workflowState int
+type workflow interface {
+	core.Workflow
 
-const (
-	//Workflow states
-	WorkflowStopped workflowState = iota
-	WorkflowStarted
-)
-
-type Workflow interface {
 	Start(task *task)
-	State() workflowState
 }
 
-type workflow struct {
+type wf struct {
 	rootStep *collectorStep
-	state    workflowState
+	state    core.WorkflowState
 }
 
 // NewWorkflow creates and returns a workflow
-func NewWorkflow() *workflow {
-	return &workflow{
+func newWorkflow() *wf {
+	return &wf{
 		rootStep: new(collectorStep),
 	}
 }
 
+func newWorkflowFromMap(m core.WfMap) *wf {
+	w := &wf{}
+	w.fromMap(m)
+	return w
+}
+
 // State returns current workflow state
-func (w *workflow) State() workflowState {
+func (w *wf) State() core.WorkflowState {
 	return w.state
 }
 
+func (w *wf) Map() core.WfMap {
+	return core.WfMap{}
+}
+
 // Start starts a workflow
-func (w *workflow) Start(task *task) {
-	w.state = WorkflowStarted
+func (w *wf) Start(task *task) {
+	w.state = core.WorkflowStarted
 	j := w.rootStep.CreateJob(task.metricTypes, task.deadlineDuration)
 
 	// dispatch 'collect' job to be worked
@@ -50,7 +53,7 @@ func (w *workflow) Start(task *task) {
 	}
 }
 
-func (w *workflow) processStep(step Step, j job, m managesWork) {
+func (w *wf) processStep(step Step, j job, m managesWork) {
 	//do work for current step
 	j = step.CreateJob(j)
 	j = m.Work(j)
@@ -58,6 +61,9 @@ func (w *workflow) processStep(step Step, j job, m managesWork) {
 	for _, step := range step.Steps() {
 		w.processStep(step, j, m)
 	}
+}
+
+func (w *wf) fromMap(m core.WfMap) {
 }
 
 // Step interface for a workflow step

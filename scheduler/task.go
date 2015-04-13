@@ -1,4 +1,4 @@
-package schedule
+package scheduler
 
 import (
 	"errors"
@@ -11,33 +11,19 @@ import (
 )
 
 const (
-	//Task states
-	TaskStopped taskState = iota
-	TaskSpinning
-	TaskFiring
-
 	DefaultDeadlineDuration = time.Second * 5
 )
 
-type Task interface {
-	Id() uint64
-	Status() workflowState
-	State() taskState
-	HitCount() uint
-	MissedCount() uint
-	LastRunTime() time.Time
-	CreationTime() time.Time
-}
-
 type task struct {
+	sync.Mutex //protects state
+
 	id               uint64
-	schResponseChan  chan ScheduleResponse
+	schResponseChan  chan scheduleResponse
 	killChan         chan struct{}
-	schedule         Schedule
-	workflow         Workflow
+	schedule         schedule
+	workflow         workflow
 	metricTypes      []core.MetricType
-	mu               sync.Mutex //protects state
-	state            taskState
+	state            core.TaskState
 	creationTime     time.Time
 	lastFireTime     time.Time
 	manager          managesWork
@@ -45,8 +31,6 @@ type task struct {
 	hitCount         uint
 	missedIntervals  uint
 }
-
-type taskState int
 
 type option func(t *task) option
 
@@ -72,14 +56,14 @@ func TaskDeadlineDuration(v time.Duration) option {
 }
 
 //NewTask creates a Task
-func newTask(s Schedule, mtc []core.MetricType, wf Workflow, m *workManager, opts ...option) *task {
+func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, opts ...option) *task {
 	task := &task{
 		id:               id(),
-		schResponseChan:  make(chan ScheduleResponse),
+		schResponseChan:  make(chan scheduleResponse),
 		killChan:         make(chan struct{}),
 		metricTypes:      mtc,
 		schedule:         s,
-		state:            TaskStopped,
+		state:            core.TaskStopped,
 		creationTime:     time.Now(),
 		workflow:         wf,
 		manager:          m,
@@ -118,12 +102,12 @@ func (t *task) MissedCount() uint {
 }
 
 // State returns state of the task.
-func (t *task) State() taskState {
+func (t *task) State() core.TaskState {
 	return t.state
 }
 
 // Status returns the state of the workflow.
-func (t *task) Status() workflowState {
+func (t *task) Status() core.WorkflowState {
 	return t.workflow.State()
 }
 
@@ -131,19 +115,19 @@ func (t *task) Status() workflowState {
 // schedule.
 func (t *task) Spin() {
 	// We need to lock long enough to change state
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if t.state == TaskStopped {
-		t.state = TaskSpinning
+	t.Lock()
+	defer t.Unlock()
+	if t.state == core.TaskStopped {
+		t.state = core.TaskSpinning
 		// spin in a goroutine
 		go t.spin()
 	}
 }
 
 func (t *task) Stop() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if t.state != TaskStopped {
+	t.Lock()
+	defer t.Unlock()
+	if t.state != core.TaskStopped {
 		t.killChan <- struct{}{}
 	}
 }
@@ -158,8 +142,8 @@ func (t *task) spin() {
 		select {
 		case sr := <-t.schResponseChan:
 			// If response show this schedule is stil active we fire
-			if sr.State() == ScheduleActive {
-				t.missedIntervals += sr.MissedIntervals()
+			if sr.state() == core.ScheduleActive {
+				t.missedIntervals += sr.missedIntervals()
 				t.lastFireTime = time.Now()
 				t.fire()
 				t.hitCount++
@@ -167,19 +151,19 @@ func (t *task) spin() {
 			// TODO stop task on schedule error state or end state
 		case <-t.killChan:
 			// Only here can it truly be stopped
-			t.state = TaskStopped
+			t.state = core.TaskStopped
 			break
 		}
 	}
 }
 
 func (t *task) fire() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.Lock()
+	defer t.Unlock()
 
-	t.state = TaskFiring
+	t.state = core.TaskFiring
 	t.workflow.Start(t)
-	t.state = TaskSpinning
+	t.state = core.TaskSpinning
 }
 
 func (t *task) waitForSchedule() {
@@ -188,18 +172,20 @@ func (t *task) waitForSchedule() {
 
 type taskCollection struct {
 	*sync.Mutex
-	table map[uint64]Task
+
+	table map[uint64]*task
 }
 
 func newTaskCollection() *taskCollection {
 	return &taskCollection{
-		table: make(map[uint64]Task),
 		Mutex: &sync.Mutex{},
+
+		table: make(map[uint64]*task),
 	}
 }
 
 // Get given a task id returns a Task or nil if not found
-func (t *taskCollection) Get(id uint64) Task {
+func (t *taskCollection) Get(id uint64) *task {
 	t.Lock()
 	defer t.Unlock()
 
@@ -226,12 +212,12 @@ func (t *taskCollection) add(task *task) error {
 }
 
 // Table returns a copy of the taskCollection
-func (t *taskCollection) Table() map[uint64]Task {
+func (t *taskCollection) Table() map[uint64]*task {
 	t.Lock()
 	defer t.Unlock()
-	tasks := make(map[uint64]Task)
-	for k, v := range t.table {
-		tasks[k] = v
+	tasks := make(map[uint64]*task)
+	for id, t := range t.table {
+		tasks[id] = t
 	}
 	return tasks
 }

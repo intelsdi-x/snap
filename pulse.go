@@ -11,7 +11,7 @@ import (
 
 	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/pkg/logger"
-	"github.com/intelsdilabs/pulse/schedule"
+	"github.com/intelsdilabs/pulse/scheduler"
 )
 
 var (
@@ -74,7 +74,7 @@ func main() {
 
 	logger.Info("main", "pulse agent starting")
 	c := control.New()
-	s := schedule.New(defaultPoolSize, defaultQueueSize)
+	s := scheduler.New(defaultPoolSize, defaultQueueSize)
 	s.SetMetricManager(c)
 
 	// Set interrupt handling so we can die gracefully.
