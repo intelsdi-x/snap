@@ -15,7 +15,7 @@ const (
 )
 
 type task struct {
-	*sync.Mutex //protects state
+	sync.Mutex //protects state
 
 	id               uint64
 	schResponseChan  chan scheduleResponse
@@ -58,8 +58,6 @@ func TaskDeadlineDuration(v time.Duration) option {
 //NewTask creates a Task
 func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, opts ...option) *task {
 	task := &task{
-		Mutex: &sync.Mutex{},
-
 		id:               id(),
 		schResponseChan:  make(chan scheduleResponse),
 		killChan:         make(chan struct{}),
