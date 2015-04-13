@@ -66,11 +66,11 @@ type catalogsMetrics interface {
 	Get([]string, int) (*metricType, error)
 	Add(*metricType)
 	AddLoadedMetricType(*loadedPlugin, core.MetricType)
+	Fetch([]string) ([]*metricType, error)
 	Item() (string, []*metricType)
 	Next() bool
 	Subscribe([]string, int) error
 	Unsubscribe([]string, int) error
-	Table() map[string][]*metricType
 	GetPlugin([]string, int) (*loadedPlugin, error)
 }
 
@@ -269,15 +269,17 @@ func (p *pluginControl) PluginCatalog() PluginCatalog {
 	return pc
 }
 
-func (p *pluginControl) MetricCatalog() []core.MetricType {
+func (p *pluginControl) MetricCatalog() ([]core.MetricType, error) {
 	var c []core.MetricType
-	for p.metricCatalog.Next() {
-		_, mts := p.metricCatalog.Item()
-		for _, mt := range mts {
-			c = append(c, mt)
-		}
+	mts, err := p.metricCatalog.Fetch([]string{})
+	if err != nil {
+		return nil, err
 	}
-	return c
+	for _, mt := range mts {
+		c = append(c, mt)
+	}
+
+	return c, nil
 }
 
 func (p *pluginControl) MetricExists(mns []string, ver int) bool {

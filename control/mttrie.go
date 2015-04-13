@@ -1,10 +1,6 @@
-package mttrie
+package control
 
-import (
-	"errors"
-
-	"github.com/intelsdilabs/pulse/core"
-)
+import "errors"
 
 /*
 Given a trie like this:
@@ -17,7 +13,7 @@ Given a trie like this:
     /  \    /  \
    a    b  c    d
 
-The result of a collect query like so: Collect([]string{"root", "foo"})
+The result of a collect query like so: Fetch([]string{"root", "foo"})
 would return a slice of the MetricTypes found in nodes a & b.
 Get collects all children of a given node and returns the values
 in all leaves.
@@ -26,17 +22,17 @@ This query is needed primarily for the REST interface, where it
 can be used to make efficient lookups of Metric Types in a RESTful
 manner:
 
-GET /metric/root/foo -> trie.Collect([]string{"root", "foo"}) ->
+FETCH /metric/root/foo -> trie.Fetch([]string{"root", "foo"}) ->
     [a,b]
 
 */
 
 // ErrNotFound is returned when Get cannot find the given namespace
-var ErrNotFound = errors.New("namespace not found in trie")
+var ErrNotFound = errors.New("metric not found")
 
 type mttNode struct {
 	children map[string]*mttNode
-	mts      map[int]core.MetricType
+	mts      map[int]*metricType
 }
 
 // The root in the trie
@@ -45,7 +41,7 @@ type MTTrie struct {
 }
 
 // New() returns an empty trie
-func New() *MTTrie {
+func NewMTTrie() *MTTrie {
 	m := &mttNode{
 		children: map[string]*mttNode{},
 	}
@@ -54,11 +50,12 @@ func New() *MTTrie {
 
 // Add adds a node with the given namespace with the
 // given MetricType
-func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
+func (mtt *mttNode) Add(mt *metricType) {
+	ns := mt.Namespace()
 	node, index := mtt.walk(ns)
 	if index == len(ns) {
 		if node.mts == nil {
-			node.mts = make(map[int]core.MetricType)
+			node.mts = make(map[int]*metricType)
 		}
 		node.mts[mt.Version()] = mt
 		return
@@ -72,13 +69,13 @@ func (mtt *mttNode) Add(ns []string, mt core.MetricType) {
 		node.children[n] = &mttNode{}
 		node = node.children[n]
 	}
-	node.mts = make(map[int]core.MetricType)
+	node.mts = make(map[int]*metricType)
 	node.mts[mt.Version()] = mt
 }
 
 // Collect collects all children below a given namespace
 // and concatenates their metric types into a single slice
-func (mtt *mttNode) Fetch(ns []string) ([]core.MetricType, error) {
+func (mtt *mttNode) Fetch(ns []string) ([]*metricType, error) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
@@ -92,7 +89,7 @@ func (mtt *mttNode) Fetch(ns []string) ([]core.MetricType, error) {
 		children = gatherChildren(children, node)
 	}
 
-	var mts []core.MetricType
+	var mts []*metricType
 	for _, child := range children {
 		for _, mt := range child.mts {
 			mts = append(mts, mt)
@@ -102,9 +99,26 @@ func (mtt *mttNode) Fetch(ns []string) ([]core.MetricType, error) {
 	return mts, nil
 }
 
-// Get works like collect, but only returns the MT at the given node
+// Remove removes all children below a given namespace
+func (mtt *mttNode) Remove(ns []string) error {
+	_, err := mtt.find(ns)
+	if err != nil {
+		return err
+	}
+
+	//remove node from parent
+	parent, err := mtt.find(ns[:len(ns)-1])
+	if err != nil {
+		return err
+	}
+	delete(parent.children, ns[len(ns)-1:][0])
+
+	return nil
+}
+
+// Get works like fetch, but only returns the MT at the given node
 // and does not gather the node's children.
-func (mtt *mttNode) Get(ns []string) ([]core.MetricType, error) {
+func (mtt *mttNode) Get(ns []string) ([]*metricType, error) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
@@ -112,9 +126,9 @@ func (mtt *mttNode) Get(ns []string) ([]core.MetricType, error) {
 	if node.mts == nil {
 		return nil, ErrNotFound
 	}
-	mts := make([]core.MetricType, len(node.mts))
-	for i, mt := range node.mts {
-		mts[i] = mt
+	var mts []*metricType
+	for _, mt := range node.mts {
+		mts = append(mts, mt)
 	}
 	return mts, nil
 }

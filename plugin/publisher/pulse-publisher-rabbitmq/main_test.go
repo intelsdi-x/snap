@@ -1,3 +1,6 @@
+//
+// +build integration
+
 package main
 
 import (
