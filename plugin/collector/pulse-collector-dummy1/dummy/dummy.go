@@ -1,6 +1,8 @@
 package dummy
 
 import (
+	"log"
+
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
@@ -15,7 +17,10 @@ const (
 type Dummy struct {
 }
 
-func (f *Dummy) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+	for _, p := range mts {
+		log.Println("collecting", p)
+	}
 	m := plugin.PluginMetric{Namespace_: []string{"intel", "dummy", "foo"}, Data_: 1}
 	ms := []plugin.PluginMetric{m}
 	return ms, nil

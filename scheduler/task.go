@@ -34,16 +34,6 @@ type task struct {
 
 type option func(t *task) option
 
-// Option sets the options specified.
-// Returns an option to optionally restore the last arg's previous value.
-func (t *task) option(opts ...option) option {
-	var previous option
-	for _, opt := range opts {
-		previous = opt(t)
-	}
-	return previous
-}
-
 // TaskDeadlineDuration sets the tasks deadline.
 // The deadline is the amount of time that can pass before a worker begins
 // processing the tasks collect job.
@@ -56,7 +46,7 @@ func TaskDeadlineDuration(v time.Duration) option {
 }
 
 //NewTask creates a Task
-func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, opts ...option) *task {
+func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, opts ...core.TaskOption) *task {
 	task := &task{
 		id:               id(),
 		schResponseChan:  make(chan scheduleResponse),
@@ -76,9 +66,27 @@ func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, opt
 	return task
 }
 
+// Option sets the options specified.
+// Returns an option to optionally restore the last arg's previous value.
+func (t *task) Option(opts ...core.TaskOption) core.TaskOption {
+	var previous core.TaskOption
+	for _, opt := range opts {
+		previous = opt(t)
+	}
+	return previous
+}
+
 // CreateTime returns the time the task was created.
 func (t *task) CreationTime() time.Time {
 	return t.creationTime
+}
+
+func (t *task) DeadlineDuration() time.Duration {
+	return t.deadlineDuration
+}
+
+func (t *task) SetDeadlineDuration(d time.Duration) {
+	t.deadlineDuration = d
 }
 
 // HitCount returns the number of times the task has fired.

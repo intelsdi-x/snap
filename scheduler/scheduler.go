@@ -61,7 +61,7 @@ func (t *taskErrors) Errors() []error {
 }
 
 // CreateTask creates and returns task
-func (s *scheduler) CreateTask(mts []core.MetricType, sch core.Schedule, cdt *cdata.ConfigDataTree, wf core.Workflow, opts ...option) (core.Task, core.TaskErrors) {
+func (s *scheduler) CreateTask(mts []core.MetricType, sch core.Schedule, cdt *cdata.ConfigDataTree, wf core.Workflow, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
