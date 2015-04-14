@@ -1,9 +1,10 @@
 package dummy
 
 import (
+	"log"
+
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
-	"log"
 )
 
 const (

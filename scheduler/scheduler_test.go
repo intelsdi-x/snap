@@ -184,12 +184,12 @@ func TestScheduler(t *testing.T) {
 			sch.Interval = time.Duration(time.Second * 6)
 			scheduler.metricManager = c
 			scheduler.Start()
-			tsk, err := scheduler.CreateTask(mt, sch, cdt, mockWF, TaskDeadlineDuration(6*time.Second))
+			tsk, err := scheduler.CreateTask(mt, sch, cdt, mockWF, core.TaskDeadlineDuration(6*time.Second))
 			So(err, ShouldBeNil)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
-			prev := tsk.(*task).option(TaskDeadlineDuration(1 * time.Second))
+			prev := tsk.(*task).Option(core.TaskDeadlineDuration(1 * time.Second))
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(1*time.Second))
-			tsk.(*task).option(prev)
+			tsk.(*task).Option(prev)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 		})
 

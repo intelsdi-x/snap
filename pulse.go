@@ -12,7 +12,6 @@ import (
 	"github.com/intelsdilabs/pulse/control"
 	"github.com/intelsdilabs/pulse/mgmt/rest"
 	"github.com/intelsdilabs/pulse/pkg/logger"
-	"github.com/intelsdilabs/pulse/rest"
 	"github.com/intelsdilabs/pulse/scheduler"
 )
 

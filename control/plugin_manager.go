@@ -96,8 +96,10 @@ func (l *loadedPlugins) Unlock() {
    invocation.
 */
 func (l *loadedPlugins) splice(index int) {
-	lp := append((*l.table)[:index], (*l.table)[index+1:]...)
-	l.table = &lp
+	if index < len(*l.table) {
+		lp := append((*l.table)[:index], (*l.table)[index+1:]...)
+		l.table = &lp
+	}
 }
 
 // splice unsafely

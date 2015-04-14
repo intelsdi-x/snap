@@ -21,11 +21,17 @@ func TestLoadedPlugins(t *testing.T) {
 	Convey("Append", t, func() {
 		Convey("returns an error when loading duplicate plugins", func() {
 			lp := newLoadedPlugins()
-			lp.Append(new(loadedPlugin))
-
-			p, _ := lp.Get(0)
-			err := lp.Append(p)
-			So(err, ShouldResemble, errors.New("plugin already loaded at index 0"))
+			lp.Append(&loadedPlugin{
+				Meta: plugin.PluginMeta{
+					Name: "test1",
+				},
+			})
+			err := lp.Append(&loadedPlugin{
+				Meta: plugin.PluginMeta{
+					Name: "test1",
+				},
+			})
+			So(err, ShouldResemble, errors.New("plugin [test1:0] already loaded at index 0"))
 
 		})
 	})
@@ -42,9 +48,21 @@ func TestLoadedPlugins(t *testing.T) {
 	Convey("Splice", t, func() {
 		Convey("splices an item out of the table", func() {
 			lp := newLoadedPlugins()
-			lp.Append(new(loadedPlugin))
-			lp.Append(new(loadedPlugin))
-			lp.Append(new(loadedPlugin))
+			lp.Append(&loadedPlugin{
+				Meta: plugin.PluginMeta{
+					Name: "test1",
+				},
+			})
+			lp.Append(&loadedPlugin{
+				Meta: plugin.PluginMeta{
+					Name: "test2",
+				},
+			})
+			lp.Append(&loadedPlugin{
+				Meta: plugin.PluginMeta{
+					Name: "test3",
+				},
+			})
 			lp.Splice(1)
 			So(len(lp.Table()), ShouldResemble, 2)
 

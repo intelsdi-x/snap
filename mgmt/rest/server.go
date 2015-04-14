@@ -1,21 +1,26 @@
 package rest
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
-	sched "github.com/intelsdilabs/pulse/schedule"
 )
 
 type managesMetrics interface {
-	MetricCatalog() []core.MetricType
+	MetricCatalog() ([]core.MetricType, error)
 	Load(string) error
 }
 
 type managesTasks interface {
-	CreateTask([]core.MetricType, sched.Schedule, *cdata.ConfigDataTree, sched.Workflow, ...sched.TaskOption) (*sched.Task, sched.TaskErrors)
+	CreateTask([]core.MetricType, core.Schedule, *cdata.ConfigDataTree, core.Workflow, ...core.TaskOption) (core.Task, core.TaskErrors)
 }
 
 type Server struct {
@@ -64,4 +69,54 @@ func (s *Server) start(addrString string) {
 	s.n.UseHandler(s.r)
 	// start http handling
 	s.n.Run(addrString)
+}
+
+type response struct {
+	Meta *responseMeta          `json:"meta"`
+	Data map[string]interface{} `json:"data"`
+}
+
+type responseMeta struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+func replyError(code int, w http.ResponseWriter, err error) {
+	w.WriteHeader(code)
+	resp := &response{
+		Meta: &responseMeta{
+			Code:    code,
+			Message: err.Error(),
+		},
+	}
+	jerr, _ := json.MarshalIndent(resp, "", "  ")
+	fmt.Fprint(w, string(jerr))
+}
+
+func replySuccess(code int, w http.ResponseWriter, data map[string]interface{}) {
+	w.WriteHeader(code)
+	resp := &response{
+		Meta: &responseMeta{
+			Code: code,
+		},
+		Data: data,
+	}
+	j, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		replyError(500, w, err)
+		return
+	}
+	fmt.Fprint(w, string(j))
+}
+
+func marshalBody(in interface{}, body io.ReadCloser) (int, error) {
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		return 500, err
+	}
+	err = json.Unmarshal(b, in)
+	if err != nil {
+		return 400, err
+	}
+	return 0, nil
 }
