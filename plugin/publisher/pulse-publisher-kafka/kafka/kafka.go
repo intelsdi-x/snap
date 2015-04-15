@@ -9,10 +9,14 @@ import (
 	// "gopkg.in/Shopify/sarama.v1"
 )
 
-type Kafka struct{}
+const (
+	PluginName    = "kafka"
+	PluginVersion = 1
+	PluginType    = plugin.PublisherPluginType
+)
 
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta("kafka", 1, plugin.PublisherPluginType)
+	return plugin.NewPluginMeta(PluginName, PluginVersion, PluginType)
 }
 
 func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
@@ -25,6 +29,8 @@ func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
 // 	return err
 // }
 
+type Kafka struct{}
+
 func NewKafkaPublisher() *Kafka {
 	var k *Kafka
 	//TODO get data from config
@@ -34,6 +40,9 @@ func NewKafkaPublisher() *Kafka {
 	// rmqpub.rmqExKind = defaultExchangeKind
 	// rmqpub.rmqRtKey = defaultRoutingKey
 	return k
+
+}
+func (k *Kafka) Publish(contentType string, content []byte) {
 
 }
 
