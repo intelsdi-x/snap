@@ -125,6 +125,16 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 		if err != nil {
 			return sErr, retCode
 		}
+	case PublisherPluginType:
+		r := &Response{
+			Type:  PublisherPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		err, retCode := StartPublisher(c.(PublisherPlugin), sessionState, r)
+		if err != nil {
+			return sErr, retCode
+		}
 	}
 
 	return nil, retCode

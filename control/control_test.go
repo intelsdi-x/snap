@@ -3,6 +3,7 @@ package control
 import (
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -40,7 +41,7 @@ func (m *MockPluginManagerBadSwap) UnloadPlugin(c CatalogedPlugin) error { retur
 func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins        { return nil }
 func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)     {}
 func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)             {}
-func (m *MockPluginManagerBadSwap) GenerateArgs() plugin.Arg             { return plugin.Arg{} }
+func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg       { return plugin.Arg{} }
 
 func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
@@ -53,17 +54,6 @@ func TestPluginControlGenerateArgs(t *testing.T) {
 		Convey("sets monitor duration", func() {
 			c.SetMonitorOptions(MonitorDurationOption(time.Millisecond * 100))
 			So(c.pluginRunner.Monitor().duration, ShouldResemble, 100*time.Millisecond)
-		})
-	})
-}
-
-func TestPluginControlStart(t *testing.T) {
-	Convey("pluginControl.generateArgs", t, func() {
-		Convey("returns arg", func() {
-			c := New()
-			c.Start()
-			a := c.generateArgs()
-			So(a, ShouldNotBeNil)
 		})
 	})
 }
@@ -484,5 +474,52 @@ func TestCollectMetrics(t *testing.T) {
 			// fmt.Printf(" *  Collect Response: %+v\n", cr)
 		}
 		time.Sleep(time.Millisecond * 1000)
+	})
+}
+
+type mockMetric struct {
+	namespace []string
+	data      int
+}
+
+func (m *mockMetric) Namespace() []string {
+	return m.namespace
+}
+
+func (m *mockMetric) Data() interface{} {
+	return m.data
+}
+
+func TestPublishMetrics(t *testing.T) {
+	Convey("Given an available file publisher plugin", t, func() {
+		logger.SetLevel(logger.DebugLevel)
+		// adjust HB timeouts for test
+		plugin.PingTimeoutLimit = 1
+		plugin.PingTimeoutDurationDefault = time.Second * 1
+
+		// Create controller
+		c := New()
+		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
+		c.Start()
+
+		// Load plugin
+		err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
+		So(err, ShouldBeNil)
+		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
+
+		// Subscribe to publisher
+		c.SubscribePublisher("file", 1)
+		time.Sleep(1 * time.Second)
+
+		metrics := []core.Metric{
+			&mockMetric{
+				namespace: []string{"foo", "bar"},
+				data:      99,
+			},
+		}
+
+		err = c.PublishMetrics(metrics, "file", 1)
+		So(err, ShouldBeNil)
+
 	})
 }
