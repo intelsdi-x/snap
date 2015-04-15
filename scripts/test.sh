@@ -8,7 +8,7 @@
 # 6. test coverage (http://blog.golang.org/cover)
 
 COVERALLS_TOKEN=t47LG6BQsfLwb9WxB56hXUezvwpED6D11
-TEST_DIRS="control/ core/ mgmt/ pkg/ plugin pulse.go scheduler/"
+TEST_DIRS="control/ core/ mgmt/ pkg/ pulse.go scheduler/"
 
 set -e
  
