@@ -17,8 +17,11 @@ import (
 )
 
 const (
-	DefaultClientTimeout           = time.Second * 3
-	DefaultHealthCheckTimeout      = time.Second * 1
+	// DefaultClientTimeout - default timeout for a client connection attempt
+	DefaultClientTimeout = time.Second * 3
+	// DefaultHealthCheckTimeout - default timeout for a health check
+	DefaultHealthCheckTimeout = time.Second * 1
+	// DefaultHealthCheckFailureLimit - how any consecutive health check timeouts must occur to trigger a failure
 	DefaultHealthCheckFailureLimit = 3
 )
 
@@ -71,7 +74,7 @@ func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter) (*
 	return ap, nil
 }
 
-func (a *availablePlugin) Id() int {
+func (a *availablePlugin) ID() int {
 	return a.id
 }
 
@@ -80,52 +83,52 @@ func (a *availablePlugin) String() string {
 }
 
 // Stop halts a running availablePlugin
-func (ap *availablePlugin) Stop(r string) error {
-	logger.Debug("availableplugin", fmt.Sprintf(ap.Name, ap.Version))
-	return ap.Client.Kill(r)
+func (a *availablePlugin) Stop(r string) error {
+	logger.Debug("availableplugin", fmt.Sprintf(a.Name, a.Version))
+	return a.Client.Kill(r)
 }
 
 // CheckHealth checks the health of a plugin and updates
-// ap.failedHealthChecks
-func (ap *availablePlugin) CheckHealth() {
+// a.failedHealthChecks
+func (a *availablePlugin) CheckHealth() {
 	go func() {
-		ap.healthChan <- ap.Client.Ping()
+		a.healthChan <- a.Client.Ping()
 	}()
 	select {
-	case err := <-ap.healthChan:
+	case err := <-a.healthChan:
 		if err == nil {
-			logger.Debugf("healthcheck", "ok (%s)", ap.String())
-			ap.failedHealthChecks = 0
+			logger.Debugf("healthcheck", "ok (%s)", a.String())
+			a.failedHealthChecks = 0
 		} else {
-			ap.healthCheckFailed()
+			a.healthCheckFailed()
 		}
 	case <-time.After(time.Second * 1):
-		ap.healthCheckFailed()
+		a.healthCheckFailed()
 	}
 }
 
-// healthCheckFailed increments ap.failedHealthChecks and emits a DisabledPluginEvent
+// healthCheckFailed increments a.failedHealthChecks and emits a DisabledPluginEvent
 // and a HealthCheckFailedEvent
-func (ap *availablePlugin) healthCheckFailed() {
-	logger.Debugf("heartbeat", "missed (%s)", ap.String())
-	ap.failedHealthChecks++
-	if ap.failedHealthChecks >= DefaultHealthCheckFailureLimit {
-		logger.Debugf("hearbeat", "failed (%s)", ap.String())
+func (a *availablePlugin) healthCheckFailed() {
+	logger.Debugf("heartbeat", "missed (%s)", a.String())
+	a.failedHealthChecks++
+	if a.failedHealthChecks >= DefaultHealthCheckFailureLimit {
+		logger.Debugf("hearbeat", "failed (%s)", a.String())
 		pde := &control_event.DisabledPluginEvent{
-			Name:    ap.Name,
-			Version: ap.Version,
-			Type:    int(ap.Type),
-			Key:     ap.Key,
-			Index:   ap.Index,
+			Name:    a.Name,
+			Version: a.Version,
+			Type:    int(a.Type),
+			Key:     a.Key,
+			Index:   a.Index,
 		}
-		defer ap.emitter.Emit(pde)
+		defer a.emitter.Emit(pde)
 	}
 	hcfe := &control_event.HealthCheckFailedEvent{
-		Name:    ap.Name,
-		Version: ap.Version,
-		Type:    int(ap.Type),
+		Name:    a.Name,
+		Version: a.Version,
+		Type:    int(a.Type),
 	}
-	defer ap.emitter.Emit(hcfe)
+	defer a.emitter.Emit(hcfe)
 }
 
 func (a *availablePlugin) HitCount() int {
@@ -136,10 +139,10 @@ func (a *availablePlugin) LastHit() time.Time {
 	return a.lastHitTime
 }
 
-// makeKey creates the ap.Key from the ap.Name and ap.Version
-func (ap *availablePlugin) makeKey() {
-	s := []string{ap.Name, strconv.Itoa(ap.Version)}
-	ap.Key = strings.Join(s, ":")
+// makeKey creates the a.Key from the a.Name and a.Version
+func (a *availablePlugin) makeKey() {
+	s := []string{a.Name, strconv.Itoa(a.Version)}
+	a.Key = strings.Join(s, ":")
 }
 
 // apCollection is a collection of availablePlugin
@@ -316,7 +319,7 @@ type availablePluginPool struct {
 }
 
 func newAvailablePluginPool() *availablePluginPool {
-	app := make([]*availablePlugin, 0)
+	var app []*availablePlugin
 	return &availablePluginPool{
 		Plugins: &app,
 		mutex:   &sync.Mutex{},
@@ -377,7 +380,7 @@ func (a *availablePluginPool) SelectUsingStrategy(strat RoutingStrategy) (*avail
 	defer a.Unlock()
 
 	sp := make([]routing.SelectablePlugin, len(*a.Plugins))
-	for i, _ := range *a.Plugins {
+	for i := range *a.Plugins {
 		sp[i] = (*a.Plugins)[i]
 	}
 	sap, err := strat.Select(a, sp)
