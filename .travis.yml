@@ -25,7 +25,7 @@ install:
 - gem install facter
 - cd $PULSE_SOURCE # change dir into source
 - go get -d -v ./... && go build -v ./... # get and build source
-- godep restore
+- ./scripts/deps.sh # load deps for pulse and plugins
 - make
 script:
 - ./scripts/test.sh 2>&1 # Run test suite
