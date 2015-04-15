@@ -74,7 +74,7 @@ type catalogsMetrics interface {
 	GetPlugin([]string, int) (*loadedPlugin, error)
 }
 
-// Returns a new pluginControl instance
+// New returns a new pluginControl instance
 func New() *pluginControl {
 
 	c := &pluginControl{}
@@ -194,7 +194,7 @@ func (p *pluginControl) generateArgs() plugin.Arg {
 // either from config data processing, or the inability to find the metric.
 func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
 	logger.Info("control.subscribe", fmt.Sprintf("subscription called with: %s", mt.Namespace()))
-	subErrs := make([]error, 0)
+	var subErrs []error
 
 	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 	if err != nil {
