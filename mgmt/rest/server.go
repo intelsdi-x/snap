@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
@@ -119,4 +120,16 @@ func marshalBody(in interface{}, body io.ReadCloser) (int, error) {
 		return 400, err
 	}
 	return 0, nil
+}
+
+func parsens(ns string) []string {
+	if strings.Index(ns, "/") == 0 {
+		return strings.Split(ns[1:], "/")
+	} else {
+		return strings.Split(ns, "/")
+	}
+}
+
+func joinns(ns []string) string {
+	return "/" + strings.Join(ns, "/")
 }

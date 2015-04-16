@@ -8,28 +8,7 @@ const (
 )
 
 type Workflow interface {
-	Map() WfMap
+	Marshal() ([]byte, error)
+	Unmarshal([]byte) error
 	State() WorkflowState
-}
-
-type WfMap struct {
-	Collect CollectStep
-	Process ProcessStep
-	Publish PublishStep
-}
-
-type CollectStep struct {
-	MetricTypes []MetricType
-	Process     []ProcessStep
-	Publish     []PublishStep
-}
-
-type ProcessStep struct {
-	Plugin  Plugin
-	Process []ProcessStep
-	Publish []PublishStep
-}
-
-type PublishStep struct {
-	Plugin Plugin
 }
