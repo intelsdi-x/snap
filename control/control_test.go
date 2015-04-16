@@ -506,6 +506,7 @@ func TestPublishMetrics(t *testing.T) {
 		err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
+		plugin := c.pluginManager.LoadedPlugins().Table()[0]
 
 		// Subscribe to publisher
 		c.SubscribePublisher("file", 1)
@@ -518,7 +519,7 @@ func TestPublishMetrics(t *testing.T) {
 			},
 		}
 
-		err = c.PublishMetrics(metrics, "file", 1)
+		err = c.PublishMetrics(metrics, plugin)
 		So(err, ShouldBeNil)
 
 	})

@@ -383,12 +383,12 @@ func (p *pluginControl) CollectMetrics(
 }
 
 // PublishMetrics
-func (p *pluginControl) PublishMetrics(metrics []core.Metric, publisherName string, publisherVersion int) error {
-	key := strings.Join([]string{publisherName, strconv.Itoa(publisherVersion)}, ":")
+func (p *pluginControl) PublishMetrics(metrics []core.Metric, plugin core.Plugin) error {
+	key := strings.Join([]string{plugin.Name(), strconv.Itoa(plugin.Version())}, ":")
 
 	pool := p.pluginRunner.AvailablePlugins().Publishers.GetPluginPool(key)
 	if pool == nil {
-		return errors.New(fmt.Sprintf("No available plugin found for %v:%v", publisherName, publisherVersion))
+		return errors.New(fmt.Sprintf("No available plugin found for %v:%v", plugin.Name(), plugin.Version()))
 	}
 
 	// resolve a available plugin from pool
