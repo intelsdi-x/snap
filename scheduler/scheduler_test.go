@@ -83,8 +83,12 @@ func (w *mockWorkflow) State() core.WorkflowState {
 	return w.state
 }
 
-func (w *mockWorkflow) Map() core.WfMap {
-	return core.WfMap{}
+func (w *mockWorkflow) Marshal() ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (w *mockWorkflow) Unmarshal([]byte) error {
+	return nil
 }
 
 type mockScheduleResponse struct {
