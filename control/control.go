@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -59,7 +60,7 @@ type managesPlugins interface {
 	UnloadPlugin(CatalogedPlugin) error
 	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
-	GenerateArgs() plugin.Arg
+	GenerateArgs(pluginPath string) plugin.Arg
 }
 
 type catalogsMetrics interface {
@@ -181,14 +182,6 @@ func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
 	return nil
 }
 
-func (p *pluginControl) generateArgs() plugin.Arg {
-	a := plugin.Arg{
-		ControlPubKey: p.controlPubKey,
-		PluginLogPath: "/tmp/pulse-test-plugin.log",
-	}
-	return a
-}
-
 // SubscribeMetricType validates the given config data, and if valid
 // returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
@@ -222,6 +215,20 @@ func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.Config
 	defer p.eventManager.Emit(e)
 
 	return m, nil
+}
+
+//SubscribePublisher
+//TODO: add subscription count to ?loadedPlugin?
+func (p *pluginControl) SubscribePublisher(name string, ver int) error {
+	logger.Info("control.subscribe", fmt.Sprintf("publisher subscription called for %v:%v", name, ver))
+
+	e := &control_event.PublisherSubscriptionEvent{
+		PluginName:    name,
+		PluginVersion: ver,
+	}
+	defer p.eventManager.Emit(e)
+
+	return nil
 }
 
 // UnsubscribeMetricType unsubscribes a MetricType
@@ -373,6 +380,33 @@ func (p *pluginControl) CollectMetrics(
 		return nil, errs
 	}
 	return
+}
+
+// PublishMetrics
+func (p *pluginControl) PublishMetrics(metrics []core.Metric, plugin core.Plugin) error {
+	key := strings.Join([]string{plugin.Name(), strconv.Itoa(plugin.Version())}, ":")
+
+	pool := p.pluginRunner.AvailablePlugins().Publishers.GetPluginPool(key)
+	if pool == nil {
+		return errors.New(fmt.Sprintf("No available plugin found for %v:%v", plugin.Name(), plugin.Version()))
+	}
+
+	// resolve a available plugin from pool
+	ap, err := getAvailablePlugin(pool, p.strategy)
+	if err != nil {
+		return err
+	}
+
+	cli, ok := ap.Client.(client.PluginPublisherClient)
+	if !ok {
+		return errors.New("unable to cast client to PluginPublisherClient")
+	}
+
+	err = cli.Publish(metrics)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // ------------------- helper struct and function for grouping metrics types ------

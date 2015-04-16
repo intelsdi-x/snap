@@ -6,7 +6,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	// "log"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -15,6 +15,7 @@ import (
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/client"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
 const (
@@ -186,11 +187,13 @@ type pluginManager struct {
 	loadedPlugins *loadedPlugins
 	privKey       *rsa.PrivateKey
 	pubKey        *rsa.PublicKey
+	logPath       string
 }
 
 func newPluginManager() *pluginManager {
 	p := &pluginManager{
 		loadedPlugins: newLoadedPlugins(),
+		logPath:       "/tmp",
 	}
 	return p
 }
@@ -212,7 +215,8 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(), lPlugin.Path)
+	logger.Debugf("PluginManager.LoadPlugin", "path %v", filepath.Base(lPlugin.Path))
+	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Path), lPlugin.Path)
 
 	if err != nil {
 		// log.Println(err)
@@ -329,6 +333,7 @@ func (p *pluginManager) UnloadPlugin(pl CatalogedPlugin) error {
 	return nil
 }
 
-func (p *pluginManager) GenerateArgs() plugin.Arg {
-	return plugin.NewArg(p.pubKey, "/tmp/pulse-plugin-foo.log")
+func (p *pluginManager) GenerateArgs(pluginPath string) plugin.Arg {
+	pluginLog := filepath.Join(p.logPath, filepath.Base(pluginPath)) + ".log"
+	return plugin.NewArg(p.pubKey, pluginLog)
 }

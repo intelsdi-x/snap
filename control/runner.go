@@ -195,6 +195,31 @@ func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
 func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 	switch v := e.Body.(type) {
+	case *control_event.PublisherSubscriptionEvent:
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
+		logger.Debugf("runner.events", "handling publisher subscription event (%v:v%v)", v.PluginName, v.PluginVersion)
+
+		for r.pluginManager.LoadedPlugins().Next() {
+			_, lp := r.pluginManager.LoadedPlugins().Item()
+			logger.Debugf("runner.events", "subscription request name: %v version: %v", v.PluginName, v.PluginVersion)
+			logger.Debugf("runner.events", "loaded plugin name: %v version: %v type: %v", lp.Name(), lp.Version(), lp.TypeName())
+			if lp.TypeName() == "publisher" && lp.Name() == v.PluginName && lp.Version() == v.PluginVersion {
+				pool := r.availablePlugins.Publishers.GetPluginPool(lp.Key())
+				ok := checkPool(pool, lp.Key())
+				if !ok {
+					return
+				}
+
+				ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(lp.Path), lp.Path)
+				_, err = r.startPlugin(ePlugin)
+				if err != nil {
+					fmt.Println(err)
+					panic(err)
+				}
+			}
+
+		}
 	case *control_event.MetricSubscriptionEvent:
 		r.mutex.Lock()
 		defer r.mutex.Unlock()
@@ -215,18 +240,12 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		logger.Debugf("runner.events", "plugin is (%s) for (%s v%d)", mt.Plugin.Key(), strings.Join(v.MetricNamespace, "/"), v.Version)
 
 		pool := r.availablePlugins.Collectors.GetPluginPool(mt.Plugin.Key())
-		if pool != nil && pool.Count() >= MaximumRunningPlugins {
-			// if r.availablePlugins.Collectors.PluginPoolHasAP(mt.Plugin.Key()) {
-			logger.Debugf("runner.events", "(%s) has %d available plugin running (need %d)", mt.Plugin.Key(), pool.Count(), MaximumRunningPlugins)
+		ok := checkPool(pool, mt.Plugin.Key())
+		if !ok {
 			return
 		}
-		if pool == nil {
-			logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", 0, mt.Plugin.Key(), MaximumRunningPlugins)
-		} else {
-			logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", pool.Count(), mt.Plugin.Key(), MaximumRunningPlugins)
-		}
 
-		ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(), mt.Plugin.Path)
+		ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(mt.Plugin.Path), mt.Plugin.Path)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -236,4 +255,17 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			panic(err)
 		}
 	}
+}
+
+func checkPool(pool *availablePluginPool, key string) bool {
+	if pool != nil && pool.Count() >= MaximumRunningPlugins {
+		logger.Debugf("runner.events", "(%s) has %d available plugin running (need %d)", key, pool.Count(), MaximumRunningPlugins)
+		return false
+	}
+	if pool == nil {
+		logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", 0, key, MaximumRunningPlugins)
+	} else {
+		logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", pool.Count(), key, MaximumRunningPlugins)
+	}
+	return true
 }

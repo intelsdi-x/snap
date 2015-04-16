@@ -28,6 +28,18 @@ func NewCollectorNativeClient(address string, timeout time.Duration) (PluginColl
 	return p, nil
 }
 
+func NewPublisherNativeClient(address string, timeout time.Duration) (PluginPublisherClient, error) {
+	// Attempt to dial address error on timeout or problem
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	// Return nil RPCClient and err if encoutered
+	if err != nil {
+		return nil, err
+	}
+	r := rpc.NewClient(conn)
+	p := &PluginNativeClient{connection: r}
+	return p, nil
+}
+
 func (p *PluginNativeClient) Ping() error {
 	a := plugin.PingArgs{}
 	b := true
@@ -39,6 +51,22 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	a := plugin.KillArgs{Reason: reason}
 	var b bool
 	err := p.connection.Call("SessionState.Kill", a, &b)
+	return err
+}
+
+func (p *PluginNativeClient) Publish(metrics []core.Metric) error {
+	// Convert core.Metric slice into plugin.PluginMetric slice as we have
+	// to send structs over RPC
+	pluginMetrics := make([]plugin.PluginMetric, len(metrics))
+	for i, _ := range metrics {
+		pluginMetrics[i] = *plugin.NewPluginMetric(metrics[i].Namespace(), metrics[i].Data())
+	}
+
+	args := plugin.PublishArgs{PluginMetrics: pluginMetrics}
+	reply := plugin.PublishReply{}
+
+	err := p.connection.Call("Publisher.Publish", args, &reply)
+
 	return err
 }
 
