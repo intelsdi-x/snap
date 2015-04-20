@@ -1,0 +1,30 @@
+{
+	"ImportPath": "github.com/intelsdilabs/pulse/plugin/publisher/pulse-publisher-kafka",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/snappy-go/snappy",
+			"Comment": "null-20",
+			"Rev": "8850bd446ad6f18a271a08aae26bdf85bdf87c7f"
+		},
+		{
+			"ImportPath": "github.com/eapache/go-resiliency/breaker",
+			"Comment": "v1.0.0",
+			"Rev": "6800482f2c813e689c88b7ed3282262385011890"
+		},
+		{
+			"ImportPath": "github.com/eapache/queue",
+			"Comment": "v1.0.1",
+			"Rev": "c0c762fac2fc60e07f19af79c19164ac588329de"
+		},
+		{
+			"ImportPath": "github.com/jtolds/gls",
+			"Rev": "f1ac7f4f24f50328e6bc838ca4437d1612a0243c"
+		},
+		{
+			"ImportPath": "gopkg.in/Shopify/sarama.v1",
+			"Comment": "v1.2.0",
+			"Rev": "fcf765a8b80c7b3a5ba1cb3bb9036261502b1ee8"
+		}
+	]
+}
