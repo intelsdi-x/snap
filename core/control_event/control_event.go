@@ -1,13 +1,14 @@
 package control_event
 
 const (
-	PluginLoaded       = "Control.PluginLoaded"
-	PluginDisabled     = "Control.PluginDisabled"
-	PluginUnloaded     = "Control.PluginUnloaded"
-	PluginsSwapped     = "Control.PluginsSwapped"
-	MetricSubscribed   = "Control.MetricSubscribed"
-	MetricUnsubscribed = "Control.MetricUnsubscribed"
-	HealthCheckFailed  = "Control.PluginHealthCheckFailed"
+	PluginLoaded        = "Control.PluginLoaded"
+	PluginDisabled      = "Control.PluginDisabled"
+	PluginUnloaded      = "Control.PluginUnloaded"
+	PluginsSwapped      = "Control.PluginsSwapped"
+	PublisherSubscribed = "Control.PublisherSubscribed"
+	MetricSubscribed    = "Control.MetricSubscribed"
+	MetricUnsubscribed  = "Control.MetricUnsubscribed"
+	HealthCheckFailed   = "Control.PluginHealthCheckFailed"
 )
 
 type LoadPluginEvent struct{}
@@ -39,6 +40,15 @@ type SwapPluginsEvent struct{}
 
 func (s SwapPluginsEvent) Namespace() string {
 	return PluginsSwapped
+}
+
+type PublisherSubscriptionEvent struct {
+	PluginName    string
+	PluginVersion int
+}
+
+func (se PublisherSubscriptionEvent) Namespace() string {
+	return PublisherSubscribed
 }
 
 type MetricSubscriptionEvent struct {
