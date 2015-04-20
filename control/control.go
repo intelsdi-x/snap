@@ -302,7 +302,6 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 // returned.
 func (p *pluginControl) CollectMetrics(
 	metricTypes []core.MetricType,
-	config *cdata.ConfigDataNode,
 	deadline time.Time,
 ) (metrics []core.Metric, errs []error) {
 
@@ -383,12 +382,12 @@ func (p *pluginControl) CollectMetrics(
 }
 
 // PublishMetrics
-func (p *pluginControl) PublishMetrics(metrics []core.Metric, plugin core.Plugin) error {
-	key := strings.Join([]string{plugin.Name(), strconv.Itoa(plugin.Version())}, ":")
+func (p *pluginControl) PublishMetrics(metrics []core.Metric, pluginName string, pluginVersion int) error {
+	key := strings.Join([]string{pluginName, strconv.Itoa(pluginVersion)}, ":")
 
 	pool := p.pluginRunner.AvailablePlugins().Publishers.GetPluginPool(key)
 	if pool == nil {
-		return errors.New(fmt.Sprintf("No available plugin found for %v:%v", plugin.Name(), plugin.Version()))
+		return errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))
 	}
 
 	// resolve a available plugin from pool

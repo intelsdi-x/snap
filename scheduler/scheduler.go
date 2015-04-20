@@ -3,6 +3,7 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
@@ -22,9 +23,20 @@ const (
 
 // managesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
+//JC todo refacto this to be managesMetrics
 type managesMetric interface {
 	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error)
 	UnsubscribeMetricType(mt core.MetricType)
+	CollectMetrics([]core.MetricType, time.Time) ([]core.Metric, []error)
+	PublishMetrics(metrics []core.Metric, pluginName string, pluginVersion int) error
+}
+
+type collectsMetrics interface {
+	CollectMetrics([]core.MetricType, time.Time) ([]core.Metric, []error)
+}
+
+type publishesMetrics interface {
+	PublishMetrics(metrics []core.Metric, pluginName string, pluginVersion int) error
 }
 
 type scheduler struct {
@@ -41,12 +53,14 @@ type managesWork interface {
 // New returns an instance of the scheduler
 // The MetricManager must be set before the scheduler can be started.
 // The MetricManager must be started before it can be used.
-func New(poolSize, queueSize int) *scheduler {
+func New(opts ...workManagerOption) *scheduler {
 	s := &scheduler{
 		tasks: newTaskCollection(),
 	}
 
-	s.workManager = newWorkManager(int64(queueSize), poolSize)
+	// we are setting the size of the queue and number of workers for
+	// collect, process and publish consistently for now
+	s.workManager = newWorkManager(opts...)
 	s.workManager.Start()
 
 	return s
@@ -107,7 +121,7 @@ func (s *scheduler) CreateTask(mts []core.MetricType, sch core.Schedule, cdt *cd
 	}
 
 	workf := newWorkflowFromMap(wf.Map())
-	task := newTask(sched, subscriptions, workf, s.workManager, opts...)
+	task := newTask(sched, subscriptions, workf, s.workManager, s.metricManager, opts...)
 
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {

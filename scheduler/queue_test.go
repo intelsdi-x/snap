@@ -36,7 +36,7 @@ func TestQueue(t *testing.T) {
 		q := newQueue(5, func(j job) { x = append(x, j.Deadline()) })
 		q.Start()
 		for i := 0; i < 4; i++ {
-			j := &collectorJob{}
+			j := &collectorJob{coreJob: &coreJob{}}
 			j.deadline = time.Now().Add(time.Duration(i) * time.Second)
 			q.Event <- j
 		}

@@ -469,7 +469,7 @@ func TestCollectMetrics(t *testing.T) {
 
 		for x := 0; x < 5; x++ {
 			// fmt.Println("\n *  Calling Collect")
-			_, err := c.CollectMetrics(m, cd, time.Now().Add(time.Second*60))
+			_, err := c.CollectMetrics(m, time.Now().Add(time.Second*60))
 			So(err, ShouldBeNil)
 			// fmt.Printf(" *  Collect Response: %+v\n", cr)
 		}
@@ -506,7 +506,6 @@ func TestPublishMetrics(t *testing.T) {
 		err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
-		plugin := c.pluginManager.LoadedPlugins().Table()[0]
 
 		// Subscribe to publisher
 		c.SubscribePublisher("file", 1)
@@ -519,7 +518,7 @@ func TestPublishMetrics(t *testing.T) {
 			},
 		}
 
-		err = c.PublishMetrics(metrics, plugin)
+		err = c.PublishMetrics(metrics, "file", 1)
 		So(err, ShouldBeNil)
 
 	})

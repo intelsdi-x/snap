@@ -27,6 +27,7 @@ type task struct {
 	creationTime     time.Time
 	lastFireTime     time.Time
 	manager          managesWork
+	metricsManager   managesMetric
 	deadlineDuration time.Duration
 	hitCount         uint
 	missedIntervals  uint
@@ -46,7 +47,7 @@ func TaskDeadlineDuration(v time.Duration) option {
 }
 
 //NewTask creates a Task
-func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, opts ...core.TaskOption) *task {
+func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, mm managesMetric, opts ...core.TaskOption) *task {
 	task := &task{
 		id:               id(),
 		schResponseChan:  make(chan scheduleResponse),
@@ -57,6 +58,7 @@ func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, opt
 		creationTime:     time.Now(),
 		workflow:         wf,
 		manager:          m,
+		metricsManager:   mm,
 		deadlineDuration: DefaultDeadlineDuration,
 	}
 	//set options

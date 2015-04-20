@@ -31,7 +31,7 @@ func (mj *mockJob) Run() {
 func TestWorkerManager(t *testing.T) {
 	Convey(".Work()", t, func() {
 		Convey("Sends / receives work to / from worker", func() {
-			manager := newWorkManager(int64(5), 1)
+			manager := newWorkManager()
 			var j job
 			j = &mockJob{
 				worked:    false,
@@ -43,7 +43,7 @@ func TestWorkerManager(t *testing.T) {
 			So(j.(*mockJob).worked, ShouldEqual, true)
 		})
 		Convey("does not work job if queuing error occurs", func() {
-			manager := newWorkManager(int64(1), 1)
+			manager := newWorkManager()
 			manager.Start()
 			j1 := &mockJob{
 				errors:    []error{errors.New("j1")},
@@ -81,7 +81,7 @@ func TestWorkerManager(t *testing.T) {
 	})
 	Convey("Stop()", t, func() {
 		Convey("Stops the queue and the workers", func() {
-			mgr := newWorkManager(int64(5), 1)
+			mgr := newWorkManager()
 			go mgr.Start()
 			mgr.Stop()
 			So(mgr.collectq.status, ShouldEqual, queueStopped)
@@ -89,7 +89,7 @@ func TestWorkerManager(t *testing.T) {
 	})
 	Convey("AddCollectWorker()", t, func() {
 		Convey("it adds a collect worker", func() {
-			mgr := newWorkManager(int64(5), 1)
+			mgr := newWorkManager()
 			mgr.AddCollectWorker()
 			So(mgr.collectWkrSize, ShouldEqual, 2)
 			So(mgr.collectWkrSize, ShouldEqual, len(mgr.collectWkrs))

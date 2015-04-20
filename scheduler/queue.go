@@ -15,7 +15,7 @@ type queue struct {
 	Err   chan *queuingError
 
 	handler func(job)
-	limit   int64
+	limit   uint
 	kill    chan struct{}
 	items   []job
 	mutex   *sync.Mutex
@@ -41,7 +41,7 @@ func (qe *queuingError) Error() string {
 	return qe.Err.Error()
 }
 
-func newQueue(limit int64, handler jobHandler) *queue {
+func newQueue(limit uint, handler jobHandler) *queue {
 	return &queue{
 		Event: make(chan job),
 		Err:   make(chan *queuingError),
@@ -145,7 +145,7 @@ func (q *queue) push(j job) error {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	if q.limit == 0 || int64(q.length()+1) <= q.limit {
+	if q.limit == 0 || uint(q.length())+1 <= q.limit {
 		q.items = append(q.items, j)
 		return nil
 	}

@@ -23,7 +23,7 @@ type PluginCollectorClient interface {
 // A client providing processor specific plugin method calls.
 type PluginProcessorClient interface {
 	PluginClient
-	ProcessMetricData()
+	ProcessMetricData([]core.Metric) ([]core.Metric, error)
 }
 
 //
