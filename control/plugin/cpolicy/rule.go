@@ -21,6 +21,10 @@ type Rule interface {
 	Required() bool
 }
 
+type rule struct {
+	Description string
+}
+
 func wrongType(key, inType, reqType string) error {
 	return errors.New(fmt.Sprintf("type mismatch (%s wanted type '%s' but provided type '%s')", key, inType, reqType))
 }

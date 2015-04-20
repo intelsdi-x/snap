@@ -2,13 +2,14 @@ package file
 
 import (
 	"bufio"
-	"fmt"
+	// "fmt"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
+	// "strings"
+	// "time"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
 const (
@@ -34,17 +35,14 @@ func NewFilePublisher() *filePublisher {
 	}
 }
 
-func (f *filePublisher) Publish(metrics []plugin.PluginMetric) error {
+func (f *filePublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	file, err := os.OpenFile(filepath.Join(f.path, f.name), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
 	defer file.Close()
 	if err != nil {
 		return err
 	}
 	w := bufio.NewWriter(file)
-
-	for _, metric := range metrics {
-		w.WriteString(fmt.Sprintf("%v|%v|%v\n", time.Now().Format(time.RFC1123Z), strings.Join(metric.Namespace(), "."), metric.Data()))
-	}
+	w.WriteString(string(content))
 	w.Flush()
 	return nil
 }
