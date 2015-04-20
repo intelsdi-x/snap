@@ -18,10 +18,10 @@ func TestPluginMeta(t *testing.T) {
 	})
 }
 
-func TestConfigPolicyTree(t *testing.T) {
+func TestConfigPolicyNode(t *testing.T) {
 
-	Convey("ConfigPolicyTree returns non nil object", t, func() {
-		ct := ConfigPolicyTree()
-		So(ct, ShouldNotBeNil)
+	Convey("ConfigPolicyNode returns non nil object", t, func() {
+		c := ConfigPolicyNode()
+		So(c, ShouldNotBeNil)
 	})
 }
