@@ -44,12 +44,13 @@ func NewKafkaPublisher() *Kafka {
 }
 
 // Publish sends data to a Kafka server
-func (k *Kafka) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) {
+func (k *Kafka) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	//
 	topic := config["topic"].(ctypes.ConfigValueStr).Value
 	brokers := parseBrokerString(config["brokers"].(ctypes.ConfigValueStr).Value)
 	//
 	k.publish(topic, brokers, content)
+	return nil
 }
 
 // Internal method after data has been converted to serialized bytes to send
