@@ -31,33 +31,38 @@ func TestPublish(t *testing.T) {
 	fmt.Printf("Topic: %s\n", topic)
 
 	Convey("Publish to Kafka", t, func() {
-		k := NewKafkaPublisher()
+		Convey("publish and consume", func() {
+			k := NewKafkaPublisher()
 
-		// Build some config
-		cdn := cdata.NewNode()
-		cdn.AddItem("brokers", ctypes.ConfigValueStr{brokers})
-		cdn.AddItem("topic", ctypes.ConfigValueStr{topic})
+			// Build some config
+			cdn := cdata.NewNode()
+			cdn.AddItem("brokers", ctypes.ConfigValueStr{brokers})
+			cdn.AddItem("topic", ctypes.ConfigValueStr{topic})
 
-		//
-		p := ConfigPolicyNode()
-		f, err := p.Process(cdn.Table())
-		So(getProcessErrorStr(err), ShouldEqual, "")
+			// Get validated policy
+			p := ConfigPolicyNode()
+			f, err := p.Process(cdn.Table())
+			So(getProcessErrorStr(err), ShouldEqual, "")
 
-		t := time.Now().String()
+			t := time.Now().String()
 
-		// Setup a consumer to wait
+			// Send data to create topic. There is a weird bug where first message won't be consumed
+			// ref: http://mail-archives.apache.org/mod_mbox/kafka-users/201411.mbox/%3CCAHwHRrVmwyJg-1eyULkzwCUOXALuRA6BqcDV-ffSjEQ+tmT7dw@mail.gmail.com%3E
+			k.Publish("", []byte(t), *f)
+			// Send the same message. This will be consumed.
+			k.Publish("", []byte(t), *f)
 
-		// Send data to create topic. There is a weird bug where first message won't be consumed
-		// ref: http://mail-archives.apache.org/mod_mbox/kafka-users/201411.mbox/%3CCAHwHRrVmwyJg-1eyULkzwCUOXALuRA6BqcDV-ffSjEQ+tmT7dw@mail.gmail.com%3E
-		k.Publish("", []byte(t), *f)
-		// Send the same message. This will be consumed.
-		k.Publish("", []byte(t), *f)
+			// start timer and wait
+			m, mErr := consumer(topic, brokers)
+			So(mErr, ShouldBeNil)
+			So(m, ShouldNotBeNil)
+			So(string(m.Value), ShouldEqual, t)
+		})
 
-		// start timer and wait
-		m, mErr := consumer(topic, brokers)
-		So(mErr, ShouldBeNil)
-		So(m, ShouldNotBeNil)
-		So(string(m.Value), ShouldEqual, t)
+		Convey("error on bad broker l", func() {
+
+		})
+
 	})
 }
 

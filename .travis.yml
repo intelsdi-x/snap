@@ -20,6 +20,7 @@ env:
     - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdilabs/pulse
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdilabs/pulse/build    
 install:
+- gem install facter
 - cd $PULSE_SOURCE # change dir into source
 - go get -d -v ./... && go build -v ./... # get and build source
 - ./scripts/deps.sh # load deps for pulse and plugins
