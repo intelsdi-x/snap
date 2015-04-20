@@ -11,8 +11,7 @@ Uses [sarama](http://shopify.github.io/sarama/) golang client for Kafka by Shopi
 
 ## Configuration details
 
-| key      | value type | required | default  |
-|----------|------------|----------|----------|
-| username | string     | no       | admin    |
-| password | string     | no       | password |
-| port     | integer    | no       | 9092     |
+| key      | value type | required | default  | description  |
+|----------|------------|----------|----------|--------------|
+| topic | string | yes | | The topic to send messages |         
+| brokers  | string | yes | | Semicolon delimited list of "server:port" brokers |
