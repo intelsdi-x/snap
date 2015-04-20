@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/core/ctypes"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -14,7 +16,7 @@ type MockPublisher struct {
 	Meta PluginMeta
 }
 
-func (f *MockPublisher) Publish(_ []PluginMetric) error {
+func (f *MockPublisher) Publish(_ string, _ []byte, _ map[string]ctypes.ConfigValue) error {
 	return nil
 }
 

@@ -1,10 +1,5 @@
 package plugin
 
-import (
-// "errors"
-// "fmt"
-)
-
 type PublishArgs struct {
 	PluginMetrics []PluginMetric
 }

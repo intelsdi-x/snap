@@ -36,8 +36,8 @@ func TestPublish(t *testing.T) {
 
 			// Build some config
 			cdn := cdata.NewNode()
-			cdn.AddItem("brokers", ctypes.ConfigValueStr{brokers})
-			cdn.AddItem("topic", ctypes.ConfigValueStr{topic})
+			cdn.AddItem("brokers", ctypes.ConfigValueStr{Value: brokers})
+			cdn.AddItem("topic", ctypes.ConfigValueStr{Value: topic})
 
 			// Get validated policy
 			p := ConfigPolicyNode()
