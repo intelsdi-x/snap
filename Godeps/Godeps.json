@@ -19,6 +19,11 @@
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
 			"Rev": "b59a38004596b696aca7aa2adccfa68760864d86"
+		},
+		{
+			"ImportPath": "gopkg.in/Shopify/sarama.v1",
+			"Comment": "v1.3.0",
+			"Rev": "474417668e5a056d2a8709a5067da8da6baa335a"
 		}
 	]
 }
