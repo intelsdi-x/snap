@@ -5,12 +5,14 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+
+	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
 // Publisher plugin
 type PublisherPlugin interface {
 	Plugin
-	Publish([]PluginMetric) error
+	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
 }
 
 func StartPublisher(p PublisherPlugin, s Session, r *Response) (error, int) {
