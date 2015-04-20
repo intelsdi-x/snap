@@ -9,6 +9,8 @@ import (
 
 // A rule validating against string-typed config
 type StringRule struct {
+	rule
+
 	key      string
 	required bool
 	default_ *string
