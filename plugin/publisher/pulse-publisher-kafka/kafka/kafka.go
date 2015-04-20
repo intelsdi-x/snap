@@ -1,7 +1,6 @@
 package kafka
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -49,22 +48,22 @@ func (k *Kafka) Publish(contentType string, content []byte, config map[string]ct
 	topic := config["topic"].(ctypes.ConfigValueStr).Value
 	brokers := parseBrokerString(config["brokers"].(ctypes.ConfigValueStr).Value)
 	//
-	k.publish(topic, brokers, content)
-	return nil
+	err := k.publish(topic, brokers, content)
+	return err
 }
 
 // Internal method after data has been converted to serialized bytes to send
-func (k *Kafka) publish(topic string, brokers []string, content []byte) {
+func (k *Kafka) publish(topic string, brokers []string, content []byte) error {
 	producer, err := sarama.NewSyncProducer(brokers, nil)
 	if err != nil {
-		fmt.Println("ERROR:", err)
-		panic(err)
+		return err
 	}
 
-	producer.SendMessage(&sarama.ProducerMessage{
+	_, _, err = producer.SendMessage(&sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.ByteEncoder(content),
 	})
+	return err
 }
 
 func parseBrokerString(brokerStr string) []string {
