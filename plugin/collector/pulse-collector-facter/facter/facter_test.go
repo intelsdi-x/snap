@@ -1,4 +1,4 @@
-// +build linux
+/// +build linux
 
 /*
 # testing
@@ -41,9 +41,9 @@ func TestFacterCollectMetrics(t *testing.T) {
 
 		Convey("asked for somehting returns something", func() {
 			metricTypes := []plugin.PluginMetricType{
-				*plugin.NewPluginMetricType(
-					existingNamespace,
-				),
+				plugin.PluginMetricType{
+					Namespace_: existingNamespace,
+				},
 			}
 			metrics, err := f.CollectMetrics(metricTypes)
 			So(err, ShouldBeNil)
@@ -60,9 +60,9 @@ func TestFacterCollectMetrics(t *testing.T) {
 			Convey("wrong number of parts", func() {
 				_, err := f.CollectMetrics(
 					[]plugin.PluginMetricType{
-						*plugin.NewPluginMetricType(
-							[]string{"where are my other parts"},
-						),
+						plugin.PluginMetricType{
+							Namespace_: []string{"where are my other parts"},
+						},
 					},
 				)
 				So(err, ShouldNotBeNil)
@@ -72,9 +72,9 @@ func TestFacterCollectMetrics(t *testing.T) {
 			Convey("wrong vendor", func() {
 				_, err := f.CollectMetrics(
 					[]plugin.PluginMetricType{
-						*plugin.NewPluginMetricType(
-							[]string{"nonintelvendor", prefix, someFact},
-						),
+						plugin.PluginMetricType{
+							Namespace_: []string{"nonintelvendor", prefix, someFact},
+						},
 					},
 				)
 				So(err, ShouldNotBeNil)
@@ -84,9 +84,9 @@ func TestFacterCollectMetrics(t *testing.T) {
 			Convey("wrong prefix", func() {
 				_, err := f.CollectMetrics(
 					[]plugin.PluginMetricType{
-						*plugin.NewPluginMetricType(
-							[]string{vendor, "this is wrong prefix", someFact},
-						),
+						plugin.PluginMetricType{
+							Namespace_: []string{vendor, "this is wrong prefix", someFact},
+						},
 					},
 				)
 				So(err, ShouldNotBeNil)
@@ -107,9 +107,9 @@ func TestFacterInvalidBehavior(t *testing.T) {
 		}
 
 		_, err := f.CollectMetrics([]plugin.PluginMetricType{
-			*plugin.NewPluginMetricType(
-				existingNamespace,
-			),
+			plugin.PluginMetricType{
+				Namespace_: existingNamespace,
+			},
 		},
 		)
 		So(err, ShouldNotBeNil)
@@ -127,9 +127,9 @@ func TestFacterInvalidBehavior(t *testing.T) {
 		}
 
 		_, err := f.CollectMetrics([]plugin.PluginMetricType{
-			*plugin.NewPluginMetricType(
-				existingNamespace,
-			),
+			plugin.PluginMetricType{
+				Namespace_: existingNamespace,
+			},
 		},
 		)
 		So(err, ShouldNotBeNil)

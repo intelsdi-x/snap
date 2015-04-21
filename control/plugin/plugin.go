@@ -22,6 +22,12 @@ const (
 )
 
 const (
+	// List of content types
+	PulseGobContentType ContentType = iota
+	PulseJsonContentType
+)
+
+const (
 	// List of plugin response states
 	PluginSuccess PluginResponseState = iota
 	PluginFailure
@@ -37,9 +43,18 @@ var (
 	}
 )
 
+var (
+	contentTypes = [...]string{
+		"pulse.gob",
+		"pulse.json",
+	}
+)
+
 type PluginResponseState int
 
 type PluginType int
+
+type ContentType int
 
 // Plugin interface
 type Plugin interface {

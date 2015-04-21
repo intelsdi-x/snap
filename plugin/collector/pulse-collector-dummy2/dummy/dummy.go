@@ -1,32 +1,43 @@
 package dummy
 
 import (
+	"log"
+
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 )
 
 const (
-	Name    = "dummy2"
+	// Name of plugin
+	Name = "dummy2"
+	// Version of plugin
 	Version = 2
-	Type    = plugin.CollectorPluginType
+	// Type of plugin
+	Type = plugin.CollectorPluginType
 )
 
 // Dummy collector implementation used for testing
 type Dummy struct {
 }
 
-func (f *Dummy) CollectMetrics([]plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+// CollectMetrics collects metrics for testing
+func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+	for _, p := range mts {
+		log.Println("collecting", p)
+	}
 	m := plugin.PluginMetric{Namespace_: []string{"intel", "dummy", "foo"}, Data_: 1}
 	ms := []plugin.PluginMetric{m}
 	return ms, nil
 }
 
+//GetMetricTypes returns metric types for testing
 func (f *Dummy) GetMetricTypes() ([]plugin.PluginMetricType, error) {
-	m1 := plugin.NewPluginMetricType([]string{"intel", "dummy", "foo"})
-	m2 := plugin.NewPluginMetricType([]string{"intel", "dummy", "bar"})
+	m1 := &plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}}
+	m2 := &plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "bar"}}
 	return []plugin.PluginMetricType{*m1, *m2}, nil
 }
 
+//GetConfigPolicyTree returns a ConfigPolicyTree for testing
 func (f *Dummy) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
 	c := cpolicy.NewTree()
 	rule, _ := cpolicy.NewStringRule("name", false, "bob")
@@ -38,6 +49,7 @@ func (f *Dummy) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
 	return *c, nil
 }
 
+//Meta returns meta data for testing
 func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(Name, Version, Type)
 }

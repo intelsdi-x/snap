@@ -408,6 +408,7 @@ func TestMetricExists(t *testing.T) {
 
 type MockMetricType struct {
 	namespace []string
+	cfg       *cdata.ConfigDataNode
 }
 
 func (m MockMetricType) Namespace() []string {
@@ -423,7 +424,7 @@ func (m MockMetricType) Version() int {
 }
 
 func (m MockMetricType) Config() *cdata.ConfigDataNode {
-	return nil
+	return m.cfg
 }
 
 func TestCollectMetrics(t *testing.T) {
@@ -444,36 +445,26 @@ func TestCollectMetrics(t *testing.T) {
 		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		m2 := MockMetricType{namespace: []string{"intel", "dummy", "bar"}}
 
-		m = append(m, m1)
-		m = append(m, m2)
-
 		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 
-		mt, errs := c.SubscribeMetricType(m1, cd)
-		for _, er := range errs {
-			logger.Infof("TestCollectMetrics", "errs: %#v", er)
-		}
-		So(mt, ShouldNotBeNil)
-		So(errs, ShouldBeEmpty)
+		mt1, errs := c.SubscribeMetricType(m1, cd)
+		So(errs, ShouldBeNil)
+		mt2, errs := c.SubscribeMetricType(m2, cd)
+		So(errs, ShouldBeNil)
+		m = append(m, mt1, mt2)
 
-		c.SubscribeMetricType(m1, cd)
-		c.SubscribeMetricType(m1, cd)
-		c.SubscribeMetricType(m1, cd)
-		// fmt.Println(a, b)
-		time.Sleep(time.Millisecond * 100)
-		c.SubscribeMetricType(m2, cd)
 		time.Sleep(time.Millisecond * 200)
 
-		// Call collect on router
-
 		for x := 0; x < 5; x++ {
-			// fmt.Println("\n *  Calling Collect")
-			_, err := c.CollectMetrics(m, time.Now().Add(time.Second*60))
+			cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*60))
 			So(err, ShouldBeNil)
+			for i := range cr {
+				So(cr[i].Data(), ShouldContainSubstring, "The dummy collected data!")
+			}
 			// fmt.Printf(" *  Collect Response: %+v\n", cr)
 		}
-		time.Sleep(time.Millisecond * 1000)
+		time.Sleep(time.Millisecond * 500)
 	})
 }
 

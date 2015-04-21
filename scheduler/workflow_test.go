@@ -78,7 +78,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			cd := cdata.NewNode()
 			cd.AddItem("password", &ctypes.ConfigValueStr{Value: "value"})
 			mt := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
-			_, errs := c.SubscribeMetricType(mt, cd)
+			smt, errs := c.SubscribeMetricType(mt, cd)
 			So(errs, ShouldBeNil)
 
 			sch := newSimpleSchedule(core.NewSimpleSchedule(time.Duration(1 * time.Second)))
@@ -95,7 +95,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 					Convey("Start", func() {
 						workerKillChan = make(chan struct{})
 						manager := newWorkManager()
-						task := newTask(sch, []core.MetricType{mt}, wf, manager, c)
+						task := newTask(sch, []core.MetricType{smt}, wf, manager, c)
 						task.Spin()
 						time.Sleep(4 * time.Second)
 					})

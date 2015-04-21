@@ -9,6 +9,7 @@ import (
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
 // Native clients use golang net/rpc for communication to a native rpc server.
@@ -71,11 +72,23 @@ func (p *PluginNativeClient) Publish(metrics []core.Metric) error {
 }
 
 func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.MetricType) ([]core.Metric, error) {
+	gob.Register(*(&ctypes.ConfigValueStr{}))
+	gob.Register(*(&ctypes.ConfigValueInt{}))
+	gob.Register(*(&ctypes.ConfigValueFloat{}))
+
 	// Convert core.MetricType slice into plugin.PluginMetricType slice as we have
 	// to send structs over RPC
 	pluginMetricTypes := make([]plugin.PluginMetricType, len(coreMetricTypes))
 	for i, _ := range coreMetricTypes {
-		pluginMetricTypes[i] = *plugin.NewPluginMetricType(coreMetricTypes[i].Namespace())
+		pluginMetricTypes[i] = plugin.PluginMetricType{
+			Namespace_:          coreMetricTypes[i].Namespace(),
+			LastAdvertisedTime_: coreMetricTypes[i].LastAdvertisedTime(),
+			Version_:            coreMetricTypes[i].Version(),
+		}
+		if coreMetricTypes[i].Config() != nil {
+			///pluginMetricTypes[i].Config_ = coreMetricTypes[i].Config().Table()
+			pluginMetricTypes[i].Config_ = coreMetricTypes[i].Config()
+		}
 	}
 
 	// TODO return err if mts is empty
