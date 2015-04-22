@@ -17,5 +17,5 @@ func main() {
 	meta := riemann.Meta()
 
 	// Start a publisher
-	plugin.Start(meta, riemann.NewRiemannPublisher(), os.Args(1))
+	plugin.Start(meta, riemann.NewRiemannPublisher(), os.Args[1])
 }
