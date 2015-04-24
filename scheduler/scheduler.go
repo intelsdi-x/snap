@@ -121,7 +121,14 @@ func (s *scheduler) CreateTask(mts []core.MetricType, sch core.Schedule, cdt *cd
 		return nil, te
 	}
 
-	workf := newWorkflowFromMap(wf.Map())
+	j, err := wf.Marshal()
+	if err != nil {
+		te.errs = append(te.errs, err)
+		return nil, te
+	}
+	workf := newWorkflow()
+	workf.Unmarshal(j)
+
 	task := newTask(sched, subscriptions, workf, s.workManager, s.metricManager, opts...)
 
 	// Add task to taskCollection

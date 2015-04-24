@@ -7,24 +7,28 @@ This is used in REST, and in a file format for the cli.
 ---
 version: 1
 task:
+  schedule:
+    type: simple
+    interval: 5s
   deadline: 5s
   config:
-  /foo/bar:
-    key: value
+    /intel/dummy:
+    - key: password
+      value: j3rr
   workflow:
-  collect:
-    metric_types:
-    - /foo/bar/kernel
-    - /foo/bar/uptime
-    publish:
-    - plugin:
-        name: "influx"
-        version: 2
-    process:
-    - plugin:
-        name: "averager"
+    collect:
+      metric_types:
+      - namespace: /intel/dummy/foo
+      - namespace: /intel/dummy/bar
       publish:
       - plugin:
+          name: "influx"
+          version: 2
+      process:
+      - plugin:
+          name: "averager"
+        publish:
+        - plugin:
           name: "rabbitmq"
           version: 1
 ```
@@ -33,17 +37,28 @@ task:
 {
   "version": 1,
   "task": {
+    "schedule": {
+      "type": "simple",
+      "interval": "5s"
+    },
     "deadline": "5s",
     "config": {
-      "/foo/bar": {
-        "key": "value"
-      }
+      "/intel/dummy": [
+        {
+          "key": "password",
+          "value": "j3rr"
+        }
+      ]
     },
     "workflow": {
       "collect": {
         "metric_types": [
-          "/foo/bar/kernel",
-          "/foo/bar/uptime"
+          {
+            "namespace": "/intel/dummy/foo"
+          },
+          {
+            "namespace": "/intel/dummy/bar"
+          }
         ],
         "publish": [
           {

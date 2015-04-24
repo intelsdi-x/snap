@@ -6,6 +6,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+type plugin struct {
+	Name    string `json:"name"`
+	Version int    `json:"version"`
+}
+
 func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	loadRequest := make(map[string]string)
 	errCode, err := marshalBody(&loadRequest, r.Body)

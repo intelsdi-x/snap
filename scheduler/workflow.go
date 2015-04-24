@@ -26,19 +26,17 @@ func newWorkflow() *wf {
 	}
 }
 
-func newWorkflowFromMap(m core.WfMap) *wf {
-	w := &wf{}
-	w.fromMap(m)
-	return w
-}
-
 // State returns current workflow state
 func (w *wf) State() core.WorkflowState {
 	return w.state
 }
 
-func (w *wf) Map() core.WfMap {
-	return core.WfMap{}
+func (w *wf) Marshal() ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (w *wf) Unmarshal([]byte) error {
+	return nil
 }
 
 // Start starts a workflow
@@ -63,9 +61,6 @@ func (w *wf) processStep(step Step, j job, m managesWork, metricManager managesM
 	for _, step := range step.Steps() {
 		w.processStep(step, j, m, metricManager)
 	}
-}
-
-func (w *wf) fromMap(m core.WfMap) {
 }
 
 // Step interface for a workflow step

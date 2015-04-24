@@ -10,12 +10,15 @@ import (
 )
 
 type metricType struct {
-	Ns  []string `json:"namespace"`
-	Ver int      `json:"version"`
-	LAT int64    `json:"last_advertised_timestamp,omitempty"`
+	Ns  string `json:"namespace"`
+	Ver int    `json:"version"`
+	LAT int64  `json:"last_advertised_timestamp,omitempty"`
 }
 
-func (m *metricType) Namespace() []string           { return m.Ns }
+func (m *metricType) Namespace() []string {
+	return parseNamespace(m.Ns)
+}
+
 func (m *metricType) Version() int                  { return m.Ver }
 func (m *metricType) LastAdvertisedTime() time.Time { return time.Unix(m.LAT, 0) }
 func (m *metricType) Config() *cdata.ConfigDataNode { return nil }
@@ -29,7 +32,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 	for _, m := range mets {
 		rmets = append(rmets, metricType{
-			Ns:  m.Namespace(),
+			Ns:  joinNamespace(m.Namespace()),
 			Ver: m.Version(),
 			LAT: m.LastAdvertisedTime().Unix(),
 		})
