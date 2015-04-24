@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	PluginName = "pulse-publisher-rabbitmq"
+	PluginName = "pulse-publisher-kafka"
 	PluginType = "publisher"
 	PulsePath  = os.Getenv("PULSE_PATH")
 	PluginPath = path.Join(PulsePath, "plugin", PluginType, PluginName)
