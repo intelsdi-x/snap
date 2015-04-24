@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
@@ -107,14 +108,18 @@ type PublishStep interface {
 
 type publishStep struct {
 	step
-	name    string
-	version int
+	name        string
+	version     int
+	config      map[string]ctypes.ConfigValue
+	contentType string
 }
 
-func NewPublishStep(name string, version int) *publishStep {
+func NewPublishStep(name string, version int, contentType string, config map[string]ctypes.ConfigValue) *publishStep {
 	return &publishStep{
-		name:    name,
-		version: version,
+		name:        name,
+		version:     version,
+		config:      config,
+		contentType: contentType,
 	}
 }
 
@@ -122,7 +127,7 @@ func (p *publishStep) createJob(j job, metricManager managesMetric) job {
 	logger.Debugf("Scheduler.PublishStep.CreateJob", "creating job!")
 	switch j.Type() {
 	case collectJobType:
-		return newPublishJob(j.(*collectorJob), p.name, p.version, metricManager.(publishesMetrics))
+		return newPublishJob(j.(*collectorJob), p.name, p.version, p.contentType, p.config, metricManager.(publishesMetrics))
 	default:
 		panic("Unknown type of job")
 	}

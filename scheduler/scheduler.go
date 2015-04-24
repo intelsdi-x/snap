@@ -7,6 +7,7 @@ import (
 
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
 var (
@@ -28,7 +29,7 @@ type managesMetric interface {
 	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error)
 	UnsubscribeMetricType(mt core.MetricType)
 	CollectMetrics([]core.MetricType, time.Time) ([]core.Metric, []error)
-	PublishMetrics(metrics []core.Metric, pluginName string, pluginVersion int) error
+	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
 }
 
 type collectsMetrics interface {
@@ -36,7 +37,7 @@ type collectsMetrics interface {
 }
 
 type publishesMetrics interface {
-	PublishMetrics(metrics []core.Metric, pluginName string, pluginVersion int) error
+	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
 }
 
 type scheduler struct {

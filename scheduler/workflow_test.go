@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/control"
+	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/ctypes"
@@ -39,28 +40,6 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 	return nil
 }
 
-func TestWorkflow(t *testing.T) {
-	Convey("Workflow", t, func() {
-		wf := newWorkflow()
-		So(wf.state, ShouldNotBeNil)
-		Convey("Add steps", func() {
-			pubStep := new(publishStep)
-			procStep := new(processStep)
-			wf.rootStep.AddStep(pubStep).AddStep(procStep)
-			So(wf.rootStep, ShouldNotBeNil)
-			So(wf.rootStep.Steps(), ShouldNotBeNil)
-			Convey("Start", func() {
-				workerKillChan = make(chan struct{})
-				manager := newWorkManager()
-				sch := newSimpleSchedule(core.NewSimpleSchedule(time.Duration(5 * time.Second)))
-				task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, manager, &mockMetricManager{})
-				wf.Start(task)
-				So(wf.State(), ShouldEqual, core.WorkflowStarted)
-			})
-		})
-	})
-}
-
 func TestCollectPublishWorkflow(t *testing.T) {
 	Convey("Given a started plugin control", t, func() {
 		logger.SetLevel(logger.DebugLevel)
@@ -73,7 +52,10 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
 
-			c.SubscribePublisher("file", 1)
+			config := map[string]ctypes.ConfigValue{
+				"file": ctypes.ConfigValueStr{Value: "/tmp/pulse-TestCollectPublishWorkflow.out"},
+			}
+			c.SubscribePublisher("file", 1, config)
 
 			cd := cdata.NewNode()
 			cd.AddItem("password", &ctypes.ConfigValueStr{Value: "value"})
@@ -88,7 +70,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 				wf := newWorkflow()
 				So(wf.state, ShouldNotBeNil)
 				Convey("Add steps", func() {
-					pubStep := NewPublishStep("file", 1)
+					pubStep := NewPublishStep("file", 1, plugin.ContentTypes[plugin.PulseGobContentType], config)
 					wf.rootStep.AddStep(pubStep)
 					So(wf.rootStep, ShouldNotBeNil)
 					So(wf.rootStep.Steps(), ShouldNotBeNil)

@@ -55,15 +55,8 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	return err
 }
 
-func (p *PluginNativeClient) Publish(metrics []core.Metric) error {
-	// Convert core.Metric slice into plugin.PluginMetric slice as we have
-	// to send structs over RPC
-	pluginMetrics := make([]plugin.PluginMetric, len(metrics))
-	for i, _ := range metrics {
-		pluginMetrics[i] = *plugin.NewPluginMetric(metrics[i].Namespace(), metrics[i].Data())
-	}
-
-	args := plugin.PublishArgs{PluginMetrics: pluginMetrics}
+func (p *PluginNativeClient) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+	args := plugin.PublishArgs{ContentType: contentType, Content: content, Config: config}
 	reply := plugin.PublishReply{}
 
 	err := p.connection.Call("Publisher.Publish", args, &reply)
@@ -72,10 +65,6 @@ func (p *PluginNativeClient) Publish(metrics []core.Metric) error {
 }
 
 func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.MetricType) ([]core.Metric, error) {
-	gob.Register(*(&ctypes.ConfigValueStr{}))
-	gob.Register(*(&ctypes.ConfigValueInt{}))
-	gob.Register(*(&ctypes.ConfigValueFloat{}))
-
 	// Convert core.MetricType slice into plugin.PluginMetricType slice as we have
 	// to send structs over RPC
 	pluginMetricTypes := make([]plugin.PluginMetricType, len(coreMetricTypes))
@@ -118,11 +107,6 @@ func (p *PluginNativeClient) GetMetricTypes() ([]core.MetricType, error) {
 }
 
 func (p *PluginNativeClient) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	// Only types that will be transferred as implementations of interface
-	// values need to be registered.
-	gob.Register(cpolicy.NewPolicyNode())
-	gob.Register(&cpolicy.StringRule{})
-
 	args := plugin.GetConfigPolicyTreeArgs{}
 	reply := plugin.GetConfigPolicyTreeReply{PolicyTree: *cpolicy.NewTree()}
 	err := p.connection.Call("Collector.GetConfigPolicyTree", args, &reply)
@@ -131,4 +115,24 @@ func (p *PluginNativeClient) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, er
 	}
 
 	return reply.PolicyTree, nil
+}
+
+func (p *PluginNativeClient) GetConfigPolicyNode() (cpolicy.ConfigPolicyNode, error) {
+	args := plugin.GetConfigPolicyNodeArgs{}
+	reply := plugin.GetConfigPolicyNodeReply{PolicyNode: *cpolicy.NewPolicyNode()}
+	err := p.connection.Call("Publisher.GetConfigPolicyNode", args, &reply)
+	if err != nil {
+		return cpolicy.ConfigPolicyNode{}, err
+	}
+
+	return reply.PolicyNode, nil
+}
+
+func init() {
+	gob.Register(*(&ctypes.ConfigValueStr{}))
+	gob.Register(*(&ctypes.ConfigValueInt{}))
+	gob.Register(*(&ctypes.ConfigValueFloat{}))
+
+	gob.Register(cpolicy.NewPolicyNode())
+	gob.Register(&cpolicy.StringRule{})
 }

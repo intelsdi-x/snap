@@ -17,6 +17,7 @@ import (
 	"github.com/intelsdilabs/pulse/core"
 	"github.com/intelsdilabs/pulse/core/cdata"
 	"github.com/intelsdilabs/pulse/core/control_event"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
@@ -217,10 +218,33 @@ func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.Config
 	return m, nil
 }
 
-//SubscribePublisher
-//TODO: add subscription count to ?loadedPlugin?
-func (p *pluginControl) SubscribePublisher(name string, ver int) error {
+// SubscribePublisher
+func (p *pluginControl) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []error {
 	logger.Info("control.subscribe", fmt.Sprintf("publisher subscription called for %v:%v", name, ver))
+	var subErrs []error
+
+	p.pluginManager.LoadedPlugins().Lock()
+	defer p.pluginManager.LoadedPlugins().Unlock()
+	var lp *loadedPlugin
+	for p.pluginManager.LoadedPlugins().Next() {
+		_, l := p.pluginManager.LoadedPlugins().Item()
+		if l.Name() == name && l.Version() == ver {
+			lp = l
+		}
+	}
+
+	if lp == nil {
+		subErrs = append(subErrs, errors.New(fmt.Sprintf("No loaded plugin found for publisher name: %v version: %v", name, ver)))
+		return subErrs
+	}
+
+	ncd := lp.ConfigPolicyTree.Get([]string{""})
+	_, errs := ncd.Process(config)
+	if errs != nil && errs.HasErrors() {
+		return errs.Errors()
+	}
+
+	//TODO store subscription counts for publishers
 
 	e := &control_event.PublisherSubscriptionEvent{
 		PluginName:    name,
@@ -382,28 +406,28 @@ func (p *pluginControl) CollectMetrics(
 }
 
 // PublishMetrics
-func (p *pluginControl) PublishMetrics(metrics []core.Metric, pluginName string, pluginVersion int) error {
+func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
 	key := strings.Join([]string{pluginName, strconv.Itoa(pluginVersion)}, ":")
 
 	pool := p.pluginRunner.AvailablePlugins().Publishers.GetPluginPool(key)
 	if pool == nil {
-		return errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))
+		return []error{errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))}
 	}
 
 	// resolve a available plugin from pool
 	ap, err := getAvailablePlugin(pool, p.strategy)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
 	cli, ok := ap.Client.(client.PluginPublisherClient)
 	if !ok {
-		return errors.New("unable to cast client to PluginPublisherClient")
+		return []error{errors.New("unable to cast client to PluginPublisherClient")}
 	}
 
-	err = cli.Publish(metrics)
+	err = cli.Publish(contentType, content, config)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 	return nil
 }

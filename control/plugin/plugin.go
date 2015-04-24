@@ -44,7 +44,7 @@ var (
 )
 
 var (
-	contentTypes = [...]string{
+	ContentTypes = [...]string{
 		"pulse.gob",
 		"pulse.json",
 	}

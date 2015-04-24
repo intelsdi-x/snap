@@ -39,7 +39,7 @@ func (m *mockMetricManager) CollectMetrics([]core.MetricType, time.Time) ([]core
 	return nil, nil
 }
 
-func (m *mockMetricManager) PublishMetrics(metrics []core.Metric, pluginName string, pluginVersion int) error {
+func (m *mockMetricManager) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
 	return nil
 }
 

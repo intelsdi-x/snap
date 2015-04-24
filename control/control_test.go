@@ -1,6 +1,8 @@
 package control
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"path"
@@ -404,8 +406,6 @@ func TestMetricExists(t *testing.T) {
 	})
 }
 
-// ------------------ bunch of entities to just test CollectMetrics -----------
-
 type MockMetricType struct {
 	namespace []string
 	cfg       *cdata.ConfigDataNode
@@ -497,20 +497,41 @@ func TestPublishMetrics(t *testing.T) {
 		err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
-
-		// Subscribe to publisher
-		c.SubscribePublisher("file", 1)
-		time.Sleep(1 * time.Second)
-
-		metrics := []core.Metric{
-			&mockMetric{
-				namespace: []string{"foo", "bar"},
-				data:      99,
-			},
-		}
-
-		err = c.PublishMetrics(metrics, "file", 1)
+		lp, err := c.pluginManager.LoadedPlugins().Get(0)
 		So(err, ShouldBeNil)
+		So(lp.Name(), ShouldResemble, "file")
+		So(lp.ConfigPolicyTree, ShouldNotBeNil)
+
+		Convey("Subscribe to file publisher with bad config", func() {
+			config := map[string]ctypes.ConfigValue{
+				"foo": ctypes.ConfigValueStr{Value: "bar"},
+			}
+			errs := c.SubscribePublisher("file", 1, config)
+			So(errs, ShouldNotBeNil)
+			So(errs, ShouldNotBeEmpty)
+
+		})
+
+		Convey("Subscribe to file publisher with good config", func() {
+			config := map[string]ctypes.ConfigValue{
+				"file": ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"},
+			}
+			errs := c.SubscribePublisher("file", 1, config)
+			So(errs, ShouldBeNil)
+			time.Sleep(1 * time.Second)
+
+			Convey("Publish to file", func() {
+				metrics := []plugin.PluginMetric{
+					*plugin.NewPluginMetric([]string{"foo"}, 1),
+				}
+				var buf bytes.Buffer
+				enc := gob.NewEncoder(&buf)
+				enc.Encode(metrics)
+				contentType := plugin.ContentTypes[plugin.PulseGobContentType]
+				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 1, config)
+				So(errs, ShouldBeNil)
+			})
+		})
 
 	})
 }

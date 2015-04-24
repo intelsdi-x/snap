@@ -1,9 +1,13 @@
 package scheduler
 
 import (
+	"bytes"
+	"encoding/gob"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
@@ -119,30 +123,48 @@ type publisherJob struct {
 	publisher     publishesMetrics
 	pluginName    string
 	pluginVersion int
+	config        map[string]ctypes.ConfigValue
+	contentType   string
 }
 
-func newPublishJob(parentJob job, pluginName string, pluginVersion int, publisher publishesMetrics) *publisherJob {
+func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher publishesMetrics) *publisherJob {
 	return &publisherJob{
 		parentJob:     parentJob,
 		publisher:     publisher,
 		pluginName:    pluginName,
 		pluginVersion: pluginVersion,
 		coreJob:       newCoreJob(publishJobType, parentJob.Deadline()),
+		config:        config,
+		contentType:   contentType,
 	}
 }
 
 func (p *publisherJob) Run() {
-	logger.Debugf("Sceduler.PublisherJob.Run", "Starting publish job.")
-	var metrics []core.Metric
+	logger.Debugf("Scheduler.PublisherJob.Run", "Starting publish job.")
+	logger.Debugf("Scheduler.PublisherJob.Run", "Publishing - contentType: %v pluginName: %v version: %v config: %v", p.contentType, p.pluginName, p.pluginVersion, p.config)
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
 	switch p.parentJob.Type() {
 	case collectJobType:
-		metrics = p.parentJob.(*collectorJob).metrics
+		switch p.contentType {
+		case plugin.ContentTypes[plugin.PulseGobContentType]:
+			metrics := make([]plugin.PluginMetric, len(p.parentJob.(*collectorJob).metrics))
+			for i, m := range p.parentJob.(*collectorJob).metrics {
+				metrics[i] = *plugin.NewPluginMetric(m.Namespace(), m.Data())
+			}
+			enc.Encode(metrics)
+		default:
+			panic("unsupported content type")
+		}
 	default:
 		panic("unsupported job type")
 	}
-	err := p.publisher.PublishMetrics(metrics, p.pluginName, p.pluginVersion)
-	if err != nil {
-		p.errors = append(p.errors, err)
+	logger.Debugf("Scheduler.PublisherJob.Run", "content: %v", buf.Bytes())
+	errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
+	if errs != nil {
+		p.errors = append(p.errors, errs...)
 	}
+
 	p.replchan <- struct{}{}
 }
