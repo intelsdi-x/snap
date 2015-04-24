@@ -3,6 +3,7 @@ package kafka
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"testing"
 	"time"
@@ -40,7 +41,7 @@ func TestPublish(t *testing.T) {
 			cdn.AddItem("topic", ctypes.ConfigValueStr{Value: topic})
 
 			// Get validated policy
-			p := ConfigPolicyNode()
+			p := k.GetConfigPolicyNode()
 			f, err := p.Process(cdn.Table())
 			So(getProcessErrorStr(err), ShouldEqual, "")
 
@@ -48,9 +49,9 @@ func TestPublish(t *testing.T) {
 
 			// Send data to create topic. There is a weird bug where first message won't be consumed
 			// ref: http://mail-archives.apache.org/mod_mbox/kafka-users/201411.mbox/%3CCAHwHRrVmwyJg-1eyULkzwCUOXALuRA6BqcDV-ffSjEQ+tmT7dw@mail.gmail.com%3E
-			k.Publish("", []byte(t), *f)
+			k.Publish("", []byte(t), *f, log.New(os.Stdout, "kafka-integration-test", log.LstdFlags))
 			// Send the same message. This will be consumed.
-			k.Publish("", []byte(t), *f)
+			k.Publish("", []byte(t), *f, log.New(os.Stdout, "kafka-integration-test", log.LstdFlags))
 
 			// start timer and wait
 			m, mErr := consumer(topic, brokers)

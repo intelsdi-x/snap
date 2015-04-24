@@ -99,10 +99,10 @@ func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 	// capacity - we are going to return all the facts
 	metricTypes := make([]plugin.PluginMetricType, 0, len(facts))
 
-	// create types withing given namespace
+	// create types with given namespace
 	for name, _ := range facts {
 		namespace := createNamespace(name)
-		metricType := *plugin.NewPluginMetricType(namespace)
+		metricType := plugin.PluginMetricType{Namespace_: namespace}
 		metricTypes = append(metricTypes, metricType)
 	}
 

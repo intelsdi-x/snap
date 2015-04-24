@@ -236,12 +236,14 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, err
 	}
 
-	if resp.Type == plugin.CollectorPluginType {
-		ap, err := newAvailablePlugin(resp, -1, emitter)
-		if err != nil {
-			// log.Println(err.Error())
-			return nil, err
-		}
+	ap, err := newAvailablePlugin(resp, -1, emitter)
+	if err != nil {
+		// log.Println(err.Error())
+		return nil, err
+	}
+
+	switch resp.Type {
+	case plugin.CollectorPluginType:
 
 		colClient := ap.Client.(client.PluginCollectorClient)
 
@@ -262,6 +264,19 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		for _, mt := range metricTypes {
 			p.metricCatalog.AddLoadedMetricType(lPlugin, mt)
 		}
+	case plugin.PublisherPluginType:
+
+		pubClient := ap.Client.(client.PluginPublisherClient)
+
+		cpn, err := pubClient.GetConfigPolicyNode()
+		logger.Debugf("PluginManager.LoadPlugin (publisher)", "configPolicyNode; %v", cpn)
+		if err != nil {
+			return nil, err
+		}
+
+		cpt := cpolicy.NewTree()
+		cpt.Add([]string{""}, &cpn)
+		lPlugin.ConfigPolicyTree = cpt
 	}
 
 	err = ePlugin.Kill()

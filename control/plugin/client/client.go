@@ -4,15 +4,16 @@ import (
 	// "github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
-// A client providing common plugin method calls.
+// PluginClient A client providing common plugin method calls.
 type PluginClient interface {
 	Ping() error
 	Kill(string) error
 }
 
-// A client providing collector specific plugin method calls.
+// PluginCollectorClient A client providing collector specific plugin method calls.
 type PluginCollectorClient interface {
 	PluginClient
 	CollectMetrics([]core.MetricType) ([]core.Metric, error)
@@ -20,14 +21,15 @@ type PluginCollectorClient interface {
 	GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error)
 }
 
-// A client providing processor specific plugin method calls.
+// PluginProcessorClient A client providing processor specific plugin method calls.
 type PluginProcessorClient interface {
 	PluginClient
-	ProcessMetricData()
+	ProcessMetricData([]core.Metric) ([]core.Metric, error)
 }
 
-//
+// PluginPublisherClient A client providing publishing specific plugin method calls.
 type PluginPublisherClient interface {
 	PluginClient
-	Publish(metrics []core.Metric) error
+	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
+	GetConfigPolicyNode() (cpolicy.ConfigPolicyNode, error)
 }

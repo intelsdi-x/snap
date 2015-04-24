@@ -1,18 +1,21 @@
 package plugin
 
 import (
+	"encoding/gob"
 	"fmt"
 	"log"
 	"net"
 	"net/rpc"
 
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
 // Publisher plugin
 type PublisherPlugin interface {
 	Plugin
-	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
+	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error
+	GetConfigPolicyNode() cpolicy.ConfigPolicyNode
 }
 
 func StartPublisher(p PublisherPlugin, s Session, r *Response) (error, int) {
@@ -32,6 +35,7 @@ func StartPublisher(p PublisherPlugin, s Session, r *Response) (error, int) {
 		Plugin:  p,
 		Session: s,
 	}
+
 	// Register the proxy under the "Publisher" namespace
 	rpc.RegisterName("Publisher", proxy)
 	// Register common plugin methods used for utility reasons
@@ -65,4 +69,13 @@ func StartPublisher(p PublisherPlugin, s Session, r *Response) (error, int) {
 	}
 
 	return nil, exitCode
+}
+
+func init() {
+	gob.Register(*(&ctypes.ConfigValueInt{}))
+	gob.Register(*(&ctypes.ConfigValueStr{}))
+	gob.Register(*(&ctypes.ConfigValueFloat{}))
+
+	gob.Register(cpolicy.NewPolicyNode())
+	gob.Register(&cpolicy.StringRule{})
 }

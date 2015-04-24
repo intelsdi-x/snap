@@ -71,7 +71,7 @@ func (m *metricType) Version() int {
 }
 
 func (m *metricType) Config() *cdata.ConfigDataNode {
-	return nil
+	return m.config
 }
 
 type metricCatalog struct {

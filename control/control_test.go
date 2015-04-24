@@ -1,6 +1,8 @@
 package control
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"path"
@@ -404,10 +406,9 @@ func TestMetricExists(t *testing.T) {
 	})
 }
 
-// ------------------ bunch of entities to just test CollectMetrics -----------
-
 type MockMetricType struct {
 	namespace []string
+	cfg       *cdata.ConfigDataNode
 }
 
 func (m MockMetricType) Namespace() []string {
@@ -423,7 +424,7 @@ func (m MockMetricType) Version() int {
 }
 
 func (m MockMetricType) Config() *cdata.ConfigDataNode {
-	return nil
+	return m.cfg
 }
 
 func TestCollectMetrics(t *testing.T) {
@@ -444,36 +445,26 @@ func TestCollectMetrics(t *testing.T) {
 		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		m2 := MockMetricType{namespace: []string{"intel", "dummy", "bar"}}
 
-		m = append(m, m1)
-		m = append(m, m2)
-
 		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 
-		mt, errs := c.SubscribeMetricType(m1, cd)
-		for _, er := range errs {
-			logger.Infof("TestCollectMetrics", "errs: %#v", er)
-		}
-		So(mt, ShouldNotBeNil)
-		So(errs, ShouldBeEmpty)
+		mt1, errs := c.SubscribeMetricType(m1, cd)
+		So(errs, ShouldBeNil)
+		mt2, errs := c.SubscribeMetricType(m2, cd)
+		So(errs, ShouldBeNil)
+		m = append(m, mt1, mt2)
 
-		c.SubscribeMetricType(m1, cd)
-		c.SubscribeMetricType(m1, cd)
-		c.SubscribeMetricType(m1, cd)
-		// fmt.Println(a, b)
-		time.Sleep(time.Millisecond * 100)
-		c.SubscribeMetricType(m2, cd)
 		time.Sleep(time.Millisecond * 200)
 
-		// Call collect on router
-
 		for x := 0; x < 5; x++ {
-			// fmt.Println("\n *  Calling Collect")
-			_, err := c.CollectMetrics(m, cd, time.Now().Add(time.Second*60))
+			cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*60))
 			So(err, ShouldBeNil)
+			for i := range cr {
+				So(cr[i].Data(), ShouldContainSubstring, "The dummy collected data!")
+			}
 			// fmt.Printf(" *  Collect Response: %+v\n", cr)
 		}
-		time.Sleep(time.Millisecond * 1000)
+		time.Sleep(time.Millisecond * 500)
 	})
 }
 
@@ -506,21 +497,41 @@ func TestPublishMetrics(t *testing.T) {
 		err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
-		plugin := c.pluginManager.LoadedPlugins().Table()[0]
-
-		// Subscribe to publisher
-		c.SubscribePublisher("file", 1)
-		time.Sleep(1 * time.Second)
-
-		metrics := []core.Metric{
-			&mockMetric{
-				namespace: []string{"foo", "bar"},
-				data:      99,
-			},
-		}
-
-		err = c.PublishMetrics(metrics, plugin)
+		lp, err := c.pluginManager.LoadedPlugins().Get(0)
 		So(err, ShouldBeNil)
+		So(lp.Name(), ShouldResemble, "file")
+		So(lp.ConfigPolicyTree, ShouldNotBeNil)
+
+		Convey("Subscribe to file publisher with bad config", func() {
+			config := map[string]ctypes.ConfigValue{
+				"foo": ctypes.ConfigValueStr{Value: "bar"},
+			}
+			errs := c.SubscribePublisher("file", 1, config)
+			So(errs, ShouldNotBeNil)
+			So(errs, ShouldNotBeEmpty)
+
+		})
+
+		Convey("Subscribe to file publisher with good config", func() {
+			config := map[string]ctypes.ConfigValue{
+				"file": ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"},
+			}
+			errs := c.SubscribePublisher("file", 1, config)
+			So(errs, ShouldBeNil)
+			time.Sleep(1 * time.Second)
+
+			Convey("Publish to file", func() {
+				metrics := []plugin.PluginMetric{
+					*plugin.NewPluginMetric([]string{"foo"}, 1),
+				}
+				var buf bytes.Buffer
+				enc := gob.NewEncoder(&buf)
+				enc.Encode(metrics)
+				contentType := plugin.ContentTypes[plugin.PulseGobContentType]
+				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 1, config)
+				So(errs, ShouldBeNil)
+			})
+		})
 
 	})
 }

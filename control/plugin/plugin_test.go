@@ -22,7 +22,10 @@ func TestPluginType(t *testing.T) {
 func TestMetricType(t *testing.T) {
 	Convey("MetricType", t, func() {
 		now := time.Now()
-		m := NewPluginMetricType([]string{"foo", "bar"})
+		m := &PluginMetricType{
+			Namespace_:          []string{"foo", "bar"},
+			LastAdvertisedTime_: now,
+		}
 		Convey("New", func() {
 			So(m, ShouldHaveSameTypeAs, &PluginMetricType{})
 		})

@@ -35,6 +35,14 @@ func (m *mockMetricManager) UnsubscribeMetricType(mt core.MetricType) {
 
 }
 
+func (m *mockMetricManager) CollectMetrics([]core.MetricType, time.Time) ([]core.Metric, []error) {
+	return nil, nil
+}
+
+func (m *mockMetricManager) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
+	return nil
+}
+
 type mockMetricManagerError struct {
 	errs []error
 }
@@ -115,7 +123,7 @@ func TestScheduler(t *testing.T) {
 				lastAdvertisedTime: time.Now(),
 			},
 		}
-		scheduler := New(1, 5)
+		scheduler := New()
 		cdt := cdata.NewTree()
 		cd := cdata.NewNode()
 		cd.AddItem("foo", ctypes.ConfigValueInt{Value: 1})
@@ -125,7 +133,7 @@ func TestScheduler(t *testing.T) {
 		Convey("returns errors when metrics do not validate", func() {
 			c.failValidatingMetrics = true
 			c.failValidatingMetricsAfter = 2
-			scheduler := New(1, 5)
+			scheduler := New()
 			scheduler.metricManager = c
 			scheduler.Start()
 			_, err := scheduler.CreateTask(mt, sch, cdt, mockWF)
@@ -196,7 +204,7 @@ func TestScheduler(t *testing.T) {
 	})
 	Convey("Stop()", t, func() {
 		Convey("Should set scheduler state to SchedulerStopped", func() {
-			scheduler := New(1, 5)
+			scheduler := New()
 			c := new(mockMetricManager)
 			scheduler.metricManager = c
 			scheduler.Start()
@@ -206,7 +214,7 @@ func TestScheduler(t *testing.T) {
 	})
 	Convey("SetMetricManager()", t, func() {
 		Convey("Should set metricManager for scheduler", func() {
-			scheduler := New(1, 5)
+			scheduler := New()
 			c := new(mockMetricManager)
 			scheduler.SetMetricManager(c)
 			So(scheduler.metricManager, ShouldEqual, c)

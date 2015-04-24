@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/ctypes"
+	"github.com/intelsdilabs/pulse/pkg/logger"
 )
 
 type workflow interface {
@@ -13,14 +15,14 @@ type workflow interface {
 }
 
 type wf struct {
-	rootStep *collectorStep
+	rootStep *collectStep
 	state    core.WorkflowState
 }
 
 // NewWorkflow creates and returns a workflow
 func newWorkflow() *wf {
 	return &wf{
-		rootStep: new(collectorStep),
+		rootStep: new(collectStep),
 	}
 }
 
@@ -42,24 +44,24 @@ func (w *wf) Map() core.WfMap {
 // Start starts a workflow
 func (w *wf) Start(task *task) {
 	w.state = core.WorkflowStarted
-	j := w.rootStep.CreateJob(task.metricTypes, task.deadlineDuration)
+	j := w.rootStep.createJob(task.metricTypes, task.deadlineDuration, task.metricsManager)
 
 	// dispatch 'collect' job to be worked
 	j = task.manager.Work(j)
 
 	//process through additional steps (processors, publishers, ...)
 	for _, step := range w.rootStep.Steps() {
-		w.processStep(step, j, task.manager)
+		w.processStep(step, j, task.manager, task.metricsManager)
 	}
 }
 
-func (w *wf) processStep(step Step, j job, m managesWork) {
+func (w *wf) processStep(step Step, j job, m managesWork, metricManager managesMetric) {
 	//do work for current step
-	j = step.CreateJob(j)
+	j = step.createJob(j, metricManager)
 	j = m.Work(j)
 	//do work for child steps
 	for _, step := range step.Steps() {
-		w.processStep(step, j, m)
+		w.processStep(step, j, m, metricManager)
 	}
 }
 
@@ -70,7 +72,7 @@ func (w *wf) fromMap(m core.WfMap) {
 type Step interface {
 	Steps() []Step
 	AddStep(s Step) Step
-	CreateJob(j job) job
+	createJob(job, managesMetric) job
 }
 
 type step struct {
@@ -88,11 +90,6 @@ func (s *step) Steps() []Step {
 	return s.steps
 }
 
-func (s *step) CreateJob(j job) job {
-	//modifyJob for publish step and return
-	return j
-}
-
 type ProcessStep interface {
 	Step
 }
@@ -101,21 +98,48 @@ type processStep struct {
 	step
 }
 
+func (p *processStep) createJob(j job, metricManager managesMetric) job {
+	return j
+}
+
 type PublishStep interface {
 	Step
 }
 
 type publishStep struct {
 	step
+	name        string
+	version     int
+	config      map[string]ctypes.ConfigValue
+	contentType string
 }
 
-type CollectorStep interface {
+func NewPublishStep(name string, version int, contentType string, config map[string]ctypes.ConfigValue) *publishStep {
+	return &publishStep{
+		name:        name,
+		version:     version,
+		config:      config,
+		contentType: contentType,
+	}
 }
 
-type collectorStep struct {
+func (p *publishStep) createJob(j job, metricManager managesMetric) job {
+	logger.Debugf("Scheduler.PublishStep.CreateJob", "creating job!")
+	switch j.Type() {
+	case collectJobType:
+		return newPublishJob(j.(*collectorJob), p.name, p.version, p.contentType, p.config, metricManager.(publishesMetrics))
+	default:
+		panic("Unknown type of job")
+	}
+}
+
+type CollectStep interface {
+}
+
+type collectStep struct {
 	step
 }
 
-func (c *collectorStep) CreateJob(metricTypes []core.MetricType, deadlineDuration time.Duration) job {
-	return newCollectorJob(metricTypes, deadlineDuration)
+func (c *collectStep) createJob(metricTypes []core.MetricType, deadlineDuration time.Duration, collector collectsMetrics) job {
+	return newCollectorJob(metricTypes, deadlineDuration, collector)
 }

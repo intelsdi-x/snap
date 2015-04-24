@@ -85,7 +85,7 @@ func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetric, error
 
 func (c *MockPlugin) GetMetricTypes() ([]PluginMetricType, error) {
 	return []PluginMetricType{
-		*NewPluginMetricType([]string{"org", "some_metric"}),
+		PluginMetricType{Namespace_: []string{"foo", "bar"}},
 	}, nil
 }
 

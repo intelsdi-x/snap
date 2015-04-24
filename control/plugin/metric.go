@@ -37,13 +37,7 @@ type PluginMetricType struct {
 	Namespace_          []string
 	LastAdvertisedTime_ time.Time
 	Version_            int
-}
-
-func NewPluginMetricType(ns []string) *PluginMetricType {
-	return &PluginMetricType{
-		Namespace_:          ns,
-		LastAdvertisedTime_: time.Now(),
-	}
+	Config_             *cdata.ConfigDataNode //map[string]ctypes.ConfigValue
 }
 
 // Returns the namespace.
@@ -61,9 +55,9 @@ func (p PluginMetricType) Version() int {
 	return p.Version_
 }
 
-// This version of MetricType never implements cdata.ConfigDataNode
+// Config returns the map of config data for this metric
 func (p PluginMetricType) Config() *cdata.ConfigDataNode {
-	return nil
+	return p.Config_
 }
 
 /*

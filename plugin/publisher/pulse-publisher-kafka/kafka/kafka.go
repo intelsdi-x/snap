@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"log"
 	"strings"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
@@ -20,7 +21,24 @@ func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(PluginName, PluginVersion, PluginType)
 }
 
-func ConfigPolicyNode() *cpolicy.ConfigPolicyNode {
+type Kafka struct{}
+
+func NewKafkaPublisher() *Kafka {
+	var k *Kafka
+	return k
+}
+
+// Publish sends data to a Kafka server
+func (k *Kafka) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
+	//
+	topic := config["topic"].(ctypes.ConfigValueStr).Value
+	brokers := parseBrokerString(config["brokers"].(ctypes.ConfigValueStr).Value)
+	//
+	err := k.publish(topic, brokers, content)
+	return err
+}
+
+func (k *Kafka) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	config := cpolicy.NewPolicyNode()
 
 	r1, err := cpolicy.NewStringRule("topic", true)
@@ -32,24 +50,7 @@ func ConfigPolicyNode() *cpolicy.ConfigPolicyNode {
 	r2.Description = "List of brokers in the format: broker-ip:port;broker-ip:port (ex: 192.168.1.1:9092;172.16.9.99:9092"
 
 	config.Add(r1, r2)
-	return config
-}
-
-type Kafka struct{}
-
-func NewKafkaPublisher() *Kafka {
-	var k *Kafka
-	return k
-}
-
-// Publish sends data to a Kafka server
-func (k *Kafka) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
-	//
-	topic := config["topic"].(ctypes.ConfigValueStr).Value
-	brokers := parseBrokerString(config["brokers"].(ctypes.ConfigValueStr).Value)
-	//
-	err := k.publish(topic, brokers, content)
-	return err
+	return *config
 }
 
 // Internal method after data has been converted to serialized bytes to send

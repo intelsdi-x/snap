@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
 	"github.com/intelsdilabs/pulse/core/ctypes"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -16,8 +17,12 @@ type MockPublisher struct {
 	Meta PluginMeta
 }
 
-func (f *MockPublisher) Publish(_ string, _ []byte, _ map[string]ctypes.ConfigValue) error {
+func (f *MockPublisher) Publish(_ string, _ []byte, _ map[string]ctypes.ConfigValue, _ *log.Logger) error {
 	return nil
+}
+
+func (f *MockPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
+	return cpolicy.ConfigPolicyNode{}
 }
 
 type MockPublisherSessionState struct {

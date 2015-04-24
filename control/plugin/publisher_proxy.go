@@ -1,7 +1,18 @@
 package plugin
 
+import (
+	"errors"
+	"fmt"
+
+	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+	"github.com/intelsdilabs/pulse/core/ctypes"
+)
+
 type PublishArgs struct {
-	PluginMetrics []PluginMetric
+	//PluginMetrics []PluginMetric
+	ContentType string
+	Content     []byte
+	Config      map[string]ctypes.ConfigValue
 }
 
 type PublishReply struct {
@@ -12,14 +23,28 @@ type publisherPluginProxy struct {
 	Session Session
 }
 
+type GetConfigPolicyNodeArgs struct{}
+
+type GetConfigPolicyNodeReply struct {
+	PolicyNode cpolicy.ConfigPolicyNode
+}
+
+func (p *publisherPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs, reply *GetConfigPolicyNodeReply) error {
+	p.Session.Logger().Println("GetConfigPolicyNode called")
+	p.Session.ResetHeartbeat()
+
+	reply.PolicyNode = p.Plugin.GetConfigPolicyNode()
+
+	return nil
+}
+
 func (p *publisherPluginProxy) Publish(args PublishArgs, reply *PublishReply) error {
 	p.Session.Logger().Println("Publish called")
 	p.Session.ResetHeartbeat()
 
-	// TODO refactor to new contract
-	// err := p.Plugin.Publish(args.PluginMetrics)
-	// if err != nil {
-	// return errors.New(fmt.Sprintf("Publish call error: %v", err.Error()))
-	// }
+	err := p.Plugin.Publish(args.ContentType, args.Content, args.Config, p.Session.Logger())
+	if err != nil {
+		return errors.New(fmt.Sprintf("Publish call error: %v", err.Error()))
+	}
 	return nil
 }

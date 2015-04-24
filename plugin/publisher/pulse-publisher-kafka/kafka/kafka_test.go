@@ -21,7 +21,8 @@ func TestPluginMeta(t *testing.T) {
 func TestConfigPolicyNode(t *testing.T) {
 
 	Convey("ConfigPolicyNode returns non nil object", t, func() {
-		c := ConfigPolicyNode()
+		k := NewKafkaPublisher()
+		c := k.GetConfigPolicyNode()
 		So(c, ShouldNotBeNil)
 	})
 }

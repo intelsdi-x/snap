@@ -27,8 +27,8 @@ var (
 )
 
 const (
-	defaultQueueSize int = 25
-	defaultPoolSize  int = 4
+	defaultQueueSize uint = 25
+	defaultPoolSize  uint = 4
 )
 
 type coreModule interface {
@@ -76,7 +76,13 @@ func main() {
 
 	logger.Info("main", "pulse agent starting")
 	c := control.New()
-	s := scheduler.New(defaultPoolSize, defaultQueueSize)
+	s := scheduler.New(
+		scheduler.CollectQSizeOption(defaultQueueSize),
+		scheduler.CollectWkrSizeOption(defaultPoolSize),
+		scheduler.PublishQSizeOption(defaultQueueSize),
+		scheduler.PublishWkrSizeOption(defaultPoolSize),
+		scheduler.ProcessQSizeOption(defaultQueueSize),
+		scheduler.ProcessWkrSizeOption(defaultPoolSize))
 	s.SetMetricManager(c)
 
 	// Set interrupt handling so we can die gracefully.

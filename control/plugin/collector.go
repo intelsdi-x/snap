@@ -1,12 +1,14 @@
 package plugin
 
 import (
+	"encoding/gob"
 	"fmt"
 	"log" // TODO proper logging to file or elsewhere
 	"net"
 	"net/rpc"
 
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+	"github.com/intelsdilabs/pulse/core/ctypes"
 )
 
 // Acts as a proxy for RPC calls to a CollectorPlugin. This helps keep the function signature simple
@@ -38,6 +40,7 @@ func StartCollector(c CollectorPlugin, s Session, r *Response) (error, int) {
 		Plugin:  c,
 		Session: s,
 	}
+
 	// Register the proxy under the "Collector" namespace
 	rpc.RegisterName("Collector", proxy)
 	// Register common plugin methods used for utility reasons
@@ -71,4 +74,13 @@ func StartCollector(c CollectorPlugin, s Session, r *Response) (error, int) {
 	}
 
 	return nil, exitCode
+}
+
+func init() {
+	gob.Register(*(&ctypes.ConfigValueInt{}))
+	gob.Register(*(&ctypes.ConfigValueStr{}))
+	gob.Register(*(&ctypes.ConfigValueFloat{}))
+
+	gob.Register(cpolicy.NewPolicyNode())
+	gob.Register(&cpolicy.StringRule{})
 }

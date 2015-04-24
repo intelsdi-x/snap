@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"encoding/gob"
 	"errors"
 	"fmt"
 
@@ -63,11 +62,6 @@ func (c *collectorPluginProxy) CollectMetrics(args CollectMetricsArgs, reply *Co
 }
 
 func (c *collectorPluginProxy) GetConfigPolicyTree(args GetConfigPolicyTreeArgs, reply *GetConfigPolicyTreeReply) error {
-	// Only types that will be transferred as implementations of interface
-	// values need to be registered.
-	gob.Register(cpolicy.NewPolicyNode())
-	gob.Register(&cpolicy.StringRule{})
-
 	c.Session.Logger().Println("GetConfigPolicyTree called")
 	policy, err := c.Plugin.GetConfigPolicyTree()
 
