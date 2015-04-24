@@ -59,5 +59,12 @@ go tool cover -func profile.cov
 # If running inside Travis we update coveralls. We don't want his happening on Macs
 if [ "$TRAVIS" == "true" ]
 then
-	goveralls -v -coverprofile=profile.cov -service travis.ci -repotoken $COVERALLS_TOKEN
+    n=1
+    until [ $n -ge 6 ]
+    do
+        echo "posting to coveralls attempt $n of 5"
+        goveralls -v -coverprofile=profile.cov -service travis.ci -repotoken $COVERALLS_TOKEN && break
+        n=$[$n+1]
+        sleep 30
+    done
 fi
