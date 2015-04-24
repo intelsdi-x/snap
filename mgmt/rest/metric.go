@@ -16,7 +16,7 @@ type metricType struct {
 }
 
 func (m *metricType) Namespace() []string {
-	return parsens(m.Ns)
+	return parseNamespace(m.Ns)
 }
 
 func (m *metricType) Version() int                  { return m.Ver }
@@ -32,7 +32,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 	for _, m := range mets {
 		rmets = append(rmets, metricType{
-			Ns:  joinns(m.Namespace()),
+			Ns:  joinNamespace(m.Namespace()),
 			Ver: m.Version(),
 			LAT: m.LastAdvertisedTime().Unix(),
 		})

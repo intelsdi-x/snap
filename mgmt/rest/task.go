@@ -195,7 +195,7 @@ func assembleCDTree(m map[string][]configItem) (*cdata.ConfigDataTree, error) {
 		}
 		// create config data node
 		cdn := cdata.FromTable(config)
-		nss := parsens(ns)
+		nss := parseNamespace(ns)
 		cdtree.Add(nss, cdn)
 	}
 	return cdtree, nil

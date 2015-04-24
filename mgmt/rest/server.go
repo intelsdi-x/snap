@@ -122,7 +122,7 @@ func marshalBody(in interface{}, body io.ReadCloser) (int, error) {
 	return 0, nil
 }
 
-func parsens(ns string) []string {
+func parseNamespace(ns string) []string {
 	if strings.Index(ns, "/") == 0 {
 		return strings.Split(ns[1:], "/")
 	} else {
@@ -130,6 +130,6 @@ func parsens(ns string) []string {
 	}
 }
 
-func joinns(ns []string) string {
+func joinNamespace(ns []string) string {
 	return "/" + strings.Join(ns, "/")
 }
