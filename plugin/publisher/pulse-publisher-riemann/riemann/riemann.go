@@ -1,7 +1,12 @@
 package riemann
 
 import (
+	"bytes"
+	"encoding/gob"
+	"errors"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/intelsdilabs/pulse/control/plugin"
 	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
@@ -37,17 +42,12 @@ func (r *Riemann) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	handleErr(err)
 	r1.Description = "Host the metric was collected from"
 
-	// Metric that is being collected
-	r2, err := cpolicy.NewStringRule("service", true)
-	handleErr(err)
-	r2.Description = "Service (metric) being collected"
-
 	// Riemann server to publish event to
-	r3, err := cpolicy.NewStringRule("broker", true)
+	r2, err := cpolicy.NewStringRule("broker", true)
 	handleErr(err)
-	r3.Description = "Broker in the format of broker-ip:port (ex: 192.168.1.1:5555)"
+	r2.Description = "Broker in the format of broker-ip:port (ex: 192.168.1.1:5555)"
 
-	config.Add(r1, r2, r3)
+	config.Add(r1, r2)
 	return *config
 }
 
@@ -55,6 +55,27 @@ func (r *Riemann) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 func (r *Riemann) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
 	//err := r.publish(event, broker)
 	//return err
+	logger.Println("Riemann Publishing Started")
+	var metrics []plugin.PluginMetricType
+	switch contentType {
+	case plugin.ContentTypes[plugin.PulseGobContentType]:
+		dec := gob.NewDecoder(bytes.NewBuffer(content))
+		if err := dec.Decode(&metrics); err != nil {
+			logger.Printf("Error decoding: error=%v content=%v", err, content)
+			return err
+		}
+	default:
+		logger.Printf("Error unknown content type '%v'", contentType)
+		return errors.New(fmt.Sprintf("Unknown content type '%s'", contentType))
+	}
+	logger.Printf("publishing %v to %v", metrics, config)
+	for _, m := range metrics {
+		e := createEvent(m, config)
+		if err := r.publish(e, config["broker"].(ctypes.ConfigValueStr).Value); err != nil {
+			logger.Println(err)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -66,6 +87,14 @@ func (r *Riemann) publish(event *raidman.Event, broker string) error {
 		return err
 	}
 	return c.Send(event)
+}
+
+func createEvent(m plugin.PluginMetricType, config map[string]ctypes.ConfigValue) *raidman.Event {
+	return &raidman.Event{
+		Host:    config["host"].(ctypes.ConfigValueStr).Value,
+		Service: strings.Join(m.Namespace(), "/"),
+		Metric:  m.Data(),
+	}
 }
 
 func handleErr(e error) {
