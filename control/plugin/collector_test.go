@@ -79,8 +79,8 @@ func (f *MockPlugin) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
 	return cpolicy.ConfigPolicyTree{}, nil
 }
 
-func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetric, error) {
-	return []PluginMetric{}, nil
+func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetricType, error) {
+	return []PluginMetricType{}, nil
 }
 
 func (c *MockPlugin) GetMetricTypes() ([]PluginMetricType, error) {

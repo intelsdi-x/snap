@@ -76,11 +76,11 @@ func (c *coreJob) Errors() []error {
 type collectorJob struct {
 	*coreJob
 	collector   collectsMetrics
-	metricTypes []core.MetricType
+	metricTypes []core.Metric
 	metrics     []core.Metric
 }
 
-func newCollectorJob(metricTypes []core.MetricType, deadlineDuration time.Duration, collector collectsMetrics) *collectorJob {
+func newCollectorJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector collectsMetrics) *collectorJob {
 	return &collectorJob{
 		collector:   collector,
 		metricTypes: metricTypes,
@@ -149,9 +149,9 @@ func (p *publisherJob) Run() {
 	case collectJobType:
 		switch p.contentType {
 		case plugin.ContentTypes[plugin.PulseGobContentType]:
-			metrics := make([]plugin.PluginMetric, len(p.parentJob.(*collectorJob).metrics))
+			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
 			for i, m := range p.parentJob.(*collectorJob).metrics {
-				metrics[i] = *plugin.NewPluginMetric(m.Namespace(), m.Data())
+				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
 			}
 			enc.Encode(metrics)
 		default:

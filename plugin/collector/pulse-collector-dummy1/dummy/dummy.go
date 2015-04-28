@@ -21,11 +21,11 @@ type Dummy struct {
 }
 
 // CollectMetrics collects metrics for testing
-func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
-	metrics := make([]plugin.PluginMetric, len(mts))
+func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
+	metrics := make([]plugin.PluginMetricType, len(mts))
 	for i, p := range mts {
 		data := fmt.Sprintf("The dummy collected data! config data: user=%s password=%s", p.Config().Table()["name"], p.Config().Table()["name"])
-		metrics[i] = plugin.PluginMetric{
+		metrics[i] = plugin.PluginMetricType{
 			Namespace_: p.Namespace(),
 			Data_:      data,
 		}

@@ -112,7 +112,7 @@ func (f *Facter) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 // Collect collects metrics from external binary a returns them in form
 // acceptable by Pulse, only returns collects that were asked for and return nothing when asked for none
 // the order of requested and received metrics isn't guaranted
-func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
 
 	// parse and check requested names of metrics
 	names := []string{}
@@ -147,10 +147,10 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 	}
 
 	// convert facts into PluginMetrics
-	metrics := make([]plugin.PluginMetric, 0, len(facts))
+	metrics := make([]plugin.PluginMetricType, 0, len(facts))
 	for name, value := range facts {
 		namespace := createNamespace(name)
-		metric := *plugin.NewPluginMetric(namespace, value)
+		metric := *plugin.NewPluginMetricType(namespace, value)
 		metrics = append(metrics, metric)
 	}
 	return metrics, nil

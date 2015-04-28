@@ -19,6 +19,10 @@ func (m *metricType) Namespace() []string {
 	return parseNamespace(m.Ns)
 }
 
+func (m *metricType) Data() interface{} {
+	return nil
+}
+
 func (m *metricType) Version() int                  { return m.Ver }
 func (m *metricType) LastAdvertisedTime() time.Time { return time.Unix(m.LAT, 0) }
 func (m *metricType) Config() *cdata.ConfigDataNode { return nil }

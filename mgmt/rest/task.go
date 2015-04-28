@@ -96,7 +96,7 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		return
 	}
 
-	mts := make([]core.MetricType, len(tr.Workflow.Collect.MetricTypes))
+	mts := make([]core.Metric, len(tr.Workflow.Collect.MetricTypes))
 	for i, m := range tr.Workflow.Collect.MetricTypes {
 		mts[i] = m
 	}

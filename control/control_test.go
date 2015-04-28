@@ -305,7 +305,7 @@ func (m *mc) Next() bool {
 	return false
 }
 
-func (m *mc) AddLoadedMetricType(*loadedPlugin, core.MetricType) {
+func (m *mc) AddLoadedMetricType(*loadedPlugin, core.Metric) {
 
 }
 
@@ -427,6 +427,10 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 	return m.cfg
 }
 
+func (m MockMetricType) Data() interface{} {
+	return nil
+}
+
 func TestCollectMetrics(t *testing.T) {
 
 	Convey("given a new router", t, func() {
@@ -441,7 +445,7 @@ func TestCollectMetrics(t *testing.T) {
 		// Load plugin
 		c.Load(PluginPath)
 
-		m := []core.MetricType{}
+		m := []core.Metric{}
 		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
 		m2 := MockMetricType{namespace: []string{"intel", "dummy", "bar"}}
 
@@ -521,8 +525,8 @@ func TestPublishMetrics(t *testing.T) {
 			time.Sleep(1 * time.Second)
 
 			Convey("Publish to file", func() {
-				metrics := []plugin.PluginMetric{
-					*plugin.NewPluginMetric([]string{"foo"}, 1),
+				metrics := []plugin.PluginMetricType{
+					*plugin.NewPluginMetricType([]string{"foo"}, 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)

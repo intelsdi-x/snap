@@ -135,6 +135,6 @@ type collectStep struct {
 	step
 }
 
-func (c *collectStep) createJob(metricTypes []core.MetricType, deadlineDuration time.Duration, collector collectsMetrics) job {
+func (c *collectStep) createJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector collectsMetrics) job {
 	return newCollectorJob(metricTypes, deadlineDuration, collector)
 }

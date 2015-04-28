@@ -16,8 +16,8 @@ import (
 
 func TestFilePublish(t *testing.T) {
 	var buf bytes.Buffer
-	metrics := []plugin.PluginMetric{
-		*plugin.NewPluginMetric([]string{"foo"}, 99),
+	metrics := []plugin.PluginMetricType{
+		*plugin.NewPluginMetricType([]string{"foo"}, 99),
 	}
 	config := make(map[string]ctypes.ConfigValue)
 	enc := gob.NewEncoder(&buf)

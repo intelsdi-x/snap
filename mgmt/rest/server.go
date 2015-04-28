@@ -16,12 +16,12 @@ import (
 )
 
 type managesMetrics interface {
-	MetricCatalog() ([]core.MetricType, error)
+	MetricCatalog() ([]core.Metric, error)
 	Load(string) error
 }
 
 type managesTasks interface {
-	CreateTask([]core.MetricType, core.Schedule, *cdata.ConfigDataTree, core.Workflow, ...core.TaskOption) (core.Task, core.TaskErrors)
+	CreateTask([]core.Metric, core.Schedule, *cdata.ConfigDataTree, core.Workflow, ...core.TaskOption) (core.Task, core.TaskErrors)
 }
 
 type Server struct {

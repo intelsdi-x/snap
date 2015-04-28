@@ -22,7 +22,7 @@ type task struct {
 	killChan         chan struct{}
 	schedule         schedule
 	workflow         workflow
-	metricTypes      []core.MetricType
+	metricTypes      []core.Metric
 	state            core.TaskState
 	creationTime     time.Time
 	lastFireTime     time.Time
@@ -47,7 +47,7 @@ func TaskDeadlineDuration(v time.Duration) option {
 }
 
 //NewTask creates a Task
-func newTask(s schedule, mtc []core.MetricType, wf workflow, m *workManager, mm managesMetric, opts ...core.TaskOption) *task {
+func newTask(s schedule, mtc []core.Metric, wf workflow, m *workManager, mm managesMetric, opts ...core.TaskOption) *task {
 	task := &task{
 		id:               id(),
 		schResponseChan:  make(chan scheduleResponse),

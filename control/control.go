@@ -67,7 +67,7 @@ type managesPlugins interface {
 type catalogsMetrics interface {
 	Get([]string, int) (*metricType, error)
 	Add(*metricType)
-	AddLoadedMetricType(*loadedPlugin, core.MetricType)
+	AddLoadedMetricType(*loadedPlugin, core.Metric)
 	Fetch([]string) ([]*metricType, error)
 	Item() (string, []*metricType)
 	Next() bool
@@ -186,7 +186,7 @@ func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
 // SubscribeMetricType validates the given config data, and if valid
 // returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
-func (p *pluginControl) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
+func (p *pluginControl) SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
 	logger.Info("control.subscribe", fmt.Sprintf("subscription called with: %s", mt.Namespace()))
 	var subErrs []error
 
@@ -257,7 +257,7 @@ func (p *pluginControl) SubscribePublisher(name string, ver int, config map[stri
 
 // UnsubscribeMetricType unsubscribes a MetricType
 // If subscriptions fall below zero we will panic.
-func (p *pluginControl) UnsubscribeMetricType(mt core.MetricType) {
+func (p *pluginControl) UnsubscribeMetricType(mt core.Metric) {
 	logger.Info("control.subscribe", fmt.Sprintf("unsubscription called with: %s", mt.Namespace()))
 	err := p.metricCatalog.Unsubscribe(mt.Namespace(), mt.Version())
 	if err != nil {
@@ -300,8 +300,8 @@ func (p *pluginControl) PluginCatalog() PluginCatalog {
 	return pc
 }
 
-func (p *pluginControl) MetricCatalog() ([]core.MetricType, error) {
-	var c []core.MetricType
+func (p *pluginControl) MetricCatalog() ([]core.Metric, error) {
+	var c []core.Metric
 	mts, err := p.metricCatalog.Fetch([]string{})
 	if err != nil {
 		return nil, err
@@ -325,7 +325,7 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 // of metrics and errors.  If an error is encountered no metrics will be
 // returned.
 func (p *pluginControl) CollectMetrics(
-	metricTypes []core.MetricType,
+	metricTypes []core.Metric,
 	deadline time.Time,
 ) (metrics []core.Metric, errs []error) {
 
@@ -367,7 +367,7 @@ func (p *pluginControl) CollectMetrics(
 		wg.Add(1)
 
 		// get a metrics
-		go func(mt []core.MetricType) {
+		go func(mt []core.Metric) {
 			metrics, err = cli.CollectMetrics(mt)
 			if err != nil {
 				cError <- err
@@ -437,7 +437,7 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 // just a tuple of loadedPlugin and metricType slice
 type pluginMetricTypes struct {
 	plugin      *loadedPlugin
-	metricTypes []core.MetricType
+	metricTypes []core.Metric
 }
 
 func (p *pluginMetricTypes) Count() int {
@@ -445,7 +445,7 @@ func (p *pluginMetricTypes) Count() int {
 }
 
 // groupMetricTypesByPlugin groups metricTypes by a plugin.Key() and returns appropriate structure
-func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.MetricType) (map[string]pluginMetricTypes, error) {
+func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (map[string]pluginMetricTypes, error) {
 	pmts := make(map[string]pluginMetricTypes)
 	// For each plugin type select a matching available plugin to call
 	for _, mt := range metricTypes {

@@ -14,7 +14,7 @@ type CollectMetricsArgs struct {
 
 // Reply assigned by a Collector implementation using CollectMetrics()
 type CollectMetricsReply struct {
-	PluginMetrics []PluginMetric
+	PluginMetrics []PluginMetricType
 }
 
 // GetMetricTypesArgs args passed to GetMetricTypes

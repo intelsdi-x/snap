@@ -21,12 +21,12 @@ type Dummy struct {
 }
 
 // CollectMetrics collects metrics for testing
-func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetric, error) {
+func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
 	for _, p := range mts {
 		log.Println("collecting", p)
 	}
-	m := plugin.PluginMetric{Namespace_: []string{"intel", "dummy", "foo"}, Data_: 1}
-	ms := []plugin.PluginMetric{m}
+	m := plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}, Data_: 1}
+	ms := []plugin.PluginMetricType{m}
 	return ms, nil
 }
 

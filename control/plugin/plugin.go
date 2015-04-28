@@ -6,6 +6,14 @@ import (
 	"time"
 )
 
+const (
+	// Builtin Content Types
+	PulseWildcardContentType = "pulse.*"
+	PulseGob                 = "pulse.gob"
+	// PulseJSON = "pulse.json" - disabled until it exists
+	// PulsePB = "pulse.pb" - disabled until it exists
+)
+
 var (
 	// Timeout settings
 	// How much time must elapse before a lack of Ping results in a timeout
