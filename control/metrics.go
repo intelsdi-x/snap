@@ -74,6 +74,10 @@ func (m *metricType) Config() *cdata.ConfigDataNode {
 	return m.config
 }
 
+func (m *metricType) Data() interface{} {
+	return nil
+}
+
 type metricCatalog struct {
 	tree        *MTTrie
 	mutex       *sync.Mutex
@@ -91,7 +95,7 @@ func newMetricCatalog() *metricCatalog {
 	}
 }
 
-func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.MetricType) {
+func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
 	if lp.ConfigPolicyTree == nil {
 		panic("NO")
 	}

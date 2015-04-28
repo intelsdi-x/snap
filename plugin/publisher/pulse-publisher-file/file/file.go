@@ -33,7 +33,7 @@ func NewFilePublisher() *filePublisher {
 
 func (f *filePublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
 	logger.Println("Publishing started")
-	var metrics []plugin.PluginMetric
+	var metrics []plugin.PluginMetricType
 
 	switch contentType {
 	case plugin.ContentTypes[plugin.PulseGobContentType]:

@@ -64,7 +64,7 @@ func (p *PluginNativeClient) Publish(contentType string, content []byte, config 
 	return err
 }
 
-func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.MetricType) ([]core.Metric, error) {
+func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]core.Metric, error) {
 	// Convert core.MetricType slice into plugin.PluginMetricType slice as we have
 	// to send structs over RPC
 	pluginMetricTypes := make([]plugin.PluginMetricType, len(coreMetricTypes))
@@ -93,13 +93,13 @@ func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.MetricType) (
 	return retMetrics, err
 }
 
-func (p *PluginNativeClient) GetMetricTypes() ([]core.MetricType, error) {
+func (p *PluginNativeClient) GetMetricTypes() ([]core.Metric, error) {
 	args := plugin.GetMetricTypesArgs{}
 	reply := plugin.GetMetricTypesReply{}
 
 	err := p.connection.Call("Collector.GetMetricTypes", args, &reply)
 
-	retMetricTypes := make([]core.MetricType, len(reply.PluginMetricTypes))
+	retMetricTypes := make([]core.Metric, len(reply.PluginMetricTypes))
 	for i, _ := range reply.PluginMetricTypes {
 		retMetricTypes[i] = reply.PluginMetricTypes[i]
 	}

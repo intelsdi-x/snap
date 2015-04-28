@@ -6,31 +6,6 @@ import (
 	"github.com/intelsdilabs/pulse/core/cdata"
 )
 
-// Represents a collected metric. Only used within plugins and across plugin calls.
-// Converted to core.Metric before being used within modules.
-type PluginMetric struct {
-	Namespace_ []string
-	Data_      interface{}
-}
-
-// PluginMetric Constructor
-func NewPluginMetric(namespace []string, data interface{}) *PluginMetric {
-	return &PluginMetric{
-		Namespace_: namespace,
-		Data_:      data,
-	}
-}
-
-// getter for namespace
-func (p PluginMetric) Namespace() []string {
-	return p.Namespace_
-}
-
-// getter for Data
-func (p PluginMetric) Data() interface{} {
-	return p.Data_
-}
-
 // Represents a metric type. Only used within plugins and across plugin calls.
 // Converted to core.MetricType before being used within modules.
 type PluginMetricType struct {
@@ -38,6 +13,15 @@ type PluginMetricType struct {
 	LastAdvertisedTime_ time.Time
 	Version_            int
 	Config_             *cdata.ConfigDataNode //map[string]ctypes.ConfigValue
+	Data_               interface{}
+}
+
+// // PluginMetricType Constructor
+func NewPluginMetricType(namespace []string, data interface{}) *PluginMetricType {
+	return &PluginMetricType{
+		Namespace_: namespace,
+		Data_:      data,
+	}
 }
 
 // Returns the namespace.
@@ -58,6 +42,14 @@ func (p PluginMetricType) Version() int {
 // Config returns the map of config data for this metric
 func (p PluginMetricType) Config() *cdata.ConfigDataNode {
 	return p.Config_
+}
+
+func (p PluginMetricType) Data() interface{} {
+	return p.Data_
+}
+
+func (p *PluginMetricType) AddData(data interface{}) {
+	p.Data_ = data
 }
 
 /*

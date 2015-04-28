@@ -16,8 +16,8 @@ type PluginClient interface {
 // PluginCollectorClient A client providing collector specific plugin method calls.
 type PluginCollectorClient interface {
 	PluginClient
-	CollectMetrics([]core.MetricType) ([]core.Metric, error)
-	GetMetricTypes() ([]core.MetricType, error)
+	CollectMetrics([]core.Metric) ([]core.Metric, error)
+	GetMetricTypes() ([]core.Metric, error)
 	GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error)
 }
 

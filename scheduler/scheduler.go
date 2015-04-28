@@ -26,14 +26,14 @@ const (
 // On startup a scheduler will be created and passed a reference to control
 //JC todo refacto this to be managesMetrics
 type managesMetric interface {
-	SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error)
-	UnsubscribeMetricType(mt core.MetricType)
-	CollectMetrics([]core.MetricType, time.Time) ([]core.Metric, []error)
+	SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error)
+	UnsubscribeMetricType(mt core.Metric)
+	CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error)
 	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
 }
 
 type collectsMetrics interface {
-	CollectMetrics([]core.MetricType, time.Time) ([]core.Metric, []error)
+	CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error)
 }
 
 type publishesMetrics interface {
@@ -76,7 +76,7 @@ func (t *taskErrors) Errors() []error {
 }
 
 // CreateTask creates and returns task
-func (s *scheduler) CreateTask(mts []core.MetricType, sch core.Schedule, cdt *cdata.ConfigDataTree, wf core.Workflow, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+func (s *scheduler) CreateTask(mts []core.Metric, sch core.Schedule, cdt *cdata.ConfigDataTree, wf core.Workflow, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
@@ -94,7 +94,7 @@ func (s *scheduler) CreateTask(mts []core.MetricType, sch core.Schedule, cdt *cd
 
 	//subscribe to MT
 	//if we encounter an error we will unwind successful subscriptions
-	subscriptions := make([]core.MetricType, 0)
+	subscriptions := make([]core.Metric, 0)
 	for _, m := range mts {
 		cd := cdt.Get(m.Namespace())
 		mt, err := s.metricManager.SubscribeMetricType(m, cd)

@@ -13,7 +13,7 @@ func TestTask(t *testing.T) {
 	Convey("Task", t, func() {
 		Convey("task + simple schedule", func() {
 			sch := newSimpleSchedule(core.NewSimpleSchedule(time.Millisecond * 100))
-			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
+			task := newTask(sch, []core.Metric{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, core.TaskSpinning)
@@ -22,7 +22,7 @@ func TestTask(t *testing.T) {
 
 		Convey("Task is created and starts to spin", func() {
 			sch := newSimpleSchedule(core.NewSimpleSchedule(time.Second * 5))
-			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
+			task := newTask(sch, []core.Metric{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
 			task.Spin()
 			So(task.state, ShouldEqual, core.TaskSpinning)
 			Convey("Task is Stopped", func() {
@@ -46,7 +46,7 @@ func TestTask(t *testing.T) {
 
 		Convey("task fires", func() {
 			sch := newSimpleSchedule(core.NewSimpleSchedule(time.Millisecond * 10))
-			task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
+			task := newTask(sch, []core.Metric{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
 			task.Spin()
 			time.Sleep(time.Millisecond * 100)
 			So(task.hitCount, ShouldBeGreaterThan, 2)
@@ -58,7 +58,7 @@ func TestTask(t *testing.T) {
 	Convey("Create task collection", t, func() {
 
 		sch := newSimpleSchedule(core.NewSimpleSchedule(time.Millisecond * 10))
-		task := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
+		task := newTask(sch, []core.Metric{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
 		So(task.id, ShouldNotBeEmpty)
 		So(task.id, ShouldNotBeNil)
 		taskCollection := newTaskCollection()
@@ -92,7 +92,7 @@ func TestTask(t *testing.T) {
 			})
 
 			Convey("Create another task and compare the id", func() {
-				task2 := newTask(sch, []core.MetricType{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
+				task2 := newTask(sch, []core.Metric{}, &mockWorkflow{}, newWorkManager(), &mockMetricManager{})
 				So(task2.id, ShouldEqual, task.id+1)
 			})
 

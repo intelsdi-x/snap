@@ -18,7 +18,7 @@ type mockMetricManager struct {
 	failuredSoFar              int
 }
 
-func (m *mockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.ConfigDataNode) (core.MetricType, []error) {
+func (m *mockMetricManager) SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
 	if m.failValidatingMetrics {
 		if m.failValidatingMetricsAfter > m.failuredSoFar {
 			m.failuredSoFar++
@@ -31,11 +31,11 @@ func (m *mockMetricManager) SubscribeMetricType(mt core.MetricType, cd *cdata.Co
 	return nil, nil
 }
 
-func (m *mockMetricManager) UnsubscribeMetricType(mt core.MetricType) {
+func (m *mockMetricManager) UnsubscribeMetricType(mt core.Metric) {
 
 }
 
-func (m *mockMetricManager) CollectMetrics([]core.MetricType, time.Time) ([]core.Metric, []error) {
+func (m *mockMetricManager) CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error) {
 	return nil, nil
 }
 
@@ -68,6 +68,10 @@ func (m mockMetricType) LastAdvertisedTime() time.Time {
 
 func (m mockMetricType) Config() *cdata.ConfigDataNode {
 	return m.config
+}
+
+func (m mockMetricType) Data() interface{} {
+	return nil
 }
 
 type mockWorkflow struct {
@@ -110,7 +114,7 @@ func TestScheduler(t *testing.T) {
 	Convey("new", t, func() {
 		c := new(mockMetricManager)
 		sch := core.NewSimpleSchedule(time.Millisecond * 5)
-		mt := []core.MetricType{
+		mt := []core.Metric{
 			&mockMetricType{
 				namespace:          []string{"foo", "bar"},
 				version:            1,

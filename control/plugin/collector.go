@@ -17,7 +17,7 @@ import (
 // Collector plugin
 type CollectorPlugin interface {
 	Plugin
-	CollectMetrics([]PluginMetricType) ([]PluginMetric, error)
+	CollectMetrics([]PluginMetricType) ([]PluginMetricType, error)
 	GetMetricTypes() ([]PluginMetricType, error)
 	GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error)
 }

@@ -40,6 +40,10 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 	return nil
 }
 
+func (m MockMetricType) Data() interface{} {
+	return nil
+}
+
 func TestCollectPublishWorkflow(t *testing.T) {
 	Convey("Given a started plugin control", t, func() {
 		logger.SetLevel(logger.DebugLevel)
@@ -77,7 +81,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 					Convey("Start", func() {
 						workerKillChan = make(chan struct{})
 						manager := newWorkManager()
-						task := newTask(sch, []core.MetricType{smt}, wf, manager, c)
+						task := newTask(sch, []core.Metric{smt}, wf, manager, c)
 						task.Spin()
 						time.Sleep(4 * time.Second)
 					})
