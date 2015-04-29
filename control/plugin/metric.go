@@ -137,7 +137,7 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 }
 
 // SwapPluginMetricContentType swaps a payload with one content type to another one.
-func SwapPluginMetricContentType(contentType, requestedContentType string, payload []byte) (newPayload []byte, contentType string, err error) {
+func SwapPluginMetricContentType(contentType, requestedContentType string, payload []byte) ([]byte, string, error) {
 	metrics, err1 := UnmarshallPluginMetricTypes(contentType, payload)
 	if err1 != nil {
 		logger.Error("swap-content-type", err1.Error())
