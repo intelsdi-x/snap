@@ -531,7 +531,7 @@ func TestPublishMetrics(t *testing.T) {
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
-				contentType := plugin.ContentTypes[plugin.PulseGobContentType]
+				contentType := plugin.PulseGOBContentType
 				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 1, config)
 				So(errs, ShouldBeNil)
 			})

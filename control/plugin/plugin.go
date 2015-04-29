@@ -6,34 +6,24 @@ import (
 	"time"
 )
 
-var (
-	// Timeout settings
-	// How much time must elapse before a lack of Ping results in a timeout
-	PingTimeoutDurationDefault = time.Millisecond * 1500
-	// How many succesive PingTimeouts must occur to equal a failure.
-	PingTimeoutLimit = 3
-)
-
 const (
 	// List of plugin type
 	CollectorPluginType PluginType = iota
 	PublisherPluginType
 	ProcessorPluginType
-)
 
-const (
-	// List of content types
-	PulseGobContentType ContentType = iota
-	PulseJsonContentType
-)
-
-const (
 	// List of plugin response states
 	PluginSuccess PluginResponseState = iota
 	PluginFailure
 )
 
 var (
+	// Timeout settings
+	// How much time must elapse before a lack of Ping results in a timeout
+	PingTimeoutDurationDefault = time.Millisecond * 1500
+	// How many succesive PingTimeouts must occur to equal a failure.
+	PingTimeoutLimit = 3
+
 	// Array matching plugin type enum to a string
 	// note: in string represenation we use lower case
 	types = [...]string{
@@ -41,9 +31,7 @@ var (
 		"publisher",
 		"processor",
 	}
-)
 
-var (
 	ContentTypes = [...]string{
 		"pulse.gob",
 		"pulse.json",

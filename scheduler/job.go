@@ -148,7 +148,7 @@ func (p *publisherJob) Run() {
 	switch p.parentJob.Type() {
 	case collectJobType:
 		switch p.contentType {
-		case plugin.ContentTypes[plugin.PulseGobContentType]:
+		case plugin.PulseGOBContentType:
 			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
 			for i, m := range p.parentJob.(*collectorJob).metrics {
 				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
