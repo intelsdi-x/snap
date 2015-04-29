@@ -58,7 +58,7 @@ func (r *Riemann) Publish(contentType string, content []byte, config map[string]
 	logger.Println("Riemann Publishing Started")
 	var metrics []plugin.PluginMetricType
 	switch contentType {
-	case plugin.ContentTypes[plugin.PulseGobContentType]:
+	case plugin.PulseGOBContentType:
 		dec := gob.NewDecoder(bytes.NewBuffer(content))
 		if err := dec.Decode(&metrics); err != nil {
 			logger.Printf("Error decoding: error=%v content=%v", err, content)
