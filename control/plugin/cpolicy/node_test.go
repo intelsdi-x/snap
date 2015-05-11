@@ -76,7 +76,7 @@ func TestConfigPolicyNode(t *testing.T) {
 		_, pe := n.Process(m)
 
 		So(len(pe.Errors()), ShouldEqual, 1)
-		So(errorsMsg(pe.Errors()), ShouldContain, "type mismatch (port wanted type 'string' but provided type 'integer')")
+		So(errorsMsg(pe.Errors()), ShouldContain, "type mismatch (port wanted type 'integer' but provided type 'string')")
 	})
 
 	Convey("adds defaults to only missing values that should have them", t, func() {

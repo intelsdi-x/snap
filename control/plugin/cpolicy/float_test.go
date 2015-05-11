@@ -82,7 +82,7 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 				v := ctypes.ConfigValueStr{Value: "wat"}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, errors.New("type mismatch (thekey wanted type 'string' but provided type 'float')"))
+				So(e, ShouldResemble, errors.New("type mismatch (thekey wanted type 'float' but provided type 'string')"))
 			})
 
 			Convey("error with value below minimum", func() {

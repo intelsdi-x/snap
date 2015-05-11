@@ -26,5 +26,5 @@ type rule struct {
 }
 
 func wrongType(key, inType, reqType string) error {
-	return errors.New(fmt.Sprintf("type mismatch (%s wanted type '%s' but provided type '%s')", key, inType, reqType))
+	return errors.New(fmt.Sprintf("type mismatch (%s wanted type '%s' but provided type '%s')", key, reqType, inType))
 }
