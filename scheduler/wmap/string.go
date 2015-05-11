@@ -1,5 +1,9 @@
 package wmap
 
+import (
+	"fmt"
+)
+
 func (w *WorkflowMap) String() string {
 	var out string
 	out += "Workflow\n"

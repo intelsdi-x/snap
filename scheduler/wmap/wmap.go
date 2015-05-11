@@ -1,12 +1,12 @@
-package scheduler
+package wmap
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/intelsdilabs/pulse/core/cdata"
 	"gopkg.in/yaml.v2"
-	// "github.com/intelsdilabs/pulse/core"
 )
 
 var (
@@ -145,5 +145,5 @@ type PublishWorkflowMapNode struct {
 	Name    string `json:"plugin_name"yaml:"plugin_name"`
 	Version int    `json:"plugin_version"yaml:"plugin_version"`
 	// TODO publisher config
-	Config interface{} `json:"publisher_config"yaml:"publisher_config"`
+	Config cdata.ConfigDataNode
 }
