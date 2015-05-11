@@ -13,10 +13,6 @@ var (
 	InvalidPayload = errors.New("Payload to convert must be string or []byte")
 )
 
-// Represents a validated instance of a workflow for a task.
-type scheduleWorkflow struct {
-}
-
 func handleErr(e error) {
 	if e != nil {
 		panic(e)
@@ -77,9 +73,9 @@ func SampleWorkflowMapJSON() string {
 	handleErr(e)
 	e = c1.AddMetricNamespace("/foo/bar")
 	handleErr(e)
-
 	wf.CollectNode = c1
-	b, e := json.Marshal(wf)
+
+	b, e := wf.ToJson()
 	if e != nil {
 		panic(e)
 	}
@@ -91,17 +87,12 @@ type WorkflowMap struct {
 	CollectNode *CollectWorkflowMapNode `json:"collect"yaml:"collect"`
 }
 
-func (w *WorkflowMap) String() string {
-	var out string
-	out += "Workflow\n"
-	out += "\tCollect:\n"
-	if w.CollectNode != nil {
-		out += w.CollectNode.String("\t\t")
-	} else {
-		out += "\n"
-	}
+func (w *WorkflowMap) ToJson() ([]byte, error) {
+	return json.Marshal(w)
+}
 
-	return out
+func (w *WorkflowMap) ToYaml() ([]byte, error) {
+	return yaml.Marshal(w)
 }
 
 type CollectWorkflowMapNode struct {
@@ -109,26 +100,6 @@ type CollectWorkflowMapNode struct {
 
 	ProcessNodes []ProcessWorkflowMapNode `json:"process"yaml:"process"`
 	PublishNodes []PublishWorkflowMapNode `json:"publish"yaml:"publish"`
-}
-
-func (c *CollectWorkflowMapNode) String(pad string) string {
-	var out string
-	out += pad + "Metric Namespaces:\n"
-	for _, x := range c.MetricsNamespaces {
-		out += pad + "\t\t" + x + "\n"
-	}
-	out += "\n"
-	out += pad + "Process Nodes:\n"
-	for _, pr := range c.ProcessNodes {
-		out += pr.String(pad)
-	}
-	out += "\n"
-	out += pad + "Publish Nodes:\n"
-	for _, pu := range c.PublishNodes {
-		out += pu.String(pad)
-	}
-	out += "\n"
-	return out
 }
 
 func (c *CollectWorkflowMapNode) Add(node interface{}) error {
@@ -158,22 +129,6 @@ type ProcessWorkflowMapNode struct {
 	Config interface{} `json:"processor_config"yaml:"processor_config"`
 }
 
-func (p *ProcessWorkflowMapNode) String(pad string) string {
-	var out string
-	out += pad + fmt.Sprintf("Name: %s\n", p.Name)
-	out += pad + fmt.Sprintf("Version: %d\n", p.Version)
-
-	out += pad + "Process Nodes:\n"
-	for _, pr := range p.ProcessNodes {
-		out += pr.String(pad)
-	}
-	out += pad + "Publsish Nodes:\n"
-	for _, pu := range p.PublishNodes {
-		out += pu.String(pad)
-	}
-	return out
-}
-
 func (p *ProcessWorkflowMapNode) Add(node interface{}) error {
 	switch x := node.(type) {
 	case *ProcessWorkflowMapNode:
@@ -191,12 +146,4 @@ type PublishWorkflowMapNode struct {
 	Version int    `json:"plugin_version"yaml:"plugin_version"`
 	// TODO publisher config
 	Config interface{} `json:"publisher_config"yaml:"publisher_config"`
-}
-
-func (p *PublishWorkflowMapNode) String(pad string) string {
-	var out string
-	out += pad + fmt.Sprintf("\tName: %s\n", p.Name)
-	out += pad + fmt.Sprintf("\tVersion: %d\n", p.Version)
-
-	return out
 }
