@@ -74,7 +74,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 				wf := newWorkflow()
 				So(wf.state, ShouldNotBeNil)
 				Convey("Add steps", func() {
-					pubStep := NewPublishStep("file", 1, plugin.ContentTypes[plugin.PulseGobContentType], config)
+					pubStep := NewPublishStep("file", 1, plugin.PulseGOBContentType, config)
 					wf.rootStep.AddStep(pubStep)
 					So(wf.rootStep, ShouldNotBeNil)
 					So(wf.rootStep.Steps(), ShouldNotBeNil)

@@ -36,7 +36,7 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 	var metrics []plugin.PluginMetricType
 
 	switch contentType {
-	case plugin.ContentTypes[plugin.PulseGobContentType]:
+	case plugin.PulseGOBContentType:
 		dec := gob.NewDecoder(bytes.NewBuffer(content))
 		if err := dec.Decode(&metrics); err != nil {
 			logger.Printf("Error decoding: error=%v content=%v", err, content)

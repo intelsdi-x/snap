@@ -7,11 +7,14 @@ import (
 )
 
 const (
-	// Builtin Content Types
-	PulseWildcardContentType = "pulse.*"
-	PulseGob                 = "pulse.gob"
-	// PulseJSON = "pulse.json" - disabled until it exists
-	// PulsePB = "pulse.pb" - disabled until it exists
+	// List of plugin type
+	CollectorPluginType PluginType = iota
+	PublisherPluginType
+	ProcessorPluginType
+
+	// List of plugin response states
+	PluginSuccess PluginResponseState = iota
+	PluginFailure
 )
 
 var (
@@ -20,28 +23,7 @@ var (
 	PingTimeoutDurationDefault = time.Millisecond * 1500
 	// How many succesive PingTimeouts must occur to equal a failure.
 	PingTimeoutLimit = 3
-)
 
-const (
-	// List of plugin type
-	CollectorPluginType PluginType = iota
-	PublisherPluginType
-	ProcessorPluginType
-)
-
-const (
-	// List of content types
-	PulseGobContentType ContentType = iota
-	PulseJsonContentType
-)
-
-const (
-	// List of plugin response states
-	PluginSuccess PluginResponseState = iota
-	PluginFailure
-)
-
-var (
 	// Array matching plugin type enum to a string
 	// note: in string represenation we use lower case
 	types = [...]string{
@@ -49,9 +31,7 @@ var (
 		"publisher",
 		"processor",
 	}
-)
 
-var (
 	ContentTypes = [...]string{
 		"pulse.gob",
 		"pulse.json",

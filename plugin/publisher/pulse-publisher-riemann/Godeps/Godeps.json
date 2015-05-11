@@ -1,0 +1,14 @@
+{
+	"ImportPath": "github.com/intelsdilabs/pulse/plugin/publisher/pulse-publisher-riemann",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "github.com/amir/raidman",
+			"Rev": "57b78a08c96234a4cf19a7c33c8eb28ce4214cbc"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "5677a0e3d5e89854c9974e1256839ee23f8233ca"
+		}
+	]
+}
