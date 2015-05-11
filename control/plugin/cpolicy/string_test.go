@@ -66,7 +66,7 @@ func TestConfigPolicyRuleString(t *testing.T) {
 				v := ctypes.ConfigValueInt{Value: 1}
 
 				e = r.Validate(v)
-				So(e, ShouldResemble, errors.New("type mismatch (thekey wanted type 'integer' but provided type 'string')"))
+				So(e, ShouldResemble, errors.New("type mismatch (thekey wanted type 'string' but provided type 'integer')"))
 			})
 
 		})
