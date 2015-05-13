@@ -21,7 +21,15 @@ func (c *CollectWorkflowMapNode) String(pad string) string {
 	var out string
 	out += pad + "Metric Namespaces:\n"
 	for _, x := range c.MetricsNamespaces {
-		out += pad + "\t\t" + x + "\n"
+		out += pad + "\t" + x + "\n"
+	}
+	out += "\n"
+	out += pad + "Config:\n"
+	for k, v := range c.Config {
+		out += pad + "\t" + k + "\n"
+		for x, y := range v {
+			out += pad + "\t\t" + fmt.Sprintf("%s=%+v\n", x, y)
+		}
 	}
 	out += "\n"
 	out += pad + "Process Nodes:\n"

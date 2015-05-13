@@ -2,12 +2,16 @@
   collect: 
     metric_namespaces: 
       - "/foo/bar"
+    config:
+      /foo/bar:
+        user: "root"
+        password: "drowssap"
     publish: 
       - 
         plugin_name: "rabbitmq"
         plugin_version: 5
-        publisher_config: null
+        config: null
       - 
         plugin_name: "riemann"
         plugin_version: 3
-        publisher_config: null
+        config: null

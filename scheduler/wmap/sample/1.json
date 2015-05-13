@@ -3,17 +3,18 @@
         "metric_namespaces": [
             "/foo/bar"
         ],
-        "process": null,
+        "config": {
+            "/foo/bar": {
+                "user": "root"
+            }
+        },
         "publish": [
             {
                 "plugin_name": "rabbitmq",
                 "plugin_version": 5,
-                "publisher_config": null
-            },
-            {
-                "plugin_name": "riemann",
-                "plugin_version": 3,
-                "publisher_config": null
+                "config": {
+                    "user": "root"
+                }
             }
         ]
     }

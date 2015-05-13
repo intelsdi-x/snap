@@ -28,5 +28,10 @@ func TestWorkflow(t *testing.T) {
 			So(wmap, ShouldNotBeNil)
 			fmt.Println(wmap.String())
 		})
+
+		a := SampleWorkflowMapJson()
+		fmt.Println(a)
+		b := SampleWorkflowMapYaml()
+		fmt.Println(b)
 	})
 }

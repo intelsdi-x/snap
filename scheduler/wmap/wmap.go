@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdilabs/pulse/core/cdata"
+	// "github.com/intelsdilabs/pulse/core/cdata"
+	// "github.com/intelsdilabs/pulse/core/ctypes"
 	"gopkg.in/yaml.v2"
 )
 
@@ -60,12 +61,41 @@ func inStringBytes(payload interface{}) ([]byte, error) {
 	return p, nil
 }
 
-func SampleWorkflowMapJSON() string {
+func SampleWorkflowMapJson() string {
+	wf := sample()
+	b, e := wf.ToJson()
+	if e != nil {
+		panic(e)
+	}
+	return string(b)
+}
+
+func SampleWorkflowMapYaml() string {
+	wf := sample()
+	b, e := wf.ToYaml()
+	if e != nil {
+		panic(e)
+	}
+	return string(b)
+}
+
+func sample() *WorkflowMap {
 	wf := new(WorkflowMap)
 
-	c1 := &CollectWorkflowMapNode{}
+	c1 := &CollectWorkflowMapNode{
+		Config: make(map[string]map[string]interface{}),
+	}
+	c1.Config["/foo/bar"] = make(map[string]interface{})
+	c1.Config["/foo/bar"]["user"] = "root"
+
 	// pr1 := &ProcessWorkflowMapNode{Name: "learn", Version: 3}
-	pu1 := &PublishWorkflowMapNode{Name: "rabbitmq", Version: 5}
+	pu1 := &PublishWorkflowMapNode{
+		Name:    "rabbitmq",
+		Version: 5,
+		Config:  make(map[string]interface{}),
+	}
+
+	pu1.Config["user"] = "root"
 	var e error
 	// e = pr1.Add(pu1)
 	// handleErr(e)
@@ -74,12 +104,7 @@ func SampleWorkflowMapJSON() string {
 	e = c1.AddMetricNamespace("/foo/bar")
 	handleErr(e)
 	wf.CollectNode = c1
-
-	b, e := wf.ToJson()
-	if e != nil {
-		panic(e)
-	}
-	return string(b)
+	return wf
 }
 
 // A map of a desired workflow that is used to create a scheduleWorkflow
@@ -96,10 +121,10 @@ func (w *WorkflowMap) ToYaml() ([]byte, error) {
 }
 
 type CollectWorkflowMapNode struct {
-	MetricsNamespaces []string `json:"metric_namespaces"yaml:"metric_namespaces"`
-
-	ProcessNodes []ProcessWorkflowMapNode `json:"process"yaml:"process"`
-	PublishNodes []PublishWorkflowMapNode `json:"publish"yaml:"publish"`
+	MetricsNamespaces []string                          `json:"metric_namespaces"yaml:"metric_namespaces"`
+	Config            map[string]map[string]interface{} `json:"config"yaml:"config"`
+	ProcessNodes      []ProcessWorkflowMapNode          `json:"process"yaml:"process"`
+	PublishNodes      []PublishWorkflowMapNode          `json:"publish"yaml:"publish"`
 }
 
 func (c *CollectWorkflowMapNode) Add(node interface{}) error {
@@ -126,7 +151,7 @@ type ProcessWorkflowMapNode struct {
 	ProcessNodes []ProcessWorkflowMapNode `json:"process"yaml:"process"`
 	PublishNodes []PublishWorkflowMapNode `json:"publish"yaml:"publish"`
 	// TODO processor config
-	Config interface{} `json:"processor_config"yaml:"processor_config"`
+	Config map[string]interface{} `json:"config"yaml:"config"`
 }
 
 func (p *ProcessWorkflowMapNode) Add(node interface{}) error {
@@ -145,5 +170,5 @@ type PublishWorkflowMapNode struct {
 	Name    string `json:"plugin_name"yaml:"plugin_name"`
 	Version int    `json:"plugin_version"yaml:"plugin_version"`
 	// TODO publisher config
-	Config cdata.ConfigDataNode
+	Config map[string]interface{} `json:"config"yaml:"config"`
 }
