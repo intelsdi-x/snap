@@ -11,7 +11,6 @@ import (
 func TestWorkflow(t *testing.T) {
 	jsonP, _ := ioutil.ReadFile("./sample/1.json")
 	yamlP, _ := ioutil.ReadFile("./sample/1.yml")
-	fmt.Println(string(jsonP), string(yamlP))
 
 	Convey("Workflow map", t, func() {
 
@@ -28,10 +27,5 @@ func TestWorkflow(t *testing.T) {
 			So(wmap, ShouldNotBeNil)
 			fmt.Println(wmap.String())
 		})
-
-		a := SampleWorkflowMapJson()
-		fmt.Println(a)
-		b := SampleWorkflowMapYaml()
-		fmt.Println(b)
 	})
 }

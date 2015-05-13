@@ -5,20 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	// "github.com/intelsdilabs/pulse/core/cdata"
-	// "github.com/intelsdilabs/pulse/core/ctypes"
 	"gopkg.in/yaml.v2"
 )
 
 var (
 	InvalidPayload = errors.New("Payload to convert must be string or []byte")
 )
-
-func handleErr(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
 
 func FromYaml(payload interface{}) (*WorkflowMap, error) {
 	p, err := inStringBytes(payload)
@@ -100,9 +92,13 @@ func sample() *WorkflowMap {
 	// e = pr1.Add(pu1)
 	// handleErr(e)
 	e = c1.Add(pu1)
-	handleErr(e)
+	if e != nil {
+		panic(e)
+	}
 	e = c1.AddMetricNamespace("/foo/bar")
-	handleErr(e)
+	if e != nil {
+		panic(e)
+	}
 	wf.CollectNode = c1
 	return wf
 }
