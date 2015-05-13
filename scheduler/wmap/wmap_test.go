@@ -18,14 +18,14 @@ func TestWorkflow(t *testing.T) {
 			wmap, err := FromYaml(yamlP)
 			So(err, ShouldBeNil)
 			So(wmap, ShouldNotBeNil)
-			fmt.Println(wmap.String())
+			fmt.Println(wmap)
 		})
 
 		Convey("from json", func() {
 			wmap, err := FromJson(jsonP)
 			So(err, ShouldBeNil)
 			So(wmap, ShouldNotBeNil)
-			fmt.Println(wmap.String())
+			fmt.Println(wmap)
 		})
 	})
 }
