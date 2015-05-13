@@ -39,7 +39,7 @@ func (c *CollectWorkflowMapNode) String(pad string) string {
 	out += "\n"
 	out += pad + "Publish Nodes:\n"
 	for _, pu := range c.PublishNodes {
-		out += pu.String(pad)
+		out += pu.String(pad) + "\n"
 	}
 	out += "\n"
 	return out
@@ -47,16 +47,16 @@ func (c *CollectWorkflowMapNode) String(pad string) string {
 
 func (p *ProcessWorkflowMapNode) String(pad string) string {
 	var out string
-	out += pad + fmt.Sprintf("Name: %s\n", p.Name)
-	out += pad + fmt.Sprintf("Version: %d\n", p.Version)
+	out += pad + fmt.Sprintf("\tName: %s\n", p.Name)
+	out += pad + fmt.Sprintf("\tVersion: %d\n", p.Version)
 
-	out += pad + "Process Nodes:\n"
+	out += pad + "\tProcess Nodes:\n"
 	for _, pr := range p.ProcessNodes {
-		out += pr.String(pad)
+		out += pr.String(pad + "\t")
 	}
-	out += pad + "Publish Nodes:\n"
+	out += pad + "\tPublish Nodes:\n"
 	for _, pu := range p.PublishNodes {
-		out += pu.String(pad)
+		out += pu.String(pad + "\t")
 	}
 	return out
 }
@@ -66,5 +66,9 @@ func (p *PublishWorkflowMapNode) String(pad string) string {
 	out += pad + fmt.Sprintf("\tName: %s\n", p.Name)
 	out += pad + fmt.Sprintf("\tVersion: %d\n", p.Version)
 
+	out += pad + "\tConfig:\n"
+	for k, v := range p.Config {
+		out += pad + "\t\t" + fmt.Sprintf("%s=%+v\n", k, v)
+	}
 	return out
 }
