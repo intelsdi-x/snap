@@ -1,5 +1,5 @@
 # **Pulse** <sup><sub>_A powerful telemetry agent framework from Intel Corporation &reg;_</sub></sup>
-[![Build Status](https://magnum.travis-ci.com/intelsdi-x/pulse.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://magnum.travis-ci.com/intelsdi-x/pulse) [![Coverage Status](https://coveralls.io/repos/intelsdilabs/pulse/badge.svg?branch=master&t=rVMsC3)](https://coveralls.io/r/intelsdilabs/pulse?branch=master)
+[![Build Status](https://magnum.travis-ci.com/intelsdi-x/pulse.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://magnum.travis-ci.com/intelsdi-x/pulse)
 
 ## Description
 
