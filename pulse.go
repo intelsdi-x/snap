@@ -9,10 +9,10 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/intelsdilabs/pulse/control"
-	"github.com/intelsdilabs/pulse/mgmt/rest"
-	"github.com/intelsdilabs/pulse/pkg/logger"
-	"github.com/intelsdilabs/pulse/scheduler"
+	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/mgmt/rest"
+	"github.com/intelsdi-x/pulse/pkg/logger"
+	"github.com/intelsdi-x/pulse/scheduler"
 )
 
 var (

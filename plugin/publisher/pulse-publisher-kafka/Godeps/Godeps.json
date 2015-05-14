@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/intelsdilabs/pulse/plugin/publisher/pulse-publisher-kafka",
+	"ImportPath": "github.com/intelsdi-x/pulse/plugin/publisher/pulse-publisher-kafka",
 	"GoVersion": "go1.4.2",
 	"Deps": [
 		{

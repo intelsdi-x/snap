@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 	"sync"
 
-	"github.com/intelsdilabs/pulse/core/ctypes"
-	"github.com/intelsdilabs/pulse/pkg/ctree"
+	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/pkg/ctree"
 )
 
 // Represents a set of configuration data

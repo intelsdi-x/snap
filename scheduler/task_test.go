@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdi-x/pulse/core"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/control"
-	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/cdata"
-	"github.com/intelsdilabs/pulse/core/ctypes"
-	"github.com/intelsdilabs/pulse/pkg/logger"
+	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/pkg/logger"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

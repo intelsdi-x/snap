@@ -3,7 +3,7 @@ package cdata
 import (
 	"testing"
 
-	"github.com/intelsdilabs/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

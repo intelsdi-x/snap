@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 )
 
 // Arguments passed to CollectMetrics() for a Collector implementation

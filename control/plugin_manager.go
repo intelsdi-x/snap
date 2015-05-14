@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/intelsdilabs/gomit"
-	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/control/plugin/client"
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
-	"github.com/intelsdilabs/pulse/pkg/logger"
+	"github.com/intelsdi-x/gomit"
+	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/control/plugin/client"
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 const (

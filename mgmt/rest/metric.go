@@ -6,7 +6,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
 type metricType struct {

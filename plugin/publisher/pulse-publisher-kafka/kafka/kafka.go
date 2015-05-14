@@ -4,9 +4,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
-	"github.com/intelsdilabs/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 
 	"gopkg.in/Shopify/sarama.v1"
 )

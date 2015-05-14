@@ -2,7 +2,7 @@
 
 /*
 # testing
-go test -v github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-facter/facter
+go test -v github.com/intelsdi-x/pulse/plugin/collector/pulse-collector-facter/facter
 */
 package facter
 
@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/control/plugin"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

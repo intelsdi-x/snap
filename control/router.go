@@ -1,7 +1,7 @@
 // Router is the entry point for execution commands and routing to plugins
 package control
 
-import "github.com/intelsdilabs/pulse/control/routing"
+import "github.com/intelsdi-x/pulse/control/routing"
 
 type RouterResponse interface {
 }

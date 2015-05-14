@@ -4,10 +4,10 @@ import (
 	"os"
 
 	// Import the pulse plugin library
-	"github.com/intelsdilabs/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/control/plugin"
 	// Import our collector plugin implementation
 
-	"github.com/intelsdilabs/pulse/plugin/collector/pulse-collector-dummy1/dummy"
+	"github.com/intelsdi-x/pulse/plugin/collector/pulse-collector-dummy1/dummy"
 )
 
 func main() {
