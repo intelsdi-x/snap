@@ -1,0 +1,35 @@
+---
+  collect: 
+    metric_namespaces: 
+      - "/foo/bar"
+    config:
+      /foo/bar:
+        user: "root"
+        password: "drowssap"
+    process:
+      -
+        plugin_name: "floor"
+        plugin_version: 1
+        config:
+          something: true
+          somethingelse: false
+        process:
+          -
+            plugin_name: oslo
+            plugin_version: 1
+            config:
+              version: kilo
+        publish:
+          -
+            plugin_name: "rabbitmq"
+            plugin_version: 5  
+            config:
+              server: "localhost"
+              port: 5672
+    publish: 
+      - 
+        plugin_name: "riemann"
+        plugin_version: 3
+        config:
+          user: "root"
+          port: 8080

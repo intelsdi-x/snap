@@ -26,8 +26,8 @@ test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"
 # or require code to be completely "lint-free". In short, this tool is not, and will never be,
 # trustworthy enough for its suggestions to be enforced automatically, for example as part of
 # a build process"
-echo "golint"
-golint ./...
+# echo "golint"
+# golint ./...
 
 echo "go vet"
 go vet ./...
@@ -52,19 +52,20 @@ done
  
 go tool cover -func profile.cov
  
+# Disabled Coveralls.io for now
 # To submit the test coverage result to coveralls.io,
 # use goveralls (https://github.com/mattn/goveralls)
 # goveralls -coverprofile=profile.cov -service=travis-ci -repotoken t47LG6BQsfLwb9WxB56hXUezvwpED6D11
 #
 # If running inside Travis we update coveralls. We don't want his happening on Macs
-if [ "$TRAVIS" == "true" ]
-then
-    n=1
-    until [ $n -ge 6 ]
-    do
-        echo "posting to coveralls attempt $n of 5"
-        goveralls -v -coverprofile=profile.cov -service travis.ci -repotoken $COVERALLS_TOKEN && break
-        n=$[$n+1]
-        sleep 30
-    done
-fi
+# if [ "$TRAVIS" == "true" ]
+# then
+#     n=1
+#     until [ $n -ge 6 ]
+#     do
+#         echo "posting to coveralls attempt $n of 5"
+#         goveralls -v -coverprofile=profile.cov -service travis.ci -repotoken $COVERALLS_TOKEN && break
+#         n=$[$n+1]
+#         sleep 30
+#     done
+# fi
