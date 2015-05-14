@@ -1,14 +1,14 @@
 {
-	"ImportPath": "github.com/intelsdilabs/pulse",
+	"ImportPath": "github.com/intelsdi-x/pulse",
 	"GoVersion": "go1.4.2",
 	"Packages": [
-		"github.com/intelsdilabs/pulse",
-		"github.com/intelsdilabs/pulse/control",
-		"github.com/intelsdilabs/pulse/scheduler",
-		"github.com/intelsdilabs/pulse/scheduler/wmap",
-		"github.com/intelsdilabs/pulse/mgmt/rest",
-		"github.com/intelsdilabs/pulse/core",
-		"github.com/intelsdilabs/pulse/core/cdata"
+		"github.com/intelsdi-x/pulse",
+		"github.com/intelsdi-x/pulse/control",
+		"github.com/intelsdi-x/pulse/scheduler",
+		"github.com/intelsdi-x/pulse/scheduler/wmap",
+		"github.com/intelsdi-x/pulse/mgmt/rest",
+		"github.com/intelsdi-x/pulse/core",
+		"github.com/intelsdi-x/pulse/core/cdata"
 	],
 	"Deps": [
 		{
@@ -22,7 +22,7 @@
 			"Rev": "c7477ad8e330bef55bf1ebe300cf8aa67c492d1b"
 		},
 		{
-			"ImportPath": "github.com/intelsdilabs/gomit",
+			"ImportPath": "github.com/intelsdi-x/gomit",
 			"Rev": "4f098da2bbb51d787be003e4abfbc25d01837564"
 		},
 		{

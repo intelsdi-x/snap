@@ -5,7 +5,7 @@ import (
 	// "fmt"
 	"math/rand"
 
-	"github.com/intelsdilabs/pulse/pkg/logger"
+	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 type RoundRobinStrategy struct {

@@ -4,8 +4,8 @@ import (
 	"os"
 
 	// Import the pulse plugin library
-	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/plugin/publisher/pulse-publisher-kafka/kafka"
+	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/plugin/publisher/pulse-publisher-kafka/kafka"
 )
 
 func main() {

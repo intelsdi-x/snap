@@ -11,8 +11,8 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
 type managesMetrics interface {

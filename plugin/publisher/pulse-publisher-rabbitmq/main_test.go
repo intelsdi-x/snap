@@ -9,8 +9,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/intelsdilabs/pulse/control"
-	"github.com/intelsdilabs/pulse/plugin/helper"
+	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/plugin/helper"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

@@ -3,7 +3,7 @@ package core
 import (
 	"time"
 
-	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
 type Metric interface {

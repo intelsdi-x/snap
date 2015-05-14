@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/intelsdilabs/pulse/plugin/publisher/pulse-publisher-influxdb",
+	"ImportPath": "github.com/intelsdi-x/pulse/plugin/publisher/pulse-publisher-influxdb",
 	"GoVersion": "go1.4",
 	"Deps": [
 		{

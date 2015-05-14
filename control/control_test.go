@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/gomit"
-	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
-	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/cdata"
-	"github.com/intelsdilabs/pulse/core/ctypes"
-	"github.com/intelsdilabs/pulse/pkg/logger"
+	"github.com/intelsdi-x/gomit"
+	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/pkg/logger"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

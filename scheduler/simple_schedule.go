@@ -3,7 +3,7 @@ package scheduler
 import (
 	"time"
 
-	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdi-x/pulse/core"
 )
 
 // A schedule that only implements an endless repeating interval

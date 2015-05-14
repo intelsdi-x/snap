@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdilabs/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/intelsdilabs/pulse/core/cdata"
-	"github.com/intelsdilabs/pulse/pkg/logger"
+	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 const (

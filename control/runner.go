@@ -8,11 +8,11 @@ import (
 
 	"strings"
 
-	"github.com/intelsdilabs/gomit"
+	"github.com/intelsdi-x/gomit"
 
-	"github.com/intelsdilabs/pulse/control/plugin"
-	"github.com/intelsdilabs/pulse/core/control_event"
-	"github.com/intelsdilabs/pulse/pkg/logger"
+	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core/control_event"
+	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 const (

@@ -3,9 +3,9 @@ package scheduler
 import (
 	"time"
 
-	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/ctypes"
-	"github.com/intelsdilabs/pulse/pkg/logger"
+	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 type workflow interface {

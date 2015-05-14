@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdilabs/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
 // A rule validating against string-typed config
