@@ -5,8 +5,9 @@ TYPES=(collector publisher)
 
 function loadDeps() {
 	cd $z
-	echo "Restoring deps for $z" 
+	echo "Restoring deps for $z"
 	godep restore
+    cd ..
 }
 
 function checkPluginType() {	
