@@ -107,7 +107,11 @@ func NewPluginMeta(name string, version int, pluginType PluginType) *PluginMeta 
 	}
 }
 
-// Start starts a plugin
+// Start starts a plugin where:
+// PluginMeta - base information about plugin
+// Plugin - either CollectorPlugin or PublisherPlugin
+// requestString - plugins arguments (marshaled json of control/plugin Arg struct)
+// returns an error and exitCode (exitCode from SessionState initilization or plugin termination code)
 func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	sessionState, sErr, retCode := NewSessionState(requestString)
 	if sErr != nil {
