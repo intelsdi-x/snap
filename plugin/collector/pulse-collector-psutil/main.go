@@ -8,17 +8,10 @@ import (
 	"github.com/intelsdi-x/pulse/plugin/collector/pulse-collector-psutil/psutil"
 )
 
-// meta date about plugin
-const (
-	name       = "Intel Fact Gathering Plugin"
-	version    = 1
-	pluginType = plugin.CollectorPluginType
-)
-
 // plugin bootstrap
 func main() {
 	plugin.Start(
-		plugin.NewPluginMeta(name, version, pluginType),
+		plugin.NewPluginMeta(psutil.Name, psutil.Version, psutil.Type),
 		&psutil.Psutil{}, // CollectorPlugin interface
 		os.Args[1],
 	)
