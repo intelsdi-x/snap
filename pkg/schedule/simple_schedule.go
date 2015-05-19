@@ -1,26 +1,39 @@
-package scheduler
+package schedule
 
 import (
+	"errors"
 	"time"
 
-	"github.com/intelsdi-x/pulse/core"
+	// "github.com/intelsdi-x/pulse/core"
 )
 
 // A schedule that only implements an endless repeating interval
-type simpleSchedule struct {
-	*core.SimpleSchedule
+type SimpleSchedule struct {
+	Interval time.Duration
+	State    ScheduleState
 }
 
-func newSimpleSchedule(ss *core.SimpleSchedule) *simpleSchedule {
-	s := &simpleSchedule{SimpleSchedule: ss}
-	s.State = core.ScheduleActive
-	return s
+func NewSimpleSchedule(interval time.Duration) *SimpleSchedule {
+	return &SimpleSchedule{
+		Interval: interval,
+	}
+}
+
+func (s *SimpleSchedule) GetState() ScheduleState {
+	return s.State
+}
+
+func (s *SimpleSchedule) Validate() error {
+	if s.Interval <= 0 {
+		return errors.New("Simple Schedule interval must be greater than 0")
+	}
+	return nil
 }
 
 // Waits until net interval and returns true. Returning false signals a Schedule is no
 // longer valid and should be halted. A SimpleSchedule has no end and as long as start
 // is not in the future we will always in practice return true.
-func (s *simpleSchedule) Wait(last time.Time) scheduleResponse {
+func (s *SimpleSchedule) Wait(last time.Time) ScheduleResponse {
 	// Get the difference in time.Duration since last in nanoseconds (int64)
 	timeDiff := time.Now().Sub(last).Nanoseconds()
 	// cache our schedule interval in nanseconds
@@ -32,27 +45,27 @@ func (s *simpleSchedule) Wait(last time.Time) scheduleResponse {
 	waitDuration := nanoInterval - remainder
 	// Wait until predicted interval fires
 	time.Sleep(time.Duration(waitDuration))
-	return simpleScheduleResponse{st: s.State, miss: uint(missed)}
+	return SimpleScheduleResponse{state: s.GetState(), missed: uint(missed)}
 }
 
 // A response from SimpleSchedule conforming to ScheduleResponse interface
-type simpleScheduleResponse struct {
-	er   error
-	st   core.ScheduleState
-	miss uint
+type SimpleScheduleResponse struct {
+	// err    error
+	state  ScheduleState
+	missed uint
 }
 
 // Returns the state of the Schedule
-func (s simpleScheduleResponse) state() core.ScheduleState {
-	return s.st
+func (s SimpleScheduleResponse) State() ScheduleState {
+	return s.state
 }
 
 // Returns last error
-func (s simpleScheduleResponse) err() error {
-	return s.er
+func (s SimpleScheduleResponse) Error() error {
+	return nil
 }
 
 // Returns any missed intervals
-func (s simpleScheduleResponse) missedIntervals() uint {
-	return s.miss
+func (s SimpleScheduleResponse) Missed() uint {
+	return s.missed
 }

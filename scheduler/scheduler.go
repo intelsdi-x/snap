@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdilabs/pulse/core"
+	"github.com/intelsdilabs/pulse/core/cdata"
+	"github.com/intelsdilabs/pulse/core/ctypes"
+	"github.com/intelsdilabs/pulse/scheduler/wmap"
 )
 
 var (
