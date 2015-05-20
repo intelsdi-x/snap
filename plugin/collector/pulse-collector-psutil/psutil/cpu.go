@@ -9,6 +9,9 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 )
 
+var cpuLabels = []string{"user", "system", "idle", "nice", "iowait",
+	"irq", "softirq", "steal", "guest", "guest_nice", "stolen"}
+
 func cpuTimes(ns []string) (*plugin.PluginMetricType, error) {
 	cpus, err := cpu.CPUTimes(true)
 	if err != nil {
@@ -32,7 +35,48 @@ func cpuTimes(ns []string) (*plugin.PluginMetricType, error) {
 				Namespace_: ns,
 				Data_:      cpu.Idle,
 			}, nil
+		case regexp.MustCompile(`^/psutil/cpu.*/nice`).MatchString(joinNamespace(ns)):
+			return &plugin.PluginMetricType{
+				Namespace_: ns,
+				Data_:      cpu.Nice,
+			}, nil
+		case regexp.MustCompile(`^/psutil/cpu.*/iowait`).MatchString(joinNamespace(ns)):
+			return &plugin.PluginMetricType{
+				Namespace_: ns,
+				Data_:      cpu.Iowait,
+			}, nil
+		case regexp.MustCompile(`^/psutil/cpu.*/irq`).MatchString(joinNamespace(ns)):
+			return &plugin.PluginMetricType{
+				Namespace_: ns,
+				Data_:      cpu.Irq,
+			}, nil
+		case regexp.MustCompile(`^/psutil/cpu.*/softirq`).MatchString(joinNamespace(ns)):
+			return &plugin.PluginMetricType{
+				Namespace_: ns,
+				Data_:      cpu.Softirq,
+			}, nil
+		case regexp.MustCompile(`^/psutil/cpu.*/steal`).MatchString(joinNamespace(ns)):
+			return &plugin.PluginMetricType{
+				Namespace_: ns,
+				Data_:      cpu.Steal,
+			}, nil
+		case regexp.MustCompile(`^/psutil/cpu.*/guest`).MatchString(joinNamespace(ns)):
+			return &plugin.PluginMetricType{
+				Namespace_: ns,
+				Data_:      cpu.Guest,
+			}, nil
+		case regexp.MustCompile(`^/psutil/cpu.*/guest_nice`).MatchString(joinNamespace(ns)):
+			return &plugin.PluginMetricType{
+				Namespace_: ns,
+				Data_:      cpu.GuestNice,
+			}, nil
+		case regexp.MustCompile(`^/psutil/cpu.*/stolen`).MatchString(joinNamespace(ns)):
+			return &plugin.PluginMetricType{
+				Namespace_: ns,
+				Data_:      cpu.Stolen,
+			}, nil
 		}
+
 	}
 
 	return nil, fmt.Errorf("Unknown error processing %v", ns)
@@ -48,19 +92,9 @@ func getCPUTimesMetricTypes(mts []plugin.PluginMetricType) ([]plugin.PluginMetri
 			return nil, err
 		}
 		for _, i := range c {
-			cpu := fmt.Sprintf("cpu%s", i.CPU)
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "cpu"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "cpu", "user"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "system"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "idle"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "nice"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "iowait"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "irq"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "softirq"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "steal"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "guest"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "guest_nice"}})
-			mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", cpu, "stolen"}})
+			for _, label := range cpuLabels {
+				mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", i.CPU, label}})
+			}
 		}
 	}
 	return mts, nil

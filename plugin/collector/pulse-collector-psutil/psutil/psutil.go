@@ -23,11 +23,13 @@ const (
 type Psutil struct {
 }
 
+// CollectMetrics returns metrics from gopsutil
 func (p *Psutil) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
 	metrics := make([]plugin.PluginMetricType, len(mts))
 	loadre := regexp.MustCompile(`^/psutil/load/load[1,5,15]`)
 	cpure := regexp.MustCompile(`^/psutil/cpu.*/.*`)
 	memre := regexp.MustCompile(`^/psutil/vm/.*`)
+	netre := regexp.MustCompile(`^/psutil/net/.*`)
 
 	for i, p := range mts {
 		ns := joinNamespace(p.Namespace())
@@ -50,11 +52,19 @@ func (p *Psutil) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginM
 				return nil, err
 			}
 			metrics[i] = *metric
+		case netre.MatchString(ns):
+			metric, err := netIOCounters(p.Namespace())
+			if err != nil {
+				return nil, err
+			}
+			metrics[i] = *metric
 		}
+
 	}
 	return metrics, nil
 }
 
+// GetMetricTypes returns the metric types exposed by gopsutil
 func (p *Psutil) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 	mts := []plugin.PluginMetricType{}
 
@@ -64,6 +74,10 @@ func (p *Psutil) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 		return nil, err
 	}
 	mts = getVirtualMemoryMetricTypes(mts)
+	mts, err = getNetIOCounterMetricTypes(mts)
+	if err != nil {
+		return nil, err
+	}
 
 	return mts, nil
 }
