@@ -6,13 +6,54 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/pkg/logger"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
-type workflow interface {
-	core.Workflow
+type WorkflowState int
 
-	Start(task *task)
+const (
+	WorkflowStopped WorkflowState = iota
+	WorkflowStarted
+)
+
+func renderWorkflow(wfMap wmap.WorkflowMap) (*schedulerWorkflow, error) {
+	wf := &schedulerWorkflow{}
+	return wf, nil
 }
+
+type schedulerWorkflow struct {
+	state WorkflowState
+}
+
+// Start starts a workflow
+func (w *schedulerWorkflow) Start(task *task) {
+	w.state = WorkflowStarted
+	// j := w.rootStep.createJob(task.metricTypes, task.deadlineDuration, task.metricsManager)
+
+	// dispatch 'collect' job to be worked
+	// j = task.manager.Work(j)
+
+	//process through additional steps (processors, publishers, ...)
+	// for _, step := range w.rootStep.Steps() {
+	// w.processStep(step, j, task.manager, task.metricsManager)
+	// }
+}
+
+func (s *schedulerWorkflow) State() WorkflowState {
+	return s.state
+}
+
+// func (s *schedulerWorkflow) State() core.WorkflowState {
+// 	return w.state
+// }
+
+// func (s *schedulerWorkflow) Marshal() ([]byte, error) {
+// 	return []byte{}, nil
+// }
+
+// func (s *schedulerWorkflow) Unmarshal([]byte) error {
+// 	return nil
+// }
 
 type wf struct {
 	rootStep *collectStep
@@ -37,20 +78,6 @@ func (w *wf) Marshal() ([]byte, error) {
 
 func (w *wf) Unmarshal([]byte) error {
 	return nil
-}
-
-// Start starts a workflow
-func (w *wf) Start(task *task) {
-	w.state = core.WorkflowStarted
-	j := w.rootStep.createJob(task.metricTypes, task.deadlineDuration, task.metricsManager)
-
-	// dispatch 'collect' job to be worked
-	j = task.manager.Work(j)
-
-	//process through additional steps (processors, publishers, ...)
-	for _, step := range w.rootStep.Steps() {
-		w.processStep(step, j, task.manager, task.metricsManager)
-	}
 }
 
 func (w *wf) processStep(step Step, j job, m managesWork, metricManager managesMetric) {

@@ -33,7 +33,7 @@ func (s *SimpleSchedule) Validate() error {
 // Waits until net interval and returns true. Returning false signals a Schedule is no
 // longer valid and should be halted. A SimpleSchedule has no end and as long as start
 // is not in the future we will always in practice return true.
-func (s *SimpleSchedule) Wait(last time.Time) ScheduleResponse {
+func (s *SimpleSchedule) Wait(last time.Time) Response {
 	// Get the difference in time.Duration since last in nanoseconds (int64)
 	timeDiff := time.Now().Sub(last).Nanoseconds()
 	// cache our schedule interval in nanseconds

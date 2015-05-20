@@ -8,20 +8,20 @@ type ScheduleState int
 
 const (
 	// set by the scheduler once a schedule has been validated and is in use in a task
-	ScheduleActive ScheduleState = iota
+	Active ScheduleState = iota
 	// Schedule is ended
-	ScheduleEnded
+	Ended
 	// Schedule error state
-	ScheduleError
+	Error
 )
 
 type Schedule interface {
 	GetState() ScheduleState
 	Validate() error
-	Wait(time.Time) ScheduleResponse
+	Wait(time.Time) Response
 }
 
-type ScheduleResponse interface {
+type Response interface {
 	Error() error
 	State() ScheduleState
 	Missed() uint

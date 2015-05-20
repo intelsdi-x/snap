@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/intelsdilabs/pulse/core"
-	"github.com/intelsdilabs/pulse/core/cdata"
-	"github.com/intelsdilabs/pulse/core/ctypes"
-	"github.com/intelsdilabs/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 var (
@@ -77,68 +78,80 @@ func (t *taskErrors) Errors() []error {
 }
 
 // CreateTask creates and returns task
-func (s *scheduler) CreateTask(mts []core.Metric, sch core.Schedule, cdt *cdata.ConfigDataTree, wf core.Workflow, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+func (s *scheduler) CreateTask(mts []core.Metric, sch schedule.Schedule, wfMap wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+	// Create a container for task errors
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
 
+	// Return error if we are not started.
 	if s.state != schedulerStarted {
 		te.errs = append(te.errs, SchedulerNotStarted)
 		return nil, te
 	}
 
-	//validate Schedule
+	// Ensure the schedule is valid at this point and time.
 	if err := sch.Validate(); err != nil {
 		te.errs = append(te.errs, err)
 		return nil, te
 	}
 
-	//subscribe to MT
-	//if we encounter an error we will unwind successful subscriptions
-	subscriptions := make([]core.Metric, 0)
-	for _, m := range mts {
-		cd := cdt.Get(m.Namespace())
-		mt, err := s.metricManager.SubscribeMetricType(m, cd)
-		if err == nil {
-			//mt := newMetricType(m, config)
-			//mtc = append(mtc, mt)
-			subscriptions = append(subscriptions, mt)
-		} else {
-			te.errs = append(te.errs, err...)
-		}
-	}
+	// Attempt to render our wmap into a workflow
+	wf, err := renderWorkflow(wfMap)
+	fmt.Println(wf, err)
 
-	if len(te.errs) > 0 {
-		//unwind successful subscriptions
-		for _, sub := range subscriptions {
-			s.metricManager.UnsubscribeMetricType(sub)
-		}
-		return nil, te
-	}
+	// TODO - config data tree comes from WMAP
+	// Subscribe to MT.
+	// If we encounter an error we will unwind successful subscriptions.
+	// subscriptions := make([]core.Metric, 0)
+	// for _, m := range mts {
+	// 	cd := cdt.Get(m.Namespace())
+	// 	mt, err := s.metricManager.SubscribeMetricType(m, cd)
+	// 	if err == nil {
+	// 		subscriptions = append(subscriptions, mt)
+	// 	} else {
+	// 		te.errs = append(te.errs, err...)
+	// 	}
+	// }
 
-	sched, err := assertSchedule(sch)
-	if err != nil {
-		te.errs = append(te.errs, err)
-		return nil, te
-	}
+	// Unwind successful subscriptions if we got here with errors (idempotent)
+	// if len(te.errs) > 0 {
+	// 	for _, sub := range subscriptions {
+	// 		s.metricManager.UnsubscribeMetricType(sub)
+	// 	}
+	// 	return nil, te
+	// }
 
-	j, err := wf.Marshal()
-	if err != nil {
-		te.errs = append(te.errs, err)
-		return nil, te
-	}
-	workf := newWorkflow()
-	workf.Unmarshal(j)
+	// TODO - Why is the interface being converted into the struct? Do the behaviors rely on this??
+	// sched, err := assertSchedule(sch)
+	// if err != nil {
+	// 	te.errs = append(te.errs, err)
+	// 	return nil, te
+	// }
+	// TODO
 
-	task := newTask(sched, subscriptions, workf, s.workManager, s.metricManager, opts...)
+	// TODO convert to wmap
+	// j, err := wf.Marshal()
+	// if err != nil {
+	// 	te.errs = append(te.errs, err)
+	// 	return nil, te
+	// }
+	// workf := newWorkflow()
+	// workf.Unmarshal(j)
+	// TODO
+
+	// Create the task object
+	// task := newTask(sched, subscriptions, workf, s.workManager, s.metricManager, opts...)
 
 	// Add task to taskCollection
-	if err := s.tasks.add(task); err != nil {
-		te.errs = append(te.errs, err)
-		return nil, te
-	}
+	// if err := s.tasks.add(task); err != nil {
+	// 	te.errs = append(te.errs, err)
+	// 	return nil, te
+	// }
 
-	return task, nil
+	// Return task object back
+	// return task, nil
+	return nil, nil
 }
 
 //GetTasks returns a copy of the tasks in a map where the task id is the key
