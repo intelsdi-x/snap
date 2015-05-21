@@ -78,7 +78,7 @@ func (t *taskErrors) Errors() []error {
 }
 
 // CreateTask creates and returns task
-func (s *scheduler) CreateTask(mts []core.Metric, sch schedule.Schedule, wfMap wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	// Create a container for task errors
 	te := &taskErrors{
 		errs: make([]error, 0),
@@ -97,8 +97,9 @@ func (s *scheduler) CreateTask(mts []core.Metric, sch schedule.Schedule, wfMap w
 	}
 
 	// Attempt to render our wmap into a workflow
-	wf, err := renderWorkflow(wfMap)
-	fmt.Println(wf, err)
+	// wf, err :=
+	_, err := wmapToWorkflow(wfMap)
+	panic(err)
 
 	// TODO - config data tree comes from WMAP
 	// Subscribe to MT.

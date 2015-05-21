@@ -2,15 +2,17 @@ package scheduler
 
 import (
 	"errors"
-	// "testing"
+	// "fmt"
+	"testing"
 	"time"
 
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 
-	// . "github.com/smartystreets/goconvey/convey"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 type mockMetricManager struct {
@@ -109,6 +111,47 @@ func (m mockScheduleResponse) err() error {
 
 func (m mockScheduleResponse) missedIntervals() uint {
 	return 0
+}
+
+func TestScheduler(t *testing.T) {
+	Convey("NewTask", t, func() {
+		c := new(mockMetricManager)
+		s := New()
+		s.SetMetricManager(c)
+		w := wmap.NewWorkflowMap()
+		// Collection node
+		w.CollectNode.AddMetric("/foo/bar", 1)
+		w.CollectNode.AddMetric("/foo/baz", 2)
+		w.CollectNode.AddConfigItem("/foo/bar", "username", "root")
+		w.CollectNode.AddConfigItem("/foo/bar", "port", 8080)
+		w.CollectNode.AddConfigItem("/foo/bar", "ratio", 0.32)
+		w.CollectNode.AddConfigItem("/foo/bar", "yesorno", true)
+
+		// Add a process node
+		pr1 := wmap.NewProcessNode("machine", 1)
+		pr1.AddConfigItem("username", "wat")
+		pr1.AddConfigItem("howmuch", 9999)
+
+		// Publish node for our process node
+		pu1 := wmap.NewPublishNode("rmq", -1)
+		pu1.AddConfigItem("username", "wat")
+		pu1.AddConfigItem("howmuch", 9999)
+		pr1.Add(pu1)
+
+		w.CollectNode.Add(pr1)
+
+		// Publish node direct to collection
+		pu2 := wmap.NewPublishNode("file", -1)
+		pu2.AddConfigItem("username", "wat")
+		pu2.AddConfigItem("howmuch", 9999)
+		w.CollectNode.Add(pu2)
+
+		//
+		e := s.Start()
+		So(e, ShouldBeNil)
+		_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), *w)
+		So(err, ShouldBeEmpty)
+	})
 }
 
 // func TestScheduler(t *testing.T) {
