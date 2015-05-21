@@ -136,6 +136,10 @@ func (s *SessionState) heartbeatWatch(killChan chan int) {
 }
 
 // NewSessionState takes the plugin args and returns a SessionState
+// returns State or error and returnCode:
+// 0 - ok
+// 2 - error when unmarshaling pluginArgs
+// 3 - cannot open error files
 func NewSessionState(pluginArgsMsg string) (*SessionState, error, int) {
 	pluginArg := &Arg{}
 	err := json.Unmarshal([]byte(pluginArgsMsg), pluginArg)
@@ -154,29 +158,24 @@ func NewSessionState(pluginArgsMsg string) (*SessionState, error, int) {
 	if pluginArg.PingTimeoutDuration == 0 {
 		pluginArg.PingTimeoutDuration = PingTimeoutDurationDefault
 	}
-	// pluginArg.PingTimeoutDuration = 500 * time.Millisecond
 
 	// Generate random token for this session
 	rb := make([]byte, 32)
 	rand.Read(rb)
 	rs := base64.URLEncoding.EncodeToString(rb)
 
-	var logger *log.Logger
-	switch lp := pluginArg.PluginLogPath; lp {
-	case "", "/tmp":
-		// Empty means use default tmp log (needs to be removed post-alpha)
-		lf, err := os.OpenFile("/tmp/pulse_plugin.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
-		}
-		logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
-	default:
-		lf, err := os.OpenFile(lp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
-		}
-		logger = log.New(lf, ">>>", log.Ldate|log.Ltime)
+	// Initialize a logger based on PluginLogPath
+	truncOrAppend := os.O_TRUNC // truncate log file explicitly given by user
+	// Empty or /tmp means use default tmp log (needs to be removed post-aAtruncOrAppendpha)
+	if pluginArg.PluginLogPath == "" || pluginArg.PluginLogPath == "/tmp" {
+		pluginArg.PluginLogPath = "/tmp/pulse_plugin.log"
+		truncOrAppend = os.O_APPEND
 	}
+	lf, err := os.OpenFile(pluginArg.PluginLogPath, os.O_WRONLY|os.O_CREATE|truncOrAppend, 0666)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
+	}
+	logger := log.New(lf, ">>>", log.Ldate|log.Ltime)
 
 	return &SessionState{
 		Arg:      pluginArg,
