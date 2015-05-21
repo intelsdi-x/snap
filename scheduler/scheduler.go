@@ -78,7 +78,7 @@ func (t *taskErrors) Errors() []error {
 }
 
 // CreateTask creates and returns task
-func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	// Create a container for task errors
 	te := &taskErrors{
 		errs: make([]error, 0),

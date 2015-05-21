@@ -134,22 +134,22 @@ func TestScheduler(t *testing.T) {
 
 		// Publish node for our process node
 		pu1 := wmap.NewPublishNode("rmq", -1)
-		pu1.AddConfigItem("username", "wat")
-		pu1.AddConfigItem("howmuch", 9999)
+		pu1.AddConfigItem("birthplace", "dallas")
+		pu1.AddConfigItem("monies", 2)
 		pr1.Add(pu1)
 
 		w.CollectNode.Add(pr1)
 
 		// Publish node direct to collection
 		pu2 := wmap.NewPublishNode("file", -1)
-		pu2.AddConfigItem("username", "wat")
-		pu2.AddConfigItem("howmuch", 9999)
+		pu2.AddConfigItem("color", "brown")
+		pu2.AddConfigItem("purpose", 42)
 		w.CollectNode.Add(pu2)
 
 		//
 		e := s.Start()
 		So(e, ShouldBeNil)
-		_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), *w)
+		_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
 		So(err, ShouldBeEmpty)
 	})
 }

@@ -20,12 +20,17 @@ const (
 )
 
 var (
+	WorkflowStateLookup = map[WorkflowState]string{
+		WorkflowStopped: "Stopped",
+		WorkflowStarted: "Started",
+	}
+
 	NullCollectNodeError        = errors.New("Missing collection node in workflow map")
 	NoMetricsInCollectNodeError = errors.New("Collection node has not metrics defined to collect")
 )
 
 // WmapToWorkflow attempts to convert a wmap.WorkflowMap to a schedulerWorkflow instance.
-func wmapToWorkflow(wfMap wmap.WorkflowMap) (*schedulerWorkflow, error) {
+func wmapToWorkflow(wfMap *wmap.WorkflowMap) (*schedulerWorkflow, error) {
 	fmt.Println("- WORKFLOW - ")
 	defer fmt.Println("- WORKFLOW - ")
 	wf := &schedulerWorkflow{}
@@ -33,7 +38,7 @@ func wmapToWorkflow(wfMap wmap.WorkflowMap) (*schedulerWorkflow, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	wf.workflowMap = wfMap
 	return wf, nil
 }
 
@@ -117,24 +122,27 @@ type schedulerWorkflow struct {
 	// Metrics to collect
 	metrics []core.RequestedMetric
 	// The config data tree for collectors
-	configTree *cdata.ConfigDataTree
-	//
+	configTree   *cdata.ConfigDataTree
 	processNodes []*processNode
 	publishNodes []*publishNode
+	// workflowMap used to generate this workflow
+	workflowMap *wmap.WorkflowMap
 }
 
 type processNode struct {
-	Name         string
-	Version      int
-	Config       *cdata.ConfigDataNode
-	ProcessNodes []*processNode
-	PublishNodes []*publishNode
+	Name               string
+	Version            int
+	Config             *cdata.ConfigDataNode
+	ProcessNodes       []*processNode
+	PublishNodes       []*publishNode
+	InboundContentType string
 }
 
 type publishNode struct {
-	Name    string
-	Version int
-	Config  *cdata.ConfigDataNode
+	Name               string
+	Version            int
+	Config             *cdata.ConfigDataNode
+	InboundContentType string
 }
 
 // Start starts a workflow
@@ -153,6 +161,10 @@ func (w *schedulerWorkflow) Start(task *task) {
 
 func (s *schedulerWorkflow) State() WorkflowState {
 	return s.state
+}
+
+func (s *schedulerWorkflow) StateString() string {
+	return WorkflowStateLookup[s.state]
 }
 
 // func (s *schedulerWorkflow) State() core.WorkflowState {
