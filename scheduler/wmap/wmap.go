@@ -101,7 +101,7 @@ func sample() *WorkflowMap {
 	if e != nil {
 		panic(e)
 	}
-	e = c1.AddMetricNamespace("/foo/bar", 1)
+	e = c1.AddMetric("/foo/bar", 1)
 	if e != nil {
 		panic(e)
 	}
@@ -157,27 +157,15 @@ func (c *CollectWorkflowMapNode) GetConfigTree() (*cdata.ConfigDataTree, error) 
 	cdt := cdata.NewTree()
 	// Iterate over config and attempt to convert into data nodes in the tree
 	for ns_, cmap := range c.Config {
-		// node to represent this namespace
-		cdn := cdata.NewNode()
+
 		// Attempt to convert namespace string to proper namespace
 		if !isValidNamespaceString(ns_) {
 			return nil, errors.New(fmt.Sprintf("Invalid namespace: ", ns_))
 		}
 		ns := strings.Split(ns_, "/")[1:]
-		for ck, cv := range cmap {
-			switch v := cv.(type) {
-			case string:
-				cdn.AddItem(ck, ctypes.ConfigValueStr{Value: v})
-			case int:
-				cdn.AddItem(ck, ctypes.ConfigValueInt{Value: v})
-			case float64:
-				cdn.AddItem(ck, ctypes.ConfigValueFloat{Value: v})
-			case bool:
-				cdn.AddItem(ck, ctypes.ConfigValueBool{Value: v})
-			default:
-				// TODO make sure this is covered in tests!!!
-				return nil, errors.New(fmt.Sprintf("Cannot convert config value to config data node: %s=>%+v", ns_, v))
-			}
+		cdn, err := configtoConfigDataNode(cmap, ns_)
+		if err != nil {
+			return nil, err
 		}
 		cdt.Add(ns, cdn)
 	}
@@ -196,7 +184,7 @@ func (c *CollectWorkflowMapNode) Add(node interface{}) error {
 	return nil
 }
 
-func (c *CollectWorkflowMapNode) AddMetricNamespace(ns string, v int) error {
+func (c *CollectWorkflowMapNode) AddMetric(ns string, v int) error {
 	// TODO regex validation here that this matches /one/two/three format
 	// c.MetricsNamespaces = append(c.MetricsNamespaces, ns)
 	c.Metrics[ns] = metricInfo{Version_: v}
@@ -219,6 +207,14 @@ type ProcessWorkflowMapNode struct {
 	Config map[string]interface{} `json:"config"yaml:"config"`
 }
 
+func NewProcessNode(name string, version int) *ProcessWorkflowMapNode {
+	p := &ProcessWorkflowMapNode{
+		Name:    name,
+		Version: version,
+	}
+	return p
+}
+
 func (p *ProcessWorkflowMapNode) Add(node interface{}) error {
 	switch x := node.(type) {
 	case *ProcessWorkflowMapNode:
@@ -231,11 +227,47 @@ func (p *ProcessWorkflowMapNode) Add(node interface{}) error {
 	return nil
 }
 
+func (p *ProcessWorkflowMapNode) AddConfigItem(key string, value interface{}) {
+	if p.Config == nil {
+		p.Config = make(map[string]interface{})
+	}
+	p.Config[key] = value
+}
+
+func (p *ProcessWorkflowMapNode) GetConfigNode() (*cdata.ConfigDataNode, error) {
+	if p.Config == nil {
+		return cdata.NewNode(), nil
+	}
+	return configtoConfigDataNode(p.Config, "")
+}
+
 type PublishWorkflowMapNode struct {
 	Name    string `json:"plugin_name"yaml:"plugin_name"`
 	Version int    `json:"plugin_version"yaml:"plugin_version"`
 	// TODO publisher config
 	Config map[string]interface{} `json:"config"yaml:"config"`
+}
+
+func NewPublishNode(name string, version int) *PublishWorkflowMapNode {
+	p := &PublishWorkflowMapNode{
+		Name:    name,
+		Version: version,
+	}
+	return p
+}
+
+func (p *PublishWorkflowMapNode) AddConfigItem(key string, value interface{}) {
+	if p.Config == nil {
+		p.Config = make(map[string]interface{})
+	}
+	p.Config[key] = value
+}
+
+func (p *PublishWorkflowMapNode) GetConfigNode() (*cdata.ConfigDataNode, error) {
+	if p.Config == nil {
+		return cdata.NewNode(), nil
+	}
+	return configtoConfigDataNode(p.Config, "")
 }
 
 type metricInfo struct {
@@ -262,4 +294,24 @@ func isValidNamespaceString(ns string) bool {
 		panic(err)
 	}
 	return b
+}
+
+func configtoConfigDataNode(cmap map[string]interface{}, ns string) (*cdata.ConfigDataNode, error) {
+	cdn := cdata.NewNode()
+	for ck, cv := range cmap {
+		switch v := cv.(type) {
+		case string:
+			cdn.AddItem(ck, ctypes.ConfigValueStr{Value: v})
+		case int:
+			cdn.AddItem(ck, ctypes.ConfigValueInt{Value: v})
+		case float64:
+			cdn.AddItem(ck, ctypes.ConfigValueFloat{Value: v})
+		case bool:
+			cdn.AddItem(ck, ctypes.ConfigValueBool{Value: v})
+		default:
+			// TODO make sure this is covered in tests!!!
+			return nil, errors.New(fmt.Sprintf("Cannot convert config value to config data node: %s=>%+v", ns, v))
+		}
+	}
+	return cdn, nil
 }
