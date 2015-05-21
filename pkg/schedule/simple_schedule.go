@@ -33,7 +33,7 @@ func (s *SimpleSchedule) Validate() error {
 // is not in the future we will always in practice return true.
 func (s *SimpleSchedule) Wait(last time.Time) Response {
 	// Get the difference in time.Duration since last in nanoseconds (int64)
-	timeDiff := time.Now().Sub(last).Nanoseconds()
+	timeDiff := time.Since(last).Nanoseconds()
 	// cache our schedule interval in nanseconds
 	nanoInterval := s.Interval.Nanoseconds()
 	// use modulo operation to obtain the remainder of time over last interval
