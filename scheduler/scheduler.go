@@ -98,7 +98,8 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap wmap.WorkflowMap, op
 
 	// Attempt to render our wmap into a workflow
 	// wf, err :=
-	_, err := wmapToWorkflow(wfMap)
+	wf, err := wmapToWorkflow(wfMap)
+	fmt.Println(wf)
 	panic(err)
 
 	// TODO - config data tree comes from WMAP

@@ -56,31 +56,60 @@ func convertCollectionNode(cnode *wmap.CollectWorkflowMapNode, wf *schedulerWork
 	}
 	wf.configTree = cdt
 	// Iterate over first level process nodes
-	wf.processNodes = make([]*processNode, len(cnode.ProcessNodes))
-	for _, pr := range cnode.ProcessNodes {
-		cdn, err := pr.GetConfigNode()
-		if err != nil {
-			return err
-		}
-		wf.processNodes = append(wf.processNodes, &processNode{
-			Name:    pr.Name,
-			Version: pr.Version,
-			Config:  cdn,
-		})
+	pr, err := convertProcessNode(cnode.ProcessNodes)
+	if err != nil {
+		return err
 	}
-	// Iterate over first level process nodes
-	for _, pu := range cnode.PublishNodes {
-		cdn, err := pu.GetConfigNode()
-		if err != nil {
-			return err
-		}
-		wf.publishNodes = append(wf.publishNodes, &publishNode{
-			Name:    pu.Name,
-			Version: pu.Version,
-			Config:  cdn,
-		})
+	wf.processNodes = pr
+	// Iterate over first level publish nodes
+	pu, err := convertPublishNode(cnode.PublishNodes)
+	if err != nil {
+		return err
 	}
+	wf.publishNodes = pu
 	return nil
+}
+
+func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error) {
+	prNodes := make([]*processNode, len(pr))
+	for i, p := range pr {
+		cdn, err := p.GetConfigNode()
+		if err != nil {
+			return nil, err
+		}
+		prC, err := convertProcessNode(p.ProcessNodes)
+		if err != nil {
+			return nil, err
+		}
+		puC, err := convertPublishNode(p.PublishNodes)
+		if err != nil {
+			return nil, err
+		}
+		prNodes[i] = &processNode{
+			Name:         p.Name,
+			Version:      p.Version,
+			Config:       cdn,
+			ProcessNodes: prC,
+			PublishNodes: puC,
+		}
+	}
+	return prNodes, nil
+}
+
+func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error) {
+	puNodes := make([]*publishNode, len(pu))
+	for i, p := range pu {
+		cdn, err := p.GetConfigNode()
+		if err != nil {
+			return nil, err
+		}
+		puNodes[i] = &publishNode{
+			Name:    p.Name,
+			Version: p.Version,
+			Config:  cdn,
+		}
+	}
+	return puNodes, nil
 }
 
 type schedulerWorkflow struct {
@@ -98,8 +127,8 @@ type processNode struct {
 	Name         string
 	Version      int
 	Config       *cdata.ConfigDataNode
-	processNodes []*processNode
-	publishNodes []*publishNode
+	ProcessNodes []*processNode
+	PublishNodes []*publishNode
 }
 
 type publishNode struct {
