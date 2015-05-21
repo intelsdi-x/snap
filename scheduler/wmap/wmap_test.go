@@ -15,6 +15,7 @@ func TestWorkflow(t *testing.T) {
 	Convey("Workflow map", t, func() {
 
 		Convey("from yaml", func() {
+			fmt.Println("YAML ---")
 			wmap, err := FromYaml(yamlP)
 			So(err, ShouldBeNil)
 			So(wmap, ShouldNotBeNil)
@@ -22,6 +23,7 @@ func TestWorkflow(t *testing.T) {
 		})
 
 		Convey("from json", func() {
+			fmt.Println("JSON ---")
 			wmap, err := FromJson(jsonP)
 			So(err, ShouldBeNil)
 			So(wmap, ShouldNotBeNil)

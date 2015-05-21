@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/intelsdi-x/pulse/core"
 	"gopkg.in/yaml.v2"
 )
 
@@ -75,7 +77,8 @@ func sample() *WorkflowMap {
 	wf := new(WorkflowMap)
 
 	c1 := &CollectWorkflowMapNode{
-		Config: make(map[string]map[string]interface{}),
+		Metrics: make(map[string]metricInfo),
+		Config:  make(map[string]map[string]interface{}),
 	}
 	c1.Config["/foo/bar"] = make(map[string]interface{})
 	c1.Config["/foo/bar"]["user"] = "root"
@@ -95,7 +98,7 @@ func sample() *WorkflowMap {
 	if e != nil {
 		panic(e)
 	}
-	e = c1.AddMetricNamespace("/foo/bar")
+	e = c1.AddMetricNamespace("/foo/bar", 1)
 	if e != nil {
 		panic(e)
 	}
@@ -108,6 +111,14 @@ type WorkflowMap struct {
 	CollectNode *CollectWorkflowMapNode `json:"collect"yaml:"collect"`
 }
 
+func NewWorkflowMap() *WorkflowMap {
+	w := &WorkflowMap{}
+	c := &CollectWorkflowMapNode{}
+	c.Config = make(map[string]map[string]interface{})
+	w.CollectNode = c
+	return w
+}
+
 func (w *WorkflowMap) ToJson() ([]byte, error) {
 	return json.Marshal(w)
 }
@@ -117,10 +128,23 @@ func (w *WorkflowMap) ToYaml() ([]byte, error) {
 }
 
 type CollectWorkflowMapNode struct {
-	MetricsNamespaces []string                          `json:"metric_namespaces"yaml:"metric_namespaces"`
-	Config            map[string]map[string]interface{} `json:"config"yaml:"config"`
-	ProcessNodes      []ProcessWorkflowMapNode          `json:"process"yaml:"process"`
-	PublishNodes      []PublishWorkflowMapNode          `json:"publish"yaml:"publish"`
+	Metrics      map[string]metricInfo             `json:"metrics"yaml:"metrics"`
+	Config       map[string]map[string]interface{} `json:"config"yaml:"config"`
+	ProcessNodes []ProcessWorkflowMapNode          `json:"process"yaml:"process"`
+	PublishNodes []PublishWorkflowMapNode          `json:"publish"yaml:"publish"`
+}
+
+func (c *CollectWorkflowMapNode) GetRequestedMetrics() []core.RequestedMetric {
+	var metrics []core.RequestedMetric = make([]core.RequestedMetric, len(c.Metrics))
+	x := 0
+	for k, v := range c.Metrics {
+		metrics[x] = metric{
+			namespace: strings.Split(k, "/"),
+			version:   v.Version_,
+		}
+		x++
+	}
+	return metrics
 }
 
 func (c *CollectWorkflowMapNode) Add(node interface{}) error {
@@ -135,9 +159,10 @@ func (c *CollectWorkflowMapNode) Add(node interface{}) error {
 	return nil
 }
 
-func (c *CollectWorkflowMapNode) AddMetricNamespace(ns string) error {
+func (c *CollectWorkflowMapNode) AddMetricNamespace(ns string, v int) error {
 	// TODO regex validation here that this matches /one/two/three format
-	c.MetricsNamespaces = append(c.MetricsNamespaces, ns)
+	// c.MetricsNamespaces = append(c.MetricsNamespaces, ns)
+	c.Metrics[ns] = metricInfo{Version_: v}
 	return nil
 }
 
@@ -167,4 +192,21 @@ type PublishWorkflowMapNode struct {
 	Version int    `json:"plugin_version"yaml:"plugin_version"`
 	// TODO publisher config
 	Config map[string]interface{} `json:"config"yaml:"config"`
+}
+
+type metricInfo struct {
+	Version_ int `json:"version"yaml:"version"`
+}
+
+type metric struct {
+	namespace []string
+	version   int
+}
+
+func (m metric) Namespace() []string {
+	return m.namespace
+}
+
+func (m metric) Version() int {
+	return m.version
 }

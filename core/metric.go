@@ -6,10 +6,16 @@ import (
 	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
+// Metric represents a Pulse metric collected or to be collected
 type Metric interface {
-	Version() int
-	Namespace() []string
+	RequestedMetric
 	LastAdvertisedTime() time.Time
 	Config() *cdata.ConfigDataNode
 	Data() interface{}
+}
+
+// RequestedMetric is a metric requested for collection
+type RequestedMetric interface {
+	Namespace() []string
+	Version() int
 }
