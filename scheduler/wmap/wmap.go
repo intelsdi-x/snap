@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 	"gopkg.in/yaml.v2"
 )
 
@@ -113,8 +116,10 @@ type WorkflowMap struct {
 
 func NewWorkflowMap() *WorkflowMap {
 	w := &WorkflowMap{}
-	c := &CollectWorkflowMapNode{}
-	c.Config = make(map[string]map[string]interface{})
+	c := &CollectWorkflowMapNode{
+		Metrics: make(map[string]metricInfo),
+		Config:  make(map[string]map[string]interface{}),
+	}
 	w.CollectNode = c
 	return w
 }
@@ -147,6 +152,38 @@ func (c *CollectWorkflowMapNode) GetRequestedMetrics() []core.RequestedMetric {
 	return metrics
 }
 
+// GetConfigTree converts config data for collection node in wmap into a proper cdata.ConfigDataTree
+func (c *CollectWorkflowMapNode) GetConfigTree() (*cdata.ConfigDataTree, error) {
+	cdt := cdata.NewTree()
+	// Iterate over config and attempt to convert into data nodes in the tree
+	for ns_, cmap := range c.Config {
+		// node to represent this namespace
+		cdn := cdata.NewNode()
+		// Attempt to convert namespace string to proper namespace
+		if !isValidNamespaceString(ns_) {
+			return nil, errors.New(fmt.Sprintf("Invalid namespace: ", ns_))
+		}
+		ns := strings.Split(ns_, "/")[1:]
+		for ck, cv := range cmap {
+			switch v := cv.(type) {
+			case string:
+				cdn.AddItem(ck, ctypes.ConfigValueStr{Value: v})
+			case int:
+				cdn.AddItem(ck, ctypes.ConfigValueInt{Value: v})
+			case float64:
+				cdn.AddItem(ck, ctypes.ConfigValueFloat{Value: v})
+			case bool:
+				cdn.AddItem(ck, ctypes.ConfigValueBool{Value: v})
+			default:
+				// TODO make sure this is covered in tests!!!
+				return nil, errors.New(fmt.Sprintf("Cannot convert config value to config data node: %s=>%+v", ns_, v))
+			}
+		}
+		cdt.Add(ns, cdn)
+	}
+	return cdt, nil
+}
+
 func (c *CollectWorkflowMapNode) Add(node interface{}) error {
 	switch x := node.(type) {
 	case *ProcessWorkflowMapNode:
@@ -164,6 +201,13 @@ func (c *CollectWorkflowMapNode) AddMetricNamespace(ns string, v int) error {
 	// c.MetricsNamespaces = append(c.MetricsNamespaces, ns)
 	c.Metrics[ns] = metricInfo{Version_: v}
 	return nil
+}
+
+func (c *CollectWorkflowMapNode) AddConfigItem(ns, key string, value interface{}) {
+	if c.Config[ns] == nil {
+		c.Config[ns] = make(map[string]interface{})
+	}
+	c.Config[ns][key] = value
 }
 
 type ProcessWorkflowMapNode struct {
@@ -209,4 +253,13 @@ func (m metric) Namespace() []string {
 
 func (m metric) Version() int {
 	return m.version
+}
+
+func isValidNamespaceString(ns string) bool {
+	b, err := regexp.MatchString("^(/[a-z0-9]+)+$", ns)
+	if err != nil {
+		// Just safety in case regexp packages changes in some way to break this in the future.
+		panic(err)
+	}
+	return b
 }
