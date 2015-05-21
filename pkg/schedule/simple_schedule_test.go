@@ -25,7 +25,7 @@ func TestSimpleSchedule(t *testing.T) {
 			r := s.Wait(last)
 			after := time.Since(before)
 
-			So(r.State(), ShouldEqual, ScheduleActive)
+			So(r.State(), ShouldEqual, Active)
 			So(r.Missed(), ShouldResemble, uint(4))
 			So(r.Error(), ShouldEqual, nil)
 			// We are ok at this precision with being within 10% over or under (10ms)
