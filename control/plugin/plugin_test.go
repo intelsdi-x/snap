@@ -114,18 +114,32 @@ func TestArg(t *testing.T) {
 }
 
 func TestPlugin(t *testing.T) {
+	a := []string{PulseAllContentType}
+	b := []string{PulseGOBContentType}
 	Convey("Start", t, func() {
-		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
+		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType, a, b)
 		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
 		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldBeNil)
 		So(rc, ShouldEqual, 0)
 	})
 	Convey("Start with invalid args", t, func() {
-		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType)
+		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType, a, b)
 		var mockPluginArgs string = ""
 		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldNotBeNil)
 		So(rc, ShouldNotEqual, 0)
+	})
+	Convey("Bad accept type", t, func() {
+		a := []string{"wat"}
+		So(func() {
+			NewPluginMeta("test", 1, CollectorPluginType, a, b)
+		}, ShouldPanicWith, "Bad accept content type [test] for [1] [wat]")
+	})
+	Convey("Bad return type", t, func() {
+		b := []string{"wat"}
+		So(func() {
+			NewPluginMeta("test", 1, CollectorPluginType, a, b)
+		}, ShouldPanicWith, "Bad return content type [test] for [1] [wat]")
 	})
 }

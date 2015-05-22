@@ -51,5 +51,5 @@ func (f *Dummy) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
 
 //Meta returns meta data for testing
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(Name, Version, Type)
+	return plugin.NewPluginMeta(Name, Version, Type, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }

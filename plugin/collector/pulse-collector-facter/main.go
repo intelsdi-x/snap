@@ -18,7 +18,7 @@ const (
 // plugin bootstrap
 func main() {
 	plugin.Start(
-		plugin.NewPluginMeta(name, version, pluginType),
+		plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType}),
 		facter.NewFacter(), // CollectorPlugin interface
 		os.Args[1],
 	)

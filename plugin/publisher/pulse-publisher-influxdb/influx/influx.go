@@ -25,7 +25,7 @@ const (
 
 // Meta returns a plugin meta data
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(name, version, pluginType)
+	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
 //NewInfluxPublisher returns an instance of the InfuxDB publisher

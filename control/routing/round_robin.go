@@ -2,7 +2,6 @@ package routing
 
 import (
 	"errors"
-	// "fmt"
 	"math/rand"
 
 	"github.com/intelsdi-x/pulse/pkg/logger"

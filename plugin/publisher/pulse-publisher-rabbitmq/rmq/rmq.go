@@ -10,7 +10,7 @@ import (
 )
 
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(name, version, pluginType)
+	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
 func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
