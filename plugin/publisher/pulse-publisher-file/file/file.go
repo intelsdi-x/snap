@@ -64,7 +64,7 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 }
 
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(name, version, pluginType)
+	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
 func (f *filePublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {

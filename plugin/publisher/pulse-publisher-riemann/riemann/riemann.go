@@ -23,7 +23,7 @@ const (
 
 // Meta returns the metadata details for the Riemann Publisher Plugin
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(PluginName, PluginVersion, PluginType)
+	return plugin.NewPluginMeta(PluginName, PluginVersion, PluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
 type Riemann struct{}
