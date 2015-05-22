@@ -19,9 +19,16 @@ var (
 
 type schedulerState int
 
+type PluginType int
+
 const (
 	schedulerStopped schedulerState = iota
 	schedulerStarted
+
+	// List of plugin type
+	CollectorPluginType PluginType = iota
+	PublisherPluginType
+	ProcessorPluginType
 )
 
 // ManagesMetric is implemented by control
@@ -31,6 +38,12 @@ type ManagesMetrics interface {
 	UnsubscribeMetricType(mt core.Metric)
 	CollectsMetrics
 	PublishesMetrics
+	ManagesPluginContentTypes
+}
+
+// ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
+type ManagesPluginContentTypes interface {
+	GetPluginContentTypes(n string, t PluginType, v int) ([]string, []string, error)
 }
 
 type CollectsMetrics interface {

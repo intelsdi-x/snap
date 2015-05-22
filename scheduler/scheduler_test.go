@@ -34,6 +34,10 @@ func (m *mockMetricManager) SubscribeMetricType(mt core.Metric, cd *cdata.Config
 	return nil, nil
 }
 
+func (m *mockMetricManager) GetPluginContentTypes(n string, t PluginType, v int) ([]string, []string, error) {
+	return nil, nil, nil
+}
+
 func (m *mockMetricManager) UnsubscribeMetricType(mt core.Metric) {
 
 }
