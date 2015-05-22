@@ -204,7 +204,7 @@ func (w *wf) Unmarshal([]byte) error {
 	return nil
 }
 
-func (w *wf) processStep(step Step, j job, m managesWork, metricManager managesMetric) {
+func (w *wf) processStep(step Step, j job, m managesWork, metricManager ManagesMetrics) {
 	//do work for current step
 	j = step.createJob(j, metricManager)
 	j = m.Work(j)
@@ -218,7 +218,7 @@ func (w *wf) processStep(step Step, j job, m managesWork, metricManager managesM
 type Step interface {
 	Steps() []Step
 	AddStep(s Step) Step
-	createJob(job, managesMetric) job
+	createJob(job, ManagesMetrics) job
 }
 
 type step struct {
@@ -244,7 +244,7 @@ type processStep struct {
 	step
 }
 
-func (p *processStep) createJob(j job, metricManager managesMetric) job {
+func (p *processStep) createJob(j job, metricManager ManagesMetrics) job {
 	return j
 }
 
@@ -269,11 +269,11 @@ func NewPublishStep(name string, version int, contentType string, config map[str
 	}
 }
 
-func (p *publishStep) createJob(j job, metricManager managesMetric) job {
+func (p *publishStep) createJob(j job, metricManager ManagesMetrics) job {
 	logger.Debugf("Scheduler.PublishStep.CreateJob", "creating job!")
 	switch j.Type() {
 	case collectJobType:
-		return newPublishJob(j.(*collectorJob), p.name, p.version, p.contentType, p.config, metricManager.(publishesMetrics))
+		return newPublishJob(j.(*collectorJob), p.name, p.version, p.contentType, p.config, metricManager.(PublishesMetrics))
 	default:
 		panic("Unknown type of job")
 	}
@@ -286,6 +286,6 @@ type collectStep struct {
 	step
 }
 
-func (c *collectStep) createJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector collectsMetrics) job {
+func (c *collectStep) createJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector CollectsMetrics) job {
 	return newCollectorJob(metricTypes, deadlineDuration, collector)
 }

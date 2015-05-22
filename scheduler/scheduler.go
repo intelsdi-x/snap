@@ -24,27 +24,26 @@ const (
 	schedulerStarted
 )
 
-// managesMetric is implemented by control
+// ManagesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
-//JC todo refacto this to be managesMetrics
-type managesMetric interface {
+type ManagesMetrics interface {
 	SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error)
 	UnsubscribeMetricType(mt core.Metric)
-	CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error)
-	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
+	CollectsMetrics
+	PublishesMetrics
 }
 
-type collectsMetrics interface {
+type CollectsMetrics interface {
 	CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error)
 }
 
-type publishesMetrics interface {
+type PublishesMetrics interface {
 	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
 }
 
 type scheduler struct {
 	workManager   *workManager
-	metricManager managesMetric
+	metricManager ManagesMetrics
 	tasks         *taskCollection
 	state         schedulerState
 }
@@ -188,6 +187,6 @@ func (s *scheduler) Stop() {
 }
 
 // Set metricManager for scheduler
-func (s *scheduler) SetMetricManager(mm managesMetric) {
+func (s *scheduler) SetMetricManager(mm ManagesMetrics) {
 	s.metricManager = mm
 }

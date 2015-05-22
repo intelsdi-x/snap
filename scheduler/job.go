@@ -75,12 +75,12 @@ func (c *coreJob) Errors() []error {
 
 type collectorJob struct {
 	*coreJob
-	collector   collectsMetrics
+	collector   CollectsMetrics
 	metricTypes []core.Metric
 	metrics     []core.Metric
 }
 
-func newCollectorJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector collectsMetrics) *collectorJob {
+func newCollectorJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector CollectsMetrics) *collectorJob {
 	return &collectorJob{
 		collector:   collector,
 		metricTypes: metricTypes,
@@ -120,14 +120,14 @@ func newProcessJob(parentJob job, pluginName string, pluginVersion int) *process
 type publisherJob struct {
 	*coreJob
 	parentJob     job
-	publisher     publishesMetrics
+	publisher     PublishesMetrics
 	pluginName    string
 	pluginVersion int
 	config        map[string]ctypes.ConfigValue
 	contentType   string
 }
 
-func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher publishesMetrics) *publisherJob {
+func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher PublishesMetrics) *publisherJob {
 	return &publisherJob{
 		parentJob:     parentJob,
 		publisher:     publisher,
