@@ -3,6 +3,8 @@ package plugin
 // WARNING! Do not import "fmt" and print from a plugin to stdout!
 import (
 	"crypto/rsa"
+	"fmt" // Don't use "fmt.Print*"
+	"regexp"
 	"time"
 )
 
@@ -42,15 +44,63 @@ type PluginResponseState int
 
 type PluginType int
 
+// Returns string for matching enum plugin type
+func (p PluginType) String() string {
+	return types[p]
+}
+
 type ContentType int
 
 // Plugin interface
 type Plugin interface {
 }
 
-// Returns string for matching enum plugin type
-func (p PluginType) String() string {
-	return types[p]
+// PluginMeta for plugin
+type PluginMeta struct {
+	Name    string
+	Version int
+	Type    PluginType
+	// Content types accepted by this plugin in priority order
+	// pulse.* means any pulse type
+	AcceptedContentTypes []string
+	// Return content types in priority order
+	// This is only really valid on processors
+	ReturnedContentTypes []string
+}
+
+// NewPluginMeta constructs and returns a PluginMeta struct
+func NewPluginMeta(name string, version int, pluginType PluginType, acceptContentType, returnContentType []string) *PluginMeta {
+	// An empty accepted content type default to "pulse.*"
+	if len(acceptContentType) == 0 {
+		acceptContentType = append(acceptContentType, "pulse.*")
+	}
+	// Validate content type formats
+	for _, s := range acceptContentType {
+		b, e := regexp.MatchString(`^[a-z0-9*]+\.[a-z0-9*]+$`, s)
+		if e != nil {
+			panic(e)
+		}
+		if !b {
+			panic(fmt.Sprintf("Bad accept content type [%s] for [%d] [%s]", name, version, s))
+		}
+	}
+	for _, s := range returnContentType {
+		b, e := regexp.MatchString(`^[a-z0-9*]+\.[a-z0-9*]+$`, s)
+		if e != nil {
+			panic(e)
+		}
+		if !b {
+			panic(fmt.Sprintf("Bad return content type [%s] for [%d] [%s]", name, version, s))
+		}
+	}
+
+	return &PluginMeta{
+		Name:                 name,
+		Version:              version,
+		Type:                 pluginType,
+		AcceptedContentTypes: acceptContentType,
+		ReturnedContentTypes: returnContentType,
+	}
 }
 
 // Arguments passed to startup of Plugin
@@ -85,26 +135,6 @@ type Response struct {
 	// its own loading requirements
 	State        PluginResponseState
 	ErrorMessage string
-}
-
-// // ConfigPolicy for plugin
-// type ConfigPolicy struct {
-// }
-
-// PluginMeta for plugin
-type PluginMeta struct {
-	Name    string
-	Version int
-	Type    PluginType
-}
-
-// NewPluginMeta constructs and returns a PluginMeta struct
-func NewPluginMeta(name string, version int, pluginType PluginType) *PluginMeta {
-	return &PluginMeta{
-		Name:    name,
-		Version: version,
-		Type:    pluginType,
-	}
 }
 
 // Start starts a plugin where:
