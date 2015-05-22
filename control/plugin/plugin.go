@@ -69,13 +69,13 @@ type PluginMeta struct {
 }
 
 // NewPluginMeta constructs and returns a PluginMeta struct
-func NewPluginMeta(name string, version int, pluginType PluginType, acceptContentType, returnContentType []string) *PluginMeta {
+func NewPluginMeta(name string, version int, pluginType PluginType, acceptContentTypes, returnContentTypes []string) *PluginMeta {
 	// An empty accepted content type default to "pulse.*"
-	if len(acceptContentType) == 0 {
-		acceptContentType = append(acceptContentType, "pulse.*")
+	if len(acceptContentTypes) == 0 {
+		acceptContentTypes = append(acceptContentTypes, "pulse.*")
 	}
 	// Validate content type formats
-	for _, s := range acceptContentType {
+	for _, s := range acceptContentTypes {
 		b, e := regexp.MatchString(`^[a-z0-9*]+\.[a-z0-9*]+$`, s)
 		if e != nil {
 			panic(e)
@@ -84,7 +84,7 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 			panic(fmt.Sprintf("Bad accept content type [%s] for [%d] [%s]", name, version, s))
 		}
 	}
-	for _, s := range returnContentType {
+	for _, s := range returnContentTypes {
 		b, e := regexp.MatchString(`^[a-z0-9*]+\.[a-z0-9*]+$`, s)
 		if e != nil {
 			panic(e)
@@ -98,8 +98,8 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 		Name:                 name,
 		Version:              version,
 		Type:                 pluginType,
-		AcceptedContentTypes: acceptContentType,
-		ReturnedContentTypes: returnContentType,
+		AcceptedContentTypes: acceptContentTypes,
+		ReturnedContentTypes: returnContentTypes,
 	}
 }
 
