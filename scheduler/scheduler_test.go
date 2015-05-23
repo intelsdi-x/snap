@@ -2,7 +2,7 @@ package scheduler
 
 import (
 	"errors"
-	// "fmt"
+	"fmt"
 	"testing"
 	"time"
 
@@ -19,6 +19,8 @@ type mockMetricManager struct {
 	failValidatingMetrics      bool
 	failValidatingMetricsAfter int
 	failuredSoFar              int
+	acceptedContentTypes       map[string][]string
+	returnedContentTypes       map[string][]string
 }
 
 func (m *mockMetricManager) SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
@@ -34,8 +36,39 @@ func (m *mockMetricManager) SubscribeMetricType(mt core.Metric, cd *cdata.Config
 	return nil, nil
 }
 
+func (m *mockMetricManager) lazyContentType(key string) {
+	if m.acceptedContentTypes == nil {
+		m.acceptedContentTypes = make(map[string][]string)
+	}
+	if m.returnedContentTypes == nil {
+		m.returnedContentTypes = make(map[string][]string)
+	}
+	if m.acceptedContentTypes[key] == nil {
+		m.acceptedContentTypes[key] = []string{}
+	}
+	if m.returnedContentTypes[key] == nil {
+		m.returnedContentTypes[key] = []string{}
+	}
+}
+
+// Used to mock type from plugin
+func (m *mockMetricManager) setAcceptedContentType(n string, t PluginType, v int, s []string) {
+	key := fmt.Sprintf("%s:%d:%d", n, t, v)
+	m.lazyContentType(key)
+	m.acceptedContentTypes[key] = s
+}
+
+func (m *mockMetricManager) setReturnedContentType(n string, t PluginType, v int, s []string) {
+	key := fmt.Sprintf("%s:%d:%d", n, t, v)
+	m.lazyContentType(key)
+	m.returnedContentTypes[key] = s
+}
+
 func (m *mockMetricManager) GetPluginContentTypes(n string, t PluginType, v int) ([]string, []string, error) {
-	return nil, nil, nil
+	key := fmt.Sprintf("%s:%d:%d", n, t, v)
+	m.lazyContentType(key)
+
+	return m.acceptedContentTypes[key], m.returnedContentTypes[key], nil
 }
 
 func (m *mockMetricManager) UnsubscribeMetricType(mt core.Metric) {
@@ -120,6 +153,9 @@ func (m mockScheduleResponse) missedIntervals() uint {
 func TestScheduler(t *testing.T) {
 	Convey("NewTask", t, func() {
 		c := new(mockMetricManager)
+		c.setAcceptedContentType("machine", ProcessorPluginType, 1, []string{"pulse.*", "pulse.gob"})
+		c.setReturnedContentType("machine", ProcessorPluginType, 1, []string{"pulse.gob", "pulse.json"})
+		c.setAcceptedContentType("file", PublisherPluginType, -1, []string{"pulse.gob"})
 		s := New()
 		s.SetMetricManager(c)
 		w := wmap.NewWorkflowMap()

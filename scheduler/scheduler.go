@@ -108,10 +108,16 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 		return nil, te
 	}
 
-	// Attempt to render our wmap into a workflow
-	// wf, err :=
+	// Generate a workflow from the workflow map
 	wf, err := wmapToWorkflow(wfMap)
-	fmt.Println(wf)
+	if err != nil {
+		te.errs = append(te.errs, SchedulerNotStarted)
+		return nil, te
+	}
+	// fmt.Println(wf)
+
+	// Bind plugin content type selections in workflow
+	err = wf.BindPluginContentTypes(s.metricManager)
 	panic(err)
 
 	// TODO - config data tree comes from WMAP

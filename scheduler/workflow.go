@@ -38,6 +38,12 @@ func wmapToWorkflow(wfMap *wmap.WorkflowMap) (*schedulerWorkflow, error) {
 	if err != nil {
 		return nil, err
 	}
+	// ***
+	// TODO validate workflow makes sense here
+	// - flows that don't end in publishers?
+	// - duplicate child nodes anywhere?
+	//***
+	// Retain a copy of the original workflow map
 	wf.workflowMap = wfMap
 	return wf, nil
 }
@@ -156,6 +162,30 @@ type publishNode struct {
 	Version            int
 	Config             *cdata.ConfigDataNode
 	InboundContentType string
+}
+
+// BindPluginContentTypes uses the provided ManagesMetrics to
+func (s *schedulerWorkflow) BindPluginContentTypes(mm ManagesPluginContentTypes) error {
+	// Walk nodes to query and bind the content types required
+	// top level
+	for _, pr := range s.processNodes {
+		fmt.Printf("Process node: [%s][%v]\n", pr.Name, pr.Version)
+		// Get accepted type
+		acc, ret, err := mm.GetPluginContentTypes(pr.Name, ProcessorPluginType, pr.Version)
+		if err != nil {
+			return err
+		}
+		fmt.Println(acc, ret)
+	}
+	for _, pu := range s.publishNodes {
+		fmt.Printf("Publish node: [%s][%v]\n", pu.Name, pu.Version)
+		acc, ret, err := mm.GetPluginContentTypes(pu.Name, PublisherPluginType, pu.Version)
+		if err != nil {
+			return err
+		}
+		fmt.Println(acc, ret)
+	}
+	return nil
 }
 
 // Start starts a workflow
