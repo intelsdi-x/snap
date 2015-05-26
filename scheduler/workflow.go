@@ -166,6 +166,8 @@ type publishNode struct {
 
 // BindPluginContentTypes uses the provided ManagesMetrics to
 func (s *schedulerWorkflow) BindPluginContentTypes(mm ManagesPluginContentTypes) error {
+	// Default returned types from a collection
+	// possibleContentTypes := []string{"pulse.*", "pulse.gob", "pulse.json"}
 	// Walk nodes to query and bind the content types required
 	// top level
 	for _, pr := range s.processNodes {
@@ -175,7 +177,8 @@ func (s *schedulerWorkflow) BindPluginContentTypes(mm ManagesPluginContentTypes)
 		if err != nil {
 			return err
 		}
-		fmt.Println(acc, ret)
+
+		fmt.Printf("\tAccept:%+v Return:%+v\n", acc, ret)
 	}
 	for _, pu := range s.publishNodes {
 		fmt.Printf("Publish node: [%s][%v]\n", pu.Name, pu.Version)
@@ -183,7 +186,7 @@ func (s *schedulerWorkflow) BindPluginContentTypes(mm ManagesPluginContentTypes)
 		if err != nil {
 			return err
 		}
-		fmt.Println(acc, ret)
+		fmt.Printf("\tAccept:%+v Return:%+v\n", acc, ret)
 	}
 	return nil
 }

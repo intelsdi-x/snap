@@ -153,7 +153,7 @@ func (m mockScheduleResponse) missedIntervals() uint {
 func TestScheduler(t *testing.T) {
 	Convey("NewTask", t, func() {
 		c := new(mockMetricManager)
-		c.setAcceptedContentType("machine", ProcessorPluginType, 1, []string{"pulse.*", "pulse.gob"})
+		c.setAcceptedContentType("machine", ProcessorPluginType, 1, []string{"pulse.*", "pulse.gob", "foo.bar"})
 		c.setReturnedContentType("machine", ProcessorPluginType, 1, []string{"pulse.gob", "pulse.json"})
 		c.setAcceptedContentType("file", PublisherPluginType, -1, []string{"pulse.gob"})
 		s := New()
