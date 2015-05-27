@@ -8,13 +8,24 @@ import (
 	"time"
 )
 
+// Plugin type
+type PluginType int
+
+// Returns string for matching enum plugin type
+func (p PluginType) String() string {
+	return types[p]
+}
+
 const (
-	// List of plugin type
 	CollectorPluginType PluginType = iota
 	PublisherPluginType
 	ProcessorPluginType
+)
 
-	// List of plugin response states
+// Plugin response states
+type PluginResponseState int
+
+const (
 	PluginSuccess PluginResponseState = iota
 	PluginFailure
 )
@@ -33,25 +44,8 @@ var (
 		"publisher",
 		"processor",
 	}
-
-	ContentTypes = [...]string{
-		"pulse.gob",
-		"pulse.json",
-	}
 )
 
-type PluginResponseState int
-
-type PluginType int
-
-// Returns string for matching enum plugin type
-func (p PluginType) String() string {
-	return types[p]
-}
-
-type ContentType int
-
-// Plugin interface
 type Plugin interface {
 }
 
