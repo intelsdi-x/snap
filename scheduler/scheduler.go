@@ -19,22 +19,15 @@ var (
 
 type schedulerState int
 
-type PluginType int
-
 const (
 	schedulerStopped schedulerState = iota
 	schedulerStarted
-
-	// List of plugin type
-	CollectorPluginType PluginType = iota
-	PublisherPluginType
-	ProcessorPluginType
 )
 
 // ManagesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
 type ManagesMetrics interface {
-	SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error)
+	SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error)
 	UnsubscribeMetricType(mt core.Metric)
 	CollectsMetrics
 	PublishesMetrics
@@ -43,7 +36,7 @@ type ManagesMetrics interface {
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
 type ManagesPluginContentTypes interface {
-	GetPluginContentTypes(n string, t PluginType, v int) ([]string, []string, error)
+	GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error)
 }
 
 type CollectsMetrics interface {
@@ -114,64 +107,46 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 		te.errs = append(te.errs, SchedulerNotStarted)
 		return nil, te
 	}
-	// fmt.Println(wf)
 
 	// Bind plugin content type selections in workflow
 	err = wf.BindPluginContentTypes(s.metricManager)
-	panic(err)
 
-	// TODO - config data tree comes from WMAP
 	// Subscribe to MT.
 	// If we encounter an error we will unwind successful subscriptions.
-	// subscriptions := make([]core.Metric, 0)
-	// for _, m := range mts {
-	// 	cd := cdt.Get(m.Namespace())
-	// 	mt, err := s.metricManager.SubscribeMetricType(m, cd)
-	// 	if err == nil {
-	// 		subscriptions = append(subscriptions, mt)
-	// 	} else {
-	// 		te.errs = append(te.errs, err...)
-	// 	}
-	// }
+	subscriptions := make([]core.Metric, 0)
+	for _, m := range wf.metrics {
+		cdt, er := wfMap.CollectNode.GetConfigTree()
+		if er != nil {
+			te.errs = append(te.errs, er)
+			continue
+		}
+		cd := cdt.Get(m.Namespace())
+		mt, err := s.metricManager.SubscribeMetricType(m, cd)
+		if err == nil {
+			subscriptions = append(subscriptions, mt)
+		} else {
+			te.errs = append(te.errs, err...)
+		}
+	}
 
 	// Unwind successful subscriptions if we got here with errors (idempotent)
-	// if len(te.errs) > 0 {
-	// 	for _, sub := range subscriptions {
-	// 		s.metricManager.UnsubscribeMetricType(sub)
-	// 	}
-	// 	return nil, te
-	// }
-
-	// TODO - Why is the interface being converted into the struct? Do the behaviors rely on this??
-	// sched, err := assertSchedule(sch)
-	// if err != nil {
-	// 	te.errs = append(te.errs, err)
-	// 	return nil, te
-	// }
-	// TODO
-
-	// TODO convert to wmap
-	// j, err := wf.Marshal()
-	// if err != nil {
-	// 	te.errs = append(te.errs, err)
-	// 	return nil, te
-	// }
-	// workf := newWorkflow()
-	// workf.Unmarshal(j)
-	// TODO
+	if len(te.errs) > 0 {
+		for _, sub := range subscriptions {
+			s.metricManager.UnsubscribeMetricType(sub)
+		}
+		return nil, te
+	}
 
 	// Create the task object
-	// task := newTask(sched, subscriptions, workf, s.workManager, s.metricManager, opts...)
+	task := newTask(sch, subscriptions, wf, s.workManager, s.metricManager, opts...)
 
 	// Add task to taskCollection
-	// if err := s.tasks.add(task); err != nil {
-	// 	te.errs = append(te.errs, err)
-	// 	return nil, te
-	// }
+	if err := s.tasks.add(task); err != nil {
+		te.errs = append(te.errs, err)
+		return nil, te
+	}
 
-	// Return task object back
-	// return task, nil
-	return nil, nil
+	return task, te
 }
 
 //GetTasks returns a copy of the tasks in a map where the task id is the key

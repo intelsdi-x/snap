@@ -3,11 +3,10 @@ package scheduler
 import (
 	"errors"
 	"fmt"
-	"time"
 
+	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/pkg/logger"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
@@ -164,45 +163,95 @@ type publishNode struct {
 	InboundContentType string
 }
 
+type wfContentTypes map[string]map[string][]string
+
 // BindPluginContentTypes uses the provided ManagesMetrics to
 func (s *schedulerWorkflow) BindPluginContentTypes(mm ManagesPluginContentTypes) error {
 	// Default returned types from a collection
 	// possibleContentTypes := []string{"pulse.*", "pulse.gob", "pulse.json"}
 	// Walk nodes to query and bind the content types required
 	// top level
-	for _, pr := range s.processNodes {
-		fmt.Printf("Process node: [%s][%v]\n", pr.Name, pr.Version)
-		// Get accepted type
-		acc, ret, err := mm.GetPluginContentTypes(pr.Name, ProcessorPluginType, pr.Version)
+	logger.SetLevel(logger.DebugLevel)
+	bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.PulseGOBContentType})
+	return nil
+}
+
+func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm ManagesPluginContentTypes, lct []string) error {
+	//todo lastcontentTypes needs to be passed in
+	for _, pr := range prs {
+		act, rct, err := mm.GetPluginContentTypes(pr.Name, core.ProcessorPluginType, pr.Version)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("\tAccept:%+v Return:%+v\n", acc, ret)
+		for _, ac := range act {
+			for _, lc := range lct {
+				// if the return contenet type from the previous node matches
+				// the accept content type for this node set it as the
+				// inbound content type
+				if ac == lc {
+					pr.InboundContentType = ac
+				}
+			}
+		}
+		// if the inbound content type isn't set yet pulse may be able to do
+		// the conversion
+		if pr.InboundContentType == "" {
+			for _, ac := range act {
+				switch ac {
+				case plugin.PulseGOBContentType:
+					pr.InboundContentType = plugin.PulseGOBContentType
+				case plugin.PulseJSONContentType:
+					pr.InboundContentType = plugin.PulseJSONContentType
+				case plugin.PulseAllContentType:
+					pr.InboundContentType = plugin.PulseGOBContentType
+				}
+			}
+			// else we return an error
+			if pr.InboundContentType == "" {
+				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the pulse content types or the types '%v' returned from the previous node.", pr.Name, lct)
+			}
+		}
+		//continue the walk down the nodes
+		bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, mm, rct)
 	}
-	for _, pu := range s.publishNodes {
-		fmt.Printf("Publish node: [%s][%v]\n", pu.Name, pu.Version)
-		acc, ret, err := mm.GetPluginContentTypes(pu.Name, PublisherPluginType, pu.Version)
+	for _, pu := range pus {
+		act, _, err := mm.GetPluginContentTypes(pu.Name, core.PublisherPluginType, pu.Version)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("\tAccept:%+v Return:%+v\n", acc, ret)
+		// if the inbound content type isn't set yet pulse may be able to do
+		// the conversion
+		if pu.InboundContentType == "" {
+			for _, ac := range act {
+				switch ac {
+				case plugin.PulseGOBContentType:
+					pu.InboundContentType = plugin.PulseGOBContentType
+				case plugin.PulseJSONContentType:
+					pu.InboundContentType = plugin.PulseJSONContentType
+				case plugin.PulseAllContentType:
+					pu.InboundContentType = plugin.PulseGOBContentType
+				}
+			}
+			// else we return an error
+			if pu.InboundContentType == "" {
+				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the pulse content types or the types '%v' returned from the previous node.", pu.Name, lct)
+			}
+		}
 	}
 	return nil
 }
 
 // Start starts a workflow
-func (w *schedulerWorkflow) Start(task *task) {
+func (w *schedulerWorkflow) Start(t *task) {
 	w.state = WorkflowStarted
-	// j := w.rootStep.createJob(task.metricTypes, task.deadlineDuration, task.metricsManager)
+	j := newCollectorJob(w.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree)
 
 	// dispatch 'collect' job to be worked
-	// j = task.manager.Work(j)
+	j = t.manager.Work(j)
 
-	//process through additional steps (processors, publishers, ...)
-	// for _, step := range w.rootStep.Steps() {
-	// w.processStep(step, j, task.manager, task.metricsManager)
-	// }
+	// walk through the tree and dispatch work
+	w.workJobs(w.processNodes, w.publishNodes, t, j)
 }
 
 func (s *schedulerWorkflow) State() WorkflowState {
@@ -213,125 +262,17 @@ func (s *schedulerWorkflow) StateString() string {
 	return WorkflowStateLookup[s.state]
 }
 
-// func (s *schedulerWorkflow) State() core.WorkflowState {
-// 	return w.state
-// }
-
-// func (s *schedulerWorkflow) Marshal() ([]byte, error) {
-// 	return []byte{}, nil
-// }
-
-// func (s *schedulerWorkflow) Unmarshal([]byte) error {
-// 	return nil
-// }
-
-type wf struct {
-	rootStep *collectStep
-	state    core.WorkflowState
-}
-
-// NewWorkflow creates and returns a workflow
-func newWorkflow() *wf {
-	return &wf{
-		rootStep: new(collectStep),
+//TODO JC pass in manages work instead of task
+func (w *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *task, pj job) {
+	for _, pr := range prs {
+		j := newProcessJob(pj, pr.Name, pr.Version)
+		j = t.manager.Work(j)
+		for _, npr := range pr.ProcessNodes {
+			w.workJobs(npr.ProcessNodes, npr.PublishNodes, t, j)
+		}
 	}
-}
-
-// State returns current workflow state
-func (w *wf) State() core.WorkflowState {
-	return w.state
-}
-
-func (w *wf) Marshal() ([]byte, error) {
-	return []byte{}, nil
-}
-
-func (w *wf) Unmarshal([]byte) error {
-	return nil
-}
-
-func (w *wf) processStep(step Step, j job, m managesWork, metricManager ManagesMetrics) {
-	//do work for current step
-	j = step.createJob(j, metricManager)
-	j = m.Work(j)
-	//do work for child steps
-	for _, step := range step.Steps() {
-		w.processStep(step, j, m, metricManager)
+	for _, pu := range pus {
+		j := newPublishJob(pj, pu.Name, pu.Version, pu.InboundContentType, pu.Config.Table(), t.metricsManager)
+		j = t.manager.Work(j)
 	}
-}
-
-// Step interface for a workflow step
-type Step interface {
-	Steps() []Step
-	AddStep(s Step) Step
-	createJob(job, ManagesMetrics) job
-}
-
-type step struct {
-	steps []Step
-}
-
-// AddStep adds a child Step
-func (s *step) AddStep(step Step) Step {
-	s.steps = append(s.steps, step)
-	return step
-}
-
-// Steps returns child Steps
-func (s *step) Steps() []Step {
-	return s.steps
-}
-
-type ProcessStep interface {
-	Step
-}
-
-type processStep struct {
-	step
-}
-
-func (p *processStep) createJob(j job, metricManager ManagesMetrics) job {
-	return j
-}
-
-type PublishStep interface {
-	Step
-}
-
-type publishStep struct {
-	step
-	name        string
-	version     int
-	config      map[string]ctypes.ConfigValue
-	contentType string
-}
-
-func NewPublishStep(name string, version int, contentType string, config map[string]ctypes.ConfigValue) *publishStep {
-	return &publishStep{
-		name:        name,
-		version:     version,
-		config:      config,
-		contentType: contentType,
-	}
-}
-
-func (p *publishStep) createJob(j job, metricManager ManagesMetrics) job {
-	logger.Debugf("Scheduler.PublishStep.CreateJob", "creating job!")
-	switch j.Type() {
-	case collectJobType:
-		return newPublishJob(j.(*collectorJob), p.name, p.version, p.contentType, p.config, metricManager.(PublishesMetrics))
-	default:
-		panic("Unknown type of job")
-	}
-}
-
-type CollectStep interface {
-}
-
-type collectStep struct {
-	step
-}
-
-func (c *collectStep) createJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector CollectsMetrics) job {
-	return newCollectorJob(metricTypes, deadlineDuration, collector)
 }

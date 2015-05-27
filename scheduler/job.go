@@ -3,10 +3,12 @@ package scheduler
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/pkg/logger"
 )
@@ -75,22 +77,53 @@ func (c *coreJob) Errors() []error {
 
 type collectorJob struct {
 	*coreJob
-	collector   CollectsMetrics
-	metricTypes []core.Metric
-	metrics     []core.Metric
+	collector      CollectsMetrics
+	metricTypes    []core.RequestedMetric
+	metrics        []core.Metric
+	configDataTree *cdata.ConfigDataTree
 }
 
-func newCollectorJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector CollectsMetrics) *collectorJob {
+func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.Duration, collector CollectsMetrics, cdt *cdata.ConfigDataTree) job {
 	return &collectorJob{
-		collector:   collector,
-		metricTypes: metricTypes,
-		metrics:     []core.Metric{},
-		coreJob:     newCoreJob(collectJobType, time.Now().Add(deadlineDuration)),
+		collector:      collector,
+		metricTypes:    metricTypes,
+		metrics:        []core.Metric{},
+		coreJob:        newCoreJob(collectJobType, time.Now().Add(deadlineDuration)),
+		configDataTree: cdt,
 	}
 }
 
+type metric struct {
+	namespace []string
+	version   int
+	config    *cdata.ConfigDataNode
+}
+
+func (m *metric) Namespace() []string {
+	return m.namespace
+}
+
+func (m *metric) Config() *cdata.ConfigDataNode {
+	return m.config
+}
+
+func (m *metric) Version() int {
+	return m.version
+}
+
+func (m *metric) Data() interface{}             { return nil }
+func (m *metric) LastAdvertisedTime() time.Time { return time.Unix(0, 0) }
+
 func (c *collectorJob) Run() {
-	ret, errs := c.collector.CollectMetrics(c.metricTypes, c.Deadline())
+	metrics := make([]core.Metric, len(c.metricTypes))
+	for i, rmt := range c.metricTypes {
+		metrics[i] = &metric{
+			namespace: rmt.Namespace(),
+			version:   rmt.Version(),
+			config:    c.configDataTree.Get(rmt.Namespace()),
+		}
+	}
+	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline())
 	logger.Debugf("Scheduler.CollectorJob.Run", "We collected: %v err: %v", ret, errs)
 	c.metrics = ret
 	if errs != nil {
@@ -107,7 +140,11 @@ type processJob struct {
 	pluginVersion int
 }
 
-func newProcessJob(parentJob job, pluginName string, pluginVersion int) *processJob {
+func (pr *processJob) Run() {
+	//TODO impl
+}
+
+func newProcessJob(parentJob job, pluginName string, pluginVersion int) job {
 	return &processJob{
 		parentJob:     parentJob,
 		pluginName:    pluginName,
@@ -127,7 +164,7 @@ type publisherJob struct {
 	contentType   string
 }
 
-func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher PublishesMetrics) *publisherJob {
+func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher PublishesMetrics) job {
 	return &publisherJob{
 		parentJob:     parentJob,
 		publisher:     publisher,
@@ -155,7 +192,7 @@ func (p *publisherJob) Run() {
 			}
 			enc.Encode(metrics)
 		default:
-			panic("unsupported content type")
+			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
 		}
 	default:
 		panic("unsupported job type")

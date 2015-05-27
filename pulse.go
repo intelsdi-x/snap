@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/intelsdi-x/pulse/control"
-	"github.com/intelsdi-x/pulse/mgmt/rest"
+	// "github.com/intelsdi-x/pulse/mgmt/rest"
 	"github.com/intelsdi-x/pulse/pkg/logger"
 	"github.com/intelsdi-x/pulse/scheduler"
 )
@@ -100,14 +100,14 @@ func main() {
 	}
 
 	// init rest mgmt interface
-	if *restMgmt {
-		r := rest.New()
-		r.BindMetricManager(c)
-		r.BindTaskManager(s)
-		r.Start(":8181")
-	}
+	// if *restMgmt {
+	// 	r := rest.New()
+	// 	r.BindMetricManager(c)
+	// 	r.BindTaskManager(s)
+	// 	r.Start(":8181")
+	// }
 
-	select {} //run forever and ever
+	// select {} //run forever and ever
 }
 
 func setMaxProcs() {

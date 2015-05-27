@@ -29,5 +29,9 @@ func TestWorkflow(t *testing.T) {
 			So(wmap, ShouldNotBeNil)
 			fmt.Println(wmap)
 		})
+
+		Convey("Sample", func() {
+			So(SampleWorkflowMapJson(), ShouldNotBeEmpty)
+		})
 	})
 }

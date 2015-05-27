@@ -1,94 +1,99 @@
 package scheduler
 
-// import (
-// 	"os"
-// 	"path"
-// 	"testing"
-// 	"time"
+import (
+	"fmt"
+	"os"
+	"path"
+	"testing"
+	"time"
 
-// 	"github.com/intelsdi-x/pulse/control"
-// 	"github.com/intelsdi-x/pulse/control/plugin"
-// 	"github.com/intelsdi-x/pulse/core"
-// 	"github.com/intelsdi-x/pulse/core/cdata"
-// 	"github.com/intelsdi-x/pulse/core/ctypes"
-// 	"github.com/intelsdi-x/pulse/pkg/logger"
-// 	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/pkg/logger"
+	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 
-// 	. "github.com/smartystreets/goconvey/convey"
-// )
+	. "github.com/smartystreets/goconvey/convey"
+)
 
-// var (
-// 	PulsePath = os.Getenv("PULSE_PATH")
-// )
+var (
+	PulsePath = os.Getenv("PULSE_PATH")
+)
 
-// type MockMetricType struct {
-// 	namespace []string
-// }
+type MockMetricType struct {
+	namespace []string
+}
 
-// func (m MockMetricType) Namespace() []string {
-// 	return m.namespace
-// }
+func (m MockMetricType) Namespace() []string {
+	return m.namespace
+}
 
-// func (m MockMetricType) LastAdvertisedTime() time.Time {
-// 	return time.Now()
-// }
+func (m MockMetricType) LastAdvertisedTime() time.Time {
+	return time.Now()
+}
 
-// func (m MockMetricType) Version() int {
-// 	return 1
-// }
+func (m MockMetricType) Version() int {
+	return 1
+}
 
-// func (m MockMetricType) Config() *cdata.ConfigDataNode {
-// 	return nil
-// }
+func (m MockMetricType) Config() *cdata.ConfigDataNode {
+	return nil
+}
 
-// func (m MockMetricType) Data() interface{} {
-// 	return nil
-// }
+func (m MockMetricType) Data() interface{} {
+	return nil
+}
 
-// func TestCollectPublishWorkflow(t *testing.T) {
-// 	Convey("Given a started plugin control", t, func() {
-// 		logger.SetLevel(logger.DebugLevel)
-// 		c := control.New()
-// 		c.Start()
-// 		Convey("Start a collector and publisher plugin", func() {
-// 			err := c.Load(path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy1"))
-// 			So(err, ShouldBeNil)
-// 			err = c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
-// 			So(err, ShouldBeNil)
-// 			time.Sleep(100 * time.Millisecond)
+func TestCollectPublishWorkflow(t *testing.T) {
+	Convey("Given a started plugin control", t, func() {
+		logger.SetLevel(logger.DebugLevel)
+		logPath := "/tmp"
+		file, err := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			logger.Error("main", fmt.Sprintf("bad log path(%s) - %s\n", logPath, err.Error()))
+		}
+		defer file.Close()
+		logger.Output = file
 
-// 			config := map[string]ctypes.ConfigValue{
-// 				"file": ctypes.ConfigValueStr{Value: "/tmp/pulse-TestCollectPublishWorkflow.out"},
-// 			}
-// 			c.SubscribePublisher("file", 1, config)
+		c := control.New()
+		c.Start()
+		s := New()
+		s.SetMetricManager(c)
+		Convey("Start a collector and publisher plugin", func() {
+			err := c.Load(path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy1"))
+			So(err, ShouldBeNil)
+			err = c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
+			So(err, ShouldBeNil)
+			time.Sleep(100 * time.Millisecond)
 
-// 			cd := cdata.NewNode()
-// 			cd.AddItem("password", &ctypes.ConfigValueStr{Value: "value"})
-// 			mt := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
-// 			smt, errs := c.SubscribeMetricType(mt, cd)
-// 			So(errs, ShouldBeNil)
+			metrics, err := c.MetricCatalog()
+			So(err, ShouldBeNil)
+			So(metrics, ShouldNotBeEmpty)
 
-// 			sch := schedule.NewSimpleSchedule(time.Duration(1 * time.Second))
-// 			So(sch, ShouldNotBeNil)
+			w := wmap.NewWorkflowMap()
+			w.CollectNode.AddMetric("/intel/dummy/foo", 1)
+			w.CollectNode.AddConfigItem("/intel/dummy/foo", "password", "secret")
 
-// 			Convey("Workflow", func() {
-// 				wf := newWorkflow()
-// 				So(wf.state, ShouldNotBeNil)
-// 				Convey("Add steps", func() {
-// 					pubStep := NewPublishStep("file", 1, plugin.PulseGOBContentType, config)
-// 					wf.rootStep.AddStep(pubStep)
-// 					So(wf.rootStep, ShouldNotBeNil)
-// 					So(wf.rootStep.Steps(), ShouldNotBeNil)
-// 					Convey("Start", func() {
-// 						workerKillChan = make(chan struct{})
-// 						manager := newWorkManager()
-// 						task := newTask(sch, []core.Metric{smt}, wf, manager, c)
-// 						task.Spin()
-// 						time.Sleep(4 * time.Second)
-// 					})
-// 				})
-// 			})
+			pu := wmap.NewPublishNode("file", 1)
+			pu.AddConfigItem("file", "/tmp/pulse-TestCollectPublishWorkflow.out")
+			config, err := pu.GetConfigNode()
+			So(err, ShouldBeNil)
+			c.SubscribePublisher("file", 1, config.Table())
+			time.Sleep(100 * time.Millisecond)
 
-// 		})
-// 	})
-// }
+			w.CollectNode.Add(pu)
+
+			Convey("Start scheduler", func() {
+				err := s.Start()
+				So(err, ShouldBeNil)
+				Convey("Create task", func() {
+					t, err := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*500), w)
+					So(err.Errors(), ShouldBeEmpty)
+					So(t, ShouldNotBeNil)
+					t.(*task).Spin()
+					time.Sleep(3 * time.Second)
+				})
+			})
+		})
+	})
+}

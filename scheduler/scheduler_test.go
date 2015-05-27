@@ -23,7 +23,7 @@ type mockMetricManager struct {
 	returnedContentTypes       map[string][]string
 }
 
-func (m *mockMetricManager) SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
+func (m *mockMetricManager) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
 	if m.failValidatingMetrics {
 		if m.failValidatingMetricsAfter > m.failuredSoFar {
 			m.failuredSoFar++
@@ -52,19 +52,19 @@ func (m *mockMetricManager) lazyContentType(key string) {
 }
 
 // Used to mock type from plugin
-func (m *mockMetricManager) setAcceptedContentType(n string, t PluginType, v int, s []string) {
+func (m *mockMetricManager) setAcceptedContentType(n string, t core.PluginType, v int, s []string) {
 	key := fmt.Sprintf("%s:%d:%d", n, t, v)
 	m.lazyContentType(key)
 	m.acceptedContentTypes[key] = s
 }
 
-func (m *mockMetricManager) setReturnedContentType(n string, t PluginType, v int, s []string) {
+func (m *mockMetricManager) setReturnedContentType(n string, t core.PluginType, v int, s []string) {
 	key := fmt.Sprintf("%s:%d:%d", n, t, v)
 	m.lazyContentType(key)
 	m.returnedContentTypes[key] = s
 }
 
-func (m *mockMetricManager) GetPluginContentTypes(n string, t PluginType, v int) ([]string, []string, error) {
+func (m *mockMetricManager) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
 	key := fmt.Sprintf("%s:%d:%d", n, t, v)
 	m.lazyContentType(key)
 
@@ -114,27 +114,6 @@ func (m mockMetricType) Data() interface{} {
 	return nil
 }
 
-type mockWorkflow struct {
-	state core.WorkflowState
-}
-
-func (w *mockWorkflow) Start(t *task) {
-	w.state = core.WorkflowStarted
-	time.Sleep(15 * time.Millisecond)
-}
-
-func (w *mockWorkflow) State() core.WorkflowState {
-	return w.state
-}
-
-func (w *mockWorkflow) Marshal() ([]byte, error) {
-	return []byte{}, nil
-}
-
-func (w *mockWorkflow) Unmarshal([]byte) error {
-	return nil
-}
-
 type mockScheduleResponse struct {
 }
 
@@ -153,9 +132,10 @@ func (m mockScheduleResponse) missedIntervals() uint {
 func TestScheduler(t *testing.T) {
 	Convey("NewTask", t, func() {
 		c := new(mockMetricManager)
-		c.setAcceptedContentType("machine", ProcessorPluginType, 1, []string{"pulse.*", "pulse.gob", "foo.bar"})
-		c.setReturnedContentType("machine", ProcessorPluginType, 1, []string{"pulse.gob", "pulse.json"})
-		c.setAcceptedContentType("file", PublisherPluginType, -1, []string{"pulse.gob"})
+		c.setAcceptedContentType("machine", core.ProcessorPluginType, 1, []string{"pulse.*", "pulse.gob", "foo.bar"})
+		c.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"pulse.gob"})
+		c.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"pulse.json", "pulse.gob"})
+		c.setAcceptedContentType("file", core.PublisherPluginType, -1, []string{"pulse.json"})
 		s := New()
 		s.SetMetricManager(c)
 		w := wmap.NewWorkflowMap()
@@ -172,26 +152,53 @@ func TestScheduler(t *testing.T) {
 		pr1.AddConfigItem("username", "wat")
 		pr1.AddConfigItem("howmuch", 9999)
 
+		// Add a process node
+		pr12 := wmap.NewProcessNode("machine", 1)
+		pr12.AddConfigItem("username", "wat2")
+		pr12.AddConfigItem("howmuch", 99992)
+
 		// Publish node for our process node
 		pu1 := wmap.NewPublishNode("rmq", -1)
 		pu1.AddConfigItem("birthplace", "dallas")
 		pu1.AddConfigItem("monies", 2)
-		pr1.Add(pu1)
-
-		w.CollectNode.Add(pr1)
 
 		// Publish node direct to collection
 		pu2 := wmap.NewPublishNode("file", -1)
 		pu2.AddConfigItem("color", "brown")
 		pu2.AddConfigItem("purpose", 42)
-		w.CollectNode.Add(pu2)
 
-		//
+		pr12.Add(pu2)
+		pr1.Add(pr12)
+		w.CollectNode.Add(pr1)
+		w.CollectNode.Add(pu1)
+
 		e := s.Start()
 		So(e, ShouldBeNil)
-		_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
-		So(err, ShouldBeEmpty)
+		t, te := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
+		So(te.Errors(), ShouldBeEmpty)
+
+		for _, i := range t.(*task).workflow.processNodes {
+			testInboundContentType(i)
+		}
+		for _, i := range t.(*task).workflow.publishNodes {
+			testInboundContentType(i)
+		}
+		So(t.(*task).workflow.processNodes[0].ProcessNodes[0].PublishNodes[0].InboundContentType, ShouldEqual, "pulse.json")
 	})
+}
+
+func testInboundContentType(node interface{}) {
+	switch t := node.(type) {
+	case *processNode:
+		fmt.Printf("testing content type for pr plugin %s %d/n", t.Name, t.Version)
+		So(t.InboundContentType, ShouldNotEqual, "")
+		for _, i := range t.ProcessNodes {
+			testInboundContentType(i)
+		}
+	case *publishNode:
+		fmt.Printf("testing content type for pu plugin %s %d/n", t.Name, t.Version)
+		So(t.InboundContentType, ShouldNotEqual, "")
+	}
 }
 
 // func TestScheduler(t *testing.T) {

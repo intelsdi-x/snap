@@ -59,7 +59,7 @@ func inStringBytes(payload interface{}) ([]byte, error) {
 }
 
 func SampleWorkflowMapJson() string {
-	wf := sample()
+	wf := Sample()
 	b, e := wf.ToJson()
 	if e != nil {
 		panic(e)
@@ -68,7 +68,7 @@ func SampleWorkflowMapJson() string {
 }
 
 func SampleWorkflowMapYaml() string {
-	wf := sample()
+	wf := Sample()
 	b, e := wf.ToYaml()
 	if e != nil {
 		panic(e)
@@ -76,7 +76,7 @@ func SampleWorkflowMapYaml() string {
 	return string(b)
 }
 
-func sample() *WorkflowMap {
+func Sample() *WorkflowMap {
 	wf := new(WorkflowMap)
 
 	c1 := &CollectWorkflowMapNode{
@@ -143,8 +143,9 @@ func (c *CollectWorkflowMapNode) GetRequestedMetrics() []core.RequestedMetric {
 	var metrics []core.RequestedMetric = make([]core.RequestedMetric, len(c.Metrics))
 	x := 0
 	for k, v := range c.Metrics {
+		ns := strings.Trim(k, `/`)
 		metrics[x] = metric{
-			namespace: strings.Split(k, "/"),
+			namespace: strings.Split(ns, "/"),
 			version:   v.Version_,
 		}
 		x++
@@ -160,7 +161,7 @@ func (c *CollectWorkflowMapNode) GetConfigTree() (*cdata.ConfigDataTree, error) 
 
 		// Attempt to convert namespace string to proper namespace
 		if !isValidNamespaceString(ns_) {
-			return nil, errors.New(fmt.Sprintf("Invalid namespace: ", ns_))
+			return nil, errors.New(fmt.Sprintf("Invalid namespace: %v", ns_))
 		}
 		ns := strings.Split(ns_, "/")[1:]
 		cdn, err := configtoConfigDataNode(cmap, ns_)

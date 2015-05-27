@@ -186,7 +186,7 @@ func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
 // SubscribeMetricType validates the given config data, and if valid
 // returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
-func (p *pluginControl) SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
+func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
 	logger.Info("control.subscribe", fmt.Sprintf("subscription called with: %s", mt.Namespace()))
 	var subErrs []error
 
@@ -430,6 +430,11 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 		return []error{err}
 	}
 	return nil
+}
+
+func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
+	//TODO impl
+	return []string{"pulse.gob"}, []string{"pulse.gob"}, nil
 }
 
 // ------------------- helper struct and function for grouping metrics types ------

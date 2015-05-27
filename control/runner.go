@@ -247,11 +247,12 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 		ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(mt.Plugin.Path), mt.Plugin.Path)
 		if err != nil {
+			logger.Debugf("runner:HandleGomitEvent", "Plugin %v (ver %v) error: %v", mt.Plugin.Name(), mt.Plugin.Version(), err)
 			fmt.Println(err)
 		}
 		_, err = r.startPlugin(ePlugin)
 		if err != nil {
-			fmt.Println(err)
+			logger.Debugf("runner:HandleGomitEvent", "Plugin %v (ver %v) start error: %v", mt.Plugin.Name(), mt.Plugin.Version(), err)
 			panic(err)
 		}
 	}
