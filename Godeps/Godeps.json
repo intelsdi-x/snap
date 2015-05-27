@@ -31,7 +31,7 @@
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
-			"Rev": "b59a38004596b696aca7aa2adccfa68760864d86"
+			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
 		},
 		{
 			"ImportPath": "github.com/smartystreets/assertions",
@@ -45,7 +45,7 @@
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
-			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
+			"Rev": "c1cd2254a6dd314c9d73c338c12688c9325d85c6"
 		}
 	]
 }
