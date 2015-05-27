@@ -1,22 +1,30 @@
 package sarama
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
 
 func TestFuncConnectionFailure(t *testing.T) {
+	setupFunctionalTest(t)
+	defer teardownFunctionalTest(t)
+
+	Proxies["kafka1"].Enabled = false
+	SaveProxy(t, "kafka1")
+
 	config := NewConfig()
 	config.Metadata.Retry.Max = 1
 
-	_, err := NewClient([]string{"localhost:9000"}, config)
+	_, err := NewClient([]string{kafkaBrokers[0]}, config)
 	if err != ErrOutOfBrokers {
 		t.Fatal("Expected returned error to be ErrOutOfBrokers, but was: ", err)
 	}
 }
 
 func TestFuncClientMetadata(t *testing.T) {
-	checkKafkaAvailability(t)
+	setupFunctionalTest(t)
+	defer teardownFunctionalTest(t)
 
 	config := NewConfig()
 	config.Metadata.Retry.Max = 1
@@ -38,20 +46,44 @@ func TestFuncClientMetadata(t *testing.T) {
 		t.Error("Expected ErrUnknownTopicOrPartition, got", err)
 	}
 
-	partitions, err := client.Partitions("multi_partition")
+	partitions, err := client.Partitions("test.4")
 	if err != nil {
 		t.Error(err)
 	}
-	if len(partitions) != 2 {
-		t.Errorf("Expected multi_partition topic to have 2 partitions, found %v", partitions)
+	if len(partitions) != 4 {
+		t.Errorf("Expected test.4 topic to have 4 partitions, found %v", partitions)
 	}
 
-	partitions, err = client.Partitions("single_partition")
+	partitions, err = client.Partitions("test.1")
 	if err != nil {
 		t.Error(err)
 	}
 	if len(partitions) != 1 {
-		t.Errorf("Expected single_partition topic to have 1 partitions, found %v", partitions)
+		t.Errorf("Expected test.1 topic to have 1 partitions, found %v", partitions)
+	}
+
+	safeClose(t, client)
+}
+
+func TestFuncClientCoordinator(t *testing.T) {
+	checkKafkaVersion(t, "0.8.2")
+	setupFunctionalTest(t)
+	defer teardownFunctionalTest(t)
+
+	client, err := NewClient(kafkaBrokers, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 10; i++ {
+		broker, err := client.Coordinator(fmt.Sprintf("another_new_consumer_group_%d", i))
+		if err != nil {
+			t.Error(err)
+		}
+
+		if connected, err := broker.Connected(); !connected || err != nil {
+			t.Errorf("Expected to coordinator %s broker to be properly connected.", broker.Addr())
+		}
 	}
 
 	safeClose(t, client)

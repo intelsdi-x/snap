@@ -1,0 +1,8 @@
+{
+	"ImportPath": "github.com/intelsdi-x/pulse/plugin/publisher/pulse-publisher-kafka/Godeps",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": []
+}
