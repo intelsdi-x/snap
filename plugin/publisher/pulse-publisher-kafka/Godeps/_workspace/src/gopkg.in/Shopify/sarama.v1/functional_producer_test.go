@@ -40,7 +40,8 @@ func TestFuncProducingFlushing(t *testing.T) {
 }
 
 func TestFuncMultiPartitionProduce(t *testing.T) {
-	checkKafkaAvailability(t)
+	setupFunctionalTest(t)
+	defer teardownFunctionalTest(t)
 
 	config := NewConfig()
 	config.ChannelBufferSize = 20
@@ -58,7 +59,7 @@ func TestFuncMultiPartitionProduce(t *testing.T) {
 	for i := 1; i <= TestBatchSize; i++ {
 		go func(i int) {
 			defer wg.Done()
-			msg := &ProducerMessage{Topic: "multi_partition", Key: nil, Value: StringEncoder(fmt.Sprintf("hur %d", i))}
+			msg := &ProducerMessage{Topic: "test.64", Key: nil, Value: StringEncoder(fmt.Sprintf("hur %d", i))}
 			if _, _, err := producer.SendMessage(msg); err != nil {
 				t.Error(i, err)
 			}
@@ -72,7 +73,8 @@ func TestFuncMultiPartitionProduce(t *testing.T) {
 }
 
 func TestFuncProducingToInvalidTopic(t *testing.T) {
-	checkKafkaAvailability(t)
+	setupFunctionalTest(t)
+	defer teardownFunctionalTest(t)
 
 	producer, err := NewSyncProducer(kafkaBrokers, nil)
 	if err != nil {
@@ -91,7 +93,8 @@ func TestFuncProducingToInvalidTopic(t *testing.T) {
 }
 
 func testProducingMessages(t *testing.T, config *Config) {
-	checkKafkaAvailability(t)
+	setupFunctionalTest(t)
+	defer teardownFunctionalTest(t)
 
 	config.Producer.Return.Successes = true
 	config.Consumer.Return.Errors = true
@@ -105,7 +108,7 @@ func testProducingMessages(t *testing.T, config *Config) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	consumer, err := master.ConsumePartition("single_partition", 0, OffsetNewest)
+	consumer, err := master.ConsumePartition("test.1", 0, OffsetNewest)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +120,7 @@ func testProducingMessages(t *testing.T, config *Config) {
 
 	expectedResponses := TestBatchSize
 	for i := 1; i <= TestBatchSize; {
-		msg := &ProducerMessage{Topic: "single_partition", Key: nil, Value: StringEncoder(fmt.Sprintf("testing %d", i))}
+		msg := &ProducerMessage{Topic: "test.1", Key: nil, Value: StringEncoder(fmt.Sprintf("testing %d", i))}
 		select {
 		case producer.Input() <- msg:
 			i++
@@ -154,4 +157,47 @@ func testProducingMessages(t *testing.T, config *Config) {
 	}
 	safeClose(t, consumer)
 	safeClose(t, client)
+}
+
+// Benchmarks
+
+func BenchmarkProducerSmall(b *testing.B) {
+	benchmarkProducer(b, nil, "test.64", ByteEncoder(make([]byte, 128)))
+}
+func BenchmarkProducerMedium(b *testing.B) {
+	benchmarkProducer(b, nil, "test.64", ByteEncoder(make([]byte, 1024)))
+}
+func BenchmarkProducerLarge(b *testing.B) {
+	benchmarkProducer(b, nil, "test.64", ByteEncoder(make([]byte, 8192)))
+}
+func BenchmarkProducerSmallSinglePartition(b *testing.B) {
+	benchmarkProducer(b, nil, "test.1", ByteEncoder(make([]byte, 128)))
+}
+func BenchmarkProducerMediumSnappy(b *testing.B) {
+	conf := NewConfig()
+	conf.Producer.Compression = CompressionSnappy
+	benchmarkProducer(b, conf, "test.1", ByteEncoder(make([]byte, 1024)))
+}
+
+func benchmarkProducer(b *testing.B, conf *Config, topic string, value Encoder) {
+	setupFunctionalTest(b)
+	defer teardownFunctionalTest(b)
+
+	producer, err := NewAsyncProducer(kafkaBrokers, conf)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+
+	for i := 1; i <= b.N; {
+		msg := &ProducerMessage{Topic: topic, Key: StringEncoder(fmt.Sprintf("%d", i)), Value: value}
+		select {
+		case producer.Input() <- msg:
+			i++
+		case ret := <-producer.Errors():
+			b.Fatal(ret.Err)
+		}
+	}
+	safeClose(b, producer)
 }
