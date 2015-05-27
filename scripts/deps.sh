@@ -7,6 +7,8 @@ function loadDeps() {
 	cd $z
 	echo "Restoring deps for $z" 
 	godep restore
+    cd -
+
 }
 
 function checkPluginType() {	
@@ -14,6 +16,8 @@ function checkPluginType() {
 	do		
 		if [ -d "$z/Godeps" ]; then			 	
 			loadDeps $z
+        else
+            echo "$z" has no deps
 		fi
 	done
 }
