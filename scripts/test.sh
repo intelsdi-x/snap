@@ -10,7 +10,15 @@
 COVERALLS_TOKEN=t47LG6BQsfLwb9WxB56hXUezvwpED6D11
 TEST_DIRS="control/ core/ mgmt/ pkg/ pulse.go scheduler/"
 
+export PULSE_PATH=`pwd`/build
+# this prevents all plugins to be rebuild (by main_tests in every plugin)
+
 set -e
+SOURCEDIR=`pwd`
+PULSE_GOPATH=$GOPATH
+function mangleGoPath {
+  export GOPATH=`godep path`:$PULSE_GOPATH
+}
  
 # Automatic checks
 echo "gofmt"
@@ -29,10 +37,11 @@ test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"
 # echo "golint"
 # golint ./...
 
+mangleGoPath
 echo "go vet"
 go vet ./...
 # go test -race ./... - Lets disable for now
- 
+
 # Run test coverage on each subdirectories and merge the coverage profile.
  
 echo "mode: count" > profile.cov
@@ -41,16 +50,19 @@ echo "mode: count" > profile.cov
 for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -type d);
 do
 if ls $dir/*.go &> /dev/null; then
-    go test -covermode=count -coverprofile=$dir/profile.tmp $dir
-    if [ -f $dir/profile.tmp ]
-    then
-        cat $dir/profile.tmp | tail -n +2 >> profile.cov
-        rm $dir/profile.tmp
-    fi
+    cd $dir
+    mangleGoPath
+    go test -covermode=count -coverprofile=profile.tmp 
+    # if [ -f profile.tmp ]
+    # then
+    #     cat profile.tmp | tail -n +2 >> $SOURCEDIR/profile.cov
+    #     rm profile.tmp
+    # fi
+    cd -
 fi
 done
  
-go tool cover -func profile.cov
+# go tool cover -func profile.cov
  
 # Disabled Coveralls.io for now
 # To submit the test coverage result to coveralls.io,
