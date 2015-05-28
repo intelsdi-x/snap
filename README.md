@@ -66,11 +66,34 @@ make
 * [Please read our development guidelines](https://github.com/intelsdilabs/pulse/wiki/Development-guidelines)
 * [ ] TODO - CLA
 
+## Building
+
+```
+make build
+```
+creates all required binaries into build folder
+with a given structure:
+
+```
+build
+├── bin
+│   └── pulse-agent
+└── plugin
+    ├── collector
+    │   └── pulse-collector-PLUGINNAME
+    └── publisher
+        └── pulse-publisher-PLUGINNAME
+```
+
 ## Testing
 
 ```
 make test
 ```
+
+Builds agent & plugins and then calls all tests.
+
+
 
 ## Releases
 
