@@ -1,0 +1,10 @@
+# proxy set for intel
+UPDATE_APT_PROXY_CMD='echo \'Acquire::http { Proxy "http://proxy-chain.intel.com:911/"; };\' >>/etc/apt/apt.conf.d/01proxy'
+HTTP_PROXY=http://proxy-chain.intel.com:911
+http_proxy=http://proxy-chain.intel.com:911
+HTTPS_PROXY=https://proxy-chain.intel.com:911
+https_proxy=https://proxy-chain.intel.com:911
+FTP_PROXY=http://proxy-chain.intel.com:911
+ftp_proxy=http://proxy-chain.intel.com:911
+NO_PROXY="localhost,172.28.38.23,127.0.0.1,192.168.122.1,10.0.2.15,*.example.com,*.intel.com,.intel.com,::1,ip6-loopback,/var/run/docker.sock"
+no_proxy="localhost,172.28.38.23,127.0.0.1,192.168.122.1,10.0.2.15,*.example.com,*.intel.com,.intel.com,::1,ip6-loopback,/var/run/docker.sock"
