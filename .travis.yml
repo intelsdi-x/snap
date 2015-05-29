@@ -3,29 +3,18 @@ language: go
 go:
 - 1.4.2
 before_install:
-- cp .netrc ~
-- chmod 600 .netrc
-- go get github.com/tools/godep
-- go get github.com/axw/gocov/gocov
-- go get github.com/mattn/goveralls
-- go get -u github.com/golang/lint/golint
-- go get golang.org/x/tools/cmd/vet
-- go get golang.org/x/tools/cmd/goimports
-- go get github.com/smartystreets/goconvey/convey
-- if [ ! -d $PULSE_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $PULSE_SOURCE; fi # CI for forks not from intelsdi-x
-- if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+- cp .netrc ~ && chmod 600 .netrc # have an access to private repo
+- if [ ! -d $PULSE_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $PULSE_SOURCE; fi # CI works for forks 
+- make deps # only testing requirements (like coverage, vet, linters etc...)
 env:
   global:
     - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/pulse
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdi-x/pulse/build    
 install:
 - gem install facter
-- cd $PULSE_SOURCE # change dir into source
-- ./scripts/deps.sh # load deps for pulse and plugins
-- go get -d -v ./... && go build -v ./... # get and build source
-- make
 script:
-- ./scripts/test.sh 2>&1 # Run test suite
+- cd $PULSE_SOURCE 
+- make test
 notifications:
   slack:
     secure: VkbZLIc2RH8yf3PtIAxUNPdAu3rQQ7yQx0GcK124JhbEnZGaHyK615V0rbG7HcVmYKGPdB0cXqZiLBDKGqGKb2zR1NepOe1nF03jxGSpPq8jIFeEXSJGEYGL34ScDzZZGuG6qwbjFcXiW5lqn6t8igzp7v2+URYBaZo5ktCS2xY=
