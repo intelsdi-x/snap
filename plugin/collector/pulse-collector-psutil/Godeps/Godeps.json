@@ -21,6 +21,11 @@
 			"ImportPath": "github.com/shirou/gopsutil/mem",
 			"Comment": "1.0.0-64-g64357f0",
 			"Rev": "64357f04e785f61a86d993e486b0f9be54d44cb7"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/net",
+			"Comment": "1.0.0-64-g64357f0",
+			"Rev": "64357f04e785f61a86d993e486b0f9be54d44cb7"
 		}
 	]
 }
