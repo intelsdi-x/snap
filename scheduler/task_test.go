@@ -30,6 +30,32 @@ func TestTask(t *testing.T) {
 			task.Stop()
 		})
 
+		Convey("Task deadline duration test", func() {
+			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			task := newTask(sch, []core.Metric{}, wf, newWorkManager(), c, core.TaskDeadlineDuration(20*time.Second))
+			task.Spin()
+			So(task.deadlineDuration, ShouldEqual, 20*time.Second)
+			task.Option(core.TaskDeadlineDuration(20 * time.Second))
+
+			So(core.TaskDeadlineDuration(2*time.Second), ShouldNotBeEmpty)
+
+		})
+
+		Convey("Tasks are created and creation of task table is checked", func() {
+			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			task := newTask(sch, []core.Metric{}, wf, newWorkManager(), c)
+			task1 := newTask(sch, []core.Metric{}, wf, newWorkManager(), c)
+			task1.Spin()
+			task.Spin()
+			tC := newTaskCollection()
+			tC.add(task)
+			tC.add(task1)
+			taskTable := tC.Table()
+
+			So(len(taskTable), ShouldEqual, 2)
+
+		})
+
 		Convey("Task is created and starts to spin", func() {
 			sch := schedule.NewSimpleSchedule(time.Second * 5)
 			task := newTask(sch, []core.Metric{}, wf, newWorkManager(), c)
