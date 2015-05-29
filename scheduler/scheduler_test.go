@@ -184,7 +184,106 @@ func TestScheduler(t *testing.T) {
 			testInboundContentType(i)
 		}
 		So(t.(*task).workflow.processNodes[0].ProcessNodes[0].PublishNodes[0].InboundContentType, ShouldEqual, "pulse.json")
+
+		Convey("returns errors when metrics do not validate", func() {
+			c.failValidatingMetrics = true
+			c.failValidatingMetricsAfter = 1
+			_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
+			So(err, ShouldNotBeNil)
+			fmt.Printf("%d", len(err.Errors()))
+			So(len(err.Errors()), ShouldBeGreaterThan, 0)
+			So(err.Errors()[0], ShouldResemble, errors.New("metric validation error"))
+
+		})
+
+		Convey("returns an error when scheduler started and MetricManager is not set", func() {
+			s1 := New()
+			err := s1.Start()
+			So(err, ShouldNotBeNil)
+			fmt.Printf("%v", err)
+			So(err, ShouldResemble, MetricManagerNotSet)
+
+		})
+
+		Convey("returns an error when wrong namespace is given wo workflowmap ", func() {
+			w.CollectNode.AddMetric("****/&&&", 3)
+			w.CollectNode.AddConfigItem("****/&&&", "username", "user")
+			_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
+
+			So(len(err.Errors()), ShouldBeGreaterThan, 0)
+
+		})
+
+		// TODO NICK
+		Convey("returns an error when a schedule does not validate", func() {
+			s1 := New()
+			s1.Start()
+			_, err := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
+			So(err, ShouldNotBeNil)
+			So(len(err.Errors()), ShouldBeGreaterThan, 0)
+			So(err.Errors()[0], ShouldResemble, SchedulerNotStarted)
+			s1.metricManager = c
+			s1.Start()
+			_, err1 := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*0), w)
+			So(err1.Errors()[0], ShouldResemble, errors.New("Simple Schedule interval must be greater than 0"))
+
+		})
+
+		// 		// TODO NICK
+		Convey("create a task", func() {
+
+			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*5), w)
+			So(len(err.Errors()), ShouldEqual, 0)
+			So(tsk, ShouldNotBeNil)
+			So(tsk.(*task).deadlineDuration, ShouldResemble, DefaultDeadlineDuration)
+			So(len(s.GetTasks()), ShouldEqual, 2)
+			Convey("error when attempting to add duplicate task", func() {
+				err := s.tasks.add(tsk.(*task))
+				So(err, ShouldNotBeNil)
+
+			})
+			Convey("get created task", func() {
+				t, err := s.GetTask(tsk.Id())
+				So(err, ShouldBeNil)
+				So(t, ShouldEqual, tsk)
+			})
+			Convey("error when attempting to get a task that doesn't exist", func() {
+				t, err := s.GetTask(uint64(1234))
+				So(err, ShouldNotBeNil)
+				So(t, ShouldBeNil)
+			})
+		})
+
+		// 		// // TODO NICK
+		Convey("returns a task with a 6 second deadline duration", func() {
+			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*6), w, core.TaskDeadlineDuration(6*time.Second))
+			So(len(err.Errors()), ShouldEqual, 0)
+			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
+			prev := tsk.(*task).Option(core.TaskDeadlineDuration(1 * time.Second))
+			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(1*time.Second))
+			tsk.(*task).Option(prev)
+			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
+		})
 	})
+	Convey("Stop()", t, func() {
+		Convey("Should set scheduler state to SchedulerStopped", func() {
+			scheduler := New()
+			c := new(mockMetricManager)
+			scheduler.metricManager = c
+			scheduler.Start()
+			scheduler.Stop()
+			So(scheduler.state, ShouldEqual, schedulerStopped)
+		})
+	})
+	Convey("SetMetricManager()", t, func() {
+		Convey("Should set metricManager for scheduler", func() {
+			scheduler := New()
+			c := new(mockMetricManager)
+			scheduler.SetMetricManager(c)
+			So(scheduler.metricManager, ShouldEqual, c)
+		})
+	})
+
 }
 
 func testInboundContentType(node interface{}) {
