@@ -74,17 +74,11 @@ func virtualMemory(ns []string) (*plugin.PluginMetricType, error) {
 	return nil, fmt.Errorf("Unknown error processing %v", ns)
 }
 
-func getVirtualMemoryMetricTypes(mts []plugin.PluginMetricType) []plugin.PluginMetricType {
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "total"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "available"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "used"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "used_percent"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "free"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "active"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "inactive"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "buffers"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "cached"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "wired"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", "shared"}})
+func getVirtualMemoryMetricTypes() []plugin.PluginMetricType {
+	t := []string{"total", "available", "used", "used_percent", "free", "active", "inactive", "buffers", "cached", "wired", "shared"}
+	mts := make([]plugin.PluginMetricType, len(t))
+	for i, te := range t {
+		mts[i] = plugin.PluginMetricType{Namespace_: []string{"psutil", "vm", te}}
+	}
 	return mts
 }

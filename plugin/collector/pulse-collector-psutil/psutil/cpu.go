@@ -82,10 +82,10 @@ func cpuTimes(ns []string) (*plugin.PluginMetricType, error) {
 	return nil, fmt.Errorf("Unknown error processing %v", ns)
 }
 
-func getCPUTimesMetricTypes(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
+func getCPUTimesMetricTypes() ([]plugin.PluginMetricType, error) {
 	//passing true to CPUTimes indicates per CPU
 	//CPUTimes does not currently work on OSX https://github.com/shirou/gopsutil/issues/31
-	//TODO test on Linux
+	mts := make([]plugin.PluginMetricType, 0)
 	if runtime.GOOS != "darwin" {
 		c, err := cpu.CPUTimes(true)
 		if err != nil {

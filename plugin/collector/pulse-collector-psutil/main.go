@@ -11,7 +11,7 @@ import (
 // plugin bootstrap
 func main() {
 	plugin.Start(
-		plugin.NewPluginMeta(psutil.Name, psutil.Version, psutil.Type),
+		plugin.NewPluginMeta(psutil.Name, psutil.Version, psutil.Type, []string{}, []string{plugin.PulseGOBContentType}),
 		&psutil.Psutil{}, // CollectorPlugin interface
 		os.Args[1],
 	)

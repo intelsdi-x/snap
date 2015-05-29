@@ -68,16 +68,18 @@ func (p *Psutil) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginM
 func (p *Psutil) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 	mts := []plugin.PluginMetricType{}
 
-	mts = getLoadAvgMetricTypes(mts)
-	mts, err := getCPUTimesMetricTypes(mts)
+	mts = append(mts, getLoadAvgMetricTypes()...)
+	mts_, err := getCPUTimesMetricTypes()
 	if err != nil {
 		return nil, err
 	}
-	mts = getVirtualMemoryMetricTypes(mts)
-	mts, err = getNetIOCounterMetricTypes(mts)
+	mts = append(mts, mts_...)
+	mts = append(mts, getVirtualMemoryMetricTypes()...)
+	mts_, err = getNetIOCounterMetricTypes()
 	if err != nil {
 		return nil, err
 	}
+	mts = append(mts, mts_...)
 
 	return mts, nil
 }

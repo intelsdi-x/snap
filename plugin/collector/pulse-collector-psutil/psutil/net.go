@@ -73,7 +73,8 @@ func netIOCounters(ns []string) (*plugin.PluginMetricType, error) {
 	return nil, fmt.Errorf("Unknown error processing %v", ns)
 }
 
-func getNetIOCounterMetricTypes(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
+func getNetIOCounterMetricTypes() ([]plugin.PluginMetricType, error) {
+	mts := make([]plugin.PluginMetricType, 0)
 	nets, err := net.NetIOCounters(false)
 	if err != nil {
 		return nil, err

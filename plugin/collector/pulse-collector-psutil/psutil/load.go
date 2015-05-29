@@ -34,9 +34,11 @@ func loadAvg(ns []string) (*plugin.PluginMetricType, error) {
 	return nil, fmt.Errorf("Unknown error processing %v", ns)
 }
 
-func getLoadAvgMetricTypes(mts []plugin.PluginMetricType) []plugin.PluginMetricType {
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "load", "load1"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "load", "load5"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"psutil", "load", "load15"}})
+func getLoadAvgMetricTypes() []plugin.PluginMetricType {
+	t := []string{"load1", "load5", "load15"}
+	mts := make([]plugin.PluginMetricType, len(t))
+	for i, te := range t {
+		mts[i] = plugin.PluginMetricType{Namespace_: []string{"psutil", "load", te}}
+	}
 	return mts
 }
