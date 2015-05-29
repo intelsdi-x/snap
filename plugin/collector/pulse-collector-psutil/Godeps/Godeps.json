@@ -1,0 +1,26 @@
+{
+	"ImportPath": "github.com/intelsdi-x/pulse/plugin/collector/pulse-collector-psutil",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "github.com/shirou/gopsutil/common",
+			"Comment": "1.0.0-64-g64357f0",
+			"Rev": "64357f04e785f61a86d993e486b0f9be54d44cb7"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/cpu",
+			"Comment": "1.0.0-64-g64357f0",
+			"Rev": "64357f04e785f61a86d993e486b0f9be54d44cb7"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/load",
+			"Comment": "1.0.0-64-g64357f0",
+			"Rev": "64357f04e785f61a86d993e486b0f9be54d44cb7"
+		},
+		{
+			"ImportPath": "github.com/shirou/gopsutil/mem",
+			"Comment": "1.0.0-64-g64357f0",
+			"Rev": "64357f04e785f61a86d993e486b0f9be54d44cb7"
+		}
+	]
+}
