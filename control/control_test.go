@@ -222,7 +222,11 @@ func TestPluginCatalog(t *testing.T) {
 	c := New()
 
 	lp1 := new(loadedPlugin)
-	lp1.Meta = plugin.PluginMeta{Name: "test1", Version: 1}
+	lp1.Meta = plugin.PluginMeta{Name: "test1",
+		Version:              1,
+		AcceptedContentTypes: []string{"a", "b", "c"},
+		ReturnedContentTypes: []string{"a", "b", "c"},
+	}
 	lp1.Type = 0
 	lp1.State = "loaded"
 	lp1.LoadedTime = ts
@@ -242,6 +246,17 @@ func TestPluginCatalog(t *testing.T) {
 	lp3.LoadedTime = ts
 	c.pluginManager.LoadedPlugins().Append(lp3)
 
+	lp4 := new(loadedPlugin)
+	lp4.Meta = plugin.PluginMeta{Name: "test1",
+		Version:              4,
+		AcceptedContentTypes: []string{"d", "e", "f"},
+		ReturnedContentTypes: []string{"d", "e", "f"},
+	}
+	lp4.Type = 0
+	lp4.State = "loaded"
+	lp4.LoadedTime = ts
+	c.pluginManager.LoadedPlugins().Append(lp4)
+
 	pc := c.PluginCatalog()
 
 	Convey("it returns a list of CatalogedPlugins (PluginCatalog)", t, func() {
@@ -250,6 +265,33 @@ func TestPluginCatalog(t *testing.T) {
 
 	Convey("the loadedPlugins implement the interface CatalogedPlugin interface", t, func() {
 		So(lp1.Name(), ShouldEqual, "test1")
+	})
+
+	Convey("GetPluginContentTypes", t, func() {
+		Convey("Given a plugin that exists", func() {
+			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 1)
+			So(err, ShouldBeNil)
+			So(act, ShouldResemble, []string{"a", "b", "c"})
+			So(ret, ShouldResemble, []string{"a", "b", "c"})
+		})
+		Convey("Given a plugin with a version that does NOT exist", func() {
+			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 5)
+			So(err, ShouldNotBeNil)
+			So(act, ShouldBeEmpty)
+			So(ret, ShouldBeEmpty)
+		})
+		Convey("Given a plugin where the version provided is 0", func() {
+			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 0)
+			So(err, ShouldBeNil)
+			So(act, ShouldResemble, []string{"d", "e", "f"})
+			So(ret, ShouldResemble, []string{"d", "e", "f"})
+		})
+		Convey("Given no plugins for the name and type", func() {
+			act, ret, err := c.GetPluginContentTypes("test9", core.PluginType(0), 5)
+			So(err, ShouldNotBeNil)
+			So(act, ShouldBeEmpty)
+			So(ret, ShouldBeEmpty)
+		})
 	})
 
 }

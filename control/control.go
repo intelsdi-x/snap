@@ -432,9 +432,16 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 	return nil
 }
 
+// GetPluginContentTypes returns accepted and returned content types for the
+// loaded plugin matching the provided name, type and version.
+// If the version provided is 0 or less the newest plugin by version will be
+// returned.
 func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
-	//TODO impl
-	return []string{"pulse.gob"}, []string{"pulse.gob"}, nil
+	lp, err := p.pluginManager.LoadedPlugins().get(n, plugin.PluginType(t), v)
+	if err != nil {
+		return nil, nil, err
+	}
+	return lp.Meta.AcceptedContentTypes, lp.Meta.ReturnedContentTypes, nil
 }
 
 // ------------------- helper struct and function for grouping metrics types ------
