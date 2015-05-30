@@ -64,6 +64,8 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			So(err, ShouldBeNil)
 			err = c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 			So(err, ShouldBeNil)
+			err = c.Load(path.Join(PulsePath, "plugin", "processor", "pulse-processor-passthru"))
+			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
 
 			metrics, err := c.MetricCatalog()
@@ -79,9 +81,14 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			config, err := pu.GetConfigNode()
 			So(err, ShouldBeNil)
 			c.SubscribePublisher("file", 1, config.Table())
+
+			pr := wmap.NewProcessNode("passthru", 1)
+			c.SubscribeProcessor("passthru", 1, config.Table())
 			time.Sleep(100 * time.Millisecond)
 
-			w.CollectNode.Add(pu)
+			pr.Add(pu)
+			w.CollectNode.Add(pr)
+			logger.Debug(w.String())
 
 			Convey("Start scheduler", func() {
 				err := s.Start()

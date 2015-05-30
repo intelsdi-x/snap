@@ -166,6 +166,16 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 		if err != nil {
 			return sErr, retCode
 		}
+	case ProcessorPluginType:
+		r := &Response{
+			Type:  ProcessorPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		err, retCode := StartProcessor(c.(ProcessorPlugin), sessionState, r)
+		if err != nil {
+			return sErr, retCode
+		}
 	}
 
 	return nil, retCode

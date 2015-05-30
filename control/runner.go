@@ -195,6 +195,31 @@ func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
 func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 	switch v := e.Body.(type) {
+	case *control_event.ProcessorSubscriptionEvent:
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
+		logger.Debugf("runner.events", "handling processor subscription event (%v:v%v)", v.PluginName, v.PluginVersion)
+
+		for r.pluginManager.LoadedPlugins().Next() {
+			_, lp := r.pluginManager.LoadedPlugins().Item()
+			logger.Debugf("runner.events", "subscription request name: %v version: %v", v.PluginName, v.PluginVersion)
+			logger.Debugf("runner.events", "loaded plugin name: %v version: %v type: %v", lp.Name(), lp.Version(), lp.TypeName())
+			if lp.TypeName() == "processor" && lp.Name() == v.PluginName && lp.Version() == v.PluginVersion {
+				pool := r.availablePlugins.Publishers.GetPluginPool(lp.Key())
+				ok := checkPool(pool, lp.Key())
+				if !ok {
+					return
+				}
+
+				ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(lp.Path), lp.Path)
+				_, err = r.startPlugin(ePlugin)
+				if err != nil {
+					fmt.Println(err)
+					panic(err)
+				}
+			}
+
+		}
 	case *control_event.PublisherSubscriptionEvent:
 		r.mutex.Lock()
 		defer r.mutex.Unlock()

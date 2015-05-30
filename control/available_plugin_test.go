@@ -237,18 +237,5 @@ func TestAvailablePlugins(t *testing.T) {
 			So(ap, ShouldBeNil)
 			So(err, ShouldNotBeNil)
 		})
-		Convey("it returns an error for unsupported types", func() {
-			resp := &plugin.Response{
-				Meta: plugin.PluginMeta{
-					Name:    "test",
-					Version: 1,
-				},
-				Type:          plugin.ProcessorPluginType,
-				ListenAddress: "localhost:9999",
-			}
-			ap, err := newAvailablePlugin(resp, -1, nil)
-			So(ap, ShouldBeNil)
-			So(err, ShouldNotBeNil)
-		})
 	})
 }

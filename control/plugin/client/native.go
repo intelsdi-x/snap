@@ -18,26 +18,26 @@ type PluginNativeClient struct {
 }
 
 func NewCollectorNativeClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
-	// Attempt to dial address error on timeout or problem
-	conn, err := net.DialTimeout("tcp", address, timeout)
-	// Return nil RPCClient and err if encoutered
+	p, err := newNativeClient(address, timeout)
 	if err != nil {
 		return nil, err
 	}
-	r := rpc.NewClient(conn)
-	p := &PluginNativeClient{connection: r}
 	return p, nil
 }
 
 func NewPublisherNativeClient(address string, timeout time.Duration) (PluginPublisherClient, error) {
-	// Attempt to dial address error on timeout or problem
-	conn, err := net.DialTimeout("tcp", address, timeout)
-	// Return nil RPCClient and err if encoutered
+	p, err := newNativeClient(address, timeout)
 	if err != nil {
 		return nil, err
 	}
-	r := rpc.NewClient(conn)
-	p := &PluginNativeClient{connection: r}
+	return p, nil
+}
+
+func NewProcessorNativeClient(address string, timeout time.Duration) (PluginProcessorClient, error) {
+	p, err := newNativeClient(address, timeout)
+	if err != nil {
+		return nil, err
+	}
 	return p, nil
 }
 
@@ -62,6 +62,15 @@ func (p *PluginNativeClient) Publish(contentType string, content []byte, config 
 	err := p.connection.Call("Publisher.Publish", args, &reply)
 
 	return err
+}
+
+func (p *PluginNativeClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
+	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
+	reply := plugin.ProcessorReply{}
+
+	err := p.connection.Call("Publisher.Publish", args, &reply)
+
+	return reply.ContentType, reply.Content, err
 }
 
 func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]core.Metric, error) {
@@ -126,6 +135,18 @@ func (p *PluginNativeClient) GetConfigPolicyNode() (cpolicy.ConfigPolicyNode, er
 	}
 
 	return reply.PolicyNode, nil
+}
+
+func newNativeClient(address string, timeout time.Duration) (*PluginNativeClient, error) {
+	// Attempt to dial address error on timeout or problem
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	// Return nil RPCClient and err if encoutered
+	if err != nil {
+		return nil, err
+	}
+	r := rpc.NewClient(conn)
+	p := &PluginNativeClient{connection: r}
+	return p, nil
 }
 
 func init() {

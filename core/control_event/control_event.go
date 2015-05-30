@@ -6,6 +6,7 @@ const (
 	PluginUnloaded      = "Control.PluginUnloaded"
 	PluginsSwapped      = "Control.PluginsSwapped"
 	PublisherSubscribed = "Control.PublisherSubscribed"
+	ProcessorSubscribed = "Control.ProcessorSubscribed"
 	MetricSubscribed    = "Control.MetricSubscribed"
 	MetricUnsubscribed  = "Control.MetricUnsubscribed"
 	HealthCheckFailed   = "Control.PluginHealthCheckFailed"
@@ -49,6 +50,15 @@ type PublisherSubscriptionEvent struct {
 
 func (se PublisherSubscriptionEvent) Namespace() string {
 	return PublisherSubscribed
+}
+
+type ProcessorSubscriptionEvent struct {
+	PluginName    string
+	PluginVersion int
+}
+
+func (se ProcessorSubscriptionEvent) Namespace() string {
+	return ProcessorSubscribed
 }
 
 type MetricSubscriptionEvent struct {

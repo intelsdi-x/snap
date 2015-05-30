@@ -238,15 +238,57 @@ func (p *pluginControl) SubscribePublisher(name string, ver int, config map[stri
 		return subErrs
 	}
 
-	ncd := lp.ConfigPolicyTree.Get([]string{""})
-	_, errs := ncd.Process(config)
-	if errs != nil && errs.HasErrors() {
-		return errs.Errors()
+	if lp.ConfigPolicyTree != nil {
+		ncd := lp.ConfigPolicyTree.Get([]string{""})
+		_, errs := ncd.Process(config)
+		if errs != nil && errs.HasErrors() {
+			return errs.Errors()
+		}
 	}
 
 	//TODO store subscription counts for publishers
 
 	e := &control_event.PublisherSubscriptionEvent{
+		PluginName:    name,
+		PluginVersion: ver,
+	}
+	defer p.eventManager.Emit(e)
+
+	return nil
+}
+
+//TODO consider collapsing SubscribePublisher and SubscribeProcessor
+// SubscribeProcessor
+func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error {
+	logger.Info("control.processor", fmt.Sprintf("processor subscription called for %v:%v", name, ver))
+	var subErrs []error
+
+	p.pluginManager.LoadedPlugins().Lock()
+	defer p.pluginManager.LoadedPlugins().Unlock()
+	var lp *loadedPlugin
+	for p.pluginManager.LoadedPlugins().Next() {
+		_, l := p.pluginManager.LoadedPlugins().Item()
+		if l.Name() == name && l.Version() == ver {
+			lp = l
+		}
+	}
+
+	if lp == nil {
+		subErrs = append(subErrs, errors.New(fmt.Sprintf("No loaded plugin found for processor name: %v version: %v", name, ver)))
+		return subErrs
+	}
+
+	if lp.ConfigPolicyTree != nil {
+		ncd := lp.ConfigPolicyTree.Get([]string{""})
+		_, errs := ncd.Process(config)
+		if errs != nil && errs.HasErrors() {
+			return errs.Errors()
+		}
+	}
+
+	//TODO store subscription counts
+
+	e := &control_event.ProcessorSubscriptionEvent{
 		PluginName:    name,
 		PluginVersion: ver,
 	}

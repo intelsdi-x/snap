@@ -251,7 +251,7 @@ func (w *schedulerWorkflow) Start(t *task) {
 	j = t.manager.Work(j)
 
 	// walk through the tree and dispatch work
-	w.workJobs(w.processNodes, w.publishNodes, t, j)
+	w.workJobs(w.processNodes, w.publishNodes, t.manager, t.metricsManager, j)
 }
 
 func (s *schedulerWorkflow) State() WorkflowState {
@@ -262,17 +262,16 @@ func (s *schedulerWorkflow) StateString() string {
 	return WorkflowStateLookup[s.state]
 }
 
-//TODO JC pass in manages work instead of task
-func (w *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *task, pj job) {
+func (w *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, mw managesWork, mm ManagesMetrics, pj job) {
 	for _, pr := range prs {
 		j := newProcessJob(pj, pr.Name, pr.Version)
-		j = t.manager.Work(j)
+		j = mw.Work(j)
 		for _, npr := range pr.ProcessNodes {
-			w.workJobs(npr.ProcessNodes, npr.PublishNodes, t, j)
+			w.workJobs(npr.ProcessNodes, npr.PublishNodes, mw, mm, j)
 		}
 	}
 	for _, pu := range pus {
-		j := newPublishJob(pj, pu.Name, pu.Version, pu.InboundContentType, pu.Config.Table(), t.metricsManager)
-		j = t.manager.Work(j)
+		j := newPublishJob(pj, pu.Name, pu.Version, pu.InboundContentType, pu.Config.Table(), mm)
+		j = mw.Work(j)
 	}
 }

@@ -11,6 +11,7 @@ PLUGINDIR=plugin
 BINDIR=$BUILDDIR/bin
 COLLECTORDIR=$BUILDDIR/$PLUGINDIR/collector
 PUBLISHERDIR=$BUILDDIR/$PLUGINDIR/publisher
+PROCESSORDIR=$BUILDDIR/$PLUGINDIR/processor
 
 # Clean build bin dir
 rm -rf $BINDIR/*
@@ -19,6 +20,7 @@ rm -rf $BINDIR/*
 mkdir -p $BINDIR
 mkdir -p $COLLECTORDIR
 mkdir -p $PUBLISHERDIR
+mkdir -p $PROCESSORDIR
 
 # Binaries
 #
@@ -55,7 +57,6 @@ else
 	# Publisher build
 	rm -rf $PUBLISHERDIR/*
 	echo " Building Publisher Plugin(s)"
-	# Built-in Collector Plugin building
 	cd $SOURCEDIR/$PLUGINDIR/publisher
 	for d in *; do
 		if [[ -d $d ]]; then
@@ -65,6 +66,18 @@ else
 		fi
 	done
 	
+	# Processor build
+	rm -rf $PROCESSORDIR/*
+	echo " Building Processor Plugin(s)"
+	cd $SOURCEDIR/$PLUGINDIR/processor
+	for d in *; do
+		if [[ -d $d ]]; then
+			echo "    $d => $PROCESSORDIR/$d"		
+			go build -o $PROCESSORDIR/$d ./$d/ || exit 2
+			# chmod -x ../../$PROCESSORDIR/$d / for testing non-executable builds
+		fi
+	done
+
 	cd $SOURCEDIR
 
 	# Built-in Publisher Plugin building
