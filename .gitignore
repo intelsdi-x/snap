@@ -29,3 +29,5 @@ build/
 *.swp
 profile.cov
 gin-bin
+
+/Dockerfile_with_proxy

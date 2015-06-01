@@ -66,11 +66,46 @@ make
 * [Please read our development guidelines](https://github.com/intelsdilabs/pulse/wiki/Development-guidelines)
 * [ ] TODO - CLA
 
+## Building
+
+```
+make build
+```
+creates all required binaries into build folder
+with a given structure:
+
+```
+build
+├── bin
+│   └── pulse-agent
+└── plugin
+    ├── collector
+    │   └── pulse-collector-PLUGINNAME
+    └── publisher
+        └── pulse-publisher-PLUGINNAME
+```
+
 ## Testing
 
 ```
 make test
 ```
+
+Build agent & plugins and then run all tests.
+
+#### in Docker
+``
+make docker-build
+make docker-test
+``
+
+## Makefile
+
+* make [build] - build agent and plugins locally (default) using developer GOPATH 
+* make test - build & tests locally using developer GOPATH (they result may be different from CI if you forget to vendoer with `godep save`)
+* make docker-build - build docker image and inside builds pulse-agent & plugins with vendored packages but local sources 
+* make docker-test - run tests within docker container (make test -> ./scripts/test.sh) (uses vendored packages)
+* make docker-bash - interactive terminal within docker container (for manual testing in isolation)
 
 ## Releases
 
