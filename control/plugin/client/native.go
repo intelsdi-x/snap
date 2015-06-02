@@ -72,7 +72,7 @@ func (p *PluginNativeClient) Process(contentType string, content []byte, config 
 	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
 	reply := plugin.ProcessorReply{}
 
-	err := p.connection.Call("Publisher.Publish", args, &reply)
+	err := p.connection.Call("Processor.Process", args, &reply)
 
 	return reply.ContentType, reply.Content, err
 }

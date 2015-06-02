@@ -88,9 +88,9 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			c.SubscribeProcessor("passthru", 1, config2.Table())
 			time.Sleep(100 * time.Millisecond)
 
-			// pr.Add(pu)
-			// w.CollectNode.Add(pr)
-			w.CollectNode.Add(pu)
+			pr.Add(pu)
+			w.CollectNode.Add(pr)
+			// w.CollectNode.Add(pu)
 			logger.Debug(w.String())
 
 			Convey("Start scheduler", func() {

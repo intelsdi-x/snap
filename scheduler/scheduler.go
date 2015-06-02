@@ -31,6 +31,7 @@ type ManagesMetrics interface {
 	UnsubscribeMetricType(mt core.Metric)
 	CollectsMetrics
 	PublishesMetrics
+	ProcessesMetrics
 	ManagesPluginContentTypes
 }
 
@@ -48,6 +49,7 @@ type PublishesMetrics interface {
 }
 
 type ProcessesMetrics interface {
+	ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error)
 }
 
 type scheduler struct {

@@ -165,19 +165,14 @@ type publishNode struct {
 
 type wfContentTypes map[string]map[string][]string
 
-// BindPluginContentTypes uses the provided ManagesMetrics to
+// BindPluginContentTypes
 func (s *schedulerWorkflow) BindPluginContentTypes(mm ManagesPluginContentTypes) error {
-	// Default returned types from a collection
-	// possibleContentTypes := []string{"pulse.*", "pulse.gob", "pulse.json"}
-	// Walk nodes to query and bind the content types required
-	// top level
 	logger.SetLevel(logger.DebugLevel)
 	bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.PulseGOBContentType})
 	return nil
 }
 
 func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm ManagesPluginContentTypes, lct []string) error {
-	//todo lastcontentTypes needs to be passed in
 	for _, pr := range prs {
 		act, rct, err := mm.GetPluginContentTypes(pr.Name, core.ProcessorPluginType, pr.Version)
 		if err != nil {
@@ -264,11 +259,9 @@ func (s *schedulerWorkflow) StateString() string {
 
 func (w *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, mw managesWork, mm ManagesMetrics, pj job) {
 	for _, pr := range prs {
-		j := newProcessJob(pj, pr.Name, pr.Version)
+		j := newProcessJob(pj, pr.Name, pr.Version, pr.InboundContentType, pr.Config.Table(), mm)
 		j = mw.Work(j)
-		for _, npr := range pr.ProcessNodes {
-			w.workJobs(npr.ProcessNodes, npr.PublishNodes, mw, mm, j)
-		}
+		w.workJobs(pr.ProcessNodes, pr.PublishNodes, mw, mm, j)
 	}
 	for _, pu := range pus {
 		j := newPublishJob(pj, pu.Name, pu.Version, pu.InboundContentType, pu.Config.Table(), mm)

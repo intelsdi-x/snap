@@ -474,6 +474,33 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 	return nil
 }
 
+// ProcessMetrics
+func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
+	key := strings.Join([]string{pluginName, strconv.Itoa(pluginVersion)}, ":")
+
+	pool := p.pluginRunner.AvailablePlugins().Processors.GetPluginPool(key)
+	if pool == nil {
+		return "", nil, []error{errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))}
+	}
+
+	// resolve a available plugin from pool
+	ap, err := getAvailablePlugin(pool, p.strategy)
+	if err != nil {
+		return "", nil, []error{err}
+	}
+
+	cli, ok := ap.Client.(client.PluginProcessorClient)
+	if !ok {
+		return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
+	}
+
+	ct, c, err := cli.Process(contentType, content, config)
+	if err != nil {
+		return "", nil, []error{err}
+	}
+	return ct, c, nil
+}
+
 // GetPluginContentTypes returns accepted and returned content types for the
 // loaded plugin matching the provided name, type and version.
 // If the version provided is 0 or less the newest plugin by version will be

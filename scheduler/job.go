@@ -135,50 +135,59 @@ func (c *collectorJob) Run() {
 //todo rename to processJob
 type processJob struct {
 	*coreJob
+	processor     ProcessesMetrics
 	parentJob     job
 	metrics       []core.Metric
 	pluginName    string
 	pluginVersion int
+	config        map[string]ctypes.ConfigValue
+	contentType   string
+	content       []byte
 }
 
-func (pr *processJob) Run() {
-	// logger.Debugf("Scheduler.ProcessorJob.Run", "Starting processor job.")
-	// logger.Debugf("Scheduler.ProcessorJob.Run", "Processor - contentType: %v pluginName: %v version: %v config: %v", p.contentType, p.pluginName, p.pluginVersion, p.config)
-	// var buf bytes.Buffer
-	// enc := gob.NewEncoder(&buf)
-
-	// switch p.parentJob.Type() {
-	// case collectJobType:
-	// 	switch p.contentType {
-	// 	case plugin.PulseGOBContentType:
-	// 		metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
-	// 		for i, m := range p.parentJob.(*collectorJob).metrics {
-	// 			metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
-	// 		}
-	// 		enc.Encode(metrics)
-	// 	default:
-	// 		panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
-	// 	}
-	// default:
-	// 	panic("unsupported job type")
-	// }
-	// logger.Debugf("Scheduler.ProcessorJob.Run", "content: %v", buf.Bytes())
-	// errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
-	// if errs != nil {
-	// 	p.errors = append(p.errors, errs...)
-	// }
-
-	// p.replchan <- struct{}{}
-}
-
-func newProcessJob(parentJob job, pluginName string, pluginVersion int) job {
+func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, processor ProcessesMetrics) job {
 	return &processJob{
 		parentJob:     parentJob,
 		pluginName:    pluginName,
 		pluginVersion: pluginVersion,
 		metrics:       []core.Metric{},
 		coreJob:       newCoreJob(processJobType, parentJob.Deadline()),
+		config:        config,
+		processor:     processor,
+		contentType:   contentType,
 	}
+}
+
+func (p *processJob) Run() {
+	logger.Debugf("Scheduler.ProcessorJob.Run", "Starting processor job.")
+	logger.Debugf("Scheduler.ProcessorJob.Run", "Processor - contentType: %v pluginName: %v version: %v config: %v", p.contentType, p.pluginName, p.pluginVersion, p.config)
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	switch p.parentJob.Type() {
+	case collectJobType:
+		switch p.contentType {
+		case plugin.PulseGOBContentType:
+			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
+			for i, m := range p.parentJob.(*collectorJob).metrics {
+				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
+			}
+			enc.Encode(metrics)
+			logger.Debugf("Scheduler.ProcessorJob.Run", "content: %v", buf.Bytes())
+			_, content, errs := p.processor.ProcessMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
+			if errs != nil {
+				logger.Infof("Scheduler.ProcessorJob.Run", "error: %v", errs)
+				p.errors = append(p.errors, errs...)
+			}
+			p.content = content
+		default:
+			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
+		}
+	default:
+		panic("unsupported job type")
+	}
+
+	p.replchan <- struct{}{}
 }
 
 type publisherJob struct {
@@ -218,16 +227,25 @@ func (p *publisherJob) Run() {
 				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
 			}
 			enc.Encode(metrics)
+			logger.Debugf("Scheduler.PublisherJob.Run", "content: %v", buf.Bytes())
+			errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
+			if errs != nil {
+				p.errors = append(p.errors, errs...)
+			}
 		default:
 			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
 		}
+	case processJobType:
+		switch p.contentType {
+		case plugin.PulseGOBContentType:
+			logger.Debugf("Scheduler.PublisherJob.Run", "content: %v", p.parentJob.(*processJob).content)
+			errs := p.publisher.PublishMetrics(p.contentType, p.parentJob.(*processJob).content, p.pluginName, p.pluginVersion, p.config)
+			if errs != nil {
+				p.errors = append(p.errors, errs...)
+			}
+		}
 	default:
 		panic("unsupported job type")
-	}
-	logger.Debugf("Scheduler.PublisherJob.Run", "content: %v", buf.Bytes())
-	errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
-	if errs != nil {
-		p.errors = append(p.errors, errs...)
 	}
 
 	p.replchan <- struct{}{}

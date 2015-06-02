@@ -83,6 +83,10 @@ func (m *mockMetricManager) PublishMetrics(contentType string, content []byte, p
 	return nil
 }
 
+func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
+	return "", nil, nil
+}
+
 type mockMetricManagerError struct {
 	errs []error
 }
