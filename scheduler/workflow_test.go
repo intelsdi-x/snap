@@ -83,11 +83,14 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			c.SubscribePublisher("file", 1, config.Table())
 
 			pr := wmap.NewProcessNode("passthru", 1)
-			c.SubscribeProcessor("passthru", 1, config.Table())
+			config2, err := pr.GetConfigNode()
+			So(err, ShouldBeNil)
+			c.SubscribeProcessor("passthru", 1, config2.Table())
 			time.Sleep(100 * time.Millisecond)
 
-			pr.Add(pu)
-			w.CollectNode.Add(pr)
+			// pr.Add(pu)
+			// w.CollectNode.Add(pr)
+			w.CollectNode.Add(pu)
 			logger.Debug(w.String())
 
 			Convey("Start scheduler", func() {

@@ -283,7 +283,6 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	switch resp.Type {
 	case plugin.CollectorPluginType:
-
 		colClient := ap.Client.(client.PluginCollectorClient)
 
 		// Get the ConfigPolicyTree and add it to the loaded plugin
@@ -303,8 +302,8 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		for _, mt := range metricTypes {
 			p.metricCatalog.AddLoadedMetricType(lPlugin, mt)
 		}
-	case plugin.PublisherPluginType:
 
+	case plugin.PublisherPluginType:
 		pubClient := ap.Client.(client.PluginPublisherClient)
 
 		cpn, err := pubClient.GetConfigPolicyNode()
@@ -316,6 +315,22 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		cpt := cpolicy.NewTree()
 		cpt.Add([]string{""}, &cpn)
 		lPlugin.ConfigPolicyTree = cpt
+
+	case plugin.ProcessorPluginType:
+		procClient := ap.Client.(client.PluginProcessorClient)
+
+		cpn, err := procClient.GetConfigPolicyNode()
+		logger.Debugf("PluginManager.LoadPlugin (processor)", "configPolicyNode; %v", cpn)
+		if err != nil {
+			return nil, err
+		}
+
+		cpt := cpolicy.NewTree()
+		cpt.Add([]string{""}, &cpn)
+		lPlugin.ConfigPolicyTree = cpt
+
+	default:
+		return nil, fmt.Errorf("Unknown plugin type '%s'", resp.Type.String())
 	}
 
 	err = ePlugin.Kill()

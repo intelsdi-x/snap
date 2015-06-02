@@ -47,6 +47,9 @@ type PublishesMetrics interface {
 	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
 }
 
+type ProcessesMetrics interface {
+}
+
 type scheduler struct {
 	workManager   *workManager
 	metricManager ManagesMetrics
