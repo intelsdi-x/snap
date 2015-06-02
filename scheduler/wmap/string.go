@@ -7,9 +7,9 @@ import (
 func (w *WorkflowMap) String() string {
 	var out string
 	out += "Workflow\n"
-	out += "\tCollect:\n"
+	out += "   Collect:\n"
 	if w.CollectNode != nil {
-		out += w.CollectNode.String("\t\t")
+		out += w.CollectNode.String("      ")
 	} else {
 		out += "\n"
 	}
@@ -19,16 +19,17 @@ func (w *WorkflowMap) String() string {
 
 func (c *CollectWorkflowMapNode) String(pad string) string {
 	var out string
-	out += pad + "Metric Namespaces:\n"
-	for _, x := range c.MetricsNamespaces {
-		out += pad + "\t" + x + "\n"
+	out += pad + "Metrics:\n"
+	for k, v := range c.Metrics {
+		out += pad + fmt.Sprintf("      Namespace: %s\n", k)
+		out += pad + fmt.Sprintf("         Version: %d\n", v.Version_)
 	}
 	out += "\n"
 	out += pad + "Config:\n"
 	for k, v := range c.Config {
-		out += pad + "\t" + k + "\n"
+		out += pad + "   " + k + "\n"
 		for x, y := range v {
-			out += pad + "\t\t" + fmt.Sprintf("%s=%+v\n", x, y)
+			out += pad + "      " + fmt.Sprintf("%s=%+v\n", x, y)
 		}
 	}
 	out += "\n"
@@ -47,28 +48,32 @@ func (c *CollectWorkflowMapNode) String(pad string) string {
 
 func (p *ProcessWorkflowMapNode) String(pad string) string {
 	var out string
-	out += pad + fmt.Sprintf("\tName: %s\n", p.Name)
-	out += pad + fmt.Sprintf("\tVersion: %d\n", p.Version)
+	out += pad + fmt.Sprintf("   Name: %s\n", p.Name)
+	out += pad + fmt.Sprintf("   Version: %d\n", p.Version)
 
-	out += pad + "\tProcess Nodes:\n"
-	for _, pr := range p.ProcessNodes {
-		out += pr.String(pad + "\t")
+	out += pad + "   Config:\n"
+	for k, v := range p.Config {
+		out += pad + "      " + fmt.Sprintf("%s=%+v\n", k, v)
 	}
-	out += pad + "\tPublish Nodes:\n"
+	out += pad + "   Process Nodes:\n"
+	for _, pr := range p.ProcessNodes {
+		out += pr.String(pad + "   ")
+	}
+	out += pad + "   Publish Nodes:\n"
 	for _, pu := range p.PublishNodes {
-		out += pu.String(pad + "\t")
+		out += pu.String(pad + "   ")
 	}
 	return out
 }
 
 func (p *PublishWorkflowMapNode) String(pad string) string {
 	var out string
-	out += pad + fmt.Sprintf("\tName: %s\n", p.Name)
-	out += pad + fmt.Sprintf("\tVersion: %d\n", p.Version)
+	out += pad + fmt.Sprintf("   Name: %s\n", p.Name)
+	out += pad + fmt.Sprintf("   Version: %d\n", p.Version)
 
-	out += pad + "\tConfig:\n"
+	out += pad + "   Config:\n"
 	for k, v := range p.Config {
-		out += pad + "\t\t" + fmt.Sprintf("%s=%+v\n", k, v)
+		out += pad + "      " + fmt.Sprintf("%s=%+v\n", k, v)
 	}
 	return out
 }

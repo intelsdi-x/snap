@@ -1,7 +1,9 @@
 ---
   collect: 
-    metric_namespaces: 
-      - "/foo/bar"
+    metrics: 
+      /foo/bar:
+        version: 1
+      /foo/baz:      
     config:
       /foo/bar:
         user: "root"

@@ -24,7 +24,8 @@ type PluginCollectorClient interface {
 // PluginProcessorClient A client providing processor specific plugin method calls.
 type PluginProcessorClient interface {
 	PluginClient
-	ProcessMetricData([]core.Metric) ([]core.Metric, error)
+	Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error)
+	GetConfigPolicyNode() (cpolicy.ConfigPolicyNode, error)
 }
 
 // PluginPublisherClient A client providing publishing specific plugin method calls.

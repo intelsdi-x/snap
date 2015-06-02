@@ -135,6 +135,45 @@ func (l *loadedPlugins) Next() bool {
 	return true
 }
 
+// get returns the loaded plugin matching the provided name, type and version.
+// If the version provided is 0 or less the newest plugin by version will be
+// returned.
+func (l *loadedPlugins) get(n string, t plugin.PluginType, v int) (*loadedPlugin, error) {
+	l.Lock()
+	defer l.Unlock()
+
+	pvd := make(map[int]*loadedPlugin)
+	keys := make([]int, 0)
+
+	for _, lp := range l.Table() {
+		if lp.Name() == n && lp.Type == t {
+			pvd[lp.Version()] = lp
+			keys = append(keys, lp.Version())
+		}
+	}
+	//return error if there are no matches
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("There is no plugin matching {name: '%s' version: '%d' type: '%s'}.", n, v, t.String())
+	}
+	// a specific (greater than 0) version was provided
+	if v > 0 {
+		lp := pvd[v]
+		if lp == nil {
+			return nil, fmt.Errorf("There is no plugin matching {name: '%s' version: '%d' type: '%s'}.", n, v, t.String())
+		}
+		return lp, nil
+	} else {
+		// a version of 0 or less was provided meaning select the newest plugin
+		var pv int
+		for _, k := range keys {
+			if k > pv {
+				pv = k
+			}
+		}
+		return pvd[pv], nil
+	}
+}
+
 // the struct representing a plugin that is loaded into Pulse
 type loadedPlugin struct {
 	Meta             plugin.PluginMeta
@@ -244,7 +283,6 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	switch resp.Type {
 	case plugin.CollectorPluginType:
-
 		colClient := ap.Client.(client.PluginCollectorClient)
 
 		// Get the ConfigPolicyTree and add it to the loaded plugin
@@ -264,8 +302,8 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		for _, mt := range metricTypes {
 			p.metricCatalog.AddLoadedMetricType(lPlugin, mt)
 		}
-	case plugin.PublisherPluginType:
 
+	case plugin.PublisherPluginType:
 		pubClient := ap.Client.(client.PluginPublisherClient)
 
 		cpn, err := pubClient.GetConfigPolicyNode()
@@ -277,6 +315,22 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		cpt := cpolicy.NewTree()
 		cpt.Add([]string{""}, &cpn)
 		lPlugin.ConfigPolicyTree = cpt
+
+	case plugin.ProcessorPluginType:
+		procClient := ap.Client.(client.PluginProcessorClient)
+
+		cpn, err := procClient.GetConfigPolicyNode()
+		logger.Debugf("PluginManager.LoadPlugin (processor)", "configPolicyNode; %v", cpn)
+		if err != nil {
+			return nil, err
+		}
+
+		cpt := cpolicy.NewTree()
+		cpt.Add([]string{""}, &cpn)
+		lPlugin.ConfigPolicyTree = cpt
+
+	default:
+		return nil, fmt.Errorf("Unknown plugin type '%s'", resp.Type.String())
 	}
 
 	err = ePlugin.Kill()

@@ -8,6 +8,8 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 var (
@@ -22,27 +24,37 @@ const (
 	schedulerStarted
 )
 
-// managesMetric is implemented by control
+// ManagesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
-//JC todo refacto this to be managesMetrics
-type managesMetric interface {
-	SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error)
+type ManagesMetrics interface {
+	SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error)
 	UnsubscribeMetricType(mt core.Metric)
+	CollectsMetrics
+	PublishesMetrics
+	ProcessesMetrics
+	ManagesPluginContentTypes
+}
+
+// ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
+type ManagesPluginContentTypes interface {
+	GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error)
+}
+
+type CollectsMetrics interface {
 	CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error)
+}
+
+type PublishesMetrics interface {
 	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
 }
 
-type collectsMetrics interface {
-	CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error)
-}
-
-type publishesMetrics interface {
-	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
+type ProcessesMetrics interface {
+	ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error)
 }
 
 type scheduler struct {
 	workManager   *workManager
-	metricManager managesMetric
+	metricManager ManagesMetrics
 	tasks         *taskCollection
 	state         schedulerState
 }
@@ -76,60 +88,62 @@ func (t *taskErrors) Errors() []error {
 }
 
 // CreateTask creates and returns task
-func (s *scheduler) CreateTask(mts []core.Metric, sch core.Schedule, cdt *cdata.ConfigDataTree, wf core.Workflow, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+	// Create a container for task errors
 	te := &taskErrors{
 		errs: make([]error, 0),
 	}
 
+	// Return error if we are not started.
 	if s.state != schedulerStarted {
 		te.errs = append(te.errs, SchedulerNotStarted)
 		return nil, te
 	}
 
-	//validate Schedule
+	// Ensure the schedule is valid at this point and time.
 	if err := sch.Validate(); err != nil {
 		te.errs = append(te.errs, err)
 		return nil, te
 	}
 
-	//subscribe to MT
-	//if we encounter an error we will unwind successful subscriptions
+	// Generate a workflow from the workflow map
+	wf, err := wmapToWorkflow(wfMap)
+	if err != nil {
+		te.errs = append(te.errs, SchedulerNotStarted)
+		return nil, te
+	}
+
+	// Bind plugin content type selections in workflow
+	err = wf.BindPluginContentTypes(s.metricManager)
+
+	// Subscribe to MT.
+	// If we encounter an error we will unwind successful subscriptions.
 	subscriptions := make([]core.Metric, 0)
-	for _, m := range mts {
+	for _, m := range wf.metrics {
+		cdt, er := wfMap.CollectNode.GetConfigTree()
+		if er != nil {
+			te.errs = append(te.errs, er)
+			continue
+		}
 		cd := cdt.Get(m.Namespace())
 		mt, err := s.metricManager.SubscribeMetricType(m, cd)
 		if err == nil {
-			//mt := newMetricType(m, config)
-			//mtc = append(mtc, mt)
 			subscriptions = append(subscriptions, mt)
 		} else {
 			te.errs = append(te.errs, err...)
 		}
 	}
 
+	// Unwind successful subscriptions if we got here with errors (idempotent)
 	if len(te.errs) > 0 {
-		//unwind successful subscriptions
 		for _, sub := range subscriptions {
 			s.metricManager.UnsubscribeMetricType(sub)
 		}
 		return nil, te
 	}
 
-	sched, err := assertSchedule(sch)
-	if err != nil {
-		te.errs = append(te.errs, err)
-		return nil, te
-	}
-
-	j, err := wf.Marshal()
-	if err != nil {
-		te.errs = append(te.errs, err)
-		return nil, te
-	}
-	workf := newWorkflow()
-	workf.Unmarshal(j)
-
-	task := newTask(sched, subscriptions, workf, s.workManager, s.metricManager, opts...)
+	// Create the task object
+	task := newTask(sch, subscriptions, wf, s.workManager, s.metricManager, opts...)
 
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {
@@ -137,7 +151,7 @@ func (s *scheduler) CreateTask(mts []core.Metric, sch core.Schedule, cdt *cdata.
 		return nil, te
 	}
 
-	return task, nil
+	return task, te
 }
 
 //GetTasks returns a copy of the tasks in a map where the task id is the key
@@ -172,6 +186,6 @@ func (s *scheduler) Stop() {
 }
 
 // Set metricManager for scheduler
-func (s *scheduler) SetMetricManager(mm managesMetric) {
+func (s *scheduler) SetMetricManager(mm ManagesMetrics) {
 	s.metricManager = mm
 }

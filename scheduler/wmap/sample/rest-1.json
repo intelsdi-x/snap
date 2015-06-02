@@ -1,0 +1,34 @@
+{
+    "collect": {
+        "metrics": {
+            "/intel/dummy/foo": {
+                "version": 1
+            },
+            "/intel/dummy/bar": {}
+        },
+        "config": {
+            "/intel/dummy": {
+                "password": "secret",
+                "user": "root"
+            }
+        },
+        "process": [
+            {
+                "plugin_name": "passthru",
+                "plugin_version": 1,
+                "process": null,
+                "publish": [
+                    {
+                        "plugin_name": "file",
+                        "plugin_version": 1,
+                        "config": {
+                            "fie": "/tmp/pub.out"                            
+                        }
+                    }
+                ],
+                "config": null
+            }
+        ],
+        "publish": null
+    }
+}

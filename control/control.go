@@ -186,7 +186,7 @@ func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
 // SubscribeMetricType validates the given config data, and if valid
 // returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
-func (p *pluginControl) SubscribeMetricType(mt core.Metric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
+func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
 	logger.Info("control.subscribe", fmt.Sprintf("subscription called with: %s", mt.Namespace()))
 	var subErrs []error
 
@@ -238,15 +238,57 @@ func (p *pluginControl) SubscribePublisher(name string, ver int, config map[stri
 		return subErrs
 	}
 
-	ncd := lp.ConfigPolicyTree.Get([]string{""})
-	_, errs := ncd.Process(config)
-	if errs != nil && errs.HasErrors() {
-		return errs.Errors()
+	if lp.ConfigPolicyTree != nil {
+		ncd := lp.ConfigPolicyTree.Get([]string{""})
+		_, errs := ncd.Process(config)
+		if errs != nil && errs.HasErrors() {
+			return errs.Errors()
+		}
 	}
 
 	//TODO store subscription counts for publishers
 
 	e := &control_event.PublisherSubscriptionEvent{
+		PluginName:    name,
+		PluginVersion: ver,
+	}
+	defer p.eventManager.Emit(e)
+
+	return nil
+}
+
+//TODO consider collapsing SubscribePublisher and SubscribeProcessor
+// SubscribeProcessor
+func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error {
+	logger.Info("control.processor", fmt.Sprintf("processor subscription called for %v:%v", name, ver))
+	var subErrs []error
+
+	p.pluginManager.LoadedPlugins().Lock()
+	defer p.pluginManager.LoadedPlugins().Unlock()
+	var lp *loadedPlugin
+	for p.pluginManager.LoadedPlugins().Next() {
+		_, l := p.pluginManager.LoadedPlugins().Item()
+		if l.Name() == name && l.Version() == ver {
+			lp = l
+		}
+	}
+
+	if lp == nil {
+		subErrs = append(subErrs, errors.New(fmt.Sprintf("No loaded plugin found for processor name: %v version: %v", name, ver)))
+		return subErrs
+	}
+
+	if lp.ConfigPolicyTree != nil {
+		ncd := lp.ConfigPolicyTree.Get([]string{""})
+		_, errs := ncd.Process(config)
+		if errs != nil && errs.HasErrors() {
+			return errs.Errors()
+		}
+	}
+
+	//TODO store subscription counts
+
+	e := &control_event.ProcessorSubscriptionEvent{
 		PluginName:    name,
 		PluginVersion: ver,
 	}
@@ -430,6 +472,45 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 		return []error{err}
 	}
 	return nil
+}
+
+// ProcessMetrics
+func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
+	key := strings.Join([]string{pluginName, strconv.Itoa(pluginVersion)}, ":")
+
+	pool := p.pluginRunner.AvailablePlugins().Processors.GetPluginPool(key)
+	if pool == nil {
+		return "", nil, []error{errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))}
+	}
+
+	// resolve a available plugin from pool
+	ap, err := getAvailablePlugin(pool, p.strategy)
+	if err != nil {
+		return "", nil, []error{err}
+	}
+
+	cli, ok := ap.Client.(client.PluginProcessorClient)
+	if !ok {
+		return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
+	}
+
+	ct, c, err := cli.Process(contentType, content, config)
+	if err != nil {
+		return "", nil, []error{err}
+	}
+	return ct, c, nil
+}
+
+// GetPluginContentTypes returns accepted and returned content types for the
+// loaded plugin matching the provided name, type and version.
+// If the version provided is 0 or less the newest plugin by version will be
+// returned.
+func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
+	lp, err := p.pluginManager.LoadedPlugins().get(n, plugin.PluginType(t), v)
+	if err != nil {
+		return nil, nil, err
+	}
+	return lp.Meta.AcceptedContentTypes, lp.Meta.ReturnedContentTypes, nil
 }
 
 // ------------------- helper struct and function for grouping metrics types ------

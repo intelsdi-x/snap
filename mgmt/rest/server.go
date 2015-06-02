@@ -12,7 +12,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
+	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 type managesMetrics interface {
@@ -21,7 +22,7 @@ type managesMetrics interface {
 }
 
 type managesTasks interface {
-	CreateTask([]core.Metric, core.Schedule, *cdata.ConfigDataTree, core.Workflow, ...core.TaskOption) (core.Task, core.TaskErrors)
+	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, ...core.TaskOption) (core.Task, core.TaskErrors)
 }
 
 type Server struct {
@@ -53,18 +54,18 @@ func (s *Server) BindTaskManager(t managesTasks) {
 func (s *Server) start(addrString string) {
 
 	// plugin routes
-	s.r.GET("/v1/plugin", s.getPlugins)
-	s.r.GET("/v1/plugin/:name", s.getPluginsByName)
-	s.r.GET("/v1/plugin/:name/:version", s.getPlugin)
-	s.r.POST("/v1/plugin", s.loadPlugin)
+	s.r.GET("/v1/plugins", s.getPlugins)
+	s.r.GET("/v1/plugins/:name", s.getPluginsByName)
+	s.r.GET("/v1/plugins/:name/:version", s.getPlugin)
+	s.r.POST("/v1/plugins", s.loadPlugin)
 
 	// metric routes
-	s.r.GET("/v1/metric", s.getMetrics)
-	s.r.GET("/v1/metric/*namespace", s.getMetricsFromTree)
+	s.r.GET("/v1/metrics", s.getMetrics)
+	s.r.GET("/v1/metrics/*namespace", s.getMetricsFromTree)
 
 	// task routes
-	s.r.GET("/v1/task", s.getTasks)
-	s.r.POST("/v1/task", s.addTask)
+	s.r.GET("/v1/tasks", s.getTasks)
+	s.r.POST("/v1/tasks", s.addTask)
 
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)

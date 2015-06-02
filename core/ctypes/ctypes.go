@@ -30,6 +30,14 @@ func (c ConfigValueFloat) Type() string {
 	return "float"
 }
 
+type ConfigValueBool struct {
+	Value bool
+}
+
+func (c ConfigValueBool) Type() string {
+	return "bool"
+}
+
 // Returns a slice of string keywords for the types supported by ConfigValue.
 func SupportedTypes() []string {
 	// This is kind of a hack but keeps the definiton of types here in

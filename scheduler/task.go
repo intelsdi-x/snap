@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/pkg/schedule"
 )
 
 const (
@@ -18,39 +19,40 @@ type task struct {
 	sync.Mutex //protects state
 
 	id               uint64
-	schResponseChan  chan scheduleResponse
+	schResponseChan  chan schedule.Response
 	killChan         chan struct{}
-	schedule         schedule
-	workflow         workflow
+	schedule         schedule.Schedule
+	workflow         *schedulerWorkflow
 	metricTypes      []core.Metric
 	state            core.TaskState
 	creationTime     time.Time
 	lastFireTime     time.Time
 	manager          managesWork
-	metricsManager   managesMetric
+	metricsManager   ManagesMetrics
 	deadlineDuration time.Duration
 	hitCount         uint
 	missedIntervals  uint
 }
 
-type option func(t *task) option
+// Commented out because never used and not needed. Discussed it with Joel and he aggrees as well -Shweta
+// type option func(t *task) option
 
-// TaskDeadlineDuration sets the tasks deadline.
-// The deadline is the amount of time that can pass before a worker begins
-// processing the tasks collect job.
-func TaskDeadlineDuration(v time.Duration) option {
-	return func(t *task) option {
-		previous := t.deadlineDuration
-		t.deadlineDuration = v
-		return TaskDeadlineDuration(previous)
-	}
-}
+// // TaskDeadlineDuration sets the tasks deadline.
+// // The deadline is the amount of time that can pass before a worker begins
+// // processing the tasks collect job.
+// func TaskDeadlineDuration(v time.Duration) option {
+// 	return func(t *task) option {
+// 		previous := t.deadlineDuration
+// 		t.deadlineDuration = v
+// 		return TaskDeadlineDuration(previous)
+// 	}
+// }
 
 //NewTask creates a Task
-func newTask(s schedule, mtc []core.Metric, wf workflow, m *workManager, mm managesMetric, opts ...core.TaskOption) *task {
+func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *workManager, mm ManagesMetrics, opts ...core.TaskOption) *task {
 	task := &task{
 		id:               id(),
-		schResponseChan:  make(chan scheduleResponse),
+		schResponseChan:  make(chan schedule.Response),
 		killChan:         make(chan struct{}),
 		metricTypes:      mtc,
 		schedule:         s,
@@ -117,7 +119,7 @@ func (t *task) State() core.TaskState {
 }
 
 // Status returns the state of the workflow.
-func (t *task) Status() core.WorkflowState {
+func (t *task) Status() WorkflowState {
 	return t.workflow.State()
 }
 
@@ -152,8 +154,8 @@ func (t *task) spin() {
 		select {
 		case sr := <-t.schResponseChan:
 			// If response show this schedule is stil active we fire
-			if sr.state() == core.ScheduleActive {
-				t.missedIntervals += sr.missedIntervals()
+			if sr.State() == schedule.Active {
+				t.missedIntervals += sr.Missed()
 				t.lastFireTime = time.Now()
 				t.fire()
 				t.hitCount++

@@ -3,10 +3,12 @@ package scheduler
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/pkg/logger"
 )
@@ -75,22 +77,53 @@ func (c *coreJob) Errors() []error {
 
 type collectorJob struct {
 	*coreJob
-	collector   collectsMetrics
-	metricTypes []core.Metric
-	metrics     []core.Metric
+	collector      CollectsMetrics
+	metricTypes    []core.RequestedMetric
+	metrics        []core.Metric
+	configDataTree *cdata.ConfigDataTree
 }
 
-func newCollectorJob(metricTypes []core.Metric, deadlineDuration time.Duration, collector collectsMetrics) *collectorJob {
+func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.Duration, collector CollectsMetrics, cdt *cdata.ConfigDataTree) job {
 	return &collectorJob{
-		collector:   collector,
-		metricTypes: metricTypes,
-		metrics:     []core.Metric{},
-		coreJob:     newCoreJob(collectJobType, time.Now().Add(deadlineDuration)),
+		collector:      collector,
+		metricTypes:    metricTypes,
+		metrics:        []core.Metric{},
+		coreJob:        newCoreJob(collectJobType, time.Now().Add(deadlineDuration)),
+		configDataTree: cdt,
 	}
 }
 
+type metric struct {
+	namespace []string
+	version   int
+	config    *cdata.ConfigDataNode
+}
+
+func (m *metric) Namespace() []string {
+	return m.namespace
+}
+
+func (m *metric) Config() *cdata.ConfigDataNode {
+	return m.config
+}
+
+func (m *metric) Version() int {
+	return m.version
+}
+
+func (m *metric) Data() interface{}             { return nil }
+func (m *metric) LastAdvertisedTime() time.Time { return time.Unix(0, 0) }
+
 func (c *collectorJob) Run() {
-	ret, errs := c.collector.CollectMetrics(c.metricTypes, c.Deadline())
+	metrics := make([]core.Metric, len(c.metricTypes))
+	for i, rmt := range c.metricTypes {
+		metrics[i] = &metric{
+			namespace: rmt.Namespace(),
+			version:   rmt.Version(),
+			config:    c.configDataTree.Get(rmt.Namespace()),
+		}
+	}
+	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline())
 	logger.Debugf("Scheduler.CollectorJob.Run", "We collected: %v err: %v", ret, errs)
 	c.metrics = ret
 	if errs != nil {
@@ -99,35 +132,75 @@ func (c *collectorJob) Run() {
 	c.replchan <- struct{}{}
 }
 
+//todo rename to processJob
 type processJob struct {
 	*coreJob
+	processor     ProcessesMetrics
 	parentJob     job
 	metrics       []core.Metric
 	pluginName    string
 	pluginVersion int
+	config        map[string]ctypes.ConfigValue
+	contentType   string
+	content       []byte
 }
 
-func newProcessJob(parentJob job, pluginName string, pluginVersion int) *processJob {
+func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, processor ProcessesMetrics) job {
 	return &processJob{
 		parentJob:     parentJob,
 		pluginName:    pluginName,
 		pluginVersion: pluginVersion,
 		metrics:       []core.Metric{},
 		coreJob:       newCoreJob(processJobType, parentJob.Deadline()),
+		config:        config,
+		processor:     processor,
+		contentType:   contentType,
 	}
+}
+
+func (p *processJob) Run() {
+	logger.Debugf("Scheduler.ProcessorJob.Run", "Starting processor job.")
+	logger.Debugf("Scheduler.ProcessorJob.Run", "Processor - contentType: %v pluginName: %v version: %v config: %v", p.contentType, p.pluginName, p.pluginVersion, p.config)
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	switch p.parentJob.Type() {
+	case collectJobType:
+		switch p.contentType {
+		case plugin.PulseGOBContentType:
+			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
+			for i, m := range p.parentJob.(*collectorJob).metrics {
+				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
+			}
+			enc.Encode(metrics)
+			logger.Debugf("Scheduler.ProcessorJob.Run", "content: %v", buf.Bytes())
+			_, content, errs := p.processor.ProcessMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
+			if errs != nil {
+				logger.Infof("Scheduler.ProcessorJob.Run", "error: %v", errs)
+				p.errors = append(p.errors, errs...)
+			}
+			p.content = content
+		default:
+			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
+		}
+	default:
+		panic("unsupported job type")
+	}
+
+	p.replchan <- struct{}{}
 }
 
 type publisherJob struct {
 	*coreJob
 	parentJob     job
-	publisher     publishesMetrics
+	publisher     PublishesMetrics
 	pluginName    string
 	pluginVersion int
 	config        map[string]ctypes.ConfigValue
 	contentType   string
 }
 
-func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher publishesMetrics) *publisherJob {
+func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher PublishesMetrics) job {
 	return &publisherJob{
 		parentJob:     parentJob,
 		publisher:     publisher,
@@ -154,16 +227,25 @@ func (p *publisherJob) Run() {
 				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
 			}
 			enc.Encode(metrics)
+			logger.Debugf("Scheduler.PublisherJob.Run", "content: %v", buf.Bytes())
+			errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
+			if errs != nil {
+				p.errors = append(p.errors, errs...)
+			}
 		default:
-			panic("unsupported content type")
+			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
+		}
+	case processJobType:
+		switch p.contentType {
+		case plugin.PulseGOBContentType:
+			logger.Debugf("Scheduler.PublisherJob.Run", "content: %v", p.parentJob.(*processJob).content)
+			errs := p.publisher.PublishMetrics(p.contentType, p.parentJob.(*processJob).content, p.pluginName, p.pluginVersion, p.config)
+			if errs != nil {
+				p.errors = append(p.errors, errs...)
+			}
 		}
 	default:
 		panic("unsupported job type")
-	}
-	logger.Debugf("Scheduler.PublisherJob.Run", "content: %v", buf.Bytes())
-	errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
-	if errs != nil {
-		p.errors = append(p.errors, errs...)
 	}
 
 	p.replchan <- struct{}{}

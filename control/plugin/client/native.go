@@ -2,9 +2,11 @@ package client
 
 import (
 	"encoding/gob"
+	"fmt"
 	"net"
 	"net/rpc"
 	"time"
+	"unicode"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -15,29 +17,31 @@ import (
 // Native clients use golang net/rpc for communication to a native rpc server.
 type PluginNativeClient struct {
 	connection *rpc.Client
+	pluginType plugin.PluginType
 }
 
 func NewCollectorNativeClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
-	// Attempt to dial address error on timeout or problem
-	conn, err := net.DialTimeout("tcp", address, timeout)
-	// Return nil RPCClient and err if encoutered
+	p, err := newNativeClient(address, timeout, plugin.CollectorPluginType)
+
 	if err != nil {
 		return nil, err
 	}
-	r := rpc.NewClient(conn)
-	p := &PluginNativeClient{connection: r}
 	return p, nil
 }
 
 func NewPublisherNativeClient(address string, timeout time.Duration) (PluginPublisherClient, error) {
-	// Attempt to dial address error on timeout or problem
-	conn, err := net.DialTimeout("tcp", address, timeout)
-	// Return nil RPCClient and err if encoutered
+	p, err := newNativeClient(address, timeout, plugin.PublisherPluginType)
 	if err != nil {
 		return nil, err
 	}
-	r := rpc.NewClient(conn)
-	p := &PluginNativeClient{connection: r}
+	return p, nil
+}
+
+func NewProcessorNativeClient(address string, timeout time.Duration) (PluginProcessorClient, error) {
+	p, err := newNativeClient(address, timeout, plugin.ProcessorPluginType)
+	if err != nil {
+		return nil, err
+	}
 	return p, nil
 }
 
@@ -62,6 +66,15 @@ func (p *PluginNativeClient) Publish(contentType string, content []byte, config 
 	err := p.connection.Call("Publisher.Publish", args, &reply)
 
 	return err
+}
+
+func (p *PluginNativeClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
+	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
+	reply := plugin.ProcessorReply{}
+
+	err := p.connection.Call("Processor.Process", args, &reply)
+
+	return reply.ContentType, reply.Content, err
 }
 
 func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]core.Metric, error) {
@@ -120,12 +133,30 @@ func (p *PluginNativeClient) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, er
 func (p *PluginNativeClient) GetConfigPolicyNode() (cpolicy.ConfigPolicyNode, error) {
 	args := plugin.GetConfigPolicyNodeArgs{}
 	reply := plugin.GetConfigPolicyNodeReply{PolicyNode: *cpolicy.NewPolicyNode()}
-	err := p.connection.Call("Publisher.GetConfigPolicyNode", args, &reply)
+	err := p.connection.Call(fmt.Sprintf("%s.GetConfigPolicyNode", p.GetType()), args, &reply)
 	if err != nil {
 		return cpolicy.ConfigPolicyNode{}, err
 	}
 
 	return reply.PolicyNode, nil
+}
+
+// GetType returns the string type of the plugin
+// Note: the first letter of the type will be capitalized.
+func (p *PluginNativeClient) GetType() string {
+	return upcaseInitial(p.pluginType.String())
+}
+
+func newNativeClient(address string, timeout time.Duration, t plugin.PluginType) (*PluginNativeClient, error) {
+	// Attempt to dial address error on timeout or problem
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	// Return nil RPCClient and err if encoutered
+	if err != nil {
+		return nil, err
+	}
+	r := rpc.NewClient(conn)
+	p := &PluginNativeClient{connection: r, pluginType: t}
+	return p, nil
 }
 
 func init() {
@@ -135,4 +166,11 @@ func init() {
 
 	gob.Register(cpolicy.NewPolicyNode())
 	gob.Register(&cpolicy.StringRule{})
+}
+
+func upcaseInitial(str string) string {
+	for i, v := range str {
+		return string(unicode.ToUpper(v)) + str[i+1:]
+	}
+	return ""
 }
