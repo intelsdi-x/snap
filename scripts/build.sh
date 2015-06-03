@@ -1,8 +1,6 @@
 #!/bin/bash
 
-echo "****  Pulse Build  ****"
-echo
-
+GITVERSION=`git describe --always`
 SOURCEDIR=$1
 SPLUGINFOLDER=$2
 SPLUGIN=$3
@@ -12,6 +10,14 @@ BINDIR=$BUILDDIR/bin
 COLLECTORDIR=$BUILDDIR/$PLUGINDIR/collector
 PUBLISHERDIR=$BUILDDIR/$PLUGINDIR/publisher
 PROCESSORDIR=$BUILDDIR/$PLUGINDIR/processor
+BUILDCMD='go build -a -ldflags "-w"'
+
+echo
+echo "****  Pulse Build ($GITVERSION)  ****"
+echo
+
+# Disable CGO for builds
+export CGO_ENABLED=0
 
 # Clean build bin dir
 rm -rf $BINDIR/*
@@ -25,10 +31,8 @@ mkdir -p $PROCESSORDIR
 # Binaries
 #
 echo "Source Dir = $SOURCEDIR"
-echo "$SPLUGIN"
-echo "$SPLUGINFOLDER"
 echo " Building Pulse Agent"	
-go build -ldflags "-X main.gitversion `git describe --always`" -o $BINDIR/pulse-agent . || exit 1
+go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/pulse-agent . || exit 1
 
 if [ "$SPLUGIN" ] && [ -n "$SPLUGINFOLDER" ]
 then
@@ -38,7 +42,7 @@ then
 	target=./$SPLUGIN/
 	destination=$BUILDDIR/$PLUGINDIR/$SPLUGINFOLDER/$SPLUGIN
 	echo "    $SPLUGIN => $destination"	
-	go build -o $destination $target || exit 2
+	$BUILDCMD -o $destination $target || exit 2
 	cd $SOURCEDIR
 else
 	# Clean build
@@ -49,8 +53,7 @@ else
 	for d in *; do
 		if [[ -d $d ]]; then
 			echo "    $d => $COLLECTORDIR/$d"		
-			go build -o $COLLECTORDIR/$d ./$d/ || exit 2
-			# chmod -x ../../$COLLECTORDIR/$d / for testing non-executable builds
+			$BUILDCMD -o $COLLECTORDIR/$d ./$d/ || exit 2
 		fi
 	done
 	
@@ -61,8 +64,7 @@ else
 	for d in *; do
 		if [[ -d $d ]]; then
 			echo "    $d => $PUBLISHERDIR/$d"		
-			go build -o $PUBLISHERDIR/$d ./$d/ || exit 2
-			# chmod -x ../../$PUBLISHERDIR/$d / for testing non-executable builds
+			$BUILDCMD -o $PUBLISHERDIR/$d ./$d/ || exit 2
 		fi
 	done
 	
@@ -73,17 +75,12 @@ else
 	for d in *; do
 		if [[ -d $d ]]; then
 			echo "    $d => $PROCESSORDIR/$d"		
-			go build -o $PROCESSORDIR/$d ./$d/ || exit 2
-			# chmod -x ../../$PROCESSORDIR/$d / for testing non-executable builds
+			$BUILDCMD -o $PROCESSORDIR/$d ./$d/ || exit 2			
 		fi
 	done
 
 	cd $SOURCEDIR
-
-	# Built-in Publisher Plugin building
 fi
-
-
 
 echo
 echo "*******************"
