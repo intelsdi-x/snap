@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 	"strings"
 	"testing"
 
@@ -14,10 +16,18 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "baz"}, 2),
 		}
 		a, c, e := MarshallPluginMetricTypes("foo", m)
+		m[0].Version_ = 1
+		m[0].AddData(3)
+		configNewNode := cdata.NewNode()
+		configNewNode.AddItem("user", ctypes.ConfigValueStr{Value: "foo"})
+		m[0].Config_ = configNewNode
 		So(e, ShouldNotBeNil)
 		So(e.Error(), ShouldEqual, "invlaid pulse content type: foo")
 		So(a, ShouldBeNil)
 		So(c, ShouldEqual, "")
+		So(m[0].Version(), ShouldResemble, 1)
+		So(m[0].Data(), ShouldResemble, 3)
+		So(m[0].Config(), ShouldNotBeNil)
 	})
 
 	Convey("error on empty metric slice", t, func() {
