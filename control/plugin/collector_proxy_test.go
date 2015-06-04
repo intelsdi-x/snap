@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-    . "github.com/smartystreets/goconvey/convey"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 type mockPlugin struct {
