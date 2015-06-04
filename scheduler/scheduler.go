@@ -29,6 +29,8 @@ const (
 type ManagesMetrics interface {
 	SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error)
 	UnsubscribeMetricType(mt core.Metric)
+	SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error
+	SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []error
 	CollectsMetrics
 	PublishesMetrics
 	ProcessesMetrics
@@ -142,6 +144,14 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 		return nil, te
 	}
 
+	//subscribe to processors and publishers
+	errs := subscribe(wf.processNodes, wf.publishNodes, s.metricManager)
+	if len(errs) > 0 {
+		te.errs = append(te.errs, errs...)
+		//todo unwind successful pr and pu subscriptions
+		return nil, te
+	}
+
 	// Create the task object
 	task := newTask(sch, subscriptions, wf, s.workManager, s.metricManager, opts...)
 
@@ -188,4 +198,22 @@ func (s *scheduler) Stop() {
 // Set metricManager for scheduler
 func (s *scheduler) SetMetricManager(mm ManagesMetrics) {
 	s.metricManager = mm
+}
+
+// subscribe subscribes to all processors and publishers recursively
+func subscribe(prnodes []*processNode, punodes []*publishNode, mm ManagesMetrics) []error {
+	for _, pr := range prnodes {
+		errs := mm.SubscribeProcessor(pr.Name, pr.Version, pr.Config.Table())
+		if len(errs) > 0 {
+			return errs
+		}
+		subscribe(pr.ProcessNodes, pr.PublishNodes, mm)
+	}
+	for _, pu := range punodes {
+		errs := mm.SubscribePublisher(pu.Name, pu.Version, pu.Config.Table())
+		if len(errs) > 0 {
+			return errs
+		}
+	}
+	return []error{}
 }

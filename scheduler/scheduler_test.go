@@ -87,6 +87,14 @@ func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, p
 	return "", nil, nil
 }
 
+func (m *mockMetricManager) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error {
+	return []error{}
+}
+
+func (m *mockMetricManager) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []error {
+	return []error{}
+}
+
 type mockMetricManagerError struct {
 	errs []error
 }
