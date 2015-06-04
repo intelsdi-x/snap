@@ -2,13 +2,12 @@ package plugin
 
 import (
 	"errors"
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"log"
 	"os"
 	"testing"
 	"time"
-
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+    . "github.com/smartystreets/goconvey/convey"
 )
 
 type mockPlugin struct {

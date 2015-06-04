@@ -1,11 +1,10 @@
 package plugin
 
 import (
+    "strings"
+    "testing"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
-	"strings"
-	"testing"
-
 	. "github.com/smartystreets/goconvey/convey"
 )
 
