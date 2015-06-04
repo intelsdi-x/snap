@@ -8,23 +8,24 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 type mockPlugin struct {
 }
 
-var mock_PluginMetricType []PluginMetricType = []PluginMetricType{
+var mockPluginMetricType []PluginMetricType = []PluginMetricType{
 	*NewPluginMetricType([]string{"foo", "bar"}, 1),
 	*NewPluginMetricType([]string{"foo", "baz"}, 2),
 }
 
 func (p *mockPlugin) GetMetricTypes() ([]PluginMetricType, error) {
-	return mock_PluginMetricType, nil
+	return mockPluginMetricType, nil
 }
 
-func (p *mockPlugin) CollectMetrics(mock_PluginMetricType []PluginMetricType) ([]PluginMetricType, error) {
-	return mock_PluginMetricType, nil
+func (p *mockPlugin) CollectMetrics(mockPluginMetricType []PluginMetricType) ([]PluginMetricType, error) {
+	return mockPluginMetricType, nil
 }
 
 func (p *mockPlugin) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
@@ -47,7 +48,7 @@ func (p *mockErrorPlugin) GetMetricTypes() ([]PluginMetricType, error) {
 	return nil, errors.New("Error in get Metric Type")
 }
 
-func (p *mockErrorPlugin) CollectMetrics(mock_PluginMetricType []PluginMetricType) ([]PluginMetricType, error) {
+func (p *mockErrorPlugin) CollectMetrics(mockPluginMetricType []PluginMetricType) ([]PluginMetricType, error) {
 	return nil, errors.New("Error in collect Metric")
 }
 
@@ -61,9 +62,9 @@ func TestCollectorProxy(t *testing.T) {
 		logger := log.New(os.Stdout,
 			"test: ",
 			log.Ldate|log.Ltime|log.Lshortfile)
-		mock_plugin := &mockPlugin{}
+		mockPlugin := &mockPlugin{}
 
-		mock_SessionState := &MockSessionState{
+		mockSessionState := &MockSessionState{
 			listenPort:          "0",
 			token:               "abcdef",
 			logger:              logger,
@@ -71,8 +72,8 @@ func TestCollectorProxy(t *testing.T) {
 			killChan:            make(chan int),
 		}
 		c := &collectorPluginProxy{
-			Plugin:  mock_plugin,
-			Session: mock_SessionState,
+			Plugin:  mockPlugin,
+			Session: mockSessionState,
 		}
 		Convey("Get Metric Types", func() {
 			reply := &GetMetricTypesReply{
@@ -85,12 +86,12 @@ func TestCollectorProxy(t *testing.T) {
 				reply := &GetMetricTypesReply{
 					PluginMetricTypes: nil,
 				}
-				mock_error_plugin := &mockErrorPlugin{}
-				err_c := &collectorPluginProxy{
-					Plugin:  mock_error_plugin,
-					Session: mock_SessionState,
+				mockErrorPlugin := &mockErrorPlugin{}
+				errC := &collectorPluginProxy{
+					Plugin:  mockErrorPlugin,
+					Session: mockSessionState,
 				}
-				err := err_c.GetMetricTypes(struct{}{}, reply)
+				err := errC.GetMetricTypes(struct{}{}, reply)
 				So(len(reply.PluginMetricTypes), ShouldResemble, 0)
 				So(err.Error(), ShouldResemble, "GetMetricTypes call error : Error in get Metric Type")
 
@@ -99,7 +100,7 @@ func TestCollectorProxy(t *testing.T) {
 		})
 		Convey("Collect Metric ", func() {
 			args := CollectMetricsArgs{
-				PluginMetricTypes: mock_PluginMetricType,
+				PluginMetricTypes: mockPluginMetricType,
 			}
 			reply := &CollectMetricsReply{
 				PluginMetrics: nil,
@@ -109,17 +110,17 @@ func TestCollectorProxy(t *testing.T) {
 
 			Convey("Get error in Collect Metric ", func() {
 				args := CollectMetricsArgs{
-					PluginMetricTypes: mock_PluginMetricType,
+					PluginMetricTypes: mockPluginMetricType,
 				}
 				reply := &CollectMetricsReply{
 					PluginMetrics: nil,
 				}
-				mock_error_plugin := &mockErrorPlugin{}
-				err_c := &collectorPluginProxy{
-					Plugin:  mock_error_plugin,
-					Session: mock_SessionState,
+				mockErrorPlugin := &mockErrorPlugin{}
+				errC := &collectorPluginProxy{
+					Plugin:  mockErrorPlugin,
+					Session: mockSessionState,
 				}
-				err := err_c.CollectMetrics(args, reply)
+				err := errC.CollectMetrics(args, reply)
 				So(len(reply.PluginMetrics), ShouldResemble, 0)
 				So(err.Error(), ShouldResemble, "CollectMetrics call error : Error in collect Metric")
 
@@ -127,19 +128,19 @@ func TestCollectorProxy(t *testing.T) {
 
 		})
 		Convey("Get Config Policy Tree", func() {
-			reply_policy_tree := &GetConfigPolicyTreeReply{}
+			replyPolicyTree := &GetConfigPolicyTreeReply{}
 
-			c.GetConfigPolicyTree(struct{}{}, reply_policy_tree)
+			c.GetConfigPolicyTree(struct{}{}, replyPolicyTree)
 
-			So(reply_policy_tree.PolicyTree, ShouldNotBeNil)
+			So(replyPolicyTree.PolicyTree, ShouldNotBeNil)
 
 			Convey("Get error in Config Policy Tree ", func() {
-				mock_error_plugin := &mockErrorPlugin{}
-				err_c := &collectorPluginProxy{
-					Plugin:  mock_error_plugin,
-					Session: mock_SessionState,
+				mockErrorPlugin := &mockErrorPlugin{}
+				errC := &collectorPluginProxy{
+					Plugin:  mockErrorPlugin,
+					Session: mockSessionState,
 				}
-				err := err_c.GetConfigPolicyTree(struct{}{}, reply_policy_tree)
+				err := errC.GetConfigPolicyTree(struct{}{}, replyPolicyTree)
 				So(err.Error(), ShouldResemble, "ConfigPolicyTree call error : Error in get config policy tree")
 
 			})
