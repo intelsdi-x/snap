@@ -78,9 +78,17 @@ else
 		fi
 	done
 
-	cd $SOURCEDIR
+	# pulse-ctl
+	echo " Building cmd(s)"
+	cd $SOURCEDIR/cmd
+	for d in *; do
+		if [[ -d $d ]]; then
+			echo "    $d => $BINDIR/$d"					
+			go build -ldflags "-X main.gitversion `git describe --always`" -o $BINDIR/$d ./$d/ || exit 3
+		fi
+	done
 
-	# Built-in Publisher Plugin building
+	cd $SOURCEDIR
 fi
 
 
