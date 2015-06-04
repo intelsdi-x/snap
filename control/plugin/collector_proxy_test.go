@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 	"time"
+
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	. "github.com/smartystreets/goconvey/convey"
 )
