@@ -1,0 +1,10 @@
+[Unit]
+Description=The Riemann Service
+Documentation=
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/riemann/bin/riemann
+
+[Install]
+WantedBy=multi-user.target

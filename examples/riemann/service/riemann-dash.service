@@ -1,0 +1,10 @@
+[Unit]
+Description=The Riemann Dashboard
+Documentation=
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/riemann-dash /vagrant/service/config.rb
+
+[Install]
+WantedBy=multi-user.target
