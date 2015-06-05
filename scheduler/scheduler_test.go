@@ -213,7 +213,7 @@ func TestScheduler(t *testing.T) {
 			err := s1.Start()
 			So(err, ShouldNotBeNil)
 			fmt.Printf("%v", err)
-			So(err, ShouldResemble, MetricManagerNotSet)
+			So(err, ShouldResemble, ErrMetricManagerNotSet)
 
 		})
 
@@ -233,7 +233,7 @@ func TestScheduler(t *testing.T) {
 			_, err := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
 			So(err, ShouldNotBeNil)
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
-			So(err.Errors()[0], ShouldResemble, SchedulerNotStarted)
+			So(err.Errors()[0], ShouldResemble, ErrSchedulerNotStarted)
 			s1.metricManager = c
 			s1.Start()
 			_, err1 := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*0), w)
@@ -255,7 +255,7 @@ func TestScheduler(t *testing.T) {
 
 			})
 			Convey("get created task", func() {
-				t, err := s.GetTask(tsk.Id())
+				t, err := s.GetTask(tsk.ID())
 				So(err, ShouldBeNil)
 				So(t, ShouldEqual, tsk)
 			})

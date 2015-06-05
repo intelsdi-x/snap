@@ -11,7 +11,7 @@ const (
 )
 
 type Task interface {
-	Id() uint64
+	ID() uint64
 	// Status() WorkflowState TODO, switch to string
 	State() TaskState
 	HitCount() uint

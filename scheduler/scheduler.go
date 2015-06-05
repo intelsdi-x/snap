@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	MetricManagerNotSet = errors.New("MetricManager is not set.")
-	SchedulerNotStarted = errors.New("Scheduler is not started.")
+	ErrMetricManagerNotSet = errors.New("MetricManager is not set.")
+	ErrSchedulerNotStarted = errors.New("Scheduler is not started.")
 )
 
 type schedulerState int
@@ -26,37 +26,37 @@ const (
 
 // ManagesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
-type ManagesMetrics interface {
+type managesMetrics interface {
+	collectsMetrics
+	publishesMetrics
+	processesMetrics
+	managesPluginContentTypes
 	SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error)
 	UnsubscribeMetricType(mt core.Metric)
 	SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error
 	SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []error
-	CollectsMetrics
-	PublishesMetrics
-	ProcessesMetrics
-	ManagesPluginContentTypes
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
-type ManagesPluginContentTypes interface {
+type managesPluginContentTypes interface {
 	GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error)
 }
 
-type CollectsMetrics interface {
+type collectsMetrics interface {
 	CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error)
 }
 
-type PublishesMetrics interface {
+type publishesMetrics interface {
 	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
 }
 
-type ProcessesMetrics interface {
+type processesMetrics interface {
 	ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error)
 }
 
 type scheduler struct {
 	workManager   *workManager
-	metricManager ManagesMetrics
+	metricManager managesMetrics
 	tasks         *taskCollection
 	state         schedulerState
 }
@@ -98,7 +98,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 
 	// Return error if we are not started.
 	if s.state != schedulerStarted {
-		te.errs = append(te.errs, SchedulerNotStarted)
+		te.errs = append(te.errs, ErrSchedulerNotStarted)
 		return nil, te
 	}
 
@@ -111,7 +111,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	// Generate a workflow from the workflow map
 	wf, err := wmapToWorkflow(wfMap)
 	if err != nil {
-		te.errs = append(te.errs, SchedulerNotStarted)
+		te.errs = append(te.errs, ErrSchedulerNotStarted)
 		return nil, te
 	}
 
@@ -120,7 +120,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 
 	// Subscribe to MT.
 	// If we encounter an error we will unwind successful subscriptions.
-	subscriptions := make([]core.Metric, 0)
+	var subscriptions []core.Metric
 	for _, m := range wf.metrics {
 		cdt, er := wfMap.CollectNode.GetConfigTree()
 		if er != nil {
@@ -177,7 +177,7 @@ func (s *scheduler) GetTasks() map[uint64]core.Task {
 func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 	task := s.tasks.Get(id)
 	if task == nil {
-		return nil, errors.New(fmt.Sprintf("No task with Id '%v'", id))
+		return nil, fmt.Errorf("No task with Id '%v'", id)
 	}
 	return task, nil
 }
@@ -185,7 +185,7 @@ func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 // Start starts the scheduler
 func (s *scheduler) Start() error {
 	if s.metricManager == nil {
-		return MetricManagerNotSet
+		return ErrMetricManagerNotSet
 	}
 	s.state = schedulerStarted
 	return nil
@@ -196,12 +196,12 @@ func (s *scheduler) Stop() {
 }
 
 // Set metricManager for scheduler
-func (s *scheduler) SetMetricManager(mm ManagesMetrics) {
+func (s *scheduler) SetMetricManager(mm managesMetrics) {
 	s.metricManager = mm
 }
 
 // subscribe subscribes to all processors and publishers recursively
-func subscribe(prnodes []*processNode, punodes []*publishNode, mm ManagesMetrics) []error {
+func subscribe(prnodes []*processNode, punodes []*publishNode, mm managesMetrics) []error {
 	for _, pr := range prnodes {
 		errs := mm.SubscribeProcessor(pr.Name, pr.Version, pr.Config.Table())
 		if len(errs) > 0 {
