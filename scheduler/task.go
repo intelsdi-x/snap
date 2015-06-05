@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -28,7 +27,7 @@ type task struct {
 	creationTime     time.Time
 	lastFireTime     time.Time
 	manager          managesWork
-	metricsManager   ManagesMetrics
+	metricsManager   managesMetrics
 	deadlineDuration time.Duration
 	hitCount         uint
 	missedIntervals  uint
@@ -49,7 +48,7 @@ type task struct {
 // }
 
 //NewTask creates a Task
-func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *workManager, mm ManagesMetrics, opts ...core.TaskOption) *task {
+func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *workManager, mm managesMetrics, opts ...core.TaskOption) *task {
 	task := &task{
 		id:               id(),
 		schResponseChan:  make(chan schedule.Response),
@@ -99,7 +98,7 @@ func (t *task) HitCount() uint {
 }
 
 // Id returns the tasks Id.
-func (t *task) Id() uint64 {
+func (t *task) ID() uint64 {
 	return t.id
 }
 
@@ -217,7 +216,7 @@ func (t *taskCollection) add(task *task) error {
 		//If we don't already have this task in the collection save it
 		t.table[task.id] = task
 	} else {
-		return errors.New(fmt.Sprintf("A task with Id '%v' has already been added.", task.id))
+		return fmt.Errorf("A task with Id '%v' has already been added.", task.id)
 	}
 
 	return nil

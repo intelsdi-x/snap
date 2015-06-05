@@ -1,15 +1,17 @@
 package control_event
 
 const (
-	PluginLoaded        = "Control.PluginLoaded"
-	PluginDisabled      = "Control.PluginDisabled"
-	PluginUnloaded      = "Control.PluginUnloaded"
-	PluginsSwapped      = "Control.PluginsSwapped"
-	PublisherSubscribed = "Control.PublisherSubscribed"
-	ProcessorSubscribed = "Control.ProcessorSubscribed"
-	MetricSubscribed    = "Control.MetricSubscribed"
-	MetricUnsubscribed  = "Control.MetricUnsubscribed"
-	HealthCheckFailed   = "Control.PluginHealthCheckFailed"
+	PluginLoaded          = "Control.PluginLoaded"
+	PluginDisabled        = "Control.PluginDisabled"
+	PluginUnloaded        = "Control.PluginUnloaded"
+	PluginsSwapped        = "Control.PluginsSwapped"
+	PublisherSubscribed   = "Control.PublisherSubscribed"
+	PublisherUnsubscribed = "Control.PublisherUnsubscribed"
+	ProcessorSubscribed   = "Control.ProcessorSubscribed"
+	ProcessorUnsubscribed = "Control.ProcessorUnsubscribed"
+	MetricSubscribed      = "Control.MetricSubscribed"
+	MetricUnsubscribed    = "Control.MetricUnsubscribed"
+	HealthCheckFailed     = "Control.PluginHealthCheckFailed"
 )
 
 type LoadPluginEvent struct{}
@@ -52,6 +54,15 @@ func (se PublisherSubscriptionEvent) Namespace() string {
 	return PublisherSubscribed
 }
 
+type PublisherUnsubscriptionEvent struct {
+	PluginName    string
+	pluginVersion int
+}
+
+func (puue PublisherUnsubscriptionEvent) Namespace() string {
+	return PublisherUnsubscribed
+}
+
 type ProcessorSubscriptionEvent struct {
 	PluginName    string
 	PluginVersion int
@@ -59,6 +70,15 @@ type ProcessorSubscriptionEvent struct {
 
 func (se ProcessorSubscriptionEvent) Namespace() string {
 	return ProcessorSubscribed
+}
+
+type ProcessorUnsubscriptionEvent struct {
+	PluginName    string
+	PluginVersion int
+}
+
+func (prue ProcessorUnsubscriptionEvent) Namespace() string {
+	return ProcessorUnsubscribed
 }
 
 type MetricSubscriptionEvent struct {

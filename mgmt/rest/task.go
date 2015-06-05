@@ -73,7 +73,7 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	tr.CreationTime = task.CreationTime().Unix()
 
 	// set task id
-	tr.ID = task.Id()
+	tr.ID = task.ID()
 
 	// create return map
 	rmap := make(map[string]interface{})

@@ -24,8 +24,8 @@ var (
 		WorkflowStarted: "Started",
 	}
 
-	NullCollectNodeError        = errors.New("Missing collection node in workflow map")
-	NoMetricsInCollectNodeError = errors.New("Collection node has not metrics defined to collect")
+	ErrNullCollectNode        = errors.New("Missing collection node in workflow map")
+	ErrNoMetricsInCollectNode = errors.New("Collection node has not metrics defined to collect")
 )
 
 // WmapToWorkflow attempts to convert a wmap.WorkflowMap to a schedulerWorkflow instance.
@@ -51,11 +51,11 @@ func convertCollectionNode(cnode *wmap.CollectWorkflowMapNode, wf *schedulerWork
 	// Collection root
 	// Validate collection node exists
 	if cnode == nil {
-		return NullCollectNodeError
+		return ErrNullCollectNode
 	}
 	// Collection node has at least one metric in it
 	if len(cnode.Metrics) < 1 {
-		return NoMetricsInCollectNodeError
+		return ErrNoMetricsInCollectNode
 	}
 	// Get core.RequestedMetric metrics
 	wf.metrics = cnode.GetRequestedMetrics()
@@ -166,13 +166,13 @@ type publishNode struct {
 type wfContentTypes map[string]map[string][]string
 
 // BindPluginContentTypes
-func (s *schedulerWorkflow) BindPluginContentTypes(mm ManagesPluginContentTypes) error {
+func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes) error {
 	logger.SetLevel(logger.DebugLevel)
 	bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.PulseGOBContentType})
 	return nil
 }
 
-func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm ManagesPluginContentTypes, lct []string) error {
+func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPluginContentTypes, lct []string) error {
 	for _, pr := range prs {
 		act, rct, err := mm.GetPluginContentTypes(pr.Name, core.ProcessorPluginType, pr.Version)
 		if err != nil {
@@ -238,15 +238,15 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm ManagesPl
 }
 
 // Start starts a workflow
-func (w *schedulerWorkflow) Start(t *task) {
-	w.state = WorkflowStarted
-	j := newCollectorJob(w.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree)
+func (s *schedulerWorkflow) Start(t *task) {
+	s.state = WorkflowStarted
+	j := newCollectorJob(s.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree)
 
 	// dispatch 'collect' job to be worked
 	j = t.manager.Work(j)
 
 	// walk through the tree and dispatch work
-	w.workJobs(w.processNodes, w.publishNodes, t.manager, t.metricsManager, j)
+	s.workJobs(s.processNodes, s.publishNodes, t.manager, t.metricsManager, j)
 }
 
 func (s *schedulerWorkflow) State() WorkflowState {
@@ -257,11 +257,11 @@ func (s *schedulerWorkflow) StateString() string {
 	return WorkflowStateLookup[s.state]
 }
 
-func (w *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, mw managesWork, mm ManagesMetrics, pj job) {
+func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, mw managesWork, mm managesMetrics, pj job) {
 	for _, pr := range prs {
 		j := newProcessJob(pj, pr.Name, pr.Version, pr.InboundContentType, pr.Config.Table(), mm)
 		j = mw.Work(j)
-		w.workJobs(pr.ProcessNodes, pr.PublishNodes, mw, mm, j)
+		s.workJobs(pr.ProcessNodes, pr.PublishNodes, mw, mm, j)
 	}
 	for _, pu := range pus {
 		j := newPublishJob(pj, pu.Name, pu.Version, pu.InboundContentType, pu.Config.Table(), mm)
