@@ -29,3 +29,6 @@ build/
 *.swp
 profile.cov
 gin-bin
+
+# we don't vendor godep _workspace
+**/Godeps/_workspace/**
