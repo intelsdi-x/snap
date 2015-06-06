@@ -1,20 +1,11 @@
 {
-	"ImportPath": "github.com/intelsdi-x/pulse",
+	"ImportPath": "github.com/intelsdi-x/pulse/mgmt/rest",
 	"GoVersion": "go1.4.2",
 	"Deps": [
-		{
-			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-15",
-			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
-		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
 			"Comment": "v0.1-70-gc7477ad",
 			"Rev": "c7477ad8e330bef55bf1ebe300cf8aa67c492d1b"
-		},
-		{
-			"ImportPath": "github.com/intelsdi-x/gomit",
-			"Rev": "4f098da2bbb51d787be003e4abfbc25d01837564"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
