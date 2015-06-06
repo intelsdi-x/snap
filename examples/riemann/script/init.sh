@@ -1,6 +1,7 @@
 # deps
 sudo yum -y install epel-release
-sudo yum -y install ruby gcc mysql-devel ruby-devel rubygems java-1.7.0-openjdk 
+sudo yum -y install ruby gcc mysql-devel ruby-devel rubygems java-1.7.0-openjdk git hg
+sudo yum -y install golang
 sudo yum -y install rubygem-nokogiri
  
 # riemann server
@@ -20,3 +21,9 @@ sudo systemctl enable riemann-dash
 
 sudo systemctl start riemann
 sudo systemctl start riemann-dash
+
+# gopath
+echo "export GOPATH=/vagrant/go" >> $HOME/.bash_profile
+export GOPATH=/vagrant/go
+go get github.com/tools/godep
+
