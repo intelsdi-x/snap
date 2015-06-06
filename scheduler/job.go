@@ -77,13 +77,13 @@ func (c *coreJob) Errors() []error {
 
 type collectorJob struct {
 	*coreJob
-	collector      CollectsMetrics
+	collector      collectsMetrics
 	metricTypes    []core.RequestedMetric
 	metrics        []core.Metric
 	configDataTree *cdata.ConfigDataTree
 }
 
-func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.Duration, collector CollectsMetrics, cdt *cdata.ConfigDataTree) job {
+func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.Duration, collector collectsMetrics, cdt *cdata.ConfigDataTree) job {
 	return &collectorJob{
 		collector:      collector,
 		metricTypes:    metricTypes,
@@ -135,7 +135,7 @@ func (c *collectorJob) Run() {
 //todo rename to processJob
 type processJob struct {
 	*coreJob
-	processor     ProcessesMetrics
+	processor     processesMetrics
 	parentJob     job
 	metrics       []core.Metric
 	pluginName    string
@@ -145,7 +145,7 @@ type processJob struct {
 	content       []byte
 }
 
-func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, processor ProcessesMetrics) job {
+func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, processor processesMetrics) job {
 	return &processJob{
 		parentJob:     parentJob,
 		pluginName:    pluginName,
@@ -193,14 +193,14 @@ func (p *processJob) Run() {
 type publisherJob struct {
 	*coreJob
 	parentJob     job
-	publisher     PublishesMetrics
+	publisher     publishesMetrics
 	pluginName    string
 	pluginVersion int
 	config        map[string]ctypes.ConfigValue
 	contentType   string
 }
 
-func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher PublishesMetrics) job {
+func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher publishesMetrics) job {
 	return &publisherJob{
 		parentJob:     parentJob,
 		publisher:     publisher,

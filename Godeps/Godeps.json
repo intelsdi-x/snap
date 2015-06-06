@@ -1,15 +1,6 @@
 {
 	"ImportPath": "github.com/intelsdi-x/pulse",
 	"GoVersion": "go1.4.2",
-	"Packages": [
-		"github.com/intelsdi-x/pulse",
-		"github.com/intelsdi-x/pulse/control",
-		"github.com/intelsdi-x/pulse/scheduler",
-		"github.com/intelsdi-x/pulse/scheduler/wmap",
-		"github.com/intelsdi-x/pulse/mgmt/rest",
-		"github.com/intelsdi-x/pulse/core",
-		"github.com/intelsdi-x/pulse/core/cdata"
-	],
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
@@ -26,22 +17,8 @@
 			"Rev": "4f098da2bbb51d787be003e4abfbc25d01837564"
 		},
 		{
-			"ImportPath": "github.com/jtolds/gls",
-			"Rev": "f1ac7f4f24f50328e6bc838ca4437d1612a0243c"
-		},
-		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
 			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
-		},
-		{
-			"ImportPath": "github.com/smartystreets/assertions",
-			"Comment": "1.5.0-379-g75acd40",
-			"Rev": "75acd402ca38dc205641a826bb58b9de014926dd"
-		},
-		{
-			"ImportPath": "github.com/smartystreets/goconvey/convey",
-			"Comment": "1.5.0-386-geb2e83c",
-			"Rev": "eb2e83c1df892d2c9ad5a3c85672da30be585dfd"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

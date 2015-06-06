@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/codegangsta/negroni"
@@ -33,14 +35,24 @@ type Server struct {
 }
 
 func New() *Server {
+	n := negroni.New(
+		&negroni.Recovery{Logger: log.New(os.Stdout, "[pulse-rest] ", 0), PrintStack: true},
+		&negroni.Logger{log.New(os.Stdout, "[pulse-rest] ", 0)},
+	)
 	return &Server{
-		n: negroni.Classic(),
 		r: httprouter.New(),
+		n: n,
 	}
+
 }
 
 func (s *Server) Start(addrString string) {
 	go s.start(addrString)
+}
+
+func (s *Server) run(addrString string) {
+	log.Printf("[pulse-rest] listening on %s\n", addrString)
+	http.ListenAndServe(addrString, s.n)
 }
 
 func (s *Server) BindMetricManager(m managesMetrics) {
@@ -52,7 +64,6 @@ func (s *Server) BindTaskManager(t managesTasks) {
 }
 
 func (s *Server) start(addrString string) {
-
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
 	s.r.GET("/v1/plugins/:name", s.getPluginsByName)
@@ -70,7 +81,7 @@ func (s *Server) start(addrString string) {
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)
 	// start http handling
-	s.n.Run(addrString)
+	s.run(addrString)
 }
 
 type response struct {

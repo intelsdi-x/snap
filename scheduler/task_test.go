@@ -116,7 +116,7 @@ func TestTask(t *testing.T) {
 			Convey("Get task from collection", func() {
 				t := taskCollection.Get(task.id)
 				So(t, ShouldNotBeNil)
-				So(t.Id(), ShouldEqual, task.id)
+				So(t.ID(), ShouldEqual, task.id)
 				So(t.CreationTime().Nanosecond(), ShouldBeLessThan, time.Now().Nanosecond())
 				So(t.HitCount(), ShouldEqual, 0)
 				So(t.MissedCount(), ShouldEqual, 0)
