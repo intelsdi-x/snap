@@ -38,4 +38,3 @@ make
 
 echo "PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/pulse/build/bin" >> /home/vagrant/.bash_profile
 export PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/pulse/build/bin
-
