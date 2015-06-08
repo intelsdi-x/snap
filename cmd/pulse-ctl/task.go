@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
+	"text/tabwriter"
 
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/pulse/client"
@@ -30,14 +32,14 @@ func createTask(ctx *cli.Context) {
 
 	file, e := ioutil.ReadFile(ctx.Args().First())
 	if e != nil {
-		fmt.Printf("File error: %v\n", e)
+		fmt.Printf("File error - %v\n", e)
 		os.Exit(1)
 	}
 
 	t := task{}
 	e = json.Unmarshal(file, &t)
 	if e != nil {
-		fmt.Printf("json error: %v\n", e)
+		fmt.Printf("json error - %v\n", e)
 	}
 
 	if t.Version != 1 {
@@ -50,7 +52,40 @@ func createTask(ctx *cli.Context) {
 
 	e = client.CreateTask(ct)
 	if e != nil {
-		fmt.Printf("error creating task: %v\n", e)
+		fmt.Printf("Error creating task - %v\n", e)
+		os.Exit(1)
+	}
+}
+
+func listTask(ctx *cli.Context) {
+	tasks, err := client.GetTasks()
+	if err != nil {
+		fmt.Printf("Error getting tasks - %v\n", err)
+		os.Exit(1)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
+	fmt.Fprintln(w, "ID\tState\tHit Count\tMiss Count\tCreate Time")
+	for _, task := range tasks {
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n", task.ID, task.State, task.HitCount, task.MissCount, task.CreationTime)
+	}
+	w.Flush()
+}
+
+func startTask(ctx *cli.Context) {
+	if len(ctx.Args()) != 1 {
+		fmt.Print("Incorrect usage\n")
+		os.Exit(1)
+	}
+
+	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
+	if err != nil {
+		fmt.Printf("Incorrect usage - %v\n", err.Error())
+		os.Exit(1)
+	}
+	err = client.StartTask(id)
+	if err != nil {
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 }

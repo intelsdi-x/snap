@@ -182,6 +182,15 @@ func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 	return task, nil
 }
 
+func (s *scheduler) StartTask(id uint64) error {
+	t := s.tasks.Get(id)
+	if t == nil {
+		return fmt.Errorf("No task found with id '%v'", id)
+	}
+	t.Spin()
+	return nil
+}
+
 // Start starts the scheduler
 func (s *scheduler) Start() error {
 	if s.metricManager == nil {

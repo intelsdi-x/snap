@@ -22,7 +22,7 @@
                         "plugin_name": "file",
                         "plugin_version": 1,
                         "config": {
-                            "fie": "/tmp/pub.out"                            
+                            "file": "/tmp/pub.out"                            
                         }
                     }
                 ],

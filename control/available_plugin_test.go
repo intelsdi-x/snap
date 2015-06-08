@@ -46,8 +46,8 @@ func TestAvailablePlugin(t *testing.T) {
 	Convey("makeKey()", t, func() {
 		Convey("creates ap.Key from ap.Name and ap.Version", func() {
 			ap := &availablePlugin{
-				Name:    "testPlugin",
-				Version: 1,
+				name:    "testPlugin",
+				version: 1,
 			}
 			ap.makeKey()
 			So(ap.Key, ShouldEqual, "testPlugin:1")
@@ -83,8 +83,8 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    plugin.CollectorPluginType,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
@@ -98,8 +98,8 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    plugin.PublisherPluginType,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
@@ -113,8 +113,8 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    plugin.ProcessorPluginType,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
@@ -128,8 +128,8 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    99,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
@@ -143,8 +143,8 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    plugin.CollectorPluginType,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
@@ -160,8 +160,8 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    plugin.PublisherPluginType,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
@@ -177,8 +177,8 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    plugin.ProcessorPluginType,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
@@ -194,8 +194,8 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    99,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
@@ -207,15 +207,15 @@ func TestAvailablePlugins(t *testing.T) {
 			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				Type:    plugin.ProcessorPluginType,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   0,
 			}
 			ap.makeKey()
 			ap1 := &availablePlugin{
 				Type:    plugin.ProcessorPluginType,
-				Name:    "test",
-				Version: 1,
+				name:    "test",
+				version: 1,
 				Index:   1,
 			}
 			ap1.makeKey()

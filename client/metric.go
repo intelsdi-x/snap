@@ -1,6 +1,9 @@
 package pulse
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+)
 
 // MetricConfig is the type for incoming configuation data.
 // This data must be in compliance with a MetricPolicy
@@ -51,6 +54,9 @@ func (c *Client) GetMetricCatalog() ([]*MetricType, error) {
 	err = json.Unmarshal(resp.body, &rb)
 	if err != nil {
 		return nil, err
+	}
+	if rb.Meta.Code != 200 {
+		return nil, errors.New(rb.Meta.Message)
 	}
 	return rb.Data.MetricTypes, err
 }

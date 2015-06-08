@@ -1,11 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/codegangsta/cli"
-)
+import "github.com/codegangsta/cli"
 
 var (
 	commands = []cli.Command{
@@ -17,6 +12,16 @@ var (
 					Usage:  "create <task file json|yaml>",
 					Action: createTask,
 				},
+				{
+					Name:   "list",
+					Usage:  "list",
+					Action: listTask,
+				},
+				{
+					Name:   "start",
+					Usage:  "start <task_id>",
+					Action: startTask,
+				},
 			},
 		},
 		{
@@ -26,6 +31,14 @@ var (
 					Name:   "load",
 					Usage:  "load <plugin path>",
 					Action: loadPlugin,
+				},
+				{
+					Name:   "list",
+					Usage:  "list",
+					Action: listPlugins,
+					Flags: []cli.Flag{
+						flRunning,
+					},
 				},
 			},
 		},
@@ -41,24 +54,3 @@ var (
 		},
 	}
 )
-
-func version(ctx *cli.Context) {
-	fmt.Println(gitversion)
-}
-
-func doSomething(ctx *cli.Context) {
-	fmt.Println("doing something")
-}
-
-func loadPlugin(ctx *cli.Context) {
-	if len(ctx.Args()) != 1 {
-		fmt.Print("Incorrect usage\n")
-		os.Exit(1)
-	}
-
-	err := client.LoadPlugin(ctx.Args().First())
-	if err != nil {
-		fmt.Printf("Error: %v\n", err.Error())
-		os.Exit(1)
-	}
-}

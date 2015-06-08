@@ -9,4 +9,8 @@ var (
 		EnvVar: "PULSE_URL",
 		Value:  "http://localhost:8181",
 	}
+	flRunning = cli.BoolFlag{
+		Name:  "running",
+		Usage: "Shows running plugins",
+	}
 )

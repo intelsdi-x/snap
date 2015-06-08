@@ -27,8 +27,8 @@ func TestMonitor(t *testing.T) {
 
 		ap1 := &availablePlugin{
 			Type:       plugin.CollectorPluginType,
-			Version:    1,
-			Name:       "test",
+			version:    1,
+			name:       "test",
 			Client:     new(MockUnhealthyPluginCollectorClient),
 			healthChan: make(chan error, 1),
 			emitter:    gomit.NewEventController(),
@@ -38,8 +38,8 @@ func TestMonitor(t *testing.T) {
 
 		ap2 := &availablePlugin{
 			Type:    plugin.PublisherPluginType,
-			Version: 1,
-			Name:    "test",
+			version: 1,
+			name:    "test",
 			Client:  &mockPluginClient{},
 			emitter: &gomit.EventController{},
 		}
@@ -48,8 +48,8 @@ func TestMonitor(t *testing.T) {
 
 		ap3 := &availablePlugin{
 			Type:    plugin.ProcessorPluginType,
-			Version: 1,
-			Name:    "test",
+			version: 1,
+			name:    "test",
 			Client:  &mockPluginClient{},
 			emitter: &gomit.EventController{},
 		}
