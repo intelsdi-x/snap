@@ -10,6 +10,18 @@ const (
 	TaskFiring
 )
 
+var (
+	TaskStateLookup = map[TaskState]string{
+		TaskStopped:  "Stopped",
+		TaskSpinning: "Spinning",
+		TaskFiring:   "Firing",
+	}
+)
+
+func (t TaskState) String() string {
+	return TaskStateLookup[t]
+}
+
 type Task interface {
 	ID() uint64
 	// Status() WorkflowState TODO, switch to string

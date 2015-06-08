@@ -33,17 +33,19 @@ type MockPluginExecutor struct {
 // Mock plugin manager that will fail swap on the last rollback for testing rollback failure is caught
 type MockPluginManagerBadSwap struct {
 	Mode           int
-	ExistingPlugin CatalogedPlugin
+	ExistingPlugin core.CatalogedPlugin
 }
 
 func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error) {
 	return new(loadedPlugin), nil
 }
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c CatalogedPlugin) error { return errors.New("fake") }
-func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins        { return nil }
-func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)     {}
-func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)             {}
-func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg       { return plugin.Arg{} }
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.CatalogedPlugin) error {
+	return errors.New("fake")
+}
+func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins    { return nil }
+func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {}
+func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)         {}
+func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg   { return plugin.Arg{} }
 
 func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
@@ -260,7 +262,7 @@ func TestPluginCatalog(t *testing.T) {
 	pc := c.PluginCatalog()
 
 	Convey("it returns a list of CatalogedPlugins (PluginCatalog)", t, func() {
-		So(pc, ShouldHaveSameTypeAs, PluginCatalog{})
+		So(pc, ShouldHaveSameTypeAs, core.PluginCatalog{})
 	})
 
 	Convey("the loadedPlugins implement the interface CatalogedPlugin interface", t, func() {

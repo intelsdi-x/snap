@@ -58,7 +58,7 @@ type runsPlugins interface {
 
 type managesPlugins interface {
 	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error)
-	UnloadPlugin(CatalogedPlugin) error
+	UnloadPlugin(core.CatalogedPlugin) error
 	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(pluginPath string) plugin.Arg
@@ -150,7 +150,7 @@ func (p *pluginControl) Load(path string) error {
 	return nil
 }
 
-func (p *pluginControl) Unload(pl CatalogedPlugin) error {
+func (p *pluginControl) Unload(pl core.CatalogedPlugin) error {
 	err := p.pluginManager.UnloadPlugin(pl)
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func (p *pluginControl) Unload(pl CatalogedPlugin) error {
 	return nil
 }
 
-func (p *pluginControl) SwapPlugins(inPath string, out CatalogedPlugin) error {
+func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) error {
 
 	lp, err := p.pluginManager.LoadPlugin(inPath, p.eventManager)
 	if err != nil {
@@ -317,29 +317,34 @@ func (p *pluginControl) SetMonitorOptions(options ...monitorOption) {
 	p.pluginRunner.Monitor().Option(options...)
 }
 
-// the public interface for a plugin
-// this should be the contract for
-// how mgmt modules know a plugin
-type CatalogedPlugin interface {
-	Name() string
-	Version() int
-	TypeName() string
-	Status() string
-	LoadedTimestamp() int64
-}
-
-// the collection of cataloged plugins used
-// by mgmt modules
-type PluginCatalog []CatalogedPlugin
-
 // returns a copy of the plugin catalog
-func (p *pluginControl) PluginCatalog() PluginCatalog {
+func (p *pluginControl) PluginCatalog() core.PluginCatalog {
 	table := p.pluginManager.LoadedPlugins().Table()
-	pc := make([]CatalogedPlugin, len(table))
+	pc := make([]core.CatalogedPlugin, len(table))
 	for i, lp := range table {
 		pc[i] = lp
 	}
 	return pc
+}
+
+func (p *pluginControl) AvailablePlugins() []core.AvailablePlugin {
+	var acp []core.AvailablePlugin
+	for _, aa := range p.pluginRunner.AvailablePlugins().Collectors.Table() {
+		for _, a := range aa {
+			acp = append(acp, a)
+		}
+	}
+	for _, aa := range p.pluginRunner.AvailablePlugins().Processors.Table() {
+		for _, a := range aa {
+			acp = append(acp, a)
+		}
+	}
+	for _, aa := range p.pluginRunner.AvailablePlugins().Publishers.Table() {
+		for _, a := range aa {
+			acp = append(acp, a)
+		}
+	}
+	return acp
 }
 
 func (p *pluginControl) MetricCatalog() ([]core.Metric, error) {

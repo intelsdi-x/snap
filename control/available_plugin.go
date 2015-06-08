@@ -29,13 +29,13 @@ type availablePluginState int
 
 // availablePlugin represents a plugin running and available to execute calls against
 type availablePlugin struct {
-	Name    string
-	Key     string
-	Type    plugin.PluginType
-	Version int
-	Client  client.PluginClient
-	Index   int
+	Key    string
+	Type   plugin.PluginType
+	Client client.PluginClient
+	Index  int
 
+	name               string
+	version            int
 	id                 int
 	hitCount           int
 	lastHitTime        time.Time
@@ -48,8 +48,8 @@ type availablePlugin struct {
 // plugin.Response
 func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter) (*availablePlugin, error) {
 	ap := &availablePlugin{
-		Name:    resp.Meta.Name,
-		Version: resp.Meta.Version,
+		name:    resp.Meta.Name,
+		version: resp.Meta.Version,
 		Type:    resp.Type,
 
 		emitter:     emitter,
@@ -91,12 +91,24 @@ func (a *availablePlugin) ID() int {
 }
 
 func (a *availablePlugin) String() string {
-	return fmt.Sprintf("%s:v%d:id%d", a.Name, a.Version, a.id)
+	return fmt.Sprintf("%s:v%d:id%d", a.name, a.version, a.id)
+}
+
+func (a *availablePlugin) TypeName() string {
+	return a.Type.String()
+}
+
+func (a *availablePlugin) Name() string {
+	return a.name
+}
+
+func (a *availablePlugin) Version() int {
+	return a.version
 }
 
 // Stop halts a running availablePlugin
 func (a *availablePlugin) Stop(r string) error {
-	logger.Debug("availableplugin", fmt.Sprintf(a.Name, a.Version))
+	logger.Debug("availableplugin", fmt.Sprintf(a.name, a.Version))
 	return a.Client.Kill(r)
 }
 
@@ -127,8 +139,8 @@ func (a *availablePlugin) healthCheckFailed() {
 	if a.failedHealthChecks >= DefaultHealthCheckFailureLimit {
 		logger.Debugf("hearbeat", "failed (%s)", a.String())
 		pde := &control_event.DisabledPluginEvent{
-			Name:    a.Name,
-			Version: a.Version,
+			Name:    a.name,
+			Version: a.version,
 			Type:    int(a.Type),
 			Key:     a.Key,
 			Index:   a.Index,
@@ -136,8 +148,8 @@ func (a *availablePlugin) healthCheckFailed() {
 		defer a.emitter.Emit(pde)
 	}
 	hcfe := &control_event.HealthCheckFailedEvent{
-		Name:    a.Name,
-		Version: a.Version,
+		Name:    a.name,
+		Version: a.version,
 		Type:    int(a.Type),
 	}
 	defer a.emitter.Emit(hcfe)
@@ -153,7 +165,7 @@ func (a *availablePlugin) LastHit() time.Time {
 
 // makeKey creates the a.Key from the a.Name and a.Version
 func (a *availablePlugin) makeKey() {
-	s := []string{a.Name, strconv.Itoa(a.Version)}
+	s := []string{a.name, strconv.Itoa(a.version)}
 	a.Key = strings.Join(s, ":")
 }
 
@@ -240,7 +252,7 @@ func (c *apCollection) Remove(ap *availablePlugin) error {
 	}
 
 	(*c.table)[ap.Key].Remove(ap)
-	logger.Debug("ap.removed", fmt.Sprintf(ap.Name, ap.Version))
+	logger.Debug("ap.removed", fmt.Sprintf(ap.name, ap.Version))
 	return nil
 }
 

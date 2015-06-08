@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -33,6 +34,7 @@ type task struct {
 	LastRunTime  int64             `json:"last_run_time,omitempty"`
 	HitCount     uint              `json:"hit_count,omitempty"`
 	MissCount    uint              `json:"miss_count,omitempty"`
+	State        string            `json:"task_state"`
 }
 
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -82,6 +84,41 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 }
 
 func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	rmap := make(map[string]interface{})
+	sts := s.mt.GetTasks()
+	rts := make([]task, len(sts))
+	i := 0
+	for _, t := range sts {
+		rts[i] = task{
+
+			ID:           t.ID(),
+			Deadline:     t.DeadlineDuration().String(),
+			CreationTime: t.CreationTime().Unix(),
+			LastRunTime:  t.LastRunTime().Unix(),
+			HitCount:     t.HitCount(),
+			MissCount:    t.MissedCount(),
+			State:        t.State().String(),
+		}
+		i++
+	}
+	rmap["tasks"] = rts
+	replySuccess(200, w, rmap)
+}
+
+func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
+	if err != nil {
+		replyError(500, w, err)
+		return
+	}
+	err = s.mt.StartTask(id)
+	if err != nil {
+		replyError(404, w, err)
+		return
+	}
+	// create return map
+	rmap := make(map[string]interface{})
+	replySuccess(200, w, rmap)
 }
 
 func marshalTask(body io.ReadCloser) (*task, error) {

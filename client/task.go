@@ -2,6 +2,7 @@ package pulse
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,6 +14,22 @@ type ErrTaskCreationFailed struct {
 }
 
 func (e *ErrTaskCreationFailed) Error() string {
+	return e.message
+}
+
+type ErrGetTasksFailed struct {
+	message string
+}
+
+func (e *ErrGetTasksFailed) Error() string {
+	return e.message
+}
+
+type ErrStartTask struct {
+	message string
+}
+
+func (e *ErrStartTask) Error() string {
 	return e.message
 }
 
@@ -45,6 +62,7 @@ type Task struct {
 	LastHitTime  time.Time `json:"omitempty"`
 	HitCount     uint      `json:"hit_count"`
 	MissCount    uint      `json:"miss_count"`
+	State        string    `json:"task_state"`
 }
 
 /*
@@ -104,6 +122,41 @@ func (c *Client) CreateTask(t *Task) error {
 	return nil
 }
 
+func (c *Client) GetTasks() ([]Task, error) {
+	resp, err := c.do("GET", "/tasks", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var gtr getTasksReply
+	err = json.Unmarshal(resp.body, &gtr)
+	if err != nil {
+		return nil, err
+	}
+	if resp.status != 200 {
+		return nil, &ErrGetTasksFailed{gtr.Meta.Message}
+	}
+	return gtr.Data.Tasks, nil
+
+}
+
+func (c *Client) StartTask(id uint64) error {
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id))
+	if err != nil {
+		return err
+	}
+
+	var str startTaskReply
+	err = json.Unmarshal(resp.body, &str)
+	if err != nil {
+		return err
+	}
+	if resp.status != 200 {
+		return &ErrStartTask{str.Meta.Message}
+	}
+	return nil
+}
+
 type createTaskReply struct {
 	respBody
 	Data createTaskData `json:"data"`
@@ -111,6 +164,19 @@ type createTaskReply struct {
 
 type createTaskData struct {
 	Task task `json:"task"`
+}
+
+type getTasksReply struct {
+	respBody
+	Data getTasksData `json:"data"`
+}
+
+type getTasksData struct {
+	Tasks []Task `json:"tasks"`
+}
+
+type startTaskReply struct {
+	respBody
 }
 
 func makens(ns []string) string {

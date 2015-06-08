@@ -21,10 +21,15 @@ import (
 type managesMetrics interface {
 	MetricCatalog() ([]core.Metric, error)
 	Load(string) error
+	PluginCatalog() core.PluginCatalog
+	AvailablePlugins() []core.AvailablePlugin
 }
 
+//todo remove this interface
 type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, ...core.TaskOption) (core.Task, core.TaskErrors)
+	GetTasks() map[uint64]core.Task
+	StartTask(id uint64) error
 }
 
 type Server struct {
@@ -77,6 +82,7 @@ func (s *Server) start(addrString string) {
 	// task routes
 	s.r.GET("/v1/tasks", s.getTasks)
 	s.r.POST("/v1/tasks", s.addTask)
+	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)
@@ -137,9 +143,8 @@ func marshalBody(in interface{}, body io.ReadCloser) (int, error) {
 func parseNamespace(ns string) []string {
 	if strings.Index(ns, "/") == 0 {
 		return strings.Split(ns[1:], "/")
-	} else {
-		return strings.Split(ns, "/")
 	}
+	return strings.Split(ns, "/")
 }
 
 func joinNamespace(ns []string) string {
