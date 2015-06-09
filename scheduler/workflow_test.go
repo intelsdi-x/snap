@@ -58,11 +58,11 @@ func TestCollectPublishWorkflow(t *testing.T) {
 		s := New()
 		s.SetMetricManager(c)
 		Convey("Start a collector and publisher plugin", func() {
-			err := c.Load(path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy1"))
+			err := c.Load(path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy2"))
 			So(err, ShouldBeNil)
 			err = c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 			So(err, ShouldBeNil)
-			err = c.Load(path.Join(PulsePath, "plugin", "processor", "pulse-processor-passthru"))
+			err = c.Load(path.Join(PulsePath, "plugin", "processor", "pulse-processor-movingaverage"))
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
 
@@ -77,7 +77,10 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			pu := wmap.NewPublishNode("file", 1)
 			pu.AddConfigItem("file", "/tmp/pulse-TestCollectPublishWorkflow.out")
 
-			pr := wmap.NewProcessNode("passthru", 1)
+			pr := wmap.NewProcessNode("movingaverage", 1)
+			config2, err := pr.GetConfigNode()
+			So(err, ShouldBeNil)
+			c.SubscribeProcessor("movingaverage", 1, config2.Table())
 			time.Sleep(100 * time.Millisecond)
 
 			pr.Add(pu)
@@ -91,7 +94,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 					So(err.Errors(), ShouldBeEmpty)
 					So(t, ShouldNotBeNil)
 					t.(*task).Spin()
-					time.Sleep(3 * time.Second)
+					time.Sleep(10 * time.Second)
 				})
 			})
 		})
