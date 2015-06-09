@@ -33,6 +33,10 @@ func (c *ConfigTree) GobEncode() ([]byte, error) {
 	//todo throw an error if not frozen
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
+	if c.root == nil {
+		c.root = &node{}
+		// c.root.setKeys([]string{})
+	}
 	if err := encoder.Encode(c.root); err != nil {
 		return nil, err
 	}
@@ -94,6 +98,11 @@ func (c *ConfigTree) Get(ns []string) Node {
 	// Return if no root exists (no tree without a root)
 	if c.root == nil {
 		c.log(fmt.Sprintln("ctree: no root - returning nil"))
+		return nil
+	}
+
+	if len(c.root.keys) == 0 {
+		//This will be the case when a plugin returns an empty configPolicyTree
 		return nil
 	}
 

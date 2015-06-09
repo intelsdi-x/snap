@@ -259,26 +259,26 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Path), lPlugin.Path)
 
 	if err != nil {
-		// log.Println(err)
+		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
 		return nil, err
 	}
 
 	err = ePlugin.Start()
 	if err != nil {
-		// log.Println("Start error" + err.Error())
+		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
 		return nil, err
 	}
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
 	if err != nil {
-		// log.Println(err)
+		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
 		return nil, err
 	}
 
 	ap, err := newAvailablePlugin(resp, -1, emitter)
 	if err != nil {
-		// log.Println(err.Error())
+		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
 		return nil, err
 	}
 
@@ -289,6 +289,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		// Get the ConfigPolicyTree and add it to the loaded plugin
 		cpt, err := colClient.GetConfigPolicyTree()
 		if err != nil {
+			logger.Debugf("PluginManager.LoadPlugin GetConfigPolicyTree()", "%v", err)
 			return nil, err
 		}
 		lPlugin.ConfigPolicyTree = &cpt
@@ -296,6 +297,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		// Get metric types
 		metricTypes, err := colClient.GetMetricTypes()
 		if err != nil {
+			logger.Debugf("PluginManager.LoadPlugin", "%v", err)
 			return nil, err
 		}
 
@@ -336,10 +338,12 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	err = ePlugin.Kill()
 	if err != nil {
+		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
 		return nil, err
 	}
 
 	if resp.State != plugin.PluginSuccess {
+		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
 		return nil, fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 	}
 
@@ -351,6 +355,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	err = p.LoadedPlugins().Append(lPlugin)
 	if err != nil {
+		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
 		return nil, err
 	}
 

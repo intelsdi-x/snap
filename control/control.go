@@ -202,11 +202,13 @@ func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.C
 		return nil, subErrs
 	}
 
-	ncdTable, errs := m.policy.Process(cd.Table())
-	if errs != nil && errs.HasErrors() {
-		return nil, errs.Errors()
+	if cd != nil {
+		ncdTable, errs := m.policy.Process(cd.Table())
+		if errs != nil && errs.HasErrors() {
+			return nil, errs.Errors()
+		}
+		m.config = cdata.FromTable(*ncdTable)
 	}
-	m.config = cdata.FromTable(*ncdTable)
 
 	m.Subscribe()
 	e := &control_event.MetricSubscriptionEvent{
