@@ -1,0 +1,42 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "10s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {                
+                "/psutil/load/load1": {}
+            },
+            "config": {
+                "/intel/dummy": {
+                    "password": "secret",
+                    "user": "root"
+                }
+            },
+            "process": [
+                {
+                    "plugin_name": "passthru",
+                    "plugin_version": 1,
+                    "process": null,
+                    "publish": [
+                        {
+                            "plugin_name": "influx",
+                            "plugin_version": 1,
+                            "config": {
+                                "host": "172.16.105.128",
+                                "port": "8086",
+                                "database": "pulse",
+                                "user": "admin",
+                                "password": "admin"                            
+                            }
+                        }
+                    ],
+                    "config": null
+                }
+            ],
+            "publish": null
+        }
+    }
+}

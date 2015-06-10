@@ -166,6 +166,8 @@ func init() {
 
 	gob.Register(cpolicy.NewPolicyNode())
 	gob.Register(&cpolicy.StringRule{})
+	gob.Register(&cpolicy.IntRule{})
+	gob.Register(&cpolicy.FloatRule{})
 }
 
 func upcaseInitial(str string) string {
