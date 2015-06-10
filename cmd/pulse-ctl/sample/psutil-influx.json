@@ -22,10 +22,14 @@
                     "process": null,
                     "publish": [
                         {
-                            "plugin_name": "file",
+                            "plugin_name": "influx",
                             "plugin_version": 1,
                             "config": {
-                                "file": "/tmp/pub.out"                            
+                                "host": "172.16.105.128",
+                                "port": "8086",
+                                "database": "pulse",
+                                "user": "admin",
+                                "password": "admin"                            
                             }
                         }
                     ],
