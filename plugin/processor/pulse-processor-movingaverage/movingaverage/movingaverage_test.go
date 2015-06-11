@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -20,6 +21,10 @@ func randInt(min int, max int) int {
 func TestMovingAverageProcessorMetrics(t *testing.T) {
 	Convey("Moving Average Processor tests", t, func() {
 		metrics := make([]plugin.PluginMetricType, 10)
+		config := make(map[string]ctypes.ConfigValue)
+
+		config["MovingAvgBufLength"] = ctypes.ConfigValueInt{Value: -1}
+
 		Convey("Moving average for int data", func() {
 			for i, _ := range metrics {
 				time.Sleep(3)
@@ -34,7 +39,7 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 			logger := log.New(&logBuf, "logger: ", log.Lshortfile)
 			movingAverageObj := NewMovingaverageProcessor()
 
-			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil, logger)
+			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), config, logger)
 
 			var metrics_new []plugin.PluginMetricType
 
@@ -59,7 +64,7 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 			logger := log.New(&logBuf, "logger: ", log.Lshortfile)
 			movingAverageObj := NewMovingaverageProcessor()
 
-			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil, logger)
+			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), config, logger)
 
 			var metrics_new []plugin.PluginMetricType
 

@@ -23,20 +23,19 @@ func Meta() *plugin.PluginMeta {
 }
 
 func NewMovingaverageProcessor() *movingAverageProcessor {
-
 	a := make(map[string]*average)
 	return &movingAverageProcessor{
 		movingAverageMap: a,
+		movingBufLength:  10,
 	}
 }
 
 //The default buffer length is assumed to be 10
 
-func newmovingAverage() *average {
+func newmovingAverage(length int) *average {
 	initCounter := 0
 	return &average{
-		movingAverageBuf: make([]interface{}, 10),
-		movingBufLength:  10,
+		movingAverageBuf: make([]interface{}, length),
 		counter:          initCounter,
 	}
 }
@@ -46,13 +45,13 @@ func newmovingAverage() *average {
 //value is a pointer average struct which stores values of the namespace key
 type movingAverageProcessor struct {
 	movingAverageMap map[string]*average
+	movingBufLength  int
 }
 
 //Each Namespace would have its own buffer-length and counter . Counter is used for the purpose of
 //replacing the oldest (when buffer is full) with the new value using mod operation
 type average struct {
 	movingAverageBuf []interface{}
-	movingBufLength  int
 	counter          int
 }
 
@@ -63,7 +62,6 @@ func (p *movingAverageProcessor) getCounter(namespace string) (int, error) {
 	} else {
 		return -1, errors.New("Namespace is not present in the map")
 	}
-
 }
 
 //Sets the counter for the particular namespace
@@ -76,6 +74,15 @@ func (p *movingAverageProcessor) setCounter(namespace string, counter int) error
 	}
 }
 
+func (p *movingAverageProcessor) getBufferLength() int {
+	return p.movingBufLength
+}
+
+func (p *movingAverageProcessor) setBufferLength(length int) error {
+	p.movingBufLength = length
+	return nil
+}
+
 //Adds data in the buffer for a particular namespace
 func (p *movingAverageProcessor) addBufferData(index int, data interface{}, namespace string) error {
 
@@ -86,7 +93,6 @@ func (p *movingAverageProcessor) addBufferData(index int, data interface{}, name
 	} else {
 		return errors.New("Namespace is not present in the map")
 	}
-
 }
 
 //Retrieves the buffer data for a particular namespace
@@ -112,14 +118,14 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 		logger.Printf("Unknown data received: Type %T", v)
 		return 0.0, errors.New("Unknown data received: Type")
 	case int:
-		if movingAverageObj, ok := p.movingAverageMap[namespace]; ok {
+		if _, ok := p.movingAverageMap[namespace]; ok {
 			counter, err := p.getCounter(namespace)
-			counterCurrent := counter % movingAverageObj.movingBufLength
+			counterCurrent := counter % p.movingBufLength
 			p.addBufferData(counterCurrent, m.Data(), namespace)
 			sum := int(0)
 			//Initial Counter is used to give correct average for initial iterations ie when the buffer is not full
 			initialCounter := 0
-			for i := 0; i < movingAverageObj.movingBufLength; i++ {
+			for i := 0; i < p.movingBufLength; i++ {
 				if p.getBufferData(i, namespace) != nil {
 					initialCounter++
 					sum += p.getBufferData(i, namespace).(int)
@@ -134,7 +140,7 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 
 			//Since map doesnot have an entry of this namespace, its creating an entry for the namespace.
 			//Also m.data value is inserted into 0th position of the buffer because we know that this buffer is being used for the first time
-			p.movingAverageMap[namespace] = newmovingAverage()
+			p.movingAverageMap[namespace] = newmovingAverage(p.getBufferLength())
 			p.addBufferData(0, m.Data(), namespace)
 			sum := p.getBufferData(0, namespace).(int)
 			p.setCounter(namespace, 1)
@@ -143,15 +149,13 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 
 	case float64:
 
-		if movingAverageObj, ok := p.movingAverageMap[namespace]; ok {
+		if _, ok := p.movingAverageMap[namespace]; ok {
 			counter, err := p.getCounter(namespace)
-			counterCurrent := counter % movingAverageObj.movingBufLength
+			counterCurrent := counter % p.movingBufLength
 			p.addBufferData(counterCurrent, m.Data(), namespace)
-			logger.Printf("The buffer length is %T", float64(p.movingAverageMap[namespace].movingBufLength))
-			logger.Println("The type which  I am in is int")
 			sum := float64(0)
 			initialCounter := 0
-			for i := 0; i < movingAverageObj.movingBufLength; i++ {
+			for i := 0; i < p.movingBufLength; i++ {
 				if p.getBufferData(i, namespace) != nil {
 					initialCounter++
 					sum += p.getBufferData(i, namespace).(float64)
@@ -163,7 +167,7 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 			return movingAvg, err
 
 		} else {
-			p.movingAverageMap[namespace] = newmovingAverage()
+			p.movingAverageMap[namespace] = newmovingAverage(p.getBufferLength())
 			p.addBufferData(0, m.Data(), namespace)
 			sum := p.getBufferData(0, namespace).(float64)
 			p.setCounter(namespace, 1)
@@ -171,14 +175,14 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 		}
 
 	case float32:
-		if movingAverageObj, ok := p.movingAverageMap[namespace]; ok {
+		if _, ok := p.movingAverageMap[namespace]; ok {
 			counter, err := p.getCounter(namespace)
-			counterCurrent := counter % movingAverageObj.movingBufLength
+			counterCurrent := counter % p.movingBufLength
 			p.addBufferData(counterCurrent, m.Data(), namespace)
 			sum := float32(0)
 
 			initialCounter := 0
-			for i := 0; i < movingAverageObj.movingBufLength; i++ {
+			for i := 0; i < p.movingBufLength; i++ {
 				if p.getBufferData(i, namespace) != nil {
 					initialCounter++
 					sum += p.getBufferData(i, namespace).(float32)
@@ -189,7 +193,7 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 			return movingAvg, err
 
 		} else {
-			p.movingAverageMap[namespace] = newmovingAverage()
+			p.movingAverageMap[namespace] = newmovingAverage(p.getBufferLength())
 			p.addBufferData(0, m.Data(), namespace)
 			sum := p.getBufferData(0, namespace).(float32)
 			p.setCounter(namespace, 1)
@@ -197,13 +201,13 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 		}
 
 	case uint32:
-		if movingAverageObj, ok := p.movingAverageMap[namespace]; ok {
+		if _, ok := p.movingAverageMap[namespace]; ok {
 			counter, err := p.getCounter(namespace)
-			counterCurrent := counter % movingAverageObj.movingBufLength
+			counterCurrent := counter % p.movingBufLength
 			p.addBufferData(counterCurrent, m.Data(), namespace)
 			sum := uint32(0)
 			initialCounter := 0
-			for i := 0; i < movingAverageObj.movingBufLength; i++ {
+			for i := 0; i < p.movingBufLength; i++ {
 				if p.getBufferData(i, namespace) != nil {
 					initialCounter++
 					sum += p.getBufferData(i, namespace).(uint32)
@@ -215,7 +219,7 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 			return movingAvg, err
 
 		} else {
-			p.movingAverageMap[namespace] = newmovingAverage()
+			p.movingAverageMap[namespace] = newmovingAverage(p.getBufferLength())
 			p.addBufferData(0, m.Data(), namespace)
 			sum := p.getBufferData(0, namespace).(uint32)
 			p.setCounter(namespace, 1)
@@ -223,13 +227,13 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 		}
 
 	case uint64:
-		if movingAverageObj, ok := p.movingAverageMap[namespace]; ok {
+		if _, ok := p.movingAverageMap[namespace]; ok {
 			counter, err := p.getCounter(namespace)
-			counterCurrent := counter % movingAverageObj.movingBufLength
+			counterCurrent := counter % p.movingBufLength
 			p.addBufferData(counterCurrent, m.Data(), namespace)
 			sum := uint64(0)
 			initialCounter := 0
-			for i := 0; i < movingAverageObj.movingBufLength; i++ {
+			for i := 0; i < p.movingBufLength; i++ {
 				if p.getBufferData(i, namespace) != nil {
 					initialCounter++
 					sum += p.getBufferData(i, namespace).(uint64)
@@ -241,7 +245,7 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 			return movingAvg, err
 
 		} else {
-			p.movingAverageMap[namespace] = newmovingAverage()
+			p.movingAverageMap[namespace] = newmovingAverage(p.getBufferLength())
 			p.addBufferData(0, m.Data(), namespace)
 			sum := p.getBufferData(0, namespace).(uint64)
 			p.setCounter(namespace, 1)
@@ -250,9 +254,18 @@ func (p *movingAverageProcessor) calculateMovingAverage(m plugin.PluginMetricTyp
 
 	}
 }
+func handleErr(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
 
 func (p *movingAverageProcessor) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	config := cpolicy.NewPolicyNode()
+	r1, err := cpolicy.NewIntegerRule("MovingAvgBufLength", true)
+	handleErr(err)
+	r1.Description = "Buffer Length for moving average "
+	config.Add(r1)
 	return *config
 }
 
@@ -260,6 +273,18 @@ func (p *movingAverageProcessor) Process(contentType string, content []byte, con
 	logger.Println("movingAverage Processor started")
 
 	var metrics []plugin.PluginMetricType
+	//if the MovingAvgBufLength is set to number less than or equal to 0 then the MovingAvgBufferLength is set to 10
+	if config != nil {
+		if config["MovingAvgBufLength"].(ctypes.ConfigValueInt).Value > 0 {
+			p.setBufferLength(config["MovingAvgBufLength"].(ctypes.ConfigValueInt).Value)
+
+		} else {
+			p.setBufferLength(10)
+		}
+
+	} else {
+		p.setBufferLength(10)
+	}
 
 	//Decodes the content into pluginMetricType
 	dec := gob.NewDecoder(bytes.NewBuffer(content))
@@ -271,6 +296,7 @@ func (p *movingAverageProcessor) Process(contentType string, content []byte, con
 	for i, m := range metrics {
 		//Determining the type of data
 		logger.Printf("Data received %v", metrics[i].Data())
+
 		metrics[i].Data_, _ = p.calculateMovingAverage(m, logger)
 		logger.Printf("Moving Average %v", metrics[i].Data())
 
