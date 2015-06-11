@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest"

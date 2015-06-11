@@ -4,12 +4,12 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
@@ -250,7 +250,7 @@ func (p *pluginControl) SubscribePublisher(name string, ver int, config map[stri
 	log.WithFields(log.Fields{
 		"module":    "control",
 		"block":     "subscribe-publisher",
-		"publisher": fmt.Sprintf("%s-%s", name, ver),
+		"publisher": fmt.Sprintf("%s-%d", name, ver),
 	}).Info("subscription called on publisher")
 	var subErrs []error
 
@@ -294,7 +294,7 @@ func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[stri
 	log.WithFields(log.Fields{
 		"module":    "control",
 		"block":     "subscribe-processor",
-		"processor": fmt.Sprintf("%s-%s", name, ver),
+		"processor": fmt.Sprintf("%s-%d", name, ver),
 	}).Info("subscription called on processor")
 	var subErrs []error
 
