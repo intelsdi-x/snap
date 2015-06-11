@@ -51,6 +51,7 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 		})
 
 		Convey("Moving average for float32 data", func() {
+			config["MovingAvgBufLength"] = ctypes.ConfigValueInt{Value: 40}
 			for i, _ := range metrics {
 				time.Sleep(3)
 				rand.Seed(time.Now().UTC().UnixNano())

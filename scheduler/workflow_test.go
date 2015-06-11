@@ -80,7 +80,6 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			pr := wmap.NewProcessNode("movingaverage", 1)
 			pr.AddConfigItem("MovingAvgBufLength", 20)
 			config2, err := pr.GetConfigNode()
-			fmt.Printf("the config is %+v", config2)
 			So(err, ShouldBeNil)
 			c.SubscribeProcessor("movingaverage", 1, config2.Table())
 			time.Sleep(100 * time.Millisecond)
