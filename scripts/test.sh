@@ -8,10 +8,11 @@
 # 6. test coverage (http://blog.golang.org/cover)
 
 COVERALLS_TOKEN=t47LG6BQsfLwb9WxB56hXUezvwpED6D11
-TEST_DIRS="control/ core/ mgmt/ pkg/ pulse.go scheduler/"
+TEST_DIRS="cmd/ control/ core/ mgmt/ pkg/ pulse.go scheduler/"
+VET_DIRS="./cmd/... ./control/... ./core/... ./mgmt/... ./pkg/... ./scheduler/... ."
 
 set -e
- 
+
 # Automatic checks
 echo "gofmt"
 test -z "$(gofmt -l -d $TEST_DIRS | tee /dev/stderr)"
@@ -30,24 +31,23 @@ test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"
 # golint ./...
 
 echo "go vet"
-go vet ./...
+go vet $VET_DIRS
 # go test -race ./... - Lets disable for now
  
 # Run test coverage on each subdirectories and merge the coverage profile.
- 
 echo "mode: count" > profile.cov
  
 # Standard go tooling behavior is to ignore dirs with leading underscors
-for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -type d);
+for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -not -path './examples/*' -not -path './scripts/*' -type d);
 do
-if ls $dir/*.go &> /dev/null; then
-    go test -covermode=count -coverprofile=$dir/profile.tmp $dir
-    if [ -f $dir/profile.tmp ]
-    then
-        cat $dir/profile.tmp | tail -n +2 >> profile.cov
-        rm $dir/profile.tmp
-    fi
-fi
+	if ls $dir/*.go &> /dev/null; then
+	    go test -covermode=count -coverprofile=$dir/profile.tmp $dir
+	    if [ -f $dir/profile.tmp ]
+	    then
+	        cat $dir/profile.tmp | tail -n +2 >> profile.cov
+	        rm $dir/profile.tmp
+	    fi
+	fi
 done
  
 go tool cover -func profile.cov
