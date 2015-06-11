@@ -90,7 +90,7 @@ func (t *taskErrors) Errors() []error {
 }
 
 func (s *scheduler) Name() string {
-	return "Scheduler"
+	return "scheduler"
 }
 
 // CreateTask creates and returns task
