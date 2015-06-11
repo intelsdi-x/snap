@@ -118,6 +118,10 @@ func New() *pluginControl {
 	return c
 }
 
+func (p *pluginControl) Name() string {
+	return "Plugin Control"
+}
+
 // Begin handling load, unload, and inventory
 func (p *pluginControl) Start() error {
 	// Start pluginManager when pluginControl starts
