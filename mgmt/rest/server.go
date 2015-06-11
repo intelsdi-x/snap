@@ -40,9 +40,10 @@ type Server struct {
 }
 
 func New() *Server {
+
 	n := negroni.New(
 		&negroni.Recovery{Logger: log.New(os.Stdout, "[pulse-rest] ", 0), PrintStack: true},
-		&negroni.Logger{log.New(os.Stdout, "[pulse-rest] ", 0)},
+		&negroni.Logger{Logger: log.New(os.Stdout, "[pulse-rest] ", 0)},
 	)
 	return &Server{
 		r: httprouter.New(),
