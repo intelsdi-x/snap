@@ -47,8 +47,9 @@ func main() {
 	if *logLevel < 1 || *logLevel > 5 {
 		log.WithFields(
 			log.Fields{
-				"block": "main",
-				"level": *logLevel,
+				"block":  "main",
+				"module": "pulse-agent",
+				"level":  *logLevel,
 			}).Fatal("log level was invalid (needs: 1-5)")
 		os.Exit(1)
 	}
@@ -63,6 +64,7 @@ func main() {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
+					"module":  "pulse-agent",
 					"error":   err.Error(),
 					"logpath": *logPath,
 				}).Fatal("bad log path (must be a dir)")
@@ -72,6 +74,7 @@ func main() {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
+					"module":  "pulse-agent",
 					"logpath": *logPath,
 				}).Fatal("bad log path this is not a directory")
 			os.Exit(0)
@@ -82,6 +85,7 @@ func main() {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
+					"module":  "pulse-agent",
 					"error":   err2.Error(),
 					"logpath": *logPath,
 				}).Fatal("bad log path")
@@ -95,7 +99,8 @@ func main() {
 
 	log.WithFields(
 		log.Fields{
-			"block": "main",
+			"block":  "main",
+			"module": "pulse-agent",
 		}).Info("pulse agent starting")
 	c := control.New()
 	s := scheduler.New(
@@ -144,11 +149,13 @@ func setMaxProcs() {
 		log.WithFields(
 			log.Fields{
 				"block":    "main",
+				"module":   "pulse-agent",
 				"maxprocs": _maxProcs,
 			}).Warning("ENV variable GOMAXPROCS greater than number of cores in the system")
 		log.WithFields(
 			log.Fields{
 				"block":    "main",
+				"module":   "pulse-agent",
 				"maxprocs": _maxProcs,
 			}).Error("setting pulse to use the number of cores in the system")
 		_maxProcs = numProcs
@@ -160,6 +167,7 @@ func setMaxProcs() {
 		log.WithFields(
 			log.Fields{
 				"block":    "main",
+				"module":   "pulse-agent",
 				"maxprocs": _maxProcs,
 			}).Warning("flag max_procs exceeds number of cores in the system. Setting Pulse to use the number of cores in the system")
 		_maxProcs = numProcs
@@ -168,6 +176,7 @@ func setMaxProcs() {
 		log.WithFields(
 			log.Fields{
 				"block":    "main",
+				"module":   "pulse-agent",
 				"maxprocs": _maxProcs,
 			}).Warning("flag max_procs set to negative number. Setting Pulse to use 1 core")
 		_maxProcs = 1
@@ -176,6 +185,7 @@ func setMaxProcs() {
 	log.WithFields(
 		log.Fields{
 			"block":    "main",
+			"module":   "pulse-agent",
 			"maxprocs": _maxProcs,
 		}).Debug("maxprocs")
 	runtime.GOMAXPROCS(_maxProcs)
@@ -186,6 +196,7 @@ func setMaxProcs() {
 		log.WithFields(
 			log.Fields{
 				"block":          "main",
+				"module":         "pulse-agent",
 				"given maxprocs": _maxProcs,
 				"real maxprocs":  actualNumProcs,
 			}).Warning("not using given maxprocs")
@@ -197,8 +208,9 @@ func startModule(m coreModule) error {
 	if err == nil {
 		log.WithFields(
 			log.Fields{
-				"block":  "startModule",
-				"module": m.Name(),
+				"block":        "main",
+				"module":       "pulse-agent",
+				"pulse-module": m.Name(),
 			}).Info("module started")
 	}
 	return err
@@ -207,9 +219,10 @@ func startModule(m coreModule) error {
 func printErrorAndExit(name string, err error) {
 	log.WithFields(
 		log.Fields{
-			"block":  "main",
-			"error":  err.Error(),
-			"module": name,
+			"block":        "main",
+			"module":       "pulse-agent",
+			"error":        err.Error(),
+			"pulse-module": name,
 		}).Fatal("error starting module")
 	os.Exit(1)
 }
@@ -223,20 +236,23 @@ func startInterruptHandling(modules ...coreModule) {
 		sig := <-c
 		log.WithFields(
 			log.Fields{
-				"block": "main",
+				"block":  "main",
+				"module": "pulse-agent",
 			}).Info("shutting down modules")
 
 		for _, m := range modules {
 			log.WithFields(
 				log.Fields{
-					"block":  "main",
-					"module": m.Name(),
+					"block":        "main",
+					"module":       "pulse-agent",
+					"pulse-module": m.Name(),
 				}).Info("stopping module")
 			m.Stop()
 		}
 		log.WithFields(
 			log.Fields{
 				"block":  "main",
+				"module": "pulse-agent",
 				"signal": sig.String(),
 			}).Info("exiting on signal")
 		os.Exit(0)
