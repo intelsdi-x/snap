@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 const (
@@ -76,7 +77,11 @@ func MarshallPluginMetricTypes(contentType string, metrics []PluginMetricType) (
 	// If we have an empty slice we return an error
 	if len(metrics) == 0 {
 		es := fmt.Sprintf("attempt to marshall empty slice of metrics: %s", contentType)
-		logger.Error("marshal-metric-types", es)
+		log.WithFields(log.Fields{
+			"module": "control-plugin",
+			"block":  "marshal-content-type",
+			"error":  es,
+		}).Error("error while marshalling")
 		return nil, "", errors.New(es)
 	}
 	// Switch on content type
@@ -87,7 +92,11 @@ func MarshallPluginMetricTypes(contentType string, metrics []PluginMetricType) (
 		enc := gob.NewEncoder(&buf)
 		err := enc.Encode(metrics)
 		if err != nil {
-			logger.Error("marshal-metric-types", err.Error())
+			log.WithFields(log.Fields{
+				"module": "control-plugin",
+				"block":  "marshal-content-type",
+				"error":  err.Error(),
+			}).Error("error while marshalling")
 			return nil, "", err
 		}
 		// contentType := PulseGOBContentType
@@ -96,14 +105,22 @@ func MarshallPluginMetricTypes(contentType string, metrics []PluginMetricType) (
 		// Serialize into JSON
 		b, err := json.Marshal(metrics)
 		if err != nil {
-			logger.Error("marshal-metric-types", err.Error())
+			log.WithFields(log.Fields{
+				"module": "control-plugin",
+				"block":  "marshal-content-type",
+				"error":  err.Error(),
+			}).Error("error while marshalling")
 			return nil, "", err
 		}
 		return b, PulseJSONContentType, nil
 	default:
 		// We don't recognize this content type. Log and return error.
-		es := fmt.Sprintf("invlaid pulse content type: %s", contentType)
-		logger.Error("marshal-metric-types", es)
+		es := fmt.Sprintf("invalid pulse content type: %s", contentType)
+		log.WithFields(log.Fields{
+			"module": "control-plugin",
+			"block":  "marshal-content-type",
+			"error":  es,
+		}).Error("error while marshalling")
 		return nil, "", errors.New(es)
 	}
 }
@@ -116,7 +133,11 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 		r := bytes.NewBuffer(payload)
 		err := gob.NewDecoder(r).Decode(&metrics)
 		if err != nil {
-			logger.Error("unmarshal-metric-types", err.Error())
+			log.WithFields(log.Fields{
+				"module": "control-plugin",
+				"block":  "unmarshal-content-type",
+				"error":  err.Error(),
+			}).Error("error while unmarshalling")
 			return nil, err
 		}
 		return metrics, nil
@@ -124,14 +145,22 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 		var metrics []PluginMetricType
 		err := json.Unmarshal(payload, &metrics)
 		if err != nil {
-			logger.Error("unmarshal-metric-types", err.Error())
+			log.WithFields(log.Fields{
+				"module": "control-plugin",
+				"block":  "unmarshal-content-type",
+				"error":  err.Error(),
+			}).Error("error while unmarshalling")
 			return nil, err
 		}
 		return metrics, nil
 	default:
 		// We don't recognize this content type as one we can unmarshal. Log and return error.
 		es := fmt.Sprintf("invlaid pulse content type for unmarshalling: %s", contentType)
-		logger.Error("unmarshal-metric-types", es)
+		log.WithFields(log.Fields{
+			"module": "control-plugin",
+			"block":  "unmarshal-content-type",
+			"error":  es,
+		}).Error("error while unmarshalling")
 		return nil, errors.New(es)
 	}
 }
@@ -140,12 +169,20 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 func SwapPluginMetricContentType(contentType, requestedContentType string, payload []byte) ([]byte, string, error) {
 	metrics, err1 := UnmarshallPluginMetricTypes(contentType, payload)
 	if err1 != nil {
-		logger.Error("swap-content-type", err1.Error())
+		log.WithFields(log.Fields{
+			"module": "control-plugin",
+			"block":  "swap-content-type",
+			"error":  err1.Error(),
+		}).Error("error while swaping")
 		return nil, "", err1
 	}
 	newPayload, newContentType, err2 := MarshallPluginMetricTypes(requestedContentType, metrics)
 	if err2 != nil {
-		logger.Error("swap-content-type", err2.Error())
+		log.WithFields(log.Fields{
+			"module": "control-plugin",
+			"block":  "swap-content-type",
+			"error":  err2.Error(),
+		}).Error("error while swaping")
 		return nil, "", err2
 	}
 	return newPayload, newContentType, nil

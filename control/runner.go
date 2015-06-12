@@ -13,7 +13,6 @@ import (
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core/control_event"
-	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 const (
