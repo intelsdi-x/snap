@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"strings"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 
@@ -136,7 +134,10 @@ func (r *runner) Stop() []error {
 			errs = append(errs, e)
 		}
 	}
-	defer logger.Debug("runner.stop", "stopped")
+	defer log.WithFields(log.Fields{
+		"module": "control-runner",
+		"block":  "start-plugin",
+	}).Debug("stopped")
 	return errs
 }
 
@@ -308,7 +309,6 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			}).Error("error on getting metric from metric catalog")
 			return
 		}
-		logger.Debugf("runner.events", "plugin is (%s) for (%s v%d)", mt.Plugin.Key(), strings.Join(v.MetricNamespace, "/"), v.Version)
 		log.WithFields(log.Fields{
 			"module":           "control-runner",
 			"block":            "handle-events",
@@ -361,11 +361,10 @@ func checkPool(pool *availablePluginPool, key string) bool {
 	}
 	if pool == nil {
 		log.WithFields(log.Fields{
-			"module":     "control-runner",
-			"block":      "check-pool",
-			"plugin":     key,
-			"pool-count": pool.Count(),
-			"max":        MaximumRunningPlugins,
+			"module": "control-runner",
+			"block":  "check-pool",
+			"plugin": key,
+			"max":    MaximumRunningPlugins,
 		}).Debug("pool is not created")
 	} else {
 		log.WithFields(log.Fields{

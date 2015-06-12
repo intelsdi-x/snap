@@ -155,7 +155,7 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 		return metrics, nil
 	default:
 		// We don't recognize this content type as one we can unmarshal. Log and return error.
-		es := fmt.Sprintf("invlaid pulse content type for unmarshalling: %s", contentType)
+		es := fmt.Sprintf("invalid pulse content type for unmarshalling: %s", contentType)
 		log.WithFields(log.Fields{
 			"module": "control-plugin",
 			"block":  "unmarshal-content-type",
