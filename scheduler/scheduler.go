@@ -89,6 +89,10 @@ func (t *taskErrors) Errors() []error {
 	return t.errs
 }
 
+func (s *scheduler) Name() string {
+	return "scheduler"
+}
+
 // CreateTask creates and returns task
 func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	// Create a container for task errors

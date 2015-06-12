@@ -8,12 +8,13 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
+
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/client"
 	"github.com/intelsdi-x/pulse/control/routing"
 	"github.com/intelsdi-x/pulse/core/control_event"
-	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 const (
@@ -108,7 +109,12 @@ func (a *availablePlugin) Version() int {
 
 // Stop halts a running availablePlugin
 func (a *availablePlugin) Stop(r string) error {
-	logger.Debug("availableplugin", fmt.Sprintf(a.name, a.Version))
+	log.WithFields(log.Fields{
+		"module":         "control-aplugin",
+		"block":          "stop",
+		"plugin-name":    a.Name(),
+		"plugin-version": a.Version(),
+	}).Info("stoppping available plugin")
 	return a.Client.Kill(r)
 }
 
@@ -121,7 +127,12 @@ func (a *availablePlugin) CheckHealth() {
 	select {
 	case err := <-a.healthChan:
 		if err == nil {
-			logger.Debugf("healthcheck", "ok (%s)", a.String())
+			log.WithFields(log.Fields{
+				"module":         "control-aplugin",
+				"block":          "check-health",
+				"plugin-name":    a.Name(),
+				"plugin-version": a.Version(),
+			}).Debug("health is ok")
 			a.failedHealthChecks = 0
 		} else {
 			a.healthCheckFailed()
@@ -134,10 +145,20 @@ func (a *availablePlugin) CheckHealth() {
 // healthCheckFailed increments a.failedHealthChecks and emits a DisabledPluginEvent
 // and a HealthCheckFailedEvent
 func (a *availablePlugin) healthCheckFailed() {
-	logger.Debugf("heartbeat", "missed (%s)", a.String())
+	log.WithFields(log.Fields{
+		"module":         "control-aplugin",
+		"block":          "check-health",
+		"plugin-name":    a.Name(),
+		"plugin-version": a.Version(),
+	}).Warning("heartbeat missed")
 	a.failedHealthChecks++
 	if a.failedHealthChecks >= DefaultHealthCheckFailureLimit {
-		logger.Debugf("hearbeat", "failed (%s)", a.String())
+		log.WithFields(log.Fields{
+			"module":         "control-aplugin",
+			"block":          "check-health",
+			"plugin-name":    a.Name(),
+			"plugin-version": a.Version(),
+		}).Warning("heartbeat failed")
 		pde := &control_event.DisabledPluginEvent{
 			Name:    a.name,
 			Version: a.version,
@@ -221,7 +242,12 @@ func (c *apCollection) Table() map[string][]*availablePlugin {
 
 // Add adds an availablePlugin to the apCollection table
 func (c *apCollection) Add(ap *availablePlugin) error {
-	logger.Debugf("apcollection", "available plugin added %s", ap.String())
+	log.WithFields(log.Fields{
+		"module":         "control-aplugin",
+		"block":          "apcollection",
+		"plugin-name":    ap.Name(),
+		"plugin-version": ap.Version(),
+	}).Debug("available plugin added")
 	c.Lock()
 	defer c.Unlock()
 
@@ -252,7 +278,12 @@ func (c *apCollection) Remove(ap *availablePlugin) error {
 	}
 
 	(*c.table)[ap.Key].Remove(ap)
-	logger.Debug("ap.removed", fmt.Sprintf(ap.name, ap.Version))
+	log.WithFields(log.Fields{
+		"module":         "control-aplugin",
+		"block":          "apcollection",
+		"plugin-name":    ap.Name(),
+		"plugin-version": ap.Version(),
+	}).Debug("available plugin removed")
 	return nil
 }
 

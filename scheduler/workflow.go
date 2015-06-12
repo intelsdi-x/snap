@@ -7,7 +7,6 @@ import (
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/pkg/logger"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
@@ -167,7 +166,6 @@ type wfContentTypes map[string]map[string][]string
 
 // BindPluginContentTypes
 func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes) error {
-	logger.SetLevel(logger.DebugLevel)
 	bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.PulseGOBContentType})
 	return nil
 }

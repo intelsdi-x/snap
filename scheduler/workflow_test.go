@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"testing"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/pkg/logger"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 
@@ -46,14 +44,14 @@ func (m MockMetricType) Data() interface{} {
 
 func TestCollectPublishWorkflow(t *testing.T) {
 	Convey("Given a started plugin control", t, func() {
-		logger.SetLevel(logger.DebugLevel)
-		logPath := "/tmp"
-		file, err := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			logger.Error("main", fmt.Sprintf("bad log path(%s) - %s\n", logPath, err.Error()))
-		}
-		defer file.Close()
-		logger.Output = file
+		// logger.SetLevel(logger.DebugLevel)
+		// logPath := "/tmp"
+		// file, err := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		// if err != nil {
+		// 	logger.Error("main", fmt.Sprintf("bad log path(%s) - %s\n", logPath, err.Error()))
+		// }
+		// defer file.Close()
+		// logger.Output = file
 
 		c := control.New()
 		c.Start()
@@ -84,7 +82,6 @@ func TestCollectPublishWorkflow(t *testing.T) {
 
 			pr.Add(pu)
 			w.CollectNode.Add(pr)
-			logger.Debug(w.String())
 
 			Convey("Start scheduler", func() {
 				err := s.Start()

@@ -11,12 +11,13 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/client"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 const (
@@ -250,35 +251,54 @@ func (p *pluginManager) LoadedPlugins() *loadedPlugins {
 // Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
 func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedPlugin, error) {
-	// log.Printf("Attempting to load: %s\v", path)
 	lPlugin := new(loadedPlugin)
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	logger.Debugf("PluginManager.LoadPlugin", "path %v", filepath.Base(lPlugin.Path))
+	log.WithFields(log.Fields{
+		"module": "control-plugin-manager",
+		"block":  "load-plugin",
+		"path":   filepath.Base(lPlugin.Path),
+	}).Info("plugin load called")
 	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Path), lPlugin.Path)
 
 	if err != nil {
-		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
+		log.WithFields(log.Fields{
+			"module": "control-plugin-manager",
+			"block":  "load-plugin",
+			"error":  err.Error(),
+		}).Error("load plugin error")
 		return nil, err
 	}
 
 	err = ePlugin.Start()
 	if err != nil {
-		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
+		log.WithFields(log.Fields{
+			"module": "control-plugin-manager",
+			"block":  "load-plugin",
+			"error":  err.Error(),
+		}).Error("load plugin error")
 		return nil, err
 	}
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
 	if err != nil {
-		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
+		log.WithFields(log.Fields{
+			"module": "control-plugin-manager",
+			"block":  "load-plugin",
+			"error":  err.Error(),
+		}).Error("load plugin error")
 		return nil, err
 	}
 
 	ap, err := newAvailablePlugin(resp, -1, emitter)
 	if err != nil {
-		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
+		log.WithFields(log.Fields{
+			"module": "control-plugin-manager",
+			"block":  "load-plugin",
+			"error":  err.Error(),
+		}).Error("load plugin error")
 		return nil, err
 	}
 
@@ -289,7 +309,12 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		// Get the ConfigPolicyTree and add it to the loaded plugin
 		cpt, err := colClient.GetConfigPolicyTree()
 		if err != nil {
-			logger.Debugf("PluginManager.LoadPlugin GetConfigPolicyTree()", "%v", err)
+			log.WithFields(log.Fields{
+				"module":      "control-plugin-manager",
+				"block":       "load-plugin",
+				"plugin-type": "collector",
+				"error":       err.Error(),
+			}).Error("error in getting config policy tree")
 			return nil, err
 		}
 		lPlugin.ConfigPolicyTree = &cpt
@@ -297,7 +322,12 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		// Get metric types
 		metricTypes, err := colClient.GetMetricTypes()
 		if err != nil {
-			logger.Debugf("PluginManager.LoadPlugin", "%v", err)
+			log.WithFields(log.Fields{
+				"module":      "control-plugin-manager",
+				"block":       "load-plugin",
+				"plugin-type": "collector",
+				"error":       err.Error(),
+			}).Error("error in getting metric types")
 			return nil, err
 		}
 
@@ -308,10 +338,14 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	case plugin.PublisherPluginType:
 		pubClient := ap.Client.(client.PluginPublisherClient)
-
 		cpn, err := pubClient.GetConfigPolicyNode()
-		logger.Debugf("PluginManager.LoadPlugin (publisher)", "configPolicyNode; %v", cpn)
 		if err != nil {
+			log.WithFields(log.Fields{
+				"module":      "control-plugin-manager",
+				"block":       "load-plugin",
+				"plugin-type": "publisher",
+				"error":       err.Error(),
+			}).Error("error in getting config policy node")
 			return nil, err
 		}
 
@@ -323,8 +357,13 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		procClient := ap.Client.(client.PluginProcessorClient)
 
 		cpn, err := procClient.GetConfigPolicyNode()
-		logger.Debugf("PluginManager.LoadPlugin (processor)", "configPolicyNode; %v", cpn)
 		if err != nil {
+			log.WithFields(log.Fields{
+				"module":      "control-plugin-manager",
+				"block":       "load-plugin",
+				"plugin-type": "processor",
+				"error":       err.Error(),
+			}).Error("error in getting config policy node")
 			return nil, err
 		}
 
@@ -338,13 +377,22 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	err = ePlugin.Kill()
 	if err != nil {
-		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
+		log.WithFields(log.Fields{
+			"module": "control-plugin-manager",
+			"block":  "load-plugin",
+			"error":  err.Error(),
+		}).Error("load plugin error")
 		return nil, err
 	}
 
 	if resp.State != plugin.PluginSuccess {
-		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
-		return nil, fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
+		e := fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
+		log.WithFields(log.Fields{
+			"module": "control-plugin-manager",
+			"block":  "load-plugin",
+			"error":  e,
+		}).Error("load plugin error")
+		return nil, e
 	}
 
 	lPlugin.Meta = resp.Meta
@@ -355,7 +403,11 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	err = p.LoadedPlugins().Append(lPlugin)
 	if err != nil {
-		logger.Debugf("PluginManager.LoadPlugin", "%v", err)
+		log.WithFields(log.Fields{
+			"module": "control-plugin-manager",
+			"block":  "load-plugin",
+			"error":  err.Error(),
+		}).Error("load plugin error")
 		return nil, err
 	}
 

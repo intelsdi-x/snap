@@ -6,13 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"strings"
-
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core/control_event"
-	"github.com/intelsdi-x/pulse/pkg/logger"
 )
 
 const (
@@ -113,8 +111,10 @@ func (r *runner) Start() error {
 
 	// Start the monitor
 	r.monitor.Start(r.availablePlugins)
-
-	logger.Debug("runner.start", "started")
+	log.WithFields(log.Fields{
+		"module": "control-runner",
+		"block":  "start",
+	}).Debug("started")
 	return nil
 }
 
@@ -134,7 +134,10 @@ func (r *runner) Stop() []error {
 			errs = append(errs, e)
 		}
 	}
-	defer logger.Debug("runner.stop", "stopped")
+	defer log.WithFields(log.Fields{
+		"module": "control-runner",
+		"block":  "start-plugin",
+	}).Debug("stopped")
 	return errs
 }
 
@@ -142,22 +145,44 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	e := p.Start()
 	if e != nil {
 		e_ := errors.New("error while starting plugin: " + e.Error())
-		defer logger.Error("runner.startplugin", e_.Error())
+		defer log.WithFields(log.Fields{
+			"module": "control-runner",
+			"block":  "start-plugin",
+			"error":  e.Error(),
+		}).Error("error starting a plugin")
 		return nil, e_
 	}
 
 	// Wait for plugin response
 	resp, err := p.WaitForResponse(time.Second * 3)
 	if err != nil {
-		return nil, errors.New("error while waiting for response: " + err.Error())
+		e := errors.New("error while waiting for response: " + err.Error())
+		log.WithFields(log.Fields{
+			"module": "control-runner",
+			"block":  "start-plugin",
+			"error":  e.Error(),
+		}).Error("error starting a plugin")
+		return nil, e
 	}
 
 	if resp == nil {
-		return nil, errors.New("no reponse object returned from plugin")
+		e := errors.New("no reponse object returned from plugin")
+		log.WithFields(log.Fields{
+			"module": "control-runner",
+			"block":  "start-plugin",
+			"error":  e.Error(),
+		}).Error("error starting a plugin")
+		return nil, e
 	}
 
 	if resp.State != plugin.PluginSuccess {
-		return nil, errors.New("plugin could not start error: " + resp.ErrorMessage)
+		e := errors.New("plugin could not start error: " + resp.ErrorMessage)
+		log.WithFields(log.Fields{
+			"module": "control-runner",
+			"block":  "start-plugin",
+			"error":  e.Error(),
+		}).Error("error starting a plugin")
+		return nil, e
 	}
 
 	// build availablePlugin
@@ -173,7 +198,11 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	r.availablePlugins.Insert(ap)
-	logger.Infof("runner.events", "available plugin started (%s)", ap.String())
+	log.WithFields(log.Fields{
+		"module":           "control-runner",
+		"block":            "start-plugin",
+		"available-plugin": ap.String(),
+	}).Info("available plugin started")
 
 	return ap, nil
 }
@@ -193,17 +222,20 @@ func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
 // Empty handler acting as placeholder until implementation. This helps tests
 // pass to ensure registration works.
 func (r *runner) HandleGomitEvent(e gomit.Event) {
-
 	switch v := e.Body.(type) {
 	case *control_event.ProcessorSubscriptionEvent:
+		log.WithFields(log.Fields{
+			"module":         "control-runner",
+			"block":          "handle-events",
+			"event":          v.Namespace(),
+			"plugin-name":    v.PluginName,
+			"plugin-version": v.PluginVersion,
+			"plugin-type":    "processor",
+		}).Debug("handling processor subscription event")
 		r.mutex.Lock()
 		defer r.mutex.Unlock()
-		logger.Debugf("runner.events", "handling processor subscription event (%v:v%v)", v.PluginName, v.PluginVersion)
-
 		for r.pluginManager.LoadedPlugins().Next() {
 			_, lp := r.pluginManager.LoadedPlugins().Item()
-			logger.Debugf("runner.events", "subscription request name: %v version: %v", v.PluginName, v.PluginVersion)
-			logger.Debugf("runner.events", "loaded plugin name: %v version: %v type: %v", lp.Name(), lp.Version(), lp.TypeName())
 			if lp.TypeName() == "processor" && lp.Name() == v.PluginName && lp.Version() == v.PluginVersion {
 				pool := r.availablePlugins.Processors.GetPluginPool(lp.Key())
 				ok := checkPool(pool, lp.Key())
@@ -221,14 +253,18 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 		}
 	case *control_event.PublisherSubscriptionEvent:
+		log.WithFields(log.Fields{
+			"module":         "control-runner",
+			"block":          "handle-events",
+			"event":          v.Namespace(),
+			"plugin-name":    v.PluginName,
+			"plugin-version": v.PluginVersion,
+			"plugin-type":    "publisher",
+		}).Debug("handling processor subscription event")
 		r.mutex.Lock()
 		defer r.mutex.Unlock()
-		logger.Debugf("runner.events", "handling publisher subscription event (%v:v%v)", v.PluginName, v.PluginVersion)
-
 		for r.pluginManager.LoadedPlugins().Next() {
 			_, lp := r.pluginManager.LoadedPlugins().Item()
-			logger.Debugf("runner.events", "subscription request name: %v version: %v", v.PluginName, v.PluginVersion)
-			logger.Debugf("runner.events", "loaded plugin name: %v version: %v type: %v", lp.Name(), lp.Version(), lp.TypeName())
 			if lp.TypeName() == "publisher" && lp.Name() == v.PluginName && lp.Version() == v.PluginVersion {
 				pool := r.availablePlugins.Publishers.GetPluginPool(lp.Key())
 				ok := checkPool(pool, lp.Key())
@@ -246,9 +282,15 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 		}
 	case *control_event.MetricSubscriptionEvent:
+		log.WithFields(log.Fields{
+			"module":           "control-runner",
+			"block":            "handle-events",
+			"event":            v.Namespace(),
+			"metric-namespace": v.MetricNamespace,
+			"metric-version":   v.Version,
+		}).Debug("handling metric subscription event")
 		r.mutex.Lock()
 		defer r.mutex.Unlock()
-		logger.Debugf("runner.events", "handling metric subscription event (%s v%d)", strings.Join(v.MetricNamespace, "/"), v.Version)
 
 		// Our logic here is simple for alpha. We should replace with parameter managed logic.
 		//
@@ -259,10 +301,22 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		mt, err := r.metricCatalog.Get(v.MetricNamespace, v.Version)
 		if err != nil {
 			// log this error # TODO with logging
-			fmt.Println(err)
+			log.WithFields(log.Fields{
+				"module": "control-runner",
+				"block":  "handle-events",
+				"event":  v.Namespace(),
+				"error":  err,
+			}).Error("error on getting metric from metric catalog")
 			return
 		}
-		logger.Debugf("runner.events", "plugin is (%s) for (%s v%d)", mt.Plugin.Key(), strings.Join(v.MetricNamespace, "/"), v.Version)
+		log.WithFields(log.Fields{
+			"module":           "control-runner",
+			"block":            "handle-events",
+			"event":            v.Namespace(),
+			"metric-namespace": v.MetricNamespace,
+			"metric-version":   v.Version,
+			"plugin":           mt.Plugin.Key(),
+		}).Debug("plugin found for metric")
 
 		pool := r.availablePlugins.Collectors.GetPluginPool(mt.Plugin.Key())
 		ok := checkPool(pool, mt.Plugin.Key())
@@ -272,26 +326,54 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 		ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(mt.Plugin.Path), mt.Plugin.Path)
 		if err != nil {
-			logger.Debugf("runner:HandleGomitEvent", "Plugin %v (ver %v) error: %v", mt.Plugin.Name(), mt.Plugin.Version(), err)
-			fmt.Println(err)
+			log.WithFields(log.Fields{
+				"module": "control-runner",
+				"block":  "handle-events",
+				"event":  v.Namespace(),
+				"plugin": mt.Plugin.Key(),
+				"path":   mt.Plugin.Path,
+				"error":  err,
+			}).Error("error creating executable plugin")
 		}
 		_, err = r.startPlugin(ePlugin)
 		if err != nil {
-			logger.Debugf("runner:HandleGomitEvent", "Plugin %v (ver %v) start error: %v", mt.Plugin.Name(), mt.Plugin.Version(), err)
-			panic(err)
+			log.WithFields(log.Fields{
+				"module": "control-runner",
+				"block":  "handle-events",
+				"event":  v.Namespace(),
+				"plugin": mt.Plugin.Key(),
+				"error":  err,
+			}).Error("error starting new plugin")
 		}
 	}
 }
 
 func checkPool(pool *availablePluginPool, key string) bool {
 	if pool != nil && pool.Count() >= MaximumRunningPlugins {
-		logger.Debugf("runner.events", "(%s) has %d available plugin running (need %d)", key, pool.Count(), MaximumRunningPlugins)
+		log.WithFields(log.Fields{
+			"module":     "control-runner",
+			"block":      "check-pool",
+			"plugin":     key,
+			"pool-count": pool.Count(),
+			"max":        MaximumRunningPlugins,
+		}).Debug("pool is large enough")
 		return false
 	}
 	if pool == nil {
-		logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", 0, key, MaximumRunningPlugins)
+		log.WithFields(log.Fields{
+			"module": "control-runner",
+			"block":  "check-pool",
+			"plugin": key,
+			"max":    MaximumRunningPlugins,
+		}).Debug("pool is not created")
 	} else {
-		logger.Debugf("runner.events", "not enough available plugins (%d) running for (%s) need %d", pool.Count(), key, MaximumRunningPlugins)
+		log.WithFields(log.Fields{
+			"module":     "control-runner",
+			"block":      "check-pool",
+			"plugin":     key,
+			"pool-count": pool.Count(),
+			"max":        MaximumRunningPlugins,
+		}).Debug("pool is not large enough")
 	}
 	return true
 }

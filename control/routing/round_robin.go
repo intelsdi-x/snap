@@ -4,7 +4,11 @@ import (
 	"errors"
 	"math/rand"
 
-	"github.com/intelsdi-x/pulse/pkg/logger"
+	log "github.com/Sirupsen/logrus"
+)
+
+var (
+	ErrorCouldNotSelect = errors.New("could not select a plugin (round robin strategy)")
 )
 
 type RoundRobinStrategy struct {
@@ -13,7 +17,6 @@ type RoundRobinStrategy struct {
 func (r *RoundRobinStrategy) Select(spp SelectablePluginPool, spa []SelectablePlugin) (SelectablePlugin, error) {
 	var h int = -1
 	var index int = -1
-	logger.Debugf("routing.rr", "Using round robin selection on pool of %d plugins\n", len(spa))
 	for i, sp := range spa {
 		// look for the lowest hit count
 		if sp.HitCount() < h || h == -1 {
@@ -29,8 +32,21 @@ func (r *RoundRobinStrategy) Select(spp SelectablePluginPool, spa []SelectablePl
 		}
 	}
 	if index > -1 {
-		logger.Debugf("routing.rr", "Selecting plugin at index (%s) with hitcount of (%d)\n", spa[index].String(), spa[index].HitCount())
+		log.WithFields(log.Fields{
+			"module":    "control-routing",
+			"block":     "select",
+			"strategy":  "round-robin",
+			"pool size": len(spa),
+			"index":     spa[index].String(),
+			"hitcount":  spa[index].HitCount(),
+		}).Debug("plugin selected")
 		return spa[index], nil
 	}
-	return nil, errors.New("could not select a plugin (round robin strategy)")
+	log.WithFields(log.Fields{
+		"module":   "control-routing",
+		"block":    "select",
+		"strategy": "round-robin",
+		"error":    ErrorCouldNotSelect,
+	}).Debug("error selecting")
+	return nil, ErrorCouldNotSelect
 }

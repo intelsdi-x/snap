@@ -22,7 +22,7 @@ func TestMetric(t *testing.T) {
 		configNewNode.AddItem("user", ctypes.ConfigValueStr{Value: "foo"})
 		m[0].Config_ = configNewNode
 		So(e, ShouldNotBeNil)
-		So(e.Error(), ShouldEqual, "invlaid pulse content type: foo")
+		So(e.Error(), ShouldEqual, "invalid pulse content type: foo")
 		So(a, ShouldBeNil)
 		So(c, ShouldEqual, "")
 		So(m[0].Version(), ShouldResemble, 1)
@@ -130,7 +130,7 @@ func TestMetric(t *testing.T) {
 
 		m, e = UnmarshallPluginMetricTypes("pulse.wat", a)
 		So(e, ShouldNotBeNil)
-		So(e.Error(), ShouldEqual, "invlaid pulse content type for unmarshalling: pulse.wat")
+		So(e.Error(), ShouldEqual, "invalid pulse content type for unmarshalling: pulse.wat")
 		So(m, ShouldBeNil)
 	})
 
@@ -219,7 +219,7 @@ func TestMetric(t *testing.T) {
 
 		b, c, e := SwapPluginMetricContentType("pulse.wat", "pulse.gob", a)
 		So(e, ShouldNotBeNil)
-		So(e.Error(), ShouldResemble, "invlaid pulse content type for unmarshalling: pulse.wat")
+		So(e.Error(), ShouldResemble, "invalid pulse content type for unmarshalling: pulse.wat")
 		So(b, ShouldBeNil)
 	})
 }

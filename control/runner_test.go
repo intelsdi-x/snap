@@ -3,10 +3,13 @@ package control
 import (
 	"errors"
 	"io"
+	"os"
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
+
 	"github.com/intelsdi-x/pulse/control/plugin"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -123,6 +126,11 @@ type MockEmitter struct{}
 func (me *MockEmitter) Emit(gomit.EventBody) (int, error) { return 0, nil }
 
 func TestRunnerState(t *testing.T) {
+	// Enabled log output in test
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, DisableTimestamp: false})
+	log.SetLevel(log.DebugLevel)
+	log.SetOutput(os.Stdout)
+
 	Convey("pulse/control", t, func() {
 
 		Convey("Runner", func() {
@@ -249,6 +257,7 @@ func TestRunnerState(t *testing.T) {
 }
 
 func TestRunnerPluginRunning(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
 	Convey("pulse/control", t, func() {
 
 		Convey("Runner", func() {

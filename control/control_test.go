@@ -16,7 +16,6 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
-	"github.com/intelsdi-x/pulse/pkg/logger"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -531,7 +530,6 @@ func (m *mockMetric) Data() interface{} {
 
 func TestPublishMetrics(t *testing.T) {
 	Convey("Given an available file publisher plugin", t, func() {
-		logger.SetLevel(logger.DebugLevel)
 		// adjust HB timeouts for test
 		plugin.PingTimeoutLimit = 1
 		plugin.PingTimeoutDurationDefault = time.Second * 1
