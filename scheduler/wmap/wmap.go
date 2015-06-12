@@ -306,7 +306,13 @@ func configtoConfigDataNode(cmap map[string]interface{}, ns string) (*cdata.Conf
 		case int:
 			cdn.AddItem(ck, ctypes.ConfigValueInt{Value: v})
 		case float64:
-			cdn.AddItem(ck, ctypes.ConfigValueFloat{Value: v})
+			//working around the fact that json decodes numbers to floats
+			//if we can convert the number to an int without loss it will be an int
+			if v == float64(int(v)) {
+				cdn.AddItem(ck, ctypes.ConfigValueInt{Value: int(v)})
+			} else {
+				cdn.AddItem(ck, ctypes.ConfigValueFloat{Value: v})
+			}
 		case bool:
 			cdn.AddItem(ck, ctypes.ConfigValueBool{Value: v})
 		default:
