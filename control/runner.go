@@ -205,7 +205,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			logger.Debugf("runner.events", "subscription request name: %v version: %v", v.PluginName, v.PluginVersion)
 			logger.Debugf("runner.events", "loaded plugin name: %v version: %v type: %v", lp.Name(), lp.Version(), lp.TypeName())
 			if lp.TypeName() == "processor" && lp.Name() == v.PluginName && lp.Version() == v.PluginVersion {
-				pool := r.availablePlugins.Publishers.GetPluginPool(lp.Key())
+				pool := r.availablePlugins.Processors.GetPluginPool(lp.Key())
 				ok := checkPool(pool, lp.Key())
 				if !ok {
 					return

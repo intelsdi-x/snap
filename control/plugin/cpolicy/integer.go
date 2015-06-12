@@ -114,7 +114,10 @@ func (i *IntRule) Key() string {
 // Validates a config value against this rule.
 func (i *IntRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
-	if cv.Type() != "integer" {
+	// when unmarshalling JSON numbers are converted to floats which is the reason
+	// we are checking for integer below.
+	// http://golang.org/pkg/encoding/json/#Marshal
+	if cv.Type() != "integer" && cv.Type() != "float" {
 		return wrongType(i.key, cv.Type(), "integer")
 	}
 	// Check minimum. Type should be safe now because of the check above.
