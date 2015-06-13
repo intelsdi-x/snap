@@ -292,7 +292,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, err
 	}
 
-	ap, err := newAvailablePlugin(resp, -1, emitter)
+	ap, err := newAvailablePlugin(resp, -1, emitter, ePlugin)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"module": "control-plugin-manager",
