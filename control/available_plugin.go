@@ -43,11 +43,12 @@ type availablePlugin struct {
 	emitter            gomit.Emitter
 	failedHealthChecks int
 	healthChan         chan error
+	ePlugin            executablePlugin
 }
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
-func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter) (*availablePlugin, error) {
+func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
 	ap := &availablePlugin{
 		name:    resp.Meta.Name,
 		version: resp.Meta.Version,
@@ -57,6 +58,7 @@ func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter) (*
 		healthChan:  make(chan error, 1),
 		lastHitTime: time.Now(),
 		id:          id,
+		ePlugin:     ep,
 	}
 
 	// Create RPC Client
@@ -110,12 +112,21 @@ func (a *availablePlugin) Version() int {
 // Stop halts a running availablePlugin
 func (a *availablePlugin) Stop(r string) error {
 	log.WithFields(log.Fields{
-		"module":         "control-aplugin",
-		"block":          "stop",
-		"plugin-name":    a.Name(),
-		"plugin-version": a.Version(),
+		"module":  "control-aplugin",
+		"block":   "stop",
+		"aplugin": a,
 	}).Info("stoppping available plugin")
 	return a.Client.Kill(r)
+}
+
+// Kill assumes aplugin is not able to here a Kill RPC call
+func (a *availablePlugin) Kill(r string) error {
+	log.WithFields(log.Fields{
+		"module":  "control-aplugin",
+		"block":   "kill",
+		"aplugin": a,
+	}).Info("hard killing available plugin")
+	return a.ePlugin.Kill()
 }
 
 // CheckHealth checks the health of a plugin and updates
@@ -128,10 +139,9 @@ func (a *availablePlugin) CheckHealth() {
 	case err := <-a.healthChan:
 		if err == nil {
 			log.WithFields(log.Fields{
-				"module":         "control-aplugin",
-				"block":          "check-health",
-				"plugin-name":    a.Name(),
-				"plugin-version": a.Version(),
+				"module":  "control-aplugin",
+				"block":   "check-health",
+				"aplugin": a,
 			}).Debug("health is ok")
 			a.failedHealthChecks = 0
 		} else {
@@ -146,25 +156,24 @@ func (a *availablePlugin) CheckHealth() {
 // and a HealthCheckFailedEvent
 func (a *availablePlugin) healthCheckFailed() {
 	log.WithFields(log.Fields{
-		"module":         "control-aplugin",
-		"block":          "check-health",
-		"plugin-name":    a.Name(),
-		"plugin-version": a.Version(),
+		"module":  "control-aplugin",
+		"block":   "check-health",
+		"aplugin": a,
 	}).Warning("heartbeat missed")
 	a.failedHealthChecks++
 	if a.failedHealthChecks >= DefaultHealthCheckFailureLimit {
 		log.WithFields(log.Fields{
-			"module":         "control-aplugin",
-			"block":          "check-health",
-			"plugin-name":    a.Name(),
-			"plugin-version": a.Version(),
+			"module":  "control-aplugin",
+			"block":   "check-health",
+			"aplugin": a,
 		}).Warning("heartbeat failed")
-		pde := &control_event.DisabledPluginEvent{
+		pde := &control_event.DeadAvailablePluginEvent{
 			Name:    a.name,
 			Version: a.version,
 			Type:    int(a.Type),
 			Key:     a.Key,
-			Index:   a.Index,
+			Id:      a.ID(),
+			String:  a.String(),
 		}
 		defer a.emitter.Emit(pde)
 	}
@@ -402,6 +411,12 @@ func (a *availablePluginPool) Add(ap *availablePlugin) {
 	newCollection := append((*a.Plugins), ap)
 	// overwrite
 	a.Plugins = &newCollection
+	log.WithFields(
+		log.Fields{
+			"module":  "control-aplugin",
+			"block":   "aplugin-pool-add",
+			"aplugin": ap.String(),
+		}).Info("added aplugin to pool")
 }
 
 func (a *availablePluginPool) Remove(ap *availablePlugin) {
@@ -413,6 +428,25 @@ func (a *availablePluginPool) Remove(ap *availablePlugin) {
 	a.Plugins = &splicedColl
 	//reset indexes
 	a.resetIndexes()
+	log.WithFields(
+		log.Fields{
+			"module":  "control-aplugin",
+			"block":   "aplugin-pool-remove",
+			"aplugin": ap.String(),
+		}).Info("removed aplugin from pool")
+}
+
+// Calls Kill on a aplugin if it exists in the pool and returns a pointer to the killed plugin
+func (a *availablePluginPool) Kill(k, r string) (*availablePlugin, error) {
+	a.Lock()
+	defer a.Unlock()
+	for _, ap := range *a.Plugins {
+		if k == ap.String() {
+			err := ap.Kill(r)
+			return ap, err
+		}
+	}
+	return nil, nil
 }
 
 func (a *availablePluginPool) Exists(ap *availablePlugin) (bool, int) {
