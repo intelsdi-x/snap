@@ -25,6 +25,8 @@ type processorPluginProxy struct {
 }
 
 func (p *processorPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs, reply *GetConfigPolicyNodeReply) error {
+	defer catchPluginPanic(p.Session.Logger())
+
 	p.Session.Logger().Println("GetConfigPolicyNode called")
 	p.Session.ResetHeartbeat()
 
@@ -34,6 +36,8 @@ func (p *processorPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs,
 }
 
 func (p *processorPluginProxy) Process(args ProcessorArgs, reply *ProcessorReply) error {
+	defer catchPluginPanic(p.Session.Logger())
+
 	p.Session.Logger().Println("Processor called")
 	p.Session.ResetHeartbeat()
 

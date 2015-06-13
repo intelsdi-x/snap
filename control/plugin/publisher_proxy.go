@@ -30,6 +30,8 @@ type GetConfigPolicyNodeReply struct {
 }
 
 func (p *publisherPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs, reply *GetConfigPolicyNodeReply) error {
+	defer catchPluginPanic(p.Session.Logger())
+
 	p.Session.Logger().Println("GetConfigPolicyNode called")
 	p.Session.ResetHeartbeat()
 
@@ -39,6 +41,8 @@ func (p *publisherPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs,
 }
 
 func (p *publisherPluginProxy) Publish(args PublishArgs, reply *PublishReply) error {
+	defer catchPluginPanic(p.Session.Logger())
+
 	p.Session.Logger().Println("Publish called")
 	p.Session.ResetHeartbeat()
 
