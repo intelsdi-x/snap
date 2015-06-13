@@ -186,7 +186,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// build availablePlugin
-	ap, err := newAvailablePlugin(resp, r.apIdCounter.Next(), r.emitter)
+	ap, err := newAvailablePlugin(resp, r.apIdCounter.Next(), r.emitter, p)
 	if err != nil {
 		return nil, err
 	}
@@ -199,9 +199,10 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 
 	r.availablePlugins.Insert(ap)
 	log.WithFields(log.Fields{
-		"module":           "control-runner",
-		"block":            "start-plugin",
-		"available-plugin": ap.String(),
+		"module":                "control-runner",
+		"block":                 "start-plugin",
+		"available-plugin":      ap.String(),
+		"available-plugin-type": ap.TypeName(),
 	}).Info("available plugin started")
 
 	return ap, nil
@@ -223,6 +224,47 @@ func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
 // pass to ensure registration works.
 func (r *runner) HandleGomitEvent(e gomit.Event) {
 	switch v := e.Body.(type) {
+	case *control_event.DeadAvailablePluginEvent:
+		log.WithFields(log.Fields{
+			"module":  "control-runner",
+			"block":   "handle-events",
+			"event":   v.Namespace(),
+			"aplugin": v.String,
+		}).Warning("handling dead available plugin event")
+		switch v.Type {
+		case int(plugin.CollectorPluginType):
+			p := r.AvailablePlugins().Collectors.GetPluginPool(v.Key)
+			if p != nil {
+				ap, _ := p.Kill(v.String, "dead aplugin")
+				if ap != nil {
+					p.Remove(ap)
+				}
+			}
+		case int(plugin.ProcessorPluginType):
+			p := r.AvailablePlugins().Processors.GetPluginPool(v.Key)
+			if p != nil {
+				ap, _ := p.Kill(v.String, "dead aplugin")
+				if ap != nil {
+					p.Remove(ap)
+				}
+			}
+		case int(plugin.PublisherPluginType):
+			p := r.AvailablePlugins().Publishers.GetPluginPool(v.Key)
+			if p != nil {
+				ap, _ := p.Kill(v.String, "dead aplugin")
+				if ap != nil {
+					p.Remove(ap)
+				}
+			}
+		default:
+			log.WithFields(log.Fields{
+				"module":       "control-runner",
+				"block":        "handle-events",
+				"event":        v.Namespace(),
+				"aplugin-type": v.Type,
+			}).Error("unknown type (int)")
+		}
+
 	case *control_event.ProcessorSubscriptionEvent:
 		log.WithFields(log.Fields{
 			"module":         "control-runner",

@@ -1,8 +1,8 @@
 package control_event
 
 const (
+	AvailablePluginDead   = "Control.AvailablePluginDead"
 	PluginLoaded          = "Control.PluginLoaded"
-	PluginDisabled        = "Control.PluginDisabled"
 	PluginUnloaded        = "Control.PluginUnloaded"
 	PluginsSwapped        = "Control.PluginsSwapped"
 	PublisherSubscribed   = "Control.PublisherSubscribed"
@@ -27,16 +27,17 @@ func (e UnloadPluginEvent) Namespace() string {
 	return PluginUnloaded
 }
 
-type DisabledPluginEvent struct {
+type DeadAvailablePluginEvent struct {
 	Name    string
 	Version int
 	Type    int
 	Key     string
-	Index   int
+	Id      int
+	String  string
 }
 
-func (e *DisabledPluginEvent) Namespace() string {
-	return PluginDisabled
+func (e *DeadAvailablePluginEvent) Namespace() string {
+	return AvailablePluginDead
 }
 
 type SwapPluginsEvent struct{}
