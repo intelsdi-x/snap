@@ -28,8 +28,8 @@ type Task interface {
 	State() TaskState
 	HitCount() uint
 	MissedCount() uint
-	LastRunTime() time.Time
-	CreationTime() time.Time
+	LastRunTime() *time.Time
+	CreationTime() *time.Time
 	DeadlineDuration() time.Duration
 	SetDeadlineDuration(time.Duration)
 	Option(...TaskOption) TaskOption

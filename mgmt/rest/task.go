@@ -30,8 +30,8 @@ type task struct {
 	Deadline     string            `json:"deadline"`
 	Workflow     *wmap.WorkflowMap `json:"workflow"`
 	Schedule     schedule          `json:"schedule"`
-	CreationTime int64             `json:"creation_timestamp"`
-	LastRunTime  int64             `json:"last_run_time,omitempty"`
+	CreationTime *time.Time        `json:"creation_timestamp,omitempty"`
+	LastRunTime  *time.Time        `json:"last_run_timestamp,omitempty"`
 	HitCount     uint              `json:"hit_count,omitempty"`
 	MissCount    uint              `json:"miss_count,omitempty"`
 	State        string            `json:"task_state"`
@@ -72,7 +72,7 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	}
 
 	// set timestamp
-	tr.CreationTime = task.CreationTime().Unix()
+	tr.CreationTime = task.CreationTime()
 
 	// set task id
 	tr.ID = task.ID()
@@ -90,11 +90,10 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	i := 0
 	for _, t := range sts {
 		rts[i] = task{
-
 			ID:           t.ID(),
 			Deadline:     t.DeadlineDuration().String(),
-			CreationTime: t.CreationTime().Unix(),
-			LastRunTime:  t.LastRunTime().Unix(),
+			CreationTime: t.CreationTime(),
+			LastRunTime:  t.LastRunTime(),
 			HitCount:     t.HitCount(),
 			MissCount:    t.MissedCount(),
 			State:        t.State().String(),

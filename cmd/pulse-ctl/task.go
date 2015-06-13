@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"text/tabwriter"
+	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/pulse/client"
@@ -67,7 +68,12 @@ func listTask(ctx *cli.Context) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	fmt.Fprintln(w, "ID\tState\tHit Count\tMiss Count\tCreate Time")
 	for _, task := range tasks {
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n", task.ID, task.State, task.HitCount, task.MissCount, task.CreationTime)
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n",
+			task.ID,
+			task.State,
+			task.HitCount,
+			task.MissCount,
+			task.CreationTime.Format(time.RFC1123))
 	}
 	w.Flush()
 }

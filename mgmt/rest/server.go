@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
+	log_ "log"
 	"net/http"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
 
@@ -41,8 +42,8 @@ type Server struct {
 func New() *Server {
 
 	n := negroni.New(
-		NewLogger(),
-		// TODO a recovery logger
+		&negroni.Recovery{Logger: log_.New(os.Stdout, "[pulse-rest] ", 0), PrintStack: true},
+		&negroni.Logger{Logger: log_.New(os.Stdout, "[pulse-rest] ", 0)},
 	)
 	return &Server{
 		r: httprouter.New(),

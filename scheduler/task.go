@@ -80,8 +80,8 @@ func (t *task) Option(opts ...core.TaskOption) core.TaskOption {
 }
 
 // CreateTime returns the time the task was created.
-func (t *task) CreationTime() time.Time {
-	return t.creationTime
+func (t *task) CreationTime() *time.Time {
+	return &t.creationTime
 }
 
 func (t *task) DeadlineDuration() time.Duration {
@@ -103,8 +103,8 @@ func (t *task) ID() uint64 {
 }
 
 // LastRunTime returns the time of the tasks last run.
-func (t *task) LastRunTime() time.Time {
-	return t.lastFireTime
+func (t *task) LastRunTime() *time.Time {
+	return &t.lastFireTime
 }
 
 // MissedCount retruns the number of intervals missed.
