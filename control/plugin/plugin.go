@@ -4,7 +4,9 @@ package plugin
 import (
 	"crypto/rsa"
 	"fmt" // Don't use "fmt.Print*"
+	"log"
 	"regexp"
+	"runtime"
 	"time"
 )
 
@@ -179,4 +181,14 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	}
 
 	return nil, retCode
+}
+
+func catchPluginPanic(l *log.Logger) {
+	if err := recover(); err != nil {
+		trace := make([]byte, 4096)
+		count := runtime.Stack(trace, true)
+		l.Printf("Recover from panic: %s\n", err)
+		l.Printf("Stack of %d bytes: %s\n", count, trace)
+		panic(err)
+	}
 }
