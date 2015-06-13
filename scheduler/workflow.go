@@ -29,8 +29,6 @@ var (
 
 // WmapToWorkflow attempts to convert a wmap.WorkflowMap to a schedulerWorkflow instance.
 func wmapToWorkflow(wfMap *wmap.WorkflowMap) (*schedulerWorkflow, error) {
-	fmt.Println("- WORKFLOW - ")
-	defer fmt.Println("- WORKFLOW - ")
 	wf := &schedulerWorkflow{}
 	err := convertCollectionNode(wfMap.CollectNode, wf)
 	if err != nil {

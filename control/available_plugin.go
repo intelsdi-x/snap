@@ -138,11 +138,14 @@ func (a *availablePlugin) CheckHealth() {
 	select {
 	case err := <-a.healthChan:
 		if err == nil {
-			log.WithFields(log.Fields{
-				"module":  "control-aplugin",
-				"block":   "check-health",
-				"aplugin": a,
-			}).Debug("health is ok")
+			if a.failedHealthChecks > 0 {
+				// only log on first ok health check
+				log.WithFields(log.Fields{
+					"module":  "control-aplugin",
+					"block":   "check-health",
+					"aplugin": a,
+				}).Debug("health is ok")
+			}
 			a.failedHealthChecks = 0
 		} else {
 			a.healthCheckFailed()
