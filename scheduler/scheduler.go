@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
@@ -168,7 +170,22 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	return task, te
 }
 
-//GetTasks returns a copy of the tasks in a map where the task id is the key
+// RemoveTask given a tasks id.  The task must be stopped.
+// Can return errors ErrTaskNotFound and ErrTaskNotStopped.
+func (s *scheduler) RemoveTask(id uint64) error {
+	t := s.tasks.Get(id)
+	if t == nil {
+		log.WithFields(log.Fields{
+			"module":  "scheduler",
+			"block":   "RemoveTask",
+			"task id": id,
+		}).Error(ErrTaskNotFound)
+		return ErrTaskNotFound
+	}
+	return s.tasks.remove(t)
+}
+
+// GetTasks returns a copy of the tasks in a map where the task id is the key
 func (s *scheduler) GetTasks() map[uint64]core.Task {
 	tasks := make(map[uint64]core.Task)
 	for id, t := range s.tasks.Table() {

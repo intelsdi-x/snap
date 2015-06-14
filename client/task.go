@@ -171,6 +171,23 @@ func (c *Client) StopTask(id uint64) error {
 	return nil
 }
 
+func (c *Client) RemoveTask(id uint64) error {
+	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id))
+	if err != nil {
+		return err
+	}
+
+	var rtr removeTaskReply
+	err = json.Unmarshal(resp.body, &rtr)
+	if err != nil {
+		return err
+	}
+	if resp.status != 200 {
+		return &ErrStartTask{rtr.Meta.Message}
+	}
+	return nil
+}
+
 type createTaskReply struct {
 	respBody
 	Data createTaskData `json:"data"`
@@ -194,6 +211,10 @@ type startTaskReply struct {
 }
 
 type stopTaskReply struct {
+	respBody
+}
+
+type removeTaskReply struct {
 	respBody
 }
 

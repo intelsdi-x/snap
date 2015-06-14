@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	log_ "log"
 	"net/http"
 	"strings"
 
@@ -31,6 +30,7 @@ type managesTasks interface {
 	GetTasks() map[uint64]core.Task
 	StartTask(id uint64) error
 	StopTask(id uint64) error
+	RemoveTask(id uint64) error
 }
 
 type Server struct {
@@ -43,8 +43,8 @@ type Server struct {
 func New() *Server {
 
 	n := negroni.New(
-		&negroni.Recovery{Logger: log_.New(os.Stdout, "[pulse-rest] ", 0), PrintStack: true},
-		&negroni.Logger{Logger: log_.New(os.Stdout, "[pulse-rest] ", 0)},
+		NewLogger(),
+		// TODO a recovery logger
 	)
 	return &Server{
 		r: httprouter.New(),
@@ -86,6 +86,7 @@ func (s *Server) start(addrString string) {
 	s.r.POST("/v1/tasks", s.addTask)
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
+	s.r.DELETE("/v1/tasks/:id", s.removeTask)
 
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)

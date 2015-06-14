@@ -115,7 +115,6 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 		replyError(404, w, err)
 		return
 	}
-
 	replySuccess(200, w, nil)
 }
 
@@ -130,7 +129,20 @@ func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 		replyError(404, w, err)
 		return
 	}
+	replySuccess(200, w, nil)
+}
 
+func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
+	if err != nil {
+		replyError(500, w, err)
+		return
+	}
+	err = s.mt.RemoveTask(id)
+	if err != nil {
+		replyError(404, w, err)
+		return
+	}
 	replySuccess(200, w, nil)
 }
 

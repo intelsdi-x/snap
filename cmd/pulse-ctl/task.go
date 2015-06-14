@@ -113,3 +113,21 @@ func stopTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 }
+
+func removeTask(ctx *cli.Context) {
+	if len(ctx.Args()) != 1 {
+		fmt.Print("Incorrect usage\n")
+		os.Exit(1)
+	}
+
+	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
+	if err != nil {
+		fmt.Printf("Incorrect usage - %v\n", err.Error())
+		os.Exit(1)
+	}
+	err = client.RemoveTask(id)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+}

@@ -27,6 +27,11 @@ var (
 					Usage:  "stop <task_id>",
 					Action: stopTask,
 				},
+				{
+					Name:   "remove",
+					Usage:  "remove <task_id>",
+					Action: removeTask,
+				},
 			},
 		},
 		{

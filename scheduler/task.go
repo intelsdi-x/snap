@@ -1,10 +1,12 @@
 package scheduler
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
@@ -12,6 +14,12 @@ import (
 
 const (
 	DefaultDeadlineDuration = time.Second * 5
+)
+
+var (
+	ErrTaskNotFound            = errors.New("Task not found")
+	ErrTaskNotStopped          = errors.New("Task must be stopped")
+	ErrTaskHasAlreadyBeenAdded = errors.New("Task has already been added")
 )
 
 type task struct {
@@ -216,9 +224,40 @@ func (t *taskCollection) add(task *task) error {
 		//If we don't already have this task in the collection save it
 		t.table[task.id] = task
 	} else {
-		return fmt.Errorf("A task with Id '%v' has already been added.", task.id)
+		log.WithFields(log.Fields{
+			"module":  "scheduler-taskCollection",
+			"block":   "add",
+			"task id": task.id,
+		}).Error(ErrTaskHasAlreadyBeenAdded.Error())
+		return ErrTaskHasAlreadyBeenAdded
 	}
 
+	return nil
+}
+
+// remove will remove a given task from tasks.  The task must be stopped.
+// Can return errors ErrTaskNotFound and ErrTaskNotStopped.
+func (t *taskCollection) remove(task *task) error {
+	t.Lock()
+	defer t.Unlock()
+	if _, ok := t.table[task.id]; ok {
+		if task.state != core.TaskStopped {
+			log.WithFields(log.Fields{
+				"module":  "scheduler-taskCollection",
+				"block":   "remove",
+				"task id": task.id,
+			}).Error(ErrTaskNotStopped)
+			return ErrTaskNotStopped
+		}
+		delete(t.table, task.id)
+	} else {
+		log.WithFields(log.Fields{
+			"module":  "scheduler-taskCollection",
+			"block":   "remove",
+			"task id": task.id,
+		}).Error(ErrTaskNotFound)
+		return ErrTaskNotFound
+	}
 	return nil
 }
 
