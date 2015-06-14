@@ -163,7 +163,7 @@ func (t *task) spin() {
 		case <-t.killChan:
 			// Only here can it truly be stopped
 			t.state = core.TaskStopped
-			break
+			return
 		}
 	}
 }

@@ -177,7 +177,7 @@ func (s *scheduler) GetTasks() map[uint64]core.Task {
 	return tasks
 }
 
-//GetTask provided the task id a task is returned
+// GetTask provided the task id a task is returned
 func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 	task := s.tasks.Get(id)
 	if task == nil {
@@ -186,12 +186,23 @@ func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 	return task, nil
 }
 
+// StartTask provided a task id a task is started
 func (s *scheduler) StartTask(id uint64) error {
 	t := s.tasks.Get(id)
 	if t == nil {
 		return fmt.Errorf("No task found with id '%v'", id)
 	}
 	t.Spin()
+	return nil
+}
+
+// StopTask provided a task id a task is stopped
+func (s *scheduler) StopTask(id uint64) error {
+	t := s.tasks.Get(id)
+	if t == nil {
+		return fmt.Errorf("No task found with id '%v'", id)
+	}
+	t.Stop()
 	return nil
 }
 

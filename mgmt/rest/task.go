@@ -115,9 +115,23 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 		replyError(404, w, err)
 		return
 	}
-	// create return map
-	rmap := make(map[string]interface{})
-	replySuccess(200, w, rmap)
+
+	replySuccess(200, w, nil)
+}
+
+func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
+	if err != nil {
+		replyError(500, w, err)
+		return
+	}
+	err = s.mt.StopTask(id)
+	if err != nil {
+		replyError(404, w, err)
+		return
+	}
+
+	replySuccess(200, w, nil)
 }
 
 func marshalTask(body io.ReadCloser) (*task, error) {

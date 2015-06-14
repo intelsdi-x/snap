@@ -30,6 +30,7 @@ type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, ...core.TaskOption) (core.Task, core.TaskErrors)
 	GetTasks() map[uint64]core.Task
 	StartTask(id uint64) error
+	StopTask(id uint64) error
 }
 
 type Server struct {
@@ -84,6 +85,7 @@ func (s *Server) start(addrString string) {
 	s.r.GET("/v1/tasks", s.getTasks)
 	s.r.POST("/v1/tasks", s.addTask)
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
+	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
 
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)
