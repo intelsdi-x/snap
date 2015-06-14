@@ -81,10 +81,10 @@ func TestTask(t *testing.T) {
 		})
 
 		Convey("task fires", func() {
-			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
+			sch := schedule.NewSimpleSchedule(time.Nanosecond * 100)
 			task := newTask(sch, []core.Metric{}, wf, newWorkManager(), c)
 			task.Spin()
-			time.Sleep(time.Millisecond * 100)
+			time.Sleep(time.Millisecond * 50)
 			So(task.hitCount, ShouldBeGreaterThan, 2)
 			So(task.missedIntervals, ShouldBeGreaterThan, 2)
 			task.Stop()

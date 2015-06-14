@@ -32,6 +32,11 @@ func (s *SimpleSchedule) Validate() error {
 // longer valid and should be halted. A SimpleSchedule has no end and as long as start
 // is not in the future we will always in practice return true.
 func (s *SimpleSchedule) Wait(last time.Time) Response {
+	// When the schedule starts last time will be the zero value
+	if last == *new(time.Time) {
+		time.Sleep(s.interval)
+		return SimpleScheduleResponse{state: s.GetState(), missed: 0}
+	}
 	// Get the difference in time.Duration since last in nanoseconds (int64)
 	timeDiff := time.Since(last).Nanoseconds()
 	// cache our schedule interval in nanseconds
