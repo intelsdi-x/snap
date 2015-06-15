@@ -8,4 +8,6 @@ type RouterResponse interface {
 
 type RoutingStrategy interface {
 	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
+	// Handy string for logging what strategy is selected
+	String() string
 }
