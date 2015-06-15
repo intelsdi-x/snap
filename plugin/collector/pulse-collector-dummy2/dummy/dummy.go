@@ -2,6 +2,8 @@ package dummy
 
 import (
 	"log"
+	"math/rand"
+	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -20,12 +22,20 @@ const (
 type Dummy struct {
 }
 
+//Random number generator
+func randInt(min int, max int) int {
+	return min + rand.Intn(max-min)
+}
+
 // CollectMetrics collects metrics for testing
 func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
 	for _, p := range mts {
 		log.Println("collecting", p)
 	}
-	m := plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}, Data_: 1}
+	rand.Seed(time.Now().UTC().UnixNano())
+	data := randInt(65, 90)
+
+	m := plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}, Data_: data}
 	ms := []plugin.PluginMetricType{m}
 	return ms, nil
 }
