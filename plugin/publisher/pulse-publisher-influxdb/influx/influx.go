@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -109,22 +108,11 @@ func (f *influxPublisher) Publish(contentType string, content []byte, config map
 	}
 
 	pts := make([]client.Point, len(metrics))
-	var value string
 	for i, m := range metrics {
-		switch v := m.Data().(type) {
-		case int:
-			value = strconv.Itoa(v)
-		case uint64:
-			value = strconv.FormatUint(v, 10)
-		case float64:
-			value = strconv.FormatFloat(v, 'f', 6, 64)
-		default:
-			return fmt.Errorf("Unsupported data type '%T'", v)
-		}
 		pts[i] = client.Point{
 			Name: strings.Join(m.Namespace(), "/"),
 			Fields: map[string]interface{}{
-				"value": value,
+				"value": m.Data(),
 			},
 		}
 	}

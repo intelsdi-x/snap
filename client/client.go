@@ -42,6 +42,9 @@ func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
 	switch method {
 	case "GET":
 		rsp, err = http.Get(c.prefix + path)
+		if err != nil {
+			return nil, err
+		}
 	case "PUT":
 		client := &http.Client{}
 		var b *bytes.Reader
@@ -51,6 +54,23 @@ func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
 			b = bytes.NewReader(body[0])
 		}
 		req, err := http.NewRequest("PUT", c.prefix+path, b)
+		req.Header.Add("Content-Type", "application/json")
+		if err != nil {
+			return nil, err
+		}
+		rsp, err = client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+	case "DELETE":
+		client := &http.Client{}
+		var b *bytes.Reader
+		if len(body) == 0 {
+			b = bytes.NewReader([]byte{})
+		} else {
+			b = bytes.NewReader(body[0])
+		}
+		req, err := http.NewRequest("DELETE", c.prefix+path, b)
 		req.Header.Add("Content-Type", "application/json")
 		if err != nil {
 			return nil, err

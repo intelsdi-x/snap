@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"text/tabwriter"
+	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/pulse/client"
@@ -67,7 +68,12 @@ func listTask(ctx *cli.Context) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	fmt.Fprintln(w, "ID\tState\tHit Count\tMiss Count\tCreate Time")
 	for _, task := range tasks {
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n", task.ID, task.State, task.HitCount, task.MissCount, task.CreationTime)
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n",
+			task.ID,
+			task.State,
+			task.HitCount,
+			task.MissCount,
+			task.CreationTime.Format(time.RFC1123))
 	}
 	w.Flush()
 }
@@ -84,6 +90,42 @@ func startTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	err = client.StartTask(id)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+}
+
+func stopTask(ctx *cli.Context) {
+	if len(ctx.Args()) != 1 {
+		fmt.Print("Incorrect usage\n")
+		os.Exit(1)
+	}
+
+	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
+	if err != nil {
+		fmt.Printf("Incorrect usage - %v\n", err.Error())
+		os.Exit(1)
+	}
+	err = client.StopTask(id)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+}
+
+func removeTask(ctx *cli.Context) {
+	if len(ctx.Args()) != 1 {
+		fmt.Print("Incorrect usage\n")
+		os.Exit(1)
+	}
+
+	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
+	if err != nil {
+		fmt.Printf("Incorrect usage - %v\n", err.Error())
+		os.Exit(1)
+	}
+	err = client.RemoveTask(id)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)

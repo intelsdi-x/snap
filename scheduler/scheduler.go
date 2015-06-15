@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
@@ -168,7 +170,22 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	return task, te
 }
 
-//GetTasks returns a copy of the tasks in a map where the task id is the key
+// RemoveTask given a tasks id.  The task must be stopped.
+// Can return errors ErrTaskNotFound and ErrTaskNotStopped.
+func (s *scheduler) RemoveTask(id uint64) error {
+	t := s.tasks.Get(id)
+	if t == nil {
+		log.WithFields(log.Fields{
+			"module":  "scheduler",
+			"block":   "RemoveTask",
+			"task id": id,
+		}).Error(ErrTaskNotFound)
+		return ErrTaskNotFound
+	}
+	return s.tasks.remove(t)
+}
+
+// GetTasks returns a copy of the tasks in a map where the task id is the key
 func (s *scheduler) GetTasks() map[uint64]core.Task {
 	tasks := make(map[uint64]core.Task)
 	for id, t := range s.tasks.Table() {
@@ -177,7 +194,7 @@ func (s *scheduler) GetTasks() map[uint64]core.Task {
 	return tasks
 }
 
-//GetTask provided the task id a task is returned
+// GetTask provided the task id a task is returned
 func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 	task := s.tasks.Get(id)
 	if task == nil {
@@ -186,12 +203,23 @@ func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 	return task, nil
 }
 
+// StartTask provided a task id a task is started
 func (s *scheduler) StartTask(id uint64) error {
 	t := s.tasks.Get(id)
 	if t == nil {
 		return fmt.Errorf("No task found with id '%v'", id)
 	}
 	t.Spin()
+	return nil
+}
+
+// StopTask provided a task id a task is stopped
+func (s *scheduler) StopTask(id uint64) error {
+	t := s.tasks.Get(id)
+	if t == nil {
+		return fmt.Errorf("No task found with id '%v'", id)
+	}
+	t.Stop()
 	return nil
 }
 

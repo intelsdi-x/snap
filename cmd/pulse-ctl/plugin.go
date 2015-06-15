@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/codegangsta/cli"
 )
@@ -31,7 +32,7 @@ func listPlugins(ctx *cli.Context) {
 	if ctx.Bool("running") {
 		fmt.Fprintln(w, "Name\tHit count\tLast Hit\tType")
 		for _, rp := range aps {
-			fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", rp.Name, rp.HitCount, rp.LastHit, rp.TypeName)
+			fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", rp.Name, rp.HitCount, rp.LastHit.Format(time.RFC1123), rp.TypeName)
 		}
 	} else {
 		fmt.Fprintln(w, "Name\tStatus\tLoaded Timestamp")

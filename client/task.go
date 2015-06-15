@@ -57,12 +57,12 @@ type Task struct {
 
 	Workflow *wmap.WorkflowMap `json:"workflow"`
 	// Config       []ConfigSetting   `json:"config"`
-	Schedule     *Schedule `json:"schedule"`
-	CreationTime time.Time `json:"omitempty"`
-	LastHitTime  time.Time `json:"omitempty"`
-	HitCount     uint      `json:"hit_count"`
-	MissCount    uint      `json:"miss_count"`
-	State        string    `json:"task_state"`
+	Schedule     *Schedule  `json:"schedule"`
+	CreationTime *time.Time `json:"creation_timestamp,omitempty"`
+	LastHitTime  *time.Time `json:"last_run_timestamp,omitempty"`
+	HitCount     uint       `json:"hit_count"`
+	MissCount    uint       `json:"miss_count"`
+	State        string     `json:"task_state"`
 }
 
 /*
@@ -73,9 +73,7 @@ type Task struct {
 */
 type task struct {
 	*Task
-	ConfigMap         map[string]map[string]interface{} `json:"config"`
-	CreationTimestamp int64                             `json:"creation_timestamp"`
-	LastHitTimestamp  int64                             `json:"last_hit_timestamp"`
+	ConfigMap map[string]map[string]interface{} `json:"config"`
 }
 
 func (c *Client) NewTask(s *Schedule, wf *wmap.WorkflowMap) *Task {
@@ -117,8 +115,7 @@ func (c *Client) CreateTask(t *Task) error {
 	if resp.status != 200 {
 		return &ErrTaskCreationFailed{ctr.Meta.Message}
 	}
-	t.ID = ctr.Data.Task.ID
-	t.CreationTime = time.Unix(ctr.Data.Task.CreationTimestamp, 0)
+
 	return nil
 }
 
@@ -157,6 +154,40 @@ func (c *Client) StartTask(id uint64) error {
 	return nil
 }
 
+func (c *Client) StopTask(id uint64) error {
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id))
+	if err != nil {
+		return err
+	}
+
+	var str stopTaskReply
+	err = json.Unmarshal(resp.body, &str)
+	if err != nil {
+		return err
+	}
+	if resp.status != 200 {
+		return &ErrStartTask{str.Meta.Message}
+	}
+	return nil
+}
+
+func (c *Client) RemoveTask(id uint64) error {
+	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id))
+	if err != nil {
+		return err
+	}
+
+	var rtr removeTaskReply
+	err = json.Unmarshal(resp.body, &rtr)
+	if err != nil {
+		return err
+	}
+	if resp.status != 200 {
+		return &ErrStartTask{rtr.Meta.Message}
+	}
+	return nil
+}
+
 type createTaskReply struct {
 	respBody
 	Data createTaskData `json:"data"`
@@ -176,6 +207,14 @@ type getTasksData struct {
 }
 
 type startTaskReply struct {
+	respBody
+}
+
+type stopTaskReply struct {
+	respBody
+}
+
+type removeTaskReply struct {
 	respBody
 }
 
