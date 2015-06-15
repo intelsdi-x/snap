@@ -23,7 +23,18 @@ sudo systemctl start riemann
 sudo systemctl start riemann-dash
 
 # gopath
-echo "export GOPATH=/vagrant/go" >> $HOME/.bash_profile
+echo "export GOPATH=/vagrant/go" >> /home/vagrant/.bash_profile
+echo "export GOBIN=/vagrant/go/bin" >> /home/vagrant/.bash_profile
+echo "export PATH=$PATH:$GOBIN" >> /home/vagrant/.bash_profile
+
 export GOPATH=/vagrant/go
+export GOBIN=/vagrant/go/bin
+export PATH=$PATH:$GOBIN
 go get github.com/tools/godep
 
+cd $GOPATH/src/github.com/intelsdi-x/pulse
+scripts/deps.sh
+make
+
+echo "PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/pulse/build/bin" >> /home/vagrant/.bash_profile
+export PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/pulse/build/bin
