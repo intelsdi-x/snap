@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"errors"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -26,6 +27,7 @@ type task struct {
 	sync.Mutex //protects state
 
 	id               uint64
+	name             string
 	schResponseChan  chan schedule.Response
 	killChan         chan struct{}
 	schedule         schedule.Schedule
@@ -57,8 +59,16 @@ type task struct {
 
 //NewTask creates a Task
 func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *workManager, mm managesMetrics, opts ...core.TaskOption) *task {
+
+	//Task would always be given a default name.
+	//However if a user want to change this name, she can pass optional arguments, in form of core.TaskOption
+	//The new name then get over written.
+	taskId := id()
+	name := "Task-" + string(strconv.FormatInt(int64(taskId), 10))
+
 	task := &task{
-		id:               id(),
+		id:               taskId,
+		name:             name,
 		schResponseChan:  make(chan schedule.Response),
 		killChan:         make(chan struct{}),
 		metricTypes:      mtc,
@@ -85,6 +95,15 @@ func (t *task) Option(opts ...core.TaskOption) core.TaskOption {
 		previous = opt(t)
 	}
 	return previous
+}
+
+//Returns the name of the task
+func (t *task) GetName() string {
+	return t.name
+}
+
+func (t *task) SetName(name string) {
+	t.name = name
 }
 
 // CreateTime returns the time the task was created.

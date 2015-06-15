@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -27,7 +28,23 @@ func TestTask(t *testing.T) {
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, core.TaskSpinning)
+
 			task.Stop()
+		})
+
+		Convey("Task specified-name test", func() {
+			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			task := newTask(sch, []core.Metric{}, wf, newWorkManager(), c, core.SetTaskName("My name is unique"))
+			task.Spin()
+			So(task.GetName(), ShouldResemble, "My name is unique")
+
+		})
+		Convey("Task default-name test", func() {
+			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			task := newTask(sch, []core.Metric{}, wf, newWorkManager(), c)
+			task.Spin()
+			So(task.GetName(), ShouldResemble, "Task-"+string(strconv.FormatInt(int64(task.ID()), 10)))
+
 		})
 
 		Convey("Task deadline duration test", func() {
