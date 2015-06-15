@@ -43,20 +43,6 @@ type task struct {
 	missedIntervals  uint
 }
 
-// Commented out because never used and not needed. Discussed it with Joel and he aggrees as well -Shweta
-// type option func(t *task) option
-
-// // TaskDeadlineDuration sets the tasks deadline.
-// // The deadline is the amount of time that can pass before a worker begins
-// // processing the tasks collect job.
-// func TaskDeadlineDuration(v time.Duration) option {
-// 	return func(t *task) option {
-// 		previous := t.deadlineDuration
-// 		t.deadlineDuration = v
-// 		return TaskDeadlineDuration(previous)
-// 	}
-// }
-
 //NewTask creates a Task
 func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *workManager, mm managesMetrics, opts ...core.TaskOption) *task {
 
