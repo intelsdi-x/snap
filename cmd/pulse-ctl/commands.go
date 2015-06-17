@@ -11,6 +11,9 @@ var (
 					Name:   "create",
 					Usage:  "create <task file json|yaml>",
 					Action: createTask,
+					Flags: []cli.Flag{
+						taskName,
+					},
 				},
 				{
 					Name:   "list",
