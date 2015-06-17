@@ -14,6 +14,10 @@ var (
 type RoundRobinStrategy struct {
 }
 
+func (r *RoundRobinStrategy) String() string {
+	return "round-robin"
+}
+
 func (r *RoundRobinStrategy) Select(spp SelectablePluginPool, spa []SelectablePlugin) (SelectablePlugin, error) {
 	var h int = -1
 	var index int = -1

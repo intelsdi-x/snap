@@ -61,6 +61,7 @@ type scheduler struct {
 	metricManager managesMetrics
 	tasks         *taskCollection
 	state         schedulerState
+	logger        *log.Entry
 }
 
 type managesWork interface {
@@ -73,6 +74,9 @@ type managesWork interface {
 func New(opts ...workManagerOption) *scheduler {
 	s := &scheduler{
 		tasks: newTaskCollection(),
+		logger: log.WithFields(log.Fields{
+			"_module": "scheduler",
+		}),
 	}
 
 	// we are setting the size of the queue and number of workers for
@@ -97,6 +101,8 @@ func (s *scheduler) Name() string {
 
 // CreateTask creates and returns task
 func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+	// Create a local block logger from the common logger for this module
+	logger := s.logger.WithField("_block", "create-task")
 	// Create a container for task errors
 	te := &taskErrors{
 		errs: make([]error, 0),
@@ -105,12 +111,16 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	// Return error if we are not started.
 	if s.state != schedulerStarted {
 		te.errs = append(te.errs, ErrSchedulerNotStarted)
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error("scheduler not started")
 		return nil, te
 	}
 
 	// Ensure the schedule is valid at this point and time.
 	if err := sch.Validate(); err != nil {
 		te.errs = append(te.errs, err)
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error("schedule passed not valid")
 		return nil, te
 	}
 
@@ -118,6 +128,8 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	wf, err := wmapToWorkflow(wfMap)
 	if err != nil {
 		te.errs = append(te.errs, ErrSchedulerNotStarted)
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error(ErrSchedulerNotStarted.Error())
 		return nil, te
 	}
 
@@ -144,17 +156,27 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 
 	// Unwind successful subscriptions if we got here with errors (idempotent)
 	if len(te.errs) > 0 {
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error("errors during task creation")
 		for _, sub := range subscriptions {
-			s.metricManager.UnsubscribeMetricType(sub)
+			if sub != nil {
+				s.metricManager.UnsubscribeMetricType(sub)
+				s.logger.WithFields(log.Fields{
+					"metric-namespace": sub.Namespace(),
+					"metric-version":   sub.Version(),
+				}).Warning("unsubscribing metric subscription")
+			}
 		}
 		return nil, te
 	}
 
+	errs := s.subscribe(wf.processNodes, wf.publishNodes)
 	//subscribe to processors and publishers
-	errs := subscribe(wf.processNodes, wf.publishNodes, s.metricManager)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
 		//todo unwind successful pr and pu subscriptions
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error("errors during task creation")
 		return nil, te
 	}
 
@@ -164,9 +186,15 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {
 		te.errs = append(te.errs, err)
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error("errors during task creation")
 		return nil, te
 	}
 
+	logger.WithFields(log.Fields{
+		"task-id":    task.ID(),
+		"task-state": task.State(),
+	}).Info("task created")
 	return task, te
 }
 
@@ -210,6 +238,11 @@ func (s *scheduler) StartTask(id uint64) error {
 		return fmt.Errorf("No task found with id '%v'", id)
 	}
 	t.Spin()
+	s.logger.WithFields(log.Fields{
+		"_block":     "start-task",
+		"task-id":    t.ID(),
+		"task-state": t.State(),
+	}).Info("task started")
 	return nil
 }
 
@@ -217,44 +250,86 @@ func (s *scheduler) StartTask(id uint64) error {
 func (s *scheduler) StopTask(id uint64) error {
 	t := s.tasks.Get(id)
 	if t == nil {
-		return fmt.Errorf("No task found with id '%v'", id)
+		e := fmt.Errorf("No task found with id '%v'", id)
+		s.logger.WithFields(log.Fields{
+			"_block":  "start-scheduler",
+			"_error":  e.Error(),
+			"task-id": t.ID(),
+		}).Warning("error on stopping of task")
+		return e
 	}
 	t.Stop()
+	s.logger.WithFields(log.Fields{
+		"_block":     "stop-task",
+		"task-id":    t.ID(),
+		"task-state": t.State(),
+	}).Info("task stopped")
 	return nil
 }
 
 // Start starts the scheduler
 func (s *scheduler) Start() error {
 	if s.metricManager == nil {
+		s.logger.WithFields(log.Fields{
+			"_block": "start-scheduler",
+			"_error": ErrMetricManagerNotSet.Error(),
+		}).Error("error on scheduler start")
 		return ErrMetricManagerNotSet
 	}
 	s.state = schedulerStarted
+	s.logger.WithFields(log.Fields{
+		"_block": "start-scheduler",
+	}).Info("scheduler started")
 	return nil
 }
 
 func (s *scheduler) Stop() {
 	s.state = schedulerStopped
+	s.logger.WithFields(log.Fields{
+		"_block": "stop-scheduler",
+	}).Info("scheduler stopped")
 }
 
 // Set metricManager for scheduler
 func (s *scheduler) SetMetricManager(mm managesMetrics) {
 	s.metricManager = mm
+	s.logger.WithFields(log.Fields{
+		"_block": "set-metric-manager",
+	}).Debug("metric manager linked")
 }
 
 // subscribe subscribes to all processors and publishers recursively
-func subscribe(prnodes []*processNode, punodes []*publishNode, mm managesMetrics) []error {
+func (s *scheduler) subscribe(prnodes []*processNode, punodes []*publishNode) []error {
 	for _, pr := range prnodes {
-		errs := mm.SubscribeProcessor(pr.Name, pr.Version, pr.Config.Table())
+		s.logger.WithFields(log.Fields{
+			"_block":            "subscribe",
+			"processor-name":    pr.Name,
+			"processor-version": pr.Version,
+		}).Debug("subscribing to processor")
+		errs := s.metricManager.SubscribeProcessor(pr.Name, pr.Version, pr.Config.Table())
 		if len(errs) > 0 {
 			return errs
 		}
-		subscribe(pr.ProcessNodes, pr.PublishNodes, mm)
+		s.subscribe(pr.ProcessNodes, pr.PublishNodes)
 	}
 	for _, pu := range punodes {
-		errs := mm.SubscribePublisher(pu.Name, pu.Version, pu.Config.Table())
+		s.logger.WithFields(log.Fields{
+			"_block":            "subscribe",
+			"publisher-name":    pu.Name,
+			"publisher-version": pu.Version,
+		}).Debug("subscribing to publisher")
+		errs := s.metricManager.SubscribePublisher(pu.Name, pu.Version, pu.Config.Table())
 		if len(errs) > 0 {
 			return errs
 		}
 	}
 	return []error{}
+}
+
+func buildErrorsLog(errs []error, logger *log.Entry) *log.Entry {
+	f := logger.WithFields(log.Fields{})
+	for i, e := range errs {
+		f.WithField(fmt.Sprintf("%s%d", e, i), e.Error())
+	}
+	return f
 }

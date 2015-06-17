@@ -28,9 +28,9 @@ import (
 //
 
 var (
-	logFields = log.Fields{
-		"module": "control",
-	}
+	controlLogger = log.WithFields(log.Fields{
+		"_module": "control",
+	})
 )
 
 type executablePlugins []plugin.ExecutablePlugin
@@ -91,21 +91,29 @@ func New() *pluginControl {
 	// Event Manager
 	c.eventManager = gomit.NewEventController()
 
-	log.Debug("control.init", "event controller created")
+	controlLogger.WithFields(log.Fields{
+		"_block": "new",
+	}).Debug("pevent controller created")
 
 	// Metric Catalog
 	c.metricCatalog = newMetricCatalog()
-	log.Debug("control.init", "metric catalog created")
+	controlLogger.WithFields(log.Fields{
+		"_block": "new",
+	}).Debug("metric catalog created")
 
 	// Plugin Manager
 	c.pluginManager = newPluginManager()
-	log.Debug("control.init", "plugin manager created")
+	controlLogger.WithFields(log.Fields{
+		"_block": "new",
+	}).Debug("plugin manager created")
 	//    Plugin Manager needs a reference to the metric catalog
 	c.pluginManager.SetMetricCatalog(c.metricCatalog)
 
 	// Plugin Runner
 	c.pluginRunner = newRunner()
-	log.Debug("control.init", "runner created")
+	controlLogger.WithFields(log.Fields{
+		"_block": "new",
+	}).Debug("runner created")
 	c.pluginRunner.AddDelegates(c.eventManager)
 	c.pluginRunner.SetEmitter(c.eventManager) // emitter is passed to created availablePlugins
 	c.pluginRunner.SetMetricCatalog(c.metricCatalog)
@@ -113,6 +121,10 @@ func New() *pluginControl {
 
 	// Strategy
 	c.strategy = &routing.RoundRobinStrategy{}
+	controlLogger.WithFields(log.Fields{
+		"_block":   "new",
+		"strategy": c.strategy,
+	}).Debug("setting strategy")
 
 	// Wire event manager
 
@@ -133,18 +145,16 @@ func (p *pluginControl) Name() string {
 func (p *pluginControl) Start() error {
 	// Start pluginManager when pluginControl starts
 	p.Started = true
-	log.WithFields(log.Fields{
-		"module": "control",
-		"block":  "start",
+	controlLogger.WithFields(log.Fields{
+		"_block": "start",
 	}).Info("started")
 	return nil
 }
 
 func (p *pluginControl) Stop() {
 	p.Started = false
-	log.WithFields(log.Fields{
-		"module": "control",
-		"block":  "stop",
+	controlLogger.WithFields(log.Fields{
+		"_block": "stop",
 	}).Info("stopped")
 }
 
@@ -152,9 +162,8 @@ func (p *pluginControl) Stop() {
 // the LoadedPlugins array and issue an event when
 // successful.
 func (p *pluginControl) Load(path string) error {
-	log.WithFields(log.Fields{
-		"module": "control",
-		"block":  "load",
+	controlLogger.WithFields(log.Fields{
+		"_block": "load",
 		"path":   path,
 	}).Info("plugin load called")
 	if !p.Started {
@@ -208,9 +217,8 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) err
 // returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
 func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
-	log.WithFields(log.Fields{
-		"module":    "control",
-		"block":     "subscribe-metric-type",
+	controlLogger.WithFields(log.Fields{
+		"_block":    "subscribe-metric-type",
 		"namespace": mt.Namespace(),
 	}).Info("subscription called on metric")
 	var subErrs []error
@@ -247,9 +255,8 @@ func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.C
 
 // SubscribePublisher
 func (p *pluginControl) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []error {
-	log.WithFields(log.Fields{
-		"module":    "control",
-		"block":     "subscribe-publisher",
+	controlLogger.WithFields(log.Fields{
+		"_block":    "subscribe-publisher",
 		"publisher": fmt.Sprintf("%s-%d", name, ver),
 	}).Info("subscription called on publisher")
 	var subErrs []error
@@ -291,9 +298,8 @@ func (p *pluginControl) SubscribePublisher(name string, ver int, config map[stri
 //TODO consider collapsing SubscribePublisher and SubscribeProcessor
 // SubscribeProcessor
 func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error {
-	log.WithFields(log.Fields{
-		"module":    "control",
-		"block":     "subscribe-processor",
+	controlLogger.WithFields(log.Fields{
+		"_block":    "subscribe-processor",
 		"processor": fmt.Sprintf("%s-%d", name, ver),
 	}).Info("subscription called on processor")
 	var subErrs []error
@@ -335,9 +341,8 @@ func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[stri
 // UnsubscribeMetricType unsubscribes a MetricType
 // If subscriptions fall below zero we will panic.
 func (p *pluginControl) UnsubscribeMetricType(mt core.Metric) {
-	log.WithFields(log.Fields{
-		"module":    "control",
-		"block":     "unsubscribe-metric-type",
+	controlLogger.WithFields(log.Fields{
+		"_block":    "unsubscribe-metric-type",
 		"namespace": mt.Namespace(),
 	}).Info("unsubscription called on metric")
 	err := p.metricCatalog.Unsubscribe(mt.Namespace(), mt.Version())
