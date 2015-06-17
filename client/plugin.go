@@ -3,7 +3,10 @@ package pulse
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
+
+	"github.com/intelsdi-x/pulse/control"
 )
 
 type Plugin struct {
@@ -19,11 +22,21 @@ type Plugin struct {
 func (c *Client) LoadPlugin(path string) error {
 	resp, err := c.do("POST", "/plugins", []byte("{\"path\": \""+path+"\"}"))
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 	var respb respBody
-	json.Unmarshal(resp.body, &respb)
+	err = json.Unmarshal(resp.body, &respb)
+	if err != nil {
+		return err
+	}
 	if respb.Meta.Code != 200 {
+		switch resp.header.Get("Error") {
+		case control.ErrPluginAlreadyLoaded.Error():
+			pname := resp.header.Get("Plugin-Name")
+			pversion := resp.header.Get("Plugin-Version")
+			return fmt.Errorf("Plugin path(%s) already loaded as plugin (%s v%s)", path, pname, pversion)
+		}
 		return errors.New(respb.Meta.Message)
 	}
 	return nil

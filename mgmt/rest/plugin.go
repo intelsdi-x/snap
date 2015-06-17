@@ -34,9 +34,13 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 		replyError(errCode, w, err)
 		return
 	}
-	err = s.mm.Load(loadRequest["path"])
-	if err != nil {
-		replyError(500, w, err)
+	loadErr := s.mm.Load(loadRequest["path"])
+	if loadErr != nil {
+		// restLogger.WithFields(log.Fields{
+		// 	"method": r.Method,
+		// 	"url":    r.URL.Path,
+		// }).WithFields(loadErr.Fields()).Warning(err.Error())
+		replyError(500, w, loadErr)
 		return
 	}
 	replySuccess(200, w, nil)

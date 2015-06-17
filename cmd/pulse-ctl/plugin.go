@@ -17,7 +17,7 @@ func loadPlugin(ctx *cli.Context) {
 
 	err := client.LoadPlugin(ctx.Args().First())
 	if err != nil {
-		fmt.Printf("Error: %v\n", err.Error())
+		fmt.Printf("Error loading plugin:\n\t%v\n", err.Error())
 		os.Exit(1)
 	}
 }

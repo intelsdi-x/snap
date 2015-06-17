@@ -13,13 +13,18 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/perror"
 	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
+var (
+	restLogger = log.WithField("_module", "_mgmt-rest")
+)
+
 type managesMetrics interface {
 	MetricCatalog() ([]core.Metric, error)
-	Load(string) error
+	Load(string) perror.PulseError
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin
 }
@@ -44,7 +49,7 @@ func New() *Server {
 
 	n := negroni.New(
 		NewLogger(),
-		// TODO a recovery logger
+		negroni.NewRecovery(),
 	)
 	return &Server{
 		r: httprouter.New(),
@@ -105,6 +110,12 @@ type responseMeta struct {
 }
 
 func replyError(code int, w http.ResponseWriter, err error) {
+	switch e := err.(type) {
+	case perror.PulseError:
+		for k, v := range e.Fields() {
+			w.Header().Set(k, fmt.Sprint(v))
+		}
+	}
 	w.WriteHeader(code)
 	resp := &response{
 		Meta: &responseMeta{
