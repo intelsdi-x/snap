@@ -66,8 +66,8 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
 
-			metrics, err := c.MetricCatalog()
-			So(err, ShouldBeNil)
+			metrics, err2 := c.MetricCatalog()
+			So(err2, ShouldBeNil)
 			So(metrics, ShouldNotBeEmpty)
 
 			w := wmap.NewWorkflowMap()
@@ -79,8 +79,8 @@ func TestCollectPublishWorkflow(t *testing.T) {
 
 			pr := wmap.NewProcessNode("movingaverage", 1)
 			pr.AddConfigItem("MovingAvgBufLength", 20)
-			config2, err := pr.GetConfigNode()
-			So(err, ShouldBeNil)
+			config2, err3 := pr.GetConfigNode()
+			So(err3, ShouldBeNil)
 			c.SubscribeProcessor("movingaverage", 1, config2.Table())
 			time.Sleep(100 * time.Millisecond)
 

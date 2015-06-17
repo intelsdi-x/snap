@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/intelsdi-x/pulse/control/plugin/client"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/perror"
 )
 
 const (
@@ -26,6 +26,14 @@ const (
 	LoadingState  pluginState = "loading"
 	LoadedState   pluginState = "loaded"
 	UnloadedState pluginState = "unloaded"
+)
+
+var (
+	ErrPluginNotFound         = errors.New("plugin not found (has it already been unloaded?)")
+	ErrPluginAlreadyLoaded    = errors.New("plugin is already loaded")
+	ErrPluginNotInLoadedState = errors.New("Plugin must be in a LoadedState")
+
+	pmLogger = log.WithField("_module", "control-plugin-mgr")
 )
 
 type pluginState string
@@ -46,7 +54,7 @@ func newLoadedPlugins() *loadedPlugins {
 }
 
 // adds a loadedPlugin pointer to the loadedPlugins table
-func (l *loadedPlugins) Append(lp *loadedPlugin) error {
+func (l *loadedPlugins) Append(lp *loadedPlugin) perror.PulseError {
 
 	l.Lock()
 	defer l.Unlock()
@@ -54,7 +62,18 @@ func (l *loadedPlugins) Append(lp *loadedPlugin) error {
 	// make sure we don't already have this plugin in the table
 	for i, pl := range *l.table {
 		if lp.Meta.Name == pl.Meta.Name && lp.Meta.Version == pl.Meta.Version {
-			return errors.New("plugin [" + lp.Meta.Name + ":" + strconv.Itoa(lp.Meta.Version) + "] already loaded at index " + strconv.Itoa(i))
+			pe := perror.New(ErrPluginAlreadyLoaded)
+			f := map[string]interface{}{
+				"plugin-name":         lp.Name(),
+				"plugin-version":      lp.Version(),
+				"loaded-plugin-index": i,
+				"error":               pe,
+			}
+			pe.SetFields(f)
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+			}).WithFields(f).Warning(pe.Error())
+			return pe
 		}
 	}
 
@@ -250,56 +269,51 @@ func (p *pluginManager) LoadedPlugins() *loadedPlugins {
 
 // Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
-func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedPlugin, error) {
+func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedPlugin, perror.PulseError) {
 	lPlugin := new(loadedPlugin)
 	lPlugin.Path = path
 	lPlugin.State = DetectedState
 
-	log.WithFields(log.Fields{
-		"module": "control-plugin-manager",
-		"block":  "load-plugin",
+	pmLogger.WithFields(log.Fields{
+		"_block": "load-plugin",
 		"path":   filepath.Base(lPlugin.Path),
 	}).Info("plugin load called")
 	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Path), lPlugin.Path)
 
 	if err != nil {
-		log.WithFields(log.Fields{
-			"module": "control-plugin-manager",
-			"block":  "load-plugin",
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error")
-		return nil, err
+		return nil, perror.New(err)
 	}
 
 	err = ePlugin.Start()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"module": "control-plugin-manager",
-			"block":  "load-plugin",
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error")
-		return nil, err
+		return nil, perror.New(err)
 	}
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"module": "control-plugin-manager",
-			"block":  "load-plugin",
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error")
-		return nil, err
+		return nil, perror.New(err)
 	}
 
 	ap, err := newAvailablePlugin(resp, -1, emitter, ePlugin)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"module": "control-plugin-manager",
-			"block":  "load-plugin",
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error")
-		return nil, err
+		return nil, perror.New(err)
 	}
 
 	switch resp.Type {
@@ -309,26 +323,24 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		// Get the ConfigPolicyTree and add it to the loaded plugin
 		cpt, err := colClient.GetConfigPolicyTree()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"module":      "control-plugin-manager",
-				"block":       "load-plugin",
+			pmLogger.WithFields(log.Fields{
+				"_block":      "load-plugin",
 				"plugin-type": "collector",
 				"error":       err.Error(),
 			}).Error("error in getting config policy tree")
-			return nil, err
+			return nil, perror.New(err)
 		}
 		lPlugin.ConfigPolicyTree = &cpt
 
 		// Get metric types
 		metricTypes, err := colClient.GetMetricTypes()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"module":      "control-plugin-manager",
-				"block":       "load-plugin",
+			pmLogger.WithFields(log.Fields{
+				"_block":      "load-plugin",
 				"plugin-type": "collector",
 				"error":       err.Error(),
 			}).Error("error in getting metric types")
-			return nil, err
+			return nil, perror.New(err)
 		}
 
 		// Add metric types to metric catalog
@@ -340,13 +352,12 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		pubClient := ap.Client.(client.PluginPublisherClient)
 		cpn, err := pubClient.GetConfigPolicyNode()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"module":      "control-plugin-manager",
-				"block":       "load-plugin",
+			pmLogger.WithFields(log.Fields{
+				"_block":      "load-plugin",
 				"plugin-type": "publisher",
 				"error":       err.Error(),
 			}).Error("error in getting config policy node")
-			return nil, err
+			return nil, perror.New(err)
 		}
 
 		cpt := cpolicy.NewTree()
@@ -358,13 +369,12 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 		cpn, err := procClient.GetConfigPolicyNode()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"module":      "control-plugin-manager",
-				"block":       "load-plugin",
+			pmLogger.WithFields(log.Fields{
+				"_block":      "load-plugin",
 				"plugin-type": "processor",
 				"error":       err.Error(),
 			}).Error("error in getting config policy node")
-			return nil, err
+			return nil, perror.New(err)
 		}
 
 		cpt := cpolicy.NewTree()
@@ -372,27 +382,25 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		lPlugin.ConfigPolicyTree = cpt
 
 	default:
-		return nil, fmt.Errorf("Unknown plugin type '%s'", resp.Type.String())
+		return nil, perror.New(fmt.Errorf("Unknown plugin type '%s'", resp.Type.String()))
 	}
 
 	err = ePlugin.Kill()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"module": "control-plugin-manager",
-			"block":  "load-plugin",
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error")
-		return nil, err
+		return nil, perror.New(err)
 	}
 
 	if resp.State != plugin.PluginSuccess {
 		e := fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
-		log.WithFields(log.Fields{
-			"module": "control-plugin-manager",
-			"block":  "load-plugin",
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
 			"error":  e,
 		}).Error("load plugin error")
-		return nil, e
+		return nil, perror.New(e)
 	}
 
 	lPlugin.Meta = resp.Meta
@@ -401,21 +409,20 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 	lPlugin.LoadedTime = time.Now()
 	lPlugin.State = LoadedState
 
-	err = p.LoadedPlugins().Append(lPlugin)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"module": "control-plugin-manager",
-			"block":  "load-plugin",
-			"error":  err.Error(),
+	aErr := p.LoadedPlugins().Append(lPlugin)
+	if aErr != nil {
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
+			"error":  aErr,
 		}).Error("load plugin error")
-		return nil, err
+		return nil, aErr
 	}
 
 	return lPlugin, nil
 }
 
 // unloads a plugin from the LoadedPlugins table
-func (p *pluginManager) UnloadPlugin(pl core.CatalogedPlugin) error {
+func (p *pluginManager) UnloadPlugin(pl core.CatalogedPlugin) perror.PulseError {
 
 	// We hold the mutex here to safely splice out the plugin from the table.
 	// Using a stale index can be slightly dangerous (unloading incorrect plugin).
@@ -447,11 +454,21 @@ func (p *pluginManager) UnloadPlugin(pl core.CatalogedPlugin) error {
 	}
 
 	if !found {
-		return errors.New("plugin [" + pl.Name() + "] -- [" + strconv.Itoa(pl.Version()) + "] not found (has it already been unloaded?)")
+		pe := perror.New(ErrPluginNotFound)
+		pe.SetFields(map[string]interface{}{
+			"plugin-name":    pl.Name(),
+			"plugin-version": pl.Version(),
+		})
+		return pe
 	}
 
 	if plugin.State != LoadedState {
-		return errors.New("Plugin must be in a LoadedState")
+		pe := perror.New(ErrPluginNotInLoadedState)
+		pe.SetFields(map[string]interface{}{
+			"plugin-name":    plugin.Name(),
+			"plugin-version": plugin.Version(),
+		})
+		return pe
 	}
 
 	// splice out the given plugin

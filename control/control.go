@@ -19,6 +19,7 @@ import (
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/control_event"
 	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/perror"
 )
 
 // control private key (RSA private key)
@@ -28,9 +29,9 @@ import (
 //
 
 var (
-	controlLogger = log.WithFields(log.Fields{
-		"_module": "control",
-	})
+	controlLog = log.WithField("_module", "control")
+
+	ErrControllerNotStarted = errors.New("Must start Controller before calling Load()")
 )
 
 type executablePlugins []plugin.ExecutablePlugin
@@ -63,8 +64,8 @@ type runsPlugins interface {
 }
 
 type managesPlugins interface {
-	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error)
-	UnloadPlugin(core.CatalogedPlugin) error
+	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError)
+	UnloadPlugin(core.CatalogedPlugin) perror.PulseError
 	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(pluginPath string) plugin.Arg
@@ -161,13 +162,19 @@ func (p *pluginControl) Stop() {
 // Load is the public method to load a plugin into
 // the LoadedPlugins array and issue an event when
 // successful.
-func (p *pluginControl) Load(path string) error {
-	controlLogger.WithFields(log.Fields{
+func (p *pluginControl) Load(path string) perror.PulseError {
+	f := map[string]interface{}{
 		"_block": "load",
 		"path":   path,
-	}).Info("plugin load called")
+	}
+
+	controlLog.WithFields(f).Info("plugin load called")
 	if !p.Started {
-		return errors.New("Must start Controller before calling Load()")
+
+		pe := perror.New(ErrControllerNotStarted)
+		pe.SetFields(f)
+		controlLog.WithFields(f).Error(pe)
+		return pe
 	}
 
 	if _, err := p.pluginManager.LoadPlugin(path, p.eventManager); err != nil {
@@ -191,7 +198,7 @@ func (p *pluginControl) Unload(pl core.CatalogedPlugin) error {
 	return nil
 }
 
-func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) error {
+func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) perror.PulseError {
 
 	lp, err := p.pluginManager.LoadPlugin(inPath, p.eventManager)
 	if err != nil {
@@ -202,7 +209,12 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) err
 	if err != nil {
 		err2 := p.pluginManager.UnloadPlugin(lp)
 		if err2 != nil {
-			return errors.New("failed to rollback after error" + err2.Error() + " -- " + err.Error())
+			pe := perror.New(errors.New("failed to rollback after error"))
+			pe.SetFields(map[string]interface{}{
+				"original-unload-error": err.Error(),
+				"rollback-unload-error": err2.Error(),
+			})
+			return err
 		}
 		return err
 	}

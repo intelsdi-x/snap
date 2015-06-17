@@ -16,6 +16,7 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/perror"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -35,11 +36,11 @@ type MockPluginManagerBadSwap struct {
 	ExistingPlugin core.CatalogedPlugin
 }
 
-func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error) {
+func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError) {
 	return new(loadedPlugin), nil
 }
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.CatalogedPlugin) error {
-	return errors.New("fake")
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.CatalogedPlugin) perror.PulseError {
+	return perror.New(errors.New("fake"))
 }
 func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins    { return nil }
 func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {}
@@ -176,8 +177,8 @@ func TestUnload(t *testing.T) {
 				pc := c.PluginCatalog()
 
 				So(len(pc), ShouldEqual, 1)
-				err = c.Unload(pc[0])
-				So(err, ShouldBeNil)
+				err2 := c.Unload(pc[0])
+				So(err2, ShouldBeNil)
 			})
 
 			Convey("returns error on unload for unknown plugin(or already unloaded)", func() {
@@ -191,10 +192,10 @@ func TestUnload(t *testing.T) {
 				pc := c.PluginCatalog()
 
 				So(len(pc), ShouldEqual, 1)
-				err = c.Unload(pc[0])
-				So(err, ShouldBeNil)
-				err = c.Unload(pc[0])
-				So(err, ShouldResemble, errors.New("plugin [dummy1] -- [1] not found (has it already been unloaded?)"))
+				err2 := c.Unload(pc[0])
+				So(err2, ShouldBeNil)
+				err3 := c.Unload(pc[0])
+				So(err3.Error(), ShouldResemble, "plugin not found (has it already been unloaded?)")
 			})
 		})
 
@@ -543,8 +544,8 @@ func TestPublishMetrics(t *testing.T) {
 		err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
-		lp, err := c.pluginManager.LoadedPlugins().Get(0)
-		So(err, ShouldBeNil)
+		lp, err2 := c.pluginManager.LoadedPlugins().Get(0)
+		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "file")
 		So(lp.ConfigPolicyTree, ShouldNotBeNil)
 

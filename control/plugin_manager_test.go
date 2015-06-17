@@ -32,7 +32,7 @@ func TestLoadedPlugins(t *testing.T) {
 					Name: "test1",
 				},
 			})
-			So(err, ShouldResemble, errors.New("plugin [test1:0] already loaded at index 0"))
+			So(err.Error(), ShouldResemble, "plugin is already loaded")
 
 		})
 	})
@@ -131,7 +131,7 @@ func TestUnloadPlugin(t *testing.T) {
 					lp, _ := p.LoadedPlugins().Get(0)
 					lp.State = DetectedState
 					err = p.UnloadPlugin(lp)
-					So(err, ShouldResemble, errors.New("Plugin must be in a LoadedState"))
+					So(err.Error(), ShouldResemble, "Plugin must be in a LoadedState")
 				})
 			})
 
@@ -145,7 +145,7 @@ func TestUnloadPlugin(t *testing.T) {
 					err = p.UnloadPlugin(plugin)
 
 					err = p.UnloadPlugin(plugin)
-					So(err, ShouldResemble, errors.New("plugin [dummy1] -- [1] not found (has it already been unloaded?)"))
+					So(err.Error(), ShouldResemble, "plugin not found (has it already been unloaded?)")
 
 				})
 			})
