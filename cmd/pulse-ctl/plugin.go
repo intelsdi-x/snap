@@ -37,9 +37,8 @@ func listPlugins(ctx *cli.Context) {
 	} else {
 		fmt.Fprintln(w, "Name\tStatus\tVersion\tLoaded Timestamp")
 		for _, lp := range lps {
-			fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", lp.Name, lp.Status, lp.Version, time.Unix(lp.LoadedTimestamp, 0))
+			fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", lp.Name, lp.Status, lp.Version, time.Unix(lp.LoadedTimestamp, 0).Format("Jan _2,2006 15:04:05"))
 		}
 	}
-
 	w.Flush()
 }
