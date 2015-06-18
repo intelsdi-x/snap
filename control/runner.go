@@ -375,6 +375,11 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				"error":  err,
 			}).Error("error starting new plugin")
 		}
+	default:
+		runnerLog.WithFields(log.Fields{
+			"_block": "handle-events",
+			"event":  v.Namespace(),
+		}).Info("Nothing to do for this event")
 	}
 }
 
