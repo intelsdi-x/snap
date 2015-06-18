@@ -156,6 +156,27 @@ func (p *pluginControl) Stop() {
 	controlLogger.WithFields(log.Fields{
 		"_block": "stop",
 	}).Info("stopped")
+
+	// stop runner
+	err := p.pluginRunner.Stop()
+	if err != nil {
+		controlLogger.Error(err)
+	}
+
+	// stop running plugins
+	for _, rp := range p.RunningPlugins {
+		controlLogger.Debug("Stopping running plugin")
+		rp.Kill()
+	}
+
+	// unload plugins
+	for _, lp := range p.pluginManager.LoadedPlugins().Table() {
+		err := p.pluginManager.UnloadPlugin(lp)
+		if err != nil {
+			controlLogger.Error(err)
+		}
+	}
+
 }
 
 // Load is the public method to load a plugin into

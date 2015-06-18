@@ -116,7 +116,7 @@ func main() {
 	s.SetMetricManager(c)
 
 	// Set interrupt handling so we can die gracefully.
-	startInterruptHandling(c, s)
+	startInterruptHandling(s, c)
 
 	//  Start our modules
 	if err := startModule(c); err != nil {

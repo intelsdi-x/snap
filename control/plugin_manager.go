@@ -6,8 +6,10 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -68,7 +70,9 @@ func (l *loadedPlugins) Append(lp *loadedPlugin) error {
 
 // returns a copy of the table
 func (l *loadedPlugins) Table() []*loadedPlugin {
-	return *l.table
+	table := make([]*loadedPlugin, len(*l.table))
+	copy(table, *l.table)
+	return table
 }
 
 // used to transactionally retrieve a loadedPlugin pointer from the table
@@ -428,6 +432,9 @@ func (p *pluginManager) UnloadPlugin(pl core.CatalogedPlugin) error {
 		found  bool
 	)
 
+	// reset the iterator
+	p.LoadedPlugins().currentIter = 0
+
 	// find it in the list
 	for p.LoadedPlugins().Next() {
 		if !found {
@@ -452,6 +459,18 @@ func (p *pluginManager) UnloadPlugin(pl core.CatalogedPlugin) error {
 
 	if plugin.State != LoadedState {
 		return errors.New("Plugin must be in a LoadedState")
+	}
+
+	runnerLog.WithFields(log.Fields{
+		"plugin-type":    plugin.TypeName(),
+		"plugin-name":    plugin.Name(),
+		"plugin-version": plugin.Version(),
+		"plugin-path":    plugin.Path,
+	}).Debugf("Removing plugin")
+
+	// If the plugin isn't a built-in the default behaviour is to clean it up
+	if strings.Contains(plugin.Path, os.Getenv("PULSE_PATH")) {
+		os.Getenv("PULSE_PATH")
 	}
 
 	// splice out the given plugin

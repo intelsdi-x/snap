@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -14,8 +15,12 @@ func loadPlugin(ctx *cli.Context) {
 		fmt.Print("Incorrect usage\n")
 		os.Exit(1)
 	}
-
-	err := client.LoadPlugin(ctx.Args().First())
+	pb, err := readPlugin(ctx.Args().First())
+	if err != nil {
+		fmt.Printf("Error: %v\n", err.Error())
+		os.Exit(1)
+	}
+	err = client.LoadPlugin(pb)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err.Error())
 		os.Exit(1)
@@ -41,4 +46,26 @@ func listPlugins(ctx *cli.Context) {
 		}
 	}
 	w.Flush()
+}
+
+func readPlugin(filename string) ([]byte, error) {
+	file, err := os.Open(filename)
+
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	stats, statsErr := file.Stat()
+	if statsErr != nil {
+		return nil, statsErr
+	}
+
+	var size = stats.Size()
+	bytes := make([]byte, size)
+
+	bufr := bufio.NewReader(file)
+	_, err = bufr.Read(bytes)
+
+	return bytes, err
 }

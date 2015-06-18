@@ -113,8 +113,10 @@ func TestUnloadPlugin(t *testing.T) {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
 					_, err := p.LoadPlugin(PluginPath, nil)
+					So(err, ShouldBeNil)
 
 					num_plugins_loaded := len(p.LoadedPlugins().Table())
+					So(num_plugins_loaded, ShouldEqual, 1)
 					lp, _ := p.LoadedPlugins().Get(0)
 					err = p.UnloadPlugin(lp)
 

@@ -16,8 +16,8 @@ type Plugin struct {
 	LastHit         time.Time `json:"last_hit,omitempty"`
 }
 
-func (c *Client) LoadPlugin(path string) error {
-	resp, err := c.do("POST", "/plugins", []byte("{\"path\": \""+path+"\"}"))
+func (c *Client) LoadPlugin(p []byte) error {
+	resp, err := c.do("POST", "/plugins", ContentTypeBinary, p)
 	if err != nil {
 		return err
 	}
@@ -32,9 +32,9 @@ func (c *Client) LoadPlugin(path string) error {
 func (c *Client) GetPlugins(details bool) (loadedPlugins, runningPlugins []*Plugin, err error) {
 	var resp *response
 	if details {
-		resp, err = c.do("GET", "/plugins?details")
+		resp, err = c.do("GET", "/plugins?details", ContentTypeJSON)
 	} else {
-		resp, err = c.do("GET", "/plugins")
+		resp, err = c.do("GET", "/plugins", ContentTypeJSON)
 	}
 	if err != nil {
 		return nil, nil, err
