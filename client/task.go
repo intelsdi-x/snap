@@ -57,12 +57,14 @@ type Task struct {
 
 	Workflow *wmap.WorkflowMap `json:"workflow"`
 	// Config       []ConfigSetting   `json:"config"`
-	Schedule     *Schedule  `json:"schedule"`
-	CreationTime *time.Time `json:"creation_timestamp,omitempty"`
-	LastHitTime  *time.Time `json:"last_run_timestamp,omitempty"`
-	HitCount     uint       `json:"hit_count"`
-	MissCount    uint       `json:"miss_count"`
-	State        string     `json:"task_state"`
+	Schedule           *Schedule  `json:"schedule"`
+	CreationTime       *time.Time `json:"creation_timestamp,omitempty"`
+	LastHitTime        *time.Time `json:"last_run_timestamp,omitempty"`
+	HitCount           uint       `json:"hit_count"`
+	MissCount          uint       `json:"miss_count"`
+	FailedCount        uint       `json:"failed_count,omitempty"`
+	LastFailureMessage string     `json:"last_failure_message,omitempty"`
+	State              string     `json:"task_state"`
 }
 
 /*
