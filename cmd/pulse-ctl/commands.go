@@ -1,6 +1,12 @@
 package main
 
-import "github.com/codegangsta/cli"
+import (
+	"fmt"
+	"strings"
+	"text/tabwriter"
+
+	"github.com/codegangsta/cli"
+)
 
 var (
 	commands = []cli.Command{
@@ -64,3 +70,17 @@ var (
 		},
 	}
 )
+
+func printFields(tw *tabwriter.Writer, indent bool, width int, fields ...interface{}) {
+	argArray := make([]interface{}, 0)
+	if indent {
+		argArray = append(argArray, strings.Repeat(" ", width))
+	}
+	for i, field := range fields {
+		argArray = append(argArray, field)
+		if i < (len(fields) - 1) {
+			argArray = append(argArray, "\t")
+		}
+	}
+	fmt.Fprintln(tw, argArray...)
+}
