@@ -35,11 +35,10 @@ func listPlugins(ctx *cli.Context) {
 			fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", rp.Name, rp.HitCount, rp.LastHit.Format(time.RFC1123), rp.TypeName)
 		}
 	} else {
-		fmt.Fprintln(w, "Name\tStatus\tLoaded Timestamp")
+		fmt.Fprintln(w, "Name\tStatus\tVersion\tLoaded Timestamp")
 		for _, lp := range lps {
-			fmt.Fprintf(w, "%v\t%v\t%v\n", lp.Name, lp.Status, lp.LoadedTimestamp)
+			fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", lp.Name, lp.Status, lp.Version, time.Unix(lp.LoadedTimestamp, 0).Format("Jan _2,2006 15:04:05"))
 		}
 	}
-
 	w.Flush()
 }
