@@ -1,9 +1,12 @@
 package rest
 
 import (
+	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -28,13 +31,31 @@ type plugin struct {
 }
 
 func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	loadRequest := make(map[string]string)
-	errCode, err := marshalBody(&loadRequest, r.Body)
-	if errCode != 0 && err != nil {
-		replyError(errCode, w, err)
+	// todo verify content type
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		replyError(500, w, err)
 		return
 	}
-	err = s.mm.Load(loadRequest["path"])
+
+	// write plugin to temp location
+	f, err := ioutil.TempFile(os.TempDir(), "pulse-plugin")
+	if err != nil {
+		replyError(500, w, err)
+		return
+	}
+	n, err := f.Write(b)
+	log.Debugf("wrote %v to %v", n, f.Name())
+	if err != nil {
+		replyError(500, w, err)
+		return
+	}
+	err = f.Chmod(0700)
+	if err != nil {
+		replyError(500, w, err)
+	}
+
+	err = s.mm.Load(f.Name())
 	if err != nil {
 		replyError(500, w, err)
 		return

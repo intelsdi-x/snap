@@ -285,6 +285,12 @@ func (s *scheduler) Start() error {
 
 func (s *scheduler) Stop() {
 	s.state = schedulerStopped
+	// stop all tasks that are not already stopped
+	for _, t := range s.tasks.table {
+		if t.state != core.TaskStopped {
+			t.Stop()
+		}
+	}
 	s.logger.WithFields(log.Fields{
 		"_block": "stop-scheduler",
 	}).Info("scheduler stopped")

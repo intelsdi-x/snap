@@ -6,6 +6,20 @@ import (
 	"net/http"
 )
 
+const (
+	ContentTypeJSON contentType = iota
+	ContentTypeBinary
+)
+
+type contentType int
+
+var (
+	contentTypes = [...]string{
+		"application/json",
+		"application/octet-stream",
+	}
+)
+
 type Client struct {
 	URL     string
 	Version string
@@ -28,12 +42,16 @@ func New(url, ver string) *Client {
 	return c
 }
 
+func (t contentType) String() string {
+	return contentTypes[t]
+}
+
 /*
    do handles all interactions with Pulse's REST API.
    we use the variadic function signature so that all actions can use the same
    function, including ones which do not include a request body.
 */
-func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
+func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*response, error) {
 	var (
 		rsp *http.Response
 		err error
@@ -54,7 +72,7 @@ func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
 			b = bytes.NewReader(body[0])
 		}
 		req, err := http.NewRequest("PUT", c.prefix+path, b)
-		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("Content-Type", ct.String())
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +104,7 @@ func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
 		} else {
 			b = bytes.NewReader(body[0])
 		}
-		rsp, err = http.Post(c.prefix+path, "application/json", b)
+		rsp, err = http.Post(c.prefix+path, ct.String(), b)
 		if err != nil {
 			return nil, err
 		}
