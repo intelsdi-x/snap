@@ -27,14 +27,16 @@ type configItem struct {
 type task struct {
 	ID uint64 `json:"id"`
 	// Config       map[string][]configItem `json:"config"`
-	Deadline     string            `json:"deadline"`
-	Workflow     *wmap.WorkflowMap `json:"workflow"`
-	Schedule     schedule          `json:"schedule"`
-	CreationTime *time.Time        `json:"creation_timestamp,omitempty"`
-	LastRunTime  *time.Time        `json:"last_run_timestamp,omitempty"`
-	HitCount     uint              `json:"hit_count,omitempty"`
-	MissCount    uint              `json:"miss_count,omitempty"`
-	State        string            `json:"task_state"`
+	Deadline           string            `json:"deadline"`
+	Workflow           *wmap.WorkflowMap `json:"workflow"`
+	Schedule           schedule          `json:"schedule"`
+	CreationTime       *time.Time        `json:"creation_timestamp,omitempty"`
+	LastRunTime        *time.Time        `json:"last_run_timestamp,omitempty"`
+	HitCount           uint              `json:"hit_count,omitempty"`
+	MissCount          uint              `json:"miss_count,omitempty"`
+	FailedCount        uint              `json:"failed_count,omitempty"`
+	LastFailureMessage string            `json:"last_failure_message,omitempty"`
+	State              string            `json:"task_state"`
 }
 
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -90,13 +92,15 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	i := 0
 	for _, t := range sts {
 		rts[i] = task{
-			ID:           t.ID(),
-			Deadline:     t.DeadlineDuration().String(),
-			CreationTime: t.CreationTime(),
-			LastRunTime:  t.LastRunTime(),
-			HitCount:     t.HitCount(),
-			MissCount:    t.MissedCount(),
-			State:        t.State().String(),
+			ID:                 t.ID(),
+			Deadline:           t.DeadlineDuration().String(),
+			CreationTime:       t.CreationTime(),
+			LastRunTime:        t.LastRunTime(),
+			HitCount:           t.HitCount(),
+			MissCount:          t.MissedCount(),
+			FailedCount:        t.FailedCount(),
+			LastFailureMessage: t.LastFailureMessage(),
+			State:              t.State().String(),
 		}
 		i++
 	}

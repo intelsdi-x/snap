@@ -8,8 +8,11 @@ deps:
 	go get -u github.com/docker/libcontainer
 	cd ../../docker/libcontainer; git checkout tags/v1.4.0; cd -
 
-test: 
+test:
 	export PULSE_PATH=`pwd`/build; bash -c "./scripts/test.sh"
+
+check:
+	$(MAKE) test
 
 build-pulse:
 	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))"

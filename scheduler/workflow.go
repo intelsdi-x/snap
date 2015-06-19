@@ -240,9 +240,14 @@ func (s *schedulerWorkflow) Start(t *task) {
 
 	// dispatch 'collect' job to be worked
 	j = t.manager.Work(j)
+	if len(j.Errors()) != 0 {
+		t.failedRuns++
+		t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
+		return
+	}
 
 	// walk through the tree and dispatch work
-	s.workJobs(s.processNodes, s.publishNodes, t.manager, t.metricsManager, j)
+	s.workJobs(s.processNodes, s.publishNodes, t, j)
 }
 
 func (s *schedulerWorkflow) State() WorkflowState {
@@ -253,14 +258,24 @@ func (s *schedulerWorkflow) StateString() string {
 	return WorkflowStateLookup[s.state]
 }
 
-func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, mw managesWork, mm managesMetrics, pj job) {
+func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *task, pj job) {
 	for _, pr := range prs {
-		j := newProcessJob(pj, pr.Name, pr.Version, pr.InboundContentType, pr.Config.Table(), mm)
-		j = mw.Work(j)
-		s.workJobs(pr.ProcessNodes, pr.PublishNodes, mw, mm, j)
+		j := newProcessJob(pj, pr.Name, pr.Version, pr.InboundContentType, pr.Config.Table(), t.metricsManager)
+		j = t.manager.Work(j)
+		if len(j.Errors()) != 0 {
+			t.failedRuns++
+			t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
+			return
+		}
+		s.workJobs(pr.ProcessNodes, pr.PublishNodes, t, j)
 	}
 	for _, pu := range pus {
-		j := newPublishJob(pj, pu.Name, pu.Version, pu.InboundContentType, pu.Config.Table(), mm)
-		j = mw.Work(j)
+		j := newPublishJob(pj, pu.Name, pu.Version, pu.InboundContentType, pu.Config.Table(), t.metricsManager)
+		j = t.manager.Work(j)
+		if len(j.Errors()) != 0 {
+			t.failedRuns++
+			t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
+			return
+		}
 	}
 }

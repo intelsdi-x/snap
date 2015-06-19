@@ -25,20 +25,22 @@ var (
 type task struct {
 	sync.Mutex //protects state
 
-	id               uint64
-	schResponseChan  chan schedule.Response
-	killChan         chan struct{}
-	schedule         schedule.Schedule
-	workflow         *schedulerWorkflow
-	metricTypes      []core.Metric
-	state            core.TaskState
-	creationTime     time.Time
-	lastFireTime     time.Time
-	manager          managesWork
-	metricsManager   managesMetrics
-	deadlineDuration time.Duration
-	hitCount         uint
-	missedIntervals  uint
+	id                 uint64
+	schResponseChan    chan schedule.Response
+	killChan           chan struct{}
+	schedule           schedule.Schedule
+	workflow           *schedulerWorkflow
+	metricTypes        []core.Metric
+	state              core.TaskState
+	creationTime       time.Time
+	lastFireTime       time.Time
+	manager            managesWork
+	metricsManager     managesMetrics
+	deadlineDuration   time.Duration
+	hitCount           uint
+	missedIntervals    uint
+	failedRuns         uint
+	lastFailureMessage string
 }
 
 // Commented out because never used and not needed. Discussed it with Joel and he aggrees as well -Shweta
@@ -115,9 +117,19 @@ func (t *task) LastRunTime() *time.Time {
 	return &t.lastFireTime
 }
 
-// MissedCount retruns the number of intervals missed.
+// MissedCount returns the number of intervals missed.
 func (t *task) MissedCount() uint {
 	return t.missedIntervals
+}
+
+// FailedRuns returns the number of intervals missed.
+func (t *task) FailedCount() uint {
+	return t.failedRuns
+}
+
+// LastFailureMessage returns the last error from a task run
+func (t *task) LastFailureMessage() string {
+	return t.lastFailureMessage
 }
 
 // State returns state of the task.

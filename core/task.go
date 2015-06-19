@@ -28,6 +28,8 @@ type Task interface {
 	State() TaskState
 	HitCount() uint
 	MissedCount() uint
+	FailedCount() uint
+	LastFailureMessage() string
 	LastRunTime() *time.Time
 	CreationTime() *time.Time
 	DeadlineDuration() time.Duration
