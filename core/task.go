@@ -27,6 +27,8 @@ type Task interface {
 	// Status() WorkflowState TODO, switch to string
 	State() TaskState
 	HitCount() uint
+	GetName() string
+	SetName(string)
 	MissedCount() uint
 	FailedCount() uint
 	LastFailureMessage() string
@@ -47,6 +49,17 @@ func TaskDeadlineDuration(v time.Duration) TaskOption {
 		previous := t.DeadlineDuration()
 		t.SetDeadlineDuration(v)
 		return TaskDeadlineDuration(previous)
+	}
+}
+
+//SetTaskName sets the name of the task.
+//This is optional.
+//If task name is not set, the task name is then defaulted to "Task-<task-id>"
+func SetTaskName(name string) TaskOption {
+	return func(t Task) TaskOption {
+		previous := t.GetName()
+		t.SetName(name)
+		return SetTaskName(previous)
 	}
 }
 

@@ -13,4 +13,10 @@ var (
 		Name:  "running",
 		Usage: "Shows running plugins",
 	}
+
+	taskName = cli.StringFlag{
+		Name:  "name, n",
+		Usage: "Optional requirement for giving task names",
+		Value: "",
+	}
 )

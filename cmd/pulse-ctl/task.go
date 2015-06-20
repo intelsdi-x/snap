@@ -23,6 +23,7 @@ type task struct {
 	Version  int
 	Schedule *pulse.Schedule
 	Workflow *wmap.WorkflowMap
+	Name     string
 }
 
 func createTask(ctx *cli.Context) {
@@ -43,13 +44,15 @@ func createTask(ctx *cli.Context) {
 		fmt.Printf("json error - %v\n", e)
 	}
 
+	t.Name = ctx.String("name")
+
 	if t.Version != 1 {
 		fmt.Println("Invalid version provided")
 		os.Exit(1)
 
 	}
 
-	ct := client.NewTask(t.Schedule, t.Workflow)
+	ct := client.NewTask(t.Schedule, t.Workflow, t.Name)
 
 	e = client.CreateTask(ct)
 	if e != nil {
@@ -78,6 +81,7 @@ func listTask(ctx *cli.Context) {
 	for _, task := range tasks {
 		printFields(w, false, 0,
 			task.ID,
+			task.Name,
 			task.State,
 			task.HitCount,
 			task.MissCount,
