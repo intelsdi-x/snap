@@ -7,13 +7,13 @@ import (
 )
 
 type Plugin struct {
-	Name            string    `json:"name"`
-	Version         int       `json:"version,omitempty"`
-	TypeName        string    `json:"type"`
-	Status          string    `json:"status,omitempty"`
-	LoadedTimestamp int64     `json:"loaded_timestamp,omitempty"`
-	HitCount        int       `json:"hit_count,omitempty"`
-	LastHit         time.Time `json:"last_hit,omitempty"`
+	Name            string     `json:"name"`
+	Version         int        `json:"version,omitempty"`
+	TypeName        string     `json:"type"`
+	Status          string     `json:"status,omitempty"`
+	LoadedTimestamp *time.Time `json:"loaded_timestamp,omitempty"`
+	HitCount        int        `json:"hit_count,omitempty"`
+	LastHit         *time.Time `json:"last_hit,omitempty"`
 }
 
 func (c *Client) LoadPlugin(p string) error {

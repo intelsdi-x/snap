@@ -183,8 +183,8 @@ func TestLoadedPlugin(t *testing.T) {
 	Convey(".LoadedTimestamp()", t, func() {
 		ts := time.Now()
 		lp.LoadedTime = ts
-		Convey("it returns the Unix timestamp of the LoadedTime", func() {
-			So(lp.LoadedTimestamp(), ShouldEqual, ts.Unix())
+		Convey("it returns the timestamp of the LoadedTime", func() {
+			So(lp.LoadedTimestamp(), ShouldResemble, &ts)
 		})
 	})
 }

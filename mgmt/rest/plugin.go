@@ -17,9 +17,9 @@ import (
 
 type loadedPlugin struct {
 	*plugin
-	TypeName        string `json:"type"`
-	Status          string `json:"status"`
-	LoadedTimestamp int64  `json:"loaded_timestamp"`
+	TypeName        string     `json:"type"`
+	Status          string     `json:"status"`
+	LoadedTimestamp *time.Time `json:"loaded_timestamp"`
 }
 
 type availablePlugin struct {

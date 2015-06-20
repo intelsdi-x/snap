@@ -221,8 +221,8 @@ func (lp *loadedPlugin) Status() string {
 
 // returns a unix timestamp of the LoadTime of a plugin
 // implements the CatalogedPlugin interface
-func (lp *loadedPlugin) LoadedTimestamp() int64 {
-	return lp.LoadedTime.Unix()
+func (lp *loadedPlugin) LoadedTimestamp() *time.Time {
+	return &lp.LoadedTime
 }
 
 // the struct representing the object responsible for
