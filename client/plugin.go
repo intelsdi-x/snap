@@ -16,8 +16,8 @@ type Plugin struct {
 	LastHit         time.Time `json:"last_hit,omitempty"`
 }
 
-func (c *Client) LoadPlugin(p []byte) error {
-	resp, err := c.do("POST", "/plugins", ContentTypeBinary, p)
+func (c *Client) LoadPlugin(p string) error {
+	resp, err := c.pluginUploadRequest(p)
 	if err != nil {
 		return err
 	}

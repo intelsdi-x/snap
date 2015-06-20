@@ -1,9 +1,14 @@
 package rest
 
 import (
+	"io"
 	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -31,45 +36,65 @@ type plugin struct {
 }
 
 func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// todo verify content type
-	b, err := ioutil.ReadAll(r.Body)
+	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
+		log.Fatal(err)
 		replyError(500, w, err)
 		return
 	}
+	if strings.HasPrefix(mediaType, "multipart/") {
+		mr := multipart.NewReader(r.Body, params["boundary"])
+		for {
+			p, err := mr.NextPart()
+			if err == io.EOF {
+				replySuccess(200, w, nil)
+				return
+			}
+			if err != nil {
+				log.Fatal(err)
+				replyError(500, w, err)
+				return
+			}
+			b, err := ioutil.ReadAll(p)
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+			// persist plugin to autodiscover path if available or temp location
+			autoPaths := s.mm.GetAutodiscoverPaths()
+			var f *os.File
+			if len(autoPaths) > 0 {
+				// write to first autoPath
+				// todo preserve the name of the file the user provided
+				//f, err = ioutil.TempFile(autoPaths[0], "pulse-plugin")
+				f, err = os.Create(path.Join(autoPaths[0], p.FileName()))
+			} else {
+				// write to temp location
+				f, err = os.Create(path.Join(os.TempDir(), p.FileName()))
+			}
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+			n, err := f.Write(b)
+			log.Debugf("wrote %v to %v", n, f.Name())
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+			err = f.Chmod(0700)
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
 
-	// write plugin to temp location
-	autoPaths := s.mm.GetAutodiscoverPaths()
-	var f *os.File
-	if len(autoPaths) > 0 {
-		// write to first autoPath dir
-		// todo preserve the name of the file the user provided
-		f, err = ioutil.TempFile(autoPaths[0], "pulse-plugin")
-	} else {
-		// write to temp location
-		f, err = ioutil.TempFile(os.TempDir(), "pulse-plugin")
+			err = s.mm.Load(f.Name())
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+		}
 	}
-	if err != nil {
-		replyError(500, w, err)
-		return
-	}
-	n, err := f.Write(b)
-	log.Debugf("wrote %v to %v", n, f.Name())
-	if err != nil {
-		replyError(500, w, err)
-		return
-	}
-	err = f.Chmod(0700)
-	if err != nil {
-		replyError(500, w, err)
-	}
-
-	err = s.mm.Load(f.Name())
-	if err != nil {
-		replyError(500, w, err)
-		return
-	}
-	replySuccess(200, w, nil)
 }
 
 func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

@@ -2,8 +2,12 @@ package pulse
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 const (
@@ -114,6 +118,51 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*respo
 		header: rsp.Header,
 	}
 	b, err = ioutil.ReadAll(rsp.Body)
+	rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	resp.body = b
+	return resp, nil
+}
+
+func (c *Client) pluginUploadRequest(pluginPath string) (*response, error) {
+	client := &http.Client{}
+	file, err := os.Open(pluginPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("pulse-plugins", filepath.Base(pluginPath))
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", c.prefix+"/plugins", body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	rsp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &response{
+		status: rsp.StatusCode,
+		header: rsp.Header,
+	}
+	b, err := ioutil.ReadAll(rsp.Body)
 	rsp.Body.Close()
 	if err != nil {
 		return nil, err
