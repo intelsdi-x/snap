@@ -27,6 +27,7 @@ type configItem struct {
 type task struct {
 	ID uint64 `json:"id"`
 	// Config       map[string][]configItem `json:"config"`
+	Name               string            `json:"name"`
 	Deadline           string            `json:"deadline"`
 	Workflow           *wmap.WorkflowMap `json:"workflow"`
 	Schedule           schedule          `json:"schedule"`
@@ -63,6 +64,11 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		opts = append(opts, core.TaskDeadlineDuration(dl))
 	}
 
+	if tr.Name != "" {
+
+		opts = append(opts, core.SetTaskName(tr.Name))
+	}
+
 	task, errs := s.mt.CreateTask(sch, tr.Workflow, opts...)
 	if errs != nil && len(errs.Errors()) != 0 {
 		var errMsg string
@@ -93,6 +99,7 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	for _, t := range sts {
 		rts[i] = task{
 			ID:                 t.ID(),
+			Name:               t.GetName(),
 			Deadline:           t.DeadlineDuration().String(),
 			CreationTime:       t.CreationTime(),
 			LastRunTime:        t.LastRunTime(),
@@ -169,7 +176,7 @@ func makeSchedule(s schedule) (cschedule.Schedule, error) {
 		}
 		sch = cschedule.NewSimpleSchedule(d)
 	default:
-		return nil, errors.New("invalid schedule type: " + s.Type)
+		return nil, errors.New("unknown schedule type " + s.Type)
 	}
 	err := sch.Validate()
 	if err != nil {

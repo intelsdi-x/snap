@@ -53,7 +53,8 @@ type Task struct {
 	// A UUID to identify the task. This is set by the Pulse Agent.
 	// It is strongly advised not to make changes to this field once
 	// the agent has set it.
-	ID uint64 `json:"id"`
+	ID   uint64 `json:"id"`
+	Name string `json:"name"`
 
 	Workflow *wmap.WorkflowMap `json:"workflow"`
 	// Config       []ConfigSetting   `json:"config"`
@@ -78,8 +79,10 @@ type task struct {
 	ConfigMap map[string]map[string]interface{} `json:"config"`
 }
 
-func (c *Client) NewTask(s *Schedule, wf *wmap.WorkflowMap) *Task {
+func (c *Client) NewTask(s *Schedule, wf *wmap.WorkflowMap, name string) *Task {
+
 	return &Task{
+		Name:     name,
 		Workflow: wf,
 		Schedule: s,
 	}
