@@ -40,9 +40,10 @@ type pluginControl struct {
 	RunningPlugins executablePlugins
 	Started        bool
 
-	controlPrivKey *rsa.PrivateKey
-	controlPubKey  *rsa.PublicKey
-	eventManager   *gomit.EventController
+	autodiscoverPaths []string
+	controlPrivKey    *rsa.PrivateKey
+	controlPubKey     *rsa.PublicKey
+	eventManager      *gomit.EventController
 
 	pluginManager managesPlugins
 	metricCatalog catalogsMetrics
@@ -581,6 +582,14 @@ func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int
 		return nil, nil, err
 	}
 	return lp.Meta.AcceptedContentTypes, lp.Meta.ReturnedContentTypes, nil
+}
+
+func (p *pluginControl) SetAutodiscoverPaths(paths []string) {
+	p.autodiscoverPaths = paths
+}
+
+func (p *pluginControl) GetAutodiscoverPaths() []string {
+	return p.autodiscoverPaths
 }
 
 // ------------------- helper struct and function for grouping metrics types ------

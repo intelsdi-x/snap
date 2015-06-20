@@ -130,7 +130,9 @@ func main() {
 	}
 
 	if *autodiscoverPath != "" {
-		for _, path := range filepath.SplitList(*autodiscoverPath) {
+		paths := filepath.SplitList(*autodiscoverPath)
+		c.SetAutodiscoverPaths(paths)
+		for _, path := range paths {
 			files, err := ioutil.ReadDir(path)
 			if err != nil {
 				log.WithFields(

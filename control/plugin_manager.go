@@ -461,16 +461,23 @@ func (p *pluginManager) UnloadPlugin(pl core.CatalogedPlugin) error {
 		return errors.New("Plugin must be in a LoadedState")
 	}
 
-	runnerLog.WithFields(log.Fields{
-		"plugin-type":    plugin.TypeName(),
-		"plugin-name":    plugin.Name(),
-		"plugin-version": plugin.Version(),
-		"plugin-path":    plugin.Path,
-	}).Debugf("Removing plugin")
-
-	// If the plugin isn't a built-in the default behaviour is to clean it up
-	if strings.Contains(plugin.Path, os.Getenv("PULSE_PATH")) {
-		os.Getenv("PULSE_PATH")
+	// If the plugin was loaded from os.TempDir() clean up
+	if strings.Contains(plugin.Path, os.TempDir()) {
+		runnerLog.WithFields(log.Fields{
+			"plugin-type":    plugin.TypeName(),
+			"plugin-name":    plugin.Name(),
+			"plugin-version": plugin.Version(),
+			"plugin-path":    plugin.Path,
+		}).Debugf("Removing plugin")
+		if err := os.Remove(plugin.Path); err != nil {
+			runnerLog.WithFields(log.Fields{
+				"plugin-type":    plugin.TypeName(),
+				"plugin-name":    plugin.Name(),
+				"plugin-version": plugin.Version(),
+				"plugin-path":    plugin.Path,
+			}).Error(err)
+			return err
+		}
 	}
 
 	// splice out the given plugin
