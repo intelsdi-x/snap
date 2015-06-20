@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"syscall"
 
@@ -12,17 +14,17 @@ import (
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest"
-	// "github.com/intelsdi-x/pulse/pkg/logger"
 	"github.com/intelsdi-x/pulse/scheduler"
 )
 
 var (
 	// Pulse Flags for command line
-	version  = flag.Bool("version", false, "Print Pulse version")
-	restMgmt = flag.Bool("rest", false, "start rest interface for Pulse")
-	maxProcs = flag.Int("max_procs", 0, "Set max cores to use for Pulse Agent. Default is 1 core.")
-	logPath  = flag.String("log_path", "", "Path for logs. Empty path logs to stdout.")
-	logLevel = flag.Int("log_level", 2, "1-5 (Debug, Info, Warning, Error, Fatal")
+	version          = flag.Bool("version", false, "Print Pulse version")
+	restMgmt         = flag.Bool("rest", false, "start rest interface for Pulse")
+	maxProcs         = flag.Int("max-procs", 0, "Set max cores to use for Pulse Agent. Default is 1 core.")
+	logPath          = flag.String("log-path", "", "Path for logs. Empty path logs to stdout.")
+	logLevel         = flag.Int("log-level", 2, "1-5 (Debug, Info, Warning, Error, Fatal")
+	autodiscoverPath = flag.String("autodiscover", "", "Autodiscover paths separated by colons.")
 
 	gitversion string
 )
@@ -125,6 +127,39 @@ func main() {
 			c.Stop()
 		}
 		printErrorAndExit(s.Name(), err)
+	}
+
+	if *autodiscoverPath != "" {
+		for _, path := range filepath.SplitList(*autodiscoverPath) {
+			files, err := ioutil.ReadDir(path)
+			if err != nil {
+				log.WithFields(
+					log.Fields{
+						"block":   "main",
+						"module":  "pulse-agent",
+						"logpath": path,
+					}).Fatal(err)
+				os.Exit(0)
+			}
+			for _, file := range files {
+				err := c.Load(fmt.Sprintf("%s/%s", path, file.Name()))
+				if err != nil {
+					log.WithFields(log.Fields{
+						"block":   "main",
+						"module":  "pulse-agent",
+						"logpath": path,
+						"plugin":  file,
+					}).Fatal(err)
+				} else {
+					log.WithFields(log.Fields{
+						"block":   "main",
+						"module":  "pulse-agent",
+						"logpath": path,
+						"plugin":  file,
+					}).Info("Loading plugin")
+				}
+			}
+		}
 	}
 
 	// init rest mgmt interface
