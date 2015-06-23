@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -22,9 +23,8 @@ func (mj *mockJob) Type() jobType           { return collectJobType }
 func (mj *mockJob) ReplChan() chan struct{} { return mj.replchan }
 
 func (mj *mockJob) Run() {
-
 	mj.worked = true
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 10)
 	mj.replchan <- struct{}{}
 }
 
@@ -44,46 +44,45 @@ func TestWorkerManager(t *testing.T) {
 			So(j.(*mockJob).worked, ShouldEqual, true)
 		})
 
-		// TODO fix this test... It was passing because it was winning a race.
-		// increasing the sleep after calling work should not make the test fail.
-		// Convey("does not work job if queuing error occurs", func() {
-		// 	manager := newWorkManager()
-		// 	manager.Start()
-		// 	j1 := &mockJob{
-		// 		errors:    []error{errors.New("j1")},
-		// 		worked:    false,
-		// 		replchan:  make(chan struct{}),
-		// 		deadline:  time.Now().Add(1 * time.Second),
-		// 		starttime: time.Now(),
-		// 	}
-		// 	j2 := &mockJob{
-		// 		errors:    []error{errors.New("j2")},
-		// 		worked:    false,
-		// 		replchan:  make(chan struct{}),
-		// 		deadline:  time.Now().Add(1 * time.Second),
-		// 		starttime: time.Now(),
-		// 	}
-		// 	j3 := &mockJob{
-		// 		errors:    []error{},
-		// 		worked:    false,
-		// 		replchan:  make(chan struct{}),
-		// 		deadline:  time.Now().Add(1 * time.Second),
-		// 		starttime: time.Now(),
-		// 	}
-		// 	go manager.Work(j1)
-		// 	go manager.Work(j2)
-		// 	manager.Work(j3)
+		Convey("does not work job if queuing error occurs", func() {
+			log.SetLevel(log.DebugLevel)
+			manager := newWorkManager(CollectQSizeOption(1), CollectWkrSizeOption(1))
+			manager.Start()
+			j1 := &mockJob{
+				errors:    []error{},
+				worked:    false,
+				replchan:  make(chan struct{}),
+				deadline:  time.Now().Add(1 * time.Second),
+				starttime: time.Now(),
+			}
+			j2 := &mockJob{
+				errors:    []error{},
+				worked:    false,
+				replchan:  make(chan struct{}),
+				deadline:  time.Now().Add(1 * time.Second),
+				starttime: time.Now(),
+			}
+			j3 := &mockJob{
+				errors:    []error{},
+				worked:    false,
+				replchan:  make(chan struct{}),
+				deadline:  time.Now().Add(1 * time.Second),
+				starttime: time.Now(),
+			}
+			go manager.Work(j1)
+			go manager.Work(j2)
+			go manager.Work(j3)
 
-		// 	time.Sleep(time.Millisecond * 100)
-		// 	worked := 0
-		// 	for _, j := range []*mockJob{j1, j2, j3} {
+			time.Sleep(time.Millisecond * 50)
+			worked := 0
+			for _, j := range []*mockJob{j1, j2, j3} {
 
-		// 		if j.worked == true {
-		// 			worked++
-		// 		}
-		// 	}
-		// 	So(worked, ShouldEqual, 2)
-		// })
+				if j.worked == true {
+					worked++
+				}
+			}
+			So(worked, ShouldEqual, 1)
+		})
 
 		// The below convey is WIP
 		/*Convey("Collect queue error ", func() {
