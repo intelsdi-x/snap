@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+const (
+	PluginUnloadedType     = "plugin_unloaded"
+	PluginListReturnedType = "plugin_list_returned"
+)
+
 // Successful response to the loading of a plugin
 type LoadPlugin struct {
 }
@@ -20,7 +25,7 @@ func (u *PluginUnloaded) ResponseBodyMessage() string {
 }
 
 func (u *PluginUnloaded) ResponseBodyType() string {
-	return "plugin_unloaded"
+	return PluginUnloadedType
 }
 
 type PluginListReturned struct {
@@ -33,7 +38,7 @@ func (p *PluginListReturned) ResponseBodyMessage() string {
 }
 
 func (p *PluginListReturned) ResponseBodyType() string {
-	return "plugin_list_returned"
+	return PluginListReturnedType
 }
 
 type LoadedPlugin struct {

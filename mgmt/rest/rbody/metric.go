@@ -1,5 +1,9 @@
 package rbody
 
+const (
+	MetricCatalogReturnedType = "metric_catalog_returned"
+)
+
 type MetricCatalogReturned struct {
 	Catalog []MetricType
 }
@@ -19,5 +23,5 @@ func (m *MetricCatalogReturned) ResponseBodyMessage() string {
 }
 
 func (m *MetricCatalogReturned) ResponseBodyType() string {
-	return "metric_catalog_returned"
+	return MetricCatalogReturnedType
 }

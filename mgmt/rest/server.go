@@ -47,6 +47,18 @@ var (
 	restLogger = log.WithField("_module", "_mgmt-rest")
 )
 
+type APIResponse struct {
+	Meta *APIResponseMeta `json:"meta"`
+	Body rbody.Body       `json:"body"`
+}
+
+type APIResponseMeta struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Type    string `json:"type"`
+	Version int    `json:"version"`
+}
+
 type managesMetrics interface {
 	MetricCatalog() ([]core.Metric, error)
 	Load(string) perror.PulseError
@@ -124,18 +136,6 @@ func (s *Server) start(addrString string) {
 	s.n.UseHandler(s.r)
 	// start http handling
 	s.run(addrString)
-}
-
-type APIResponse struct {
-	Meta *APIResponseMeta `json:"meta"`
-	Body rbody.Body       `json:"body"`
-}
-
-type APIResponseMeta struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Type    string `json:"type"`
-	Version int    `json:"version"`
 }
 
 func respond(code int, b rbody.Body, w http.ResponseWriter) {

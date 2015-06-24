@@ -6,6 +6,15 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 )
 
+const (
+	ScheduledTaskListReturnedType = "scheduled_task_list_returned"
+	AddScheduledTaskType          = "scheduled_task_created"
+	ScheduledTaskType             = "scheduled_task"
+	ScheduledTaskStartedType      = "scheduled_task_started"
+	ScheduledTaskStoppedType      = "scheduled_task_stopped"
+	ScheduledTaskRemovedType      = "scheduled_task_removed"
+)
+
 type ScheduledTaskListReturned struct {
 	ScheduledTasks []ScheduledTask
 }
@@ -15,7 +24,35 @@ func (s *ScheduledTaskListReturned) ResponseBodyMessage() string {
 }
 
 func (s *ScheduledTaskListReturned) ResponseBodyType() string {
-	return "scheduled_task_list_returned"
+	return ScheduledTaskListReturnedType
+}
+
+type AddScheduledTask ScheduledTask
+
+func (s *AddScheduledTask) ResponseBodyMessage() string {
+	return fmt.Sprintf("Scheduled task created (%d)", s.ID)
+}
+
+func (s *AddScheduledTask) ResponseBodyType() string {
+	return AddScheduledTaskType
+}
+
+func AddSchedulerTaskFromTask(t core.Task) *AddScheduledTask {
+	// TODO workflow back from core.Task
+	// TODO schedule back from core.Task
+	st := &AddScheduledTask{
+		ID:                 int(t.ID()),
+		Name:               t.GetName(),
+		Deadline:           t.DeadlineDuration().String(),
+		CreationTimestamp:  int(t.CreationTime().Unix()),
+		LastRunTimestamp:   int(t.LastRunTime().Unix()),
+		HitCount:           int(t.HitCount()),
+		MissCount:          int(t.MissedCount()),
+		FailedCount:        int(t.FailedCount()),
+		LastFailureMessage: t.LastFailureMessage(),
+		State:              t.State().String(),
+	}
+	return st
 }
 
 type ScheduledTask struct {
@@ -33,7 +70,15 @@ type ScheduledTask struct {
 	State              string `json:"task_state"`
 }
 
-func FromSchedulerTask(t core.Task) *ScheduledTask {
+func (s *ScheduledTask) ResponseBodyMessage() string {
+	return fmt.Sprintf("Scheduled task created (%d)", s.ID)
+}
+
+func (s *ScheduledTask) ResponseBodyType() string {
+	return ScheduledTaskType
+}
+
+func SchedulerTaskFromTask(t core.Task) *ScheduledTask {
 	// TODO workflow back from core.Task
 	// TODO schedule back from core.Task
 	st := &ScheduledTask{
@@ -49,14 +94,6 @@ func FromSchedulerTask(t core.Task) *ScheduledTask {
 		State:              t.State().String(),
 	}
 	return st
-}
-
-func (s *ScheduledTask) ResponseBodyMessage() string {
-	return "Scheduled task"
-}
-
-func (s *ScheduledTask) ResponseBodyType() string {
-	return "scheduled_task"
 }
 
 type ScheduledTaskStarted struct {

@@ -80,7 +80,7 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		return
 	}
 
-	taskB := rbody.FromSchedulerTask(task)
+	taskB := rbody.AddSchedulerTaskFromTask(task)
 	respond(201, taskB, w)
 }
 
@@ -88,12 +88,11 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	// rmap := make(map[string]interface{})
 	sts := s.mt.GetTasks()
 
-	tasks := new(rbody.ScheduledTaskListReturned)
+	tasks := &rbody.ScheduledTaskListReturned{}
 	tasks.ScheduledTasks = make([]rbody.ScheduledTask, len(sts))
-	// rts := make([]task, len(sts))
 	i := 0
 	for _, t := range sts {
-		tasks.ScheduledTasks[i] = *rbody.FromSchedulerTask(t)
+		tasks.ScheduledTasks[i] = *rbody.SchedulerTaskFromTask(t)
 		i++
 	}
 	respond(200, tasks, w)
