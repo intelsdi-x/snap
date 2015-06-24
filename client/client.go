@@ -2,8 +2,16 @@ package pulse
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/intelsdi-x/pulse/mgmt/rest"
+)
+
+var (
+	ErrUnknown = errors.New("Unknown error calling API")
 )
 
 type Client struct {
@@ -33,7 +41,7 @@ func New(url, ver string) *Client {
    we use the variadic function signature so that all actions can use the same
    function, including ones which do not include a request body.
 */
-func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
+func (c *Client) do(method, path string, body ...[]byte) (*rest.APIResponse, error) {
 	var (
 		rsp *http.Response
 		err error
@@ -91,16 +99,25 @@ func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
 			return nil, err
 		}
 	}
-	resp := &response{
-		status: rsp.StatusCode,
-		header: rsp.Header,
-	}
+	var resp *rest.APIResponse
 	b, err = ioutil.ReadAll(rsp.Body)
-	rsp.Body.Close()
+	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
-	resp.body = b
+
+	jErr := json.Unmarshal(b, resp)
+	// resp := &response{
+	// status: rsp.StatusCode,
+	// header: rsp.Header,
+	// }
+	if jErr != nil {
+		return nil, err
+	}
+
+	// b, err = ioutil.ReadAll(rsp.Body)
+
+	// resp.body = b
 	return resp, nil
 }
 

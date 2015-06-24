@@ -1,12 +1,11 @@
 package pulse
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
-	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
 type Plugin struct {
@@ -19,55 +18,90 @@ type Plugin struct {
 	LastHit         time.Time `json:"last_hit,omitempty"`
 }
 
+// TODO, this should RETURN the plugin that was loaded...
 func (c *Client) LoadPlugin(path string) error {
 	resp, err := c.do("POST", "/plugins", []byte("{\"path\": \""+path+"\"}"))
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	var respb respBody
-	err = json.Unmarshal(resp.body, &respb)
+
 	if err != nil {
 		return err
 	}
-	if respb.Meta.Code != 200 {
-		switch resp.header.Get("Error") {
-		case control.ErrPluginAlreadyLoaded.Error():
-			pname := resp.header.Get("Plugin-Name")
-			pversion := resp.header.Get("Plugin-Version")
-			return fmt.Errorf("Plugin path(%s) already loaded as plugin (%s v%s)", path, pname, pversion)
-		}
-		return errors.New(respb.Meta.Message)
+
+	switch resp.Meta.Type {
+	// TODO change this to concrete const type when Joel adds it
+	case "plugin_load":
+		//
+	case rbody.ErrorType:
+		return resp.Body.(*rbody.Error)
+	default:
+		return ErrAPIResponseMetaType
 	}
-	return nil
+	return ErrUnknown
 }
 
-func (c *Client) GetPlugins(details bool) (loadedPlugins, runningPlugins []*Plugin, err error) {
-	var resp *response
+func (c *Client) UnloadPlugin(name string, version int) *UnloadPluginResult {
+	r := &UnloadPluginResult{
+		Name:    name,
+		Version: version,
+	}
+	resp, err := c.do("DELETE", fmt.Sprintf("/plugins/%s/%d", url.QueryEscape(name), version))
+	if err != nil {
+		r.Error = err
+		return r
+	}
+
+	switch resp.Meta.Type {
+	// TODO change this to concrete const type when Joel adds it
+	case rbody.PluginUnloadedType:
+		// Success
+	case rbody.ErrorType:
+		r.Error = resp.Body.(*rbody.Error)
+	default:
+		r.Error = ErrAPIResponseMetaType
+	}
+	return r
+}
+
+func (c *Client) GetPlugins(details bool) *GetPluginsResult {
+	r := &GetPluginsResult{}
+
+	var path string
 	if details {
-		resp, err = c.do("GET", "/plugins?details")
+		path = "/plugins?details"
 	} else {
-		resp, err = c.do("GET", "/plugins")
+		path = "/plugins"
 	}
+
+	resp, err := c.do("GET", path)
 	if err != nil {
-		return nil, nil, err
+		r.Error = err
+		return r
 	}
-	var rs getPluginsReply
-	json.Unmarshal(resp.body, &rs)
-	if rs.Meta.Code != 200 {
-		return nil, nil, errors.New(rs.Meta.Message)
+
+	switch resp.Meta.Type {
+	// TODO change this to concrete const type when Joel adds it
+	case rbody.PluginListReturnedType:
+		// Success
+		b := resp.Body.(*rbody.PluginListReturned)
+		r.LoadedPlugins = b.LoadedPlugins
+		r.AvailablePlugins = b.AvailablePlugins
+		return r
+	case rbody.ErrorType:
+		r.Error = resp.Body.(*rbody.Error)
+	default:
+		r.Error = ErrAPIResponseMetaType
 	}
-	loadedPlugins = rs.Data.LoadedPlugins
-	runningPlugins = rs.Data.RunningPlugins
-	return
+	return r
 }
 
-type getPluginsReply struct {
-	respBody
-	Data getPluginsData `json:"data"`
+type GetPluginsResult struct {
+	LoadedPlugins    []rbody.LoadedPlugin
+	AvailablePlugins []rbody.AvailablePlugin
+	Error            error
 }
 
-type getPluginsData struct {
-	LoadedPlugins  []*Plugin
-	RunningPlugins []*Plugin
+// UnloadPluginResponse is the response from pulse/client on an UnloadPlugin call.
+type UnloadPluginResult struct {
+	Name    string
+	Version int
+	Error   error
 }

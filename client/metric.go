@@ -1,8 +1,13 @@
 package pulse
 
 import (
-	"encoding/json"
 	"errors"
+
+	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+)
+
+var (
+	ErrAPIResponseMetaType = errors.New("Received an invalid API response (META/TYPE)")
 )
 
 // MetricConfig is the type for incoming configuation data.
@@ -48,24 +53,32 @@ type MetricType struct {
 	Policy                  *MetricPolicy `json:"policy,omitempty"`
 }
 
-func (c *Client) GetMetricCatalog() ([]*MetricType, error) {
+func (c *Client) GetMetricCatalog() *GetMetricCatalogResult {
 	resp, err := c.do("GET", "/metrics")
-	var rb getMetricTypesReply
-	err = json.Unmarshal(resp.body, &rb)
 	if err != nil {
-		return nil, err
+		return &GetMetricCatalogResult{Error: err}
 	}
-	if rb.Meta.Code != 200 {
-		return nil, errors.New(rb.Meta.Message)
+
+	switch resp.Meta.Type {
+	case rbody.MetricCatalogReturnedType:
+		return &GetMetricCatalogResult{resp.Body.(*rbody.MetricCatalogReturned), nil}
+	case rbody.ErrorType:
+		return &GetMetricCatalogResult{Error: resp.Body.(*rbody.Error)}
+	default:
+		return &GetMetricCatalogResult{Error: ErrAPIResponseMetaType}
 	}
-	return rb.Data.MetricTypes, err
 }
 
-type getMetricTypesReply struct {
-	respBody
-	Data getMetricTypesData `json:"data"`
+type GetMetricCatalogResult struct {
+	*rbody.MetricCatalogReturned
+	Error error
 }
 
-type getMetricTypesData struct {
-	MetricTypes []*MetricType `json:"metric_types"`
-}
+// type getMetricTypesReply struct {
+// 	respBody
+// 	Data getMetricTypesData `json:"data"`
+// }
+
+// type getMetricTypesData struct {
+// 	MetricTypes []*MetricType `json:"metric_types"`
+// }

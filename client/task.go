@@ -3,89 +3,15 @@ package pulse
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
 
+	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/pulse/mgmt/rest/request"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
-type ErrTaskCreationFailed struct {
-	message string
-}
-
-func (e *ErrTaskCreationFailed) Error() string {
-	return e.message
-}
-
-type ErrGetTasksFailed struct {
-	message string
-}
-
-func (e *ErrGetTasksFailed) Error() string {
-	return e.message
-}
-
-type ErrStartTask struct {
-	message string
-}
-
-func (e *ErrStartTask) Error() string {
-	return e.message
-}
-
-// type TaskSchedule struct {
-// 	Interval time.Duration `json:"interval"`
-// }
-
-// type ConfigSetting struct {
-// 	Namespace []string
-// 	Key       string
-// 	Value     interface{}
-// }
-
 type Schedule struct {
-	Type     string `json:"type"`
-	Interval string `json:"interval"`
-}
-
-type Task struct {
-
-	// A UUID to identify the task. This is set by the Pulse Agent.
-	// It is strongly advised not to make changes to this field once
-	// the agent has set it.
-	ID   uint64 `json:"id"`
-	Name string `json:"name"`
-
-	Workflow *wmap.WorkflowMap `json:"workflow"`
-	// Config       []ConfigSetting   `json:"config"`
-	Schedule           *Schedule  `json:"schedule"`
-	CreationTime       *time.Time `json:"creation_timestamp,omitempty"`
-	LastHitTime        *time.Time `json:"last_run_timestamp,omitempty"`
-	HitCount           uint       `json:"hit_count"`
-	MissCount          uint       `json:"miss_count"`
-	FailedCount        uint       `json:"failed_count,omitempty"`
-	LastFailureMessage string     `json:"last_failure_message,omitempty"`
-	State              string     `json:"task_state"`
-}
-
-/*
-   Unexported type for task is to obfuscate the idea of a fairly
-   complex tree data structure from the actual, simple enumeration.
-   the data structure represented by Task.Config is roughly
-   representational of the internal tree's api: `tree.Add(namespace, node)`
-*/
-type task struct {
-	*Task
-	ConfigMap map[string]map[string]interface{} `json:"config"`
-}
-
-func (c *Client) NewTask(s *Schedule, wf *wmap.WorkflowMap, name string) *Task {
-
-	return &Task{
-		Name:     name,
-		Workflow: wf,
-		Schedule: s,
-	}
+	Type     string
+	Interval string
 }
 
 // CreateTask takes a pointer to a task structure,
@@ -95,134 +21,130 @@ func (c *Client) NewTask(s *Schedule, wf *wmap.WorkflowMap, name string) *Task {
 // to create the Task, a type-assertable error is returned.
 // Also note that CreateTask modifies the pointed to data
 // by adding an ID and a created time.
-func (c *Client) CreateTask(t *Task) error {
-
-	// prepare for JSON Marshaling
-	jt := &task{
-		Task: t,
+func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string) *CreateTaskResult {
+	t := request.TaskCreationRequest{
+		Schedule: request.Schedule{Type: s.Type, Interval: s.Interval},
+		Workflow: wf,
 	}
-
+	if name != "" {
+		t.Name = name
+	}
 	// Marshal to JSON for request body
-	j, err := json.Marshal(jt)
+	j, err := json.Marshal(t)
 	if err != nil {
-		return err
+		return &CreateTaskResult{Error: err}
 	}
 
 	resp, err := c.do("POST", "/tasks", j)
 	if err != nil {
-		return err
-	}
-	var ctr createTaskReply
-	err = json.Unmarshal(resp.body, &ctr)
-	if err != nil {
-		return err
-	}
-	if resp.status != 200 {
-		return &ErrTaskCreationFailed{ctr.Meta.Message}
+		return &CreateTaskResult{Error: err}
 	}
 
-	return nil
+	switch resp.Meta.Type {
+	case rbody.AddScheduledTaskType:
+		// Success
+		return &CreateTaskResult{resp.Body.(*rbody.AddScheduledTask), nil}
+	case rbody.ErrorType:
+		return &CreateTaskResult{Error: resp.Body.(*rbody.Error)}
+	default:
+		return &CreateTaskResult{Error: ErrAPIResponseMetaType}
+	}
 }
 
-func (c *Client) GetTasks() ([]Task, error) {
+func (c *Client) GetTasks() *GetTasksResult {
 	resp, err := c.do("GET", "/tasks", nil)
 	if err != nil {
-		return nil, err
+		return &GetTasksResult{Error: err}
 	}
 
-	var gtr getTasksReply
-	err = json.Unmarshal(resp.body, &gtr)
-	if err != nil {
-		return nil, err
+	switch resp.Meta.Type {
+	case rbody.ScheduledTaskListReturnedType:
+		// Success
+		return &GetTasksResult{resp.Body.(*rbody.ScheduledTaskListReturned), nil}
+	case rbody.ErrorType:
+		return &GetTasksResult{Error: resp.Body.(*rbody.Error)}
+	default:
+		return &GetTasksResult{Error: ErrAPIResponseMetaType}
 	}
-	if resp.status != 200 {
-		return nil, &ErrGetTasksFailed{gtr.Meta.Message}
-	}
-	return gtr.Data.Tasks, nil
-
 }
 
-func (c *Client) StartTask(id uint64) error {
+func (c *Client) StartTask(id uint64) *StartTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id))
+
 	if err != nil {
-		return err
+		return &StartTasksResult{Error: err}
 	}
 
-	var str startTaskReply
-	err = json.Unmarshal(resp.body, &str)
-	if err != nil {
-		return err
-	}
-	if resp.status != 200 {
-		return &ErrStartTask{str.Meta.Message}
+	switch resp.Meta.Type {
+	case rbody.ScheduledTaskStartedType:
+		// Success
+		return &StartTasksResult{resp.Body.(*rbody.ScheduledTaskStarted), nil}
+	case rbody.ErrorType:
+		return &StartTasksResult{Error: resp.Body.(*rbody.Error)}
+	default:
+		return &StartTasksResult{Error: ErrAPIResponseMetaType}
 	}
 	return nil
 }
 
-func (c *Client) StopTask(id uint64) error {
+func (c *Client) StopTask(id uint64) *StopTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id))
 	if err != nil {
-		return err
+		return &StopTasksResult{Error: err}
 	}
 
-	var str stopTaskReply
-	err = json.Unmarshal(resp.body, &str)
-	if err != nil {
-		return err
-	}
-	if resp.status != 200 {
-		return &ErrStartTask{str.Meta.Message}
+	switch resp.Meta.Type {
+	case rbody.ScheduledTaskStoppedType:
+		// Success
+		return &StopTasksResult{resp.Body.(*rbody.ScheduledTaskStopped), nil}
+	case rbody.ErrorType:
+		return &StopTasksResult{Error: resp.Body.(*rbody.Error)}
+	default:
+		return &StopTasksResult{Error: ErrAPIResponseMetaType}
 	}
 	return nil
 }
 
-func (c *Client) RemoveTask(id uint64) error {
+func (c *Client) RemoveTask(id uint64) *RemoveTasksResult {
 	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id))
 	if err != nil {
-		return err
+		return &RemoveTasksResult{Error: err}
 	}
 
-	var rtr removeTaskReply
-	err = json.Unmarshal(resp.body, &rtr)
-	if err != nil {
-		return err
+	switch resp.Meta.Type {
+	case rbody.ScheduledTaskRemovedType:
+		// Success
+		return &RemoveTasksResult{resp.Body.(*rbody.ScheduledTaskRemoved), nil}
+	case rbody.ErrorType:
+		return &RemoveTasksResult{Error: resp.Body.(*rbody.Error)}
+	default:
+		return &RemoveTasksResult{Error: ErrAPIResponseMetaType}
 	}
-	if resp.status != 200 {
-		return &ErrStartTask{rtr.Meta.Message}
-	}
+
 	return nil
 }
 
-type createTaskReply struct {
-	respBody
-	Data createTaskData `json:"data"`
+type CreateTaskResult struct {
+	*rbody.AddScheduledTask
+	Error error
 }
 
-type createTaskData struct {
-	Task task `json:"task"`
+type GetTasksResult struct {
+	*rbody.ScheduledTaskListReturned
+	Error error
 }
 
-type getTasksReply struct {
-	respBody
-	Data getTasksData `json:"data"`
+type StartTasksResult struct {
+	*rbody.ScheduledTaskStarted
+	Error error
 }
 
-type getTasksData struct {
-	Tasks []Task `json:"tasks"`
+type StopTasksResult struct {
+	*rbody.ScheduledTaskStopped
+	Error error
 }
 
-type startTaskReply struct {
-	respBody
-}
-
-type stopTaskReply struct {
-	respBody
-}
-
-type removeTaskReply struct {
-	respBody
-}
-
-func makens(ns []string) string {
-	return "/" + strings.Join(ns, "/")
+type RemoveTasksResult struct {
+	*rbody.ScheduledTaskRemoved
+	Error error
 }
