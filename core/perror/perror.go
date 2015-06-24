@@ -3,6 +3,7 @@ package perror
 type PulseError interface {
 	error
 	Fields() map[string]interface{}
+	SetFields(map[string]interface{})
 }
 
 type pulseError struct {
