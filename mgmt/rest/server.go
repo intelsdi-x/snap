@@ -14,8 +14,33 @@ import (
 
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
+)
+
+/*
+REST API
+
+module specific date or error <= internal call
+
+REST API response
+
+Response (JSON encoded)
+	meta <Response Meta (common across all responses)>
+		code <HTTP response code duplciated from header>
+		body_type <keyword for structure type in body>
+		version <API version for future version switching>
+	body <Response Body>
+		<Happy Path>
+		Action specific version of struct matching type in Meta.Type. Should include URI if returning a resource or collection of rsources.
+		Type should be exposed off rest package for use by clients.
+		<Unhappy Path>
+		Generic error type with optional fields. Normally converted from perror.PulseError interface types
+*/
+
+const (
+	APIVersion = 1
 )
 
 var (
@@ -25,6 +50,7 @@ var (
 type managesMetrics interface {
 	MetricCatalog() ([]core.Metric, error)
 	Load(string) perror.PulseError
+	Unload(pl core.Plugin) perror.PulseError
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin
 }
@@ -81,6 +107,7 @@ func (s *Server) start(addrString string) {
 	s.r.GET("/v1/plugins/:name", s.getPluginsByName)
 	s.r.GET("/v1/plugins/:name/:version", s.getPlugin)
 	s.r.POST("/v1/plugins", s.loadPlugin)
+	s.r.DELETE("/v1/plugins/:name/:version", s.unloadPlugin)
 
 	// metric routes
 	s.r.GET("/v1/metrics", s.getMetrics)
@@ -99,49 +126,73 @@ func (s *Server) start(addrString string) {
 	s.run(addrString)
 }
 
-type response struct {
-	Meta *responseMeta          `json:"meta"`
-	Data map[string]interface{} `json:"data"`
+type APIResponse struct {
+	Meta *APIResponseMeta `json:"meta"`
+	Body rbody.Body       `json:"body"`
 }
 
-type responseMeta struct {
+type APIResponseMeta struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+	Type    string `json:"type"`
+	Version int    `json:"version"`
 }
 
-func replyError(code int, w http.ResponseWriter, err error) {
-	switch e := err.(type) {
-	case perror.PulseError:
-		for k, v := range e.Fields() {
-			w.Header().Set(k, fmt.Sprint(v))
-		}
-	}
-	w.WriteHeader(code)
-	resp := &response{
-		Meta: &responseMeta{
+func respond(code int, b rbody.Body, w http.ResponseWriter) {
+	resp := &APIResponse{
+		Meta: &APIResponseMeta{
 			Code:    code,
-			Message: err.Error(),
+			Message: b.ResponseBodyMessage(),
+			Type:    b.ResponseBodyType(),
+			Version: APIVersion,
 		},
+		Body: b,
 	}
-	jerr, _ := json.MarshalIndent(resp, "", "  ")
-	fmt.Fprint(w, string(jerr))
+
+	w.WriteHeader(code)
+	jerr, err := json.MarshalIndent(resp, "", "  ")
+	panic(err)
+	fmt.Fprint(w, jerr)
 }
 
-func replySuccess(code int, w http.ResponseWriter, data map[string]interface{}) {
-	w.WriteHeader(code)
-	resp := &response{
-		Meta: &responseMeta{
-			Code: code,
-		},
-		Data: data,
-	}
-	j, err := json.MarshalIndent(resp, "", "  ")
-	if err != nil {
-		replyError(500, w, err)
-		return
-	}
-	fmt.Fprint(w, string(j))
-}
+// func replyError(code int, w http.ResponseWriter, err error) {
+// 	resp := &APIResponse{
+// 		Meta: &APIResponseMeta{
+// 			Code:    code,
+// 			Message: err.Error(),
+// 		},
+// 	}
+
+// 	// switch e := err.(type) {
+// 	// case perror.PulseError:
+// 	// resp.Data = e.Fields()
+// 	// }
+// 	// log.WithFields(log.Fields{
+// 	// 	"code": code,
+// 	// }).WithFields(resp.Data).Warning(err.Error())
+// 	w.WriteHeader(code)
+// 	jerr, _ := json.MarshalIndent(resp, "", "  ")
+// 	fmt.Fprint(w, string(jerr))
+// }
+
+// func replySuccess(code int, message string, w http.ResponseWriter, data map[string]interface{}) {
+// 	w.WriteHeader(code)
+// 	resp := &APIResponse{
+// 		Meta: &APIResponseMeta{
+// 			Code:    code,
+// 			Message: message,
+// 		},
+// 		// Data: data,
+// 	}
+// 	j, err := json.MarshalIndent(resp, "", "  ")
+// 	if err != nil {
+// 		pe := perror.New(err)
+// 		pe.SetFields(data)
+// 		replyError(500, w, pe)
+// 		return
+// 	}
+// 	fmt.Fprint(w, string(j))
+// }
 
 func marshalBody(in interface{}, body io.ReadCloser) (int, error) {
 	b, err := ioutil.ReadAll(body)
