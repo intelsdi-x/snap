@@ -422,7 +422,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 }
 
 // unloads a plugin from the LoadedPlugins table
-func (p *pluginManager) UnloadPlugin(pl core.CatalogedPlugin) perror.PulseError {
+func (p *pluginManager) UnloadPlugin(pl core.Plugin) perror.PulseError {
 
 	// We hold the mutex here to safely splice out the plugin from the table.
 	// Using a stale index can be slightly dangerous (unloading incorrect plugin).
