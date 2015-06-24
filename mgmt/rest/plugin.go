@@ -60,13 +60,10 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				replyError(500, w, err)
 				return
 			}
-			// persist plugin to autodiscover path if available or temp location
 			autoPaths := s.mm.GetAutodiscoverPaths()
 			var f *os.File
 			if len(autoPaths) > 0 {
 				// write to first autoPath
-				// todo preserve the name of the file the user provided
-				//f, err = ioutil.TempFile(autoPaths[0], "pulse-plugin")
 				f, err = os.Create(path.Join(autoPaths[0], p.FileName()))
 			} else {
 				// write to temp location

@@ -171,7 +171,14 @@ func (p *pluginControl) Stop() {
 	}
 
 	// unload plugins
-	for _, lp := range p.pluginManager.LoadedPlugins().Table() {
+	p.pluginManager.LoadedPlugins().Lock()
+	lps := make([]*loadedPlugin, len(p.pluginManager.LoadedPlugins().Table()))
+	for i, lp := range p.pluginManager.LoadedPlugins().Table() {
+		nlp := *lp
+		lps[i] = &nlp
+	}
+	p.pluginManager.LoadedPlugins().Unlock()
+	for _, lp := range lps {
 		err := p.pluginManager.UnloadPlugin(lp)
 		if err != nil {
 			controlLogger.Error(err)
@@ -385,10 +392,13 @@ func (p *pluginControl) SetMonitorOptions(options ...monitorOption) {
 
 // returns a copy of the plugin catalog
 func (p *pluginControl) PluginCatalog() core.PluginCatalog {
+	p.pluginManager.LoadedPlugins().Lock()
+	defer p.pluginManager.LoadedPlugins().Unlock()
 	table := p.pluginManager.LoadedPlugins().Table()
 	pc := make([]core.CatalogedPlugin, len(table))
 	for i, lp := range table {
-		pc[i] = lp
+		nlp := *lp
+		pc[i] = &nlp
 	}
 	return pc
 }

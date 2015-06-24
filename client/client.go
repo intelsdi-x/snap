@@ -141,6 +141,9 @@ func (c *Client) pluginUploadRequest(pluginPath string) (*response, error) {
 		return nil, err
 	}
 	_, err = io.Copy(part, file)
+	if err != nil {
+		return nil, err
+	}
 
 	err = writer.Close()
 	if err != nil {

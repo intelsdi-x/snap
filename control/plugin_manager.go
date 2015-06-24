@@ -68,11 +68,10 @@ func (l *loadedPlugins) Append(lp *loadedPlugin) error {
 	return nil
 }
 
-// returns a copy of the table
+// Table returns a collection containing loadedPlugins
+// The use of the Lock and Unlock methods is suggested with Table.
 func (l *loadedPlugins) Table() []*loadedPlugin {
-	table := make([]*loadedPlugin, len(*l.table))
-	copy(table, *l.table)
-	return table
+	return *l.table
 }
 
 // used to transactionally retrieve a loadedPlugin pointer from the table
