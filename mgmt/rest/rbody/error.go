@@ -6,6 +6,10 @@ import (
 	"github.com/intelsdi-x/pulse/core/perror"
 )
 
+const (
+	ErrorType = "error"
+)
+
 // Unsuccessful generic response to a failed API call
 type Error struct {
 	ErrorMessage string            `json:"message"`
@@ -26,10 +30,14 @@ func FromError(err error) *Error {
 	return e
 }
 
+func (e *Error) Error() string {
+	return e.ErrorMessage
+}
+
 func (e *Error) ResponseBodyMessage() string {
 	return e.ResponseBodyMessage()
 }
 
 func (e *Error) ResponseBodyType() string {
-	return "error"
+	return ErrorType
 }
