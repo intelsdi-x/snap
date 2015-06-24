@@ -2,8 +2,26 @@ package pulse
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
+)
+
+const (
+	ContentTypeJSON contentType = iota
+	ContentTypeBinary
+)
+
+type contentType int
+
+var (
+	contentTypes = [...]string{
+		"application/json",
+		"application/octet-stream",
+	}
 )
 
 type Client struct {
@@ -28,12 +46,16 @@ func New(url, ver string) *Client {
 	return c
 }
 
+func (t contentType) String() string {
+	return contentTypes[t]
+}
+
 /*
    do handles all interactions with Pulse's REST API.
    we use the variadic function signature so that all actions can use the same
    function, including ones which do not include a request body.
 */
-func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
+func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*response, error) {
 	var (
 		rsp *http.Response
 		err error
@@ -54,7 +76,7 @@ func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
 			b = bytes.NewReader(body[0])
 		}
 		req, err := http.NewRequest("PUT", c.prefix+path, b)
-		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("Content-Type", ct.String())
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +108,7 @@ func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
 		} else {
 			b = bytes.NewReader(body[0])
 		}
-		rsp, err = http.Post(c.prefix+path, "application/json", b)
+		rsp, err = http.Post(c.prefix+path, ct.String(), b)
 		if err != nil {
 			return nil, err
 		}
@@ -96,6 +118,54 @@ func (c *Client) do(method, path string, body ...[]byte) (*response, error) {
 		header: rsp.Header,
 	}
 	b, err = ioutil.ReadAll(rsp.Body)
+	rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	resp.body = b
+	return resp, nil
+}
+
+func (c *Client) pluginUploadRequest(pluginPath string) (*response, error) {
+	client := &http.Client{}
+	file, err := os.Open(pluginPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("pulse-plugins", filepath.Base(pluginPath))
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return nil, err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", c.prefix+"/plugins", body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	rsp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &response{
+		status: rsp.StatusCode,
+		header: rsp.Header,
+	}
+	b, err := ioutil.ReadAll(rsp.Body)
 	rsp.Body.Close()
 	if err != nil {
 		return nil, err

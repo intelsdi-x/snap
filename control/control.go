@@ -40,9 +40,10 @@ type pluginControl struct {
 	RunningPlugins executablePlugins
 	Started        bool
 
-	controlPrivKey *rsa.PrivateKey
-	controlPubKey  *rsa.PublicKey
-	eventManager   *gomit.EventController
+	autodiscoverPaths []string
+	controlPrivKey    *rsa.PrivateKey
+	controlPubKey     *rsa.PublicKey
+	eventManager      *gomit.EventController
 
 	pluginManager managesPlugins
 	metricCatalog catalogsMetrics
@@ -156,6 +157,34 @@ func (p *pluginControl) Stop() {
 	controlLogger.WithFields(log.Fields{
 		"_block": "stop",
 	}).Info("stopped")
+
+	// stop runner
+	err := p.pluginRunner.Stop()
+	if err != nil {
+		controlLogger.Error(err)
+	}
+
+	// stop running plugins
+	for _, rp := range p.RunningPlugins {
+		controlLogger.Debug("Stopping running plugin")
+		rp.Kill()
+	}
+
+	// unload plugins
+	p.pluginManager.LoadedPlugins().Lock()
+	lps := make([]*loadedPlugin, len(p.pluginManager.LoadedPlugins().Table()))
+	for i, lp := range p.pluginManager.LoadedPlugins().Table() {
+		nlp := *lp
+		lps[i] = &nlp
+	}
+	p.pluginManager.LoadedPlugins().Unlock()
+	for _, lp := range lps {
+		err := p.pluginManager.UnloadPlugin(lp)
+		if err != nil {
+			controlLogger.Error(err)
+		}
+	}
+
 }
 
 // Load is the public method to load a plugin into
@@ -363,10 +392,13 @@ func (p *pluginControl) SetMonitorOptions(options ...monitorOption) {
 
 // returns a copy of the plugin catalog
 func (p *pluginControl) PluginCatalog() core.PluginCatalog {
+	p.pluginManager.LoadedPlugins().Lock()
+	defer p.pluginManager.LoadedPlugins().Unlock()
 	table := p.pluginManager.LoadedPlugins().Table()
 	pc := make([]core.CatalogedPlugin, len(table))
 	for i, lp := range table {
-		pc[i] = lp
+		nlp := *lp
+		pc[i] = &nlp
 	}
 	return pc
 }
@@ -560,6 +592,14 @@ func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int
 		return nil, nil, err
 	}
 	return lp.Meta.AcceptedContentTypes, lp.Meta.ReturnedContentTypes, nil
+}
+
+func (p *pluginControl) SetAutodiscoverPaths(paths []string) {
+	p.autodiscoverPaths = paths
+}
+
+func (p *pluginControl) GetAutodiscoverPaths() []string {
+	return p.autodiscoverPaths
 }
 
 // ------------------- helper struct and function for grouping metrics types ------

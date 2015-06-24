@@ -1,17 +1,25 @@
 package rest
 
 import (
+	"io"
+	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path"
+	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 )
 
 type loadedPlugin struct {
 	*plugin
-	TypeName        string `json:"type"`
-	Status          string `json:"status"`
-	LoadedTimestamp int64  `json:"loaded_timestamp"`
+	TypeName        string     `json:"type"`
+	Status          string     `json:"status"`
+	LoadedTimestamp *time.Time `json:"loaded_timestamp"`
 }
 
 type availablePlugin struct {
@@ -28,18 +36,62 @@ type plugin struct {
 }
 
 func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	loadRequest := make(map[string]string)
-	errCode, err := marshalBody(&loadRequest, r.Body)
-	if errCode != 0 && err != nil {
-		replyError(errCode, w, err)
-		return
-	}
-	err = s.mm.Load(loadRequest["path"])
+	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
+		log.Fatal(err)
 		replyError(500, w, err)
 		return
 	}
-	replySuccess(200, w, nil)
+	if strings.HasPrefix(mediaType, "multipart/") {
+		mr := multipart.NewReader(r.Body, params["boundary"])
+		for {
+			p, err := mr.NextPart()
+			if err == io.EOF {
+				replySuccess(200, w, nil)
+				return
+			}
+			if err != nil {
+				log.Fatal(err)
+				replyError(500, w, err)
+				return
+			}
+			b, err := ioutil.ReadAll(p)
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+			autoPaths := s.mm.GetAutodiscoverPaths()
+			var f *os.File
+			if len(autoPaths) > 0 {
+				// write to first autoPath
+				f, err = os.Create(path.Join(autoPaths[0], p.FileName()))
+			} else {
+				// write to temp location
+				f, err = os.Create(path.Join(os.TempDir(), p.FileName()))
+			}
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+			n, err := f.Write(b)
+			log.Debugf("wrote %v to %v", n, f.Name())
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+			err = f.Chmod(0700)
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+
+			err = s.mm.Load(f.Name())
+			if err != nil {
+				replyError(500, w, err)
+				return
+			}
+		}
+	}
 }
 
 func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

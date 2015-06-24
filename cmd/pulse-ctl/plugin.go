@@ -14,7 +14,6 @@ func loadPlugin(ctx *cli.Context) {
 		fmt.Print("Incorrect usage\n")
 		os.Exit(1)
 	}
-
 	err := client.LoadPlugin(ctx.Args().First())
 	if err != nil {
 		fmt.Printf("Error: %v\n", err.Error())
@@ -35,9 +34,9 @@ func listPlugins(ctx *cli.Context) {
 			printFields(w, false, 0, rp.Name, rp.HitCount, rp.LastHit.Format(time.RFC1123), rp.TypeName)
 		}
 	} else {
-		printFields(w, false, 0, "NAME", "STATUS", "LOADED TIMESTAMP")
+		printFields(w, false, 0, "NAME", "STATUS", "LOADED TIME")
 		for _, lp := range lps {
-			printFields(w, false, 0, lp.Name, lp.Status, lp.LoadedTimestamp)
+			printFields(w, false, 0, lp.Name, lp.Status, lp.LoadedTimestamp.Format(time.RFC1123))
 		}
 	}
 	w.Flush()

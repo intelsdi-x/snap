@@ -108,7 +108,7 @@ func (c *Client) CreateTask(t *Task) error {
 		return err
 	}
 
-	resp, err := c.do("POST", "/tasks", j)
+	resp, err := c.do("POST", "/tasks", ContentTypeJSON, j)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (c *Client) CreateTask(t *Task) error {
 }
 
 func (c *Client) GetTasks() ([]Task, error) {
-	resp, err := c.do("GET", "/tasks", nil)
+	resp, err := c.do("GET", "/tasks", ContentTypeJSON, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (c *Client) GetTasks() ([]Task, error) {
 }
 
 func (c *Client) StartTask(id uint64) error {
-	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id))
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id), ContentTypeJSON)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (c *Client) StartTask(id uint64) error {
 }
 
 func (c *Client) StopTask(id uint64) error {
-	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id))
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id), ContentTypeJSON)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (c *Client) StopTask(id uint64) error {
 }
 
 func (c *Client) RemoveTask(id uint64) error {
-	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id))
+	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id), ContentTypeJSON)
 	if err != nil {
 		return err
 	}

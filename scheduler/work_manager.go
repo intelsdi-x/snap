@@ -100,6 +100,9 @@ func PublishWkrSizeOption(v uint) workManagerOption {
 func newWorkManager(opts ...workManagerOption) *workManager {
 
 	wm := &workManager{
+		collectQSize:   defaultQSize,
+		processQSize:   defaultQSize,
+		publishQSize:   defaultQSize,
 		collectWkrSize: defaultWkrSize,
 		publishWkrSize: defaultWkrSize,
 		processWkrSize: defaultWkrSize,
@@ -110,14 +113,14 @@ func newWorkManager(opts ...workManagerOption) *workManager {
 		mutex:          &sync.Mutex{},
 	}
 
-	wm.collectq = newQueue(defaultQSize, wm.sendToWorker)
-	wm.publishq = newQueue(defaultQSize, wm.sendToWorker)
-	wm.processq = newQueue(defaultQSize, wm.sendToWorker)
-
 	//set options
 	for _, opt := range opts {
 		opt(wm)
 	}
+
+	wm.collectq = newQueue(wm.collectQSize, wm.sendToWorker)
+	wm.publishq = newQueue(wm.publishQSize, wm.sendToWorker)
+	wm.processq = newQueue(wm.processQSize, wm.sendToWorker)
 
 	wm.publishq.Start()
 	wm.collectq.Start()

@@ -7,17 +7,17 @@ import (
 )
 
 type Plugin struct {
-	Name            string    `json:"name"`
-	Version         int       `json:"version,omitempty"`
-	TypeName        string    `json:"type"`
-	Status          string    `json:"status,omitempty"`
-	LoadedTimestamp int64     `json:"loaded_timestamp,omitempty"`
-	HitCount        int       `json:"hit_count,omitempty"`
-	LastHit         time.Time `json:"last_hit,omitempty"`
+	Name            string     `json:"name"`
+	Version         int        `json:"version,omitempty"`
+	TypeName        string     `json:"type"`
+	Status          string     `json:"status,omitempty"`
+	LoadedTimestamp *time.Time `json:"loaded_timestamp,omitempty"`
+	HitCount        int        `json:"hit_count,omitempty"`
+	LastHit         *time.Time `json:"last_hit,omitempty"`
 }
 
-func (c *Client) LoadPlugin(path string) error {
-	resp, err := c.do("POST", "/plugins", []byte("{\"path\": \""+path+"\"}"))
+func (c *Client) LoadPlugin(p string) error {
+	resp, err := c.pluginUploadRequest(p)
 	if err != nil {
 		return err
 	}
@@ -32,9 +32,9 @@ func (c *Client) LoadPlugin(path string) error {
 func (c *Client) GetPlugins(details bool) (loadedPlugins, runningPlugins []*Plugin, err error) {
 	var resp *response
 	if details {
-		resp, err = c.do("GET", "/plugins?details")
+		resp, err = c.do("GET", "/plugins?details", ContentTypeJSON)
 	} else {
-		resp, err = c.do("GET", "/plugins")
+		resp, err = c.do("GET", "/plugins", ContentTypeJSON)
 	}
 	if err != nil {
 		return nil, nil, err

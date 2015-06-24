@@ -19,7 +19,7 @@ type CatalogedPlugin interface {
 	Version() int
 	TypeName() string
 	Status() string
-	LoadedTimestamp() int64
+	LoadedTimestamp() *time.Time
 }
 
 // the collection of cataloged plugins used
