@@ -15,8 +15,7 @@ type AvailablePlugin interface {
 // this should be the contract for
 // how mgmt modules know a plugin
 type CatalogedPlugin interface {
-	Name() string
-	Version() int
+	Plugin
 	TypeName() string
 	Status() string
 	LoadedTimestamp() int64
