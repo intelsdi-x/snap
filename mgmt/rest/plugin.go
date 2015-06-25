@@ -120,7 +120,7 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 			Version:         p.Version(),
 			Type:            p.TypeName(),
 			Status:          p.Status(),
-			LoadedTimestamp: int(p.LoadedTimestamp()),
+			LoadedTimestamp: p.LoadedTimestamp(),
 		}
 	}
 
@@ -133,7 +133,7 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 				Version:          p.Version(),
 				Type:             p.TypeName(),
 				HitCount:         p.HitCount(),
-				LastHitTimestamp: int(p.LastHit().Unix()),
+				LastHitTimestamp: p.LastHit().Unix(),
 				ID:               p.ID(),
 			}
 		}

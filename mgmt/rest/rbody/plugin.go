@@ -46,7 +46,7 @@ type LoadedPlugin struct {
 	Version         int    `json:"version"`
 	Type            string `json:"type"`
 	Status          string `json:"status"`
-	LoadedTimestamp int    `json:"loaded_timestamp"`
+	LoadedTimestamp int64  `json:"loaded_timestamp"`
 }
 
 type AvailablePlugin struct {
@@ -54,6 +54,6 @@ type AvailablePlugin struct {
 	Version          int    `json:"version"`
 	Type             string `json:"type"`
 	HitCount         int    `json:"hitcount"`
-	LastHitTimestamp int    `json:"last_hit_timestamp"`
+	LastHitTimestamp int64  `json:"last_hit_timestamp"`
 	ID               int    `json:"id"`
 }

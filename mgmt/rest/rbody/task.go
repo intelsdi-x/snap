@@ -44,8 +44,8 @@ func AddSchedulerTaskFromTask(t core.Task) *AddScheduledTask {
 		ID:                 int(t.ID()),
 		Name:               t.GetName(),
 		Deadline:           t.DeadlineDuration().String(),
-		CreationTimestamp:  int(t.CreationTime().Unix()),
-		LastRunTimestamp:   int(t.LastRunTime().Unix()),
+		CreationTimestamp:  t.CreationTime().Unix(),
+		LastRunTimestamp:   t.LastRunTime().Unix(),
 		HitCount:           int(t.HitCount()),
 		MissCount:          int(t.MissedCount()),
 		FailedCount:        int(t.FailedCount()),
@@ -61,8 +61,8 @@ type ScheduledTask struct {
 	Deadline string `json:"deadline"`
 	// Workflow           *wmap.WorkflowMap `json:"workflow"`
 	// Schedule           Schedule          `json:"schedule"`
-	CreationTimestamp  int    `json:"creation_timestamp,omitempty"`
-	LastRunTimestamp   int    `json:"last_run_timestamp,omitempty"`
+	CreationTimestamp  int64  `json:"creation_timestamp,omitempty"`
+	LastRunTimestamp   int64  `json:"last_run_timestamp,omitempty"`
 	HitCount           int    `json:"hit_count,omitempty"`
 	MissCount          int    `json:"miss_count,omitempty"`
 	FailedCount        int    `json:"failed_count,omitempty"`
@@ -85,8 +85,8 @@ func SchedulerTaskFromTask(t core.Task) *ScheduledTask {
 		ID:                 int(t.ID()),
 		Name:               t.GetName(),
 		Deadline:           t.DeadlineDuration().String(),
-		CreationTimestamp:  int(t.CreationTime().Unix()),
-		LastRunTimestamp:   int(t.LastRunTime().Unix()),
+		CreationTimestamp:  t.CreationTime().Unix(),
+		LastRunTimestamp:   t.LastRunTime().Unix(),
 		HitCount:           int(t.HitCount()),
 		MissCount:          int(t.MissedCount()),
 		FailedCount:        int(t.FailedCount()),
