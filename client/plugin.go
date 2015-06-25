@@ -9,19 +9,18 @@ import (
 )
 
 type Plugin struct {
-	Name            string    `json:"name"`
-	Version         int       `json:"version,omitempty"`
-	TypeName        string    `json:"type"`
-	Status          string    `json:"status,omitempty"`
-	LoadedTimestamp int64     `json:"loaded_timestamp,omitempty"`
-	HitCount        int       `json:"hit_count,omitempty"`
-	LastHit         time.Time `json:"last_hit,omitempty"`
+	Name            string     `json:"name"`
+	Version         int        `json:"version,omitempty"`
+	TypeName        string     `json:"type"`
+	Status          string     `json:"status,omitempty"`
+	LoadedTimestamp *time.Time `json:"loaded_timestamp,omitempty"`
+	HitCount        int        `json:"hit_count,omitempty"`
+	LastHit         *time.Time `json:"last_hit,omitempty"`
 }
 
 // TODO, this should RETURN the plugin that was loaded...
-func (c *Client) LoadPlugin(path string) error {
-	resp, err := c.do("POST", "/plugins", []byte("{\"path\": \""+path+"\"}"))
-
+func (c *Client) LoadPlugin(p string) error {
+	resp, err := c.pluginUploadRequest(p)
 	if err != nil {
 		return err
 	}
@@ -43,7 +42,7 @@ func (c *Client) UnloadPlugin(name string, version int) *UnloadPluginResult {
 		Name:    name,
 		Version: version,
 	}
-	resp, err := c.do("DELETE", fmt.Sprintf("/plugins/%s/%d", url.QueryEscape(name), version))
+	resp, err := c.do("DELETE", fmt.Sprintf("/plugins/%s/%d", url.QueryEscape(name), version), ContentTypeJSON)
 	if err != nil {
 		r.Err = err
 		return r
@@ -71,7 +70,7 @@ func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 		path = "/plugins"
 	}
 
-	resp, err := c.do("GET", path)
+	resp, err := c.do("GET", path, ContentTypeJSON)
 	if err != nil {
 		r.Err = err
 		return r

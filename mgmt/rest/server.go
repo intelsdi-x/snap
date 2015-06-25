@@ -61,13 +61,13 @@ type APIResponseMeta struct {
 
 type managesMetrics interface {
 	MetricCatalog() ([]core.Metric, error)
-	Load(string) perror.PulseError
+	Load(string) (core.CatalogedPlugin, perror.PulseError)
 	Unload(pl core.Plugin) perror.PulseError
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin
+	GetAutodiscoverPaths() []string
 }
 
-//todo remove this interface
 type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, ...core.TaskOption) (core.Task, core.TaskErrors)
 	GetTasks() map[uint64]core.Task

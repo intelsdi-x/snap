@@ -4,14 +4,32 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/intelsdi-x/pulse/mgmt/rest"
 )
 
 var (
 	ErrUnknown = errors.New("Unknown error calling API")
+)
+
+const (
+	ContentTypeJSON contentType = iota
+	ContentTypeBinary
+)
+
+type contentType int
+
+var (
+	contentTypes = [...]string{
+		"application/json",
+		"application/octet-stream",
+	}
 )
 
 type Client struct {
@@ -36,16 +54,20 @@ func New(url, ver string) *Client {
 	return c
 }
 
+func (t contentType) String() string {
+	return contentTypes[t]
+}
+
 /*
    do handles all interactions with Pulse's REST API.
    we use the variadic function signature so that all actions can use the same
    function, including ones which do not include a request body.
 */
-func (c *Client) do(method, path string, body ...[]byte) (*rest.APIResponse, error) {
+
+func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rest.APIResponse, error) {
 	var (
 		rsp *http.Response
 		err error
-		b   []byte
 	)
 	switch method {
 	case "GET":
@@ -62,7 +84,7 @@ func (c *Client) do(method, path string, body ...[]byte) (*rest.APIResponse, err
 			b = bytes.NewReader(body[0])
 		}
 		req, err := http.NewRequest("PUT", c.prefix+path, b)
-		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("Content-Type", ct.String())
 		if err != nil {
 			return nil, err
 		}
@@ -94,31 +116,65 @@ func (c *Client) do(method, path string, body ...[]byte) (*rest.APIResponse, err
 		} else {
 			b = bytes.NewReader(body[0])
 		}
-		rsp, err = http.Post(c.prefix+path, "application/json", b)
+		rsp, err = http.Post(c.prefix+path, ct.String(), b)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	return httpRespToAPIResp(rsp)
+}
+
+func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, error) {
 	var resp *rest.APIResponse
-	b, err = ioutil.ReadAll(rsp.Body)
+	b, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
 	jErr := json.Unmarshal(b, resp)
-	// resp := &response{
-	// status: rsp.StatusCode,
-	// header: rsp.Header,
-	// }
 	if jErr != nil {
 		return nil, err
 	}
-
-	// b, err = ioutil.ReadAll(rsp.Body)
-
-	// resp.body = b
 	return resp, nil
+}
+
+func (c *Client) pluginUploadRequest(pluginPath string) (*rest.APIResponse, error) {
+	client := &http.Client{}
+	file, err := os.Open(pluginPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("pulse-plugins", filepath.Base(pluginPath))
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return nil, err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", c.prefix+"/plugins", body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	rsp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return httpRespToAPIResp(rsp)
 }
 
 type response struct {

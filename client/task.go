@@ -35,7 +35,7 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string) *Cre
 		return &CreateTaskResult{Err: err}
 	}
 
-	resp, err := c.do("POST", "/tasks", j)
+	resp, err := c.do("POST", "/tasks", ContentTypeJSON, j)
 	if err != nil {
 		return &CreateTaskResult{Err: err}
 	}
@@ -52,7 +52,7 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string) *Cre
 }
 
 func (c *Client) GetTasks() *GetTasksResult {
-	resp, err := c.do("GET", "/tasks", nil)
+	resp, err := c.do("GET", "/tasks", ContentTypeJSON, nil)
 	if err != nil {
 		return &GetTasksResult{Err: err}
 	}
@@ -69,7 +69,7 @@ func (c *Client) GetTasks() *GetTasksResult {
 }
 
 func (c *Client) StartTask(id uint64) *StartTasksResult {
-	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id))
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id), ContentTypeJSON)
 
 	if err != nil {
 		return &StartTasksResult{Err: err}
@@ -88,7 +88,7 @@ func (c *Client) StartTask(id uint64) *StartTasksResult {
 }
 
 func (c *Client) StopTask(id uint64) *StopTasksResult {
-	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id))
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id), ContentTypeJSON)
 	if err != nil {
 		return &StopTasksResult{Err: err}
 	}
@@ -106,7 +106,7 @@ func (c *Client) StopTask(id uint64) *StopTasksResult {
 }
 
 func (c *Client) RemoveTask(id uint64) *RemoveTasksResult {
-	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id))
+	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id), ContentTypeJSON)
 	if err != nil {
 		return &RemoveTasksResult{Err: err}
 	}

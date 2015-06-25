@@ -6,7 +6,9 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -85,7 +87,8 @@ func (l *loadedPlugins) Append(lp *loadedPlugin) perror.PulseError {
 	return nil
 }
 
-// returns a copy of the table
+// Table returns a collection containing loadedPlugins
+// The use of the Lock and Unlock methods is suggested with Table.
 func (l *loadedPlugins) Table() []*loadedPlugin {
 	return *l.table
 }
@@ -236,8 +239,8 @@ func (lp *loadedPlugin) Status() string {
 
 // returns a unix timestamp of the LoadTime of a plugin
 // implements the CatalogedPlugin interface
-func (lp *loadedPlugin) LoadedTimestamp() int64 {
-	return lp.LoadedTime.Unix()
+func (lp *loadedPlugin) LoadedTimestamp() *time.Time {
+	return &lp.LoadedTime
 }
 
 // the struct representing the object responsible for
@@ -435,6 +438,9 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) perror.PulseError {
 		found  bool
 	)
 
+	// reset the iterator
+	p.LoadedPlugins().currentIter = 0
+
 	// find it in the list
 	for p.LoadedPlugins().Next() {
 		if !found {
@@ -469,6 +475,32 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) perror.PulseError {
 			"plugin-version": plugin.Version(),
 		})
 		return pe
+	}
+
+	// If the plugin was loaded from os.TempDir() clean up
+	if strings.Contains(plugin.Path, os.TempDir()) {
+		runnerLog.WithFields(log.Fields{
+			"plugin-type":    plugin.TypeName(),
+			"plugin-name":    plugin.Name(),
+			"plugin-version": plugin.Version(),
+			"plugin-path":    plugin.Path,
+		}).Debugf("Removing plugin")
+		if err := os.Remove(plugin.Path); err != nil {
+			runnerLog.WithFields(log.Fields{
+				"plugin-type":    plugin.TypeName(),
+				"plugin-name":    plugin.Name(),
+				"plugin-version": plugin.Version(),
+				"plugin-path":    plugin.Path,
+			}).Error(err)
+			pe := perror.New(err)
+			pe.SetFields(map[string]interface{}{
+				"plugin-type":    plugin.TypeName(),
+				"plugin-name":    plugin.Name(),
+				"plugin-version": plugin.Version(),
+				"plugin-path":    plugin.Path,
+			})
+			return pe
+		}
 	}
 
 	// splice out the given plugin

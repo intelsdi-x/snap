@@ -2,15 +2,32 @@ package rbody
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
+	PluginsLoadedType      = "plugins_loaded"
 	PluginUnloadedType     = "plugin_unloaded"
 	PluginListReturnedType = "plugin_list_returned"
 )
 
-// Successful response to the loading of a plugin
-type LoadPlugin struct {
+// Successful response to the loading of a plugins
+type PluginsLoaded struct {
+	LoadedPlugins []LoadedPlugin
+}
+
+func (p *PluginsLoaded) ResponseBodyMessage() string {
+	s := "Plugins loaded: "
+	l := make([]string, len(p.LoadedPlugins))
+	for i, pl := range p.LoadedPlugins {
+		l[i] = fmt.Sprintf("%s(%s v%d) ", pl.Name, pl.Type, pl.Version)
+	}
+	s += strings.Join(l, ", ")
+	return s
+}
+
+func (p *PluginsLoaded) ResponseBodyType() string {
+	return PluginsLoadedType
 }
 
 // Successful response to the unloading of a plugin

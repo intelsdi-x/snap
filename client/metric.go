@@ -54,7 +54,7 @@ type MetricType struct {
 }
 
 func (c *Client) GetMetricCatalog() *GetMetricCatalogResult {
-	resp, err := c.do("GET", "/metrics")
+	resp, err := c.do("GET", "/metrics", ContentTypeJSON)
 	if err != nil {
 		return &GetMetricCatalogResult{Err: err}
 	}

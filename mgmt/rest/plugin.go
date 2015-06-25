@@ -2,11 +2,20 @@ package rest
 
 import (
 	"errors"
+	"io"
+	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path"
 	"strconv"
+	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
@@ -47,6 +56,70 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 	// 	return
 	// }
 	// replySuccess(200, "", w, nil)
+	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		log.Fatal(err)
+		respond(500, rbody.FromError(err), w)
+		return
+	}
+	if strings.HasPrefix(mediaType, "multipart/") {
+		lp := &rbody.PluginsLoaded{}
+		lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
+		mr := multipart.NewReader(r.Body, params["boundary"])
+		for {
+			p, err := mr.NextPart()
+			if err == io.EOF {
+				respond(201, lp, w)
+				return
+			}
+			if err != nil {
+				log.Fatal(err)
+				respond(500, rbody.FromError(err), w)
+				return
+			}
+			b, err := ioutil.ReadAll(p)
+			if err != nil {
+				log.Fatal(err)
+				respond(500, rbody.FromError(err), w)
+				return
+			}
+			autoPaths := s.mm.GetAutodiscoverPaths()
+			var f *os.File
+			if len(autoPaths) > 0 {
+				// write to first autoPath
+				f, err = os.Create(path.Join(autoPaths[0], p.FileName()))
+			} else {
+				// write to temp location
+				f, err = os.Create(path.Join(os.TempDir(), p.FileName()))
+			}
+			if err != nil {
+				log.Fatal(err)
+				respond(500, rbody.FromError(err), w)
+				return
+			}
+			n, err := f.Write(b)
+			log.Debugf("wrote %v to %v", n, f.Name())
+			if err != nil {
+				log.Fatal(err)
+				respond(500, rbody.FromError(err), w)
+				return
+			}
+			err = f.Chmod(0700)
+			if err != nil {
+				log.Fatal(err)
+				respond(500, rbody.FromError(err), w)
+				return
+			}
+
+			pl, err := s.mm.Load(f.Name())
+			if err != nil {
+				log.Fatal(err)
+				respond(500, rbody.FromError(err), w)
+				return
+			}
+			lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(pl))
+		}
+	}
 }
 
 func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -98,13 +171,7 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 	plCatalog := s.mm.PluginCatalog()
 	plugins.LoadedPlugins = make([]rbody.LoadedPlugin, len(plCatalog))
 	for i, p := range s.mm.PluginCatalog() {
-		plugins.LoadedPlugins[i] = rbody.LoadedPlugin{
-			Name:            p.Name(),
-			Version:         p.Version(),
-			Type:            p.TypeName(),
-			Status:          p.Status(),
-			LoadedTimestamp: p.LoadedTimestamp(),
-		}
+		plugins.LoadedPlugins[i] = *catalogedPluginToLoaded(p)
 	}
 
 	if detail {
@@ -123,6 +190,16 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 
 	respond(200, plugins, w)
+}
+
+func catalogedPluginToLoaded(c core.CatalogedPlugin) *rbody.LoadedPlugin {
+	return &rbody.LoadedPlugin{
+		Name:            c.Name(),
+		Version:         c.Version(),
+		Type:            c.TypeName(),
+		Status:          c.Status(),
+		LoadedTimestamp: c.LoadedTimestamp().Unix(),
+	}
 }
 
 func (s *Server) getPluginsByName(w http.ResponseWriter, r *http.Request, params httprouter.Params) {

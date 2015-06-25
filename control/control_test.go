@@ -93,7 +93,7 @@ func TestSwapPlugin(t *testing.T) {
 				c.SwapPlugins(dummy2Path, dummy)
 				pc = c.PluginCatalog()
 
-				err := c.SwapPlugins(PluginPath, dummy)
+				err := c.SwapPlugins(PluginPath+"oops", dummy)
 				So(err, ShouldNotBeNil)
 				So(pc[0].Name(), ShouldEqual, "dummy2")
 			})

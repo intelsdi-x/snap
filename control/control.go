@@ -41,9 +41,10 @@ type pluginControl struct {
 	RunningPlugins executablePlugins
 	Started        bool
 
-	controlPrivKey *rsa.PrivateKey
-	controlPubKey  *rsa.PublicKey
-	eventManager   *gomit.EventController
+	autodiscoverPaths []string
+	controlPrivKey    *rsa.PrivateKey
+	controlPubKey     *rsa.PublicKey
+	eventManager      *gomit.EventController
 
 	pluginManager managesPlugins
 	metricCatalog catalogsMetrics
@@ -157,12 +158,40 @@ func (p *pluginControl) Stop() {
 	controlLog.WithFields(log.Fields{
 		"_block": "stop",
 	}).Info("stopped")
+
+	// stop runner
+	err := p.pluginRunner.Stop()
+	if err != nil {
+		controlLog.Error(err)
+	}
+
+	// stop running plugins
+	for _, rp := range p.RunningPlugins {
+		controlLog.Debug("Stopping running plugin")
+		rp.Kill()
+	}
+
+	// unload plugins
+	p.pluginManager.LoadedPlugins().Lock()
+	lps := make([]*loadedPlugin, len(p.pluginManager.LoadedPlugins().Table()))
+	for i, lp := range p.pluginManager.LoadedPlugins().Table() {
+		nlp := *lp
+		lps[i] = &nlp
+	}
+	p.pluginManager.LoadedPlugins().Unlock()
+	for _, lp := range lps {
+		err := p.pluginManager.UnloadPlugin(lp)
+		if err != nil {
+			controlLog.Error(err)
+		}
+	}
+
 }
 
 // Load is the public method to load a plugin into
 // the LoadedPlugins array and issue an event when
 // successful.
-func (p *pluginControl) Load(path string) perror.PulseError {
+func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseError) {
 	f := map[string]interface{}{
 		"_block": "load",
 		"path":   path,
@@ -174,17 +203,18 @@ func (p *pluginControl) Load(path string) perror.PulseError {
 		pe := perror.New(ErrControllerNotStarted)
 		pe.SetFields(f)
 		controlLog.WithFields(f).Error(pe)
-		return pe
+		return nil, pe
 	}
 
-	if _, err := p.pluginManager.LoadPlugin(path, p.eventManager); err != nil {
-		return err
+	pl, err := p.pluginManager.LoadPlugin(path, p.eventManager)
+	if err != nil {
+		return nil, err
 	}
 
 	// defer sending event
 	event := new(control_event.LoadPluginEvent)
 	defer p.eventManager.Emit(event)
-	return nil
+	return pl, nil
 }
 
 func (p *pluginControl) Unload(pl core.Plugin) perror.PulseError {
@@ -375,10 +405,13 @@ func (p *pluginControl) SetMonitorOptions(options ...monitorOption) {
 
 // returns a copy of the plugin catalog
 func (p *pluginControl) PluginCatalog() core.PluginCatalog {
+	p.pluginManager.LoadedPlugins().Lock()
+	defer p.pluginManager.LoadedPlugins().Unlock()
 	table := p.pluginManager.LoadedPlugins().Table()
 	pc := make([]core.CatalogedPlugin, len(table))
 	for i, lp := range table {
-		pc[i] = lp
+		nlp := *lp
+		pc[i] = &nlp
 	}
 	return pc
 }
@@ -572,6 +605,14 @@ func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int
 		return nil, nil, err
 	}
 	return lp.Meta.AcceptedContentTypes, lp.Meta.ReturnedContentTypes, nil
+}
+
+func (p *pluginControl) SetAutodiscoverPaths(paths []string) {
+	p.autodiscoverPaths = paths
+}
+
+func (p *pluginControl) GetAutodiscoverPaths() []string {
+	return p.autodiscoverPaths
 }
 
 // ------------------- helper struct and function for grouping metrics types ------
