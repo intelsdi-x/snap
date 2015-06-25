@@ -71,12 +71,13 @@ func listTask(ctx *cli.Context) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	printFields(w, false, 0,
 		"ID",
+		"NAME",
 		"STATE",
 		"HIT COUNT",
 		"MISS COUNT",
 		"FAILURE COUNT",
-		"LAST FAILURE MSG",
 		"CREATION TIME",
+		"LAST FAILURE MSG",
 	)
 	for _, task := range tasks {
 		printFields(w, false, 0,
@@ -86,8 +87,8 @@ func listTask(ctx *cli.Context) {
 			task.HitCount,
 			task.MissCount,
 			task.FailedCount,
-			task.LastFailureMessage,
 			task.CreationTime.Format(time.RFC1123),
+			task.LastFailureMessage,
 		)
 	}
 	w.Flush()
