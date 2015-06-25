@@ -27,7 +27,7 @@ func unloadPlugin(ctx *cli.Context) {
 	pName := ctx.String("plugin-name")
 	pVer := ctx.Int("plugin-version")
 	if pName == "" {
-		fmt.Println("Must provide plugin name\n")
+		fmt.Println("Must provide plugin name")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
@@ -44,8 +44,8 @@ func unloadPlugin(ctx *cli.Context) {
 
 func listPlugins(ctx *cli.Context) {
 	plugins := client.GetPlugins(ctx.Bool("running"))
-	if plugins.Error != nil {
-		fmt.Printf("Error: %v\n", plugins.Error)
+	if plugins.Err != nil {
+		fmt.Printf("Error: %v\n", plugins.Err)
 		os.Exit(1)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)

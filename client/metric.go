@@ -56,22 +56,22 @@ type MetricType struct {
 func (c *Client) GetMetricCatalog() *GetMetricCatalogResult {
 	resp, err := c.do("GET", "/metrics")
 	if err != nil {
-		return &GetMetricCatalogResult{Error: err}
+		return &GetMetricCatalogResult{Err: err}
 	}
 
 	switch resp.Meta.Type {
 	case rbody.MetricCatalogReturnedType:
 		return &GetMetricCatalogResult{resp.Body.(*rbody.MetricCatalogReturned), nil}
 	case rbody.ErrorType:
-		return &GetMetricCatalogResult{Error: resp.Body.(*rbody.Error)}
+		return &GetMetricCatalogResult{Err: resp.Body.(*rbody.Error)}
 	default:
-		return &GetMetricCatalogResult{Error: ErrAPIResponseMetaType}
+		return &GetMetricCatalogResult{Err: ErrAPIResponseMetaType}
 	}
 }
 
 type GetMetricCatalogResult struct {
 	*rbody.MetricCatalogReturned
-	Error error
+	Err error
 }
 
 // type getMetricTypesReply struct {

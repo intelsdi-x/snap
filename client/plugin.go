@@ -45,7 +45,7 @@ func (c *Client) UnloadPlugin(name string, version int) *UnloadPluginResult {
 	}
 	resp, err := c.do("DELETE", fmt.Sprintf("/plugins/%s/%d", url.QueryEscape(name), version))
 	if err != nil {
-		r.Error = err
+		r.Err = err
 		return r
 	}
 
@@ -54,9 +54,9 @@ func (c *Client) UnloadPlugin(name string, version int) *UnloadPluginResult {
 	case rbody.PluginUnloadedType:
 		// Success
 	case rbody.ErrorType:
-		r.Error = resp.Body.(*rbody.Error)
+		r.Err = resp.Body.(*rbody.Error)
 	default:
-		r.Error = ErrAPIResponseMetaType
+		r.Err = ErrAPIResponseMetaType
 	}
 	return r
 }
@@ -73,7 +73,7 @@ func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 
 	resp, err := c.do("GET", path)
 	if err != nil {
-		r.Error = err
+		r.Err = err
 		return r
 	}
 
@@ -86,9 +86,9 @@ func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 		r.AvailablePlugins = b.AvailablePlugins
 		return r
 	case rbody.ErrorType:
-		r.Error = resp.Body.(*rbody.Error)
+		r.Err = resp.Body.(*rbody.Error)
 	default:
-		r.Error = ErrAPIResponseMetaType
+		r.Err = ErrAPIResponseMetaType
 	}
 	return r
 }
@@ -96,12 +96,12 @@ func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 type GetPluginsResult struct {
 	LoadedPlugins    []rbody.LoadedPlugin
 	AvailablePlugins []rbody.AvailablePlugin
-	Error            error
+	Err              error
 }
 
 // UnloadPluginResponse is the response from pulse/client on an UnloadPlugin call.
 type UnloadPluginResult struct {
 	Name    string
 	Version int
-	Error   error
+	Err     error
 }

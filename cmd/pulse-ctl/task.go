@@ -54,8 +54,8 @@ func createTask(ctx *cli.Context) {
 
 	task := client.CreateTask(t.Schedule, t.Workflow, t.Name)
 
-	if task.Error != nil {
-		fmt.Printf("Error creating task - %v\n", task.Error)
+	if task.Err != nil {
+		fmt.Printf("Error creating task - %v\n", task.Err)
 		os.Exit(1)
 	}
 	fmt.Printf(`Task created:
@@ -67,8 +67,8 @@ func createTask(ctx *cli.Context) {
 
 func listTask(ctx *cli.Context) {
 	tasks := client.GetTasks()
-	if tasks.Error != nil {
-		fmt.Printf("Error getting tasks - %v\n", tasks.Error)
+	if tasks.Err != nil {
+		fmt.Printf("Error getting tasks - %v\n", tasks.Err)
 		os.Exit(1)
 	}
 
@@ -109,8 +109,8 @@ func startTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	task := client.StartTask(id)
-	if task.Error != nil {
-		fmt.Println(task.Error)
+	if task.Err != nil {
+		fmt.Println(task.Err)
 		os.Exit(1)
 	}
 }
@@ -127,8 +127,8 @@ func stopTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	task := client.StopTask(id)
-	if task.Error != nil {
-		fmt.Println(task.Error)
+	if task.Err != nil {
+		fmt.Println(task.Err)
 		os.Exit(1)
 	}
 }
@@ -145,8 +145,8 @@ func removeTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	task := client.RemoveTask(id)
-	if task.Error != nil {
-		fmt.Println(task.Error)
+	if task.Err != nil {
+		fmt.Println(task.Err)
 		os.Exit(1)
 	}
 }

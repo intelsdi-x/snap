@@ -32,12 +32,12 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string) *Cre
 	// Marshal to JSON for request body
 	j, err := json.Marshal(t)
 	if err != nil {
-		return &CreateTaskResult{Error: err}
+		return &CreateTaskResult{Err: err}
 	}
 
 	resp, err := c.do("POST", "/tasks", j)
 	if err != nil {
-		return &CreateTaskResult{Error: err}
+		return &CreateTaskResult{Err: err}
 	}
 
 	switch resp.Meta.Type {
@@ -45,16 +45,16 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string) *Cre
 		// Success
 		return &CreateTaskResult{resp.Body.(*rbody.AddScheduledTask), nil}
 	case rbody.ErrorType:
-		return &CreateTaskResult{Error: resp.Body.(*rbody.Error)}
+		return &CreateTaskResult{Err: resp.Body.(*rbody.Error)}
 	default:
-		return &CreateTaskResult{Error: ErrAPIResponseMetaType}
+		return &CreateTaskResult{Err: ErrAPIResponseMetaType}
 	}
 }
 
 func (c *Client) GetTasks() *GetTasksResult {
 	resp, err := c.do("GET", "/tasks", nil)
 	if err != nil {
-		return &GetTasksResult{Error: err}
+		return &GetTasksResult{Err: err}
 	}
 
 	switch resp.Meta.Type {
@@ -62,9 +62,9 @@ func (c *Client) GetTasks() *GetTasksResult {
 		// Success
 		return &GetTasksResult{resp.Body.(*rbody.ScheduledTaskListReturned), nil}
 	case rbody.ErrorType:
-		return &GetTasksResult{Error: resp.Body.(*rbody.Error)}
+		return &GetTasksResult{Err: resp.Body.(*rbody.Error)}
 	default:
-		return &GetTasksResult{Error: ErrAPIResponseMetaType}
+		return &GetTasksResult{Err: ErrAPIResponseMetaType}
 	}
 }
 
@@ -72,7 +72,7 @@ func (c *Client) StartTask(id uint64) *StartTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id))
 
 	if err != nil {
-		return &StartTasksResult{Error: err}
+		return &StartTasksResult{Err: err}
 	}
 
 	switch resp.Meta.Type {
@@ -80,9 +80,9 @@ func (c *Client) StartTask(id uint64) *StartTasksResult {
 		// Success
 		return &StartTasksResult{resp.Body.(*rbody.ScheduledTaskStarted), nil}
 	case rbody.ErrorType:
-		return &StartTasksResult{Error: resp.Body.(*rbody.Error)}
+		return &StartTasksResult{Err: resp.Body.(*rbody.Error)}
 	default:
-		return &StartTasksResult{Error: ErrAPIResponseMetaType}
+		return &StartTasksResult{Err: ErrAPIResponseMetaType}
 	}
 	return nil
 }
@@ -90,7 +90,7 @@ func (c *Client) StartTask(id uint64) *StartTasksResult {
 func (c *Client) StopTask(id uint64) *StopTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id))
 	if err != nil {
-		return &StopTasksResult{Error: err}
+		return &StopTasksResult{Err: err}
 	}
 
 	switch resp.Meta.Type {
@@ -98,9 +98,9 @@ func (c *Client) StopTask(id uint64) *StopTasksResult {
 		// Success
 		return &StopTasksResult{resp.Body.(*rbody.ScheduledTaskStopped), nil}
 	case rbody.ErrorType:
-		return &StopTasksResult{Error: resp.Body.(*rbody.Error)}
+		return &StopTasksResult{Err: resp.Body.(*rbody.Error)}
 	default:
-		return &StopTasksResult{Error: ErrAPIResponseMetaType}
+		return &StopTasksResult{Err: ErrAPIResponseMetaType}
 	}
 	return nil
 }
@@ -108,7 +108,7 @@ func (c *Client) StopTask(id uint64) *StopTasksResult {
 func (c *Client) RemoveTask(id uint64) *RemoveTasksResult {
 	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id))
 	if err != nil {
-		return &RemoveTasksResult{Error: err}
+		return &RemoveTasksResult{Err: err}
 	}
 
 	switch resp.Meta.Type {
@@ -116,9 +116,9 @@ func (c *Client) RemoveTask(id uint64) *RemoveTasksResult {
 		// Success
 		return &RemoveTasksResult{resp.Body.(*rbody.ScheduledTaskRemoved), nil}
 	case rbody.ErrorType:
-		return &RemoveTasksResult{Error: resp.Body.(*rbody.Error)}
+		return &RemoveTasksResult{Err: resp.Body.(*rbody.Error)}
 	default:
-		return &RemoveTasksResult{Error: ErrAPIResponseMetaType}
+		return &RemoveTasksResult{Err: ErrAPIResponseMetaType}
 	}
 
 	return nil
@@ -126,25 +126,25 @@ func (c *Client) RemoveTask(id uint64) *RemoveTasksResult {
 
 type CreateTaskResult struct {
 	*rbody.AddScheduledTask
-	Error error
+	Err error
 }
 
 type GetTasksResult struct {
 	*rbody.ScheduledTaskListReturned
-	Error error
+	Err error
 }
 
 type StartTasksResult struct {
 	*rbody.ScheduledTaskStarted
-	Error error
+	Err error
 }
 
 type StopTasksResult struct {
 	*rbody.ScheduledTaskStopped
-	Error error
+	Err error
 }
 
 type RemoveTasksResult struct {
 	*rbody.ScheduledTaskRemoved
-	Error error
+	Err error
 }

@@ -10,8 +10,8 @@ import (
 
 func listMetrics(ctx *cli.Context) {
 	mts := client.GetMetricCatalog()
-	if mts.Error != nil {
-		fmt.Printf("error getting metric catalog: %v", mts.Error)
+	if mts.Err != nil {
+		fmt.Printf("error getting metric catalog: %v", mts.Err)
 		os.Exit(1)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
