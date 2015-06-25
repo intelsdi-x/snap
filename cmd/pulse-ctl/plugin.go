@@ -29,14 +29,14 @@ func listPlugins(ctx *cli.Context) {
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	if ctx.Bool("running") {
-		printFields(w, false, 0, "NAME", "HIT COUNT", "LAST HIT", "TYPE")
+		printFields(w, false, 0, "NAME", "TYPE", "HIT COUNT", "LAST HIT")
 		for _, rp := range aps {
-			printFields(w, false, 0, rp.Name, rp.HitCount, rp.LastHit.Format(time.RFC1123), rp.TypeName)
+			printFields(w, false, 0, rp.Name, rp.TypeName, rp.HitCount, rp.LastHit.Format(time.RFC1123))
 		}
 	} else {
-		printFields(w, false, 0, "NAME", "STATUS", "VERSION", "LOADED TIME", "TYPE")
+		printFields(w, false, 0, "NAME", "TYPE", "STATUS", "VERSION", "LOADED TIME")
 		for _, lp := range lps {
-			printFields(w, false, 0, lp.Name, lp.Status, lp.Version, lp.LoadedTimestamp.Format(time.RFC1123), lp.TypeName)
+			printFields(w, false, 0, lp.Name, lp.TypeName, lp.Status, lp.Version, lp.LoadedTimestamp.Format(time.RFC1123))
 		}
 	}
 	w.Flush()
