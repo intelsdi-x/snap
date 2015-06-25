@@ -110,7 +110,7 @@ func (f *influxPublisher) Publish(contentType string, content []byte, config map
 	pts := make([]client.Point, len(metrics))
 	for i, m := range metrics {
 		pts[i] = client.Point{
-			Name: strings.Join(m.Namespace(), "/"),
+			Measurement: strings.Join(m.Namespace(), "/"),
 			Fields: map[string]interface{}{
 				"value": m.Data(),
 			},
@@ -118,7 +118,7 @@ func (f *influxPublisher) Publish(contentType string, content []byte, config map
 	}
 
 	bps := client.BatchPoints{
-		Timestamp:       time.Now(),
+		Time:            time.Now(),
 		Precision:       "s",
 		Points:          pts,
 		Database:        config["database"].(ctypes.ConfigValueStr).Value,
