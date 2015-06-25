@@ -288,7 +288,7 @@ func (s *scheduler) Stop() {
 	s.state = schedulerStopped
 	// stop all tasks that are not already stopped
 	for _, t := range s.tasks.table {
-		if t.state != core.TaskStopped {
+		if t.state > core.TaskStopped {
 			t.Stop()
 		}
 	}
