@@ -151,7 +151,9 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 
 	w.WriteHeader(code)
 	jerr, err := json.MarshalIndent(resp, "", "  ")
-	panic(err)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Fprint(w, jerr)
 }
 

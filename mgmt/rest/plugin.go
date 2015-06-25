@@ -4,9 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
-	// log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/pulse/core/perror"
@@ -17,24 +15,9 @@ var (
 	ErrMissingPluginName = errors.New("missing plugin name")
 )
 
-type loadedPlugin struct {
-	*plugin
-	TypeName        string `json:"type"`
-	Status          string `json:"status"`
-	LoadedTimestamp int64  `json:"loaded_timestamp"`
-}
-
-type availablePlugin struct {
-	*plugin
-	TypeName string    `json:"type"`
-	HitCount int       `json:"hit_count"`
-	LastHit  time.Time `json:"last_hit"`
-	ID       int       `json:"ID"`
-}
-
 type plugin struct {
-	name    string `json:"name"`
-	version int    `json:"version"`
+	name    string
+	version int
 }
 
 func (p *plugin) Name() string {
