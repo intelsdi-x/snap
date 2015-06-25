@@ -52,19 +52,23 @@ func createTask(ctx *cli.Context) {
 
 	}
 
-	ct := client.NewTask(t.Schedule, t.Workflow, t.Name)
+	task := client.CreateTask(t.Schedule, t.Workflow, t.Name)
 
-	e = client.CreateTask(ct)
-	if e != nil {
-		fmt.Printf("Error creating task - %v\n", e)
+	if task.Error != nil {
+		fmt.Printf("Error creating task - %v\n", task.Error)
 		os.Exit(1)
 	}
+	fmt.Printf(`Task created:
+	Name: %s
+	Id: %d
+	State: %s
+`, task.Name, task.ID, task.State)
 }
 
 func listTask(ctx *cli.Context) {
-	tasks, err := client.GetTasks()
-	if err != nil {
-		fmt.Printf("Error getting tasks - %v\n", err)
+	tasks := client.GetTasks()
+	if tasks.Error != nil {
+		fmt.Printf("Error getting tasks - %v\n", tasks.Error)
 		os.Exit(1)
 	}
 
@@ -78,7 +82,7 @@ func listTask(ctx *cli.Context) {
 		"LAST FAILURE MSG",
 		"CREATION TIME",
 	)
-	for _, task := range tasks {
+	for _, task := range tasks.ScheduledTasks {
 		printFields(w, false, 0,
 			task.ID,
 			task.Name,
@@ -87,7 +91,7 @@ func listTask(ctx *cli.Context) {
 			task.MissCount,
 			task.FailedCount,
 			task.LastFailureMessage,
-			task.CreationTime.Format(time.RFC1123),
+			time.Unix(task.CreationTimestamp, 0).Format(time.RFC1123),
 		)
 	}
 	w.Flush()
@@ -104,9 +108,9 @@ func startTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	err = client.StartTask(id)
-	if err != nil {
-		fmt.Println(err.Error())
+	task := client.StartTask(id)
+	if task.Error != nil {
+		fmt.Println(task.Error)
 		os.Exit(1)
 	}
 }
@@ -122,9 +126,9 @@ func stopTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	err = client.StopTask(id)
-	if err != nil {
-		fmt.Println(err.Error())
+	task := client.StopTask(id)
+	if task.Error != nil {
+		fmt.Println(task.Error)
 		os.Exit(1)
 	}
 }
@@ -140,9 +144,9 @@ func removeTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	err = client.RemoveTask(id)
-	if err != nil {
-		fmt.Println(err.Error())
+	task := client.RemoveTask(id)
+	if task.Error != nil {
+		fmt.Println(task.Error)
 		os.Exit(1)
 	}
 }
