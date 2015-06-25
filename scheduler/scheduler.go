@@ -170,7 +170,8 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 		return nil, te
 	}
 
-	errs := s.subscribe(wf.processNodes, wf.publishNodes)
+	errs := []error{}
+	s.subscribe(wf.processNodes, wf.publishNodes, &errs)
 	//subscribe to processors and publishers
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
@@ -305,7 +306,7 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 }
 
 // subscribe subscribes to all processors and publishers recursively
-func (s *scheduler) subscribe(prnodes []*processNode, punodes []*publishNode) []error {
+func (s *scheduler) subscribe(prnodes []*processNode, punodes []*publishNode, errors *[]error) {
 	for _, pr := range prnodes {
 		s.logger.WithFields(log.Fields{
 			"_block":            "subscribe",
@@ -314,9 +315,9 @@ func (s *scheduler) subscribe(prnodes []*processNode, punodes []*publishNode) []
 		}).Debug("subscribing to processor")
 		errs := s.metricManager.SubscribeProcessor(pr.Name, pr.Version, pr.Config.Table())
 		if len(errs) > 0 {
-			return errs
+			*errors = append(*errors, errs...)
 		}
-		s.subscribe(pr.ProcessNodes, pr.PublishNodes)
+		s.subscribe(pr.ProcessNodes, pr.PublishNodes, errors)
 	}
 	for _, pu := range punodes {
 		s.logger.WithFields(log.Fields{
@@ -326,16 +327,14 @@ func (s *scheduler) subscribe(prnodes []*processNode, punodes []*publishNode) []
 		}).Debug("subscribing to publisher")
 		errs := s.metricManager.SubscribePublisher(pu.Name, pu.Version, pu.Config.Table())
 		if len(errs) > 0 {
-			return errs
+			*errors = append(*errors, errs...)
 		}
 	}
-	return []error{}
 }
 
 func buildErrorsLog(errs []error, logger *log.Entry) *log.Entry {
-	f := logger.WithFields(log.Fields{})
 	for i, e := range errs {
-		f.WithField(fmt.Sprintf("%s%d", e, i), e.Error())
+		logger = logger.WithField(fmt.Sprintf("%s[%d]", "error", i), e.Error())
 	}
-	return f
+	return logger
 }
