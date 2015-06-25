@@ -39,7 +39,7 @@ type MockPluginManagerBadSwap struct {
 func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError) {
 	return new(loadedPlugin), nil
 }
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.CatalogedPlugin) perror.PulseError {
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) perror.PulseError {
 	return perror.New(errors.New("fake"))
 }
 func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins    { return nil }
