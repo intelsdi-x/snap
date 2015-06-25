@@ -34,9 +34,9 @@ func listPlugins(ctx *cli.Context) {
 			printFields(w, false, 0, rp.Name, rp.HitCount, rp.LastHit.Format(time.RFC1123), rp.TypeName)
 		}
 	} else {
-		printFields(w, false, 0, "NAME", "STATUS", "VERSION", "LOADED TIME")
+		printFields(w, false, 0, "NAME", "STATUS", "VERSION", "LOADED TIME", "TYPE")
 		for _, lp := range lps {
-			printFields(w, false, 0, lp.Name, lp.Status, lp.Version, lp.LoadedTimestamp.Format(time.RFC1123))
+			printFields(w, false, 0, lp.Name, lp.Status, lp.Version, lp.LoadedTimestamp.Format(time.RFC1123), lp.TypeName)
 		}
 	}
 	w.Flush()
