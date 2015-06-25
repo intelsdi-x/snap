@@ -14,13 +14,6 @@ type Schedule struct {
 	Interval string
 }
 
-// CreateTask takes a pointer to a task structure,
-// and POSTs it to Pulse's REST API.
-// If an error is encountered during the process it returns
-// a generic error.  If an error occured when Pulse attempts
-// to create the Task, a type-assertable error is returned.
-// Also note that CreateTask modifies the pointed to data
-// by adding an ID and a created time.
 func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string) *CreateTaskResult {
 	t := request.TaskCreationRequest{
 		Schedule: request.Schedule{Type: s.Type, Interval: s.Interval},
