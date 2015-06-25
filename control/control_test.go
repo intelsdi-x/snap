@@ -67,7 +67,7 @@ func TestSwapPlugin(t *testing.T) {
 		Convey("SwapPlugin", t, func() {
 			c := New()
 			c.Start()
-			e := c.Load(PluginPath)
+			_, e := c.Load(PluginPath)
 
 			So(e, ShouldBeNil)
 
@@ -122,7 +122,7 @@ func TestLoad(t *testing.T) {
 			Convey("loads successfully", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(c.pluginManager.LoadedPlugins(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
@@ -130,7 +130,7 @@ func TestLoad(t *testing.T) {
 
 			Convey("returns error if not started", func() {
 				c := New()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 0)
 				So(err, ShouldNotBeNil)
@@ -139,7 +139,7 @@ func TestLoad(t *testing.T) {
 			Convey("adds to pluginControl.pluginManager.LoadedPlugins on successful load", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(err, ShouldBeNil)
 				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldBeGreaterThan, 0)
@@ -148,7 +148,7 @@ func TestLoad(t *testing.T) {
 			Convey("returns error from pluginManager.LoadPlugin()", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath + "foo")
+				_, err := c.Load(PluginPath + "foo")
 
 				So(err, ShouldNotBeNil)
 				// So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
@@ -169,7 +169,7 @@ func TestUnload(t *testing.T) {
 			Convey("unloads successfully", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
@@ -184,7 +184,7 @@ func TestUnload(t *testing.T) {
 			Convey("returns error on unload for unknown plugin(or already unloaded)", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
@@ -541,7 +541,7 @@ func TestPublishMetrics(t *testing.T) {
 		c.Start()
 
 		// Load plugin
-		err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
+		_, err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.LoadedPlugins().Get(0)

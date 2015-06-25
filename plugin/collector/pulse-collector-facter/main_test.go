@@ -29,7 +29,7 @@ func TestPluginLoads(t *testing.T) {
 		Convey("ensure plugin loads and responds", t, func() {
 			c := control.New()
 			c.Start()
-			err := c.Load(PluginPath)
+			_, err := c.Load(PluginPath)
 
 			So(err, ShouldBeNil)
 		})
