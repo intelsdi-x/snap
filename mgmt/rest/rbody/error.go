@@ -35,7 +35,7 @@ func (e *Error) Error() string {
 }
 
 func (e *Error) ResponseBodyMessage() string {
-	return e.ResponseBodyMessage()
+	return e.ErrorMessage
 }
 
 func (e *Error) ResponseBodyType() string {
