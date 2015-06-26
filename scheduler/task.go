@@ -15,12 +15,14 @@ import (
 
 const (
 	DefaultDeadlineDuration = time.Second * 5
+	DefaultStopOnFailure    = 3
 )
 
 var (
 	ErrTaskNotFound            = errors.New("Task not found")
 	ErrTaskNotStopped          = errors.New("Task must be stopped")
 	ErrTaskHasAlreadyBeenAdded = errors.New("Task has already been added")
+	ErrTaskDisabledOnFailures  = errors.New("Task disabled due to consecutive failures")
 )
 
 type task struct {
@@ -43,6 +45,8 @@ type task struct {
 	missedIntervals    uint
 	failedRuns         uint
 	lastFailureMessage string
+	lastFailureTime    time.Time
+	stopOnFailure      uint
 }
 
 //NewTask creates a Task
@@ -67,6 +71,7 @@ func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *w
 		manager:          m,
 		metricsManager:   mm,
 		deadlineDuration: DefaultDeadlineDuration,
+		stopOnFailure:    DefaultStopOnFailure,
 	}
 	//set options
 	for _, opt := range opts {
@@ -147,6 +152,14 @@ func (t *task) Status() WorkflowState {
 	return t.workflow.State()
 }
 
+func (t *task) SetStopOnFailure(v uint) {
+	t.stopOnFailure = v
+}
+
+func (t *task) GetStopOnFailure() uint {
+	return t.stopOnFailure
+}
+
 // Spin will start a task spinning in its own routine while it waits for its
 // schedule.
 func (t *task) Spin() {
@@ -169,6 +182,7 @@ func (t *task) Stop() {
 }
 
 func (t *task) spin() {
+	var consecutiveFailures uint
 	for {
 		// Start go routine to wait on schedule
 		go t.waitForSchedule()
@@ -181,8 +195,34 @@ func (t *task) spin() {
 			if sr.State() == schedule.Active {
 				t.missedIntervals += sr.Missed()
 				t.lastFireTime = time.Now()
-				t.fire()
 				t.hitCount++
+				t.fire()
+				if t.lastFailureTime == t.lastFireTime {
+					consecutiveFailures++
+					log.WithFields(log.Fields{
+						"_module":                   "scheduler-task",
+						"_block":                    "spin",
+						"task-id":                   t.id,
+						"task-name":                 t.name,
+						"consecutive failures":      consecutiveFailures,
+						"consecutive failure limit": t.stopOnFailure,
+						"error":                     t.lastFailureMessage,
+					}).Warn("Task failed")
+				} else {
+					consecutiveFailures = 0
+				}
+				if consecutiveFailures >= t.stopOnFailure {
+					log.WithFields(log.Fields{
+						"_module":              "scheduler-task",
+						"_block":               "spin",
+						"task-id":              t.id,
+						"task-name":            t.name,
+						"consecutive failures": consecutiveFailures,
+						"error":                t.lastFailureMessage,
+					}).Error(ErrTaskDisabledOnFailures)
+					t.state = core.TaskDisabled
+					return
+				}
 			}
 			// TODO stop task on schedule error state or end state
 		case <-t.killChan:
@@ -242,8 +282,8 @@ func (t *taskCollection) add(task *task) error {
 		t.table[task.id] = task
 	} else {
 		log.WithFields(log.Fields{
-			"module":  "scheduler-taskCollection",
-			"block":   "add",
+			"_module": "scheduler-taskCollection",
+			"_block":  "add",
 			"task id": task.id,
 		}).Error(ErrTaskHasAlreadyBeenAdded.Error())
 		return ErrTaskHasAlreadyBeenAdded
@@ -260,8 +300,8 @@ func (t *taskCollection) remove(task *task) error {
 	if _, ok := t.table[task.id]; ok {
 		if task.state != core.TaskStopped {
 			log.WithFields(log.Fields{
-				"module":  "scheduler-taskCollection",
-				"block":   "remove",
+				"_module": "scheduler-taskCollection",
+				"_block":  "remove",
 				"task id": task.id,
 			}).Error(ErrTaskNotStopped)
 			return ErrTaskNotStopped
@@ -269,8 +309,8 @@ func (t *taskCollection) remove(task *task) error {
 		delete(t.table, task.id)
 	} else {
 		log.WithFields(log.Fields{
-			"module":  "scheduler-taskCollection",
-			"block":   "remove",
+			"_module": "scheduler-taskCollection",
+			"_block":  "remove",
 			"task id": task.id,
 		}).Error(ErrTaskNotFound)
 		return ErrTaskNotFound

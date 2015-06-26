@@ -1,17 +1,23 @@
 package core
 
-import "time"
+import (
+	"time"
+
+	log "github.com/Sirupsen/logrus"
+)
 
 type TaskState int
 
 const (
-	TaskStopped TaskState = iota
+	TaskDisabled TaskState = iota - 1
+	TaskStopped
 	TaskSpinning
 	TaskFiring
 )
 
 var (
 	TaskStateLookup = map[TaskState]string{
+		TaskDisabled: "Disabled",
 		TaskStopped:  "Stopped",
 		TaskSpinning: "Spinning",
 		TaskFiring:   "Firing",
@@ -36,6 +42,8 @@ type Task interface {
 	CreationTime() *time.Time
 	DeadlineDuration() time.Duration
 	SetDeadlineDuration(time.Duration)
+	SetStopOnFailure(uint)
+	GetStopOnFailure() uint
 	Option(...TaskOption) TaskOption
 }
 
@@ -49,6 +57,24 @@ func TaskDeadlineDuration(v time.Duration) TaskOption {
 		previous := t.DeadlineDuration()
 		t.SetDeadlineDuration(v)
 		return TaskDeadlineDuration(previous)
+	}
+}
+
+// TaskStopOnFailure sets the tasks stopOnFailure
+// The stopOnFailure is the number of consecutive task failures that will
+// trigger disabling the task
+func OptionStopOnFailure(v uint) TaskOption {
+	return func(t Task) TaskOption {
+		previous := t.GetStopOnFailure()
+		t.SetStopOnFailure(v)
+		log.WithFields(log.Fields{
+			"_module":                   "core",
+			"_block":                    "OptionStopOnFailure",
+			"task-id":                   t.ID(),
+			"task-name":                 t.GetName(),
+			"consecutive failure limit": t.GetStopOnFailure(),
+		}).Debug("Setting stop-on-failure limit for task")
+		return OptionStopOnFailure(previous)
 	}
 }
 

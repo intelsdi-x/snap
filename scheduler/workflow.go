@@ -242,6 +242,7 @@ func (s *schedulerWorkflow) Start(t *task) {
 	j = t.manager.Work(j)
 	if len(j.Errors()) != 0 {
 		t.failedRuns++
+		t.lastFailureTime = t.lastFireTime
 		t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
 		return
 	}
@@ -264,6 +265,7 @@ func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *
 		j = t.manager.Work(j)
 		if len(j.Errors()) != 0 {
 			t.failedRuns++
+			t.lastFailureTime = t.lastFireTime
 			t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
 			return
 		}
@@ -274,6 +276,7 @@ func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *
 		j = t.manager.Work(j)
 		if len(j.Errors()) != 0 {
 			t.failedRuns++
+			t.lastFailureTime = t.lastFireTime
 			t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
 			return
 		}
