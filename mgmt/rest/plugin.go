@@ -90,7 +90,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				f, err = os.Create(path.Join(autoPaths[0], p.FileName()))
 			} else {
 				// write to temp location
-				f, err = os.Create(path.Join(os.TempDir(), p.FileName()))
+				f, err = ioutil.TempFile("", p.FileName())
 			}
 			if err != nil {
 				log.Fatal(err)
