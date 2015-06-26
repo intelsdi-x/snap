@@ -199,17 +199,26 @@ func (t *task) spin() {
 				t.fire()
 				if t.lastFailureTime == t.lastFireTime {
 					consecutiveFailures++
+					log.WithFields(log.Fields{
+						"_module":                   "scheduler-task",
+						"_block":                    "spin",
+						"task-id":                   t.id,
+						"task-name":                 t.name,
+						"consecutive failures":      consecutiveFailures,
+						"consecutive failure limit": t.stopOnFailure,
+						"error":                     t.lastFailureMessage,
+					}).Warn("Task failed")
 				} else {
 					consecutiveFailures = 0
 				}
 				if consecutiveFailures >= t.stopOnFailure {
 					log.WithFields(log.Fields{
-						"_module":   "scheduler-task",
-						"_block":    "spin",
-						"task-id":   t.id,
-						"task-name": t.name,
-						"failures":  consecutiveFailures,
-						"error":     t.lastFailureMessage,
+						"_module":              "scheduler-task",
+						"_block":               "spin",
+						"task-id":              t.id,
+						"task-name":            t.name,
+						"consecutive failures": consecutiveFailures,
+						"error":                t.lastFailureMessage,
 					}).Error(ErrTaskDisabledOnFailures)
 					t.state = core.TaskDisabled
 					return

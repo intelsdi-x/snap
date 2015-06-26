@@ -1,6 +1,10 @@
 package core
 
-import "time"
+import (
+	"time"
+
+	log "github.com/Sirupsen/logrus"
+)
 
 type TaskState int
 
@@ -63,6 +67,13 @@ func OptionStopOnFailure(v uint) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.GetStopOnFailure()
 		t.SetStopOnFailure(v)
+		log.WithFields(log.Fields{
+			"_module":                   "core",
+			"_block":                    "OptionStopOnFailure",
+			"task-id":                   t.ID(),
+			"task-name":                 t.GetName(),
+			"consecutive failure limit": t.GetStopOnFailure(),
+		}).Debug("Setting stop-on-failure limit for task")
 		return OptionStopOnFailure(previous)
 	}
 }
