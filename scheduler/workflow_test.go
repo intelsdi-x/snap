@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (

@@ -100,9 +100,9 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 			p.Version = -1
 		}
 		prNodes[i] = &processNode{
-			Name:         p.Name,
-			Version:      p.Version,
-			Config:       cdn,
+			name:         p.Name,
+			version:      p.Version,
+			config:       cdn,
 			ProcessNodes: prC,
 			PublishNodes: puC,
 		}
@@ -124,9 +124,9 @@ func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error
 			p.Version = -1
 		}
 		puNodes[i] = &publishNode{
-			Name:    p.Name,
-			Version: p.Version,
-			Config:  cdn,
+			name:    p.Name,
+			version: p.Version,
+			config:  cdn,
 		}
 	}
 	return puNodes, nil
@@ -145,19 +145,43 @@ type schedulerWorkflow struct {
 }
 
 type processNode struct {
-	Name               string
-	Version            int
-	Config             *cdata.ConfigDataNode
+	name               string
+	version            int
+	config             *cdata.ConfigDataNode
 	ProcessNodes       []*processNode
 	PublishNodes       []*publishNode
 	InboundContentType string
 }
 
+func (p *processNode) Name() string {
+	return p.name
+}
+
+func (p *processNode) Version() int {
+	return p.version
+}
+
+func (p *processNode) Config() *cdata.ConfigDataNode {
+	return p.config
+}
+
 type publishNode struct {
-	Name               string
-	Version            int
-	Config             *cdata.ConfigDataNode
+	name               string
+	version            int
+	config             *cdata.ConfigDataNode
 	InboundContentType string
+}
+
+func (p *publishNode) Name() string {
+	return p.name
+}
+
+func (p *publishNode) Version() int {
+	return p.version
+}
+
+func (p *publishNode) Config() *cdata.ConfigDataNode {
+	return p.config
 }
 
 type wfContentTypes map[string]map[string][]string
@@ -170,7 +194,7 @@ func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes)
 
 func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPluginContentTypes, lct []string) error {
 	for _, pr := range prs {
-		act, rct, err := mm.GetPluginContentTypes(pr.Name, core.ProcessorPluginType, pr.Version)
+		act, rct, err := mm.GetPluginContentTypes(pr.Name(), core.ProcessorPluginType, pr.Version())
 		if err != nil {
 			return err
 		}
@@ -200,14 +224,14 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPl
 			}
 			// else we return an error
 			if pr.InboundContentType == "" {
-				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the pulse content types or the types '%v' returned from the previous node.", pr.Name, lct)
+				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the pulse content types or the types '%v' returned from the previous node.", pr.Name(), lct)
 			}
 		}
 		//continue the walk down the nodes
 		bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, mm, rct)
 	}
 	for _, pu := range pus {
-		act, _, err := mm.GetPluginContentTypes(pu.Name, core.PublisherPluginType, pu.Version)
+		act, _, err := mm.GetPluginContentTypes(pu.Name(), core.PublisherPluginType, pu.Version())
 		if err != nil {
 			return err
 		}
@@ -226,7 +250,7 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPl
 			}
 			// else we return an error
 			if pu.InboundContentType == "" {
-				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the pulse content types or the types '%v' returned from the previous node.", pu.Name, lct)
+				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the pulse content types or the types '%v' returned from the previous node.", pu.Name(), lct)
 			}
 		}
 	}
@@ -261,7 +285,7 @@ func (s *schedulerWorkflow) StateString() string {
 
 func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *task, pj job) {
 	for _, pr := range prs {
-		j := newProcessJob(pj, pr.Name, pr.Version, pr.InboundContentType, pr.Config.Table(), t.metricsManager)
+		j := newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.metricsManager)
 		j = t.manager.Work(j)
 		if len(j.Errors()) != 0 {
 			t.failedRuns++
@@ -272,7 +296,7 @@ func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *
 		s.workJobs(pr.ProcessNodes, pr.PublishNodes, t, j)
 	}
 	for _, pu := range pus {
-		j := newPublishJob(pj, pu.Name, pu.Version, pu.InboundContentType, pu.Config.Table(), t.metricsManager)
+		j := newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.metricsManager)
 		j = t.manager.Work(j)
 		if len(j.Errors()) != 0 {
 			t.failedRuns++

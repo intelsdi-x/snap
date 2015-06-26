@@ -380,9 +380,9 @@ func (a *availablePlugins) Remove(ap *availablePlugin) error {
 }
 
 type availablePluginPool struct {
-	Plugins *[]*availablePlugin
-
-	mutex *sync.Mutex
+	Plugins       *[]*availablePlugin
+	subscriptions int
+	mutex         *sync.Mutex
 }
 
 func newAvailablePluginPool() *availablePluginPool {
@@ -403,6 +403,28 @@ func (a *availablePluginPool) Unlock() {
 
 func (a *availablePluginPool) Count() int {
 	return len((*a.Plugins))
+}
+
+func (a *availablePluginPool) Subscribe() {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	a.subscriptions++
+	log.WithFields(log.Fields{
+		"_module":            "control-avaialble-plugin-pool",
+		"_block":             "subscribe",
+		"subscription count": a.subscriptions,
+	})
+}
+
+func (a *availablePluginPool) Unsubscribe() {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	a.subscriptions--
+	log.WithFields(log.Fields{
+		"_module":            "control-avaialble-plugin-pool",
+		"_block":             "unsubscribe",
+		"subscription count": a.subscriptions,
+	})
 }
 
 func (a *availablePluginPool) Add(ap *availablePlugin) {
@@ -446,6 +468,12 @@ func (a *availablePluginPool) Kill(k, r string) (*availablePlugin, error) {
 	for _, ap := range *a.Plugins {
 		if k == ap.String() {
 			err := ap.Kill(r)
+			log.WithFields(
+				log.Fields{
+					"module":  "control-aplugin",
+					"block":   "aplugin-pool-kill",
+					"aplugin": ap.String(),
+				}).Info("killing aplugin")
 			return ap, err
 		}
 	}

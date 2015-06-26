@@ -57,7 +57,7 @@ func (se PublisherSubscriptionEvent) Namespace() string {
 
 type PublisherUnsubscriptionEvent struct {
 	PluginName    string
-	pluginVersion int
+	PluginVersion int
 }
 
 func (puue PublisherUnsubscriptionEvent) Namespace() string {

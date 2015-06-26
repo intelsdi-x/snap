@@ -4,6 +4,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+
+	"github.com/intelsdi-x/pulse/core/perror"
 )
 
 type TaskState int
@@ -90,5 +92,5 @@ func SetTaskName(name string) TaskOption {
 }
 
 type TaskErrors interface {
-	Errors() []error
+	Errors() []perror.PulseError
 }
