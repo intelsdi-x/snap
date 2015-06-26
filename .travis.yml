@@ -19,6 +19,8 @@ env:
     - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/pulse
     - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdi-x/pulse/build    
 install:
+- export TMPDIR=$HOME/tmp
+- mkdir -p $TMPDIR
 - gem install facter
 - cd $PULSE_SOURCE # change dir into source
 - ./scripts/deps.sh # load deps for pulse and plugins

@@ -110,7 +110,8 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				respond(500, rbody.FromError(err), w)
 				return
 			}
-
+			// Close before load
+			f.Close()
 			pl, err := s.mm.Load(f.Name())
 			if err != nil {
 				log.Fatal(err)
