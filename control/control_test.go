@@ -39,8 +39,8 @@ type MockPluginManagerBadSwap struct {
 func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError) {
 	return new(loadedPlugin), nil
 }
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) perror.PulseError {
-	return perror.New(errors.New("fake"))
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, perror.PulseError) {
+	return nil, perror.New(errors.New("fake"))
 }
 func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins    { return nil }
 func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {}
@@ -177,7 +177,7 @@ func TestUnload(t *testing.T) {
 				pc := c.PluginCatalog()
 
 				So(len(pc), ShouldEqual, 1)
-				err2 := c.Unload(pc[0])
+				_, err2 := c.Unload(pc[0])
 				So(err2, ShouldBeNil)
 			})
 
@@ -192,9 +192,9 @@ func TestUnload(t *testing.T) {
 				pc := c.PluginCatalog()
 
 				So(len(pc), ShouldEqual, 1)
-				err2 := c.Unload(pc[0])
+				_, err2 := c.Unload(pc[0])
 				So(err2, ShouldBeNil)
-				err3 := c.Unload(pc[0])
+				_, err3 := c.Unload(pc[0])
 				So(err3.Error(), ShouldResemble, "plugin not found (has it already been unloaded?)")
 			})
 		})

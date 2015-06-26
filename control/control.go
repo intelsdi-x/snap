@@ -66,7 +66,7 @@ type runsPlugins interface {
 
 type managesPlugins interface {
 	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError)
-	UnloadPlugin(core.Plugin) perror.PulseError
+	UnloadPlugin(core.Plugin) (*loadedPlugin, perror.PulseError)
 	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(pluginPath string) plugin.Arg
@@ -180,7 +180,7 @@ func (p *pluginControl) Stop() {
 	}
 	p.pluginManager.LoadedPlugins().Unlock()
 	for _, lp := range lps {
-		err := p.pluginManager.UnloadPlugin(lp)
+		_, err := p.pluginManager.UnloadPlugin(lp)
 		if err != nil {
 			controlLog.Error(err)
 		}
@@ -217,15 +217,15 @@ func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseErr
 	return pl, nil
 }
 
-func (p *pluginControl) Unload(pl core.Plugin) perror.PulseError {
-	err := p.pluginManager.UnloadPlugin(pl)
+func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, perror.PulseError) {
+	up, err := p.pluginManager.UnloadPlugin(pl)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	event := new(control_event.UnloadPluginEvent)
 	defer p.eventManager.Emit(event)
-	return nil
+	return up, nil
 }
 
 func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) perror.PulseError {
@@ -235,9 +235,9 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) per
 		return err
 	}
 
-	err = p.pluginManager.UnloadPlugin(out)
+	_, err = p.pluginManager.UnloadPlugin(out)
 	if err != nil {
-		err2 := p.pluginManager.UnloadPlugin(lp)
+		_, err2 := p.pluginManager.UnloadPlugin(lp)
 		if err2 != nil {
 			pe := perror.New(errors.New("failed to rollback after error"))
 			pe.SetFields(map[string]interface{}{

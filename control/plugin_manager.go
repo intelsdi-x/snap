@@ -425,7 +425,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 }
 
 // unloads a plugin from the LoadedPlugins table
-func (p *pluginManager) UnloadPlugin(pl core.Plugin) perror.PulseError {
+func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.PulseError) {
 
 	// We hold the mutex here to safely splice out the plugin from the table.
 	// Using a stale index can be slightly dangerous (unloading incorrect plugin).
@@ -465,7 +465,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) perror.PulseError {
 			"plugin-name":    pl.Name(),
 			"plugin-version": pl.Version(),
 		})
-		return pe
+		return nil, pe
 	}
 
 	if plugin.State != LoadedState {
@@ -474,7 +474,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) perror.PulseError {
 			"plugin-name":    plugin.Name(),
 			"plugin-version": plugin.Version(),
 		})
-		return pe
+		return nil, pe
 	}
 
 	// If the plugin was loaded from os.TempDir() clean up
@@ -499,14 +499,14 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) perror.PulseError {
 				"plugin-version": plugin.Version(),
 				"plugin-path":    plugin.Path,
 			})
-			return pe
+			return nil, pe
 		}
 	}
 
 	// splice out the given plugin
 	p.LoadedPlugins().NonblockingSplice(index)
 
-	return nil
+	return plugin, nil
 }
 
 func (p *pluginManager) GenerateArgs(pluginPath string) plugin.Arg {

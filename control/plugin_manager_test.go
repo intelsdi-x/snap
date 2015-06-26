@@ -118,7 +118,7 @@ func TestUnloadPlugin(t *testing.T) {
 					num_plugins_loaded := len(p.LoadedPlugins().Table())
 					So(num_plugins_loaded, ShouldEqual, 1)
 					lp, _ := p.LoadedPlugins().Get(0)
-					err = p.UnloadPlugin(lp)
+					_, err = p.UnloadPlugin(lp)
 
 					So(err, ShouldBeNil)
 					So(len(p.LoadedPlugins().Table()), ShouldEqual, num_plugins_loaded-1)
@@ -132,7 +132,7 @@ func TestUnloadPlugin(t *testing.T) {
 					_, err := p.LoadPlugin(PluginPath, nil)
 					lp, _ := p.LoadedPlugins().Get(0)
 					lp.State = DetectedState
-					err = p.UnloadPlugin(lp)
+					_, err = p.UnloadPlugin(lp)
 					So(err.Error(), ShouldResemble, "Plugin must be in a LoadedState")
 				})
 			})
@@ -144,9 +144,9 @@ func TestUnloadPlugin(t *testing.T) {
 					_, err := p.LoadPlugin(PluginPath, nil)
 
 					plugin, _ := p.LoadedPlugins().Get(0)
-					err = p.UnloadPlugin(plugin)
+					_, err = p.UnloadPlugin(plugin)
 
-					err = p.UnloadPlugin(plugin)
+					_, err = p.UnloadPlugin(plugin)
 					So(err.Error(), ShouldResemble, "plugin not found (has it already been unloaded?)")
 
 				})
