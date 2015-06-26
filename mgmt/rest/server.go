@@ -52,6 +52,11 @@ type APIResponse struct {
 	Body rbody.Body       `json:"body"`
 }
 
+type apiResponseJSON struct {
+	Meta *APIResponseMeta `json:"meta"`
+	Body json.RawMessage  `json:"body"`
+}
+
 type APIResponseMeta struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -150,51 +155,29 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 	}
 
 	w.WriteHeader(code)
-	jerr, err := json.MarshalIndent(resp, "", "  ")
+
+	j, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Fprint(w, jerr)
+	fmt.Fprint(w, string(j))
 }
 
-// func replyError(code int, w http.ResponseWriter, err error) {
-// 	resp := &APIResponse{
-// 		Meta: &APIResponseMeta{
-// 			Code:    code,
-// 			Message: err.Error(),
-// 		},
-// 	}
-
-// 	// switch e := err.(type) {
-// 	// case perror.PulseError:
-// 	// resp.Data = e.Fields()
-// 	// }
-// 	// log.WithFields(log.Fields{
-// 	// 	"code": code,
-// 	// }).WithFields(resp.Data).Warning(err.Error())
-// 	w.WriteHeader(code)
-// 	jerr, _ := json.MarshalIndent(resp, "", "  ")
-// 	fmt.Fprint(w, string(jerr))
-// }
-
-// func replySuccess(code int, message string, w http.ResponseWriter, data map[string]interface{}) {
-// 	w.WriteHeader(code)
-// 	resp := &APIResponse{
-// 		Meta: &APIResponseMeta{
-// 			Code:    code,
-// 			Message: message,
-// 		},
-// 		// Data: data,
-// 	}
-// 	j, err := json.MarshalIndent(resp, "", "  ")
-// 	if err != nil {
-// 		pe := perror.New(err)
-// 		pe.SetFields(data)
-// 		replyError(500, w, pe)
-// 		return
-// 	}
-// 	fmt.Fprint(w, string(j))
-// }
+func (a *APIResponse) UnmarshalJSON(b []byte) error {
+	ar := &apiResponseJSON{}
+	err := json.Unmarshal(b, ar)
+	if err != nil {
+		panic(err)
+	}
+	body, err := rbody.UnmarshalBody(ar.Meta.Type, ar.Body)
+	if err != nil {
+		return err
+	}
+	// Assign
+	a.Meta = ar.Meta
+	a.Body = body
+	return nil
+}
 
 func marshalBody(in interface{}, body io.ReadCloser) (int, error) {
 	b, err := ioutil.ReadAll(body)
