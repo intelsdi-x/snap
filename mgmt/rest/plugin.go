@@ -144,15 +144,16 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 		respond(500, rbody.FromPulseError(pe), w)
 		return
 	}
-	pe := s.mm.Unload(&plugin{name: plName, version: int(plVersion)})
+	up, pe := s.mm.Unload(&plugin{name: plName, version: int(plVersion)})
 	if pe != nil {
 		pe.SetFields(f)
 		respond(500, rbody.FromPulseError(pe), w)
 		return
 	}
 	pr := &rbody.PluginUnloaded{
-		Name:    plName,
-		Version: int(plVersion),
+		Name:    up.Name(),
+		Version: up.Version(),
+		Type:    up.TypeName(),
 	}
 	respond(200, pr, w)
 }

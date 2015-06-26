@@ -51,7 +51,7 @@ type PluginListReturned struct {
 }
 
 func (p *PluginListReturned) ResponseBodyMessage() string {
-	return "Plugin list retrieved"
+	return "Plugin list returned"
 }
 
 func (p *PluginListReturned) ResponseBodyType() string {
