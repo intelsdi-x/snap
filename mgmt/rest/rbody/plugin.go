@@ -13,14 +13,14 @@ const (
 
 // Successful response to the loading of a plugins
 type PluginsLoaded struct {
-	LoadedPlugins []LoadedPlugin
+	LoadedPlugins []LoadedPlugin `json:"loaded_plugins"`
 }
 
 func (p *PluginsLoaded) ResponseBodyMessage() string {
 	s := "Plugins loaded: "
 	l := make([]string, len(p.LoadedPlugins))
 	for i, pl := range p.LoadedPlugins {
-		l[i] = fmt.Sprintf("%s(%s v%d) ", pl.Name, pl.Type, pl.Version)
+		l[i] = fmt.Sprintf("%s(%s v%d)", pl.Name, pl.Type, pl.Version)
 	}
 	s += strings.Join(l, ", ")
 	return s
