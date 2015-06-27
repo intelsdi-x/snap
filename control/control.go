@@ -76,6 +76,7 @@ type catalogsMetrics interface {
 	Get([]string, int) (*metricType, error)
 	Add(*metricType)
 	AddLoadedMetricType(*loadedPlugin, core.Metric)
+	RmUnloadedPluginMetrics(lp *loadedPlugin)
 	Fetch([]string) ([]*metricType, error)
 	Item() (string, []*metricType)
 	Next() bool

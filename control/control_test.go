@@ -353,6 +353,10 @@ func (m *mc) AddLoadedMetricType(*loadedPlugin, core.Metric) {
 
 }
 
+func (m *mc) RmUnloadedPluginMetrics(lp *loadedPlugin) {
+
+}
+
 type mockCDProc struct {
 }
 

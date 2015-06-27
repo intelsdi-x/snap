@@ -347,8 +347,37 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		}
 
 		// Add metric types to metric catalog
-		for _, mt := range metricTypes {
-			p.metricCatalog.AddLoadedMetricType(lPlugin, mt)
+		for _, nmt := range metricTypes {
+			// If the version is 0 default it to the plugin version
+			// This honors the plugins explicit version but falls back
+			// to the plugin version as default
+			if nmt.Version() < 1 {
+				// Since we have to override version we convert to a internal struct
+				nmt = &metricType{
+					namespace:          nmt.Namespace(),
+					version:            resp.Meta.Version,
+					lastAdvertisedTime: nmt.LastAdvertisedTime(),
+					config:             nmt.Config(),
+					data:               nmt.Data(),
+				}
+			}
+			// We quit and throw an error on bad metric versions (<1)
+			// the is a safety catch otherwise the catalog will be corrupted
+			if nmt.Version() < 1 {
+				err := errors.New("Bad metric version from plugin")
+				pmLogger.WithFields(log.Fields{
+					"_block":           "load-plugin",
+					"plugin-name":      resp.Meta.Name,
+					"plugin-version":   resp.Meta.Version,
+					"plugin-type":      resp.Meta.Type.String(),
+					"plugin-path":      filepath.Base(lPlugin.Path),
+					"metric-namespace": nmt.Namespace(),
+					"metric-version":   nmt.Version(),
+					"error":            err.Error(),
+				}).Error("received metric with bad version")
+				return nil, perror.New(err)
+			}
+			p.metricCatalog.AddLoadedMetricType(lPlugin, nmt)
 		}
 
 	case plugin.PublisherPluginType:
@@ -505,6 +534,11 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 
 	// splice out the given plugin
 	p.LoadedPlugins().NonblockingSplice(index)
+
+	// Remove any metrics from the catalog if this was a collector
+	if plugin.TypeName() == "collector" {
+		p.metricCatalog.RmUnloadedPluginMetrics(plugin)
+	}
 
 	return plugin, nil
 }
