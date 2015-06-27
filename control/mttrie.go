@@ -1,6 +1,9 @@
 package control
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 /*
 Given a trie like this:
@@ -46,6 +49,52 @@ func NewMTTrie() *MTTrie {
 		children: map[string]*mttNode{},
 	}
 	return &MTTrie{m}
+}
+
+// Handy print out of the tr(i)e
+func (m *MTTrie) String() string {
+	out := ""
+	for _, mt := range m.gatherMetricTypes() {
+		out += fmt.Sprintf("%s => %s\n", mt.Key(), mt.Plugin.Key())
+	}
+	return out
+}
+
+func (m *MTTrie) gatherMetricTypes() []metricType {
+	mts := make([]metricType, 0)
+	children := make([]*mttNode, 0)
+	for _, node := range m.children {
+		children = gatherChildren(children, node)
+	}
+	for _, c := range children {
+		for _, mt := range c.mts {
+			mts = append(mts, *mt)
+		}
+	}
+	return mts
+}
+
+// Remove all metrics from the catalog if they match a loadedPlugin
+func (m *MTTrie) DeleteByPlugin(lp *loadedPlugin) {
+	for _, mt := range m.gatherMetricTypes() {
+		if mt.Plugin.Key() == lp.Key() {
+			// Remove this metric
+			m.RemoveMetric(mt)
+		}
+	}
+}
+
+// Removes a specific metric by namespace and version from the tree
+func (m *MTTrie) RemoveMetric(mt metricType) {
+	a, _ := m.find(mt.Namespace())
+	if a != nil {
+		for v, x := range a.mts {
+			if mt.Version() == x.Version() {
+				// Delete the metric from the node
+				delete(a.mts, v)
+			}
+		}
+	}
 }
 
 // Add adds a node with the given namespace with the
