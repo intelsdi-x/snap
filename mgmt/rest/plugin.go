@@ -58,7 +58,6 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 	// replySuccess(200, "", w, nil)
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		log.Fatal(err)
 		respond(500, rbody.FromError(err), w)
 		return
 	}
@@ -73,13 +72,11 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				return
 			}
 			if err != nil {
-				log.Fatal(err)
 				respond(500, rbody.FromError(err), w)
 				return
 			}
 			b, err := ioutil.ReadAll(p)
 			if err != nil {
-				log.Fatal(err)
 				respond(500, rbody.FromError(err), w)
 				return
 			}
@@ -93,20 +90,17 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				f, err = ioutil.TempFile("", p.FileName())
 			}
 			if err != nil {
-				log.Fatal(err)
 				respond(500, rbody.FromError(err), w)
 				return
 			}
 			n, err := f.Write(b)
 			log.Debugf("wrote %v to %v", n, f.Name())
 			if err != nil {
-				log.Fatal(err)
 				respond(500, rbody.FromError(err), w)
 				return
 			}
 			err = f.Chmod(0700)
 			if err != nil {
-				log.Fatal(err)
 				respond(500, rbody.FromError(err), w)
 				return
 			}
@@ -114,7 +108,6 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			f.Close()
 			pl, err := s.mm.Load(f.Name())
 			if err != nil {
-				log.Fatal(err)
 				respond(500, rbody.FromError(err), w)
 				return
 			}
