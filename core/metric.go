@@ -19,3 +19,8 @@ type RequestedMetric interface {
 	Namespace() []string
 	Version() int
 }
+
+type CatalogedMetric interface {
+	Namespace() string
+	Versions() map[int]Metric
+}

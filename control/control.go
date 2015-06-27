@@ -437,17 +437,38 @@ func (p *pluginControl) AvailablePlugins() []core.AvailablePlugin {
 	return acp
 }
 
-func (p *pluginControl) MetricCatalog() ([]core.Metric, error) {
-	var c []core.Metric
+func (p *pluginControl) MetricCatalog() ([]core.CatalogedMetric, error) {
+	cat := make([]*metricCatalogItem, 0)
+
 	mts, err := p.metricCatalog.Fetch([]string{})
 	if err != nil {
 		return nil, err
 	}
+
+	// probably can be serious optimized later
 	for _, mt := range mts {
-		c = append(c, mt)
+		f := false
+		for _, mci := range cat {
+			if mci.namespace == mt.NamespaceAsString() {
+				mci.versions[mt.version] = mt
+				f = true
+			}
+		}
+		if !f {
+			mci := &metricCatalogItem{
+				namespace: mt.NamespaceAsString(),
+				versions:  make(map[int]core.Metric),
+			}
+			mci.versions[mt.version] = mt
+			cat = append(cat, mci)
+		}
 	}
 
-	return c, nil
+	ncat := make([]core.CatalogedMetric, len(cat))
+	for i, _ := range cat {
+		ncat[i] = cat[i]
+	}
+	return ncat, nil
 }
 
 func (p *pluginControl) MetricExists(mns []string, ver int) bool {

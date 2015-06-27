@@ -18,6 +18,19 @@ var (
 	errNegativeSubCount = errors.New("subscription count cannot be < 0")
 )
 
+type metricCatalogItem struct {
+	namespace string
+	versions  map[int]core.Metric
+}
+
+func (m *metricCatalogItem) Namespace() string {
+	return m.namespace
+}
+
+func (m *metricCatalogItem) Versions() map[int]core.Metric {
+	return m.versions
+}
+
 type metricType struct {
 	Plugin             *loadedPlugin
 	namespace          []string
@@ -48,6 +61,10 @@ func (m *metricType) Key() string {
 
 func (m *metricType) Namespace() []string {
 	return m.namespace
+}
+
+func (m *metricType) NamespaceAsString() string {
+	return "/" + strings.Join(m.Namespace(), "/")
 }
 
 func (m *metricType) Data() interface{} {

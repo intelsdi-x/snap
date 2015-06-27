@@ -1,8 +1,9 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
-	"sort"
+	// "sort"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -19,17 +20,20 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 	// Prepare metric catalog returned body
 	b := rbody.NewMetricCatalogReturned()
-	// Add catalog items to the body
-	for _, m := range mets {
-		b.Catalog = append(b.Catalog, rbody.MetricType{
-			Namespace:               joinNamespace(m.Namespace()),
-			Version:                 m.Version(),
-			LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
-		})
+
+	for _, cm := range mets {
+		ci := &rbody.CatalogItem{
+			Namespace: cm.Namespace(),
+			Versions:  make(map[string]rbody.Metric, len(cm.Versions())),
+		}
+		for k, m := range cm.Versions() {
+			ci.Versions[fmt.Sprintf("%d", k)] = rbody.Metric{
+				LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
+			}
+		}
+
+		b.Catalog = append(b.Catalog, *ci)
 	}
-	// We always sort results
-	sort.Sort(b)
-	// return catalog and response with 200
 	respond(200, b, w)
 }
 

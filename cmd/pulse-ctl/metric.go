@@ -17,7 +17,7 @@ func listMetrics(ctx *cli.Context) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	printFields(w, false, 0, "NAMESPACE", "VERSION")
 	for _, mt := range mts.Catalog {
-		printFields(w, false, 0, mt.Namespace, mt.Version)
+		printFields(w, false, 0, mt.Namespace)
 	}
 	w.Flush()
 }

@@ -1,25 +1,24 @@
 package rbody
 
-import (
-	"fmt"
-)
-
 const (
 	MetricCatalogReturnedType = "metric_catalog_returned"
 )
 
+type CatalogItem struct {
+	Namespace string            `json:"namespace"`
+	Versions  map[string]Metric `json:"versions"`
+}
+
+func (m *CatalogItem) key() string {
+	return m.Namespace
+}
+
+type Metric struct {
+	LastAdvertisedTimestamp int64 `json:"last_advertised_timestamp,omitempty"`
+}
+
 type MetricCatalogReturned struct {
-	Catalog []MetricType
-}
-
-type MetricType struct {
-	Namespace               string `json:"namespace"`
-	Version                 int    `json:"version"`
-	LastAdvertisedTimestamp int64  `json:"last_advertised_timestamp,omitempty"`
-}
-
-func (m *MetricType) key() string {
-	return fmt.Sprintf("%s/%d", m.Namespace, m.Version)
+	Catalog []CatalogItem
 }
 
 func (m *MetricCatalogReturned) Len() int {
@@ -35,7 +34,7 @@ func (m *MetricCatalogReturned) Swap(i, j int) {
 }
 
 func NewMetricCatalogReturned() *MetricCatalogReturned {
-	return &MetricCatalogReturned{Catalog: make([]MetricType, 0)}
+	return &MetricCatalogReturned{Catalog: make([]CatalogItem, 0)}
 }
 
 func (m *MetricCatalogReturned) ResponseBodyMessage() string {

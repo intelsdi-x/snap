@@ -20,7 +20,7 @@ import (
 )
 
 /*
-REST API
+REST API (ALPHA, It may CHANGE!)
 
 module specific date or error <= internal call
 
@@ -65,7 +65,7 @@ type APIResponseMeta struct {
 }
 
 type managesMetrics interface {
-	MetricCatalog() ([]core.Metric, error)
+	MetricCatalog() ([]core.CatalogedMetric, error)
 	Load(string) (core.CatalogedPlugin, perror.PulseError)
 	Unload(pl core.Plugin) (core.CatalogedPlugin, perror.PulseError)
 	PluginCatalog() core.PluginCatalog
