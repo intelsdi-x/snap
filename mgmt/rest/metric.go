@@ -3,7 +3,7 @@ package rest
 import (
 	"fmt"
 	"net/http"
-	// "sort"
+	"sort"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -24,16 +24,17 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 	for _, cm := range mets {
 		ci := &rbody.CatalogItem{
 			Namespace: cm.Namespace(),
-			Versions:  make(map[string]rbody.Metric, len(cm.Versions())),
+			Versions:  make(map[string]*rbody.Metric, len(cm.Versions())),
 		}
 		for k, m := range cm.Versions() {
-			ci.Versions[fmt.Sprintf("%d", k)] = rbody.Metric{
+			ci.Versions[fmt.Sprintf("%d", k)] = &rbody.Metric{
 				LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
 			}
 		}
 
 		b.Catalog = append(b.Catalog, *ci)
 	}
+	sort.Sort(b)
 	respond(200, b, w)
 }
 

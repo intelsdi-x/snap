@@ -5,8 +5,8 @@ const (
 )
 
 type CatalogItem struct {
-	Namespace string            `json:"namespace"`
-	Versions  map[string]Metric `json:"versions"`
+	Namespace string             `json:"namespace"`
+	Versions  map[string]*Metric `json:"versions"`
 }
 
 func (m *CatalogItem) key() string {
