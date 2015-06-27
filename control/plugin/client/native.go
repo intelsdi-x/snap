@@ -114,6 +114,8 @@ func (p *PluginNativeClient) GetMetricTypes() ([]core.Metric, error) {
 
 	retMetricTypes := make([]core.Metric, len(reply.PluginMetricTypes))
 	for i, _ := range reply.PluginMetricTypes {
+		// Set the advertised time
+		reply.PluginMetricTypes[i].LastAdvertisedTime_ = time.Now()
 		retMetricTypes[i] = reply.PluginMetricTypes[i]
 	}
 	return retMetricTypes, err
