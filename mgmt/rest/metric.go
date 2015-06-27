@@ -2,6 +2,7 @@ package rest
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -26,6 +27,8 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 			LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
 		})
 	}
+	// We always sort results
+	sort.Sort(b)
 	// return catalog and response with 200
 	respond(200, b, w)
 }
