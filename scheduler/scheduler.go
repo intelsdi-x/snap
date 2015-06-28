@@ -209,7 +209,7 @@ func (s *scheduler) RemoveTask(id uint64) error {
 			"block":   "RemoveTask",
 			"task id": id,
 		}).Error(ErrTaskNotFound)
-		return ErrTaskNotFound
+		return fmt.Errorf("No task found with id '%v'", id)
 	}
 	return s.tasks.remove(t)
 }
