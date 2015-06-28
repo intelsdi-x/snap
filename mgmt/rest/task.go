@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -95,6 +96,7 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 		tasks.ScheduledTasks[i] = *rbody.SchedulerTaskFromTask(t)
 		i++
 	}
+	sort.Sort(tasks)
 	respond(200, tasks, w)
 }
 

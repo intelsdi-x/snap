@@ -19,6 +19,18 @@ type ScheduledTaskListReturned struct {
 	ScheduledTasks []ScheduledTask
 }
 
+func (s *ScheduledTaskListReturned) Len() int {
+	return len(s.ScheduledTasks)
+}
+
+func (s *ScheduledTaskListReturned) Less(i, j int) bool {
+	return s.ScheduledTasks[i].Name < s.ScheduledTasks[j].Name
+}
+
+func (s *ScheduledTaskListReturned) Swap(i, j int) {
+	s.ScheduledTasks[i], s.ScheduledTasks[j] = s.ScheduledTasks[j], s.ScheduledTasks[i]
+}
+
 func (s *ScheduledTaskListReturned) ResponseBodyMessage() string {
 	return "Scheduled tasks retrieved"
 }
@@ -51,6 +63,9 @@ func AddSchedulerTaskFromTask(t core.Task) *AddScheduledTask {
 		FailedCount:        int(t.FailedCount()),
 		LastFailureMessage: t.LastFailureMessage(),
 		State:              t.State().String(),
+	}
+	if st.LastRunTimestamp < 0 {
+		st.LastRunTimestamp = -1
 	}
 	return st
 }
@@ -92,6 +107,9 @@ func SchedulerTaskFromTask(t core.Task) *ScheduledTask {
 		FailedCount:        int(t.FailedCount()),
 		LastFailureMessage: t.LastFailureMessage(),
 		State:              t.State().String(),
+	}
+	if st.LastRunTimestamp < 0 {
+		st.LastRunTimestamp = -1
 	}
 	return st
 }
