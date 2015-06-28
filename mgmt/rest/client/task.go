@@ -61,7 +61,7 @@ func (c *Client) GetTasks() *GetTasksResult {
 	}
 }
 
-func (c *Client) StartTask(id uint64) *StartTasksResult {
+func (c *Client) StartTask(id int) *StartTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id), ContentTypeJSON)
 
 	if err != nil {
@@ -79,12 +79,15 @@ func (c *Client) StartTask(id uint64) *StartTasksResult {
 	}
 }
 
-func (c *Client) StopTask(id uint64) *StopTasksResult {
+func (c *Client) StopTask(id int) *StopTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id), ContentTypeJSON)
 	if err != nil {
 		return &StopTasksResult{Err: err}
 	}
 
+	if resp == nil {
+		return nil
+	}
 	switch resp.Meta.Type {
 	case rbody.ScheduledTaskStoppedType:
 		// Success
@@ -96,7 +99,7 @@ func (c *Client) StopTask(id uint64) *StopTasksResult {
 	}
 }
 
-func (c *Client) RemoveTask(id uint64) *RemoveTasksResult {
+func (c *Client) RemoveTask(id int) *RemoveTasksResult {
 	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id), ContentTypeJSON)
 	if err != nil {
 		return &RemoveTasksResult{Err: err}

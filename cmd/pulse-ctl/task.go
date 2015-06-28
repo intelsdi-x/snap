@@ -104,7 +104,7 @@ func startTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := pClient.StartTask(id)
+	task := pClient.StartTask(int(id))
 	if task.Err != nil {
 		fmt.Println(task.Err)
 		os.Exit(1)
@@ -122,7 +122,7 @@ func stopTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := pClient.StopTask(id)
+	task := pClient.StopTask(int(id))
 	if task.Err != nil {
 		fmt.Println(task.Err)
 		os.Exit(1)
@@ -140,7 +140,7 @@ func removeTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := pClient.RemoveTask(id)
+	task := pClient.RemoveTask(int(id))
 	if task.Err != nil {
 		fmt.Println(task.Err)
 		os.Exit(1)

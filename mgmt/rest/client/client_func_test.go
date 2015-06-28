@@ -4,6 +4,7 @@ package client
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest"
 	"github.com/intelsdi-x/pulse/scheduler"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -32,6 +34,18 @@ func getPort() int {
 
 func incrPort() {
 	NextPort += 10
+}
+
+func getWMFromSample(sample string) *wmap.WorkflowMap {
+	jsonP, err := ioutil.ReadFile("../wmap_sample/" + sample)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wf, err := wmap.FromJson(jsonP)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return wf
 }
 
 // REST API instances that are started are killed when the tests end.
@@ -209,6 +223,107 @@ func TestPulseClient(t *testing.T) {
 				So(len(p.Catalog[0].Versions), ShouldEqual, 2)
 				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
 				So(len(p.Catalog[1].Versions), ShouldEqual, 2)
+			})
+		})
+		Convey("CreateTask", func() {
+			Convey("invalid task (missing metric)", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "1s"}
+
+				p := c.CreateTask(sch, wf, "baron")
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "metric not found")
+			})
+			Convey("invalid task (missing publisher)", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "1s"}
+
+				p := c.CreateTask(sch, wf, "baron")
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "No loaded plugin found for publisher name: riemann version: 1")
+			})
+			Convey("valid task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "1s"}
+
+				p := c.CreateTask(sch, wf, "baron")
+				So(p.Err, ShouldBeNil)
+				So(p.Name, ShouldEqual, "baron")
+				So(p.State, ShouldEqual, "Stopped")
+			})
+		})
+		Convey("StartTask", func() {
+			Convey("unknown task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p := c.StartTask(9999999)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "No task found with id '9999999'")
+			})
+			Convey("existing task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+
+				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron")
+
+				p2 := c.StartTask(p1.ID)
+				So(p2.Err, ShouldBeNil)
+				So(p2.ID, ShouldEqual, p1.ID)
+			})
+		})
+		Convey("StopTask", func() {
+			Convey("unknown task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+
+				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron")
+
+				p2 := c.StopTask(p1.ID)
+				So(p2.Err, ShouldBeNil)
+				So(p2.ID, ShouldEqual, p1.ID)
+			})
+		})
+		Convey("RemoveTask", func() {
+			Convey("unknown task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+
+				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron")
+
+				p2 := c.RemoveTask(p1.ID)
+				So(p2.Err, ShouldBeNil)
+				So(p2.ID, ShouldEqual, p1.ID)
 			})
 		})
 	})

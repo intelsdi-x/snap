@@ -786,7 +786,7 @@ func TestPluginRestCalls(t *testing.T) {
 				r1 := removeTask(99999, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr1 := r1.Body.(*rbody.Error)
-				So(plr1.ErrorMessage, ShouldEqual, "Task not found")
+				So(plr1.ErrorMessage, ShouldEqual, "No task found with id '99999'")
 			})
 			Convey("removes a task", func() {
 				port := getPort()
