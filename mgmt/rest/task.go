@@ -4,12 +4,15 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/pulse/mgmt/rest/request"
 	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
@@ -43,14 +46,14 @@ type task struct {
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	tr, err := marshalTask(r.Body)
-	if tr == nil {
-		replyError(400, w, err)
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
 		return
 	}
 
 	sch, err := makeSchedule(tr.Schedule)
 	if err != nil {
-		replyError(400, w, err)
+		respond(500, rbody.FromError(err), w)
 		return
 	}
 
@@ -58,14 +61,13 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	if tr.Deadline != "" {
 		dl, err := time.ParseDuration(tr.Deadline)
 		if err != nil {
-			replyError(400, w, err)
+			respond(500, rbody.FromError(err), w)
 			return
 		}
 		opts = append(opts, core.TaskDeadlineDuration(dl))
 	}
 
 	if tr.Name != "" {
-
 		opts = append(opts, core.SetTaskName(tr.Name))
 	}
 	opts = append(opts, core.OptionStopOnFailure(10))
@@ -76,90 +78,74 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		for _, e := range errs.Errors() {
 			errMsg = errMsg + e.Error() + " -- "
 		}
-		replyError(500, w, errors.New(errMsg[:len(errMsg)-4]))
+		respond(500, rbody.FromError(errors.New(errMsg[:len(errMsg)-4])), w)
 		return
 	}
 
-	// set timestamp
-	tr.CreationTime = task.CreationTime()
-
-	// set task id
-	tr.ID = task.ID()
-
-	// create return map
-	rmap := make(map[string]interface{})
-	rmap["task"] = tr
-	replySuccess(200, w, rmap)
+	taskB := rbody.AddSchedulerTaskFromTask(task)
+	respond(201, taskB, w)
 }
 
 func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	rmap := make(map[string]interface{})
+	// rmap := make(map[string]interface{})
 	sts := s.mt.GetTasks()
-	rts := make([]task, len(sts))
+
+	tasks := &rbody.ScheduledTaskListReturned{}
+	tasks.ScheduledTasks = make([]rbody.ScheduledTask, len(sts))
 	i := 0
 	for _, t := range sts {
-		rts[i] = task{
-			ID:                 t.ID(),
-			Name:               t.GetName(),
-			Deadline:           t.DeadlineDuration().String(),
-			CreationTime:       t.CreationTime(),
-			LastRunTime:        t.LastRunTime(),
-			HitCount:           t.HitCount(),
-			MissCount:          t.MissedCount(),
-			FailedCount:        t.FailedCount(),
-			LastFailureMessage: t.LastFailureMessage(),
-			State:              t.State().String(),
-		}
+		tasks.ScheduledTasks[i] = *rbody.SchedulerTaskFromTask(t)
 		i++
 	}
-	rmap["tasks"] = rts
-	replySuccess(200, w, rmap)
+	sort.Sort(tasks)
+	respond(200, tasks, w)
 }
 
 func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
 	if err != nil {
-		replyError(500, w, err)
+		respond(500, rbody.FromError(err), w)
 		return
 	}
 	err = s.mt.StartTask(id)
 	if err != nil {
-		replyError(404, w, err)
+		respond(404, rbody.FromError(err), w)
 		return
 	}
-	replySuccess(200, w, nil)
+	// TODO should return resource
+	respond(200, &rbody.ScheduledTaskStarted{ID: int(id)}, w)
 }
 
 func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
 	if err != nil {
-		replyError(500, w, err)
+		respond(500, rbody.FromError(err), w)
 		return
 	}
 	err = s.mt.StopTask(id)
 	if err != nil {
-		replyError(404, w, err)
+		respond(404, rbody.FromError(err), w)
 		return
 	}
-	replySuccess(200, w, nil)
+	respond(200, &rbody.ScheduledTaskStopped{ID: int(id)}, w)
 }
 
 func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
 	if err != nil {
-		replyError(500, w, err)
+		respond(500, rbody.FromError(err), w)
 		return
 	}
 	err = s.mt.RemoveTask(id)
 	if err != nil {
-		replyError(404, w, err)
+		respond(404, rbody.FromError(err), w)
 		return
 	}
-	replySuccess(200, w, nil)
+	respond(200, &rbody.ScheduledTaskRemoved{ID: int(id)}, w)
 }
 
-func marshalTask(body io.ReadCloser) (*task, error) {
-	var tr task
+func marshalTask(body io.ReadCloser) (*request.TaskCreationRequest, error) {
+	var tr request.TaskCreationRequest
 	errCode, err := marshalBody(&tr, body)
 	if errCode != 0 && err != nil {
 		return nil, err
@@ -167,7 +153,7 @@ func marshalTask(body io.ReadCloser) (*task, error) {
 	return &tr, nil
 }
 
-func makeSchedule(s schedule) (cschedule.Schedule, error) {
+func makeSchedule(s request.Schedule) (cschedule.Schedule, error) {
 	var sch cschedule.Schedule
 	switch s.Type {
 	case "simple":

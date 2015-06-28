@@ -1,49 +1,41 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
-	"time"
+	"sort"
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
-type metricType struct {
-	Ns  string `json:"namespace"`
-	Ver int    `json:"version"`
-	LAT int64  `json:"last_advertised_timestamp,omitempty"`
-}
-
-func (m *metricType) Namespace() []string {
-	return parseNamespace(m.Ns)
-}
-
-func (m *metricType) Data() interface{} {
-	return nil
-}
-
-func (m *metricType) Version() int                  { return m.Ver }
-func (m *metricType) LastAdvertisedTime() time.Time { return time.Unix(m.LAT, 0) }
-func (m *metricType) Config() *cdata.ConfigDataNode { return nil }
-
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	rmets := []metricType{}
+	// Get current metric catalog
 	mets, err := s.mm.MetricCatalog()
+	// If error prepare and response with generic rest error
 	if err != nil {
-		replyError(500, w, err)
+		respond(500, rbody.FromError(err), w)
 		return
 	}
-	for _, m := range mets {
-		rmets = append(rmets, metricType{
-			Ns:  joinNamespace(m.Namespace()),
-			Ver: m.Version(),
-			LAT: m.LastAdvertisedTime().Unix(),
-		})
+	// Prepare metric catalog returned body
+	b := rbody.NewMetricCatalogReturned()
+
+	for _, cm := range mets {
+		ci := &rbody.CatalogItem{
+			Namespace: cm.Namespace(),
+			Versions:  make(map[string]*rbody.Metric, len(cm.Versions())),
+		}
+		for k, m := range cm.Versions() {
+			ci.Versions[fmt.Sprintf("%d", k)] = &rbody.Metric{
+				LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
+			}
+		}
+
+		b.Catalog = append(b.Catalog, *ci)
 	}
-	mtsmap := make(map[string]interface{})
-	mtsmap["metric_types"] = rmets
-	replySuccess(200, w, mtsmap)
+	sort.Sort(b)
+	respond(200, b, w)
 }
 
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

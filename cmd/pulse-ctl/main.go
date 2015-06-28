@@ -2,14 +2,17 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/codegangsta/cli"
-	"github.com/intelsdi-x/pulse/client"
+	"github.com/intelsdi-x/pulse/mgmt/rest/client"
 )
 
-var gitversion string
-
-var client = pulse.New(flURL.Value, "")
+var (
+	gitversion string
+	pClient    = client.New(flURL.Value, "")
+	timeFormat = time.RFC1123
+)
 
 func main() {
 	app := cli.NewApp()

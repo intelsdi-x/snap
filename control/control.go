@@ -19,6 +19,7 @@ import (
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/control_event"
 	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/perror"
 )
 
 // control private key (RSA private key)
@@ -28,9 +29,9 @@ import (
 //
 
 var (
-	controlLogger = log.WithFields(log.Fields{
-		"_module": "control",
-	})
+	controlLog = log.WithField("_module", "control")
+
+	ErrControllerNotStarted = errors.New("Must start Controller before calling Load()")
 )
 
 type executablePlugins []plugin.ExecutablePlugin
@@ -64,8 +65,8 @@ type runsPlugins interface {
 }
 
 type managesPlugins interface {
-	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error)
-	UnloadPlugin(core.CatalogedPlugin) error
+	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError)
+	UnloadPlugin(core.Plugin) (*loadedPlugin, perror.PulseError)
 	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(pluginPath string) plugin.Arg
@@ -75,6 +76,7 @@ type catalogsMetrics interface {
 	Get([]string, int) (*metricType, error)
 	Add(*metricType)
 	AddLoadedMetricType(*loadedPlugin, core.Metric)
+	RmUnloadedPluginMetrics(lp *loadedPlugin)
 	Fetch([]string) ([]*metricType, error)
 	Item() (string, []*metricType)
 	Next() bool
@@ -92,19 +94,19 @@ func New() *pluginControl {
 	// Event Manager
 	c.eventManager = gomit.NewEventController()
 
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("pevent controller created")
 
 	// Metric Catalog
 	c.metricCatalog = newMetricCatalog()
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
 	c.pluginManager = newPluginManager()
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
 	//    Plugin Manager needs a reference to the metric catalog
@@ -112,7 +114,7 @@ func New() *pluginControl {
 
 	// Plugin Runner
 	c.pluginRunner = newRunner()
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("runner created")
 	c.pluginRunner.AddDelegates(c.eventManager)
@@ -122,7 +124,7 @@ func New() *pluginControl {
 
 	// Strategy
 	c.strategy = &routing.RoundRobinStrategy{}
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block":   "new",
 		"strategy": c.strategy,
 	}).Debug("setting strategy")
@@ -146,7 +148,7 @@ func (p *pluginControl) Name() string {
 func (p *pluginControl) Start() error {
 	// Start pluginManager when pluginControl starts
 	p.Started = true
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block": "start",
 	}).Info("started")
 	return nil
@@ -154,19 +156,19 @@ func (p *pluginControl) Start() error {
 
 func (p *pluginControl) Stop() {
 	p.Started = false
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block": "stop",
 	}).Info("stopped")
 
 	// stop runner
 	err := p.pluginRunner.Stop()
 	if err != nil {
-		controlLogger.Error(err)
+		controlLog.Error(err)
 	}
 
 	// stop running plugins
 	for _, rp := range p.RunningPlugins {
-		controlLogger.Debug("Stopping running plugin")
+		controlLog.Debug("Stopping running plugin")
 		rp.Kill()
 	}
 
@@ -179,9 +181,9 @@ func (p *pluginControl) Stop() {
 	}
 	p.pluginManager.LoadedPlugins().Unlock()
 	for _, lp := range lps {
-		err := p.pluginManager.UnloadPlugin(lp)
+		_, err := p.pluginManager.UnloadPlugin(lp)
 		if err != nil {
-			controlLogger.Error(err)
+			controlLog.Error(err)
 		}
 	}
 
@@ -190,48 +192,60 @@ func (p *pluginControl) Stop() {
 // Load is the public method to load a plugin into
 // the LoadedPlugins array and issue an event when
 // successful.
-func (p *pluginControl) Load(path string) error {
-	controlLogger.WithFields(log.Fields{
+func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseError) {
+	f := map[string]interface{}{
 		"_block": "load",
 		"path":   path,
-	}).Info("plugin load called")
-	if !p.Started {
-		return errors.New("Must start Controller before calling Load()")
 	}
 
-	if _, err := p.pluginManager.LoadPlugin(path, p.eventManager); err != nil {
-		return err
+	controlLog.WithFields(f).Info("plugin load called")
+	if !p.Started {
+
+		pe := perror.New(ErrControllerNotStarted)
+		pe.SetFields(f)
+		controlLog.WithFields(f).Error(pe)
+		return nil, pe
+	}
+
+	pl, err := p.pluginManager.LoadPlugin(path, p.eventManager)
+	if err != nil {
+		return nil, err
 	}
 
 	// defer sending event
 	event := new(control_event.LoadPluginEvent)
 	defer p.eventManager.Emit(event)
-	return nil
+	return pl, nil
 }
 
-func (p *pluginControl) Unload(pl core.CatalogedPlugin) error {
-	err := p.pluginManager.UnloadPlugin(pl)
+func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, perror.PulseError) {
+	up, err := p.pluginManager.UnloadPlugin(pl)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	event := new(control_event.UnloadPluginEvent)
 	defer p.eventManager.Emit(event)
-	return nil
+	return up, nil
 }
 
-func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) error {
+func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) perror.PulseError {
 
 	lp, err := p.pluginManager.LoadPlugin(inPath, p.eventManager)
 	if err != nil {
 		return err
 	}
 
-	err = p.pluginManager.UnloadPlugin(out)
+	_, err = p.pluginManager.UnloadPlugin(out)
 	if err != nil {
-		err2 := p.pluginManager.UnloadPlugin(lp)
+		_, err2 := p.pluginManager.UnloadPlugin(lp)
 		if err2 != nil {
-			return errors.New("failed to rollback after error" + err2.Error() + " -- " + err.Error())
+			pe := perror.New(errors.New("failed to rollback after error"))
+			pe.SetFields(map[string]interface{}{
+				"original-unload-error": err.Error(),
+				"rollback-unload-error": err2.Error(),
+			})
+			return err
 		}
 		return err
 	}
@@ -246,7 +260,7 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) err
 // returns a MetricType with a config.  On error a collection of errors is returned
 // either from config data processing, or the inability to find the metric.
 func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block":    "subscribe-metric-type",
 		"namespace": mt.Namespace(),
 	}).Info("subscription called on metric")
@@ -284,7 +298,7 @@ func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.C
 
 // SubscribePublisher
 func (p *pluginControl) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []error {
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block":    "subscribe-publisher",
 		"publisher": fmt.Sprintf("%s-%d", name, ver),
 	}).Info("subscription called on publisher")
@@ -327,7 +341,7 @@ func (p *pluginControl) SubscribePublisher(name string, ver int, config map[stri
 //TODO consider collapsing SubscribePublisher and SubscribeProcessor
 // SubscribeProcessor
 func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error {
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block":    "subscribe-processor",
 		"processor": fmt.Sprintf("%s-%d", name, ver),
 	}).Info("subscription called on processor")
@@ -370,7 +384,7 @@ func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[stri
 // UnsubscribeMetricType unsubscribes a MetricType
 // If subscriptions fall below zero we will panic.
 func (p *pluginControl) UnsubscribeMetricType(mt core.Metric) {
-	controlLogger.WithFields(log.Fields{
+	controlLog.WithFields(log.Fields{
 		"_block":    "unsubscribe-metric-type",
 		"namespace": mt.Namespace(),
 	}).Info("unsubscription called on metric")
@@ -423,17 +437,38 @@ func (p *pluginControl) AvailablePlugins() []core.AvailablePlugin {
 	return acp
 }
 
-func (p *pluginControl) MetricCatalog() ([]core.Metric, error) {
-	var c []core.Metric
+func (p *pluginControl) MetricCatalog() ([]core.CatalogedMetric, error) {
+	cat := make([]*metricCatalogItem, 0)
+
 	mts, err := p.metricCatalog.Fetch([]string{})
 	if err != nil {
 		return nil, err
 	}
+
+	// probably can be serious optimized later
 	for _, mt := range mts {
-		c = append(c, mt)
+		f := false
+		for _, mci := range cat {
+			if mci.namespace == mt.NamespaceAsString() {
+				mci.versions[mt.version] = mt
+				f = true
+			}
+		}
+		if !f {
+			mci := &metricCatalogItem{
+				namespace: mt.NamespaceAsString(),
+				versions:  make(map[int]core.Metric),
+			}
+			mci.versions[mt.version] = mt
+			cat = append(cat, mci)
+		}
 	}
 
-	return c, nil
+	ncat := make([]core.CatalogedMetric, len(cat))
+	for i, _ := range cat {
+		ncat[i] = cat[i]
+	}
+	return ncat, nil
 }
 
 func (p *pluginControl) MetricExists(mns []string, ver int) bool {

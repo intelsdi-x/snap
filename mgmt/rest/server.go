@@ -13,13 +13,62 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
+/*
+REST API (ALPHA, It may CHANGE!)
+
+module specific date or error <= internal call
+
+REST API response
+
+Response (JSON encoded)
+	meta <Response Meta (common across all responses)>
+		code <HTTP response code duplciated from header>
+		body_type <keyword for structure type in body>
+		version <API version for future version switching>
+	body <Response Body>
+		<Happy Path>
+		Action specific version of struct matching type in Meta.Type. Should include URI if returning a resource or collection of rsources.
+		Type should be exposed off rest package for use by clients.
+		<Unhappy Path>
+		Generic error type with optional fields. Normally converted from perror.PulseError interface types
+*/
+
+const (
+	APIVersion = 1
+)
+
+var (
+	restLogger = log.WithField("_module", "_mgmt-rest")
+)
+
+type APIResponse struct {
+	Meta         *APIResponseMeta `json:"meta"`
+	Body         rbody.Body       `json:"body"`
+	JSONResponse string           `json:"-"`
+}
+
+type apiResponseJSON struct {
+	Meta *APIResponseMeta `json:"meta"`
+	Body json.RawMessage  `json:"body"`
+}
+
+type APIResponseMeta struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Type    string `json:"type"`
+	Version int    `json:"version"`
+}
+
 type managesMetrics interface {
-	MetricCatalog() ([]core.Metric, error)
-	Load(string) error
+	MetricCatalog() ([]core.CatalogedMetric, error)
+	Load(string) (core.CatalogedPlugin, perror.PulseError)
+	Unload(pl core.Plugin) (core.CatalogedPlugin, perror.PulseError)
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin
 	GetAutodiscoverPaths() []string
@@ -44,7 +93,7 @@ func New() *Server {
 
 	n := negroni.New(
 		NewLogger(),
-		// TODO a recovery logger
+		negroni.NewRecovery(),
 	)
 	return &Server{
 		r: httprouter.New(),
@@ -76,6 +125,7 @@ func (s *Server) start(addrString string) {
 	s.r.GET("/v1/plugins/:name", s.getPluginsByName)
 	s.r.GET("/v1/plugins/:name/:version", s.getPlugin)
 	s.r.POST("/v1/plugins", s.loadPlugin)
+	s.r.DELETE("/v1/plugins/:name/:version", s.unloadPlugin)
 
 	// metric routes
 	s.r.GET("/v1/metrics", s.getMetrics)
@@ -94,42 +144,40 @@ func (s *Server) start(addrString string) {
 	s.run(addrString)
 }
 
-type response struct {
-	Meta *responseMeta          `json:"meta"`
-	Data map[string]interface{} `json:"data"`
-}
-
-type responseMeta struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-func replyError(code int, w http.ResponseWriter, err error) {
-	w.WriteHeader(code)
-	resp := &response{
-		Meta: &responseMeta{
+func respond(code int, b rbody.Body, w http.ResponseWriter) {
+	resp := &APIResponse{
+		Meta: &APIResponseMeta{
 			Code:    code,
-			Message: err.Error(),
+			Message: b.ResponseBodyMessage(),
+			Type:    b.ResponseBodyType(),
+			Version: APIVersion,
 		},
+		Body: b,
 	}
-	jerr, _ := json.MarshalIndent(resp, "", "  ")
-	fmt.Fprint(w, string(jerr))
-}
 
-func replySuccess(code int, w http.ResponseWriter, data map[string]interface{}) {
 	w.WriteHeader(code)
-	resp := &response{
-		Meta: &responseMeta{
-			Code: code,
-		},
-		Data: data,
-	}
+
 	j, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		replyError(500, w, err)
-		return
+		panic(err)
 	}
 	fmt.Fprint(w, string(j))
+}
+
+func (a *APIResponse) UnmarshalJSON(b []byte) error {
+	ar := &apiResponseJSON{}
+	err := json.Unmarshal(b, ar)
+	if err != nil {
+		panic(err)
+	}
+	body, err := rbody.UnmarshalBody(ar.Meta.Type, ar.Body)
+	if err != nil {
+		return err
+	}
+	// Assign
+	a.Meta = ar.Meta
+	a.Body = body
+	return nil
 }
 
 func marshalBody(in interface{}, body io.ReadCloser) (int, error) {

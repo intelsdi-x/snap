@@ -58,16 +58,16 @@ func TestCollectPublishWorkflow(t *testing.T) {
 		s := New()
 		s.SetMetricManager(c)
 		Convey("Start a collector and publisher plugin", func() {
-			err := c.Load(path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy2"))
+			_, err := c.Load(path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy2"))
 			So(err, ShouldBeNil)
-			err = c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
+			_, err = c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 			So(err, ShouldBeNil)
-			err = c.Load(path.Join(PulsePath, "plugin", "processor", "pulse-processor-movingaverage"))
+			_, err = c.Load(path.Join(PulsePath, "plugin", "processor", "pulse-processor-movingaverage"))
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
 
-			metrics, err := c.MetricCatalog()
-			So(err, ShouldBeNil)
+			metrics, err2 := c.MetricCatalog()
+			So(err2, ShouldBeNil)
 			So(metrics, ShouldNotBeEmpty)
 
 			w := wmap.NewWorkflowMap()
@@ -79,8 +79,8 @@ func TestCollectPublishWorkflow(t *testing.T) {
 
 			pr := wmap.NewProcessNode("movingaverage", 1)
 			pr.AddConfigItem("MovingAvgBufLength", 20)
-			config2, err := pr.GetConfigNode()
-			So(err, ShouldBeNil)
+			config2, err3 := pr.GetConfigNode()
+			So(err3, ShouldBeNil)
 			c.SubscribeProcessor("movingaverage", 1, config2.Table())
 			time.Sleep(100 * time.Millisecond)
 

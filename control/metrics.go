@@ -2,6 +2,7 @@ package control
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -17,13 +18,28 @@ var (
 	errNegativeSubCount = errors.New("subscription count cannot be < 0")
 )
 
+type metricCatalogItem struct {
+	namespace string
+	versions  map[int]core.Metric
+}
+
+func (m *metricCatalogItem) Namespace() string {
+	return m.namespace
+}
+
+func (m *metricCatalogItem) Versions() map[int]core.Metric {
+	return m.versions
+}
+
 type metricType struct {
 	Plugin             *loadedPlugin
 	namespace          []string
+	version            int
 	lastAdvertisedTime time.Time
 	subscriptions      int
 	policy             processesConfigData
 	config             *cdata.ConfigDataNode
+	data               interface{}
 }
 
 type processesConfigData interface {
@@ -39,8 +55,20 @@ func newMetricType(ns []string, last time.Time, plugin *loadedPlugin) *metricTyp
 	}
 }
 
+func (m *metricType) Key() string {
+	return fmt.Sprintf("/%s/%d", strings.Join(m.Namespace(), "/"), m.Version())
+}
+
 func (m *metricType) Namespace() []string {
 	return m.namespace
+}
+
+func (m *metricType) NamespaceAsString() string {
+	return "/" + strings.Join(m.Namespace(), "/")
+}
+
+func (m *metricType) Data() interface{} {
+	return m.data
 }
 
 func (m *metricType) LastAdvertisedTime() time.Time {
@@ -64,6 +92,9 @@ func (m *metricType) SubscriptionCount() int {
 }
 
 func (m *metricType) Version() int {
+	if m.version > 0 {
+		return m.version
+	}
 	if m.Plugin == nil {
 		return -1
 	}
@@ -72,10 +103,6 @@ func (m *metricType) Version() int {
 
 func (m *metricType) Config() *cdata.ConfigDataNode {
 	return m.config
-}
-
-func (m *metricType) Data() interface{} {
-	return nil
 }
 
 type metricCatalog struct {
@@ -95,7 +122,7 @@ func newMetricCatalog() *metricCatalog {
 	}
 }
 
-func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
+func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
 	if lp.ConfigPolicyTree == nil {
 		panic("NO")
 	}
@@ -103,10 +130,17 @@ func (m *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
 	newMt := metricType{
 		Plugin:             lp,
 		namespace:          mt.Namespace(),
+		version:            mt.Version(),
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
 		policy:             lp.ConfigPolicyTree.Get(mt.Namespace()),
 	}
-	m.Add(&newMt)
+	mc.Add(&newMt)
+}
+
+func (mc *metricCatalog) RmUnloadedPluginMetrics(lp *loadedPlugin) {
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
+	mc.tree.DeleteByPlugin(lp)
 }
 
 // Add adds a metricType

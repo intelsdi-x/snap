@@ -1,13 +1,22 @@
-package pulse
+package client
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/intelsdi-x/pulse/mgmt/rest"
+)
+
+var (
+	ErrUnknown     = errors.New("Unknown error calling API")
+	ErrNilResponse = errors.New("Nil response from JSON unmarshalling")
 )
 
 const (
@@ -55,11 +64,11 @@ func (t contentType) String() string {
    we use the variadic function signature so that all actions can use the same
    function, including ones which do not include a request body.
 */
-func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*response, error) {
+
+func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rest.APIResponse, error) {
 	var (
 		rsp *http.Response
 		err error
-		b   []byte
 	)
 	switch method {
 	case "GET":
@@ -113,20 +122,32 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*respo
 			return nil, err
 		}
 	}
-	resp := &response{
-		status: rsp.StatusCode,
-		header: rsp.Header,
-	}
-	b, err = ioutil.ReadAll(rsp.Body)
+
+	return httpRespToAPIResp(rsp)
+}
+
+func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, error) {
+	resp := new(rest.APIResponse)
+	b, err := ioutil.ReadAll(rsp.Body)
 	rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
-	resp.body = b
+
+	jErr := json.Unmarshal(b, resp)
+	if jErr != nil {
+		return nil, err
+	}
+	if resp == nil {
+		// Catch corner case where JSON gives no error but resp is nil
+		return nil, ErrNilResponse
+	}
+	// Add copy of JSON response string
+	resp.JSONResponse = string(b)
 	return resp, nil
 }
 
-func (c *Client) pluginUploadRequest(pluginPath string) (*response, error) {
+func (c *Client) pluginUploadRequest(pluginPath string) (*rest.APIResponse, error) {
 	client := &http.Client{}
 	file, err := os.Open(pluginPath)
 	if err != nil {
@@ -160,18 +181,7 @@ func (c *Client) pluginUploadRequest(pluginPath string) (*response, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	resp := &response{
-		status: rsp.StatusCode,
-		header: rsp.Header,
-	}
-	b, err := ioutil.ReadAll(rsp.Body)
-	rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-	resp.body = b
-	return resp, nil
+	return httpRespToAPIResp(rsp)
 }
 
 type response struct {

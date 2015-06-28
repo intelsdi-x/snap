@@ -18,7 +18,7 @@ var (
 					Usage:  "create <task file json|yaml>",
 					Action: createTask,
 					Flags: []cli.Flag{
-						taskName,
+						flTaskName,
 					},
 				},
 				{
@@ -50,6 +50,15 @@ var (
 					Name:   "load",
 					Usage:  "load <plugin path>",
 					Action: loadPlugin,
+				},
+				{
+					Name:   "unload",
+					Usage:  "unload",
+					Action: unloadPlugin,
+					Flags: []cli.Flag{
+						flPluginName,
+						flPluginVersion,
+					},
 				},
 				{
 					Name:   "list",

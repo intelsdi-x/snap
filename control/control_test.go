@@ -16,6 +16,7 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/perror"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -35,11 +36,11 @@ type MockPluginManagerBadSwap struct {
 	ExistingPlugin core.CatalogedPlugin
 }
 
-func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, error) {
+func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError) {
 	return new(loadedPlugin), nil
 }
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.CatalogedPlugin) error {
-	return errors.New("fake")
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, perror.PulseError) {
+	return nil, perror.New(errors.New("fake"))
 }
 func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins    { return nil }
 func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {}
@@ -66,7 +67,7 @@ func TestSwapPlugin(t *testing.T) {
 		Convey("SwapPlugin", t, func() {
 			c := New()
 			c.Start()
-			e := c.Load(PluginPath)
+			_, e := c.Load(PluginPath)
 
 			So(e, ShouldBeNil)
 
@@ -121,7 +122,7 @@ func TestLoad(t *testing.T) {
 			Convey("loads successfully", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(c.pluginManager.LoadedPlugins(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
@@ -129,7 +130,7 @@ func TestLoad(t *testing.T) {
 
 			Convey("returns error if not started", func() {
 				c := New()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 0)
 				So(err, ShouldNotBeNil)
@@ -138,7 +139,7 @@ func TestLoad(t *testing.T) {
 			Convey("adds to pluginControl.pluginManager.LoadedPlugins on successful load", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(err, ShouldBeNil)
 				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldBeGreaterThan, 0)
@@ -147,7 +148,7 @@ func TestLoad(t *testing.T) {
 			Convey("returns error from pluginManager.LoadPlugin()", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath + "foo")
+				_, err := c.Load(PluginPath + "foo")
 
 				So(err, ShouldNotBeNil)
 				// So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
@@ -168,7 +169,7 @@ func TestUnload(t *testing.T) {
 			Convey("unloads successfully", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
@@ -176,14 +177,14 @@ func TestUnload(t *testing.T) {
 				pc := c.PluginCatalog()
 
 				So(len(pc), ShouldEqual, 1)
-				err = c.Unload(pc[0])
-				So(err, ShouldBeNil)
+				_, err2 := c.Unload(pc[0])
+				So(err2, ShouldBeNil)
 			})
 
 			Convey("returns error on unload for unknown plugin(or already unloaded)", func() {
 				c := New()
 				c.Start()
-				err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath)
 
 				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
@@ -191,10 +192,10 @@ func TestUnload(t *testing.T) {
 				pc := c.PluginCatalog()
 
 				So(len(pc), ShouldEqual, 1)
-				err = c.Unload(pc[0])
-				So(err, ShouldBeNil)
-				err = c.Unload(pc[0])
-				So(err, ShouldResemble, errors.New("plugin [dummy1] -- [1] not found (has it already been unloaded?)"))
+				_, err2 := c.Unload(pc[0])
+				So(err2, ShouldBeNil)
+				_, err3 := c.Unload(pc[0])
+				So(err3.Error(), ShouldResemble, "plugin not found (has it already been unloaded?)")
 			})
 		})
 
@@ -352,6 +353,10 @@ func (m *mc) AddLoadedMetricType(*loadedPlugin, core.Metric) {
 
 }
 
+func (m *mc) RmUnloadedPluginMetrics(lp *loadedPlugin) {
+
+}
+
 type mockCDProc struct {
 }
 
@@ -434,7 +439,7 @@ func TestExportedMetricCatalog(t *testing.T) {
 			t, err := c.MetricCatalog()
 			So(err, ShouldBeNil)
 			So(len(t), ShouldEqual, 1)
-			So(t[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+			So(t[0].Namespace(), ShouldResemble, "/foo/bar")
 		})
 	})
 }
@@ -540,11 +545,11 @@ func TestPublishMetrics(t *testing.T) {
 		c.Start()
 
 		// Load plugin
-		err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
+		_, err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
-		lp, err := c.pluginManager.LoadedPlugins().Get(0)
-		So(err, ShouldBeNil)
+		lp, err2 := c.pluginManager.LoadedPlugins().Get(0)
+		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "file")
 		So(lp.ConfigPolicyTree, ShouldNotBeNil)
 
