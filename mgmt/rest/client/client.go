@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	ErrUnknown = errors.New("Unknown error calling API")
+	ErrUnknown     = errors.New("Unknown error calling API")
+	ErrNilResponse = errors.New("Nil response from JSON unmarshalling")
 )
 
 const (
@@ -126,9 +127,9 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rest.
 }
 
 func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, error) {
-	var resp *rest.APIResponse
+	resp := new(rest.APIResponse)
 	b, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
+	rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +138,12 @@ func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, error) {
 	if jErr != nil {
 		return nil, err
 	}
+	if resp == nil {
+		// Catch corner case where JSON gives no error but resp is nil
+		return nil, ErrNilResponse
+	}
+	// Add copy of JSON response string
+	resp.JSONResponse = string(b)
 	return resp, nil
 }
 

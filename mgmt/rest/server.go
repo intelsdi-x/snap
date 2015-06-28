@@ -48,8 +48,9 @@ var (
 )
 
 type APIResponse struct {
-	Meta *APIResponseMeta `json:"meta"`
-	Body rbody.Body       `json:"body"`
+	Meta         *APIResponseMeta `json:"meta"`
+	Body         rbody.Body       `json:"body"`
+	JSONResponse string           `json:"-"`
 }
 
 type apiResponseJSON struct {

@@ -61,17 +61,18 @@ func readBody(r *http.Response) []byte {
 	return b
 }
 
-func getAPIResponse(resp *http.Response) (*APIResponse, string) {
+func getAPIResponse(resp *http.Response) *APIResponse {
 	r := new(APIResponse)
 	rb := readBody(resp)
 	err := json.Unmarshal(rb, r)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return r, string(rb)
+	r.JSONResponse = string(rb)
+	return r
 }
 
-func getTasks(port int) (*APIResponse, string) {
+func getTasks(port int) *APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks", port))
 	if err != nil {
 		log.Fatal(err)
@@ -79,7 +80,7 @@ func getTasks(port int) (*APIResponse, string) {
 	return getAPIResponse(resp)
 }
 
-func startTask(id, port int) (*APIResponse, string) {
+func startTask(id, port int) *APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/start", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
@@ -95,7 +96,7 @@ func startTask(id, port int) (*APIResponse, string) {
 	return getAPIResponse(resp)
 }
 
-func stopTask(id, port int) (*APIResponse, string) {
+func stopTask(id, port int) *APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/stop", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
@@ -111,7 +112,7 @@ func stopTask(id, port int) (*APIResponse, string) {
 	return getAPIResponse(resp)
 }
 
-func removeTask(id, port int) (*APIResponse, string) {
+func removeTask(id, port int) *APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
@@ -126,7 +127,7 @@ func removeTask(id, port int) (*APIResponse, string) {
 	return getAPIResponse(resp)
 }
 
-func createTask(sample, name, interval string, port int) (*APIResponse, string) {
+func createTask(sample, name, interval string, port int) *APIResponse {
 	jsonP, err := ioutil.ReadFile("./wmap_sample/" + sample)
 	if err != nil {
 		log.Fatal(err)
@@ -163,7 +164,7 @@ func createTask(sample, name, interval string, port int) (*APIResponse, string) 
 	return getAPIResponse(resp)
 }
 
-func uploadPlugin(pluginPath string, port int) (*APIResponse, string) {
+func uploadPlugin(pluginPath string, port int) *APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/plugins", port)
 
 	client := &http.Client{}
@@ -201,7 +202,7 @@ func uploadPlugin(pluginPath string, port int) (*APIResponse, string) {
 	return getAPIResponse(resp)
 }
 
-func unloadPlugin(port int, name string, version int) (*APIResponse, string) {
+func unloadPlugin(port int, name string, version int) *APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%d", port, name, version)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
@@ -216,7 +217,7 @@ func unloadPlugin(port int, name string, version int) (*APIResponse, string) {
 	return getAPIResponse(resp)
 }
 
-func getPluginList(port int) (*APIResponse, string) {
+func getPluginList(port int) *APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/plugins", port))
 	if err != nil {
 		log.Fatal(err)
@@ -224,7 +225,7 @@ func getPluginList(port int) (*APIResponse, string) {
 	return getAPIResponse(resp)
 }
 
-func getMetricCatalog(port int) (*APIResponse, string) {
+func getMetricCatalog(port int) *APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics", port))
 	if err != nil {
 		log.Fatal(err)
@@ -263,7 +264,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// The second argument here is a string from the HTTP response body
 				// Useful to println if you want to see what the return looks like.
-				r, _ := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+				r := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 				plr := r.Body.(*rbody.PluginsLoaded)
 
@@ -278,7 +279,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 
 				// Should only be one in the list
-				r2, _ := getPluginList(port)
+				r2 := getPluginList(port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
 				plr2 := r2.Body.(*rbody.PluginListReturned)
 
@@ -294,7 +295,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r, _ := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+				r := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 				plr := r.Body.(*rbody.PluginsLoaded)
 
@@ -307,7 +308,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.LoadedPlugins[0].Type, ShouldEqual, "collector")
 				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 
-				r2, _ := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+				r2 := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr2 := r2.Body.(*rbody.Error)
 
@@ -315,7 +316,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr2.ResponseBodyMessage(), ShouldEqual, "plugin is already loaded")
 
 				// Should only be one in the list
-				r3, _ := getPluginList(port)
+				r3 := getPluginList(port)
 				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
 				plr3 := r3.Body.(*rbody.PluginListReturned)
 
@@ -331,7 +332,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r, _ := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+				r := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 				plr := r.Body.(*rbody.PluginsLoaded)
 
@@ -344,7 +345,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.LoadedPlugins[0].Type, ShouldEqual, "collector")
 				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 
-				r2, _ := uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				r2 := uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 				plr2 := r2.Body.(*rbody.PluginsLoaded)
 
@@ -358,7 +359,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr2.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 
 				// Should be two in the list
-				r3, _ := getPluginList(port)
+				r3 := getPluginList(port)
 				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
 				plr3 := r3.Body.(*rbody.PluginListReturned)
 
@@ -381,7 +382,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r, _ := unloadPlugin(port, "dummy1", 1)
+				r := unloadPlugin(port, "dummy1", 1)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr := r.Body.(*rbody.Error)
 
@@ -393,11 +394,11 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 				// Load one
-				r1, _ := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+				r1 := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 
 				// Unload it now
-				r, _ := unloadPlugin(port, "dummy1", 1)
+				r := unloadPlugin(port, "dummy1", 1)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
 				plr := r.Body.(*rbody.PluginUnloaded)
 
@@ -408,7 +409,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.Type, ShouldEqual, "collector")
 
 				// Plugin should NOT be in the list
-				r2, _ := getPluginList(port)
+				r2 := getPluginList(port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
 				plr2 := r2.Body.(*rbody.PluginListReturned)
 
@@ -419,14 +420,14 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 				// Load first
-				r1, _ := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+				r1 := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 				// Load second
-				r2, _ := uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				r2 := uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 
 				// Unload second
-				r, _ := unloadPlugin(port, "dummy2", 2)
+				r := unloadPlugin(port, "dummy2", 2)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
 				plr := r.Body.(*rbody.PluginUnloaded)
 
@@ -436,7 +437,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.Version, ShouldEqual, 2)
 				So(plr.Type, ShouldEqual, "collector")
 
-				r, _ = getPluginList(port)
+				r = getPluginList(port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
 				plr2 := r.Body.(*rbody.PluginListReturned)
 
@@ -453,7 +454,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r, _ := getPluginList(port)
+				r := getPluginList(port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
 				plr := r.Body.(*rbody.PluginListReturned)
 
@@ -469,7 +470,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 
-				r, _ := getPluginList(port)
+				r := getPluginList(port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
 				plr := r.Body.(*rbody.PluginListReturned)
 
@@ -491,7 +492,7 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 
-				r, _ := getPluginList(port)
+				r := getPluginList(port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
 				plr := r.Body.(*rbody.PluginListReturned)
 
@@ -518,7 +519,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r, _ := getMetricCatalog(port)
+				r := getMetricCatalog(port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 				plr := r.Body.(*rbody.MetricCatalogReturned)
 
@@ -530,7 +531,7 @@ func TestPluginRestCalls(t *testing.T) {
 				startAPI(port)
 
 				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				r, _ := getMetricCatalog(port)
+				r := getMetricCatalog(port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 				plr := r.Body.(*rbody.MetricCatalogReturned)
 
@@ -551,7 +552,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// upload v1
 				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				r, _ := getMetricCatalog(port)
+				r := getMetricCatalog(port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 				plr := r.Body.(*rbody.MetricCatalogReturned)
 
@@ -567,7 +568,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// upload v2
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				r2, _ := getMetricCatalog(port)
+				r2 := getMetricCatalog(port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 				plr2 := r2.Body.(*rbody.MetricCatalogReturned)
 
@@ -590,7 +591,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// upload v1
 				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				r, _ := getMetricCatalog(port)
+				r := getMetricCatalog(port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 				plr := r.Body.(*rbody.MetricCatalogReturned)
 
@@ -605,7 +606,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// upload v2
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				r2, _ := getMetricCatalog(port)
+				r2 := getMetricCatalog(port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 				plr2 := r2.Body.(*rbody.MetricCatalogReturned)
 
@@ -622,7 +623,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// remove v2
 				unloadPlugin(port, "dummy2", 2)
-				r3, _ := getMetricCatalog(port)
+				r3 := getMetricCatalog(port)
 				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 				plr3 := r3.Body.(*rbody.MetricCatalogReturned)
 
@@ -644,7 +645,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r, _ := createTask("1.json", "foo", "1s", port)
+				r := createTask("1.json", "foo", "1s", port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr := r.Body.(*rbody.Error)
 				So(plr.ErrorMessage, ShouldEqual, "metric not found")
@@ -656,7 +657,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
-				r, _ := createTask("1.json", "foo", "1s", port)
+				r := createTask("1.json", "foo", "1s", port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr := r.Body.(*rbody.AddScheduledTask)
 				So(plr.CreationTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
@@ -677,10 +678,10 @@ func TestPluginRestCalls(t *testing.T) {
 
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
-				r, _ := createTask("1.json", "bar", "1s", port)
+				r := createTask("1.json", "bar", "1s", port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 
-				r2, _ := getTasks(port)
+				r2 := getTasks(port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
 				plr2 := r2.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr2.ScheduledTasks), ShouldEqual, 1)
@@ -694,13 +695,13 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 
-				r1, _ := createTask("1.json", "alpha", "1s", port)
+				r1 := createTask("1.json", "alpha", "1s", port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 
-				r2, _ := createTask("1.json", "beta", "1s", port)
+				r2 := createTask("1.json", "beta", "1s", port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 
-				r3, _ := getTasks(port)
+				r3 := getTasks(port)
 				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
 				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr3.ScheduledTasks), ShouldEqual, 2)
@@ -717,18 +718,18 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 
-				r1, _ := createTask("1.json", "xenu", "1s", port)
+				r1 := createTask("1.json", "xenu", "1s", port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
 				id := plr1.ID
 
-				r2, _ := startTask(id, port)
+				r2 := startTask(id, port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStarted))
 				plr2 := r2.Body.(*rbody.ScheduledTaskStarted)
 				So(plr2.ID, ShouldEqual, id)
 
-				r3, _ := getTasks(port)
+				r3 := getTasks(port)
 				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
 				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
@@ -745,30 +746,30 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 
-				r1, _ := createTask("1.json", "yeti", "1s", port)
+				r1 := createTask("1.json", "yeti", "1s", port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
 				id := plr1.ID
 
-				r2, _ := startTask(id, port)
+				r2 := startTask(id, port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStarted))
 				plr2 := r2.Body.(*rbody.ScheduledTaskStarted)
 				So(plr2.ID, ShouldEqual, id)
 
-				r3, _ := getTasks(port)
+				r3 := getTasks(port)
 				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
 				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
 				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "yeti")
 				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Spinning")
 
-				r4, _ := stopTask(id, port)
+				r4 := stopTask(id, port)
 				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStopped))
 				plr4 := r4.Body.(*rbody.ScheduledTaskStopped)
 				So(plr4.ID, ShouldEqual, id)
 
-				r5, _ := getTasks(port)
+				r5 := getTasks(port)
 				So(r5.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
 				plr5 := r5.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr5.ScheduledTasks), ShouldEqual, 1)
@@ -782,7 +783,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r1, _ := removeTask(99999, port)
+				r1 := removeTask(99999, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr1 := r1.Body.(*rbody.Error)
 				So(plr1.ErrorMessage, ShouldEqual, "Task not found")
@@ -794,25 +795,25 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 
-				r1, _ := createTask("1.json", "yeti", "1s", port)
+				r1 := createTask("1.json", "yeti", "1s", port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
 				id := plr1.ID
 
-				r2, _ := getTasks(port)
+				r2 := getTasks(port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
 				plr2 := r2.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr2.ScheduledTasks), ShouldEqual, 1)
 				So(plr2.ScheduledTasks[0].Name, ShouldEqual, "yeti")
 				So(plr2.ScheduledTasks[0].State, ShouldEqual, "Stopped")
 
-				r3, _ := removeTask(id, port)
+				r3 := removeTask(id, port)
 				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskRemoved))
 				plr3 := r3.Body.(*rbody.ScheduledTaskRemoved)
 				So(plr3.ID, ShouldEqual, id)
 
-				r4, _ := getTasks(port)
+				r4 := getTasks(port)
 				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
 				plr4 := r4.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr4.ScheduledTasks), ShouldEqual, 0)
