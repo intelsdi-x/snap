@@ -15,12 +15,18 @@ func loadPlugin(ctx *cli.Context) {
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
-	// TODO refactor
-	// err := pClient.LoadPlugin(ctx.Args().First())
-	// if err != nil {
-	// 	fmt.Printf("Error loading plugin:\n\t%v\n", err.Error())
-	// 	os.Exit(1)
-	// }
+	r := pClient.LoadPlugin(ctx.Args().First())
+	if r.Err != nil {
+		fmt.Printf("Error loading plugin:\n%v\n", r.Err.Error())
+		os.Exit(1)
+	}
+	for _, p := range r.LoadedPlugins {
+		fmt.Println("Plugin loaded")
+		fmt.Printf("Name: %s\n", p.Name)
+		fmt.Printf("Version: %d\n", p.Version)
+		fmt.Printf("Type: %s\n", p.Type)
+		fmt.Printf("Loaded Time: %s\n\n", p.LoadedTime().Format(timeFormat))
+	}
 }
 
 func unloadPlugin(ctx *cli.Context) {
@@ -31,15 +37,21 @@ func unloadPlugin(ctx *cli.Context) {
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
-	//
-	resp := pClient.UnloadPlugin(pName, pVer)
+	if pVer < 1 {
+		fmt.Println("Must provide plugin version")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
 
-	fmt.Println(resp)
-	// if err != nil {
-	// fmt.Printf("Error unloading plugin:\n\t%v\n", err.Error())
-	// os.Exit(1)
-	// }
-	// fmt.Printf("Plugin unloaded successfully (%sv%d)\n", resp.PluginName, resp.PluginVersion)
+	r := pClient.UnloadPlugin(pName, pVer)
+	if r.Err != nil {
+		fmt.Printf("Error unloading plugin:\n%v\n", r.Err.Error())
+	}
+
+	fmt.Println("Plugin unloaded")
+	fmt.Printf("Name: %s\n", r.Name)
+	fmt.Printf("Version: %d\n", r.Version)
+	fmt.Printf("Type: %s\n", r.Type)
 }
 
 func listPlugins(ctx *cli.Context) {
@@ -52,12 +64,12 @@ func listPlugins(ctx *cli.Context) {
 	if ctx.Bool("running") {
 		printFields(w, false, 0, "NAME", "HIT COUNT", "LAST HIT", "TYPE")
 		for _, rp := range plugins.AvailablePlugins {
-			printFields(w, false, 0, rp.Name, rp.HitCount, time.Unix(rp.LastHitTimestamp, 0).Format(time.RFC1123), rp.Type)
+			printFields(w, false, 0, rp.Name, rp.HitCount, time.Unix(rp.LastHitTimestamp, 0).Format(timeFormat), rp.Type)
 		}
 	} else {
-		printFields(w, false, 0, "NAME", "STATUS", "LOADED TIMESTAMP")
+		printFields(w, false, 0, "NAME", "VERSION", "TYPE", "STATUS", "LOADED TIME")
 		for _, lp := range plugins.LoadedPlugins {
-			printFields(w, false, 0, lp.Name, lp.Status, lp.LoadedTimestamp)
+			printFields(w, false, 0, lp.Name, lp.Version, lp.Type, lp.Status, lp.LoadedTime().Format(timeFormat))
 		}
 	}
 	w.Flush()

@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"text/tabwriter"
-	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/pulse/mgmt/rest/client"
@@ -40,30 +39,27 @@ func createTask(ctx *cli.Context) {
 	}
 
 	t.Name = ctx.String("name")
-
 	if t.Version != 1 {
 		fmt.Println("Invalid version provided")
 		os.Exit(1)
-
 	}
 
-	task := pClient.CreateTask(t.Schedule, t.Workflow, t.Name)
+	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name)
 
-	if task.Err != nil {
-		fmt.Printf("Error creating task - %v\n", task.Err)
+	if r.Err != nil {
+		fmt.Printf("Error creating task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
-	fmt.Printf(`Task created:
-	Name: %s
-	Id: %d
-	State: %s
-`, task.Name, task.ID, task.State)
+	fmt.Println("Task created")
+	fmt.Printf("ID: %d\n", r.ID)
+	fmt.Printf("Name: %s\n", r.Name)
+	fmt.Printf("State: %s\n", r.State)
 }
 
 func listTask(ctx *cli.Context) {
 	tasks := pClient.GetTasks()
 	if tasks.Err != nil {
-		fmt.Printf("Error getting tasks - %v\n", tasks.Err)
+		fmt.Printf("Error getting tasks:\n%v\n", tasks.Err)
 		os.Exit(1)
 	}
 
@@ -86,7 +82,7 @@ func listTask(ctx *cli.Context) {
 			task.HitCount,
 			task.MissCount,
 			task.FailedCount,
-			time.Unix(task.CreationTimestamp, 0).Format(time.RFC1123),
+			task.CreationTime().Format(timeFormat),
 			task.LastFailureMessage,
 		)
 	}
@@ -104,11 +100,13 @@ func startTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := pClient.StartTask(int(id))
-	if task.Err != nil {
-		fmt.Println(task.Err)
+	r := pClient.StartTask(int(id))
+	if r.Err != nil {
+		fmt.Printf("Error starting task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
+	fmt.Println("Task started:")
+	fmt.Printf("ID: %d\n", r.ID)
 }
 
 func stopTask(ctx *cli.Context) {
@@ -122,11 +120,13 @@ func stopTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := pClient.StopTask(int(id))
-	if task.Err != nil {
-		fmt.Println(task.Err)
+	r := pClient.StopTask(int(id))
+	if r.Err != nil {
+		fmt.Printf("Error stopping task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
+	fmt.Println("Task stopped:")
+	fmt.Printf("ID: %d\n", r.ID)
 }
 
 func removeTask(ctx *cli.Context) {
@@ -140,9 +140,11 @@ func removeTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := pClient.RemoveTask(int(id))
-	if task.Err != nil {
-		fmt.Println(task.Err)
+	r := pClient.RemoveTask(int(id))
+	if r.Err != nil {
+		fmt.Printf("Error stopping task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
+	fmt.Println("Task removed:")
+	fmt.Printf("ID: %d\n", r.ID)
 }
