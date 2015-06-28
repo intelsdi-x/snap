@@ -5,7 +5,6 @@ import (
 )
 
 type TaskCreationRequest struct {
-	ID       uint64            `json:"id"`
 	Name     string            `json:"name"`
 	Deadline string            `json:"deadline"`
 	Workflow *wmap.WorkflowMap `json:"workflow"`
