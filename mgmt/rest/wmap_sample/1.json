@@ -1,0 +1,19 @@
+{
+    "collect": {
+        "metrics": {
+            "/intel/dummy/foo": {}
+        },
+        "config": {},
+        "process": [],
+        "publish": [
+            {
+                "plugin_name": "riemann",
+                "plugin_version": 1,
+                "config": {
+                    "host": "localhost",
+                    "broker": "wat"
+                }
+            }
+        ]
+    }
+}

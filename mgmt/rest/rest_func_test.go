@@ -19,14 +19,17 @@ import (
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/pulse/mgmt/rest/request"
 	"github.com/intelsdi-x/pulse/scheduler"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	PULSE_PATH         = os.Getenv("PULSE_PATH")
-	DUMMY_PLUGIN_PATH1 = PULSE_PATH + "/plugin/collector/pulse-collector-dummy1"
-	DUMMY_PLUGIN_PATH2 = PULSE_PATH + "/plugin/collector/pulse-collector-dummy2"
+	PULSE_PATH          = os.Getenv("PULSE_PATH")
+	DUMMY_PLUGIN_PATH1  = PULSE_PATH + "/plugin/collector/pulse-collector-dummy1"
+	DUMMY_PLUGIN_PATH2  = PULSE_PATH + "/plugin/collector/pulse-collector-dummy2"
+	RIEMANN_PLUGIN_PATH = PULSE_PATH + "/plugin/publisher/pulse-publisher-riemann"
 
 	NextPort = 8000
 )
@@ -66,6 +69,98 @@ func getAPIResponse(resp *http.Response) (*APIResponse, string) {
 		log.Fatal(err)
 	}
 	return r, string(rb)
+}
+
+func getTasks(port int) (*APIResponse, string) {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks", port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
+func startTask(id, port int) (*APIResponse, string) {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/start", port, id)
+	client := &http.Client{}
+	b := bytes.NewReader([]byte{})
+	req, err := http.NewRequest("PUT", uri, b)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
+func stopTask(id, port int) (*APIResponse, string) {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/stop", port, id)
+	client := &http.Client{}
+	b := bytes.NewReader([]byte{})
+	req, err := http.NewRequest("PUT", uri, b)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
+func removeTask(id, port int) (*APIResponse, string) {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id)
+	client := &http.Client{}
+	req, err := http.NewRequest("DELETE", uri, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
+func createTask(sample, name, interval string, port int) (*APIResponse, string) {
+	jsonP, err := ioutil.ReadFile("./wmap_sample/" + sample)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wf, err := wmap.FromJson(jsonP)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks", port)
+
+	t := request.TaskCreationRequest{
+		Schedule: request.Schedule{Type: "simple", Interval: "1s"},
+		Workflow: wf,
+		Name:     name,
+	}
+	// Marshal to JSON for request body
+	j, err := json.Marshal(t)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	client := &http.Client{}
+	b := bytes.NewReader(j)
+	req, err := http.NewRequest("POST", uri, b)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
 }
 
 func uploadPlugin(pluginPath string, port int) (*APIResponse, string) {
@@ -542,24 +637,186 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr3.Catalog[1].Versions["2"], ShouldBeNil)
 				So(plr3.Catalog[1].Versions["1"].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 			})
-
-			// 	resp, err := http.Get("http://localhost:port/v1/metrics")
-			// 	if err != nil {
-			// 		log.Fatal(err)
-			// 	}
-
-			// 	r, _ := getAPIResponse(resp)
-			// 	// print("\n" + rs)
-			// 	plr := r.Body.(*rbody.MetricCatalogReturned)
-
-			// 	So(plr.ResponseBodyType(), ShouldEqual, rbody.MetricCatalogReturnedType)
-			// 	So(plr.ResponseBodyMessage(), ShouldEqual, "Metric catalog returned")
-			// 	So(len(plr.Catalog), ShouldEqual, 2)
-			// 	So(plr.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/foo")
-			// 	So(plr.Catalog[0].Version, ShouldEqual, 2)
-			// 	So(plr.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
-			// 	So(plr.Catalog[1].Version, ShouldEqual, 2)
 		})
 
+		Convey("Create Task - POST - /v1/tasks", func() {
+			Convey("creating task with missing metric errors", func() {
+				port := getPort()
+				startAPI(port)
+
+				r, _ := createTask("1.json", "foo", "1s", port)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.Error))
+				plr := r.Body.(*rbody.Error)
+				So(plr.ErrorMessage, ShouldEqual, "metric not found")
+			})
+
+			Convey("create task works when plugins are loaded", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+				r, _ := createTask("1.json", "foo", "1s", port)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr := r.Body.(*rbody.AddScheduledTask)
+				So(plr.CreationTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+				So(plr.Name, ShouldEqual, "foo")
+				So(plr.HitCount, ShouldEqual, 0)
+				So(plr.FailedCount, ShouldEqual, 0)
+				So(plr.MissCount, ShouldEqual, 0)
+				So(plr.State, ShouldEqual, "Stopped")
+				So(plr.Deadline, ShouldEqual, "5s")
+			})
+
+		})
+
+		Convey("Get Tasks - GET - /v1/tasks", func() {
+			Convey("get tasks after single task added", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+				r, _ := createTask("1.json", "bar", "1s", port)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+
+				r2, _ := getTasks(port)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
+				plr2 := r2.Body.(*rbody.ScheduledTaskListReturned)
+				So(len(plr2.ScheduledTasks), ShouldEqual, 1)
+				So(plr2.ScheduledTasks[0].Name, ShouldEqual, "bar")
+			})
+
+			Convey("get tasks after multiple tasks added", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+
+				r1, _ := createTask("1.json", "alpha", "1s", port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+
+				r2, _ := createTask("1.json", "beta", "1s", port)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+
+				r3, _ := getTasks(port)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
+				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
+				So(len(plr3.ScheduledTasks), ShouldEqual, 2)
+				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "alpha")
+				So(plr3.ScheduledTasks[1].Name, ShouldEqual, "beta")
+			})
+		})
+
+		Convey("Start Task - PUT - /v1/tasks/:id/start", func() {
+			Convey("starts after being created", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+
+				r1, _ := createTask("1.json", "xenu", "1s", port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+
+				id := plr1.ID
+
+				r2, _ := startTask(id, port)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStarted))
+				plr2 := r2.Body.(*rbody.ScheduledTaskStarted)
+				So(plr2.ID, ShouldEqual, id)
+
+				r3, _ := getTasks(port)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
+				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
+				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
+				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "xenu")
+				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Spinning")
+			})
+		})
+
+		Convey("Stop Task - PUT - /v1/tasks/:id/stop", func() {
+			Convey("stops after being started", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+
+				r1, _ := createTask("1.json", "yeti", "1s", port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+
+				id := plr1.ID
+
+				r2, _ := startTask(id, port)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStarted))
+				plr2 := r2.Body.(*rbody.ScheduledTaskStarted)
+				So(plr2.ID, ShouldEqual, id)
+
+				r3, _ := getTasks(port)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
+				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
+				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
+				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "yeti")
+				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Spinning")
+
+				r4, _ := stopTask(id, port)
+				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStopped))
+				plr4 := r4.Body.(*rbody.ScheduledTaskStopped)
+				So(plr4.ID, ShouldEqual, id)
+
+				r5, _ := getTasks(port)
+				So(r5.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
+				plr5 := r5.Body.(*rbody.ScheduledTaskListReturned)
+				So(len(plr5.ScheduledTasks), ShouldEqual, 1)
+				So(plr5.ScheduledTasks[0].Name, ShouldEqual, "yeti")
+				So(plr5.ScheduledTasks[0].State, ShouldEqual, "Stopped")
+			})
+		})
+
+		Convey("Remove Task - DELETE - /v1/tasks/:id", func() {
+			Convey("error on trying to remove unknown plugin", func() {
+				port := getPort()
+				startAPI(port)
+
+				r1, _ := removeTask(99999, port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.Error))
+				plr1 := r1.Body.(*rbody.Error)
+				So(plr1.ErrorMessage, ShouldEqual, "Task not found")
+			})
+			Convey("removes a task", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+
+				r1, _ := createTask("1.json", "yeti", "1s", port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+
+				id := plr1.ID
+
+				r2, _ := getTasks(port)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
+				plr2 := r2.Body.(*rbody.ScheduledTaskListReturned)
+				So(len(plr2.ScheduledTasks), ShouldEqual, 1)
+				So(plr2.ScheduledTasks[0].Name, ShouldEqual, "yeti")
+				So(plr2.ScheduledTasks[0].State, ShouldEqual, "Stopped")
+
+				r3, _ := removeTask(id, port)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskRemoved))
+				plr3 := r3.Body.(*rbody.ScheduledTaskRemoved)
+				So(plr3.ID, ShouldEqual, id)
+
+				r4, _ := getTasks(port)
+				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
+				plr4 := r4.Body.(*rbody.ScheduledTaskListReturned)
+				So(len(plr4.ScheduledTasks), ShouldEqual, 0)
+			})
+		})
 	})
 }
