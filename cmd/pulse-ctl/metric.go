@@ -9,7 +9,7 @@ import (
 )
 
 func listMetrics(ctx *cli.Context) {
-	mts := client.GetMetricCatalog()
+	mts := pClient.GetMetricCatalog()
 	if mts.Err != nil {
 		fmt.Printf("error getting metric catalog: %v", mts.Err)
 		os.Exit(1)

@@ -4,12 +4,12 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
-	"github.com/intelsdi-x/pulse/client"
+	"github.com/intelsdi-x/pulse/mgmt/rest/client"
 )
 
 var gitversion string
 
-var client = pulse.New(flURL.Value, "")
+var pClient = client.New(flURL.Value, "")
 
 func main() {
 	app := cli.NewApp()

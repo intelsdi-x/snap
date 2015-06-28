@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
-	"github.com/intelsdi-x/pulse/client"
+	"github.com/intelsdi-x/pulse/mgmt/rest/client"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 type task struct {
 	Version  int
-	Schedule *pulse.Schedule
+	Schedule *client.Schedule
 	Workflow *wmap.WorkflowMap
 	Name     string
 }
@@ -47,7 +47,7 @@ func createTask(ctx *cli.Context) {
 
 	}
 
-	task := client.CreateTask(t.Schedule, t.Workflow, t.Name)
+	task := pClient.CreateTask(t.Schedule, t.Workflow, t.Name)
 
 	if task.Err != nil {
 		fmt.Printf("Error creating task - %v\n", task.Err)
@@ -61,7 +61,7 @@ func createTask(ctx *cli.Context) {
 }
 
 func listTask(ctx *cli.Context) {
-	tasks := client.GetTasks()
+	tasks := pClient.GetTasks()
 	if tasks.Err != nil {
 		fmt.Printf("Error getting tasks - %v\n", tasks.Err)
 		os.Exit(1)
@@ -104,7 +104,7 @@ func startTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := client.StartTask(id)
+	task := pClient.StartTask(id)
 	if task.Err != nil {
 		fmt.Println(task.Err)
 		os.Exit(1)
@@ -122,7 +122,7 @@ func stopTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := client.StopTask(id)
+	task := pClient.StopTask(id)
 	if task.Err != nil {
 		fmt.Println(task.Err)
 		os.Exit(1)
@@ -140,7 +140,7 @@ func removeTask(ctx *cli.Context) {
 		fmt.Printf("Incorrect usage - %v\n", err.Error())
 		os.Exit(1)
 	}
-	task := client.RemoveTask(id)
+	task := pClient.RemoveTask(id)
 	if task.Err != nil {
 		fmt.Println(task.Err)
 		os.Exit(1)

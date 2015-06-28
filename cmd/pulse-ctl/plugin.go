@@ -15,11 +15,12 @@ func loadPlugin(ctx *cli.Context) {
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
-	err := client.LoadPlugin(ctx.Args().First())
-	if err != nil {
-		fmt.Printf("Error loading plugin:\n\t%v\n", err.Error())
-		os.Exit(1)
-	}
+	// TODO refactor
+	// err := pClient.LoadPlugin(ctx.Args().First())
+	// if err != nil {
+	// 	fmt.Printf("Error loading plugin:\n\t%v\n", err.Error())
+	// 	os.Exit(1)
+	// }
 }
 
 func unloadPlugin(ctx *cli.Context) {
@@ -31,7 +32,7 @@ func unloadPlugin(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	//
-	resp := client.UnloadPlugin(pName, pVer)
+	resp := pClient.UnloadPlugin(pName, pVer)
 
 	fmt.Println(resp)
 	// if err != nil {
@@ -42,7 +43,7 @@ func unloadPlugin(ctx *cli.Context) {
 }
 
 func listPlugins(ctx *cli.Context) {
-	plugins := client.GetPlugins(ctx.Bool("running"))
+	plugins := pClient.GetPlugins(ctx.Bool("running"))
 	if plugins.Err != nil {
 		fmt.Printf("Error: %v\n", plugins.Err)
 		os.Exit(1)
