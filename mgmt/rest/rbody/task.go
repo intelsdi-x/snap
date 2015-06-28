@@ -2,6 +2,7 @@ package rbody
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/intelsdi-x/pulse/core"
 )
@@ -83,6 +84,10 @@ type ScheduledTask struct {
 	FailedCount        int    `json:"failed_count,omitempty"`
 	LastFailureMessage string `json:"last_failure_message,omitempty"`
 	State              string `json:"task_state"`
+}
+
+func (s *ScheduledTask) CreationTime() time.Time {
+	return time.Unix(s.CreationTimestamp, 0)
 }
 
 func (s *ScheduledTask) ResponseBodyMessage() string {
