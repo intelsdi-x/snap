@@ -253,9 +253,9 @@ func (s *scheduler) StopTask(id uint64) error {
 	if t == nil {
 		e := fmt.Errorf("No task found with id '%v'", id)
 		s.logger.WithFields(log.Fields{
-			"_block":  "start-scheduler",
+			"_block":  "stop-task",
 			"_error":  e.Error(),
-			"task-id": t.ID(),
+			"task-id": id,
 		}).Warning("error on stopping of task")
 		return e
 	}
