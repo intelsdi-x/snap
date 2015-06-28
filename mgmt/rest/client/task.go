@@ -77,7 +77,6 @@ func (c *Client) StartTask(id uint64) *StartTasksResult {
 	default:
 		return &StartTasksResult{Err: ErrAPIResponseMetaType}
 	}
-	return nil
 }
 
 func (c *Client) StopTask(id uint64) *StopTasksResult {
@@ -95,7 +94,6 @@ func (c *Client) StopTask(id uint64) *StopTasksResult {
 	default:
 		return &StopTasksResult{Err: ErrAPIResponseMetaType}
 	}
-	return nil
 }
 
 func (c *Client) RemoveTask(id uint64) *RemoveTasksResult {
@@ -113,8 +111,6 @@ func (c *Client) RemoveTask(id uint64) *RemoveTasksResult {
 	default:
 		return &RemoveTasksResult{Err: ErrAPIResponseMetaType}
 	}
-
-	return nil
 }
 
 type CreateTaskResult struct {
