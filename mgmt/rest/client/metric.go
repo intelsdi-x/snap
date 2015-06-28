@@ -10,50 +10,8 @@ var (
 	ErrAPIResponseMetaType = errors.New("Received an invalid API response (META/TYPE)")
 )
 
-// MetricConfig is the type for incoming configuation data.
-// This data must be in compliance with a MetricPolicy
-// Ex:
-//     metric type: /intel/facter/kernel
-//     MetricConfig {
-//         Key:   "path",
-//         Value: "/usr/local/bin/facter",
-//     }
-type MetricConfig struct {
-	Table map[string]interface{}
-}
-
-func (m *MetricConfig) Merge(mc *MetricConfig) {
-}
-
-/*
-   Generally, MetricPolicy should be read only.
-   This is data which is created by a plugin writer when
-   describing their metrics.  It is provided in the pulse
-   client in this manner so that a consumer of the metric
-   catalog can read these values should they need to.
-*/
-
-// MetricPolicy is the requirements for collecting a metric.
-// Ex:
-//    metric type: /intel/facter/kernel
-//    MetricPolicy {
-//        Key:      "path",
-//        Type:     "string,
-//        Required: true,
-//        Default:  "/bin/facter",
-//    }
-type MetricPolicy struct {
-}
-
-type MetricType struct {
-	Namespace               string        `json:"namespace"`
-	Version                 int           `json:"version,omitempty"`
-	LastAdvertisedTimestamp int64         `json:"last_advertised_timestamp,omitempty"`
-	Config                  *MetricConfig `json:"config,omitempty"`
-	Policy                  *MetricPolicy `json:"policy,omitempty"`
-}
-
 func (c *Client) GetMetricCatalog() *GetMetricCatalogResult {
+	r := &GetMetricCatalogResult{}
 	resp, err := c.do("GET", "/metrics", ContentTypeJSON)
 	if err != nil {
 		return &GetMetricCatalogResult{Err: err}
@@ -61,24 +19,33 @@ func (c *Client) GetMetricCatalog() *GetMetricCatalogResult {
 
 	switch resp.Meta.Type {
 	case rbody.MetricCatalogReturnedType:
-		return &GetMetricCatalogResult{resp.Body.(*rbody.MetricCatalogReturned), nil}
+		mc := resp.Body.(*rbody.MetricCatalogReturned)
+		r.Catalog = convertCatalog(mc.Catalog)
 	case rbody.ErrorType:
-		return &GetMetricCatalogResult{Err: resp.Body.(*rbody.Error)}
+		r.Err = resp.Body.(*rbody.Error)
 	default:
-		return &GetMetricCatalogResult{Err: ErrAPIResponseMetaType}
+		r.Err = ErrAPIResponseMetaType
 	}
+	return r
 }
 
 type GetMetricCatalogResult struct {
-	*rbody.MetricCatalogReturned
-	Err error
+	Catalog []MetricCatalogItem
+	Err     error
 }
 
-// type getMetricTypesReply struct {
-// 	respBody
-// 	Data getMetricTypesData `json:"data"`
-// }
+func (g *GetMetricCatalogResult) Len() int {
+	return len(g.Catalog)
+}
 
-// type getMetricTypesData struct {
-// 	MetricTypes []*MetricType `json:"metric_types"`
-// }
+type MetricCatalogItem struct {
+	*rbody.CatalogItem
+}
+
+func convertCatalog(c []rbody.CatalogItem) []MetricCatalogItem {
+	mci := make([]MetricCatalogItem, len(c))
+	for i, _ := range c {
+		mci[i] = MetricCatalogItem{&c[i]}
+	}
+	return mci
+}

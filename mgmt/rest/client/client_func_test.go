@@ -142,7 +142,6 @@ func TestPulseClient(t *testing.T) {
 				So(p2.Err.Error(), ShouldEqual, "plugin is already loaded")
 			})
 		})
-
 		Convey("UnloadPlugin", func() {
 			Convey("unload unknown plugin", func() {
 				port := getPort()
@@ -184,6 +183,32 @@ func TestPulseClient(t *testing.T) {
 				So(p2.Err, ShouldBeNil)
 				So(len(p2.LoadedPlugins), ShouldEqual, 1)
 				So(p2.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
+			})
+		})
+		Convey("GetMetricCatalog", func() {
+			Convey("empty catalog", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p := c.GetMetricCatalog()
+				So(p.Err, ShouldBeNil)
+				So(p.Len(), ShouldEqual, 0)
+			})
+			Convey("items in catalog", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				p := c.GetMetricCatalog()
+				So(p.Err, ShouldBeNil)
+				So(p.Len(), ShouldEqual, 2)
+				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(len(p.Catalog[0].Versions), ShouldEqual, 2)
+				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
+				So(len(p.Catalog[1].Versions), ShouldEqual, 2)
 			})
 		})
 	})
