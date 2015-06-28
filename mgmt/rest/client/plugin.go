@@ -1,4 +1,4 @@
-package pulse
+package client
 
 import (
 	"fmt"
