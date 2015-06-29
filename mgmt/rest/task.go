@@ -101,6 +101,22 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	respond(200, tasks, w)
 }
 
+func (s *Server) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
+		return
+	}
+	t, err1 := s.mt.GetTask(id)
+	if err1 != nil {
+		respond(404, rbody.FromError(err1), w)
+		return
+	}
+	task := &rbody.ScheduledTaskReturned{}
+	task.ScheduledTask = *rbody.SchedulerTaskFromTask(t)
+	respond(200, task, w)
+}
+
 func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
 	if err != nil {

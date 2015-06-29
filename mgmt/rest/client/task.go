@@ -61,6 +61,22 @@ func (c *Client) GetTasks() *GetTasksResult {
 	}
 }
 
+func (c *Client) GetTask(id uint) *GetTaskResult {
+	resp, err := c.do("GET", fmt.Sprintf("/tasks/%v", id), ContentTypeJSON, nil)
+	if err != nil {
+		return &GetTaskResult{Err: err}
+	}
+	switch resp.Meta.Type {
+	case rbody.ScheduledTaskReturnedType:
+		// Success
+		return &GetTaskResult{resp.Body.(*rbody.ScheduledTaskReturned), nil}
+	case rbody.ErrorType:
+		return &GetTaskResult{Err: resp.Body.(*rbody.Error)}
+	default:
+		return &GetTaskResult{Err: ErrAPIResponseMetaType}
+	}
+}
+
 func (c *Client) StartTask(id int) *StartTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id), ContentTypeJSON)
 
@@ -123,6 +139,11 @@ type CreateTaskResult struct {
 
 type GetTasksResult struct {
 	*rbody.ScheduledTaskListReturned
+	Err error
+}
+
+type GetTaskResult struct {
+	*rbody.ScheduledTaskReturned
 	Err error
 }
 

@@ -9,6 +9,7 @@ import (
 
 const (
 	ScheduledTaskListReturnedType = "scheduled_task_list_returned"
+	ScheduledTaskReturnedType     = "scheduled_task_returned"
 	AddScheduledTaskType          = "scheduled_task_created"
 	ScheduledTaskType             = "scheduled_task"
 	ScheduledTaskStartedType      = "scheduled_task_started"
@@ -38,6 +39,18 @@ func (s *ScheduledTaskListReturned) ResponseBodyMessage() string {
 
 func (s *ScheduledTaskListReturned) ResponseBodyType() string {
 	return ScheduledTaskListReturnedType
+}
+
+type ScheduledTaskReturned struct {
+	ScheduledTask
+}
+
+func (s *ScheduledTaskReturned) ResponseBodyMessage() string {
+	return fmt.Sprintf("Scheduled task (%d) returned", s.ID)
+}
+
+func (s *ScheduledTaskReturned) ResponseBodyType() string {
+	return ScheduledTaskReturnedType
 }
 
 type AddScheduledTask ScheduledTask

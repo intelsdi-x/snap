@@ -46,6 +46,13 @@ func UnmarshalBody(t string, b []byte) (Body, error) {
 			return nil, err
 		}
 		return p, nil
+	case ScheduledTaskReturnedType:
+		p := &ScheduledTaskReturned{}
+		err := json.Unmarshal(b, p)
+		if err != nil {
+			return nil, err
+		}
+		return p, nil
 	case ScheduledTaskType:
 		p := &ScheduledTask{}
 		err := json.Unmarshal(b, p)
