@@ -96,7 +96,7 @@ func joinNamespace(ns []string) string {
 
 func prettyPrint(mts []plugin.PluginMetricType) error {
 	var out bytes.Buffer
-	mtsb, _, _ := plugin.MarshallPluginMetricTypes(plugin.PulseJSONContentType, mts)
+	mtsb, _, _ := plugin.MarshalPluginMetricTypes(plugin.PulseJSONContentType, mts)
 	if err := json.Indent(&out, mtsb, "", "  "); err != nil {
 		return err
 	}

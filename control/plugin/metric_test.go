@@ -15,7 +15,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, 2),
 		}
-		a, c, e := MarshallPluginMetricTypes("foo", m)
+		a, c, e := MarshalPluginMetricTypes("foo", m)
 		m[0].Version_ = 1
 		m[0].AddData(3)
 		configNewNode := cdata.NewNode()
@@ -32,7 +32,7 @@ func TestMetric(t *testing.T) {
 
 	Convey("error on empty metric slice", t, func() {
 		m := []PluginMetricType{}
-		a, c, e := MarshallPluginMetricTypes("foo", m)
+		a, c, e := MarshalPluginMetricTypes("foo", m)
 		So(e, ShouldNotBeNil)
 		So(e.Error(), ShouldEqual, "attempt to marshall empty slice of metrics: foo")
 		So(a, ShouldBeNil)
@@ -44,7 +44,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, "2"),
 		}
-		a, c, e := MarshallPluginMetricTypes("pulse.*", m)
+		a, c, e := MarshalPluginMetricTypes("pulse.*", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
@@ -66,7 +66,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, "2"),
 		}
-		a, c, e := MarshallPluginMetricTypes("pulse.gob", m)
+		a, c, e := MarshalPluginMetricTypes("pulse.gob", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
@@ -94,7 +94,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, "2"),
 		}
-		a, c, e := MarshallPluginMetricTypes("pulse.json", m)
+		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
@@ -122,7 +122,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, "2"),
 		}
-		a, c, e := MarshallPluginMetricTypes("pulse.json", m)
+		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
@@ -139,7 +139,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, "2"),
 		}
-		a, c, e := MarshallPluginMetricTypes("pulse.gob", m)
+		a, c, e := MarshalPluginMetricTypes("pulse.gob", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
@@ -163,7 +163,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, "2"),
 		}
-		a, c, e := MarshallPluginMetricTypes("pulse.json", m)
+		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
@@ -187,7 +187,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, "2"),
 		}
-		a, c, e := MarshallPluginMetricTypes("pulse.json", m)
+		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
@@ -211,7 +211,7 @@ func TestMetric(t *testing.T) {
 			*NewPluginMetricType([]string{"foo", "bar"}, 1),
 			*NewPluginMetricType([]string{"foo", "baz"}, "2"),
 		}
-		a, c, e := MarshallPluginMetricTypes("pulse.json", m)
+		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
