@@ -72,8 +72,8 @@ func (p *PluginMetricType) AddData(data interface{}) {
 	p.Data_ = data
 }
 
-// MarshallMetricTypes returns a []byte containing a serialized version of []PluginMetricType using the content type provided.
-func MarshallPluginMetricTypes(contentType string, metrics []PluginMetricType) ([]byte, string, error) {
+// MarshalMetricTypes returns a []byte containing a serialized version of []PluginMetricType using the content type provided.
+func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([]byte, string, error) {
 	// If we have an empty slice we return an error
 	if len(metrics) == 0 {
 		es := fmt.Sprintf("attempt to marshall empty slice of metrics: %s", contentType)
@@ -176,7 +176,7 @@ func SwapPluginMetricContentType(contentType, requestedContentType string, paylo
 		}).Error("error while swaping")
 		return nil, "", err1
 	}
-	newPayload, newContentType, err2 := MarshallPluginMetricTypes(requestedContentType, metrics)
+	newPayload, newContentType, err2 := MarshalPluginMetricTypes(requestedContentType, metrics)
 	if err2 != nil {
 		log.WithFields(log.Fields{
 			"module": "control-plugin",

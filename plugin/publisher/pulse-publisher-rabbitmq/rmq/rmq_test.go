@@ -4,6 +4,9 @@
 package rmq
 
 import (
+	"encoding/json"
+	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -11,42 +14,53 @@ import (
 	"github.com/streadway/amqp"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
 // integration test
 func TestPublish(t *testing.T) {
-	Convey("Publish []data in RabbitMQ", t, func() {
-		data := []byte("RabbitMQ test string")
+	Convey("Publish data in RabbitMQ", t, func() {
+		mt := plugin.PluginMetricType{
+			Namespace_:          []string{"foo", "bar"},
+			LastAdvertisedTime_: time.Now(),
+			Version_:            1,
+			Data_:               1,
+		}
+		data, _, err := plugin.MarshallPluginMetricTypes(plugin.PulseGOBContentType, []plugin.PluginMetricType{mt})
+		So(err, ShouldBeNil)
 		rmqPub := NewRmqPublisher()
-		err := rmqPub.Publish(data)
-		Convey("No errors are returned from Publish function", func() {
-			So(err, ShouldBeNil)
-		})
+		config := map[string]ctypes.ConfigValue{
+			"address":       ctypes.ConfigValueStr{Value: "127.0.0.1:5672"},
+			"exchange_name": ctypes.ConfigValueStr{Value: "pulse"},
+			"routing_key":   ctypes.ConfigValueStr{Value: "metrics"},
+			"exchange_type": ctypes.ConfigValueStr{Value: "fanout"},
+		}
+		logger := log.New(os.Stdout, "", log.LstdFlags)
+		err = rmqPub.Publish(plugin.PulseGOBContentType, data, config, logger)
+		So(err, ShouldBeNil)
 		Convey("We can receive posted message", func() {
 			cKill := make(chan struct{})
-			cMetrics, err := connectToAmqp(rmqPub, cKill)
+			cMetrics, err := connectToAmqp(cKill)
 			So(err, ShouldBeNil)
-			if err != nil {
-				t.Fatal("Error while executing tests: cannot connect to AMQP ", err)
-			}
-			err = rmqPub.Publish(data)
 			timeout := time.After(time.Second * 2)
 			if err == nil {
 				select {
 				case metric := <-cMetrics:
-					So(data, ShouldResemble, []byte(metric))
+					var metrix []plugin.PluginMetricType
+					err := json.Unmarshal(metric, &metrix)
+					So(err, ShouldBeNil)
+					So(metrix[1].Version, ShouldEqual, 1)
 					cKill <- struct{}{}
-				case _ = <-timeout:
+				case <-timeout:
 					t.Fatal("Timeout when waiting for AMQP message")
 				}
 			}
 		})
-
 	})
 }
 
-func connectToAmqp(rmqpub *rmqPublisher, cKill <-chan struct{}) (chan []byte, error) {
-	conn, err := amqp.Dial("amqp://" + rmqpub.rmqAddress)
+func connectToAmqp(cKill <-chan struct{}) (chan []byte, error) {
+	conn, err := amqp.Dial("amqp://127.0.0.1:5672")
 	if err != nil {
 		return nil, err
 	}
@@ -70,9 +84,9 @@ func connectToAmqp(rmqpub *rmqPublisher, cKill <-chan struct{}) (chan []byte, er
 	//	FailOnError(err, "Failed to declare a queue")
 
 	err = ch.QueueBind(
-		q.Name,           // queue name
-		rmqpub.rmqRtKey,  // routing key
-		rmqpub.rmqExName, // exchange
+		q.Name,    // queue name
+		"metrics", // routing key
+		"pulse",
 		false,
 		nil)
 	if err != nil {
@@ -113,13 +127,5 @@ func TestPluginMeta(t *testing.T) {
 		So(meta.Name, ShouldResemble, name)
 		So(meta.Version, ShouldResemble, version)
 		So(meta.Type, ShouldResemble, plugin.PublisherPluginType)
-	})
-}
-
-func TestConfigPolicyTree(t *testing.T) {
-
-	Convey("ConfigPolicyTree returns non nil object", t, func() {
-		ct := ConfigPolicyTree()
-		So(ct, ShouldNotBeNil)
 	})
 }
