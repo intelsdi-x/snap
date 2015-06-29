@@ -19,6 +19,7 @@ func main() {
 	app.Name = "pulse-ctl"
 	app.Commands = commands
 	app.Version = gitversion
+	app.Usage = "A powerful telemetry agent framework"
 	app.Flags = []cli.Flag{flURL}
 
 	app.Run(os.Args)

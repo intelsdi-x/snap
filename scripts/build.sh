@@ -31,7 +31,7 @@ mkdir -p $PROCESSORDIR
 # Binaries
 #
 echo "Source Dir = $SOURCEDIR"
-echo " Building Pulse Agent"	
+echo " Building Pulse Agent"
 go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/pulse-agent . || exit 1
 
 if [ "$SPLUGIN" ] && [ -n "$SPLUGINFOLDER" ]
@@ -41,7 +41,7 @@ then
 	cd $SOURCEDIR/plugin/$SPLUGINFOLDER/
 	target=./$SPLUGIN/
 	destination=$BUILDDIR/$PLUGINDIR/$SPLUGINFOLDER/$SPLUGIN
-	echo "    $SPLUGIN => $destination"	
+	echo "    $SPLUGIN => $destination"
 	$BUILDCMD -o $destination $target || exit 2
 	cd $SOURCEDIR
 else
@@ -52,7 +52,7 @@ else
 	cd $SOURCEDIR/$PLUGINDIR/collector
 	for d in *; do
 		if [[ -d $d ]]; then
-			echo "    $d => $COLLECTORDIR/$d"		
+			echo "    $d => $COLLECTORDIR/$d"
 			$BUILDCMD -o $COLLECTORDIR/$d ./$d/ || exit 2
 		fi
 	done
@@ -63,7 +63,7 @@ else
 	cd $SOURCEDIR/$PLUGINDIR/publisher
 	for d in *; do
 		if [[ -d $d ]]; then
-			echo "    $d => $PUBLISHERDIR/$d"		
+			echo "    $d => $PUBLISHERDIR/$d"
 			$BUILDCMD -o $PUBLISHERDIR/$d ./$d/ || exit 2
 		fi
 	done
@@ -74,8 +74,8 @@ else
 	cd $SOURCEDIR/$PLUGINDIR/processor
 	for d in *; do
 		if [[ -d $d ]]; then
-			echo "    $d => $PROCESSORDIR/$d"		
-			$BUILDCMD -o $PROCESSORDIR/$d ./$d/ || exit 2			
+			echo "    $d => $PROCESSORDIR/$d"
+			$BUILDCMD -o $PROCESSORDIR/$d ./$d/ || exit 2
 		fi
 	done
 
@@ -84,8 +84,8 @@ else
 	cd $SOURCEDIR/cmd
 	for d in *; do
 		if [[ -d $d ]]; then
-			echo "    $d => $BINDIR/$d"					
-			$BUILDCMD -o $BINDIR/$d ./$d/ || exit 3
+			echo "    $d => $BINDIR/$d"
+			go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/$d ./$d/ || exit 3
 		fi
 	done
 
