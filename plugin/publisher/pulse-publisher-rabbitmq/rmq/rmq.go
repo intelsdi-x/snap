@@ -18,10 +18,18 @@ func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
-func ConfigPolicyTree() *cpolicy.ConfigPolicyTree {
-	c := cpolicy.NewTree()
-	return c
+type rmqPublisher struct{}
+
+func NewRmqPublisher() *rmqPublisher {
+	return &rmqPublisher{}
+
 }
+
+const (
+	name       = "rabbitmq"
+	version    = 1
+	pluginType = plugin.PublisherPluginType
+)
 
 func (rmq *rmqPublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
 	var metrics []plugin.PluginMetricType
@@ -72,19 +80,6 @@ func (f *rmqPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 
 	return *config
 }
-
-type rmqPublisher struct{}
-
-func NewRmqPublisher() *rmqPublisher {
-	return &rmqPublisher{}
-
-}
-
-const (
-	name       = "rabbitmq"
-	version    = 1
-	pluginType = plugin.PublisherPluginType
-)
 
 func publishDataToRmq(metrics []plugin.PluginMetricType, address string, exName string, rtKey string, exKind string, logger *log.Logger) error {
 	conn, err := amqp.Dial("amqp://" + address)
