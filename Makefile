@@ -1,18 +1,13 @@
-default: build-pulse
-
+default:
+	$(MAKE) deps
+	$(MAKE) all
 deps:
-	go get -u github.com/smartystreets/goconvey
-	go get -u github.com/smartystreets/assertions
-	go get -u golang.org/x/tools/cmd/cover
-	go get -u github.com/streadway/amqp
-	go get -u github.com/docker/libcontainer
-	cd ../../docker/libcontainer; git checkout tags/v1.4.0; cd -
-
+	bash -c "./scripts/deps.sh"
 test:
 	export PULSE_PATH=`pwd`/build; bash -c "./scripts/test.sh"
-
 check:
 	$(MAKE) test
-
-build-pulse:
+all:
+	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))) true"
+pulse:
 	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))"
