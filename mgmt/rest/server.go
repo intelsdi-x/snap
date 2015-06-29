@@ -77,6 +77,7 @@ type managesMetrics interface {
 type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, ...core.TaskOption) (core.Task, core.TaskErrors)
 	GetTasks() map[uint64]core.Task
+	GetTask(id uint64) (core.Task, error)
 	StartTask(id uint64) error
 	StopTask(id uint64) error
 	RemoveTask(id uint64) error
@@ -133,6 +134,7 @@ func (s *Server) start(addrString string) {
 
 	// task routes
 	s.r.GET("/v1/tasks", s.getTasks)
+	s.r.GET("/v1/tasks/:id", s.getTask)
 	s.r.POST("/v1/tasks", s.addTask)
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)

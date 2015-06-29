@@ -80,6 +80,14 @@ func getTasks(port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
+func getTask(id, port int) *APIResponse {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
 func startTask(id, port int) *APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/start", port, id)
 	client := &http.Client{}
@@ -707,6 +715,22 @@ func TestPluginRestCalls(t *testing.T) {
 				So(len(plr3.ScheduledTasks), ShouldEqual, 2)
 				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "alpha")
 				So(plr3.ScheduledTasks[1].Name, ShouldEqual, "beta")
+			})
+		})
+
+		Convey("Get Task By ID - GET - /v1/tasks/:id", func() {
+			Convey("get task after task added", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+				r1 := createTask("1.json", "foo", "3s", port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				t1 := r1.Body.(*rbody.AddScheduledTask)
+				r2 := getTask(t1.ID, port)
+				t2 := r2.Body.(*rbody.ScheduledTaskReturned)
+				So(t2.ScheduledTask.Name, ShouldEqual, "foo")
 			})
 		})
 
