@@ -19,90 +19,38 @@ var (
 func UnmarshalBody(t string, b []byte) (Body, error) {
 	switch t {
 	case PluginListReturnedType:
-		p := &PluginListReturned{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &PluginListReturned{})
 	case PluginsLoadedType:
-		p := &PluginsLoaded{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &PluginsLoaded{})
 	case PluginUnloadedType:
-		p := &PluginUnloaded{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &PluginUnloaded{})
 	case ScheduledTaskListReturnedType:
-		p := &ScheduledTaskListReturned{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &ScheduledTaskListReturned{})
 	case ScheduledTaskReturnedType:
-		p := &ScheduledTaskReturned{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &ScheduledTaskReturned{})
 	case ScheduledTaskType:
-		p := &ScheduledTask{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &ScheduledTask{})
 	case AddScheduledTaskType:
-		p := &AddScheduledTask{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &AddScheduledTask{})
 	case ScheduledTaskStartedType:
-		p := &ScheduledTaskStarted{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &ScheduledTaskStarted{})
 	case ScheduledTaskStoppedType:
-		p := &ScheduledTaskStopped{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &ScheduledTaskStopped{})
 	case ScheduledTaskRemovedType:
-		p := &ScheduledTaskRemoved{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &ScheduledTaskRemoved{})
 	case MetricCatalogReturnedType:
-		p := &MetricCatalogReturned{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &MetricCatalogReturned{})
 	case ErrorType:
-		p := &Error{}
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		return unmarshalAndHandleError(b, &Error{})
 	default:
 		return nil, ErrCannotUnmarshalBody
 	}
+}
+
+func unmarshalAndHandleError(b []byte, body Body) (Body, error) {
+	err := json.Unmarshal(b, body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
