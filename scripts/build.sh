@@ -2,8 +2,9 @@
 
 GITVERSION=`git describe --always`
 SOURCEDIR=$1
-SPLUGINFOLDER=$2
-SPLUGIN=$3
+BUILDPLUGINS=$2
+SPLUGINFOLDER=$3
+SPLUGIN=$4
 BUILDDIR=$SOURCEDIR/build
 PLUGINDIR=plugin
 BINDIR=$BUILDDIR/bin
@@ -28,68 +29,70 @@ mkdir -p $COLLECTORDIR
 mkdir -p $PUBLISHERDIR
 mkdir -p $PROCESSORDIR
 
-# Binaries
-#
+# pulse-agent
 echo "Source Dir = $SOURCEDIR"
 echo " Building Pulse Agent"
 go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/pulse-agent . || exit 1
 
-if [ "$SPLUGIN" ] && [ -n "$SPLUGINFOLDER" ]
-then
-	echo " Building Plugin: $SPLUGIN"
-	# Built-in single plugin building
-	cd $SOURCEDIR/plugin/$SPLUGINFOLDER/
-	target=./$SPLUGIN/
-	destination=$BUILDDIR/$PLUGINDIR/$SPLUGINFOLDER/$SPLUGIN
-	echo "    $SPLUGIN => $destination"
-	$BUILDCMD -o $destination $target || exit 2
-	cd $SOURCEDIR
-else
-	# Clean build
-	rm -rf $COLLECTORDIR/*
-	echo " Building Collector Plugin(s)"
-	# Built-in Collector Plugin building
-	cd $SOURCEDIR/$PLUGINDIR/collector
-	for d in *; do
-		if [[ -d $d ]]; then
-			echo "    $d => $COLLECTORDIR/$d"
-			$BUILDCMD -o $COLLECTORDIR/$d ./$d/ || exit 2
-		fi
-	done
-	
-	# Publisher build
-	rm -rf $PUBLISHERDIR/*
-	echo " Building Publisher Plugin(s)"
-	cd $SOURCEDIR/$PLUGINDIR/publisher
-	for d in *; do
-		if [[ -d $d ]]; then
-			echo "    $d => $PUBLISHERDIR/$d"
-			$BUILDCMD -o $PUBLISHERDIR/$d ./$d/ || exit 2
-		fi
-	done
-	
-	# Processor build
-	rm -rf $PROCESSORDIR/*
-	echo " Building Processor Plugin(s)"
-	cd $SOURCEDIR/$PLUGINDIR/processor
-	for d in *; do
-		if [[ -d $d ]]; then
-			echo "    $d => $PROCESSORDIR/$d"
-			$BUILDCMD -o $PROCESSORDIR/$d ./$d/ || exit 2
-		fi
-	done
+# pulse-ctl
+echo " Building cmd(s)"
+cd $SOURCEDIR/cmd
+for d in *; do
+	if [[ -d $d ]]; then
+		echo "    $d => $BINDIR/$d"
+		go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/$d ./$d/ || exit 3
+	fi
+done
 
-	# pulse-ctl
-	echo " Building cmd(s)"
-	cd $SOURCEDIR/cmd
-	for d in *; do
-		if [[ -d $d ]]; then
-			echo "    $d => $BINDIR/$d"
-			go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/$d ./$d/ || exit 3
-		fi
-	done
 
-	cd $SOURCEDIR
+if [ "$BUILDPLUGINS" == "true" ]; then
+	if [ "$SPLUGIN" ] && [ -n "$SPLUGINFOLDER" ]
+	then
+		echo " Building Plugin: $SPLUGIN"
+		# Built-in single plugin building
+		cd $SOURCEDIR/plugin/$SPLUGINFOLDER/
+		target=./$SPLUGIN/
+		destination=$BUILDDIR/$PLUGINDIR/$SPLUGINFOLDER/$SPLUGIN
+		echo "    $SPLUGIN => $destination"
+		$BUILDCMD -o $destination $target || exit 2
+		cd $SOURCEDIR
+	else
+		# Clean build
+		rm -rf $COLLECTORDIR/*
+		echo " Building Collector Plugin(s)"
+		# Built-in Collector Plugin building
+		cd $SOURCEDIR/$PLUGINDIR/collector
+		for d in *; do
+			if [[ -d $d ]]; then
+				echo "    $d => $COLLECTORDIR/$d"
+				$BUILDCMD -o $COLLECTORDIR/$d ./$d/ || exit 2
+			fi
+		done
+
+		# Publisher build
+		rm -rf $PUBLISHERDIR/*
+		echo " Building Publisher Plugin(s)"
+		cd $SOURCEDIR/$PLUGINDIR/publisher
+		for d in *; do
+			if [[ -d $d ]]; then
+				echo "    $d => $PUBLISHERDIR/$d"
+				$BUILDCMD -o $PUBLISHERDIR/$d ./$d/ || exit 2
+			fi
+		done
+
+		# Processor build
+		rm -rf $PROCESSORDIR/*
+		echo " Building Processor Plugin(s)"
+		cd $SOURCEDIR/$PLUGINDIR/processor
+		for d in *; do
+			if [[ -d $d ]]; then
+				echo "    $d => $PROCESSORDIR/$d"
+				$BUILDCMD -o $PROCESSORDIR/$d ./$d/ || exit 2
+			fi
+		done
+
+		cd $SOURCEDIR
+	fi
 fi
 
 echo
