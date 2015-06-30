@@ -23,7 +23,7 @@ var (
 	restMgmt         = flag.Bool("rest", false, "start rest interface for Pulse")
 	maxProcs         = flag.Int("max-procs", 0, "Set max cores to use for Pulse Agent. Default is 1 core.")
 	logPath          = flag.String("log-path", "", "Path for logs. Empty path logs to stdout.")
-	logLevel         = flag.Int("log-level", 2, "1-5 (Debug, Info, Warning, Error, Fatal")
+	logLevel         = flag.Int("log-level", 2, "1-5 (Debug, Info, Warning, Error, Fatal)")
 	autodiscoverPath = flag.String("autodiscover", "", "Autodiscover paths separated by colons.")
 
 	gitversion string
