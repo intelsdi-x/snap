@@ -7,18 +7,31 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// Get current metric catalog
 	mets, err := s.mm.MetricCatalog()
-	// If error prepare and response with generic rest error
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	// Prepare metric catalog returned body
+	respondWithMetrics(mets, w)
+}
+
+func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	ns := parseNamespace(params.ByName("namespace"))
+
+	mets, err := s.mm.FetchMetrics(ns)
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
+		return
+	}
+	respondWithMetrics(mets, w)
+}
+
+func respondWithMetrics(mets []core.CatalogedMetric, w http.ResponseWriter) {
 	b := rbody.NewMetricCatalogReturned()
 
 	for _, cm := range mets {
@@ -36,7 +49,4 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 	sort.Sort(b)
 	respond(200, b, w)
-}
-
-func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }

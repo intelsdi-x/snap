@@ -606,9 +606,13 @@ func (p *pluginControl) AvailablePlugins() []core.AvailablePlugin {
 }
 
 func (p *pluginControl) MetricCatalog() ([]core.CatalogedMetric, error) {
+	return p.FetchMetrics([]string{})
+}
+
+func (p *pluginControl) FetchMetrics(ns []string) ([]core.CatalogedMetric, error) {
 	cat := make([]*metricCatalogItem, 0)
 
-	mts, err := p.metricCatalog.Fetch([]string{})
+	mts, err := p.metricCatalog.Fetch(ns)
 	if err != nil {
 		return nil, err
 	}
