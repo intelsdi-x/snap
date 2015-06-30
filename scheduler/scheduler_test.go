@@ -6,13 +6,15 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+	. "github.com/smartystreets/goconvey/convey"
+
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 type mockMetricManager struct {
@@ -23,14 +25,14 @@ type mockMetricManager struct {
 	returnedContentTypes       map[string][]string
 }
 
-func (m *mockMetricManager) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error) {
+func (m *mockMetricManager) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.PulseError) {
 	if m.failValidatingMetrics {
 		if m.failValidatingMetricsAfter > m.failuredSoFar {
 			m.failuredSoFar++
 			return nil, nil
 		}
-		return nil, []error{
-			errors.New("metric validation error"),
+		return nil, []perror.PulseError{
+			perror.New(errors.New("metric validation error")),
 		}
 	}
 	return nil, nil
@@ -87,12 +89,29 @@ func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, p
 	return "", nil, nil
 }
 
-func (m *mockMetricManager) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error {
-	return []error{}
+func (m *mockMetricManager) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError {
+	return []perror.PulseError{}
 }
 
-func (m *mockMetricManager) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []error {
-	return []error{}
+func (m *mockMetricManager) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError {
+	return []perror.PulseError{}
+}
+
+func (m *mockMetricManager) Subscribe(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+	if m.failValidatingMetrics {
+		return []perror.PulseError{
+			perror.New(errors.New("metric validation error")),
+		}
+	}
+	return nil
+}
+
+func (m *mockMetricManager) UnsubscribePublisher(name string, ver int) error {
+	return nil
+}
+
+func (m *mockMetricManager) UnsubscribeProcessor(name string, ver int) error {
+	return nil
 }
 
 type mockMetricManagerError struct {
@@ -142,6 +161,7 @@ func (m mockScheduleResponse) missedIntervals() uint {
 }
 
 func TestScheduler(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
 	Convey("NewTask", t, func() {
 		c := new(mockMetricManager)
 		c.setAcceptedContentType("machine", core.ProcessorPluginType, 1, []string{"pulse.*", "pulse.gob", "foo.bar"})
@@ -204,7 +224,7 @@ func TestScheduler(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			fmt.Printf("%d", len(err.Errors()))
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
-			So(err.Errors()[0], ShouldResemble, errors.New("metric validation error"))
+			So(err.Errors()[0], ShouldResemble, perror.New(errors.New("metric validation error")))
 
 		})
 
@@ -233,11 +253,11 @@ func TestScheduler(t *testing.T) {
 			_, err := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
 			So(err, ShouldNotBeNil)
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
-			So(err.Errors()[0], ShouldResemble, ErrSchedulerNotStarted)
+			So(err.Errors()[0], ShouldResemble, perror.New(ErrSchedulerNotStarted))
 			s1.metricManager = c
 			s1.Start()
 			_, err1 := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*0), w)
-			So(err1.Errors()[0], ShouldResemble, errors.New("Simple Schedule interval must be greater than 0"))
+			So(err1.Errors()[0], ShouldResemble, perror.New(errors.New("Simple Schedule interval must be greater than 0")))
 
 		})
 
@@ -301,13 +321,13 @@ func TestScheduler(t *testing.T) {
 func testInboundContentType(node interface{}) {
 	switch t := node.(type) {
 	case *processNode:
-		fmt.Printf("testing content type for pr plugin %s %d/n", t.Name, t.Version)
+		fmt.Printf("testing content type for pr plugin %s %d/n", t.Name(), t.Version())
 		So(t.InboundContentType, ShouldNotEqual, "")
 		for _, i := range t.ProcessNodes {
 			testInboundContentType(i)
 		}
 	case *publishNode:
-		fmt.Printf("testing content type for pu plugin %s %d/n", t.Name, t.Version)
+		fmt.Printf("testing content type for pu plugin %s %d/n", t.Name(), t.Version())
 		So(t.InboundContentType, ShouldNotEqual, "")
 	}
 }

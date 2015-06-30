@@ -250,7 +250,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.CreateTask(sch, wf, "baron")
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "No loaded plugin found for publisher name: riemann version: 1")
+				So(p.Err.Error(), ShouldEqual, "Loaded plugin not found")
 			})
 			Convey("valid task", func() {
 				port := getPort()

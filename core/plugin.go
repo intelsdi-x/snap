@@ -1,6 +1,10 @@
 package core
 
-import "time"
+import (
+	"time"
+
+	"github.com/intelsdi-x/pulse/core/cdata"
+)
 
 type AvailablePlugin interface {
 	Name() string
@@ -37,4 +41,10 @@ const (
 type Plugin interface {
 	Name() string
 	Version() int
+}
+
+type SubscribedPlugin interface {
+	Name() string
+	Version() int
+	Config() *cdata.ConfigDataNode
 }

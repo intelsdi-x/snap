@@ -39,10 +39,10 @@ func (p *processNode) String(args ...string) string {
 	if len(args) > 0 {
 		pad = args[0]
 	}
-	out += fmt.Sprintf("%sName: %s\n", pad, p.Name)
-	out += fmt.Sprintf("%s   Version: %d\n", pad, p.Version)
+	out += fmt.Sprintf("%sName: %s\n", pad, p.Name())
+	out += fmt.Sprintf("%s   Version: %d\n", pad, p.Version())
 	out += fmt.Sprintf("%s   Config:\n", pad)
-	for k, v := range p.Config.Table() {
+	for k, v := range p.Config().Table() {
 		out += fmt.Sprintf("%s      %s=%+v\n", pad, k, v)
 	}
 	out += fmt.Sprintf("%s   (Processors): \n", pad)
@@ -62,10 +62,10 @@ func (p *publishNode) String(args ...string) string {
 	if len(args) > 0 {
 		pad = args[0]
 	}
-	out += fmt.Sprintf("%sName: %s\n", pad, p.Name)
-	out += fmt.Sprintf("%s   Version: %d\n", pad, p.Version)
+	out += fmt.Sprintf("%sName: %s\n", pad, p.Name())
+	out += fmt.Sprintf("%s   Version: %d\n", pad, p.Version())
 	out += fmt.Sprintf("%s   Config:\n", pad)
-	for k, v := range p.Config.Table() {
+	for k, v := range p.Config().Table() {
 		out += fmt.Sprintf("%s      %s=%+v\n", pad, k, v)
 	}
 	return out

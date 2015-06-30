@@ -10,6 +10,7 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
@@ -33,10 +34,13 @@ type managesMetrics interface {
 	publishesMetrics
 	processesMetrics
 	managesPluginContentTypes
-	SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []error)
+	SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.PulseError)
 	UnsubscribeMetricType(mt core.Metric)
-	SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []error
-	SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []error
+	SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError
+	SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError
+	UnsubscribeProcessor(name string, ver int) error
+	UnsubscribePublisher(name string, ver int) error
+	Subscribe(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -88,10 +92,10 @@ func New(opts ...workManagerOption) *scheduler {
 }
 
 type taskErrors struct {
-	errs []error
+	errs []perror.PulseError
 }
 
-func (t *taskErrors) Errors() []error {
+func (t *taskErrors) Errors() []perror.PulseError {
 	return t.errs
 }
 
@@ -101,16 +105,15 @@ func (s *scheduler) Name() string {
 
 // CreateTask creates and returns task
 func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
-	// Create a local block logger from the common logger for this module
 	logger := s.logger.WithField("_block", "create-task")
 	// Create a container for task errors
 	te := &taskErrors{
-		errs: make([]error, 0),
+		errs: make([]perror.PulseError, 0),
 	}
 
 	// Return error if we are not started.
 	if s.state != schedulerStarted {
-		te.errs = append(te.errs, ErrSchedulerNotStarted)
+		te.errs = append(te.errs, perror.New(ErrSchedulerNotStarted))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error("scheduler not started")
 		return nil, te
@@ -118,7 +121,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 
 	// Ensure the schedule is valid at this point and time.
 	if err := sch.Validate(); err != nil {
-		te.errs = append(te.errs, err)
+		te.errs = append(te.errs, perror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error("schedule passed not valid")
 		return nil, te
@@ -127,7 +130,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	// Generate a workflow from the workflow map
 	wf, err := wmapToWorkflow(wfMap)
 	if err != nil {
-		te.errs = append(te.errs, ErrSchedulerNotStarted)
+		te.errs = append(te.errs, perror.New(ErrSchedulerNotStarted))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error(ErrSchedulerNotStarted.Error())
 		return nil, te
@@ -136,48 +139,32 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	// Bind plugin content type selections in workflow
 	err = wf.BindPluginContentTypes(s.metricManager)
 
-	// Subscribe to MT.
-	// If we encounter an error we will unwind successful subscriptions.
+	// create metric type subscription requests
+	var mtsubs []core.Metric
 	var subscriptions []core.Metric
 	for _, m := range wf.metrics {
 		cdt, er := wfMap.CollectNode.GetConfigTree()
 		if er != nil {
-			te.errs = append(te.errs, er)
+			te.errs = append(te.errs, perror.New(er))
 			continue
 		}
-		cd := cdt.Get(m.Namespace())
-		mt, err := s.metricManager.SubscribeMetricType(m, cd)
-		if err == nil {
-			subscriptions = append(subscriptions, mt)
-		} else {
-			te.errs = append(te.errs, err...)
-		}
+		mtsubs = append(mtsubs, &metric{
+			namespace: m.Namespace(),
+			version:   m.Version(),
+			config:    cdt.Get(m.Namespace()),
+		})
 	}
 
-	// Unwind successful subscriptions if we got here with errors (idempotent)
-	if len(te.errs) > 0 {
-		f := buildErrorsLog(te.Errors(), logger)
-		f.Error("errors during task creation")
-		for _, sub := range subscriptions {
-			if sub != nil {
-				s.metricManager.UnsubscribeMetricType(sub)
-				s.logger.WithFields(log.Fields{
-					"metric-namespace": sub.Namespace(),
-					"metric-version":   sub.Version(),
-				}).Warning("unsubscribing metric subscription")
-			}
-		}
-		return nil, te
-	}
+	var (
+		pusubs []core.SubscribedPlugin
+		prsubs []core.SubscribedPlugin
+	)
 
-	errs := []error{}
-	s.subscribe(wf.processNodes, wf.publishNodes, &errs)
-	//subscribe to processors and publishers
+	// Subscribe
+	s.subscribe(wf.processNodes, wf.publishNodes, &prsubs, &pusubs)
+	errs := s.metricManager.Subscribe(mtsubs, prsubs, pusubs)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
-		//todo unwind successful pr and pu subscriptions
-		f := buildErrorsLog(te.Errors(), logger)
-		f.Error("errors during task creation")
 		return nil, te
 	}
 
@@ -186,7 +173,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {
-		te.errs = append(te.errs, err)
+		te.errs = append(te.errs, perror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error("errors during task creation")
 		return nil, te
@@ -306,33 +293,17 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 }
 
 // subscribe subscribes to all processors and publishers recursively
-func (s *scheduler) subscribe(prnodes []*processNode, punodes []*publishNode, errors *[]error) {
+func (s *scheduler) subscribe(prnodes []*processNode, punodes []*publishNode, prsubs *[]core.SubscribedPlugin, pusubs *[]core.SubscribedPlugin) {
 	for _, pr := range prnodes {
-		s.logger.WithFields(log.Fields{
-			"_block":            "subscribe",
-			"processor-name":    pr.Name,
-			"processor-version": pr.Version,
-		}).Debug("subscribing to processor")
-		errs := s.metricManager.SubscribeProcessor(pr.Name, pr.Version, pr.Config.Table())
-		if len(errs) > 0 {
-			*errors = append(*errors, errs...)
-		}
-		s.subscribe(pr.ProcessNodes, pr.PublishNodes, errors)
+		*prsubs = append(*prsubs, pr)
+		s.subscribe(pr.ProcessNodes, pr.PublishNodes, prsubs, pusubs)
 	}
 	for _, pu := range punodes {
-		s.logger.WithFields(log.Fields{
-			"_block":            "subscribe",
-			"publisher-name":    pu.Name,
-			"publisher-version": pu.Version,
-		}).Debug("subscribing to publisher")
-		errs := s.metricManager.SubscribePublisher(pu.Name, pu.Version, pu.Config.Table())
-		if len(errs) > 0 {
-			*errors = append(*errors, errs...)
-		}
+		*pusubs = append(*pusubs, pu)
 	}
 }
 
-func buildErrorsLog(errs []error, logger *log.Entry) *log.Entry {
+func buildErrorsLog(errs []perror.PulseError, logger *log.Entry) *log.Entry {
 	for i, e := range errs {
 		logger = logger.WithField(fmt.Sprintf("%s[%d]", "error", i), e.Error())
 	}
