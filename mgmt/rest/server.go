@@ -68,6 +68,7 @@ type APIResponseMeta struct {
 type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics([]string) ([]core.CatalogedMetric, error)
+	GetMetric([]string, int) (core.Metric, error)
 	Load(string) (core.CatalogedPlugin, perror.PulseError)
 	Unload(pl core.Plugin) (core.CatalogedPlugin, perror.PulseError)
 	PluginCatalog() core.PluginCatalog

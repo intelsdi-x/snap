@@ -656,7 +656,7 @@ func TestPluginRestCalls(t *testing.T) {
 			startAPI(port)
 
 			uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-			r := fetchMetrics(port, "/intel/dummy")
+			r := fetchMetrics(port, "/intel/dummy/*")
 			So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 			plr := r.Body.(*rbody.MetricCatalogReturned)
 

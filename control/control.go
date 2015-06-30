@@ -643,6 +643,10 @@ func (p *pluginControl) FetchMetrics(ns []string) ([]core.CatalogedMetric, error
 	return ncat, nil
 }
 
+func (p *pluginControl) GetMetric(ns []string, ver int) (core.Metric, error) {
+	return p.metricCatalog.Get(ns, ver)
+}
+
 func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 	_, err := p.metricCatalog.Get(mns, ver)
 	if err == nil {

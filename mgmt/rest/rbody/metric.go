@@ -2,6 +2,7 @@ package rbody
 
 const (
 	MetricCatalogReturnedType = "metric_catalog_returned"
+	MetricReturnedType        = "metric_returned"
 )
 
 type CatalogItem struct {
@@ -14,7 +15,21 @@ func (m *CatalogItem) key() string {
 }
 
 type Metric struct {
-	LastAdvertisedTimestamp int64 `json:"last_advertised_timestamp,omitempty"`
+	LastAdvertisedTimestamp int64  `json:"last_advertised_timestamp,omitempty"`
+	Namespace               string `json:"namespace,omitempty"`
+	Version                 int    `json:"version,omitempty"`
+}
+
+type MetricReturned struct {
+	Metric *Metric
+}
+
+func (m *MetricReturned) ResponseBodyMessage() string {
+	return "Metric returned"
+}
+
+func (m *MetricReturned) ResponseBodyType() string {
+	return MetricReturnedType
 }
 
 type MetricCatalogReturned struct {
