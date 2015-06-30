@@ -142,7 +142,7 @@ func (s *ScheduledTaskStarted) ResponseBodyMessage() string {
 }
 
 func (s *ScheduledTaskStarted) ResponseBodyType() string {
-	return "scheduled_task_started"
+	return ScheduledTaskStartedType
 }
 
 type ScheduledTaskStopped struct {
@@ -155,7 +155,7 @@ func (s *ScheduledTaskStopped) ResponseBodyMessage() string {
 }
 
 func (s *ScheduledTaskStopped) ResponseBodyType() string {
-	return "scheduled_task_stopped"
+	return ScheduledTaskStoppedType
 }
 
 type ScheduledTaskRemoved struct {
@@ -168,5 +168,5 @@ func (s *ScheduledTaskRemoved) ResponseBodyMessage() string {
 }
 
 func (s *ScheduledTaskRemoved) ResponseBodyType() string {
-	return "scheduled_task_removed"
+	return ScheduledTaskRemovedType
 }
