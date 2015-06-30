@@ -6,8 +6,7 @@ var (
 	flURL = cli.StringFlag{
 		Name:   "url, u",
 		Usage:  "Sets the URL to use",
-		EnvVar: "PULSE_URL",
-		Value:  "http://localhost:8181",
+		EnvVar: "PULSE_HOST",
 	}
 	flRunning = cli.BoolFlag{
 		Name:  "running",
