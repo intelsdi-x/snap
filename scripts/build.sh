@@ -35,7 +35,7 @@ echo " Building Pulse Agent"
 go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/pulse-agent . || exit 1
 
 # pulse-ctl
-echo " Building cmd(s)"
+echo " Building Pulse Command Line"
 cd $SOURCEDIR/cmd
 for d in *; do
 	if [[ -d $d ]]; then
@@ -57,39 +57,11 @@ if [ "$BUILDPLUGINS" == "true" ]; then
 		$BUILDCMD -o $destination $target || exit 2
 		cd $SOURCEDIR
 	else
-		# Clean build
-		rm -rf $COLLECTORDIR/*
-		echo " Building Collector Plugin(s)"
-		# Built-in Collector Plugin building
-		cd $SOURCEDIR/$PLUGINDIR/collector
-		for d in *; do
-			if [[ -d $d ]]; then
-				echo "    $d => $COLLECTORDIR/$d"
-				$BUILDCMD -o $COLLECTORDIR/$d ./$d/ || exit 2
-			fi
-		done
-
-		# Publisher build
-		rm -rf $PUBLISHERDIR/*
-		echo " Building Publisher Plugin(s)"
-		cd $SOURCEDIR/$PLUGINDIR/publisher
-		for d in *; do
-			if [[ -d $d ]]; then
-				echo "    $d => $PUBLISHERDIR/$d"
-				$BUILDCMD -o $PUBLISHERDIR/$d ./$d/ || exit 2
-			fi
-		done
-
-		# Processor build
-		rm -rf $PROCESSORDIR/*
-		echo " Building Processor Plugin(s)"
-		cd $SOURCEDIR/$PLUGINDIR/processor
-		for d in *; do
-			if [[ -d $d ]]; then
-				echo "    $d => $PROCESSORDIR/$d"
-				$BUILDCMD -o $PROCESSORDIR/$d ./$d/ || exit 2
-			fi
-		done
+		# Build source plugins into build dir
+		rm -rf $BUILDDIR/$PLUGINDIR/*
+		cd $SOURCEDIR
+		echo " Building Plugin(s)"
+		find ./plugin/* -iname "pulse-*" -print0 | xargs -0 -P 4 -n 1 $SOURCEDIR/scripts/build-plugin.sh $BUILDDIR/$PLUGINDIR/ || exit 2		
 
 		cd $SOURCEDIR
 	fi

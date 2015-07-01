@@ -583,7 +583,7 @@ func TestPublishMetrics(t *testing.T) {
 		So(errs, ShouldNotBeNil)
 
 		// Load plugin
-		_, err := c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
+		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.LoadedPlugins().Get(0)
@@ -649,7 +649,7 @@ func TestProcessMetrics(t *testing.T) {
 		So(errs, ShouldNotBeNil)
 
 		// Load plugin
-		_, err := c.Load(path.Join(PulsePath, "plugin", "processor", "pulse-processor-passthru"))
+		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.LoadedPlugins().Get(0)

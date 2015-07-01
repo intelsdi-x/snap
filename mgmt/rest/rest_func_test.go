@@ -27,9 +27,9 @@ import (
 
 var (
 	PULSE_PATH          = os.Getenv("PULSE_PATH")
-	DUMMY_PLUGIN_PATH1  = PULSE_PATH + "/plugin/collector/pulse-collector-dummy1"
-	DUMMY_PLUGIN_PATH2  = PULSE_PATH + "/plugin/collector/pulse-collector-dummy2"
-	RIEMANN_PLUGIN_PATH = PULSE_PATH + "/plugin/publisher/pulse-publisher-riemann"
+	DUMMY_PLUGIN_PATH1  = PULSE_PATH + "/plugin/pulse-collector-dummy1"
+	DUMMY_PLUGIN_PATH2  = PULSE_PATH + "/plugin/pulse-collector-dummy2"
+	RIEMANN_PLUGIN_PATH = PULSE_PATH + "/plugin/pulse-publisher-riemann"
 
 	NextPort = 8000
 )

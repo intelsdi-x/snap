@@ -15,7 +15,7 @@ var (
 	PluginName = "pulse-collector-facter"
 	PluginType = "collector"
 	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", PluginType, PluginName)
+	PluginPath = path.Join(PulsePath, "plugin", PluginName)
 )
 
 func TestPluginLoads(t *testing.T) {

@@ -18,7 +18,7 @@ var (
 	PluginName = "pulse-publisher-rabbitmq"
 	PluginType = "publisher"
 	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", PluginType, PluginName)
+	PluginPath = path.Join(PulsePath, "plugin", PluginName)
 )
 
 func TestRmqPublisherLoad(t *testing.T) {
