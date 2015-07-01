@@ -29,12 +29,12 @@ mkdir -p $COLLECTORDIR
 mkdir -p $PUBLISHERDIR
 mkdir -p $PROCESSORDIR
 
-# pulse-agent
+# pulsed
 echo "Source Dir = $SOURCEDIR"
-echo " Building Pulse Agent"
-go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/pulse-agent . || exit 1
+echo " Building Pulse Daemon"
+go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/pulsed . || exit 1
 
-# pulse-ctl
+# pulsectl
 echo " Building Pulse Command Line"
 cd $SOURCEDIR/cmd
 for d in *; do
