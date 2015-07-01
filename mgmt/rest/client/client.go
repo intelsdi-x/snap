@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
@@ -158,45 +159,70 @@ func (c *Client) pluginUploadRequest(pluginPath string) (*rest.APIResponse, erro
 	}
 	defer file.Close()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("pulse-plugins", filepath.Base(pluginPath))
-	if err != nil {
-		return nil, err
-	}
-	if CompressUpload {
-		cpart := gzip.NewWriter(part)
-		_, err = io.Copy(cpart, file)
-		if err != nil {
-			return nil, err
-		}
-		err = cpart.Close()
-	} else {
-		_, err = io.Copy(part, file)
-	}
+	bufin := bufio.NewReader(file)
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
+
+	// with io.Pipe the write needs to be async
+	errChan := make(chan error)
+	go writePluginToWriter(pw, bufin, writer, filepath.Base(pluginPath), errChan)
+
+	req, err := http.NewRequest("POST", c.prefix+"/plugins", pr)
 	if err != nil {
 		return nil, err
 	}
 
-	err = writer.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", c.prefix+"/plugins", body)
-	if err != nil {
-		return nil, err
-	}
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	if CompressUpload {
 		req.Header.Add("Plugin-Compression", "gzip")
 	}
-
 	rsp, err := client.Do(req)
+	cErr := <-errChan
+	if cErr != nil {
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}
 	return httpRespToAPIResp(rsp)
+}
+
+func writePluginToWriter(pw io.WriteCloser, bufin *bufio.Reader, writer *multipart.Writer, pluginPath string, errChan chan error) {
+	part, err := writer.CreateFormFile("pulse-plugins", pluginPath)
+	if err != nil {
+		errChan <- err
+		return
+	}
+	if CompressUpload {
+		cpart := gzip.NewWriter(part)
+		_, err := bufin.WriteTo(cpart)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		err = cpart.Close()
+		if err != nil {
+			errChan <- err
+			return
+		}
+	} else {
+		_, err := bufin.WriteTo(part)
+		if err != nil {
+			errChan <- err
+			return
+		}
+	}
+	err = writer.Close()
+	if err != nil {
+		errChan <- err
+		return
+	}
+	err = pw.Close()
+	if err != nil {
+		errChan <- err
+		return
+	}
+	errChan <- nil
 }
 
 type response struct {
