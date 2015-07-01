@@ -58,11 +58,11 @@ func TestCollectPublishWorkflow(t *testing.T) {
 		s := New()
 		s.SetMetricManager(c)
 		Convey("Start a collector and publisher plugin", func() {
-			_, err := c.Load(path.Join(PulsePath, "plugin", "collector", "pulse-collector-dummy2"))
+			_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-collector-dummy2"))
 			So(err, ShouldBeNil)
-			_, err = c.Load(path.Join(PulsePath, "plugin", "publisher", "pulse-publisher-file"))
+			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
 			So(err, ShouldBeNil)
-			_, err = c.Load(path.Join(PulsePath, "plugin", "processor", "pulse-processor-movingaverage"))
+			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-processor-movingaverage"))
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
 

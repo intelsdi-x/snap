@@ -15,7 +15,7 @@ import (
 var (
 	PluginName = "pulse-collector-dummy1"
 	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
+	PluginPath = path.Join(PulsePath, "plugin", PluginName)
 )
 
 func TestLoadedPlugins(t *testing.T) {

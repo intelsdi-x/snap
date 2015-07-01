@@ -15,7 +15,7 @@ var (
 	PluginName = "pulse-publisher-file"
 	PluginType = "publisher"
 	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", PluginType, PluginName)
+	PluginPath = path.Join(PulsePath, "plugin", PluginName)
 )
 
 func TestFilePublisherLoad(t *testing.T) {

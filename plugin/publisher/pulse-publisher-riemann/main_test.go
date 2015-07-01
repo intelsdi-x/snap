@@ -15,7 +15,7 @@ var (
 	PluginName = "pulse-publisher-riemann"
 	PluginType = "publisher"
 	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", PluginType, PluginName)
+	PluginPath = path.Join(PulsePath, "plugin", PluginName)
 )
 
 func TestRiemannPublisherLoad(t *testing.T) {
