@@ -10,17 +10,25 @@ import (
 
 var (
 	gitversion string
-	pClient    = client.New(flURL.Value, "")
+	pClient    *client.Client
 	timeFormat = time.RFC1123
 )
 
 func main() {
+
 	app := cli.NewApp()
 	app.Name = "pulse-ctl"
-	app.Commands = commands
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
 	app.Flags = []cli.Flag{flURL}
+	app.Commands = commands
+
+	app.Before = func(c *cli.Context) error {
+		if pClient == nil {
+			pClient = client.New(c.GlobalString("url"), "")
+		}
+		return nil
+	}
 
 	app.Run(os.Args)
 }
