@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"text/tabwriter"
 
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/pulse/mgmt/rest/client"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
+
+	"github.com/ghodss/yaml"
 )
 
 type task struct {
@@ -26,16 +29,31 @@ func createTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	file, e := ioutil.ReadFile(ctx.Args().First())
+	path := ctx.Args().First()
+	ext := filepath.Ext(path)
+	file, e := ioutil.ReadFile(path)
 	if e != nil {
 		fmt.Printf("File error - %v\n", e)
 		os.Exit(1)
 	}
 
 	t := task{}
-	e = json.Unmarshal(file, &t)
-	if e != nil {
-		fmt.Printf("json error - %v\n", e)
+	switch ext {
+	case ".yaml", ".yml":
+		e = yaml.Unmarshal(file, &t)
+		if e != nil {
+			fmt.Printf("Error parsing YAML file input - %v\n", e)
+			os.Exit(1)
+		}
+	case ".json":
+		e = json.Unmarshal(file, &t)
+		if e != nil {
+			fmt.Printf("Error parsing JSON file input - %v\n", e)
+			os.Exit(1)
+		}
+	default:
+		fmt.Printf("Unsupported file type %s\n", ext)
+		os.Exit(1)
 	}
 
 	t.Name = ctx.String("name")
