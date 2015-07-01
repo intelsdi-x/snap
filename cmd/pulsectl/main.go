@@ -17,7 +17,7 @@ var (
 func main() {
 
 	app := cli.NewApp()
-	app.Name = "pulse-ctl"
+	app.Name = "pulsectl"
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
 	app.Flags = []cli.Flag{flURL}
