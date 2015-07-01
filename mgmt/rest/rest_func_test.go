@@ -234,7 +234,11 @@ func getPluginList(port int) *APIResponse {
 }
 
 func getMetricCatalog(port int) *APIResponse {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics", port))
+	return fetchMetrics(port, "")
+}
+
+func fetchMetrics(port int, ns string) *APIResponse {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics%s", port, ns))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -646,6 +650,25 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr3.Catalog[1].Versions["2"], ShouldBeNil)
 				So(plr3.Catalog[1].Versions["1"].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 			})
+		})
+		Convey("metrics accessible via tree-like lookup", func() {
+			port := getPort()
+			startAPI(port)
+
+			uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+			r := fetchMetrics(port, "/intel/dummy/*")
+			So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
+			plr := r.Body.(*rbody.MetricCatalogReturned)
+
+			So(len(plr.Catalog), ShouldEqual, 2)
+			So(plr.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+			So(len(plr.Catalog[0].Versions), ShouldEqual, 1)
+			So(plr.Catalog[0].Versions["1"], ShouldNotBeNil)
+			So(plr.Catalog[0].Versions["1"].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+			So(len(plr.Catalog[1].Versions), ShouldEqual, 1)
+			So(plr.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
+			So(plr.Catalog[1].Versions["1"], ShouldNotBeNil)
+			So(plr.Catalog[1].Versions["1"].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
 
 		Convey("Create Task - POST - /v1/tasks", func() {

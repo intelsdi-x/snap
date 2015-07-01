@@ -195,6 +195,8 @@ func TestPulseClient(t *testing.T) {
 
 				p2 := c.GetPlugins(false)
 				So(p2.Err, ShouldBeNil)
+				p3 := c.GetPlugins(true)
+				So(p3.Err, ShouldBeNil)
 				So(len(p2.LoadedPlugins), ShouldEqual, 1)
 				So(p2.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
 			})
@@ -300,11 +302,19 @@ func TestPulseClient(t *testing.T) {
 				uri := startAPI(port)
 				c := New(uri, "v1")
 
+				p := c.StopTask(9999999)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "No task found with id '9999999'")
+			})
+			Convey("existing task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
 
 				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron")
-
 				p2 := c.StopTask(p1.ID)
 				So(p2.Err, ShouldBeNil)
 				So(p2.ID, ShouldEqual, p1.ID)
@@ -312,6 +322,15 @@ func TestPulseClient(t *testing.T) {
 		})
 		Convey("RemoveTask", func() {
 			Convey("unknown task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p := c.RemoveTask(9999999)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "No task found with id '9999999'")
+			})
+			Convey("existing task", func() {
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
@@ -325,6 +344,33 @@ func TestPulseClient(t *testing.T) {
 				So(p2.Err, ShouldBeNil)
 				So(p2.ID, ShouldEqual, p1.ID)
 			})
+		})
+
+		Convey("GetTasks", func() {
+			Convey("valid task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "1s"}
+				p := c.CreateTask(sch, wf, "baron")
+				So(p.Err, ShouldBeNil)
+				So(p.Name, ShouldEqual, "baron")
+				So(p.State, ShouldEqual, "Stopped")
+				p2 := c.GetTasks()
+				So(p2.Err, ShouldBeNil)
+				p3 := c.GetTask(uint(p.ID))
+				So(p3.Err, ShouldBeNil)
+				p4 := c.GetTask(0)
+				So(p4.Err, ShouldNotBeNil)
+				So(p4.Err.Error(), ShouldEqual, "No task with Id '0'")
+				So(p4.ScheduledTaskReturned, ShouldBeNil)
+			})
+
 		})
 	})
 }

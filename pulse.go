@@ -20,10 +20,11 @@ import (
 var (
 	// Pulse Flags for command line
 	version          = flag.Bool("version", false, "Print Pulse version")
-	restMgmt         = flag.Bool("rest", false, "start rest interface for Pulse")
+	restMgmt         = flag.Bool("rest", true, "Flag to enable/disable rest api. (Default: true")
+	restPort         = flag.String("port", "8181", "Port rest api will listen on. (Default: 8181)")
 	maxProcs         = flag.Int("max-procs", 0, "Set max cores to use for Pulse Agent. Default is 1 core.")
 	logPath          = flag.String("log-path", "", "Path for logs. Empty path logs to stdout.")
-	logLevel         = flag.Int("log-level", 2, "1-5 (Debug, Info, Warning, Error, Fatal")
+	logLevel         = flag.Int("log-level", 2, "1-5 (Debug, Info, Warning, Error, Fatal)")
 	autodiscoverPath = flag.String("autodiscover", "", "Autodiscover paths separated by colons.")
 
 	gitversion string
@@ -166,13 +167,11 @@ func main() {
 			}
 		}
 	}
-
-	// init rest mgmt interface
 	if *restMgmt {
 		r := rest.New()
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
-		r.Start(":8181")
+		r.Start((":" + *restPort))
 	}
 
 	select {} //run forever and ever
