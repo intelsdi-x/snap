@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"io"
@@ -15,6 +16,8 @@ import (
 )
 
 var (
+	CompressUpload = true
+
 	ErrUnknown     = errors.New("Unknown error calling API")
 	ErrNilResponse = errors.New("Nil response from JSON unmarshalling")
 )
@@ -161,7 +164,16 @@ func (c *Client) pluginUploadRequest(pluginPath string) (*rest.APIResponse, erro
 	if err != nil {
 		return nil, err
 	}
-	_, err = io.Copy(part, file)
+	if CompressUpload {
+		cpart := gzip.NewWriter(part)
+		_, err = io.Copy(cpart, file)
+		if err != nil {
+			return nil, err
+		}
+		err = cpart.Close()
+	} else {
+		_, err = io.Copy(part, file)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -176,6 +188,9 @@ func (c *Client) pluginUploadRequest(pluginPath string) (*rest.APIResponse, erro
 		return nil, err
 	}
 	req.Header.Add("Content-Type", writer.FormDataContentType())
+	if CompressUpload {
+		req.Header.Add("Plugin-Compression", "gzip")
+	}
 
 	rsp, err := client.Do(req)
 	if err != nil {
