@@ -26,6 +26,7 @@ type task struct {
 func createTask(ctx *cli.Context) {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
 
@@ -110,6 +111,7 @@ func listTask(ctx *cli.Context) {
 func startTask(ctx *cli.Context) {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
 
@@ -130,6 +132,7 @@ func startTask(ctx *cli.Context) {
 func stopTask(ctx *cli.Context) {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
 
@@ -150,6 +153,7 @@ func stopTask(ctx *cli.Context) {
 func removeTask(ctx *cli.Context) {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
 
