@@ -53,24 +53,28 @@
 make
 ```
 
+## Testing
+
+```
+make test
+```
+
 ## Running
 
 ## Documentation
 
 ### REST API
 
+### Pulsed
+* [Pulsed](docs/PULSED.md)
+
 ### CLI
+* [Pulsectl](cmd/pulsectl/README.md)
 
 ## Contributing
 
 * [Please read our development guidelines](https://github.com/intelsdilabs/pulse/wiki/Development-guidelines)
 * [ ] TODO - CLA
-
-## Testing
-
-```
-make test
-```
 
 ## Releases
 

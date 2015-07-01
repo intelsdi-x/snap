@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/intelsdi-x/pulse/cmd/pulse-ctl",
+	"ImportPath": "github.com/intelsdi-x/pulse/cmd/pulsectl",
 	"GoVersion": "go1.4.2",
 	"Deps": [
 		{
