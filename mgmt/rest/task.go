@@ -17,30 +17,25 @@ import (
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
-type schedule struct {
-	Type     string `json:"type"`
-	Interval string `json:"interval"`
-}
-
 type configItem struct {
 	Key   string      `json:"key"`
 	Value interface{} `json:"value"`
 }
 
 type task struct {
-	ID uint64 `json:"id"`
-	// Config       map[string][]configItem `json:"config"`
-	Name               string            `json:"name"`
-	Deadline           string            `json:"deadline"`
-	Workflow           *wmap.WorkflowMap `json:"workflow"`
-	Schedule           schedule          `json:"schedule"`
-	CreationTime       *time.Time        `json:"creation_timestamp,omitempty"`
-	LastRunTime        *time.Time        `json:"last_run_timestamp,omitempty"`
-	HitCount           uint              `json:"hit_count,omitempty"`
-	MissCount          uint              `json:"miss_count,omitempty"`
-	FailedCount        uint              `json:"failed_count,omitempty"`
-	LastFailureMessage string            `json:"last_failure_message,omitempty"`
-	State              string            `json:"task_state"`
+	ID                 uint64                  `json:"id"`
+	Config             map[string][]configItem `json:"config"`
+	Name               string                  `json:"name"`
+	Deadline           string                  `json:"deadline"`
+	Workflow           wmap.WorkflowMap        `json:"workflow"`
+	Schedule           cschedule.Schedule      `json:"schedule"`
+	CreationTime       time.Time               `json:"creation_timestamp,omitempty"`
+	LastRunTime        time.Time               `json:"last_run_timestamp,omitempty"`
+	HitCount           uint                    `json:"hit_count,omitempty"`
+	MissCount          uint                    `json:"miss_count,omitempty"`
+	FailedCount        uint                    `json:"failed_count,omitempty"`
+	LastFailureMessage string                  `json:"last_failure_message,omitempty"`
+	State              string                  `json:"task_state"`
 }
 
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -92,6 +87,7 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 	tasks := &rbody.ScheduledTaskListReturned{}
 	tasks.ScheduledTasks = make([]rbody.ScheduledTask, len(sts))
+
 	i := 0
 	for _, t := range sts {
 		tasks.ScheduledTasks[i] = *rbody.SchedulerTaskFromTask(t)
@@ -113,7 +109,7 @@ func (s *Server) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		return
 	}
 	task := &rbody.ScheduledTaskReturned{}
-	task.ScheduledTask = *rbody.SchedulerTaskFromTask(t)
+	task.AddScheduledTask = *rbody.AddSchedulerTaskFromTask(t)
 	respond(200, task, w)
 }
 

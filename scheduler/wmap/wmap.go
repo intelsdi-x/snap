@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"gopkg.in/yaml.v2"
@@ -134,21 +133,21 @@ func (w *WorkflowMap) ToYaml() ([]byte, error) {
 
 type CollectWorkflowMapNode struct {
 	Metrics      map[string]metricInfo             `json:"metrics"yaml:"metrics"`
-	Config       map[string]map[string]interface{} `json:"config"yaml:"config"`
-	ProcessNodes []ProcessWorkflowMapNode          `json:"process"yaml:"process"`
-	PublishNodes []PublishWorkflowMapNode          `json:"publish"yaml:"publish"`
+	Config       map[string]map[string]interface{} `json:"config,omitempty"yaml:"config"`
+	ProcessNodes []ProcessWorkflowMapNode          `json:"process,omitempty"yaml:"process"`
+	PublishNodes []PublishWorkflowMapNode          `json:"publish,omitempty"yaml:"publish"`
 }
 
-func (c *CollectWorkflowMapNode) GetRequestedMetrics() []core.RequestedMetric {
-	var metrics []core.RequestedMetric = make([]core.RequestedMetric, len(c.Metrics))
-	x := 0
+func (c *CollectWorkflowMapNode) GetMetrics() []Metric {
+	metrics := make([]Metric, len(c.Metrics))
+	i := 0
 	for k, v := range c.Metrics {
 		ns := strings.Trim(k, `/`)
-		metrics[x] = metric{
+		metrics[i] = Metric{
 			namespace: strings.Split(ns, "/"),
 			version:   v.Version_,
 		}
-		x++
+		i++
 	}
 	return metrics
 }
@@ -202,10 +201,10 @@ func (c *CollectWorkflowMapNode) AddConfigItem(ns, key string, value interface{}
 type ProcessWorkflowMapNode struct {
 	Name         string                   `json:"plugin_name"yaml:"plugin_name"`
 	Version      int                      `json:"plugin_version"yaml:"plugin_version"`
-	ProcessNodes []ProcessWorkflowMapNode `json:"process"yaml:"process"`
-	PublishNodes []PublishWorkflowMapNode `json:"publish"yaml:"publish"`
+	ProcessNodes []ProcessWorkflowMapNode `json:"process,omitempty"yaml:"process"`
+	PublishNodes []PublishWorkflowMapNode `json:"publish,omitempty"yaml:"publish"`
 	// TODO processor config
-	Config map[string]interface{} `json:"config"yaml:"config"`
+	Config map[string]interface{} `json:"config,omitempty"yaml:"config"`
 }
 
 func NewProcessNode(name string, version int) *ProcessWorkflowMapNode {
@@ -246,7 +245,7 @@ type PublishWorkflowMapNode struct {
 	Name    string `json:"plugin_name"yaml:"plugin_name"`
 	Version int    `json:"plugin_version"yaml:"plugin_version"`
 	// TODO publisher config
-	Config map[string]interface{} `json:"config"yaml:"config"`
+	Config map[string]interface{} `json:"config,omitempty"yaml:"config"`
 }
 
 func NewPublishNode(name string, version int) *PublishWorkflowMapNode {
@@ -275,16 +274,16 @@ type metricInfo struct {
 	Version_ int `json:"version"yaml:"version"`
 }
 
-type metric struct {
+type Metric struct {
 	namespace []string
 	version   int
 }
 
-func (m metric) Namespace() []string {
+func (m Metric) Namespace() []string {
 	return m.namespace
 }
 
-func (m metric) Version() int {
+func (m Metric) Version() int {
 	return m.version
 }
 

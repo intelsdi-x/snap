@@ -5,6 +5,9 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/mgmt/rest/request"
+	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 const (
@@ -42,7 +45,7 @@ func (s *ScheduledTaskListReturned) ResponseBodyType() string {
 }
 
 type ScheduledTaskReturned struct {
-	ScheduledTask
+	AddScheduledTask
 }
 
 func (s *ScheduledTaskReturned) ResponseBodyMessage() string {
@@ -64,8 +67,6 @@ func (s *AddScheduledTask) ResponseBodyType() string {
 }
 
 func AddSchedulerTaskFromTask(t core.Task) *AddScheduledTask {
-	// TODO workflow back from core.Task
-	// TODO schedule back from core.Task
 	st := &AddScheduledTask{
 		ID:                 int(t.ID()),
 		Name:               t.GetName(),
@@ -77,7 +78,9 @@ func AddSchedulerTaskFromTask(t core.Task) *AddScheduledTask {
 		FailedCount:        int(t.FailedCount()),
 		LastFailureMessage: t.LastFailureMessage(),
 		State:              t.State().String(),
+		Workflow:           t.WMap(),
 	}
+	assertSchedule(t.Schedule(), st)
 	if st.LastRunTimestamp < 0 {
 		st.LastRunTimestamp = -1
 	}
@@ -85,18 +88,18 @@ func AddSchedulerTaskFromTask(t core.Task) *AddScheduledTask {
 }
 
 type ScheduledTask struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Deadline string `json:"deadline"`
-	// Workflow           *wmap.WorkflowMap `json:"workflow"`
-	// Schedule           Schedule          `json:"schedule"`
-	CreationTimestamp  int64  `json:"creation_timestamp,omitempty"`
-	LastRunTimestamp   int64  `json:"last_run_timestamp,omitempty"`
-	HitCount           int    `json:"hit_count,omitempty"`
-	MissCount          int    `json:"miss_count,omitempty"`
-	FailedCount        int    `json:"failed_count,omitempty"`
-	LastFailureMessage string `json:"last_failure_message,omitempty"`
-	State              string `json:"task_state"`
+	ID                 int               `json:"id"`
+	Name               string            `json:"name"`
+	Deadline           string            `json:"deadline"`
+	Workflow           *wmap.WorkflowMap `json:"workflow,omitempty"`
+	Schedule           *request.Schedule `json:"schedule,omitempty"`
+	CreationTimestamp  int64             `json:"creation_timestamp,omitempty"`
+	LastRunTimestamp   int64             `json:"last_run_timestamp,omitempty"`
+	HitCount           int               `json:"hit_count,omitempty"`
+	MissCount          int               `json:"miss_count,omitempty"`
+	FailedCount        int               `json:"failed_count,omitempty"`
+	LastFailureMessage string            `json:"last_failure_message,omitempty"`
+	State              string            `json:"task_state"`
 }
 
 func (s *ScheduledTask) CreationTime() time.Time {
@@ -112,8 +115,6 @@ func (s *ScheduledTask) ResponseBodyType() string {
 }
 
 func SchedulerTaskFromTask(t core.Task) *ScheduledTask {
-	// TODO workflow back from core.Task
-	// TODO schedule back from core.Task
 	st := &ScheduledTask{
 		ID:                 int(t.ID()),
 		Name:               t.GetName(),
@@ -169,4 +170,16 @@ func (s *ScheduledTaskRemoved) ResponseBodyMessage() string {
 
 func (s *ScheduledTaskRemoved) ResponseBodyType() string {
 	return ScheduledTaskRemovedType
+}
+
+func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {
+	switch v := s.(type) {
+	case *schedule.SimpleSchedule:
+		t.Schedule = &request.Schedule{
+			Type:     "simple",
+			Interval: v.Interval.String(),
+		}
+		return
+	}
+	t.Schedule = &request.Schedule{}
 }

@@ -7,13 +7,13 @@ import (
 
 // A schedule that only implements an endless repeating interval
 type SimpleSchedule struct {
-	interval time.Duration
+	Interval time.Duration
 	state    ScheduleState
 }
 
 func NewSimpleSchedule(i time.Duration) *SimpleSchedule {
 	return &SimpleSchedule{
-		interval: i,
+		Interval: i,
 	}
 }
 
@@ -22,7 +22,7 @@ func (s *SimpleSchedule) GetState() ScheduleState {
 }
 
 func (s *SimpleSchedule) Validate() error {
-	if s.interval <= 0 {
+	if s.Interval <= 0 {
 		return errors.New("Simple Schedule interval must be greater than 0")
 	}
 	return nil
@@ -34,13 +34,13 @@ func (s *SimpleSchedule) Validate() error {
 func (s *SimpleSchedule) Wait(last time.Time) Response {
 	// When the schedule starts last time will be the zero value
 	if last == *new(time.Time) {
-		time.Sleep(s.interval)
+		time.Sleep(s.Interval)
 		return SimpleScheduleResponse{state: s.GetState(), missed: 0}
 	}
 	// Get the difference in time.Duration since last in nanoseconds (int64)
 	timeDiff := time.Since(last).Nanoseconds()
 	// cache our schedule interval in nanseconds
-	nanoInterval := s.interval.Nanoseconds()
+	nanoInterval := s.Interval.Nanoseconds()
 	// use modulo operation to obtain the remainder of time over last interval
 	remainder := timeDiff % nanoInterval
 	// substract remainder from
