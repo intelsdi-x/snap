@@ -26,8 +26,8 @@ function checkPluginType() {
 echo "Checking pulse root for deps"
 godep restore
 # REST API
-echo "Checking pulse-ctl for deps"
-cd cmd/pulse-ctl
+echo "Checking pulsectl for deps"
+cd cmd/pulsectl
 godep restore
 # CLI
 echo "Checking pulse mgmt/rest for deps"
