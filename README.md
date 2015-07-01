@@ -78,6 +78,7 @@ make test
 
 * Joel Cooklin - [@jcooklin](http://github.com/jcooklin) - Intel Corporation
 * Justin Guidroz - [@geauxvirtual](http://github.com/geauxvirtual) - Intel Corporation
+* Tiffany Jernigan - [@tiffanyfj](https://github.com/tiffanyfj) - Intel Corporation
 * Szymon Konefal - [@skonefal](http://github.com/skonefal) - Intel Corporation
 * Pawel Palucki - [@ppalucki](http://github.com/ppalucki) - Intel Corporation
 * Daniel Pittman - [@danielscottt](http://github.com/danielscottt) - Intel Corporation
