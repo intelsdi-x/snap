@@ -285,10 +285,12 @@ func startAPI(port int) *restAPIInstance {
 }
 
 func TestPluginRestCalls(t *testing.T) {
-	CompressedUpload = true
+	CompressedUpload = false
 	Convey("REST API functional V1", t, func() {
 		Convey("Load Plugin - POST - /v1/plugins", func() {
 			Convey("a single plugin loads", func() {
+				// This test alone tests gzip. Saves on test time.
+				CompressedUpload = true
 				port := getPort()
 				startAPI(port) // Make this unique for each Convey hierarchy
 
@@ -319,6 +321,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr2.LoadedPlugins[0].Status, ShouldEqual, "loaded")
 				So(plr2.LoadedPlugins[0].Type, ShouldEqual, "collector")
 				So(plr2.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+				CompressedUpload = false
 			})
 
 			Convey("load attempt to load same plugin", func() {

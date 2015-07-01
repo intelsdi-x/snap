@@ -67,6 +67,7 @@ func startAPI(port int) string {
 }
 
 func TestPulseClient(t *testing.T) {
+	CompressUpload = false
 	Convey("REST API functional V1", t, func() {
 		Convey("GetPlugins", func() {
 			Convey("empty list", func() {
@@ -108,6 +109,7 @@ func TestPulseClient(t *testing.T) {
 		})
 		Convey("LoadPlugin", func() {
 			Convey("single load", func() {
+				CompressUpload = true
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
@@ -118,6 +120,7 @@ func TestPulseClient(t *testing.T) {
 				So(p.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
 				So(p.LoadedPlugins[0].Version, ShouldEqual, 1)
 				So(p.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
+				CompressUpload = false
 			})
 			Convey("multiple load", func() {
 				port := getPort()
