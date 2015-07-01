@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"compress/gzip"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -38,24 +39,6 @@ func (p *plugin) Version() int {
 }
 
 func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// Disabling in expectation of merging #184
-
-	// loadRequest := make(map[string]string)
-	// errCode, err := marshalBody(&loadRequest, r.Body)
-	// if errCode != 0 && err != nil {
-	// 	replyError(errCode, w, err)
-	// 	return
-	// }
-	// loadErr := s.mm.Load(loadRequest["path"])
-	// if loadErr != nil {
-	// 	// restLogger.WithFields(log.Fields{
-	// 	// 	"method": r.Method,
-	// 	// 	"url":    r.URL.Path,
-	// 	// }).WithFields(loadErr.Fields()).Warning(err.Error())
-	// 	replyError(500, w, loadErr)
-	// 	return
-	// }
-	// replySuccess(200, "", w, nil)
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
@@ -75,38 +58,33 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				respond(500, rbody.FromError(err), w)
 				return
 			}
-			b, err := ioutil.ReadAll(p)
-			if err != nil {
-				respond(500, rbody.FromError(err), w)
-				return
-			}
-			autoPaths := s.mm.GetAutodiscoverPaths()
-			var f *os.File
-			if len(autoPaths) > 0 {
-				// write to first autoPath
-				f, err = os.Create(path.Join(autoPaths[0], p.FileName()))
+			var fname string
+			if r.Header.Get("Plugin-Compression") == "gzip" {
+				g, err := gzip.NewReader(p)
+				if err != nil {
+					respond(500, rbody.FromError(err), w)
+					return
+				}
+				b, err := ioutil.ReadAll(g)
+				if err != nil {
+					respond(500, rbody.FromError(err), w)
+					return
+				}
+				fname, err = writePlugin(s.mm.GetAutodiscoverPaths(), p.FileName(), b)
 			} else {
-				// write to temp location
-				f, err = ioutil.TempFile("", p.FileName())
+				b, err := ioutil.ReadAll(p)
+				if err != nil {
+					respond(500, rbody.FromError(err), w)
+					return
+				}
+				fname, err = writePlugin(s.mm.GetAutodiscoverPaths(), p.FileName(), b)
 			}
 			if err != nil {
 				respond(500, rbody.FromError(err), w)
 				return
 			}
-			n, err := f.Write(b)
-			log.Debugf("wrote %v to %v", n, f.Name())
-			if err != nil {
-				respond(500, rbody.FromError(err), w)
-				return
-			}
-			err = f.Chmod(0700)
-			if err != nil {
-				respond(500, rbody.FromError(err), w)
-				return
-			}
-			// Close before load
-			f.Close()
-			pl, err := s.mm.Load(f.Name())
+
+			pl, err := s.mm.Load(fname)
 			if err != nil {
 				respond(500, rbody.FromError(err), w)
 				return
@@ -114,6 +92,36 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(pl))
 		}
 	}
+}
+
+func writePlugin(autoPaths []string, filename string, b []byte) (string, error) {
+	var f *os.File
+	var err error
+	if len(autoPaths) > 0 {
+		// write to first autoPath
+		f, err = os.Create(path.Join(autoPaths[0], filename))
+	} else {
+		// write to temp location
+		f, err = ioutil.TempFile("", filename)
+	}
+	if err != nil {
+		// respond(500, rbody.FromError(err), w)
+		return "", err
+	}
+	n, err := f.Write(b)
+	log.Debugf("wrote %v to %v", n, f.Name())
+	if err != nil {
+		// respond(500, rbody.FromError(err), w)
+		return "", err
+	}
+	err = f.Chmod(0700)
+	if err != nil {
+		// respond(500, rbody.FromError(err), w)
+		return "", err
+	}
+	// Close before load
+	f.Close()
+	return f.Name(), nil
 }
 
 func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

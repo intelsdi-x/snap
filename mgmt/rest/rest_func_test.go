@@ -4,6 +4,7 @@ package rest
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,7 +32,10 @@ var (
 	DUMMY_PLUGIN_PATH2  = PULSE_PATH + "/plugin/pulse-collector-dummy2"
 	RIEMANN_PLUGIN_PATH = PULSE_PATH + "/plugin/pulse-publisher-riemann"
 
-	NextPort = 8000
+	NextPort         = 8000
+	CompressedUpload = true
+	TotalUploadSize  = 0
+	UploadCount      = 0
 )
 
 type restAPIInstance struct {
@@ -183,25 +187,38 @@ func uploadPlugin(pluginPath string, port int) *APIResponse {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("pulse-plugins", filepath.Base(pluginPath))
+	var part io.Writer
+	part, err = writer.CreateFormFile("pulse-plugins", filepath.Base(pluginPath))
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = io.Copy(part, file)
+	if CompressedUpload {
+		cpart := gzip.NewWriter(part)
+		_, err = io.Copy(cpart, file)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = cpart.Close()
+	} else {
+		_, err = io.Copy(part, file)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	err = writer.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	TotalUploadSize += body.Len()
+	UploadCount += 1
 	req, err := http.NewRequest("POST", uri, body)
 	if err != nil {
 		log.Fatal(err)
 	}
 	req.Header.Add("Content-Type", writer.FormDataContentType())
+	if CompressedUpload {
+		req.Header.Add("Plugin-Compression", "gzip")
+	}
 	file.Close()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -268,9 +285,12 @@ func startAPI(port int) *restAPIInstance {
 }
 
 func TestPluginRestCalls(t *testing.T) {
+	CompressedUpload = false
 	Convey("REST API functional V1", t, func() {
 		Convey("Load Plugin - POST - /v1/plugins", func() {
 			Convey("a single plugin loads", func() {
+				// This test alone tests gzip. Saves on test time.
+				CompressedUpload = true
 				port := getPort()
 				startAPI(port) // Make this unique for each Convey hierarchy
 
@@ -301,6 +321,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr2.LoadedPlugins[0].Status, ShouldEqual, "loaded")
 				So(plr2.LoadedPlugins[0].Type, ShouldEqual, "collector")
 				So(plr2.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+				CompressedUpload = false
 			})
 
 			Convey("load attempt to load same plugin", func() {
@@ -867,4 +888,5 @@ func TestPluginRestCalls(t *testing.T) {
 			})
 		})
 	})
+	fmt.Printf("(%d) uploads for a total of %fmb\n", UploadCount, float64(TotalUploadSize)/1000/1000)
 }
