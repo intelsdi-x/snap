@@ -11,3 +11,6 @@ all:
 	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))) true"
 pulse:
 	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))"
+install:
+	cp build/bin/pulsed /usr/local/bin/
+	cp build/bin/pulsectl /usr/local/bin/

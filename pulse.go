@@ -80,7 +80,7 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
-	log.Info("Starting pulsed")
+	log.Info("Starting pulsed (version: ", gitversion, ")")
 	logLevel := ctx.Int("log-level")
 	logPath := ctx.String("log-path")
 	maxProcs := ctx.Int("max-procs")
@@ -92,7 +92,7 @@ func action(ctx *cli.Context) {
 		log.WithFields(
 			log.Fields{
 				"block":   "main",
-				"_module": "pulse-agent",
+				"_module": "pulsed",
 				"level":   logLevel,
 			}).Fatal("log level was invalid (needs: 1-5)")
 		os.Exit(1)
@@ -108,7 +108,7 @@ func action(ctx *cli.Context) {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
-					"_module": "pulse-agent",
+					"_module": "pulsed",
 					"error":   err.Error(),
 					"logpath": logPath,
 				}).Fatal("bad log path (must be a dir)")
@@ -118,7 +118,7 @@ func action(ctx *cli.Context) {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
-					"_module": "pulse-agent",
+					"_module": "pulsed",
 					"logpath": logPath,
 				}).Fatal("bad log path this is not a directory")
 			os.Exit(0)
@@ -129,7 +129,7 @@ func action(ctx *cli.Context) {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
-					"_module": "pulse-agent",
+					"_module": "pulsed",
 					"error":   err2.Error(),
 					"logpath": logPath,
 				}).Fatal("bad log path")
@@ -144,7 +144,7 @@ func action(ctx *cli.Context) {
 	log.WithFields(
 		log.Fields{
 			"block":   "main",
-			"_module": "pulse-agent",
+			"_module": "pulsed",
 		}).Info("pulse agent starting")
 	c := control.New()
 	s := scheduler.New(
@@ -179,7 +179,7 @@ func action(ctx *cli.Context) {
 				log.WithFields(
 					log.Fields{
 						"_block":  "main",
-						"_module": "pulse-agent",
+						"_module": "pulsed",
 						"logpath": path,
 					}).Fatal(err)
 				os.Exit(0)
@@ -189,14 +189,14 @@ func action(ctx *cli.Context) {
 				if err != nil {
 					log.WithFields(log.Fields{
 						"_block":  "main",
-						"_module": "pulse-agent",
+						"_module": "pulsed",
 						"logpath": path,
 						"plugin":  file,
 					}).Fatal(err)
 				} else {
 					log.WithFields(log.Fields{
 						"_block":         "main",
-						"_module":        "pulse-agent",
+						"_module":        "pulsed",
 						"logpath":        path,
 						"plugin":         file,
 						"plugin-name":    pl.Name,
@@ -229,13 +229,13 @@ func setMaxProcs(maxProcs int) {
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
-				"_module":  "pulse-agent",
+				"_module":  "pulsed",
 				"maxprocs": _maxProcs,
 			}).Warning("ENV variable GOMAXPROCS greater than number of cores in the system")
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
-				"_module":  "pulse-agent",
+				"_module":  "pulsed",
 				"maxprocs": _maxProcs,
 			}).Error("setting pulse to use the number of cores in the system")
 		_maxProcs = numProcs
@@ -247,7 +247,7 @@ func setMaxProcs(maxProcs int) {
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
-				"_module":  "pulse-agent",
+				"_module":  "pulsed",
 				"maxprocs": _maxProcs,
 			}).Warning("flag max_procs exceeds number of cores in the system. Setting Pulse to use the number of cores in the system")
 		_maxProcs = numProcs
@@ -256,7 +256,7 @@ func setMaxProcs(maxProcs int) {
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
-				"_module":  "pulse-agent",
+				"_module":  "pulsed",
 				"maxprocs": _maxProcs,
 			}).Warning("flag max_procs set to negative number. Setting Pulse to use 1 core")
 		_maxProcs = 1
@@ -265,7 +265,7 @@ func setMaxProcs(maxProcs int) {
 	log.WithFields(
 		log.Fields{
 			"_block":   "main",
-			"_module":  "pulse-agent",
+			"_module":  "pulsed",
 			"maxprocs": _maxProcs,
 		}).Debug("maxprocs")
 	runtime.GOMAXPROCS(_maxProcs)
@@ -276,7 +276,7 @@ func setMaxProcs(maxProcs int) {
 		log.WithFields(
 			log.Fields{
 				"block":          "main",
-				"_module":        "pulse-agent",
+				"_module":        "pulsed",
 				"given maxprocs": _maxProcs,
 				"real maxprocs":  actualNumProcs,
 			}).Warning("not using given maxprocs")
@@ -289,7 +289,7 @@ func startModule(m coreModule) error {
 		log.WithFields(
 			log.Fields{
 				"block":        "main",
-				"_module":      "pulse-agent",
+				"_module":      "pulsed",
 				"pulse-module": m.Name(),
 			}).Info("module started")
 	}
@@ -300,7 +300,7 @@ func printErrorAndExit(name string, err error) {
 	log.WithFields(
 		log.Fields{
 			"block":        "main",
-			"_module":      "pulse-agent",
+			"_module":      "pulsed",
 			"error":        err.Error(),
 			"pulse-module": name,
 		}).Fatal("error starting module")
@@ -317,14 +317,14 @@ func startInterruptHandling(modules ...coreModule) {
 		log.WithFields(
 			log.Fields{
 				"block":   "main",
-				"_module": "pulse-agent",
+				"_module": "pulsed",
 			}).Info("shutting down modules")
 
 		for _, m := range modules {
 			log.WithFields(
 				log.Fields{
 					"block":        "main",
-					"_module":      "pulse-agent",
+					"_module":      "pulsed",
 					"pulse-module": m.Name(),
 				}).Info("stopping module")
 			m.Stop()
@@ -332,7 +332,7 @@ func startInterruptHandling(modules ...coreModule) {
 		log.WithFields(
 			log.Fields{
 				"block":   "main",
-				"_module": "pulse-agent",
+				"_module": "pulsed",
 				"signal":  sig.String(),
 			}).Info("exiting on signal")
 		os.Exit(0)

@@ -32,7 +32,7 @@
 
 * _Feedback_: try it and tell us about it.
 * _Contributors_: We need plugins, schedules, testing, and more.
-* _Integrations_: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), [Riemann](https://github.com/aphyr/riemann), [InfluxDB](https://github.com/influxdb/influxdb), and more.
+* _Integrations_: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), and more.
 
 **Pulse** architecture
 
@@ -45,8 +45,6 @@
 
 ## System Requirements
 
-## Installation
-
 ## Building
 
 ```
@@ -57,6 +55,14 @@ make
 
 ```
 make test
+```
+
+## Installation
+
+Local installation
+
+```
+make install
 ```
 
 ## Running
