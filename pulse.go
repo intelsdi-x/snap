@@ -64,6 +64,11 @@ type coreModule interface {
 }
 
 func main() {
+	// Add a check to see if gitversion is blank from the build process
+	if gitversion == "" {
+		gitversion = "unknown"
+	}
+
 	app := cli.NewApp()
 	app.Name = "pulsed"
 	app.Version = gitversion
