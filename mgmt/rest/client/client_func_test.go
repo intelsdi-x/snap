@@ -70,16 +70,28 @@ func TestPulseClient(t *testing.T) {
 	CompressUpload = false
 	Convey("REST API functional V1", t, func() {
 		Convey("GetPlugins", func() {
+			Convey("empty version", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "")
+				So(c.Version, ShouldEqual, "v1")
+			})
 			Convey("empty list", func() {
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
-
 				p := c.GetPlugins(false)
+				p2 := c.GetPlugins(true)
 
 				So(p.Err, ShouldBeNil)
+				So(p2.Err, ShouldBeNil)
 				So(len(p.LoadedPlugins), ShouldEqual, 0)
 				So(p.AvailablePlugins, ShouldBeEmpty)
+				So(len(p2.LoadedPlugins), ShouldEqual, 0)
+				So(p2.AvailablePlugins, ShouldBeEmpty)
+
+				_, err := c.pluginUploadRequest("")
+				So(err.Error(), ShouldEqual, "open : no such file or directory")
 			})
 			Convey("single item", func() {
 				port := getPort()
@@ -105,6 +117,23 @@ func TestPulseClient(t *testing.T) {
 				So(p.Err, ShouldBeNil)
 				So(len(p.LoadedPlugins), ShouldEqual, 2)
 				So(p.AvailablePlugins, ShouldBeEmpty)
+			})
+			Convey("empty list, err!=nil", func() {
+				port := -1
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p := c.GetPlugins(false)
+				p2 := c.GetPlugins(true)
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+
+				So(p.Err, ShouldNotBeNil)
+				So(p2.Err, ShouldNotBeNil)
+				So(len(p.LoadedPlugins), ShouldEqual, 0)
+				So(p.AvailablePlugins, ShouldBeEmpty)
+				So(len(p2.LoadedPlugins), ShouldEqual, 0)
+				So(p2.AvailablePlugins, ShouldBeEmpty)
 			})
 		})
 		Convey("LoadPlugin", func() {
@@ -198,8 +227,6 @@ func TestPulseClient(t *testing.T) {
 
 				p2 := c.GetPlugins(false)
 				So(p2.Err, ShouldBeNil)
-				p3 := c.GetPlugins(true)
-				So(p3.Err, ShouldBeNil)
 				So(len(p2.LoadedPlugins), ShouldEqual, 1)
 				So(p2.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
 			})
@@ -272,6 +299,26 @@ func TestPulseClient(t *testing.T) {
 				So(p.Err, ShouldBeNil)
 				So(p.Name, ShouldEqual, "baron")
 				So(p.State, ShouldEqual, "Stopped")
+
+				rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON) //case len(body) == 0
+				So(rsp, ShouldBeNil)
+				So(err, ShouldBeNil)
+				b := make([]byte, 5)
+				rsp2, err2 := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON, b) //case len(body) != 0
+				So(rsp2, ShouldBeNil)
+				So(err2, ShouldBeNil)
+			})
+			Convey("do returns err!=nil", func() {
+				port := -1
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "1s"}
+
+				p := c.CreateTask(sch, wf, "baron")
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "Post http://localhost:-1/v1/tasks: dial tcp: unknown port tcp/-1")
 			})
 		})
 		Convey("StartTask", func() {
@@ -298,6 +345,15 @@ func TestPulseClient(t *testing.T) {
 				So(p2.Err, ShouldBeNil)
 				So(p2.ID, ShouldEqual, p1.ID)
 			})
+			Convey("do returns err!=nil", func() {
+				port := -1
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p := c.StartTask(9999999)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "Put http://localhost:-1/v1/tasks/9999999/start: dial tcp: unknown port tcp/-1")
+			})
 		})
 		Convey("StopTask", func() {
 			Convey("unknown task", func() {
@@ -321,6 +377,20 @@ func TestPulseClient(t *testing.T) {
 				p2 := c.StopTask(p1.ID)
 				So(p2.Err, ShouldBeNil)
 				So(p2.ID, ShouldEqual, p1.ID)
+
+				b := make([]byte, 5)
+				rsp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", p1.ID), ContentTypeJSON, b) //case len(body) != 0
+				So(rsp, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
+			Convey("do returns err!=nil", func() {
+				port := -1
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p := c.StopTask(9999999)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "Put http://localhost:-1/v1/tasks/9999999/stop: dial tcp: unknown port tcp/-1")
 			})
 		})
 		Convey("RemoveTask", func() {
@@ -346,6 +416,20 @@ func TestPulseClient(t *testing.T) {
 				p2 := c.RemoveTask(p1.ID)
 				So(p2.Err, ShouldBeNil)
 				So(p2.ID, ShouldEqual, p1.ID)
+
+				b := make([]byte, 5)
+				rsp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", p1.ID), ContentTypeJSON, b) //case len(body) != 0
+				So(rsp, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
+			Convey("do returns err!=nil", func() {
+				port := -1
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p := c.RemoveTask(9999999)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "dial tcp: unknown port tcp/-1")
 			})
 		})
 
@@ -364,6 +448,7 @@ func TestPulseClient(t *testing.T) {
 				So(p.Err, ShouldBeNil)
 				So(p.Name, ShouldEqual, "baron")
 				So(p.State, ShouldEqual, "Stopped")
+
 				p2 := c.GetTasks()
 				So(p2.Err, ShouldBeNil)
 				p3 := c.GetTask(uint(p.ID))
@@ -372,6 +457,17 @@ func TestPulseClient(t *testing.T) {
 				So(p4.Err, ShouldNotBeNil)
 				So(p4.Err.Error(), ShouldEqual, "No task with Id '0'")
 				So(p4.ScheduledTaskReturned, ShouldBeNil)
+			})
+			Convey("do returns err!=nil", func() {
+				port := -1
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p := c.GetTask(0)
+				p2 := c.GetTasks()
+
+				So(p.Err, ShouldNotBeNil)
+				So(p2.Err, ShouldNotBeNil)
 			})
 
 		})
