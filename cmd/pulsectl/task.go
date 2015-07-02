@@ -170,3 +170,19 @@ func removeTask(ctx *cli.Context) {
 	fmt.Println("Task removed:")
 	fmt.Printf("ID: %d\n", r.ID)
 }
+
+func exportTask(ctx *cli.Context) {
+	if len(ctx.Args()) != 1 {
+		fmt.Print("Incorrect usage\n")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+	id, err := strconv.ParseUint(ctx.Args().First(), 0, 32)
+	if err != nil {
+		fmt.Printf("Incorrect usage - %v\n", err.Error())
+		os.Exit(1)
+	}
+	task := pClient.GetTask(uint(id))
+	tb, err := json.Marshal(task)
+	fmt.Println(string(tb))
+}

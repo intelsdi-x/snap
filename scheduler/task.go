@@ -11,6 +11,7 @@ import (
 
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 const (
@@ -179,6 +180,14 @@ func (t *task) Stop() {
 	if t.state != core.TaskStopped {
 		t.killChan <- struct{}{}
 	}
+}
+
+func (t *task) WMap() *wmap.WorkflowMap {
+	return t.workflow.workflowMap
+}
+
+func (t *task) Schedule() schedule.Schedule {
+	return t.schedule
 }
 
 func (t *task) spin() {

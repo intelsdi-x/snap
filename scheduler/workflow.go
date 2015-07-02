@@ -55,7 +55,12 @@ func convertCollectionNode(cnode *wmap.CollectWorkflowMapNode, wf *schedulerWork
 		return ErrNoMetricsInCollectNode
 	}
 	// Get core.RequestedMetric metrics
-	wf.metrics = cnode.GetRequestedMetrics()
+	mts := cnode.GetMetrics()
+	wf.metrics = make([]core.RequestedMetric, len(mts))
+	for i, m := range mts {
+		wf.metrics[i] = m
+	}
+
 	// Get our config data tree
 	cdt, err := cnode.GetConfigTree()
 	if err != nil {

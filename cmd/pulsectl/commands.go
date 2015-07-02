@@ -41,6 +41,11 @@ var (
 					Usage:  "remove <task_id>",
 					Action: removeTask,
 				},
+				{
+					Name:   "export",
+					Usage:  "export <task_id>",
+					Action: exportTask,
+				},
 			},
 		},
 		{

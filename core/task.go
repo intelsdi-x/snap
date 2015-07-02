@@ -6,6 +6,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 type TaskState int
@@ -47,6 +49,8 @@ type Task interface {
 	SetStopOnFailure(uint)
 	GetStopOnFailure() uint
 	Option(...TaskOption) TaskOption
+	WMap() *wmap.WorkflowMap
+	Schedule() schedule.Schedule
 }
 
 type TaskOption func(Task) TaskOption

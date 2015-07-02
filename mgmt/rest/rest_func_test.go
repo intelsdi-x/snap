@@ -774,7 +774,7 @@ func TestPluginRestCalls(t *testing.T) {
 				t1 := r1.Body.(*rbody.AddScheduledTask)
 				r2 := getTask(t1.ID, port)
 				t2 := r2.Body.(*rbody.ScheduledTaskReturned)
-				So(t2.ScheduledTask.Name, ShouldEqual, "foo")
+				So(t2.AddScheduledTask.Name, ShouldEqual, "foo")
 			})
 		})
 

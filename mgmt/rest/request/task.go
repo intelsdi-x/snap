@@ -12,6 +12,6 @@ type TaskCreationRequest struct {
 }
 
 type Schedule struct {
-	Type     string `json:"type"`
-	Interval string `json:"interval"`
+	Type     string `json:"type,omitempty"`
+	Interval string `json:"interval,omitempty"`
 }
