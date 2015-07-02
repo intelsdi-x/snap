@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/codegangsta/cli"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -11,6 +10,7 @@ import (
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest"
@@ -49,7 +49,6 @@ var (
 		Usage:  "Auto discover paths separated by colons.",
 		EnvVar: "PULSE_AUTOLOAD_PATH",
 	}
-	
 	gitversion string
 )
 
@@ -77,7 +76,7 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
-	log.Info("Starting PulseD")	
+	log.Info("Starting PulseD")
 	logLevel := ctx.Int("log-level")
 	logPath := ctx.String("log-path")
 	maxProcs := ctx.Int("max-procs")
