@@ -181,6 +181,9 @@ func action(ctx *cli.Context) {
 				os.Exit(0)
 			}
 			for _, file := range files {
+				if file.IsDir() {
+					continue
+				}
 				pl, err := c.Load(fmt.Sprintf("%s/%s", path, file.Name()))
 				if err != nil {
 					log.WithFields(log.Fields{
