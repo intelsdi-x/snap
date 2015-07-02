@@ -43,14 +43,10 @@
                     "process": null,
                     "publish": [
                         {
-                            "plugin_name": "influx",
+                            "plugin_name": "file",
                             "plugin_version": 1,
                             "config": {
-                                "host": "172.16.105.128",
-                                "port": 8086,
-                                "database": "pulse",
-                                "user": "admin",
-                                "password": "admin"                            
+                                "file": "/tmp/pulse-file.out"                                                
                             }
                         }
                     ],
