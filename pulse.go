@@ -64,7 +64,11 @@ type coreModule interface {
 }
 
 func main() {
-	gitversion = "0.0.1" // TODO parse git tags
+	// Add a check to see if gitversion is blank from the build process
+	if gitversion == "" {
+		gitversion = "unknown"
+	}
+
 	app := cli.NewApp()
 	app.Name = "pulsed"
 	app.Version = gitversion
@@ -76,7 +80,7 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
-	log.Info("Starting PulseD")
+	log.Info("Starting pulsed")
 	logLevel := ctx.Int("log-level")
 	logPath := ctx.String("log-path")
 	maxProcs := ctx.Int("max-procs")
