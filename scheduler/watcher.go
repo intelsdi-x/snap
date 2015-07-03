@@ -119,9 +119,9 @@ func (t *taskWatcherCollection) handleTaskStarted(taskId uint64) {
 	// no taskID means no watches, early exit
 	if t.coll[taskId] == nil || len(t.coll[taskId]) == 0 {
 		// Uncomment this debug line if needed. Otherwise this is too verbose for even debug level.
-		watcherLog.WithFields(log.Fields{
-			"task-id": taskId,
-		}).Debug("no watchers")
+		// watcherLog.WithFields(log.Fields{
+		// 	"task-id": taskId,
+		// }).Debug("no watchers")
 		return
 	}
 	// Walk all watchers for a task ID
@@ -142,9 +142,9 @@ func (t *taskWatcherCollection) handleTaskStopped(taskId uint64) {
 	// no taskID means no watches, early exit
 	if t.coll[taskId] == nil || len(t.coll[taskId]) == 0 {
 		// Uncomment this debug line if needed. Otherwise this is too verbose for even debug level.
-		watcherLog.WithFields(log.Fields{
-			"task-id": taskId,
-		}).Debug("no watchers")
+		// watcherLog.WithFields(log.Fields{
+		// 	"task-id": taskId,
+		// }).Debug("no watchers")
 		return
 	}
 	// Walk all watchers for a task ID
