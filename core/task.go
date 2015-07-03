@@ -28,6 +28,14 @@ var (
 	}
 )
 
+type TaskWatcherCloser interface {
+	Close() error
+}
+
+type TaskWatcherHandler interface {
+	CatchCollection([]Metric)
+}
+
 func (t TaskState) String() string {
 	return TaskStateLookup[t]
 }

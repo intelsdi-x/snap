@@ -7,6 +7,7 @@ import (
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/scheduler_event"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
@@ -270,11 +271,22 @@ func (s *schedulerWorkflow) Start(t *task) {
 	// dispatch 'collect' job to be worked
 	j = t.manager.Work(j)
 	if len(j.Errors()) != 0 {
+
 		t.failedRuns++
 		t.lastFailureTime = t.lastFireTime
 		t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
+		event := new(scheduler_event.MetricCollectionFailedEvent)
+		event.TaskID = t.id
+		event.Errors = j.Errors()
+		defer schedulerEventController.Emit(event)
 		return
 	}
+
+	// Send event
+	event := new(scheduler_event.MetricCollectedEvent)
+	event.TaskID = t.id
+	event.Metrics = j.(*collectorJob).metrics
+	defer schedulerEventController.Emit(event)
 
 	// walk through the tree and dispatch work
 	s.workJobs(s.processNodes, s.publishNodes, t, j)
@@ -298,6 +310,7 @@ func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *
 			t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
 			return
 		}
+
 		s.workJobs(pr.ProcessNodes, pr.PublishNodes, t, j)
 	}
 	for _, pu := range pus {
