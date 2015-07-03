@@ -50,6 +50,7 @@ func (c *Client) WatchTask(id uint) *WatchTasksResult {
 	r := &WatchTasksResult{
 		EventChan: make(chan *rbody.StreamedTaskEvent),
 		DoneChan:  make(chan struct{}),
+		killChan:  make(chan struct{}),
 	}
 
 	url := fmt.Sprintf("%s/tasks/%v/watch", c.prefix, id)
@@ -59,6 +60,16 @@ func (c *Client) WatchTask(id uint) *WatchTasksResult {
 		r.Err = err
 	}
 
+	go func() {
+		select {
+		case <-r.DoneChan:
+			// We killed so just exit select
+		case <-r.killChan:
+			// We were killed so close resp to signal to server and exit
+			resp.Body.Close()
+			close(r.DoneChan)
+		}
+	}()
 	// Start watching
 	go func() {
 		reader := bufio.NewReader(resp.Body)
@@ -184,6 +195,13 @@ type WatchTasksResult struct {
 	Err       error
 	EventChan chan *rbody.StreamedTaskEvent
 	DoneChan  chan struct{}
+	killChan  chan struct{}
+}
+
+func (w *WatchTasksResult) Close() {
+	close(w.killChan)
+	// We do this as a way to ensure the signal gets to the server
+	<-w.DoneChan
 }
 
 type GetTasksResult struct {

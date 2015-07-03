@@ -511,6 +511,8 @@ func TestPulseClient(t *testing.T) {
 					So(a[x], ShouldEqual, "metric-event")
 				}
 				So(a[12], ShouldEqual, "task-disabled")
+				// Signal we are done
+				r.Close()
 			})
 
 		})
