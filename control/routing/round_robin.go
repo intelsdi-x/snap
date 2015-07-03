@@ -37,7 +37,7 @@ func (r *RoundRobinStrategy) Select(spp SelectablePluginPool, spa []SelectablePl
 	}
 	if index > -1 {
 		log.WithFields(log.Fields{
-			"module":    "control-routing",
+			"_module":   "control-routing",
 			"block":     "select",
 			"strategy":  "round-robin",
 			"pool size": len(spa),
@@ -47,7 +47,7 @@ func (r *RoundRobinStrategy) Select(spp SelectablePluginPool, spa []SelectablePl
 		return spa[index], nil
 	}
 	log.WithFields(log.Fields{
-		"module":   "control-routing",
+		"_module":  "control-routing",
 		"block":    "select",
 		"strategy": "round-robin",
 		"error":    ErrorCouldNotSelect,

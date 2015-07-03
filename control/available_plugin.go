@@ -112,7 +112,7 @@ func (a *availablePlugin) Version() int {
 // Stop halts a running availablePlugin
 func (a *availablePlugin) Stop(r string) error {
 	log.WithFields(log.Fields{
-		"module":  "control-aplugin",
+		"_module": "control-aplugin",
 		"block":   "stop",
 		"aplugin": a,
 	}).Info("stoppping available plugin")
@@ -122,7 +122,7 @@ func (a *availablePlugin) Stop(r string) error {
 // Kill assumes aplugin is not able to here a Kill RPC call
 func (a *availablePlugin) Kill(r string) error {
 	log.WithFields(log.Fields{
-		"module":  "control-aplugin",
+		"_module": "control-aplugin",
 		"block":   "kill",
 		"aplugin": a,
 	}).Info("hard killing available plugin")
@@ -141,7 +141,7 @@ func (a *availablePlugin) CheckHealth() {
 			if a.failedHealthChecks > 0 {
 				// only log on first ok health check
 				log.WithFields(log.Fields{
-					"module":  "control-aplugin",
+					"_module": "control-aplugin",
 					"block":   "check-health",
 					"aplugin": a,
 				}).Debug("health is ok")
@@ -159,14 +159,14 @@ func (a *availablePlugin) CheckHealth() {
 // and a HealthCheckFailedEvent
 func (a *availablePlugin) healthCheckFailed() {
 	log.WithFields(log.Fields{
-		"module":  "control-aplugin",
+		"_module": "control-aplugin",
 		"block":   "check-health",
 		"aplugin": a,
 	}).Warning("heartbeat missed")
 	a.failedHealthChecks++
 	if a.failedHealthChecks >= DefaultHealthCheckFailureLimit {
 		log.WithFields(log.Fields{
-			"module":  "control-aplugin",
+			"_module": "control-aplugin",
 			"block":   "check-health",
 			"aplugin": a,
 		}).Warning("heartbeat failed")
@@ -255,7 +255,7 @@ func (c *apCollection) Table() map[string][]*availablePlugin {
 // Add adds an availablePlugin to the apCollection table
 func (c *apCollection) Add(ap *availablePlugin) error {
 	log.WithFields(log.Fields{
-		"module":         "control-aplugin",
+		"_module":        "control-aplugin",
 		"block":          "apcollection",
 		"plugin-name":    ap.Name(),
 		"plugin-version": ap.Version(),
@@ -291,7 +291,7 @@ func (c *apCollection) Remove(ap *availablePlugin) error {
 
 	(*c.table)[ap.Key].Remove(ap)
 	log.WithFields(log.Fields{
-		"module":         "control-aplugin",
+		"_module":        "control-aplugin",
 		"block":          "apcollection",
 		"plugin-name":    ap.Name(),
 		"plugin-version": ap.Version(),
@@ -438,7 +438,7 @@ func (a *availablePluginPool) Add(ap *availablePlugin) {
 	a.Plugins = &newCollection
 	log.WithFields(
 		log.Fields{
-			"module":  "control-aplugin",
+			"_module": "control-aplugin",
 			"block":   "aplugin-pool-add",
 			"aplugin": ap.String(),
 		}).Info("added aplugin to pool")
@@ -455,7 +455,7 @@ func (a *availablePluginPool) Remove(ap *availablePlugin) {
 	a.resetIndexes()
 	log.WithFields(
 		log.Fields{
-			"module":  "control-aplugin",
+			"_module": "control-aplugin",
 			"block":   "aplugin-pool-remove",
 			"aplugin": ap.String(),
 		}).Info("removed aplugin from pool")
@@ -470,7 +470,7 @@ func (a *availablePluginPool) Kill(k, r string) (*availablePlugin, error) {
 			err := ap.Kill(r)
 			log.WithFields(
 				log.Fields{
-					"module":  "control-aplugin",
+					"_module": "control-aplugin",
 					"block":   "aplugin-pool-kill",
 					"aplugin": ap.String(),
 				}).Info("killing aplugin")

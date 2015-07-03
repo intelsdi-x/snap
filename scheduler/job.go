@@ -117,7 +117,7 @@ func (m *metric) LastAdvertisedTime() time.Time { return time.Unix(0, 0) }
 
 func (c *collectorJob) Run() {
 	log.WithFields(log.Fields{
-		"module":       "scheduler-job",
+		"_module":      "scheduler-job",
 		"block":        "run",
 		"job-type":     "processor",
 		"metric-count": len(c.metricTypes),
@@ -133,7 +133,7 @@ func (c *collectorJob) Run() {
 	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline())
 
 	log.WithFields(log.Fields{
-		"module":       "scheduler-job",
+		"_module":      "scheduler-job",
 		"block":        "run",
 		"job-type":     "collector",
 		"metric-count": len(ret),
@@ -143,7 +143,7 @@ func (c *collectorJob) Run() {
 	if errs != nil {
 		for _, e := range errs {
 			log.WithFields(log.Fields{
-				"module":   "scheduler-job",
+				"_module":  "scheduler-job",
 				"block":    "run",
 				"job-type": "collector",
 				"error":    e,
@@ -182,7 +182,7 @@ func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentT
 
 func (p *processJob) Run() {
 	log.WithFields(log.Fields{
-		"module":         "scheduler-job",
+		"_module":        "scheduler-job",
 		"block":          "run",
 		"job-type":       "processor",
 		"content-type":   p.contentType,
@@ -207,7 +207,7 @@ func (p *processJob) Run() {
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{
-						"module":         "scheduler-job",
+						"_module":        "scheduler-job",
 						"block":          "run",
 						"job-type":       "processor",
 						"content-type":   p.contentType,
@@ -222,7 +222,7 @@ func (p *processJob) Run() {
 			p.content = content
 		default:
 			log.WithFields(log.Fields{
-				"module":         "scheduler-job",
+				"_module":        "scheduler-job",
 				"block":          "run",
 				"job-type":       "processor",
 				"content-type":   p.contentType,
@@ -234,7 +234,7 @@ func (p *processJob) Run() {
 		}
 	default:
 		log.WithFields(log.Fields{
-			"module":          "scheduler-job",
+			"_module":         "scheduler-job",
 			"block":           "run",
 			"job-type":        "processor",
 			"content-type":    p.contentType,
@@ -273,7 +273,7 @@ func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentT
 
 func (p *publisherJob) Run() {
 	log.WithFields(log.Fields{
-		"module":         "scheduler-job",
+		"_module":        "scheduler-job",
 		"block":          "run",
 		"job-type":       "publisher",
 		"content-type":   p.contentType,
@@ -297,7 +297,7 @@ func (p *publisherJob) Run() {
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{
-						"module":         "scheduler-job",
+						"_module":        "scheduler-job",
 						"block":          "run",
 						"job-type":       "publisher",
 						"content-type":   p.contentType,
@@ -311,7 +311,7 @@ func (p *publisherJob) Run() {
 			}
 		default:
 			log.WithFields(log.Fields{
-				"module":         "scheduler-job",
+				"_module":        "scheduler-job",
 				"block":          "run",
 				"job-type":       "publisher",
 				"content-type":   p.contentType,
@@ -328,7 +328,7 @@ func (p *publisherJob) Run() {
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{
-						"module":         "scheduler-job",
+						"_module":        "scheduler-job",
 						"block":          "run",
 						"job-type":       "publisher",
 						"content-type":   p.contentType,
@@ -343,7 +343,7 @@ func (p *publisherJob) Run() {
 		}
 	default:
 		log.WithFields(log.Fields{
-			"module":          "scheduler-job",
+			"_module":         "scheduler-job",
 			"block":           "run",
 			"job-type":        "publisher",
 			"content-type":    p.contentType,

@@ -78,9 +78,9 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 	if len(metrics) == 0 {
 		es := fmt.Sprintf("attempt to marshall empty slice of metrics: %s", contentType)
 		log.WithFields(log.Fields{
-			"module": "control-plugin",
-			"block":  "marshal-content-type",
-			"error":  es,
+			"_module": "control-plugin",
+			"block":   "marshal-content-type",
+			"error":   es,
 		}).Error("error while marshalling")
 		return nil, "", errors.New(es)
 	}
@@ -93,9 +93,9 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 		err := enc.Encode(metrics)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"module": "control-plugin",
-				"block":  "marshal-content-type",
-				"error":  err.Error(),
+				"_module": "control-plugin",
+				"block":   "marshal-content-type",
+				"error":   err.Error(),
 			}).Error("error while marshalling")
 			return nil, "", err
 		}
@@ -106,9 +106,9 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 		b, err := json.Marshal(metrics)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"module": "control-plugin",
-				"block":  "marshal-content-type",
-				"error":  err.Error(),
+				"_module": "control-plugin",
+				"block":   "marshal-content-type",
+				"error":   err.Error(),
 			}).Error("error while marshalling")
 			return nil, "", err
 		}
@@ -117,9 +117,9 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 		// We don't recognize this content type. Log and return error.
 		es := fmt.Sprintf("invalid pulse content type: %s", contentType)
 		log.WithFields(log.Fields{
-			"module": "control-plugin",
-			"block":  "marshal-content-type",
-			"error":  es,
+			"_module": "control-plugin",
+			"block":   "marshal-content-type",
+			"error":   es,
 		}).Error("error while marshalling")
 		return nil, "", errors.New(es)
 	}
@@ -134,9 +134,9 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 		err := gob.NewDecoder(r).Decode(&metrics)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"module": "control-plugin",
-				"block":  "unmarshal-content-type",
-				"error":  err.Error(),
+				"_module": "control-plugin",
+				"block":   "unmarshal-content-type",
+				"error":   err.Error(),
 			}).Error("error while unmarshalling")
 			return nil, err
 		}
@@ -146,9 +146,9 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 		err := json.Unmarshal(payload, &metrics)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"module": "control-plugin",
-				"block":  "unmarshal-content-type",
-				"error":  err.Error(),
+				"_module": "control-plugin",
+				"block":   "unmarshal-content-type",
+				"error":   err.Error(),
 			}).Error("error while unmarshalling")
 			return nil, err
 		}
@@ -157,9 +157,9 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 		// We don't recognize this content type as one we can unmarshal. Log and return error.
 		es := fmt.Sprintf("invalid pulse content type for unmarshalling: %s", contentType)
 		log.WithFields(log.Fields{
-			"module": "control-plugin",
-			"block":  "unmarshal-content-type",
-			"error":  es,
+			"_module": "control-plugin",
+			"block":   "unmarshal-content-type",
+			"error":   es,
 		}).Error("error while unmarshalling")
 		return nil, errors.New(es)
 	}
@@ -170,18 +170,18 @@ func SwapPluginMetricContentType(contentType, requestedContentType string, paylo
 	metrics, err1 := UnmarshallPluginMetricTypes(contentType, payload)
 	if err1 != nil {
 		log.WithFields(log.Fields{
-			"module": "control-plugin",
-			"block":  "swap-content-type",
-			"error":  err1.Error(),
+			"_module": "control-plugin",
+			"block":   "swap-content-type",
+			"error":   err1.Error(),
 		}).Error("error while swaping")
 		return nil, "", err1
 	}
 	newPayload, newContentType, err2 := MarshalPluginMetricTypes(requestedContentType, metrics)
 	if err2 != nil {
 		log.WithFields(log.Fields{
-			"module": "control-plugin",
-			"block":  "swap-content-type",
-			"error":  err2.Error(),
+			"_module": "control-plugin",
+			"block":   "swap-content-type",
+			"error":   err2.Error(),
 		}).Error("error while swaping")
 		return nil, "", err2
 	}
