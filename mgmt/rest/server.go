@@ -70,7 +70,7 @@ type managesMetrics interface {
 	FetchMetrics([]string) ([]core.CatalogedMetric, error)
 	GetMetric([]string, int) (core.Metric, error)
 	Load(string) (core.CatalogedPlugin, perror.PulseError)
-	Unload(pl core.Plugin) (core.CatalogedPlugin, perror.PulseError)
+	Unload(core.Plugin) (core.CatalogedPlugin, perror.PulseError)
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin
 	GetAutodiscoverPaths() []string
@@ -79,10 +79,11 @@ type managesMetrics interface {
 type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, ...core.TaskOption) (core.Task, core.TaskErrors)
 	GetTasks() map[uint64]core.Task
-	GetTask(id uint64) (core.Task, error)
-	StartTask(id uint64) error
-	StopTask(id uint64) error
-	RemoveTask(id uint64) error
+	GetTask(uint64) (core.Task, error)
+	StartTask(uint64) error
+	StopTask(uint64) error
+	RemoveTask(uint64) error
+	WatchTask(uint64, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
 }
 
 type Server struct {
@@ -137,6 +138,7 @@ func (s *Server) start(addrString string) {
 	// task routes
 	s.r.GET("/v1/tasks", s.getTasks)
 	s.r.GET("/v1/tasks/:id", s.getTask)
+	s.r.GET("/v1/tasks/:id/watch", s.watchTask)
 	s.r.POST("/v1/tasks", s.addTask)
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)

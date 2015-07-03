@@ -3,6 +3,7 @@ package rest
 // This test runs through basic REST API calls and validates them.
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
@@ -27,9 +28,13 @@ import (
 )
 
 var (
+	// Switching this turns on logging for all the REST API calls
+	LOG_LEVEL = log.FatalLevel
+
 	PULSE_PATH          = os.Getenv("PULSE_PATH")
 	DUMMY_PLUGIN_PATH1  = PULSE_PATH + "/plugin/pulse-collector-dummy1"
 	DUMMY_PLUGIN_PATH2  = PULSE_PATH + "/plugin/pulse-collector-dummy2"
+	PSUTIL_PLUGIN_PATH  = PULSE_PATH + "/plugin/pulse-collector-psutil"
 	RIEMANN_PLUGIN_PATH = PULSE_PATH + "/plugin/pulse-publisher-riemann"
 
 	NextPort         = 8000
@@ -74,6 +79,43 @@ func getAPIResponse(resp *http.Response) *APIResponse {
 	}
 	r.JSONResponse = string(rb)
 	return r
+}
+
+func getStreamingAPIResponse(resp *http.Response) *APIResponse {
+	r := new(APIResponse)
+	rb := readBody(resp)
+	err := json.Unmarshal(rb, r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.JSONResponse = string(rb)
+	return r
+}
+
+func watchTask(id, port int) []string {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%d/watch", port, id))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	reader := bufio.NewReader(resp.Body)
+	r := make([]string, 0)
+	for {
+		line, _ := reader.ReadBytes('\n')
+		ste := &rbody.StreamedTaskEvent{}
+		err := json.Unmarshal(line, ste)
+		if err != nil {
+			log.Fatal(err)
+		}
+		switch ste.EventType {
+		case rbody.TaskWatchTaskDisabled:
+			r = append(r, ste.EventType)
+			return r
+		case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
+			r = append(r, ste.EventType)
+		}
+	}
+
 }
 
 func getTasks(port int) *APIResponse {
@@ -152,7 +194,7 @@ func createTask(sample, name, interval string, port int) *APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks", port)
 
 	t := request.TaskCreationRequest{
-		Schedule: request.Schedule{Type: "simple", Interval: "1s"},
+		Schedule: request.Schedule{Type: "simple", Interval: interval},
 		Workflow: wf,
 		Name:     name,
 	}
@@ -267,7 +309,7 @@ func fetchMetrics(port int, ns string) *APIResponse {
 // When we eventually have a REST API Stop command this can be killed.
 func startAPI(port int) *restAPIInstance {
 	// Start a REST API to talk to
-	log.SetLevel(log.FatalLevel)
+	log.SetLevel(LOG_LEVEL)
 	r := New()
 	c := control.New()
 	c.Start()
@@ -803,6 +845,9 @@ func TestPluginRestCalls(t *testing.T) {
 				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
 				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "xenu")
 				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Spinning")
+
+				// cleanup for test perf reasons
+				removeTask(id, port)
 			})
 		})
 
@@ -887,6 +932,46 @@ func TestPluginRestCalls(t *testing.T) {
 				So(len(plr4.ScheduledTasks), ShouldEqual, 0)
 			})
 		})
+		Convey("Watch task - get - /v1/tasks/:id/watch", func() {
+			Convey("---", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
+
+				r1 := createTask("1.json", "xenu", "10ms", port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+
+				id := plr1.ID
+
+				// Change buffer window to 10ms (do not do this IRL)
+				// sample 1.json should fail after 10 attempts and be disabled
+				StreamingBufferWindow = 0.01
+				var r []string
+				wait := make(chan struct{})
+				go func() {
+					r = watchTask(id, port)
+					close(wait)
+				}()
+
+				// Just enough time for watcher to start
+				time.Sleep(time.Millisecond * 100)
+				stopTask(id, port)
+				startTask(id, port)
+
+				// Wait for streaming to end and then test the order and type of events from stream
+				<-wait
+				So(len(r), ShouldEqual, 13)
+				So(r[0], ShouldEqual, "task-stopped")
+				So(r[1], ShouldEqual, "task-started")
+				for x := 2; x <= 11; x++ {
+					So(r[x], ShouldEqual, "metric-event")
+				}
+				So(r[12], ShouldEqual, "task-disabled")
+			})
+		})
 	})
-	fmt.Printf("(%d) uploads for a total of %fmb\n", UploadCount, float64(TotalUploadSize)/1000/1000)
 }
