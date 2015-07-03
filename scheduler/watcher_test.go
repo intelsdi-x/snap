@@ -22,6 +22,21 @@ func (d *dummyCatcher) CatchCollection(m []core.Metric) {
 	sum++
 }
 
+func (d *dummyCatcher) CatchTaskDisabled(why string) {
+	d.count++
+	sum++
+}
+
+func (d *dummyCatcher) CatchTaskStopped() {
+	d.count++
+	sum++
+}
+
+func (d *dummyCatcher) CatchTaskStarted() {
+	d.count++
+	sum++
+}
+
 func TestTaskWatching(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	Convey("", t, func() {
