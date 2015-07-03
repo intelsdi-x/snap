@@ -964,13 +964,12 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Wait for streaming to end and then test the order and type of events from stream
 				<-wait
-				So(len(r), ShouldEqual, 13)
+				So(len(r), ShouldBeGreaterThanOrEqualTo, 12)
 				So(r[0], ShouldEqual, "task-stopped")
 				So(r[1], ShouldEqual, "task-started")
 				for x := 2; x <= 11; x++ {
 					So(r[x], ShouldEqual, "metric-event")
 				}
-				So(r[12], ShouldEqual, "task-disabled")
 			})
 		})
 	})
