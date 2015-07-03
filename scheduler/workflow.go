@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/intelsdi-x/gomit"
+
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
@@ -147,7 +149,8 @@ type schedulerWorkflow struct {
 	processNodes []*processNode
 	publishNodes []*publishNode
 	// workflowMap used to generate this workflow
-	workflowMap *wmap.WorkflowMap
+	workflowMap  *wmap.WorkflowMap
+	eventEmitter gomit.Emitter
 }
 
 type processNode struct {
@@ -278,7 +281,7 @@ func (s *schedulerWorkflow) Start(t *task) {
 		event := new(scheduler_event.MetricCollectionFailedEvent)
 		event.TaskID = t.id
 		event.Errors = j.Errors()
-		defer schedulerEventController.Emit(event)
+		defer s.eventEmitter.Emit(event)
 		return
 	}
 
@@ -286,7 +289,7 @@ func (s *schedulerWorkflow) Start(t *task) {
 	event := new(scheduler_event.MetricCollectedEvent)
 	event.TaskID = t.id
 	event.Metrics = j.(*collectorJob).metrics
-	defer schedulerEventController.Emit(event)
+	defer s.eventEmitter.Emit(event)
 
 	// walk through the tree and dispatch work
 	s.workJobs(s.processNodes, s.publishNodes, t, j)
