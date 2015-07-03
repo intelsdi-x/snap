@@ -7,6 +7,7 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 
+	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -17,6 +18,7 @@ func (m *mockCollector) CollectMetrics([]core.Metric, time.Time) ([]core.Metric,
 }
 
 func TestCollectorJob(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
 	cdt := cdata.NewTree()
 	Convey("newCollectorJob()", t, func() {
 		Convey("it returns an init-ed collectorJob", func() {

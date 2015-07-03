@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/smartystreets/goconvey/convey"
-
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
+
+	log "github.com/Sirupsen/logrus"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -43,6 +44,7 @@ func (m MockMetricType) Data() interface{} {
 }
 
 func TestCollectPublishWorkflow(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
 	Convey("Given a started plugin control", t, func() {
 		// logger.SetLevel(logger.DebugLevel)
 		// logPath := "/tmp"

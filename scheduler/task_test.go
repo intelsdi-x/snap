@@ -10,10 +10,12 @@ import (
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 
+	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestTask(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
 	Convey("Task", t, func() {
 		sampleWFMap := wmap.Sample()
 		wf, errs := wmapToWorkflow(sampleWFMap)

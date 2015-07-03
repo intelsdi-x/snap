@@ -4,10 +4,12 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestWorker(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
 	Convey("Replies on the Job's reply chan", t, func() {
 		workerKillChan = make(chan struct{})
 		rcv := make(chan job)
