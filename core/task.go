@@ -34,6 +34,9 @@ type TaskWatcherCloser interface {
 
 type TaskWatcherHandler interface {
 	CatchCollection([]Metric)
+	CatchTaskStarted()
+	CatchTaskStopped()
+	CatchTaskDisabled(string)
 }
 
 func (t TaskState) String() string {
