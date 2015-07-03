@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"syscall"
 	"text/tabwriter"
 
 	"github.com/codegangsta/cli"
@@ -106,6 +109,61 @@ func listTask(ctx *cli.Context) {
 		)
 	}
 	w.Flush()
+}
+
+func watchTask(ctx *cli.Context) {
+	if len(ctx.Args()) != 1 {
+		fmt.Print("Incorrect usage\n")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+
+	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
+	if err != nil {
+		fmt.Printf("Incorrect usage - %v\n", err.Error())
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+	r := pClient.WatchTask(uint(id))
+	if r.Err != nil {
+		fmt.Printf("Error starting task:\n%v\n", r.Err)
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+	fmt.Printf("Watching Task (%d):\n", id)
+
+	// catch interrupt so we signal the server we are done before exiting
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("Stopping task watch")
+		r.Close()
+	}()
+
+	// Loop listening to events
+	for {
+		select {
+		case e := <-r.EventChan:
+			switch e.EventType {
+			case "metric-event":
+				out := "[metrics collected] "
+				p := make([]string, len(e.Event))
+				for i, _ := range e.Event {
+					p[i] = fmt.Sprintf("%s=%+v", e.Event[i].Namespace, e.Event[i].Data)
+				}
+				out += strings.Join(p, " ")
+				fmt.Println(out)
+			default:
+				fmt.Printf("[%s]\n", e.EventType)
+			}
+
+		case <-r.DoneChan:
+			return
+		}
+	}
+
 }
 
 func startTask(ctx *cli.Context) {

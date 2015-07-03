@@ -46,6 +46,11 @@ var (
 					Usage:  "export <task_id>",
 					Action: exportTask,
 				},
+				{
+					Name:   "watch",
+					Usage:  "watch <task_id>",
+					Action: watchTask,
+				},
 			},
 		},
 		{
