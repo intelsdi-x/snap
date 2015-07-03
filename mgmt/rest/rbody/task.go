@@ -22,6 +22,7 @@ const (
 	ScheduledTaskWatchingEndedType = "schedule_task_watch_ended"
 
 	// Event types for task watcher streaming
+	TaskWatchStreamOpen   = "stream-open"
 	TaskWatchMetricEvent  = "metric-event"
 	TaskWatchTaskDisabled = "task-disabled"
 	TaskWatchTaskStarted  = "task-started"

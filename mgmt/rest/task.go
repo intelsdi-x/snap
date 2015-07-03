@@ -159,6 +159,13 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 		respond(500, rbody.FromError(ErrStreamingUnsupported), w)
 		return
 	}
+	// send initial stream open event
+	so := rbody.StreamedTaskEvent{
+		EventType: rbody.TaskWatchStreamOpen,
+		Message:   "Stream opended",
+	}
+	fmt.Fprintf(w, "%s\n", so.ToJSON())
+	flusher.Flush()
 
 	// Get a channel for if the client notifies us it is closing the connection
 	n := w.(http.CloseNotifier).CloseNotify()
