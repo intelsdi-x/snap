@@ -19,6 +19,9 @@ import (
 )
 
 var (
+	// Change to set the REST API logging to debug
+	LOG_LEVEL = log.FatalLevel
+
 	PULSE_PATH          = os.Getenv("PULSE_PATH")
 	DUMMY_PLUGIN_PATH1  = PULSE_PATH + "/plugin/pulse-collector-dummy1"
 	DUMMY_PLUGIN_PATH2  = PULSE_PATH + "/plugin/pulse-collector-dummy2"
@@ -52,7 +55,7 @@ func getWMFromSample(sample string) *wmap.WorkflowMap {
 // When we eventually have a REST API Stop command this can be killed.
 func startAPI(port int) string {
 	// Start a REST API to talk to
-	log.SetLevel(log.FatalLevel)
+	log.SetLevel(LOG_LEVEL)
 	r := rest.New()
 	c := control.New()
 	c.Start()
@@ -468,6 +471,47 @@ func TestPulseClient(t *testing.T) {
 
 				So(p.Err, ShouldNotBeNil)
 				So(p2.Err, ShouldNotBeNil)
+			})
+
+		})
+		Convey("WatchTasks", func() {
+			Convey("event stream", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "10ms"}
+				p := c.CreateTask(sch, wf, "baron")
+
+				a := make([]string, 0)
+				r := c.WatchTask(uint(p.ID))
+				wait := make(chan struct{})
+				go func() {
+					for {
+						select {
+						case e := <-r.EventChan:
+							a = append(a, e.EventType)
+						case <-r.DoneChan:
+							close(wait)
+							return
+						}
+					}
+				}()
+				c.StopTask(p.ID)
+				c.StartTask(p.ID)
+				<-wait
+				So(len(a), ShouldBeGreaterThanOrEqualTo, 12)
+				So(a[0], ShouldEqual, "task-stopped")
+				So(a[1], ShouldEqual, "task-started")
+				for x := 2; x <= 11; x++ {
+					So(a[x], ShouldEqual, "metric-event")
+				}
+				// Signal we are done
+				r.Close()
 			})
 
 		})

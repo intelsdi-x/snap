@@ -29,7 +29,7 @@
                 "/psutil/vm/used": {},
                 "/psutil/vm/used_percent": {},
                 "/psutil/vm/wired": {}
-            },
+            },  
             "config": {
                 "/intel/dummy": {
                     "password": "secret",

@@ -3,19 +3,24 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	// "strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/pulse/core/scheduler_event"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 var (
+	HandlerRegistrationName = "scheduler"
+
 	ErrMetricManagerNotSet = errors.New("MetricManager is not set.")
 	ErrSchedulerNotStarted = errors.New("Scheduler is not started.")
 )
@@ -61,11 +66,13 @@ type processesMetrics interface {
 }
 
 type scheduler struct {
-	workManager   *workManager
-	metricManager managesMetrics
-	tasks         *taskCollection
-	state         schedulerState
-	logger        *log.Entry
+	workManager     *workManager
+	metricManager   managesMetrics
+	tasks           *taskCollection
+	state           schedulerState
+	logger          *log.Entry
+	eventManager    *gomit.EventController
+	taskWatcherColl *taskWatcherCollection
 }
 
 type managesWork interface {
@@ -81,12 +88,15 @@ func New(opts ...workManagerOption) *scheduler {
 		logger: log.WithFields(log.Fields{
 			"_module": "scheduler",
 		}),
+		eventManager:    gomit.NewEventController(),
+		taskWatcherColl: newTaskWatcherCollection(),
 	}
 
 	// we are setting the size of the queue and number of workers for
 	// collect, process and publish consistently for now
 	s.workManager = newWorkManager(opts...)
 	s.workManager.Start()
+	s.eventManager.RegisterHandler(HandlerRegistrationName, s)
 
 	return s
 }
@@ -169,7 +179,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 	}
 
 	// Create the task object
-	task := newTask(sch, subscriptions, wf, s.workManager, s.metricManager, opts...)
+	task := newTask(sch, subscriptions, wf, s.workManager, s.metricManager, s.eventManager, opts...)
 
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {
@@ -183,6 +193,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 		"task-id":    task.ID(),
 		"task-state": task.State(),
 	}).Info("task created")
+
 	return task, te
 }
 
@@ -192,7 +203,7 @@ func (s *scheduler) RemoveTask(id uint64) error {
 	t := s.tasks.Get(id)
 	if t == nil {
 		log.WithFields(log.Fields{
-			"module":  "scheduler",
+			"_module": "scheduler",
 			"block":   "RemoveTask",
 			"task id": id,
 		}).Error(ErrTaskNotFound)
@@ -225,6 +236,9 @@ func (s *scheduler) StartTask(id uint64) error {
 	if t == nil {
 		return fmt.Errorf("No task found with id '%v'", id)
 	}
+	event := new(scheduler_event.TaskStartedEvent)
+	event.TaskID = t.id
+	defer s.eventManager.Emit(event)
 	t.Spin()
 	s.logger.WithFields(log.Fields{
 		"_block":     "start-task",
@@ -246,6 +260,9 @@ func (s *scheduler) StopTask(id uint64) error {
 		}).Warning("error on stopping of task")
 		return e
 	}
+	event := new(scheduler_event.TaskStoppedEvent)
+	event.TaskID = t.id
+	defer s.eventManager.Emit(event)
 	t.Stop()
 	s.logger.WithFields(log.Fields{
 		"_block":     "stop-task",
@@ -290,6 +307,70 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 	s.logger.WithFields(log.Fields{
 		"_block": "set-metric-manager",
 	}).Debug("metric manager linked")
+}
+
+//
+func (s *scheduler) WatchTask(id uint64, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
+	if task := s.tasks.Get(id); task != nil {
+		a, b := s.taskWatcherColl.add(id, tw)
+		return a, b
+	}
+	return nil, ErrTaskNotFound
+}
+
+// Central handling for all async events in scheduler
+func (s *scheduler) HandleGomitEvent(e gomit.Event) {
+
+	switch v := e.Body.(type) {
+	case *scheduler_event.MetricCollectedEvent:
+		log.WithFields(log.Fields{
+			"_module":         "scheduler-events",
+			"_block":          "handle-events",
+			"event-namespace": e.Namespace(),
+			"task-id":         v.TaskID,
+			"metric-count":    len(v.Metrics),
+		}).Debug("event received")
+		s.taskWatcherColl.handleMetricCollected(v.TaskID, v.Metrics)
+	case *scheduler_event.MetricCollectionFailedEvent:
+		log.WithFields(log.Fields{
+			"_module":         "scheduler-events",
+			"_block":          "handle-events",
+			"event-namespace": e.Namespace(),
+			"task-id":         v.TaskID,
+			"errors-count":    v.Errors,
+		}).Debug("event received")
+	case *scheduler_event.TaskStartedEvent:
+		log.WithFields(log.Fields{
+			"_module":         "scheduler-events",
+			"_block":          "handle-events",
+			"event-namespace": e.Namespace(),
+			"task-id":         v.TaskID,
+		}).Debug("event received")
+		s.taskWatcherColl.handleTaskStarted(v.TaskID)
+	case *scheduler_event.TaskStoppedEvent:
+		log.WithFields(log.Fields{
+			"_module":         "scheduler-events",
+			"_block":          "handle-events",
+			"event-namespace": e.Namespace(),
+			"task-id":         v.TaskID,
+		}).Debug("event received")
+		s.taskWatcherColl.handleTaskStopped(v.TaskID)
+	case *scheduler_event.TaskDisabledEvent:
+		log.WithFields(log.Fields{
+			"_module":         "scheduler-events",
+			"_block":          "handle-events",
+			"event-namespace": e.Namespace(),
+			"task-id":         v.TaskID,
+			"disabled-reason": v.Why,
+		}).Debug("event received")
+		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
+	default:
+		log.WithFields(log.Fields{
+			"_module":         "scheduler-events",
+			"_block":          "handle-events",
+			"event-namespace": e.Namespace(),
+		}).Debug("event received")
+	}
 }
 
 // subscribe subscribes to all processors and publishers recursively

@@ -1,6 +1,7 @@
 package rbody
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -11,13 +12,21 @@ import (
 )
 
 const (
-	ScheduledTaskListReturnedType = "scheduled_task_list_returned"
-	ScheduledTaskReturnedType     = "scheduled_task_returned"
-	AddScheduledTaskType          = "scheduled_task_created"
-	ScheduledTaskType             = "scheduled_task"
-	ScheduledTaskStartedType      = "scheduled_task_started"
-	ScheduledTaskStoppedType      = "scheduled_task_stopped"
-	ScheduledTaskRemovedType      = "scheduled_task_removed"
+	ScheduledTaskListReturnedType  = "scheduled_task_list_returned"
+	ScheduledTaskReturnedType      = "scheduled_task_returned"
+	AddScheduledTaskType           = "scheduled_task_created"
+	ScheduledTaskType              = "scheduled_task"
+	ScheduledTaskStartedType       = "scheduled_task_started"
+	ScheduledTaskStoppedType       = "scheduled_task_stopped"
+	ScheduledTaskRemovedType       = "scheduled_task_removed"
+	ScheduledTaskWatchingEndedType = "schedule_task_watch_ended"
+
+	// Event types for task watcher streaming
+	TaskWatchStreamOpen   = "stream-open"
+	TaskWatchMetricEvent  = "metric-event"
+	TaskWatchTaskDisabled = "task-disabled"
+	TaskWatchTaskStarted  = "task-started"
+	TaskWatchTaskStopped  = "task-stopped"
 )
 
 type ScheduledTaskListReturned struct {
@@ -182,4 +191,32 @@ func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {
 		return
 	}
 	t.Schedule = &request.Schedule{}
+}
+
+type ScheduledTaskWatchingEnded struct {
+}
+
+func (s *ScheduledTaskWatchingEnded) ResponseBodyMessage() string {
+	return "Task watching ended"
+}
+
+func (s *ScheduledTaskWatchingEnded) ResponseBodyType() string {
+	return ScheduledTaskWatchingEndedType
+}
+
+type StreamedTaskEvent struct {
+	// Used to describe the event
+	EventType string           `json:"type"`
+	Message   string           `json:"message"`
+	Event     []StreamedMetric `json:"event,omitempty"`
+}
+
+func (s *StreamedTaskEvent) ToJSON() string {
+	j, _ := json.Marshal(s)
+	return string(j)
+}
+
+type StreamedMetric struct {
+	Namespace string      `json:"namespace"`
+	Data      interface{} `json:"data"`
 }

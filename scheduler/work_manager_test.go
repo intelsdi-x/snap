@@ -29,6 +29,7 @@ func (mj *mockJob) Run() {
 }
 
 func TestWorkerManager(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
 	Convey(".Work()", t, func() {
 		Convey("Sends / receives work to / from worker", func() {
 			manager := newWorkManager()

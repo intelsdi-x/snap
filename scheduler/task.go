@@ -2,14 +2,17 @@ package scheduler
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/scheduler_event"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
@@ -48,17 +51,18 @@ type task struct {
 	lastFailureMessage string
 	lastFailureTime    time.Time
 	stopOnFailure      uint
+	eventEmitter       gomit.Emitter
 }
 
 //NewTask creates a Task
-func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *workManager, mm managesMetrics, opts ...core.TaskOption) *task {
+func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *workManager, mm managesMetrics, emitter gomit.Emitter, opts ...core.TaskOption) *task {
 
 	//Task would always be given a default name.
 	//However if a user want to change this name, she can pass optional arguments, in form of core.TaskOption
 	//The new name then get over written.
 	taskId := id()
 	name := "Task-" + string(strconv.FormatInt(int64(taskId), 10))
-
+	wf.eventEmitter = emitter
 	task := &task{
 		id:               taskId,
 		name:             name,
@@ -73,6 +77,7 @@ func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *w
 		metricsManager:   mm,
 		deadlineDuration: DefaultDeadlineDuration,
 		stopOnFailure:    DefaultStopOnFailure,
+		eventEmitter:     emitter,
 	}
 	//set options
 	for _, opt := range opts {
@@ -230,6 +235,11 @@ func (t *task) spin() {
 						"error":                t.lastFailureMessage,
 					}).Error(ErrTaskDisabledOnFailures)
 					t.state = core.TaskDisabled
+					// Send task disabled event
+					event := new(scheduler_event.TaskDisabledEvent)
+					event.TaskID = t.id
+					event.Why = fmt.Sprintf("Task disabled with error: %s", t.lastFailureMessage)
+					defer t.eventEmitter.Emit(event)
 					return
 				}
 			}

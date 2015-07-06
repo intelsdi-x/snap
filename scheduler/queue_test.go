@@ -4,10 +4,12 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestQueue(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
 	Convey("newQueue", t, func() {
 		q := newQueue(5, func(job) {})
 		So(q, ShouldHaveSameTypeAs, new(queue))

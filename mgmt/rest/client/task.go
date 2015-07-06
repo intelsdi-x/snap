@@ -1,8 +1,10 @@
 package client
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	"github.com/intelsdi-x/pulse/mgmt/rest/request"
@@ -42,6 +44,57 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string) *Cre
 	default:
 		return &CreateTaskResult{Err: ErrAPIResponseMetaType}
 	}
+}
+
+func (c *Client) WatchTask(id uint) *WatchTasksResult {
+	r := &WatchTasksResult{
+		EventChan: make(chan *rbody.StreamedTaskEvent),
+		DoneChan:  make(chan struct{}),
+		killChan:  make(chan struct{}),
+	}
+
+	url := fmt.Sprintf("%s/tasks/%v/watch", c.prefix, id)
+	resp, err := http.Get(url)
+
+	if err != nil {
+		r.Err = err
+	}
+
+	go func() {
+		select {
+		case <-r.DoneChan:
+			// We killed so just exit select
+		case <-r.killChan:
+			// We were killed so close resp to signal to server and exit
+			resp.Body.Close()
+			close(r.DoneChan)
+		}
+	}()
+	// Start watching
+	go func() {
+		reader := bufio.NewReader(resp.Body)
+		for {
+			line, _ := reader.ReadBytes('\n')
+			ste := &rbody.StreamedTaskEvent{}
+			err := json.Unmarshal(line, ste)
+			if err != nil {
+				r.Err = err
+				resp.Body.Close()
+				close(r.DoneChan)
+				return
+			}
+			switch ste.EventType {
+			case rbody.TaskWatchTaskDisabled:
+				r.EventChan <- ste
+				resp.Body.Close()
+				close(r.DoneChan)
+				return
+			case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
+				r.EventChan <- ste
+			}
+		}
+	}()
+	return r
 }
 
 func (c *Client) GetTasks() *GetTasksResult {
@@ -135,6 +188,20 @@ func (c *Client) RemoveTask(id int) *RemoveTasksResult {
 type CreateTaskResult struct {
 	*rbody.AddScheduledTask
 	Err error
+}
+
+type WatchTasksResult struct {
+	count     int
+	Err       error
+	EventChan chan *rbody.StreamedTaskEvent
+	DoneChan  chan struct{}
+	killChan  chan struct{}
+}
+
+func (w *WatchTasksResult) Close() {
+	close(w.killChan)
+	// We do this as a way to ensure the signal gets to the server
+	<-w.DoneChan
 }
 
 type GetTasksResult struct {

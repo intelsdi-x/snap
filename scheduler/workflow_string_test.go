@@ -5,10 +5,12 @@ import (
 
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 
+	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestWorkflowString(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
 	Convey("String", t, func() {
 		w := wmap.NewWorkflowMap()
 		w.CollectNode.AddMetric("fall", 1)
