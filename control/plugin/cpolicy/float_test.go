@@ -70,6 +70,14 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 
 				e = r.Validate(v)
 				So(e, ShouldBeNil)
+
+				buf, err := r.GobEncode()
+				So(buf, ShouldNotBeEmpty)
+				err2 := r.GobDecode(buf)
+				So(err, ShouldBeNil)
+				So(err2, ShouldBeNil)
+				err3 := r.GobDecode([]byte{}) //key is nil
+				So(err3.Error(), ShouldEqual, "EOF")
 			})
 
 			Convey("error with non-float config value", func() {
@@ -83,6 +91,12 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 
 				e = r.Validate(v)
 				So(e, ShouldResemble, errors.New("type mismatch (thekey wanted type 'float' but provided type 'string')"))
+
+				buf, err := r.GobEncode()
+				So(buf, ShouldNotBeEmpty)
+				err2 := r.GobDecode(buf)
+				So(err, ShouldBeNil)
+				So(err2, ShouldBeNil)
 			})
 
 			Convey("error with value below minimum", func() {
@@ -95,6 +109,12 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 
 				e = r.Validate(v)
 				So(e, ShouldResemble, errors.New("value is under minimum (thekey value 0.230000 < 1.987000)"))
+
+				buf, err := r.GobEncode()
+				So(buf, ShouldNotBeEmpty)
+				err2 := r.GobDecode(buf)
+				So(err, ShouldBeNil)
+				So(err2, ShouldBeNil)
 			})
 
 			Convey("error with value above maximum", func() {
@@ -107,6 +127,12 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 
 				e = r.Validate(v)
 				So(e, ShouldResemble, errors.New("value is over maximum (thekey value 200.000001 > 127.127000)"))
+
+				buf, err := r.GobEncode()
+				So(buf, ShouldNotBeEmpty)
+				err2 := r.GobDecode(buf)
+				So(err, ShouldBeNil)
+				So(err2, ShouldBeNil)
 			})
 
 		})
