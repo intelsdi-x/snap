@@ -311,11 +311,9 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 
 //
 func (s *scheduler) WatchTask(id uint64, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
-	for _, t := range s.tasks.table {
-		if id == t.ID() {
-			a, b := s.taskWatcherColl.add(id, tw)
-			return a, b
-		}
+	if task := s.tasks.Get(id); task != nil {
+		a, b := s.taskWatcherColl.add(id, tw)
+		return a, b
 	}
 	return nil, ErrTaskNotFound
 }
