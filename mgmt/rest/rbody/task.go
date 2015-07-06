@@ -204,9 +204,6 @@ func (s *ScheduledTaskWatchingEnded) ResponseBodyType() string {
 	return ScheduledTaskWatchingEndedType
 }
 
-// It is possible to over engineer this below.
-// But for now it is scoped down to just an event stream of collection metrics from the task with sime close message/
-
 type StreamedTaskEvent struct {
 	// Used to describe the event
 	EventType string           `json:"type"`
