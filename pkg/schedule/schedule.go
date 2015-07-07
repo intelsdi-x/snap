@@ -1,7 +1,15 @@
 package schedule
 
 import (
+	"errors"
 	"time"
+)
+
+var (
+	ErrInvalidInterval  = errors.New("Interval must be greater than 0")
+	ErrInvalidStartTime = errors.New("Start time is in the past")
+	ErrInvalidStopTime  = errors.New("Stop time is in the past")
+	ErrStopBeforeStart  = errors.New("Stop time cannot occur before start time")
 )
 
 type ScheduleState int
@@ -31,4 +39,25 @@ type Response interface {
 	State() ScheduleState
 	// Returns any intervals that were missed since the call to Wait()
 	Missed() uint
+	// The time the interval fired
+	LastTime() time.Time
+}
+
+func waitOnInterval(last time.Time, i time.Duration) (uint, time.Time) {
+	if last == *new(time.Time) {
+		time.Sleep(i)
+		return uint(0), time.Now()
+	}
+	// Get the difference in time.Duration since last in nanoseconds (int64)
+	timeDiff := time.Since(last).Nanoseconds()
+	// cache our schedule interval in nanseconds
+	nanoInterval := i.Nanoseconds()
+	// use modulo operation to obtain the remainder of time over last interval
+	remainder := timeDiff % nanoInterval
+	// substract remainder from
+	missed := (timeDiff - remainder) / nanoInterval // timeDiff.Nanoseconds() % s.Interval.Nanoseconds()
+	waitDuration := nanoInterval - remainder
+	// Wait until predicted interval fires
+	time.Sleep(time.Duration(waitDuration))
+	return uint(missed), time.Now()
 }

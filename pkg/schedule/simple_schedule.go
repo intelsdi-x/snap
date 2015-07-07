@@ -1,7 +1,6 @@
 package schedule
 
 import (
-	"errors"
 	"time"
 )
 
@@ -23,7 +22,7 @@ func (s *SimpleSchedule) GetState() ScheduleState {
 
 func (s *SimpleSchedule) Validate() error {
 	if s.Interval <= 0 {
-		return errors.New("Simple Schedule interval must be greater than 0")
+		return ErrInvalidInterval
 	}
 	return nil
 }
@@ -32,43 +31,33 @@ func (s *SimpleSchedule) Validate() error {
 // longer valid and should be halted. A SimpleSchedule has no end and as long as start
 // is not in the future we will always in practice return true.
 func (s *SimpleSchedule) Wait(last time.Time) Response {
-	// When the schedule starts last time will be the zero value
-	if last == *new(time.Time) {
-		time.Sleep(s.Interval)
-		return SimpleScheduleResponse{state: s.GetState(), missed: 0}
-	}
-	// Get the difference in time.Duration since last in nanoseconds (int64)
-	timeDiff := time.Since(last).Nanoseconds()
-	// cache our schedule interval in nanseconds
-	nanoInterval := s.Interval.Nanoseconds()
-	// use modulo operation to obtain the remainder of time over last interval
-	remainder := timeDiff % nanoInterval
-	// substract remainder from
-	missed := (timeDiff - remainder) / nanoInterval // timeDiff.Nanoseconds() % s.Interval.Nanoseconds()
-	waitDuration := nanoInterval - remainder
-	// Wait until predicted interval fires
-	time.Sleep(time.Duration(waitDuration))
-	return SimpleScheduleResponse{state: s.GetState(), missed: uint(missed)}
+	m, t := waitOnInterval(last, s.Interval)
+	return &SimpleScheduleResponse{state: s.GetState(), missed: m, lastTime: t}
 }
 
 // A response from SimpleSchedule conforming to ScheduleResponse interface
 type SimpleScheduleResponse struct {
 	// err    error
-	state  ScheduleState
-	missed uint
+	state    ScheduleState
+	missed   uint
+	lastTime time.Time
 }
 
 // Returns the state of the Schedule
-func (s SimpleScheduleResponse) State() ScheduleState {
+func (s *SimpleScheduleResponse) State() ScheduleState {
 	return s.state
 }
 
 // Returns last error
-func (s SimpleScheduleResponse) Error() error {
+func (s *SimpleScheduleResponse) Error() error {
 	return nil
 }
 
 // Returns any missed intervals
-func (s SimpleScheduleResponse) Missed() uint {
+func (s *SimpleScheduleResponse) Missed() uint {
 	return s.missed
+}
+
+func (s *SimpleScheduleResponse) LastTime() time.Time {
+	return s.lastTime
 }
