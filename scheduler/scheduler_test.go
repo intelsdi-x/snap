@@ -257,7 +257,7 @@ func TestScheduler(t *testing.T) {
 			s1.metricManager = c
 			s1.Start()
 			_, err1 := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*0), w)
-			So(err1.Errors()[0], ShouldResemble, perror.New(errors.New("Simple Schedule interval must be greater than 0")))
+			So(err1.Errors()[0].Error(), ShouldResemble, "Interval must be greater than 0")
 
 		})
 
