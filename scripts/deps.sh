@@ -1,6 +1,12 @@
 #!/bin/bash
 # This script runs the correct godep sequences for pulse and built-in plugins
 # This will rebase back to the committed version. It should be run from pulse/.
+ctrl_c()
+{
+  exit $?
+} 
+trap ctrl_c SIGINT
+
 declare -a TYPES=(collector publisher)
 
 function loadDeps() {
