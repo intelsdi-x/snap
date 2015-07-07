@@ -10,7 +10,10 @@ This example will
 
 ### How to run the example
 
-- ./run.sh *\<docker-machine name\>*
+- ./run.sh *\<docker-machine name\>* 
+  - for the pcm (Intel Performance Monitor)
+- ./run=psutil.sh *\<docker-machine\>*
+  - for the psutil demo
 - open your browswer to *(your docker-machine IP)* at port 3000 to view the Grafana pulse dashboard {'user':'admin', 'password':'admin'}
 - open your browser to *(your docker-machine IP)* at port 8083 to inspect the influxdb data through the web UI {'user':'admin', 'password':'admin'}
 
@@ -20,6 +23,8 @@ This example will
 
 - docker-compose
     + installed
+
+- PCM configured
 
 ### Issues/Warning
 
