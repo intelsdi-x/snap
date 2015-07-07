@@ -504,7 +504,7 @@ func TestPulseClient(t *testing.T) {
 				c.StopTask(p.ID)
 				c.StartTask(p.ID)
 				<-wait
-				So(len(a), ShouldBeGreaterThanOrEqualTo, 12)
+				So(len(a), ShouldBeGreaterThanOrEqualTo, 10)
 				So(a[0], ShouldEqual, "task-stopped")
 				So(a[1], ShouldEqual, "task-started")
 				for x := 2; x <= 11; x++ {

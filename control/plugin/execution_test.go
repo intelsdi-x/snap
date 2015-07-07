@@ -25,7 +25,7 @@ type MockController struct {
 
 func (p *MockController) GenerateArgs() Arg {
 	a := Arg{
-		PluginLogPath: "/tmp",
+		PluginLogPath: "/tmp/plugin.log",
 	}
 	return a
 }
@@ -164,7 +164,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			Convey("dummy", func() {
 				m := new(MockController)
 				a := m.GenerateArgs()
-				a.PluginLogPath = ""
+				a.PluginLogPath = "/tmp/pulse-dummy.log"
 				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)
@@ -184,7 +184,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			Convey("dummy2", func() {
 				m := new(MockController)
 				a := m.GenerateArgs()
-				a.PluginLogPath = ""
+				a.PluginLogPath = "/tmp/pulse-dummy.log"
 				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)
