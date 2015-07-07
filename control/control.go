@@ -702,11 +702,11 @@ func (p *pluginControl) CollectMetrics(
 
 		// get a metrics
 		go func(mt []core.Metric) {
-			metrics, err = cli.CollectMetrics(mt)
+			mts, err := cli.CollectMetrics(mt)
 			if err != nil {
 				cError <- err
 			} else {
-				cMetrics <- metrics
+				cMetrics <- mts
 			}
 		}(pmt.metricTypes)
 
