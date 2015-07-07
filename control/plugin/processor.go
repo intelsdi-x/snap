@@ -14,7 +14,7 @@ import (
 // Processor plugin
 type ProcessorPlugin interface {
 	Plugin
-	Process(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) (string, []byte, error)
+	Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error)
 	GetConfigPolicyNode() cpolicy.ConfigPolicyNode
 }
 

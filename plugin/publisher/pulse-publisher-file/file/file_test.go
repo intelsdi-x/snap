@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
-	"log"
 	"os"
 	"testing"
 
@@ -27,9 +26,9 @@ func TestFilePublish(t *testing.T) {
 		config["file"] = ctypes.ConfigValueStr{Value: "/tmp/pub.out"}
 		fp := NewFilePublisher()
 		So(fp, ShouldNotBeNil)
-		err := fp.Publish("", buf.Bytes(), config, log.New(os.Stdout, "", log.LstdFlags))
+		err := fp.Publish("", buf.Bytes(), config)
 		So(err, ShouldResemble, errors.New("Unknown content type ''"))
-		err = fp.Publish(plugin.PulseGOBContentType, buf.Bytes(), config, log.New(os.Stdout, "", log.LstdFlags))
+		err = fp.Publish(plugin.PulseGOBContentType, buf.Bytes(), config)
 		So(err, ShouldBeNil)
 		_, err = os.Stat(config["file"].(ctypes.ConfigValueStr).Value)
 		So(err, ShouldBeNil)

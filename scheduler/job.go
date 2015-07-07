@@ -119,7 +119,7 @@ func (c *collectorJob) Run() {
 	log.WithFields(log.Fields{
 		"_module":      "scheduler-job",
 		"block":        "run",
-		"job-type":     "processor",
+		"job-type":     "collector",
 		"metric-count": len(c.metricTypes),
 	}).Debug("starting collector job")
 	metrics := make([]core.Metric, len(c.metricTypes))
@@ -280,7 +280,7 @@ func (p *publisherJob) Run() {
 		"plugin-name":    p.pluginName,
 		"plugin-version": p.pluginVersion,
 		"plugin-config":  p.config,
-	}).Debug("starting processor job")
+	}).Debug("starting publisher job")
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 

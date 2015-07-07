@@ -1,7 +1,6 @@
 package kafka
 
 import (
-	"log"
 	"strings"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
@@ -29,8 +28,7 @@ func NewKafkaPublisher() *Kafka {
 }
 
 // Publish sends data to a Kafka server
-func (k *Kafka) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
-	//
+func (k *Kafka) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	topic := config["topic"].(ctypes.ConfigValueStr).Value
 	brokers := parseBrokerString(config["brokers"].(ctypes.ConfigValueStr).Value)
 	//

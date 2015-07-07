@@ -6,12 +6,13 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 	// "fmt"
 	"os"
 	// "strings"
 	// "time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -31,7 +32,8 @@ func NewFilePublisher() *filePublisher {
 	return &filePublisher{}
 }
 
-func (f *filePublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
+func (f *filePublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+	logger := log.New()
 	logger.Println("Publishing started")
 	var metrics []plugin.PluginMetricType
 

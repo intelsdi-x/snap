@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"log"
 	"os"
 	"testing"
 
@@ -42,7 +41,7 @@ func TestPublish(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			err := r.Publish(plugin.PulseGOBContentType, buf.Bytes(), *f, log.New(os.Stdout, "", log.LstdFlags))
+			err := r.Publish(plugin.PulseGOBContentType, buf.Bytes(), *f)
 			So(err, ShouldBeNil)
 
 			c, _ := raidman.Dial("tcp", broker)

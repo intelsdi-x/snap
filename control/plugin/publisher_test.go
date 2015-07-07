@@ -17,7 +17,7 @@ type MockPublisher struct {
 	Meta PluginMeta
 }
 
-func (f *MockPublisher) Publish(_ string, _ []byte, _ map[string]ctypes.ConfigValue, _ *log.Logger) error {
+func (f *MockPublisher) Publish(_ string, _ []byte, _ map[string]ctypes.ConfigValue) error {
 	return nil
 }
 
