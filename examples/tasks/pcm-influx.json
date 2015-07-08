@@ -43,7 +43,7 @@
                     "plugin_name": "influx",
                     "plugin_version": 1,
                     "config": {
-                        "host": "172.16.105.128",
+                        "host": "INFLUXDB_IP",
                         "port": 8086,
                         "database": "pulse",
                         "user": "admin",

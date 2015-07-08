@@ -1,30 +1,32 @@
 # docker-compose based examples
 
-These examples will
+These examples all include configuring and starting influxdb (a time series database) and grafana (a metrics dashboard).
 
-1.  start & configures grafana
-2.  start & configures influxdb
-3.  start pulse
-4.  adds a pulse task to collect (psutil and/or pcm) metrics from your host and publishes them to influxdb
-5. starts pulse task
+You can find demo videos [here](../videos.md).
 
 ### How to run the example
 
-- ./run-pcm.sh *\<docker-machine name\>* 
-  - for the pcm (Intel Performance Monitor)
-- ./run-psutil.sh *\<docker-machine\>*
-  - for the psutil demo
-- open your browswer to *(your docker-machine IP)* at port 3000 to view the Grafana pulse dashboard {'user':'admin', 'password':'admin'}
-- open your browser to *(your docker-machine IP)* at port 8083 to inspect the influxdb data through the web UI {'user':'admin', 'password':'admin'}
+These examples all include configuring and starting influxdb (a time series database) and grafana (a metrics dashboard).
+
+The following scripts can be used to start the demos
+
+- run-pcm.sh *\<docker-machine name\>* 
+  - starts pulsed
+  - creates and starts a task that collects from both the pcm and psutil plugins
+- run-psutil.sh *\<docker-machine\>*
+  - starts pulsed
+  - creates and starts a task that collects from psutil plugin
+- ./run.sh *\<docker-machine\>*   
+  - configured influxdb and grafana only 
 
 ### Requirements
 - docker-machine 
-    + with a machine created
+    + installed and configured
 
 - docker-compose
     + installed
 
-- PCM configured
+- PCM configured on the host
 
 ### Issues/Warning
 

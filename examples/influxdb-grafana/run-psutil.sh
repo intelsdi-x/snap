@@ -73,7 +73,7 @@ sleep 3
 echo -n "adding task "
 TASK="${TMPDIR}/pulse-task-$$.json"
 echo "$TASK"
-cat $PULSE_PATH/../examples/influxdb-grafana/tasks/psutil-influx.json | sed s/172.16.105.128/${dm_ip}/ > $TASK 
+cat $PULSE_PATH/../examples/influxdb-grafana/tasks/psutil-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK 
 $PULSE_PATH/bin/pulsectl task create $TASK
 
 echo "start task"
