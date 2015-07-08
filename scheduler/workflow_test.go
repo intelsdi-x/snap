@@ -94,7 +94,6 @@ func TestCollectPublishWorkflow(t *testing.T) {
 				So(err, ShouldBeNil)
 				Convey("Create task", func() {
 					t, err := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*500), w)
-					println(err.Errors())
 					So(err.Errors(), ShouldBeEmpty)
 					So(t, ShouldNotBeNil)
 					t.(*task).Spin()
