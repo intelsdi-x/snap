@@ -30,7 +30,7 @@ done
 echo ""
 
 #influxdb IP 
-influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' psutilinfluxdbgrafana_influxdb_1)
+influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' influxdbgrafana_influxdb_1)
 echo ">>influxdb ip: ${influx_ip}"
 
 # create pulse database in influxdb
@@ -74,6 +74,8 @@ TASK="${TMPDIR}/pulse-task-$$.json"
 echo "$TASK"
 cat $PULSE_PATH/../examples/influxdb-grafana/tasks/pcm-influx.json | sed s/172.16.105.128/${dm_ip}/ > $TASK 
 $PULSE_PATH/bin/pulsectl task create $TASK
+
+sleep 1
 
 echo ">>starting pulse task"
 $PULSE_PATH/bin/pulsectl task start 1

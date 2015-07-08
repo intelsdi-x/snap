@@ -31,7 +31,7 @@ done
 echo ""
 
 #influxdb IP 
-influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' psutilinfluxdbgrafana_influxdb_1)
+influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' influxdbgrafana_influxdb_1)
 echo "influxdb ip: ${influx_ip}"
 
 # create pulse database in influxdb
