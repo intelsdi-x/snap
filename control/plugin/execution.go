@@ -83,13 +83,13 @@ func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
 	cmd.Path = path
 	cmd.Args = []string{path, string(jsonArgs)}
 	// Link the stdout for response reading
-	stdout, err2 := cmd.StdoutPipe()
-	if err2 != nil {
-		return nil, err2
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
 	}
-	stderr, err3 := cmd.StderrPipe()
-	if err3 != nil {
-		return nil, err3
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
 	}
 	// Init the ExecutablePlugin and return
 	ePlugin := new(ExecutablePlugin)
