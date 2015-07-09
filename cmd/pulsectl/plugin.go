@@ -46,6 +46,7 @@ func unloadPlugin(ctx *cli.Context) {
 	r := pClient.UnloadPlugin(pName, pVer)
 	if r.Err != nil {
 		fmt.Printf("Error unloading plugin:\n%v\n", r.Err.Error())
+		os.Exit(1)
 	}
 
 	fmt.Println("Plugin unloaded")
