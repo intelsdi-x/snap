@@ -1,9 +1,9 @@
 # Pulse Examples
 
-This folder contains examples of using Pulse. Each folder contains a Vagrantfile which boostraps the example and a README.md which explains the example.
+This folder contains examples of using Pulse. Each folder contains a README.md which explains the examples.
 
 ### Example list
 
-* Riemann VM performance - TODO
-* Grafana + Container Metrics - TODO
-* Dynamic Control - TODO
+* [influxdb-grafana](influxdb-grafana)
+* [tasks](influxdb-grafana)
+

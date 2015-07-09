@@ -34,6 +34,7 @@ influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' influxdbg
 echo ">>influxdb ip: ${influx_ip}"
 
 # create pulse database in influxdb
+curl -G "http://${dm_ip}:8086/ping"
 echo -n ">>deleting pulse influx db (if it exists) => "
 curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=DROP DATABASE pulse"
 echo ""
