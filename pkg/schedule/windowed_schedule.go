@@ -6,7 +6,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-// A schedule that only implements an endless repeating interval
+// A schedule that waits on an interval within a specific time window
 type WindowedSchedule struct {
 	Interval  time.Duration
 	StartTime time.Time
@@ -48,7 +48,7 @@ func (w *WindowedSchedule) Wait(last time.Time) Response {
 		}).Debug("Waiting for window to start")
 		time.Sleep(wait)
 	}
-	if last == *new(time.Time) {
+	if last.String() == "0001-01-01 00:00:00 +0000 UTC" {
 		log.Debug("Last was unset using start time")
 		last = w.StartTime
 	}
