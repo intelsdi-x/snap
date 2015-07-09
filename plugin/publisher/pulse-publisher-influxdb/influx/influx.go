@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -68,8 +69,8 @@ func (f *influxPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 
 // Publish publishes metric data to influxdb
 // currently only 0.9 version of influxdb are supported
-func (f *influxPublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
-	logger.Println("Publishing started")
+func (f *influxPublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+	logger := log.New()
 	var metrics []plugin.PluginMetricType
 
 	switch contentType {
@@ -86,7 +87,7 @@ func (f *influxPublisher) Publish(contentType string, content []byte, config map
 
 	u, err := url.Parse(fmt.Sprintf("http://%s:%d", config["host"].(ctypes.ConfigValueStr).Value, config["port"].(ctypes.ConfigValueInt).Value))
 	if err != nil {
-		logger.Fatal(err)
+		handleErr(err)
 	}
 
 	conf := client.Config{
@@ -104,7 +105,7 @@ func (f *influxPublisher) Publish(contentType string, content []byte, config map
 	dur, ver, err := con.Ping()
 	if err != nil {
 		logger.Printf("ERROR publishing %v to %v with %v %v", metrics, config, ver, dur)
-		logger.Fatal(err)
+		handleErr(err)
 	}
 
 	pts := make([]client.Point, len(metrics))
@@ -134,8 +135,9 @@ func (f *influxPublisher) Publish(contentType string, content []byte, config map
 
 	_, err = con.Write(bps)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Printf("Error: '%s' printing points: %+v", err.Error(), bps)
 	}
+	//logger.Printf("writing %+v \n", bps)
 
 	return nil
 }

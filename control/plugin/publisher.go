@@ -14,7 +14,7 @@ import (
 // Publisher plugin
 type PublisherPlugin interface {
 	Plugin
-	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error
+	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
 	GetConfigPolicyNode() cpolicy.ConfigPolicyNode
 }
 

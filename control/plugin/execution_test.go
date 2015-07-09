@@ -25,7 +25,7 @@ type MockController struct {
 
 func (p *MockController) GenerateArgs() Arg {
 	a := Arg{
-		PluginLogPath: "/tmp",
+		PluginLogPath: "/tmp/plugin.log",
 	}
 	return a
 }
@@ -66,6 +66,12 @@ func (m *MockPluginExecutor) ResponseReader() io.Reader {
 	return reader
 }
 
+func (m *MockPluginExecutor) ErrorResponseReader() io.Reader {
+	readbuffer := bytes.NewBuffer([]byte(m.Response))
+	reader := bufio.NewReader(readbuffer)
+	return reader
+}
+
 func TestNewExecutablePlugin(t *testing.T) {
 	Convey("pluginControl.WaitForResponse", t, func() {
 		c := new(MockController)
@@ -92,14 +98,14 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor.Response = "{}"
 			mockExecutor.WaitTime = time.Millisecond * 1
 			Convey("daemon mode off", func() {
-				resp, err := waitHandling(mockExecutor, time.Second*3)
+				resp, err := waitHandling(mockExecutor, time.Second*3, "/tmp/some.log")
 
 				So(mockExecutor.Killed, ShouldEqual, false)
 				So(resp, ShouldNotBeNil)
 				So(err, ShouldBeNil)
 			})
 			Convey("daemon mode on", func() {
-				resp, err := waitHandling(mockExecutor, time.Second*3)
+				resp, err := waitHandling(mockExecutor, time.Second*3, "/tmp/some.log")
 
 				So(mockExecutor.Killed, ShouldEqual, false)
 				So(resp, ShouldNotBeNil)
@@ -113,14 +119,14 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor.WaitTime = time.Millisecond * 1000
 
 			Convey("daemon mode off", func() {
-				resp, err := waitHandling(mockExecutor, time.Millisecond*100)
+				resp, err := waitHandling(mockExecutor, time.Millisecond*100, "/tmp/some.log")
 				So(mockExecutor.Killed, ShouldEqual, true)
 				So(resp, ShouldBeNil)
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldStartWith, "JSONError")
 			})
 			Convey("daemon mode on", func() {
-				resp, err := waitHandling(mockExecutor, time.Millisecond*100)
+				resp, err := waitHandling(mockExecutor, time.Millisecond*100, "/tmp/some.log")
 				So(mockExecutor.Killed, ShouldEqual, true)
 				So(resp, ShouldBeNil)
 				So(err, ShouldNotBeNil)
@@ -132,7 +138,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Millisecond * 100
 			mockExecutor.WaitError = errors.New("Exit 127")
-			resp, err := waitHandling(mockExecutor, time.Millisecond*500)
+			resp, err := waitHandling(mockExecutor, time.Millisecond*500, "/tmp/some.log")
 
 			So(mockExecutor.Killed, ShouldEqual, false)
 			So(resp, ShouldBeNil)
@@ -143,7 +149,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 		Convey("called with PluginExecutor that will run longer than timeout without responding", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Second * 120
-			resp, err := waitHandling(mockExecutor, time.Millisecond*100)
+			resp, err := waitHandling(mockExecutor, time.Millisecond*100, "/tmp/some.log")
 
 			So(mockExecutor.Killed, ShouldEqual, true)
 			So(resp, ShouldBeNil)
@@ -158,7 +164,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			Convey("dummy", func() {
 				m := new(MockController)
 				a := m.GenerateArgs()
-				a.PluginLogPath = ""
+				a.PluginLogPath = "/tmp/pulse-dummy.log"
 				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)
@@ -178,7 +184,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			Convey("dummy2", func() {
 				m := new(MockController)
 				a := m.GenerateArgs()
-				a.PluginLogPath = ""
+				a.PluginLogPath = "/tmp/pulse-dummy.log"
 				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)

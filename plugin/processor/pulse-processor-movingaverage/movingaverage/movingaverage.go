@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
-	"log"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -269,7 +270,8 @@ func (p *movingAverageProcessor) GetConfigPolicyNode() cpolicy.ConfigPolicyNode 
 	return *config
 }
 
-func (p *movingAverageProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) (string, []byte, error) {
+func (p *movingAverageProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
+	logger := log.New()
 	logger.Println("movingAverage Processor started")
 
 	var metrics []plugin.PluginMetricType

@@ -5,14 +5,14 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/amir/raidman"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/core/ctypes"
-
-	"github.com/amir/raidman"
 )
 
 const (
@@ -52,7 +52,8 @@ func (r *Riemann) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 }
 
 // Publish serializes the data and calls publish to send events to Riemann
-func (r *Riemann) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
+func (r *Riemann) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+	logger := log.New()
 	//err := r.publish(event, broker)
 	//return err
 	logger.Println("Riemann Publishing Started")

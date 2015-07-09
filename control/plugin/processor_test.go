@@ -17,7 +17,7 @@ type MockProcessor struct {
 	Meta PluginMeta
 }
 
-func (f *MockProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) (string, []byte, error) {
+func (f *MockProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
 	return "", nil, nil
 }
 

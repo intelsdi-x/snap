@@ -6,6 +6,7 @@ die () {
 }
 
 [ "$#" -eq 1 ] || die "Error: Expected to get one or more machine names as arguments."
+[ "${PULSE_PATH}x" != "x" ] || die "Error: PULSE_PATH must be set"
 command -v docker-machine >/dev/null 2>&1 || die "Error: docker-machine is required."
 command -v docker-compose >/dev/null 2>&1 || die "Error: docker-compose is required."
 command -v docker >/dev/null 2>&1 || die "Error: docker is required."
@@ -14,12 +15,12 @@ command -v netcat >/dev/null 2>&1 || die "Error: netcat is required."
 
 #docker machine ip
 dm_ip=$(docker-machine ip $1) || die 
-echo "docker machine ip: ${dm_ip}"
+echo ">>docker machine ip: ${dm_ip}"
 
 #start containers
 docker-compose up -d
 
-echo -n "waiting for influxdb and grafana to start"
+echo -n ">>waiting for influxdb and grafana to start"
 
 # wait for influxdb to start up
 while ! curl --silent -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=SHOW DATABASES" 2>&1 > /dev/null ; do   
@@ -29,16 +30,16 @@ done
 echo ""
 
 #influxdb IP 
-influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' psutilinfluxdbgrafana_influxdb_1)
-echo "influxdb ip: ${influx_ip}"
+influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' influxdbgrafana_influxdb_1)
+echo ">>influxdb ip: ${influx_ip}"
 
 # create pulse database in influxdb
-echo -n "creating pulse influx db => "
+echo -n ">>creating pulse influx db => "
 curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=CREATE DATABASE pulse"
 echo ""
 
 # create influxdb datasource in grafana
-echo -n "adding influxdb datasource to grafana => "
+echo -n ">>adding influxdb datasource to grafana => "
 COOKIEJAR=$(mktemp -t 'pulse-tmp')
 curl -H 'Content-Type: application/json;charset=UTF-8' \
 	--data-binary '{"user":"admin","email":"","password":"admin"}' \
@@ -53,7 +54,7 @@ curl --cookie "$COOKIEJAR" \
 	"http://${dm_ip}:3000/api/datasources"
 echo ""
 
-dashboard=$(cat grafana/dashboard.json)
+dashboard=$(cat $PULSE_PATH/../examples/influxdb-grafana/grafana/pcm-psutil.json)
 curl --cookie "$COOKIEJAR" \
 	-X POST \
 	--silent \
@@ -62,20 +63,28 @@ curl --cookie "$COOKIEJAR" \
 	"http://${dm_ip}:3000/api/dashboards/db"
 echo ""
 
-echo -n "starting pulsed"
+echo -n ">>starting pulsed"
 $PULSE_PATH/bin/pulsed --log-level 1 --auto-discover $PULSE_PATH/plugin > /tmp/pulse.out 2>&1  &
 echo ""
 
 sleep 3
 
-echo -n "adding task "
+echo -n ">>adding pulse task"
 TASK="${TMPDIR}/pulse-task-$$.json"
 echo "$TASK"
-cat $PULSE_PATH/../cmd/pulsectl/sample/psutil-influx.json | sed s/172.16.105.128/${dm_ip}/ > $TASK 
+cat $PULSE_PATH/../examples/influxdb-grafana/tasks/pcm-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK 
 $PULSE_PATH/bin/pulsectl task create $TASK
 
-echo "start task"
+sleep 1
+
+echo ">>starting pulse task"
 $PULSE_PATH/bin/pulsectl task start 1
 
+echo ""
+echo "Grafana Dashboard => http://${dm_ip}:3000/dashboard/db/pulse-dashboard"
+echo "Influxdb UI       => http://${dm_ip}:8083"
+echo ""
+echo "Press enter to start viewing the pulse.log" 
+read 
 tail -f /tmp/pulse.out
 

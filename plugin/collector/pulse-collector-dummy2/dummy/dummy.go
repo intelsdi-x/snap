@@ -33,11 +33,11 @@ func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMe
 		log.Println("collecting", p)
 	}
 	rand.Seed(time.Now().UTC().UnixNano())
-	data := randInt(65, 90)
-
-	m := plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}, Data_: data}
-	ms := []plugin.PluginMetricType{m}
-	return ms, nil
+	for i, _ := range mts {
+		data := randInt(65, 90)
+		mts[i].Data_ = data
+	}
+	return mts, nil
 }
 
 //GetMetricTypes returns metric types for testing

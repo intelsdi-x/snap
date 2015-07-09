@@ -1,7 +1,7 @@
 package passthru
 
 import (
-	"log"
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -30,7 +30,8 @@ func (p *passthruProcessor) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	return *config
 }
 
-func (p *passthruProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) (string, []byte, error) {
+func (p *passthruProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
+	logger := log.New()
 	logger.Println("Processor started")
 	//just passing through
 	return contentType, content, nil

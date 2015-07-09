@@ -8,7 +8,10 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -24,6 +27,7 @@ const (
 type ExecutablePlugin struct {
 	cmd    *exec.Cmd
 	stdout io.Reader
+	stderr io.Reader
 	args   Arg
 }
 
@@ -32,6 +36,7 @@ type pluginExecutor interface {
 	Kill() error
 	WaitForExit() error
 	ResponseReader() io.Reader
+	ErrorResponseReader() io.Reader
 }
 
 type waitSignal int
@@ -62,6 +67,11 @@ func (e *ExecutablePlugin) ResponseReader() io.Reader {
 	return e.stdout
 }
 
+// The STDERR pipe for the plugin as a io.reader
+func (e *ExecutablePlugin) ErrorResponseReader() io.Reader {
+	return e.stderr
+}
+
 // Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
 func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
 	jsonArgs, err := json.Marshal(a)
@@ -73,27 +83,32 @@ func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
 	cmd.Path = path
 	cmd.Args = []string{path, string(jsonArgs)}
 	// Link the stdout for response reading
-	stdout, err2 := cmd.StdoutPipe()
-	if err2 != nil {
-		return nil, err2
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
 	}
 	// Init the ExecutablePlugin and return
 	ePlugin := new(ExecutablePlugin)
 	ePlugin.cmd = cmd
 	ePlugin.stdout = stdout
 	ePlugin.args = a
+	ePlugin.stderr = stderr
 
 	return ePlugin, nil
 }
 
 // Waits for a plugin response from a started plugin
 func (e *ExecutablePlugin) WaitForResponse(timeout time.Duration) (*Response, error) {
-	r, err := waitHandling(e, timeout)
+	r, err := waitHandling(e, timeout, e.args.PluginLogPath)
 	return r, err
 }
 
 // Private method which handles behvaior for wait for response for daemon and non-daemon modes.
-func waitHandling(p pluginExecutor, timeout time.Duration) (*Response, error) {
+func waitHandling(p pluginExecutor, timeout time.Duration, logpath string) (*Response, error) {
 	// disable to turn debug logging back on
 	log.SetOutput(ioutil.Discard)
 	/*
@@ -136,7 +151,10 @@ func waitHandling(p pluginExecutor, timeout time.Duration) (*Response, error) {
 
 	// send response received signal to our channel on response
 	log.Println("response chan start")
-	go waitForResponseFromPlugin(p.ResponseReader(), waitChannel)
+	go waitForResponseFromPlugin(p.ResponseReader(), waitChannel, logpath)
+
+	// log stderr from the plugin
+	go logStdErr(p.ErrorResponseReader(), logpath)
 
 	// send killed plugin signal to our channel on kill
 	log.Println("kill chan start")
@@ -222,28 +240,45 @@ func waitForPluginTimeout(timeout time.Duration, p pluginExecutor, waitChannel c
 	waitChannel <- waitSignalValue{Signal: pluginTimeout}
 }
 
-func waitForResponseFromPlugin(r io.Reader, waitChannel chan waitSignalValue) {
+func waitForResponseFromPlugin(r io.Reader, waitChannel chan waitSignalValue, logpath string) {
+	lp := strings.TrimSuffix(logpath, filepath.Ext(logpath))
+	lf, _ := os.OpenFile(lp+".stdout", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	logger := log.New(lf, "", log.Ldate|log.Ltime)
+	processedResponse := false
 	scanner := bufio.NewScanner(r)
 	resp := new(Response)
 	// scan until we get a response or reader is closed
 	for scanner.Scan() {
-		// Get bytes
-		b := scanner.Bytes()
-		// attempt to unmarshall into struct
-		err := json.Unmarshal(b, resp)
-		if err != nil {
-			log.Println("JSON error in response: " + err.Error())
-			log.Printf("response: \"%s\"\n", string(b))
-			e := errors.New("JSONError - " + err.Error())
-			// send plugin response received but bad
-			waitChannel <- waitSignalValue{Signal: pluginResponseBad, Error: &e}
-			// exit function
-			return
+		if !processedResponse {
+			// Get bytes
+			b := scanner.Bytes()
+			// attempt to unmarshall into struct
+			err := json.Unmarshal(b, resp)
+			if err != nil {
+				log.Println("JSON error in response: " + err.Error())
+				log.Printf("response: \"%s\"\n", string(b))
+				e := errors.New("JSONError - " + err.Error())
+				// send plugin response received but bad
+				waitChannel <- waitSignalValue{Signal: pluginResponseBad, Error: &e}
+				// exit function
+				return
+			}
+			// send plugin response received (valid)
+			waitChannel <- waitSignalValue{Signal: pluginResponseOk, Response: resp}
+			processedResponse = true
+		} else {
+			logger.Println(scanner.Text())
 		}
-		// send plugin response received (valid)
-		waitChannel <- waitSignalValue{Signal: pluginResponseOk, Response: resp}
-		// exit function
-		return
+	}
+}
+
+func logStdErr(r io.Reader, logpath string) {
+	lp := strings.TrimSuffix(logpath, filepath.Ext(logpath))
+	lf, _ := os.OpenFile(lp+".stderr", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	logger := log.New(lf, "", log.Ldate|log.Ltime)
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		logger.Println(scanner.Text())
 	}
 }
 

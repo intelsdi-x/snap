@@ -5,8 +5,9 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -31,7 +32,8 @@ const (
 	pluginType = plugin.PublisherPluginType
 )
 
-func (rmq *rmqPublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue, logger *log.Logger) error {
+func (rmq *rmqPublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+	logger := log.New()
 	var metrics []plugin.PluginMetricType
 	switch contentType {
 	case plugin.PulseGOBContentType:

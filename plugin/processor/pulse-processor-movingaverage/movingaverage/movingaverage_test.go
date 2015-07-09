@@ -3,7 +3,6 @@ package movingaverage
 import (
 	"bytes"
 	"encoding/gob"
-	"log"
 	"math/rand"
 	"testing"
 	"time"
@@ -35,11 +34,9 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			var logBuf bytes.Buffer
-			logger := log.New(&logBuf, "logger: ", log.Lshortfile)
 			movingAverageObj := NewMovingaverageProcessor()
 
-			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), config, logger)
+			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), config)
 
 			var metrics_new []plugin.PluginMetricType
 
@@ -61,11 +58,10 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			var logBuf bytes.Buffer
-			logger := log.New(&logBuf, "logger: ", log.Lshortfile)
+
 			movingAverageObj := NewMovingaverageProcessor()
 
-			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), config, logger)
+			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), config)
 
 			var metrics_new []plugin.PluginMetricType
 
@@ -85,11 +81,10 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			var logBuf bytes.Buffer
-			logger := log.New(&logBuf, "logger: ", log.Lshortfile)
+
 			movingAverageObj := NewMovingaverageProcessor()
 
-			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil, logger)
+			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil)
 
 			var metrics_new []plugin.PluginMetricType
 
@@ -110,11 +105,9 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			var logBuf bytes.Buffer
-			logger := log.New(&logBuf, "logger: ", log.Lshortfile)
 			movingAverageObj := NewMovingaverageProcessor()
 
-			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil, logger)
+			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil)
 
 			var metrics_new []plugin.PluginMetricType
 
@@ -135,11 +128,9 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			var logBuf bytes.Buffer
-			logger := log.New(&logBuf, "logger: ", log.Lshortfile)
 			movingAverageObj := NewMovingaverageProcessor()
 
-			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil, logger)
+			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil)
 
 			var metrics_new []plugin.PluginMetricType
 
@@ -159,11 +150,10 @@ func TestMovingAverageProcessorMetrics(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			var logBuf bytes.Buffer
-			logger := log.New(&logBuf, "logger: ", log.Lshortfile)
+
 			movingAverageObj := NewMovingaverageProcessor()
 
-			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil, logger)
+			_, received_data, _ := movingAverageObj.Process("pulse.gob", buf.Bytes(), nil)
 
 			var metrics_new []plugin.PluginMetricType
 

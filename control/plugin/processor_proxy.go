@@ -37,12 +37,9 @@ func (p *processorPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs,
 
 func (p *processorPluginProxy) Process(args ProcessorArgs, reply *ProcessorReply) error {
 	defer catchPluginPanic(p.Session.Logger())
-
-	p.Session.Logger().Println("Processor called")
 	p.Session.ResetHeartbeat()
-
 	var err error
-	reply.ContentType, reply.Content, err = p.Plugin.Process(args.ContentType, args.Content, args.Config, p.Session.Logger())
+	reply.ContentType, reply.Content, err = p.Plugin.Process(args.ContentType, args.Content, args.Config)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Processor call error: %v", err.Error()))
 	}

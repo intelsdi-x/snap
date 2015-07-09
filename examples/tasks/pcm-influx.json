@@ -1,0 +1,56 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {    
+                "/psutil/load/load1": {},
+                "/psutil/load/load5": {},
+                "/psutil/load/load15": {},                            
+                "/intel/pcm/IPC": {},
+                "/intel/pcm/L2CLK": {},
+                "/intel/pcm/L2HIT": {},
+                "/intel/pcm/L2MISS": {},
+                "/intel/pcm/EXEC": {},
+                "/intel/pcm/FREQ": {},
+                "/intel/pcm/INST": {},
+                "/intel/pcm/INSTnom": {},
+                "/intel/pcm/INSTnom%": {},
+                "/intel/pcm/L3CLK": {},
+                "/intel/pcm/L3HIT": {},
+                "/intel/pcm/L3MISS": {},
+                "/intel/pcm/PhysIPC": {},
+                "/intel/pcm/PhysIPC%": {},
+                "/intel/pcm/Proc Energy (Joules)": {},
+                "/intel/pcm/READ": {},
+                "/intel/pcm/SKT0": {},
+                "/intel/pcm/TEMP": {},
+                "/intel/pcm/TIME(ticks)": {},
+                "/intel/pcm/WRITE": {}
+            },
+            "config": {
+                "/intel/dummy": {
+                    "password": "secret",
+                    "user": "root"
+                }
+            },
+            "process": null,        
+            "publish": [
+                {
+                    "plugin_name": "influx",
+                    "plugin_version": 1,
+                    "config": {
+                        "host": "INFLUXDB_IP",
+                        "port": 8086,
+                        "database": "pulse",
+                        "user": "admin",
+                        "password": "admin"                            
+                    }
+                }
+            ]
+        }
+    }
+}

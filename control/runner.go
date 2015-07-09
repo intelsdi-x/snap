@@ -26,7 +26,7 @@ const (
 	PluginDisabled
 
 	// Until more advanced decisioning on starting exists this is the max number to spawn.
-	MaximumRunningPlugins = 3
+	MaximumRunningPlugins = 1
 )
 
 // TBD
