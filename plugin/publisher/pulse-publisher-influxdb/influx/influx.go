@@ -110,17 +110,10 @@ func (f *influxPublisher) Publish(contentType string, content []byte, config map
 
 	pts := make([]client.Point, len(metrics))
 	for i, m := range metrics {
-		var v interface{}
-		switch m.Data().(type) {
-		case uint64:
-			v = int64(m.Data().(uint64))
-		default:
-			v = m.Data()
-		}
 		pts[i] = client.Point{
 			Measurement: strings.Join(m.Namespace(), "/"),
 			Fields: map[string]interface{}{
-				"value": v,
+				"value": m.Data(),
 			},
 		}
 	}
