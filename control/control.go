@@ -285,8 +285,7 @@ func (p *pluginControl) validateProcessorSubscription(pr core.SubscribedPlugin) 
 	p.pluginManager.LoadedPlugins().Lock()
 	defer p.pluginManager.LoadedPlugins().Unlock()
 	var lp *loadedPlugin
-	for p.pluginManager.LoadedPlugins().Next() {
-		_, l := p.pluginManager.LoadedPlugins().Item()
+	for _, l := range p.pluginManager.LoadedPlugins().Table() {
 		if l.Name() == pr.Name() && l.Version() == pr.Version() {
 			lp = l
 		}
@@ -326,8 +325,7 @@ func (p *pluginControl) validatePublisherSubscription(pu core.SubscribedPlugin) 
 	p.pluginManager.LoadedPlugins().Lock()
 	defer p.pluginManager.LoadedPlugins().Unlock()
 	var lp *loadedPlugin
-	for p.pluginManager.LoadedPlugins().Next() {
-		_, l := p.pluginManager.LoadedPlugins().Item()
+	for _, l := range p.pluginManager.LoadedPlugins().Table() {
 		if l.Name() == pu.Name() && l.Version() == pu.Version() {
 			lp = l
 		}
