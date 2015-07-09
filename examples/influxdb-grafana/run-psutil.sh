@@ -35,6 +35,10 @@ influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' influxdbg
 echo "influxdb ip: ${influx_ip}"
 
 # create pulse database in influxdb
+curl -G "http://${dm_ip}:8086/ping"
+echo -n ">>deleting pulse influx db (if it exists) => "
+curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=DROP DATABASE pulse"
+echo ""
 echo -n "creating pulse influx db => "
 curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=CREATE DATABASE pulse"
 echo ""
@@ -73,7 +77,7 @@ sleep 3
 echo -n "adding task "
 TASK="${TMPDIR}/pulse-task-$$.json"
 echo "$TASK"
-cat $PULSE_PATH/../examples/influxdb-grafana/tasks/psutil-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK 
+cat $PULSE_PATH/../examples/tasks/psutil-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK 
 $PULSE_PATH/bin/pulsectl task create $TASK
 
 echo "start task"
