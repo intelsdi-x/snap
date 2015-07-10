@@ -7,25 +7,33 @@ import (
 )
 
 type Plugin interface {
+	TypeName() string
 	Name() string
 	Version() int
 }
 
 type PluginType int
 
+func (pt PluginType) String() string {
+	return []string{
+		"collector",
+		"processor",
+		"publisher",
+	}[pt]
+}
+
 const (
 	// List of plugin type
 	CollectorPluginType PluginType = iota
-	PublisherPluginType
 	ProcessorPluginType
+	PublisherPluginType
 )
 
 type AvailablePlugin interface {
 	Plugin
 	HitCount() int
 	LastHit() time.Time
-	TypeName() string
-	ID() int
+	ID() uint32
 }
 
 // the public interface for a plugin
@@ -33,7 +41,6 @@ type AvailablePlugin interface {
 // how mgmt modules know a plugin
 type CatalogedPlugin interface {
 	Plugin
-	TypeName() string
 	Status() string
 	LoadedTimestamp() *time.Time
 }

@@ -17,6 +17,10 @@ var (
 	}
 
 	// Plugin flags
+	flPluginType = cli.StringFlag{
+		Name:  "plugin-type, t",
+		Usage: "The plugin type",
+	}
 	flPluginName = cli.StringFlag{
 		Name:  "plugin-name, n",
 		Usage: "The plugin name",

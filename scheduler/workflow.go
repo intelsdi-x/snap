@@ -174,6 +174,10 @@ func (p *processNode) Config() *cdata.ConfigDataNode {
 	return p.config
 }
 
+func (p *processNode) TypeName() string {
+	return "processor"
+}
+
 type publishNode struct {
 	name               string
 	version            int
@@ -191,6 +195,10 @@ func (p *publishNode) Version() int {
 
 func (p *publishNode) Config() *cdata.ConfigDataNode {
 	return p.config
+}
+
+func (p *publishNode) TypeName() string {
+	return "publisher"
 }
 
 type wfContentTypes map[string]map[string][]string

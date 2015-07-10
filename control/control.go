@@ -68,9 +68,11 @@ type runsPlugins interface {
 }
 
 type managesPlugins interface {
+	teardown()
+	get(string) (*loadedPlugin, error)
+	all() map[string]*loadedPlugin
 	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError)
 	UnloadPlugin(core.Plugin) (*loadedPlugin, perror.PulseError)
-	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(pluginPath string) plugin.Arg
 }
@@ -116,7 +118,8 @@ func New() *pluginControl {
 	c.pluginManager.SetMetricCatalog(c.metricCatalog)
 
 	// Plugin Runner
-	c.pluginRunner = newRunner()
+	// TODO (danielscottt): handle routing strat changes via events
+	c.pluginRunner = newRunner(&routing.RoundRobinStrategy{})
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("runner created")
@@ -170,19 +173,7 @@ func (p *pluginControl) Stop() {
 	}
 
 	// unload plugins
-	p.pluginManager.LoadedPlugins().Lock()
-	lps := make([]*loadedPlugin, len(p.pluginManager.LoadedPlugins().Table()))
-	for i, lp := range p.pluginManager.LoadedPlugins().Table() {
-		nlp := *lp
-		lps[i] = &nlp
-	}
-	p.pluginManager.LoadedPlugins().Unlock()
-	for _, lp := range lps {
-		_, err := p.pluginManager.UnloadPlugin(lp)
-		if err != nil {
-			controlLogger.Error(err)
-		}
-	}
+	p.pluginManager.teardown()
 
 }
 
@@ -267,30 +258,21 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) per
 	return nil
 }
 
-func (p *pluginControl) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+func (p *pluginControl) ValidateDeps(mts []core.Metric, plugins []core.SubscribedPlugin) []perror.PulseError {
 	var perrs []perror.PulseError
-	for _, sub := range mts {
-		_, subErrs := p.validateMetricTypeSubscription(sub, sub.Config())
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
+	for _, mt := range mts {
+		_, errs := p.validateMetricTypeSubscription(mt, mt.Config())
+		if len(errs) > 0 {
+			perrs = append(perrs, errs...)
 			return perrs
 		}
 	}
 
-	//subscribe to processors
-	for _, sub := range prs {
-		subErrs := p.validateProcessorSubscription(sub)
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
-			return perrs
-		}
-	}
-
-	//subscribe to publishers
-	for _, sub := range pus {
-		subErrs := p.validatePublisherSubscription(sub)
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
+	//validate plugins
+	for _, plg := range plugins {
+		errs := p.validatePluginSubscription(plg)
+		if len(errs) > 0 {
+			perrs = append(perrs, errs...)
 			return perrs
 		}
 	}
@@ -298,85 +280,37 @@ func (p *pluginControl) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlu
 	return perrs
 }
 
-func (p *pluginControl) validateProcessorSubscription(pr core.SubscribedPlugin) (perrs []perror.PulseError) {
+func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []perror.PulseError {
+	var perrs = []perror.PulseError{}
 	controlLogger.WithFields(log.Fields{
-		"_block":    "validate-processor-subscription",
-		"processor": fmt.Sprintf("%s-%d", pr.Name(), pr.Version()),
-	}).Info(fmt.Sprintf("dependencies validated for processor %s:%d", pr.Name(), pr.Version()))
+		"_block":    "validate-plugin-subscription",
+		"processor": fmt.Sprintf("%s-%d", pl.Name(), pl.Version()),
+	}).Info(fmt.Sprintf("dependencies validated for processor %s:%d", pl.Name(), pl.Version()))
 
-	p.pluginManager.LoadedPlugins().Lock()
-	defer p.pluginManager.LoadedPlugins().Unlock()
-	var lp *loadedPlugin
-	for _, l := range p.pluginManager.LoadedPlugins().Table() {
-		if l.Name() == pr.Name() && l.Version() == pr.Version() {
-			lp = l
-		}
-	}
-
-	if lp == nil {
+	lp, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
+	if err != nil {
 		pe := perror.New(ErrLoadedPluginNotFound)
 		pe.SetFields(map[string]interface{}{
-			"name":    pr.Name(),
-			"version": pr.Version(),
-			"type":    plugin.ProcessorPluginType.String(),
+			"name":    pl.Name(),
+			"version": pl.Version(),
+			"type":    pl.TypeName(),
 		})
 		perrs = append(perrs, pe)
-		return
+		return perrs
 	}
 
 	if lp.ConfigPolicyTree != nil {
 		ncd := lp.ConfigPolicyTree.Get([]string{""})
-		_, errs := ncd.Process(pr.Config().Table())
+		_, errs := ncd.Process(pl.Config().Table())
 		if errs != nil && errs.HasErrors() {
 			for _, e := range errs.Errors() {
 				pe := perror.New(e)
-				pe.SetFields(map[string]interface{}{"name": pr.Name(), "version": pr.Version()})
+				pe.SetFields(map[string]interface{}{"name": pl.Name(), "version": pl.Version()})
 				perrs = append(perrs, pe)
 			}
 		}
 	}
-	return
-}
-
-func (p *pluginControl) validatePublisherSubscription(pu core.SubscribedPlugin) (perrs []perror.PulseError) {
-	controlLogger.WithFields(log.Fields{
-		"_block":    "validate-publisher-subscription",
-		"publisher": fmt.Sprintf("%s-%d", pu.Name(), pu.Version()),
-	}).Info(fmt.Sprintf("dependencies validated for publisher %s:%d", pu.Name(), pu.Version()))
-
-	p.pluginManager.LoadedPlugins().Lock()
-	defer p.pluginManager.LoadedPlugins().Unlock()
-	var lp *loadedPlugin
-	for _, l := range p.pluginManager.LoadedPlugins().Table() {
-		if l.Name() == pu.Name() && l.Version() == pu.Version() {
-			lp = l
-		}
-	}
-
-	if lp == nil {
-		pe := perror.New(ErrLoadedPluginNotFound)
-		pe.SetFields(map[string]interface{}{
-			"name":    pu.Name(),
-			"version": pu.Version(),
-			"type":    plugin.PublisherPluginType.String(),
-		})
-		perrs = append(perrs, pe)
-		return
-	}
-
-	if lp.ConfigPolicyTree != nil {
-		ncd := lp.ConfigPolicyTree.Get([]string{""})
-		_, errs := ncd.Process(pu.Config().Table())
-		if errs != nil && errs.HasErrors() {
-			for _, e := range errs.Errors() {
-				pe := perror.New(e)
-				pe.SetFields(map[string]interface{}{"name": pu.Name(), "version": pu.Version()})
-				perrs = append(perrs, pe)
-			}
-			return
-		}
-	}
-	return
+	return perrs
 }
 
 func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.PulseError) {
@@ -413,25 +347,20 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 	return m, perrs
 }
 
-func (p *pluginControl) SubscribeDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+func (p *pluginControl) SubscribeDeps(taskId uint64, mts []core.Metric, plugins []core.Plugin) []perror.PulseError {
 	var perrs []perror.PulseError
 
 	for _, mt := range mts {
-		err := p.sendMetricTypeSubscriptionEvent(mt)
+		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 		if err != nil {
 			perrs = append(perrs, perror.New(err))
+			continue
 		}
+		plugins = append(plugins, m.Plugin)
 	}
 
-	for _, sub := range prs {
-		perr := p.sendProcessorSubscriptionEvent(sub)
-		if perr != nil {
-			perrs = append(perrs, perr)
-		}
-	}
-
-	for _, sub := range pus {
-		perr := p.sendPublisherSubscriptionEvent(sub)
+	for _, sub := range plugins {
+		perr := p.sendPluginSubscriptionEvent(taskId, sub)
 		if perr != nil {
 			perrs = append(perrs, perr)
 		}
@@ -440,25 +369,12 @@ func (p *pluginControl) SubscribeDeps(mts []core.Metric, prs []core.SubscribedPl
 	return perrs
 }
 
-func (p *pluginControl) sendMetricTypeSubscriptionEvent(mt core.Metric) perror.PulseError {
-	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
-	if err != nil {
-		return perror.New(err)
-	}
-
-	m.Subscribe()
-	e := &control_event.MetricSubscriptionEvent{
-		MetricNamespace: mt.Namespace(),
-		Version:         mt.Version(),
-	}
-	defer p.eventManager.Emit(e)
-	return nil
-}
-
-func (p *pluginControl) sendProcessorSubscriptionEvent(pr core.SubscribedPlugin) perror.PulseError {
-	e := &control_event.ProcessorSubscriptionEvent{
-		PluginName:    pr.Name(),
-		PluginVersion: pr.Version(),
+func (p *pluginControl) sendPluginSubscriptionEvent(taskId uint64, pl core.Plugin) perror.PulseError {
+	e := &control_event.PluginSubscriptionEvent{
+		TaskId:        taskId,
+		PluginType:    pl.TypeName(),
+		PluginName:    pl.Name(),
+		PluginVersion: pl.Version(),
 	}
 	if _, err := p.eventManager.Emit(e); err != nil {
 		return perror.New(err)
@@ -466,61 +382,39 @@ func (p *pluginControl) sendProcessorSubscriptionEvent(pr core.SubscribedPlugin)
 	return nil
 }
 
-func (p *pluginControl) sendPublisherSubscriptionEvent(pu core.SubscribedPlugin) perror.PulseError {
-	e := &control_event.PublisherSubscriptionEvent{
-		PluginName:    pu.Name(),
-		PluginVersion: pu.Version(),
+func (p *pluginControl) UnsubscribeDeps(taskId uint64, mts []core.Metric, plugins []core.Plugin) []perror.PulseError {
+	var perrs []perror.PulseError
+
+	for _, mt := range mts {
+		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
+		if err != nil {
+			perrs = append(perrs, perror.New(err))
+			continue
+		}
+		plugins = append(plugins, m.Plugin)
+	}
+
+	for _, sub := range plugins {
+		perr := p.sendPluginUnsubscriptionEvent(taskId, sub)
+		if perr != nil {
+			perrs = append(perrs, perr)
+		}
+	}
+
+	return perrs
+}
+
+func (p *pluginControl) sendPluginUnsubscriptionEvent(taskId uint64, pl core.Plugin) perror.PulseError {
+	e := &control_event.PluginUnsubscriptionEvent{
+		TaskId:        taskId,
+		PluginType:    pl.TypeName(),
+		PluginName:    pl.Name(),
+		PluginVersion: pl.Version(),
 	}
 	if _, err := p.eventManager.Emit(e); err != nil {
 		return perror.New(err)
 	}
 	return nil
-}
-
-// UnsubscribeMetricType unsubscribes a MetricType
-// If subscriptions fall below zero we will panic.
-func (p *pluginControl) UnsubscribeMetricType(mt core.Metric) {
-	controlLogger.WithFields(log.Fields{
-		"_block":    "unsubscribe-metric-type",
-		"namespace": mt.Namespace(),
-	}).Info("unsubscribe called on metric")
-	err := p.metricCatalog.Unsubscribe(mt.Namespace(), mt.Version())
-	if err != nil {
-		// panic because if a metric falls below 0, something bad has happened
-		panic(err.Error())
-	}
-	e := &control_event.MetricUnsubscriptionEvent{
-		MetricNamespace: mt.Namespace(),
-	}
-	p.eventManager.Emit(e)
-}
-
-func (p *pluginControl) UnsubscribePublisher(name string, ver int) error {
-	controlLogger.WithFields(log.Fields{
-		"_block":  "unsubscribe-publisher",
-		"name":    name,
-		"version": ver,
-	}).Info("unsubscribe called on publisher")
-	e := &control_event.PublisherUnsubscriptionEvent{
-		PluginName:    name,
-		PluginVersion: ver,
-	}
-	_, err := p.eventManager.Emit(e)
-	return err
-}
-
-func (p *pluginControl) UnsubscribeProcessor(name string, ver int) error {
-	controlLogger.WithFields(log.Fields{
-		"_block":  "unsubscribe-processor",
-		"name":    name,
-		"version": ver,
-	}).Info("unsubscribe called on processor")
-	e := &control_event.ProcessorUnsubscriptionEvent{
-		PluginName:    name,
-		PluginVersion: ver,
-	}
-	_, err := p.eventManager.Emit(e)
-	return err
 }
 
 // SetMonitorOptions exposes monitors options
@@ -528,43 +422,37 @@ func (p *pluginControl) SetMonitorOptions(options ...monitorOption) {
 	p.pluginRunner.Monitor().Option(options...)
 }
 
-// returns a copy of the plugin catalog
+// returns the loaded plugin collection
+// NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) PluginCatalog() core.PluginCatalog {
-	p.pluginManager.LoadedPlugins().Lock()
-	defer p.pluginManager.LoadedPlugins().Unlock()
-	table := p.pluginManager.LoadedPlugins().Table()
-	pc := make([]core.CatalogedPlugin, len(table))
-	for i, lp := range table {
-		nlp := *lp
-		pc[i] = &nlp
+	table := p.pluginManager.all()
+	plugins := make([]core.CatalogedPlugin, len(table))
+	i := 0
+	for _, plugin := range table {
+		plugins[i] = plugin
+		i++
 	}
-	return pc
+	return plugins
 }
 
+// AvailablePlugins returns pointers to all the running plugins in the pools
+// NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) AvailablePlugins() []core.AvailablePlugin {
-	var acp []core.AvailablePlugin
-	for _, aa := range p.pluginRunner.AvailablePlugins().Collectors.Table() {
-		for _, a := range aa {
-			acp = append(acp, a)
-		}
+	var caps []core.AvailablePlugin
+	for _, ap := range p.pluginRunner.AvailablePlugins().all() {
+		caps = append(caps, ap)
 	}
-	for _, aa := range p.pluginRunner.AvailablePlugins().Processors.Table() {
-		for _, a := range aa {
-			acp = append(acp, a)
-		}
-	}
-	for _, aa := range p.pluginRunner.AvailablePlugins().Publishers.Table() {
-		for _, a := range aa {
-			acp = append(acp, a)
-		}
-	}
-	return acp
+	return caps
 }
 
+// MetricCatalog returns the entire metric catalog
+// NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) MetricCatalog() ([]core.CatalogedMetric, error) {
 	return p.FetchMetrics([]string{}, 0)
 }
 
+// FetchMetrics returns the metrics which fall under the given namespace
+// NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) FetchMetrics(ns []string, version int) ([]core.CatalogedMetric, error) {
 	cat := make([]*metricCatalogItem, 0)
 
@@ -635,22 +523,15 @@ func (p *pluginControl) CollectMetrics(
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
 
-		// resolve a pool (from catalog)
-		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins())
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		// resolve a available plugin from pool
-		ap, err := getAvailablePlugin(pool, p.pluginRunner.Strategy())
+		// retrieve an available plugin
+		ap, err := p.pluginRunner.AvailablePlugins().selectAP(pluginKey)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
 
 		// cast client to PluginCollectorClient
-		cli, ok := ap.Client.(client.PluginCollectorClient)
+		cli, ok := ap.client.(client.PluginCollectorClient)
 		if !ok {
 			err := errors.New("unable to cast client to PluginCollectorClient")
 			errs = append(errs, err)
@@ -700,20 +581,14 @@ func (p *pluginControl) CollectMetrics(
 
 // PublishMetrics
 func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
-	key := strings.Join([]string{pluginName, strconv.Itoa(pluginVersion)}, ":")
+	key := strings.Join([]string{"publisher", pluginName, strconv.Itoa(pluginVersion)}, ":")
 
-	pool := p.pluginRunner.AvailablePlugins().Publishers.GetPluginPool(key)
-	if pool == nil {
-		return []error{errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))}
-	}
-
-	// resolve a available plugin from pool
-	ap, err := getAvailablePlugin(pool, p.pluginRunner.Strategy())
+	ap, err := p.pluginRunner.AvailablePlugins().selectAP(key)
 	if err != nil {
 		return []error{err}
 	}
 
-	cli, ok := ap.Client.(client.PluginPublisherClient)
+	cli, ok := ap.client.(client.PluginPublisherClient)
 	if !ok {
 		return []error{errors.New("unable to cast client to PluginPublisherClient")}
 	}
@@ -727,20 +602,14 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 
 // ProcessMetrics
 func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
-	key := strings.Join([]string{pluginName, strconv.Itoa(pluginVersion)}, ":")
+	key := strings.Join([]string{"processor", pluginName, strconv.Itoa(pluginVersion)}, ":")
 
-	pool := p.pluginRunner.AvailablePlugins().Processors.GetPluginPool(key)
-	if pool == nil {
-		return "", nil, []error{errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))}
-	}
-
-	// resolve a available plugin from pool
-	ap, err := getAvailablePlugin(pool, p.pluginRunner.Strategy())
+	ap, err := p.pluginRunner.AvailablePlugins().selectAP(key)
 	if err != nil {
 		return "", nil, []error{err}
 	}
 
-	cli, ok := ap.Client.(client.PluginProcessorClient)
+	cli, ok := ap.client.(client.PluginProcessorClient)
 	if !ok {
 		return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
 	}
@@ -757,7 +626,8 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 // If the version provided is 0 or less the newest plugin by version will be
 // returned.
 func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
-	lp, err := p.pluginManager.LoadedPlugins().get(n, plugin.PluginType(t), v)
+	fmt.Println(fmt.Sprintf("%s:%s:%d", t.String(), n, v))
+	lp, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", t.String(), n, v))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -821,6 +691,7 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 		// fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
 
 		key := lp.Key()
+		fmt.Println("KEY", key)
 
 		//
 		pmt, _ := pmts[key]
@@ -830,39 +701,4 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 
 	}
 	return pmts, nil
-}
-
-// getPool finds a pool for a given pluginKey and checks is not empty
-func getPool(pluginKey string, availablePlugins *availablePlugins) (*availablePluginPool, error) {
-
-	pool := availablePlugins.Collectors.GetPluginPool(pluginKey)
-
-	if pool == nil {
-		// return error because this plugin has no pool
-		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
-	}
-
-	// TODO: Lock this apPool so we are the only one operating on it.
-	if pool.Count() == 0 {
-		// return error indicating we have no available plugins to call for Collect
-		return nil, errors.New(fmt.Sprintf("there is no availablePlugins in pool (%s)", pluginKey))
-	}
-	return pool, nil
-}
-
-// TODO this could/should exist on pool
-// getAvailablePlugin finds a "best" availablePlugin to be asked for metrics
-func getAvailablePlugin(pool *availablePluginPool, strategy RoutingStrategy) (*availablePlugin, error) {
-
-	// Use a router strategy to select an available plugin from the pool
-	ap, err := pool.SelectUsingStrategy(strategy)
-	if err != nil {
-		return nil, err
-	}
-
-	if ap == nil {
-		return nil, errors.New(fmt.Sprintf("no available plugin selected in pool %v", pool))
-	}
-
-	return ap, nil
 }

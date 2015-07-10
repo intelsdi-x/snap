@@ -76,6 +76,7 @@ var (
 					Usage:  "unload",
 					Action: unloadPlugin,
 					Flags: []cli.Flag{
+						flPluginType,
 						flPluginName,
 						flPluginVersion,
 					},

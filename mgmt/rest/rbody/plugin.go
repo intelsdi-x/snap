@@ -72,5 +72,5 @@ type AvailablePlugin struct {
 	Type             string `json:"type"`
 	HitCount         int    `json:"hitcount"`
 	LastHitTimestamp int64  `json:"last_hit_timestamp"`
-	ID               int    `json:"id"`
+	ID               uint32 `json:"id"`
 }

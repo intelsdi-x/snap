@@ -5,8 +5,8 @@ const (
 	PluginLoaded          = "Control.PluginLoaded"
 	PluginUnloaded        = "Control.PluginUnloaded"
 	PluginsSwapped        = "Control.PluginsSwapped"
-	PublisherSubscribed   = "Control.PublisherSubscribed"
-	PublisherUnsubscribed = "Control.PublisherUnsubscribed"
+	PluginSubscribed      = "Control.PluginSubscribed"
+	PluginUnsubscribed    = "Control.PluginUnsubscribed"
 	ProcessorSubscribed   = "Control.ProcessorSubscribed"
 	ProcessorUnsubscribed = "Control.ProcessorUnsubscribed"
 	MetricSubscribed      = "Control.MetricSubscribed"
@@ -39,7 +39,7 @@ type DeadAvailablePluginEvent struct {
 	Version int
 	Type    int
 	Key     string
-	Id      int
+	Id      uint32
 	String  string
 }
 
@@ -59,57 +59,27 @@ func (s SwapPluginsEvent) Namespace() string {
 	return PluginsSwapped
 }
 
-type PublisherSubscriptionEvent struct {
+type PluginSubscriptionEvent struct {
+	PluginName       string
+	PluginVersion    int
+	PluginType       string
+	SubscriptionType int
+	TaskId           uint64
+}
+
+func (ps PluginSubscriptionEvent) Namespace() string {
+	return PluginSubscribed
+}
+
+type PluginUnsubscriptionEvent struct {
+	TaskId        uint64
 	PluginName    string
 	PluginVersion int
+	PluginType    string
 }
 
-func (se PublisherSubscriptionEvent) Namespace() string {
-	return PublisherSubscribed
-}
-
-type PublisherUnsubscriptionEvent struct {
-	PluginName    string
-	PluginVersion int
-}
-
-func (puue PublisherUnsubscriptionEvent) Namespace() string {
-	return PublisherUnsubscribed
-}
-
-type ProcessorSubscriptionEvent struct {
-	PluginName    string
-	PluginVersion int
-}
-
-func (se ProcessorSubscriptionEvent) Namespace() string {
-	return ProcessorSubscribed
-}
-
-type ProcessorUnsubscriptionEvent struct {
-	PluginName    string
-	PluginVersion int
-}
-
-func (prue ProcessorUnsubscriptionEvent) Namespace() string {
-	return ProcessorUnsubscribed
-}
-
-type MetricSubscriptionEvent struct {
-	MetricNamespace []string
-	Version         int
-}
-
-func (se MetricSubscriptionEvent) Namespace() string {
-	return MetricSubscribed
-}
-
-type MetricUnsubscriptionEvent struct {
-	MetricNamespace []string
-}
-
-func (ue MetricUnsubscriptionEvent) Namespace() string {
-	return MetricUnsubscribed
+func (pu PluginUnsubscriptionEvent) Namespace() string {
+	return PluginUnsubscribed
 }
 
 type HealthCheckFailedEvent struct {

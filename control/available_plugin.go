@@ -6,15 +6,17 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/gomit"
 
+	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/client"
 	"github.com/intelsdi-x/pulse/control/routing"
 	"github.com/intelsdi-x/pulse/core/control_event"
+	"github.com/intelsdi-x/pulse/core/perror"
 )
 
 const (
@@ -24,20 +26,33 @@ const (
 	DefaultHealthCheckTimeout = time.Second * 1
 	// DefaultHealthCheckFailureLimit - how any consecutive health check timeouts must occur to trigger a failure
 	DefaultHealthCheckFailureLimit = 3
+	// Until more advanced decisioning on starting exists this is the max number to spawn.
+	maximumRunningPlugins = 1
 )
 
-type availablePluginState int
+var (
+	ErrPoolNotFound = errors.New("plugin pool not found")
+	ErrBadKey       = errors.New("bad key")
+	ErrBadType      = errors.New("bad plugin type")
+)
+
+type subscriptionType int
+
+const (
+	// this subscription is bound to an explicit version
+	boundSubscriptionType subscriptionType = iota
+	// this subscription is akin to "latest" and must be moved if a newer version is loaded.
+	unboundSubscriptionType
+)
 
 // availablePlugin represents a plugin running and available to execute calls against
 type availablePlugin struct {
-	Key    string
-	Type   plugin.PluginType
-	Client client.PluginClient
-	Index  int
-
+	key                string
+	pluginType         plugin.PluginType
+	client             client.PluginClient
 	name               string
 	version            int
-	id                 int
+	id                 uint32
 	hitCount           int
 	lastHitTime        time.Time
 	emitter            gomit.Emitter
@@ -48,18 +63,20 @@ type availablePlugin struct {
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
-func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
+func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
+	if resp.Type != plugin.CollectorPluginType && resp.Type != plugin.ProcessorPluginType && resp.Type != plugin.PublisherPluginType {
+		return nil, ErrBadType
+	}
 	ap := &availablePlugin{
-		name:    resp.Meta.Name,
-		version: resp.Meta.Version,
-		Type:    resp.Type,
-
+		name:        resp.Meta.Name,
+		version:     resp.Meta.Version,
+		pluginType:  resp.Type,
 		emitter:     emitter,
 		healthChan:  make(chan error, 1),
 		lastHitTime: time.Now(),
-		id:          id,
 		ePlugin:     ep,
 	}
+	ap.key = fmt.Sprintf("%s:%s:%d", ap.pluginType.String(), ap.name, ap.version)
 
 	// Create RPC Client
 	switch resp.Type {
@@ -68,37 +85,36 @@ func newAvailablePlugin(resp *plugin.Response, id int, emitter gomit.Emitter, ep
 		if e != nil {
 			return nil, errors.New("error while creating client connection: " + e.Error())
 		}
-		ap.Client = c
+		ap.client = c
 	case plugin.PublisherPluginType:
 		c, e := client.NewPublisherNativeClient(resp.ListenAddress, DefaultClientTimeout)
 		if e != nil {
 			return nil, errors.New("error while creating client connection: " + e.Error())
 		}
-		ap.Client = c
+		ap.client = c
 	case plugin.ProcessorPluginType:
 		c, e := client.NewProcessorNativeClient(resp.ListenAddress, DefaultClientTimeout)
 		if e != nil {
 			return nil, errors.New("error while creating client connection: " + e.Error())
 		}
-		ap.Client = c
+		ap.client = c
 	default:
 		return nil, errors.New("Cannot create a client for a plugin of the type: " + resp.Type.String())
 	}
 
-	ap.makeKey()
 	return ap, nil
 }
 
-func (a *availablePlugin) ID() int {
+func (a *availablePlugin) ID() uint32 {
 	return a.id
 }
 
 func (a *availablePlugin) String() string {
-	return fmt.Sprintf("%s:v%d:id%d", a.name, a.version, a.id)
+	return fmt.Sprintf("%s:%s:v%d:id%d", a.TypeName(), a.name, a.version, a.id)
 }
 
 func (a *availablePlugin) TypeName() string {
-	return a.Type.String()
+	return a.pluginType.String()
 }
 
 func (a *availablePlugin) Name() string {
@@ -107,6 +123,14 @@ func (a *availablePlugin) Name() string {
 
 func (a *availablePlugin) Version() int {
 	return a.version
+}
+
+func (a *availablePlugin) HitCount() int {
+	return a.hitCount
+}
+
+func (a *availablePlugin) LastHit() time.Time {
+	return a.lastHitTime
 }
 
 // Stop halts a running availablePlugin
@@ -133,7 +157,7 @@ func (a *availablePlugin) Kill(r string) error {
 // a.failedHealthChecks
 func (a *availablePlugin) CheckHealth() {
 	go func() {
-		a.healthChan <- a.Client.Ping()
+		a.healthChan <- a.client.Ping()
 	}()
 	select {
 	case err := <-a.healthChan:
@@ -173,8 +197,8 @@ func (a *availablePlugin) healthCheckFailed() {
 		pde := &control_event.DeadAvailablePluginEvent{
 			Name:    a.name,
 			Version: a.version,
-			Type:    int(a.Type),
-			Key:     a.Key,
+			Type:    int(a.pluginType),
+			Key:     a.key,
 			Id:      a.ID(),
 			String:  a.String(),
 		}
@@ -183,329 +207,285 @@ func (a *availablePlugin) healthCheckFailed() {
 	hcfe := &control_event.HealthCheckFailedEvent{
 		Name:    a.name,
 		Version: a.version,
-		Type:    int(a.Type),
+		Type:    int(a.pluginType),
 	}
 	defer a.emitter.Emit(hcfe)
 }
 
-func (a *availablePlugin) HitCount() int {
-	return a.hitCount
+type apPool struct {
+	// used to coordinate changes to a pool
+	*sync.RWMutex
+
+	// the version of the plugins in the pool.
+	// subscriptions uses this.
+	version int
+	// key is the primary key used in availablePlugins:
+	// {plugin_type}:{plugin_name}:{plugin_version}
+	key string
+
+	// The subscriptions to this pool.
+	subs map[uint64]*subscription
+
+	// The plugins in the pool.
+	// the primary key is an increasing --> uint from
+	// pulsed epoch (`service pulsed start`).
+	plugins    map[uint32]*availablePlugin
+	pidCounter uint32
+	// The max size which this pool may grow.
+	// TODO (danielscottt): Use plugin metadata to do this
+	max int
 }
 
-func (a *availablePlugin) LastHit() time.Time {
-	return a.lastHitTime
-}
-
-// makeKey creates the a.Key from the a.Name and a.Version
-func (a *availablePlugin) makeKey() {
-	s := []string{a.name, strconv.Itoa(a.version)}
-	a.Key = strings.Join(s, ":")
-}
-
-// apCollection is a collection of availablePlugin
-type apCollection struct {
-	table       *map[string]*availablePluginPool
-	mutex       *sync.Mutex
-	keys        *[]string
-	currentIter int
-}
-
-// newAPCollection returns an apCollection capable of storing availblePlugin
-func newAPCollection() *apCollection {
-	m := make(map[string]*availablePluginPool)
-	var k []string
-	return &apCollection{
-		table:       &m,
-		mutex:       &sync.Mutex{},
-		keys:        &k,
-		currentIter: 0,
+func newPool(key string, plugins ...*availablePlugin) (*apPool, error) {
+	versl := strings.Split(key, ":")
+	ver, err := strconv.Atoi(versl[len(versl)-1])
+	if err != nil {
+		return nil, err
 	}
+	p := &apPool{
+		RWMutex: &sync.RWMutex{},
+		version: ver,
+		key:     key,
+		subs:    map[uint64]*subscription{},
+		plugins: make(map[uint32]*availablePlugin),
+		max:     maximumRunningPlugins,
+	}
+
+	for _, plg := range plugins {
+		plg.id = p.generatePID()
+		p.plugins[plg.id] = plg
+	}
+
+	return p, nil
 }
 
-func (c *apCollection) GetPluginPool(key string) *availablePluginPool {
-	c.Lock()
-	defer c.Unlock()
-
-	if ap, ok := (*c.table)[key]; ok {
-		return ap
+func (p *apPool) insert(ap *availablePlugin) error {
+	if ap.pluginType != plugin.CollectorPluginType && ap.pluginType != plugin.ProcessorPluginType && ap.pluginType != plugin.PublisherPluginType {
+		return ErrBadType
 	}
+	ap.id = p.generatePID()
+	p.plugins[ap.id] = ap
 	return nil
 }
 
-func (c *apCollection) PluginPoolHasAP(key string) bool {
-	a := c.GetPluginPool(key)
-	if a != nil && a.Count() > 0 {
+// subscribe adds a subscription to the pool.
+// Using subscribe is idempotent.
+func (p *apPool) subscribe(taskId uint64, subType subscriptionType) {
+	p.Lock()
+	defer p.Unlock()
+
+	if _, exists := p.subs[taskId]; !exists {
+		// Version is the last item in the key, so we split here
+		// to retrieve it for the subscription.
+		p.subs[taskId] = &subscription{
+			taskId:  taskId,
+			subType: subType,
+			version: p.version,
+		}
+	}
+}
+
+// subscribe adds a subscription to the pool.
+// Using unsubscribe is idempotent.
+func (p *apPool) unsubscribe(taskId uint64) {
+	p.Lock()
+	defer p.Unlock()
+	delete(p.subs, taskId)
+}
+
+func (p *apPool) eligible() bool {
+	p.RLock()
+	defer p.RUnlock()
+
+	if len(p.subs)+1 <= p.max {
 		return true
 	}
 	return false
 }
 
-// Table returns a copy of the apCollection table
-func (c *apCollection) Table() map[string][]*availablePlugin {
-	c.Lock()
-	defer c.Unlock()
+// kill kills and removes the available plugin from its pool.
+// Using kill is idempotent.
+func (p *apPool) kill(id uint32, reason string) {
+	p.Lock()
+	defer p.Unlock()
 
-	m := make(map[string][]*availablePlugin)
-	for k, v := range *c.table {
-		m[k] = *v.Plugins
-	}
-	return m
-}
-
-// Add adds an availablePlugin to the apCollection table
-func (c *apCollection) Add(ap *availablePlugin) error {
-	log.WithFields(log.Fields{
-		"_module":        "control-aplugin",
-		"block":          "apcollection",
-		"plugin-name":    ap.Name(),
-		"plugin-version": ap.Version(),
-	}).Debug("available plugin added")
-	c.Lock()
-	defer c.Unlock()
-
-	if _, ok := (*c.table)[ap.Key]; !ok {
-		*c.keys = append(*c.keys, ap.Key)
-	}
-
-	if (*c.table)[ap.Key] != nil {
-		// make sure we don't already have a pointer to this plugin in the table
-		if exist, i := c.Exists(ap); exist {
-			return errors.New("plugin instance already available at index " + strconv.Itoa(i))
-		}
-	} else {
-		(*c.table)[ap.Key] = newAvailablePluginPool()
-	}
-
-	(*c.table)[ap.Key].Add(ap)
-	return nil
-}
-
-// Remove removes an availablePlugin from the apCollection table
-func (c *apCollection) Remove(ap *availablePlugin) error {
-	c.Lock()
-	defer c.Unlock()
-
-	if exists, _ := c.Exists(ap); !exists {
-		return errors.New("Warning: plugin does not exist in table")
-	}
-
-	(*c.table)[ap.Key].Remove(ap)
-	log.WithFields(log.Fields{
-		"_module":        "control-aplugin",
-		"block":          "apcollection",
-		"plugin-name":    ap.Name(),
-		"plugin-version": ap.Version(),
-	}).Debug("available plugin removed")
-	return nil
-}
-
-// Lock locks the mutex and is exported for external operations that may be unsafe
-func (c *apCollection) Lock() {
-	c.mutex.Lock()
-}
-
-// Unlock unlocks the mutex
-func (c *apCollection) Unlock() {
-	c.mutex.Unlock()
-}
-
-// Item returns the item at current position in the apCollection table
-func (c *apCollection) Item() (string, *availablePluginPool) {
-	key := (*c.keys)[c.currentIter-1]
-	return key, (*c.table)[key]
-}
-
-// Next moves iteration position in the apCollection table
-func (c *apCollection) Next() bool {
-	c.currentIter++
-	if c.currentIter > len(*c.table) {
-		c.currentIter = 0
-		return false
-	}
-	return true
-}
-
-// exists checks the table to see if a pointer for the availablePlugin specified
-// already exists
-func (c *apCollection) Exists(ap *availablePlugin) (bool, int) {
-	return (*c.table)[ap.Key].Exists(ap)
-}
-
-// availablePlugins is a collection of availablePlugins by type
-type availablePlugins struct {
-	Collectors, Publishers, Processors *apCollection
-}
-
-// newAvailablePlugins returns an availablePlugins pointer
-func newAvailablePlugins() *availablePlugins {
-	return &availablePlugins{
-		Collectors: newAPCollection(),
-		Processors: newAPCollection(),
-		Publishers: newAPCollection(),
+	ap, ok := p.plugins[id]
+	if ok {
+		ap.Kill(reason)
+		delete(p.plugins, id)
 	}
 }
 
-// Insert adds an availablePlugin into the correct collection based on type
-func (a *availablePlugins) Insert(ap *availablePlugin) error {
-	switch ap.Type {
-	case plugin.CollectorPluginType:
-		err := a.Collectors.Add(ap)
-		return err
-	case plugin.PublisherPluginType:
-		err := a.Publishers.Add(ap)
-		return err
-	case plugin.ProcessorPluginType:
-		err := a.Processors.Add(ap)
-		return err
-	default:
-		return errors.New("cannot insert into available plugins, unknown plugin type")
+// kills the plugin with the lowest hit count
+func (p *apPool) killOne(reason string) {
+	p.Lock()
+	defer p.Unlock()
+
+	var (
+		id   uint32
+		prev int
+	)
+
+	// grab details from the first item
+	for _, p := range p.plugins {
+		prev = p.hitCount
+		id = p.id
+		break
 	}
-}
 
-// Remove removes an availablePlugin from the correct collection based on type
-func (a *availablePlugins) Remove(ap *availablePlugin) error {
-	switch ap.Type {
-	case plugin.CollectorPluginType:
-		err := a.Collectors.Remove(ap)
-		return err
-	case plugin.PublisherPluginType:
-		err := a.Publishers.Remove(ap)
-		return err
-	case plugin.ProcessorPluginType:
-		err := a.Processors.Remove(ap)
-		return err
-	default:
-		return errors.New("cannot remove from available plugins, unknown plugin type")
-	}
-}
-
-type availablePluginPool struct {
-	Plugins       *[]*availablePlugin
-	subscriptions int
-	mutex         *sync.Mutex
-}
-
-func newAvailablePluginPool() *availablePluginPool {
-	var app []*availablePlugin
-	return &availablePluginPool{
-		Plugins: &app,
-		mutex:   &sync.Mutex{},
-	}
-}
-
-func (a *availablePluginPool) Lock() {
-	a.mutex.Lock()
-}
-
-func (a *availablePluginPool) Unlock() {
-	a.mutex.Unlock()
-}
-
-func (a *availablePluginPool) Count() int {
-	return len((*a.Plugins))
-}
-
-func (a *availablePluginPool) Subscribe() {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-	a.subscriptions++
-	log.WithFields(log.Fields{
-		"_module":            "control-avaialble-plugin-pool",
-		"_block":             "subscribe",
-		"subscription count": a.subscriptions,
-	})
-}
-
-func (a *availablePluginPool) Unsubscribe() {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-	a.subscriptions--
-	log.WithFields(log.Fields{
-		"_module":            "control-avaialble-plugin-pool",
-		"_block":             "unsubscribe",
-		"subscription count": a.subscriptions,
-	})
-}
-
-func (a *availablePluginPool) Add(ap *availablePlugin) {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-	// tell ap its index in the table
-	ap.Index = len((*a.Plugins))
-	// append
-	newCollection := append((*a.Plugins), ap)
-	// overwrite
-	a.Plugins = &newCollection
-	log.WithFields(
-		log.Fields{
-			"_module": "control-aplugin",
-			"block":   "aplugin-pool-add",
-			"aplugin": ap.String(),
-		}).Info("added aplugin to pool")
-}
-
-func (a *availablePluginPool) Remove(ap *availablePlugin) {
-	a.Lock()
-	defer a.Unlock()
-	// Place nil here to allow GC per : https://github.com/golang/go/wiki/SliceTricks
-	(*a.Plugins)[ap.Index] = nil
-	splicedColl := append((*a.Plugins)[:ap.Index], (*a.Plugins)[ap.Index+1:]...)
-	a.Plugins = &splicedColl
-	//reset indexes
-	a.resetIndexes()
-	log.WithFields(
-		log.Fields{
-			"_module": "control-aplugin",
-			"block":   "aplugin-pool-remove",
-			"aplugin": ap.String(),
-		}).Info("removed aplugin from pool")
-}
-
-// Calls Kill on a aplugin if it exists in the pool and returns a pointer to the killed plugin
-func (a *availablePluginPool) Kill(k, r string) (*availablePlugin, error) {
-	a.Lock()
-	defer a.Unlock()
-	for _, ap := range *a.Plugins {
-		if k == ap.String() {
-			err := ap.Kill(r)
-			log.WithFields(
-				log.Fields{
-					"_module": "control-aplugin",
-					"block":   "aplugin-pool-kill",
-					"aplugin": ap.String(),
-				}).Info("killing aplugin")
-			return ap, err
+	// walk through all and find the lowest hit count
+	for _, p := range p.plugins {
+		if p.hitCount < prev {
+			prev = p.hitCount
+			id = p.id
 		}
 	}
-	return nil, nil
-}
 
-func (a *availablePluginPool) Exists(ap *availablePlugin) (bool, int) {
-	for i, _ap := range *a.Plugins {
-		if ap == _ap {
-			return true, i
-		}
-	}
-	return false, -1
-}
-
-func (a *availablePluginPool) resetIndexes() {
-	for i, ap := range *a.Plugins {
-		ap.Index = i
+	// kill that ap
+	ap, ok := p.plugins[id]
+	if ok {
+		ap.Kill(reason)
+		delete(p.plugins, id)
 	}
 }
 
-func (a *availablePluginPool) SelectUsingStrategy(strat RoutingStrategy) (*availablePlugin, error) {
-	a.Lock()
-	defer a.Unlock()
+// remove removes an available plugin from the the pool.
+// using remove is idempotent.
+func (p *apPool) remove(id uint32) {
+	p.Lock()
+	defer p.Unlock()
+	delete(p.plugins, id)
+}
 
-	sp := make([]routing.SelectablePlugin, len(*a.Plugins))
-	for i := range *a.Plugins {
-		sp[i] = (*a.Plugins)[i]
+func (p *apPool) count() int {
+	return len(p.plugins)
+}
+
+func (p *apPool) subscriptions() int {
+	return len(p.subs)
+}
+
+func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	sp := make([]routing.SelectablePlugin, p.count())
+	i := 0
+	for _, plg := range p.plugins {
+		sp[i] = plg
+		i++
 	}
-	sap, err := strat.Select(a, sp)
+	sap, err := strat.Select(p, sp)
 	if err != nil || sap == nil {
 		return nil, err
 	}
-	return sap.(*availablePlugin), err
+	return sap.(*availablePlugin), nil
+}
+
+func (p *apPool) generatePID() uint32 {
+	atomic.AddUint32(&p.pidCounter, 1)
+	return p.pidCounter
+}
+
+type subscription struct {
+	subType subscriptionType
+	version int
+	taskId  uint64
+}
+
+type availablePlugins struct {
+	// Used to coordinate operations on the table.
+	*sync.RWMutex
+
+	// the strategy used to select a plugin for execution
+	routingStrategy RoutingStrategy
+
+	// table holds all the plugin pools.
+	// The Pools' primary keys are equal to
+	// {plugin_type}:{plugin_name}:{plugin_version}
+	table map[string]*apPool
+}
+
+func newAvailablePlugins(routingStrategy RoutingStrategy) *availablePlugins {
+	return &availablePlugins{
+		RWMutex:         &sync.RWMutex{},
+		table:           make(map[string]*apPool),
+		routingStrategy: routingStrategy,
+	}
+}
+
+func (ap *availablePlugins) insert(pl *availablePlugin) error {
+	if pl.pluginType != plugin.CollectorPluginType && pl.pluginType != plugin.ProcessorPluginType && pl.pluginType != plugin.PublisherPluginType {
+		return ErrBadType
+	}
+
+	ap.Lock()
+	defer ap.Unlock()
+
+	key := fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.name, pl.version)
+	_, exists := ap.table[key]
+	if !exists {
+		p, err := newPool(key, pl)
+		if err != nil {
+			return perror.New(ErrBadKey, map[string]interface{}{
+				"key": key,
+			})
+		}
+		ap.table[key] = p
+		return nil
+	}
+	ap.table[key].insert(pl)
+	return nil
+}
+
+func (ap *availablePlugins) getPool(key string) (*apPool, error) {
+	ap.RLock()
+	defer ap.RUnlock()
+	fmt.Println("POOLS:", ap.table)
+	pool, ok := ap.table[key]
+	if !ok {
+		return nil, perror.New(ErrPoolNotFound, map[string]interface{}{
+			"key": key,
+		})
+	}
+
+	return pool, nil
+}
+
+func (ap *availablePlugins) getOrCreatePool(key string) (*apPool, error) {
+	var err error
+	pool, ok := ap.table[key]
+	if ok {
+		return pool, nil
+	}
+	pool, err = newPool(key)
+	if err != nil {
+		return nil, err
+	}
+	ap.table[key] = pool
+	return pool, nil
+}
+
+func (ap *availablePlugins) selectAP(key string) (*availablePlugin, error) {
+	ap.RLock()
+	defer ap.RUnlock()
+
+	pool, err := ap.getPool(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return pool.selectAP(ap.routingStrategy)
+}
+
+func (ap *availablePlugins) all() []*availablePlugin {
+	var aps = []*availablePlugin{}
+	ap.RLock()
+	defer ap.RUnlock()
+	for _, pool := range ap.table {
+		for _, ap := range pool.plugins {
+			aps = append(aps, ap)
+		}
+	}
+	return aps
 }

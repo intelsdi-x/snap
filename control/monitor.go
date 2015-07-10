@@ -1,6 +1,7 @@
 package control
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -65,34 +66,12 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 			select {
 			case <-ticker.C:
 				go func() {
-					availablePlugins.Collectors.Lock()
-					for availablePlugins.Collectors.Next() {
-						_, apc := availablePlugins.Collectors.Item()
-						for _, ap := range *apc.Plugins {
-							go ap.CheckHealth()
-						}
+					availablePlugins.RLock()
+					for _, ap := range availablePlugins.all() {
+						fmt.Printf("failed health checks for %s: %d\n", ap, ap.failedHealthChecks)
+						go ap.CheckHealth()
 					}
-					availablePlugins.Collectors.Unlock()
-				}()
-				go func() {
-					availablePlugins.Publishers.Lock()
-					for availablePlugins.Publishers.Next() {
-						_, apc := availablePlugins.Publishers.Item()
-						for _, ap := range *apc.Plugins {
-							go ap.CheckHealth()
-						}
-					}
-					availablePlugins.Publishers.Unlock()
-				}()
-				go func() {
-					availablePlugins.Processors.Lock()
-					for availablePlugins.Processors.Next() {
-						_, apc := availablePlugins.Processors.Item()
-						for _, ap := range *apc.Plugins {
-							go ap.CheckHealth()
-						}
-					}
-					availablePlugins.Processors.Unlock()
+					availablePlugins.RUnlock()
 				}()
 			case <-m.quit:
 				ticker.Stop()
@@ -107,6 +86,5 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 // stop the monitor
 func (m *monitor) Stop() {
 	close(m.quit)
-	// m.Stop()
 	m.State = MonitorStopped
 }

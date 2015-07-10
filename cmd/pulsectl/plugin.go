@@ -30,6 +30,7 @@ func loadPlugin(ctx *cli.Context) {
 }
 
 func unloadPlugin(ctx *cli.Context) {
+	pType := ctx.String("plugin-type")
 	pName := ctx.String("plugin-name")
 	pVer := ctx.Int("plugin-version")
 	if pName == "" {
@@ -43,7 +44,7 @@ func unloadPlugin(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	r := pClient.UnloadPlugin(pName, pVer)
+	r := pClient.UnloadPlugin(pType, pName, pVer)
 	if r.Err != nil {
 		fmt.Printf("Error unloading plugin:\n%v\n", r.Err.Error())
 		os.Exit(1)

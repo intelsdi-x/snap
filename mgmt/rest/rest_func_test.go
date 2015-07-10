@@ -270,8 +270,8 @@ func uploadPlugin(pluginPath string, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func unloadPlugin(port int, name string, version int) *APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%d", port, name, version)
+func unloadPlugin(port int, pluginType string, name string, version int) *APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%d", port, pluginType, name, version)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
 	if err != nil {
@@ -348,6 +348,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// The second argument here is a string from the HTTP response body
 				// Useful to println if you want to see what the return looks like.
+				fmt.Println("DUMMY PATH", DUMMY_PLUGIN_PATH1)
 				r := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 				plr := r.Body.(*rbody.PluginsLoaded)
@@ -467,12 +468,12 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r := unloadPlugin(port, "dummy1", 1)
+				r := unloadPlugin(port, "collector", "dummy1", 1)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr := r.Body.(*rbody.Error)
 
 				So(plr.ResponseBodyType(), ShouldEqual, rbody.ErrorType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "plugin not found (has it already been unloaded?)")
+				So(plr.ResponseBodyMessage(), ShouldEqual, "plugin not found")
 			})
 
 			Convey("unload single plugin", func() {
@@ -483,7 +484,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 
 				// Unload it now
-				r := unloadPlugin(port, "dummy1", 1)
+				r := unloadPlugin(port, "collector", "dummy1", 1)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
 				plr := r.Body.(*rbody.PluginUnloaded)
 
@@ -512,7 +513,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
 
 				// Unload second
-				r := unloadPlugin(port, "dummy2", 2)
+				r := unloadPlugin(port, "collector", "dummy2", 2)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
 				plr := r.Body.(*rbody.PluginUnloaded)
 
@@ -707,7 +708,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr2.Catalog[1].Versions["1"].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 
 				// remove v2
-				unloadPlugin(port, "dummy2", 2)
+				unloadPlugin(port, "collector", "dummy2", 2)
 				r3 := getMetricCatalog(port)
 				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
 				plr3 := r3.Body.(*rbody.MetricCatalogReturned)

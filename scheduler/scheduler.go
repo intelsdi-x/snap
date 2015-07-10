@@ -38,8 +38,9 @@ type managesMetrics interface {
 	publishesMetrics
 	processesMetrics
 	managesPluginContentTypes
-	SubscribeDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError
-	ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError
+	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []perror.PulseError
+	SubscribeDeps(uint64, []core.Metric, []core.Plugin) []perror.PulseError
+	UnsubscribeDeps(uint64, []core.Metric, []core.Plugin) []perror.PulseError
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -143,15 +144,9 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	// Bind plugin content type selections in workflow
 	err = wf.BindPluginContentTypes(s.metricManager)
 
-	var (
-		pubs []core.SubscribedPlugin
-		prs  []core.SubscribedPlugin
-		mts  []core.Metric
-	)
-
 	// validate plugins and metrics
-	s.gatherPlugins(wf, &mts, &prs, &pubs)
-	errs := s.metricManager.ValidateDeps(mts, prs, pubs)
+	mts, plugins := s.gatherPlugins(wf)
+	errs := s.metricManager.ValidateDeps(mts, plugins)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
 		return nil, te
@@ -225,13 +220,12 @@ func (s *scheduler) StartTask(id uint64) []perror.PulseError {
 		}
 	}
 
-	var (
-		pubs []core.SubscribedPlugin
-		prs  []core.SubscribedPlugin
-		mts  []core.Metric
-	)
-	s.gatherPlugins(t.workflow, &mts, &prs, &pubs)
-	errs := s.metricManager.SubscribeDeps(mts, prs, pubs)
+	mts, plugins := s.gatherPlugins(t.workflow)
+	cps := make([]core.Plugin, len(plugins))
+	for i, plugin := range plugins {
+		cps[i] = plugin
+	}
+	errs := s.metricManager.SubscribeDeps(id, mts, cps)
 	if len(errs) > 0 {
 		return errs
 	}
@@ -249,7 +243,7 @@ func (s *scheduler) StartTask(id uint64) []perror.PulseError {
 }
 
 // StopTask provided a task id a task is stopped
-func (s *scheduler) StopTask(id uint64) error {
+func (s *scheduler) StopTask(id uint64) []perror.PulseError {
 	t := s.tasks.Get(id)
 	if t == nil {
 		e := fmt.Errorf("No task found with id '%v'", id)
@@ -258,8 +252,21 @@ func (s *scheduler) StopTask(id uint64) error {
 			"_error":  e.Error(),
 			"task-id": id,
 		}).Warning("error on stopping of task")
-		return e
+		return []perror.PulseError{
+			perror.New(e),
+		}
 	}
+
+	mts, plugins := s.gatherPlugins(t.workflow)
+	cps := make([]core.Plugin, len(plugins))
+	for i, plugin := range plugins {
+		cps[i] = plugin
+	}
+	errs := s.metricManager.UnsubscribeDeps(id, mts, cps)
+	if len(errs) > 0 {
+		return errs
+	}
+
 	event := new(scheduler_event.TaskStoppedEvent)
 	event.TaskID = t.id
 	defer s.eventManager.Emit(event)
@@ -372,24 +379,31 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 	}
 }
 
-func (s *scheduler) gatherPlugins(wf *schedulerWorkflow, mts *[]core.Metric, prs *[]core.SubscribedPlugin, pubs *[]core.SubscribedPlugin) {
+func (s *scheduler) gatherPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
+	var (
+		mts     []core.Metric
+		plugins []core.SubscribedPlugin
+	)
+
 	for _, m := range wf.metrics {
-		*mts = append(*mts, &metric{
+		mts = append(mts, &metric{
 			namespace: m.Namespace(),
 			version:   m.Version(),
 			config:    wf.configTree.Get(m.Namespace()),
 		})
 	}
-	s.walkWorkflow(wf.processNodes, wf.publishNodes, prs, pubs)
+	s.walkWorkflow(wf.processNodes, wf.publishNodes, &plugins)
+
+	return mts, plugins
 }
 
-func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, prs *[]core.SubscribedPlugin, pubs *[]core.SubscribedPlugin) {
+func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, plugins *[]core.SubscribedPlugin) {
 	for _, pr := range prnodes {
-		*prs = append(*prs, pr)
-		s.walkWorkflow(pr.ProcessNodes, pr.PublishNodes, prs, pubs)
+		*plugins = append(*plugins, pr)
+		s.walkWorkflow(pr.ProcessNodes, pr.PublishNodes, plugins)
 	}
 	for _, pb := range pbnodes {
-		*pubs = append(*pubs, pb)
+		*plugins = append(*plugins, pb)
 	}
 }
 

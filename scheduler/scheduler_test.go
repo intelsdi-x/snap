@@ -60,10 +60,6 @@ func (m *mockMetricManager) GetPluginContentTypes(n string, t core.PluginType, v
 	return m.acceptedContentTypes[key], m.returnedContentTypes[key], nil
 }
 
-func (m *mockMetricManager) UnsubscribeMetricType(mt core.Metric) {
-
-}
-
 func (m *mockMetricManager) CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error) {
 	return nil, nil
 }
@@ -76,7 +72,7 @@ func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, p
 	return "", nil, nil
 }
 
-func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin) []perror.PulseError {
 	if m.failValidatingMetrics {
 		return []perror.PulseError{
 			perror.New(errors.New("metric validation error")),
@@ -84,17 +80,13 @@ func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.Subscribe
 	}
 	return nil
 }
-func (m *mockMetricManager) SubscribeDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+func (m *mockMetricManager) SubscribeDeps(taskId uint64, mts []core.Metric, prs []core.Plugin) []perror.PulseError {
 	return []perror.PulseError{
 		perror.New(errors.New("metric validation error")),
 	}
 }
 
-func (m *mockMetricManager) UnsubscribePublisher(name string, ver int) error {
-	return nil
-}
-
-func (m *mockMetricManager) UnsubscribeProcessor(name string, ver int) error {
+func (m *mockMetricManager) UnsubscribeDeps(taskId uint64, mts []core.Metric, prs []core.Plugin) []perror.PulseError {
 	return nil
 }
 

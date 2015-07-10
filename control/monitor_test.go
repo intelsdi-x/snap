@@ -7,6 +7,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/control/routing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -23,38 +24,37 @@ func (mp *mockPluginClient) Kill(r string) error {
 
 func TestMonitor(t *testing.T) {
 	Convey("monitor", t, func() {
-		aps := newAvailablePlugins()
+		aps := newAvailablePlugins(&routing.RoundRobinStrategy{})
 
 		ap1 := &availablePlugin{
-			Type:       plugin.CollectorPluginType,
+			pluginType: plugin.CollectorPluginType,
 			version:    1,
 			name:       "test",
-			Client:     new(MockUnhealthyPluginCollectorClient),
+			client:     new(MockUnhealthyPluginCollectorClient),
 			healthChan: make(chan error, 1),
 			emitter:    gomit.NewEventController(),
 		}
-		ap1.makeKey()
-		aps.Insert(ap1)
+		aps.insert(ap1)
 
 		ap2 := &availablePlugin{
-			Type:    plugin.PublisherPluginType,
-			version: 1,
-			name:    "test",
-			Client:  &mockPluginClient{},
-			emitter: &gomit.EventController{},
+			pluginType: plugin.PublisherPluginType,
+			version:    1,
+			name:       "test",
+			client:     new(MockUnhealthyPluginCollectorClient),
+			healthChan: make(chan error, 1),
+			emitter:    gomit.NewEventController(),
 		}
-		ap2.makeKey()
-		aps.Insert(ap2)
+		aps.insert(ap2)
 
 		ap3 := &availablePlugin{
-			Type:    plugin.ProcessorPluginType,
-			version: 1,
-			name:    "test",
-			Client:  &mockPluginClient{},
-			emitter: &gomit.EventController{},
+			pluginType: plugin.ProcessorPluginType,
+			version:    1,
+			name:       "test",
+			client:     new(MockUnhealthyPluginCollectorClient),
+			healthChan: make(chan error, 1),
+			emitter:    gomit.NewEventController(),
 		}
-		ap3.makeKey()
-		aps.Insert(ap3)
+		aps.insert(ap3)
 
 		Convey("newMonitor", func() {
 			m := newMonitor(MonitorDurationOption(time.Millisecond * 123))
@@ -64,15 +64,15 @@ func TestMonitor(t *testing.T) {
 		Convey("start", func() {
 			m := newMonitor()
 			m.Option(MonitorDurationOption(time.Millisecond * 200))
+			So(m.duration, ShouldResemble, time.Millisecond*200)
 			m.Start(aps)
 
 			So(m.State, ShouldEqual, MonitorStarted)
 			time.Sleep(1 * time.Second)
 			Convey("health monitor", func() {
-				for aps.Collectors.Next() {
-					_, item := aps.Collectors.Item()
-					So(item, ShouldNotBeNil)
-					So((*(*item).Plugins)[0].failedHealthChecks, ShouldBeGreaterThan, 3)
+				for _, ap := range aps.all() {
+					So(ap, ShouldNotBeNil)
+					So(ap.failedHealthChecks, ShouldBeGreaterThan, 3)
 				}
 			})
 		})

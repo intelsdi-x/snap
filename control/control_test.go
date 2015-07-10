@@ -44,10 +44,15 @@ func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlu
 func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, perror.PulseError) {
 	return nil, perror.New(errors.New("fake"))
 }
-func (m *MockPluginManagerBadSwap) LoadedPlugins() *loadedPlugins    { return m.loadedPlugins }
-func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {}
-func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)         {}
-func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg   { return plugin.Arg{} }
+func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error) { return nil, nil }
+func (m *MockPluginManagerBadSwap) teardown()                         {}
+func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)  {}
+func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)          {}
+func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg    { return plugin.Arg{} }
+
+func (m *MockPluginManagerBadSwap) all() map[string]*loadedPlugin {
+	return m.loadedPlugins.table
+}
 
 func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
@@ -80,6 +85,8 @@ func TestSwapPlugin(t *testing.T) {
 			dummy2Path := strings.Replace(PluginPath, "pulse-collector-dummy1", "pulse-collector-dummy2", 1)
 			pc := c.PluginCatalog()
 			dummy := pc[0]
+			fmt.Println(pc)
+			fmt.Println(dummy)
 
 			Convey("successfully swaps plugins", func() {
 				err := c.SwapPlugins(dummy2Path, dummy)
@@ -123,7 +130,7 @@ func TestSwapPlugin(t *testing.T) {
 	}
 }
 
-type mockPlugin struct {
+type mockPluginEvent struct {
 	LoadedPluginName      string
 	LoadedPluginVersion   int
 	UnloadedPluginName    string
@@ -132,25 +139,25 @@ type mockPlugin struct {
 }
 
 type listenToPluginEvent struct {
-	plugin mockPlugin
+	plugin mockPluginEvent
 }
 
 func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 	switch v := e.Body.(type) {
 	case *control_event.LoadPluginEvent:
-		l.plugin = mockPlugin{
+		l.plugin = mockPluginEvent{
 			LoadedPluginName:    v.Name,
 			LoadedPluginVersion: v.Version,
 			PluginType:          v.Type,
 		}
 	case *control_event.UnloadPluginEvent:
-		l.plugin = mockPlugin{
+		l.plugin = mockPluginEvent{
 			UnloadedPluginName:    v.Name,
 			UnloadedPluginVersion: v.Version,
 			PluginType:            v.Type,
 		}
 	case *control_event.SwapPluginsEvent:
-		l.plugin = mockPlugin{
+		l.plugin = mockPluginEvent{
 			LoadedPluginName:      v.LoadedPluginName,
 			LoadedPluginVersion:   v.LoadedPluginVersion,
 			UnloadedPluginName:    v.UnloadedPluginName,
@@ -177,8 +184,8 @@ func TestLoad(t *testing.T) {
 				c.Start()
 				_, err := c.Load(PluginPath)
 				time.Sleep(100)
-				So(c.pluginManager.LoadedPlugins(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
+				So(c.pluginManager.all(), ShouldNotBeEmpty)
 				So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy1")
 				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
 				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
@@ -188,7 +195,7 @@ func TestLoad(t *testing.T) {
 				c := New()
 				_, err := c.Load(PluginPath)
 
-				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 0)
+				So(len(c.pluginManager.all()), ShouldEqual, 0)
 				So(err, ShouldNotBeNil)
 			})
 
@@ -198,7 +205,7 @@ func TestLoad(t *testing.T) {
 				_, err := c.Load(PluginPath)
 
 				So(err, ShouldBeNil)
-				So(len(c.pluginManager.LoadedPlugins().Table()), ShouldBeGreaterThan, 0)
+				So(len(c.pluginManager.all()), ShouldBeGreaterThan, 0)
 			})
 
 			Convey("returns error from pluginManager.LoadPlugin()", func() {
@@ -229,7 +236,7 @@ func TestUnload(t *testing.T) {
 				c.Start()
 				_, err := c.Load(PluginPath)
 
-				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+				So(c.pluginManager.all(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 
 				pc := c.PluginCatalog()
@@ -248,7 +255,7 @@ func TestUnload(t *testing.T) {
 				c.Start()
 				_, err := c.Load(PluginPath)
 
-				So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+				So(c.pluginManager.all(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 
 				pc := c.PluginCatalog()
@@ -257,7 +264,7 @@ func TestUnload(t *testing.T) {
 				_, err2 := c.Unload(pc[0])
 				So(err2, ShouldBeNil)
 				_, err3 := c.Unload(pc[0])
-				So(err3.Error(), ShouldResemble, "plugin not found (has it already been unloaded?)")
+				So(err3.Error(), ShouldResemble, "plugin not found")
 			})
 			Convey("Listen for PluginUnloaded event", func() {
 				c := New()
@@ -282,10 +289,17 @@ func TestStop(t *testing.T) {
 	Convey("pluginControl.Stop", t, func() {
 		c := New()
 		lps := newLoadedPlugins()
-		lps.Append(&loadedPlugin{})
+		err := lps.add(&loadedPlugin{
+			Type: plugin.CollectorPluginType,
+			Meta: plugin.PluginMeta{
+				Name:    "bad-swap",
+				Version: 1,
+			},
+		})
+		So(err, ShouldBeNil)
 		c.pluginManager = &MockPluginManagerBadSwap{loadedPlugins: lps}
 		c.Start()
-		So(c.pluginManager.LoadedPlugins, ShouldNotBeEmpty)
+		So(c.pluginManager.all(), ShouldNotBeEmpty)
 		c.Stop()
 
 		Convey("stops", func() {
@@ -299,6 +313,12 @@ func TestPluginCatalog(t *testing.T) {
 
 	c := New()
 
+	// We need our own plugin manager to drop mock
+	// loaded plugins into.  Aribitrarily adding
+	// plugins from the pm is no longer supported.
+	tpm := newPluginManager()
+	c.pluginManager = tpm
+
 	lp1 := new(loadedPlugin)
 	lp1.Meta = plugin.PluginMeta{Name: "test1",
 		Version:              1,
@@ -308,21 +328,21 @@ func TestPluginCatalog(t *testing.T) {
 	lp1.Type = 0
 	lp1.State = "loaded"
 	lp1.LoadedTime = ts
-	c.pluginManager.LoadedPlugins().Append(lp1)
+	tpm.loadedPlugins.add(lp1)
 
 	lp2 := new(loadedPlugin)
 	lp2.Meta = plugin.PluginMeta{Name: "test2", Version: 1}
 	lp2.Type = 0
 	lp2.State = "loaded"
 	lp2.LoadedTime = ts
-	c.pluginManager.LoadedPlugins().Append(lp2)
+	tpm.loadedPlugins.add(lp2)
 
 	lp3 := new(loadedPlugin)
 	lp3.Meta = plugin.PluginMeta{Name: "test3", Version: 1}
 	lp3.Type = 0
 	lp3.State = "loaded"
 	lp3.LoadedTime = ts
-	c.pluginManager.LoadedPlugins().Append(lp3)
+	tpm.loadedPlugins.add(lp3)
 
 	lp4 := new(loadedPlugin)
 	lp4.Meta = plugin.PluginMeta{Name: "test1",
@@ -333,7 +353,18 @@ func TestPluginCatalog(t *testing.T) {
 	lp4.Type = 0
 	lp4.State = "loaded"
 	lp4.LoadedTime = ts
-	c.pluginManager.LoadedPlugins().Append(lp4)
+	tpm.loadedPlugins.add(lp4)
+
+	lp5 := new(loadedPlugin)
+	lp5.Meta = plugin.PluginMeta{Name: "test1",
+		Version:              0,
+		AcceptedContentTypes: []string{"d", "e", "f"},
+		ReturnedContentTypes: []string{"d", "e", "f"},
+	}
+	lp5.Type = 0
+	lp5.State = "loaded"
+	lp5.LoadedTime = ts
+	tpm.loadedPlugins.add(lp5)
 
 	pc := c.PluginCatalog()
 
@@ -448,26 +479,6 @@ func (m *mockCDProc) Process(in map[string]ctypes.ConfigValue) (*map[string]ctyp
 	return &in, nil
 }
 
-func TestUnsubscribeMetric(t *testing.T) {
-	c := New()
-	c.metricCatalog = &mc{}
-	lp := new(loadedPlugin)
-	Convey("When an error is returned", t, func() {
-		Convey("it panics", func() {
-			mt := newMetricType([]string{"nf"}, time.Now(), lp)
-			So(func() { c.UnsubscribeMetricType(mt) }, ShouldPanic)
-			mt = newMetricType([]string{"nf"}, time.Now(), lp)
-			So(func() { c.UnsubscribeMetricType(mt) }, ShouldPanic)
-		})
-	})
-	Convey("When no error is returned", t, func() {
-		Convey("it doesn't panic", func() {
-			mt := newMetricType([]string{"hello"}, time.Now(), lp)
-			So(func() { c.UnsubscribeMetricType(mt) }, ShouldNotPanic)
-		})
-	})
-}
-
 // TODO move to metricCatalog
 // func TestResolvePlugin(t *testing.T) {
 // 	Convey(".resolvePlugin()", t, func() {
@@ -571,9 +582,11 @@ func TestCollectMetrics(t *testing.T) {
 			cfg:       cd,
 		}
 
-		err := c.sendMetricTypeSubscriptionEvent(m1)
+		// retrieve loaded plugin
+		lp, err := c.pluginManager.get("collector:dummy1:1")
 		So(err, ShouldBeNil)
-		err = c.sendMetricTypeSubscriptionEvent(m1)
+		So(lp, ShouldNotBeNil)
+		err = c.sendPluginSubscriptionEvent(1, lp)
 		So(err, ShouldBeNil)
 		m = append(m, m1, m2)
 
@@ -620,12 +633,14 @@ func (m *mockMetric) Data() interface{} {
 }
 
 type mockPlugin struct {
-	name   string
-	ver    int
-	config *cdata.ConfigDataNode
+	pluginType core.PluginType
+	name       string
+	ver        int
+	config     *cdata.ConfigDataNode
 }
 
 func (m mockPlugin) Name() string                  { return m.name }
+func (m mockPlugin) TypeName() string              { return m.pluginType.String() }
 func (m mockPlugin) Version() int                  { return m.ver }
 func (m mockPlugin) Config() *cdata.ConfigDataNode { return m.config }
 
@@ -643,8 +658,8 @@ func TestPublishMetrics(t *testing.T) {
 		// Load plugin
 		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
-		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.LoadedPlugins().Get(0)
+		So(len(c.pluginManager.all()), ShouldEqual, 1)
+		lp, err2 := c.pluginManager.get("publisher:file:1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "file")
 		So(lp.ConfigPolicyTree, ShouldNotBeNil)
@@ -653,11 +668,12 @@ func TestPublishMetrics(t *testing.T) {
 			n := cdata.NewNode()
 			n.AddItem("file", ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"})
 			p := mockPlugin{
-				name:   "file",
-				ver:    1,
-				config: n,
+				name:       "file",
+				pluginType: core.PublisherPluginType,
+				ver:        1,
+				config:     n,
 			}
-			errs := c.sendPublisherSubscriptionEvent(p)
+			errs := c.sendPluginSubscriptionEvent(1, p)
 			So(errs, ShouldBeNil)
 			time.Sleep(1 * time.Second)
 
@@ -692,8 +708,8 @@ func TestProcessMetrics(t *testing.T) {
 		// Load plugin
 		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
 		So(err, ShouldBeNil)
-		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.LoadedPlugins().Get(0)
+		So(len(c.pluginManager.all()), ShouldEqual, 1)
+		lp, err2 := c.pluginManager.get("processor:passthru:1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "passthru")
 		So(lp.ConfigPolicyTree, ShouldNotBeNil)
@@ -701,11 +717,12 @@ func TestProcessMetrics(t *testing.T) {
 		Convey("Subscribe to passthru processor with good config", func() {
 			n := cdata.NewNode()
 			p := mockPlugin{
-				name:   "passthru",
-				ver:    1,
-				config: n,
+				name:       "passthru",
+				pluginType: core.ProcessorPluginType,
+				ver:        1,
+				config:     n,
 			}
-			errs := c.sendProcessorSubscriptionEvent(p)
+			errs := c.sendPluginSubscriptionEvent(1, p)
 			So(errs, ShouldBeNil)
 			time.Sleep(1 * time.Second)
 

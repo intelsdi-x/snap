@@ -28,9 +28,9 @@ func (c *Client) LoadPlugin(p string) *LoadPluginResult {
 	return r
 }
 
-func (c *Client) UnloadPlugin(name string, version int) *UnloadPluginResult {
+func (c *Client) UnloadPlugin(pluginType, name string, version int) *UnloadPluginResult {
 	r := &UnloadPluginResult{}
-	resp, err := c.do("DELETE", fmt.Sprintf("/plugins/%s/%d", url.QueryEscape(name), version), ContentTypeJSON)
+	resp, err := c.do("DELETE", fmt.Sprintf("/plugins/%s/%s/%d", pluginType, url.QueryEscape(name), version), ContentTypeJSON)
 	if err != nil {
 		r.Err = err
 		return r
