@@ -88,6 +88,33 @@ func action(ctx *cli.Context) {
 	apiPort := ctx.Int("api-port")
 	autodiscoverPath := ctx.String("auto-discover")
 
+	var l = map[int]string{
+		1: "debug",
+		2: "info",
+		3: "warning",
+		4: "error",
+		5: "fatal",
+	}
+	log.Info("setting log level to: ", l[logLevel])
+	if logPath == "" {
+		log.Info("setting log path to: stdout")
+	} else {
+		log.Info("setting log path to: ", logPath)
+	}
+	log.Info("setting max procs to: ", maxProcs, " core(s)")
+	if disableApi == false {
+		log.Info("api is enabled")
+		log.Info("setting api port to: ", apiPort)
+	} else {
+		log.Info("api is disabled")
+	}
+	if autodiscoverPath == "" {
+		log.Info("auto discover path is disabled")
+	} else {
+		log.Info("auto discover path is enabled")
+		log.Info("autoloading plugins from: ", autodiscoverPath)
+	}
+
 	if logLevel < 1 || logLevel > 5 {
 		log.WithFields(
 			log.Fields{

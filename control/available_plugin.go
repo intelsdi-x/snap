@@ -115,7 +115,7 @@ func (a *availablePlugin) Stop(r string) error {
 		"_module": "control-aplugin",
 		"block":   "stop",
 		"aplugin": a,
-	}).Info("stoppping available plugin")
+	}).Info("stopping available plugin")
 	return a.Client.Kill(r)
 }
 
