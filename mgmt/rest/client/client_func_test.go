@@ -393,7 +393,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.StartTask(9999999)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "No task found with id '9999999'")
+				So(p.Err.Error(), ShouldEqual, "message @ error 0: No task found with id '9999999' ")
 			})
 			Convey("existing task", func() {
 				port := getPort()

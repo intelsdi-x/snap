@@ -448,30 +448,6 @@ func (m *mockCDProc) Process(in map[string]ctypes.ConfigValue) (*map[string]ctyp
 	return &in, nil
 }
 
-func TestSubscribeMetric(t *testing.T) {
-	c := New()
-	c.Start()
-	c.Load(PluginPath)
-	c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
-	Convey("does not return errors when metricCatalog.Subscribe() does not return an error", t, func() {
-		cd := cdata.NewNode()
-		cd.AddItem("password", &ctypes.ConfigValueStr{Value: "value"})
-		mt := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
-		_, err := c.SubscribeMetricType(mt, cd)
-		So(err, ShouldBeNil)
-		me := c.MetricExists([]string{"intel", "dummy", "foo"}, 0)
-		So(me, ShouldBeTrue)
-	})
-	Convey("returns errors when metricCatalog.Subscribe() returns an error", t, func() {
-		cd := cdata.NewNode()
-		_, err0 := c.SubscribeMetricType(MockMetricType{}, cd) //Test .Get err!=nil
-		So(err0, ShouldNotBeNil)
-		mt := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
-		_, err := c.SubscribeMetricType(mt, cd)
-		So(err, ShouldNotBeEmpty)
-	})
-}
-
 func TestUnsubscribeMetric(t *testing.T) {
 	c := New()
 	c.metricCatalog = &mc{}
@@ -582,18 +558,24 @@ func TestCollectMetrics(t *testing.T) {
 		// Load plugin
 		c.Load(PluginPath)
 
-		m := []core.Metric{}
-		m1 := MockMetricType{namespace: []string{"intel", "dummy", "foo"}}
-		m2 := MockMetricType{namespace: []string{"intel", "dummy", "bar"}}
-
 		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 
-		mt1, errs := c.SubscribeMetricType(m1, cd)
-		So(errs, ShouldBeNil)
-		mt2, errs := c.SubscribeMetricType(m2, cd)
-		So(errs, ShouldBeNil)
-		m = append(m, mt1, mt2)
+		m := []core.Metric{}
+		m1 := MockMetricType{
+			namespace: []string{"intel", "dummy", "foo"},
+			cfg:       cd,
+		}
+		m2 := MockMetricType{
+			namespace: []string{"intel", "dummy", "bar"},
+			cfg:       cd,
+		}
+
+		err := c.sendMetricTypeSubscriptionEvent(m1)
+		So(err, ShouldBeNil)
+		err = c.sendMetricTypeSubscriptionEvent(m1)
+		So(err, ShouldBeNil)
+		m = append(m, m1, m2)
 
 		time.Sleep(time.Millisecond * 200)
 
@@ -637,6 +619,16 @@ func (m *mockMetric) Data() interface{} {
 	return m.data
 }
 
+type mockPlugin struct {
+	name   string
+	ver    int
+	config *cdata.ConfigDataNode
+}
+
+func (m mockPlugin) Name() string                  { return m.name }
+func (m mockPlugin) Version() int                  { return m.ver }
+func (m mockPlugin) Config() *cdata.ConfigDataNode { return m.config }
+
 func TestPublishMetrics(t *testing.T) {
 	Convey("Given an available file publisher plugin", t, func() {
 		// adjust HB timeouts for test
@@ -648,11 +640,6 @@ func TestPublishMetrics(t *testing.T) {
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 
-		//Test lp==nil
-		config := map[string]ctypes.ConfigValue{}
-		errs := c.SubscribePublisher("file", 1, config)
-		So(errs, ShouldNotBeNil)
-
 		// Load plugin
 		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
 		So(err, ShouldBeNil)
@@ -662,28 +649,15 @@ func TestPublishMetrics(t *testing.T) {
 		So(lp.Name(), ShouldResemble, "file")
 		So(lp.ConfigPolicyTree, ShouldNotBeNil)
 
-		Convey("Subscribe to file publisher with no config", func() {
-			config := map[string]ctypes.ConfigValue{}
-			errs := c.SubscribePublisher("file", 1, config)
-			So(errs, ShouldNotBeNil)
-			So(errs, ShouldNotBeEmpty)
-		})
-
-		Convey("Subscribe to file publisher with bad config", func() {
-			config := map[string]ctypes.ConfigValue{
-				"foo": ctypes.ConfigValueStr{Value: "bar"},
-			}
-			errs := c.SubscribePublisher("file", 1, config)
-			So(errs, ShouldNotBeNil)
-			So(errs, ShouldNotBeEmpty)
-
-		})
-
 		Convey("Subscribe to file publisher with good config", func() {
-			config := map[string]ctypes.ConfigValue{
-				"file": ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"},
+			n := cdata.NewNode()
+			n.AddItem("file", ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"})
+			p := mockPlugin{
+				name:   "file",
+				ver:    1,
+				config: n,
 			}
-			errs := c.SubscribePublisher("file", 1, config)
+			errs := c.sendPublisherSubscriptionEvent(p)
 			So(errs, ShouldBeNil)
 			time.Sleep(1 * time.Second)
 
@@ -695,7 +669,7 @@ func TestPublishMetrics(t *testing.T) {
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
 				contentType := plugin.PulseGOBContentType
-				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 1, config)
+				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 1, n.Table())
 				So(errs, ShouldBeNil)
 				ap := c.AvailablePlugins()
 				So(ap, ShouldNotBeEmpty)
@@ -715,10 +689,6 @@ func TestProcessMetrics(t *testing.T) {
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 
-		config := map[string]ctypes.ConfigValue{}
-		errs := c.SubscribeProcessor("file", 1, config)
-		So(errs, ShouldNotBeNil)
-
 		// Load plugin
 		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
 		So(err, ShouldBeNil)
@@ -728,25 +698,18 @@ func TestProcessMetrics(t *testing.T) {
 		So(lp.Name(), ShouldResemble, "passthru")
 		So(lp.ConfigPolicyTree, ShouldNotBeNil)
 
-		Convey("Subscribe to file processor with bad config", func() {
-			config := map[string]ctypes.ConfigValue{
-				"foo": ctypes.ConfigValueStr{Value: "bar"},
+		Convey("Subscribe to passthru processor with good config", func() {
+			n := cdata.NewNode()
+			p := mockPlugin{
+				name:   "passthru",
+				ver:    1,
+				config: n,
 			}
-			errs := c.SubscribeProcessor("passthru", 1, config)
-			So(errs, ShouldBeNil)
-			So(errs, ShouldBeEmpty)
-
-		})
-
-		Convey("Subscribe to file processor with good config", func() {
-			config := map[string]ctypes.ConfigValue{
-				"file": ctypes.ConfigValueStr{Value: "/tmp/pulse-TestProcessorMetrics.out"},
-			}
-			errs := c.SubscribeProcessor("passthru", 1, config)
+			errs := c.sendProcessorSubscriptionEvent(p)
 			So(errs, ShouldBeNil)
 			time.Sleep(1 * time.Second)
 
-			Convey("Publish to file", func() {
+			Convey("process metrics", func() {
 				metrics := []plugin.PluginMetricType{
 					*plugin.NewPluginMetricType([]string{"foo"}, 1),
 				}
@@ -754,27 +717,9 @@ func TestProcessMetrics(t *testing.T) {
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
 				contentType := plugin.PulseGOBContentType
-				cnt, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, config)
+				cnt, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table())
 				fmt.Printf("%v %v", cnt, ct)
 				So(errs, ShouldBeNil)
-			})
-		})
-
-		Convey("Process Metrics", func() {
-			config := map[string]ctypes.ConfigValue{}
-			errs := c.SubscribeProcessor("passthru", 1, config)
-
-			So(errs, ShouldBeNil)
-			time.Sleep(1 * time.Second)
-
-			Convey("Publish to file", func() {
-				var buf bytes.Buffer
-				contentType := plugin.PulseGOBContentType
-				cnt, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, config)
-				fmt.Printf("%v %v", cnt, ct) //TODO
-				So(errs, ShouldBeNil)
-				ap := c.AvailablePlugins()
-				So(ap, ShouldNotBeEmpty)
 			})
 		})
 

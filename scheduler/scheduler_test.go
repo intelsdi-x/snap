@@ -25,19 +25,6 @@ type mockMetricManager struct {
 	returnedContentTypes       map[string][]string
 }
 
-func (m *mockMetricManager) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.PulseError) {
-	if m.failValidatingMetrics {
-		if m.failValidatingMetricsAfter > m.failuredSoFar {
-			m.failuredSoFar++
-			return nil, nil
-		}
-		return nil, []perror.PulseError{
-			perror.New(errors.New("metric validation error")),
-		}
-	}
-	return nil, nil
-}
-
 func (m *mockMetricManager) lazyContentType(key string) {
 	if m.acceptedContentTypes == nil {
 		m.acceptedContentTypes = make(map[string][]string)
@@ -89,21 +76,18 @@ func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, p
 	return "", nil, nil
 }
 
-func (m *mockMetricManager) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError {
-	return []perror.PulseError{}
-}
-
-func (m *mockMetricManager) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError {
-	return []perror.PulseError{}
-}
-
-func (m *mockMetricManager) Subscribe(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
 	if m.failValidatingMetrics {
 		return []perror.PulseError{
 			perror.New(errors.New("metric validation error")),
 		}
 	}
 	return nil
+}
+func (m *mockMetricManager) SubscribeDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+	return []perror.PulseError{
+		perror.New(errors.New("metric validation error")),
+	}
 }
 
 func (m *mockMetricManager) UnsubscribePublisher(name string, ver int) error {

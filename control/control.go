@@ -267,34 +267,42 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) per
 	return nil
 }
 
-// SubscribeMetricType validates the given config data, and if valid
-// returns a MetricType with a config.  On error a collection of errors is returned
-// either from config data processing, or the inability to find the metric.
-func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.PulseError) {
-	controlLogger.WithFields(log.Fields{
-		"_block":    "subscribe-metric-type",
-		"namespace": mt.Namespace(),
-	}).Info("subscription called on metric")
-
-	m, errs := p.validateMetricTypeSubscription(mt, cd)
-	if len(errs) > 0 {
-		return nil, errs
-	}
-	if m != nil {
-		err := p.sendMetricTypeSubscriptionEvent(m)
-		if err != nil {
-			errs = append(errs, perror.New(err))
+func (p *pluginControl) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+	var perrs []perror.PulseError
+	for _, sub := range mts {
+		_, subErrs := p.validateMetricTypeSubscription(sub, sub.Config())
+		if len(subErrs) > 0 {
+			perrs = append(perrs, subErrs...)
+			return perrs
 		}
 	}
 
-	return m, errs
+	//subscribe to processors
+	for _, sub := range prs {
+		subErrs := p.validateProcessorSubscription(sub)
+		if len(subErrs) > 0 {
+			perrs = append(perrs, subErrs...)
+			return perrs
+		}
+	}
+
+	//subscribe to publishers
+	for _, sub := range pus {
+		subErrs := p.validatePublisherSubscription(sub)
+		if len(subErrs) > 0 {
+			perrs = append(perrs, subErrs...)
+			return perrs
+		}
+	}
+
+	return perrs
 }
 
 func (p *pluginControl) validateProcessorSubscription(pr core.SubscribedPlugin) (perrs []perror.PulseError) {
 	controlLogger.WithFields(log.Fields{
 		"_block":    "validate-processor-subscription",
 		"processor": fmt.Sprintf("%s-%d", pr.Name(), pr.Version()),
-	}).Info("subscription called on processor")
+	}).Info(fmt.Sprintf("dependencies validated for processor %s:%d", pr.Name(), pr.Version()))
 
 	p.pluginManager.LoadedPlugins().Lock()
 	defer p.pluginManager.LoadedPlugins().Unlock()
@@ -334,7 +342,7 @@ func (p *pluginControl) validatePublisherSubscription(pu core.SubscribedPlugin) 
 	controlLogger.WithFields(log.Fields{
 		"_block":    "validate-publisher-subscription",
 		"publisher": fmt.Sprintf("%s-%d", pu.Name(), pu.Version()),
-	}).Info("subscription called on publisher")
+	}).Info(fmt.Sprintf("dependencies validated for publisher %s:%d", pu.Name(), pu.Version()))
 
 	p.pluginManager.LoadedPlugins().Lock()
 	defer p.pluginManager.LoadedPlugins().Unlock()
@@ -405,10 +413,37 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 	return m, perrs
 }
 
-func (p *pluginControl) sendMetricTypeSubscriptionEvent(mt core.Metric) error {
+func (p *pluginControl) SubscribeDeps(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
+	var perrs []perror.PulseError
+
+	for _, mt := range mts {
+		err := p.sendMetricTypeSubscriptionEvent(mt)
+		if err != nil {
+			perrs = append(perrs, perror.New(err))
+		}
+	}
+
+	for _, sub := range prs {
+		perr := p.sendProcessorSubscriptionEvent(sub)
+		if perr != nil {
+			perrs = append(perrs, perr)
+		}
+	}
+
+	for _, sub := range pus {
+		perr := p.sendPublisherSubscriptionEvent(sub)
+		if perr != nil {
+			perrs = append(perrs, perr)
+		}
+	}
+
+	return perrs
+}
+
+func (p *pluginControl) sendMetricTypeSubscriptionEvent(mt core.Metric) perror.PulseError {
 	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 	if err != nil {
-		return err
+		return perror.New(err)
 	}
 
 	m.Subscribe()
@@ -438,97 +473,6 @@ func (p *pluginControl) sendPublisherSubscriptionEvent(pu core.SubscribedPlugin)
 	}
 	if _, err := p.eventManager.Emit(e); err != nil {
 		return perror.New(err)
-	}
-	return nil
-}
-
-func (p *pluginControl) Subscribe(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
-	var perrs []perror.PulseError
-	for _, sub := range mts {
-		_, subErrs := p.validateMetricTypeSubscription(sub, sub.Config())
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
-			return perrs
-		}
-	}
-
-	//subscribe to processors
-	for _, sub := range prs {
-		subErrs := p.validateProcessorSubscription(sub)
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
-			return perrs
-		}
-	}
-
-	//subscribe to publishers
-	for _, sub := range pus {
-		subErrs := p.validatePublisherSubscription(sub)
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
-			return perrs
-		}
-	}
-
-	//send events
-	for _, mt := range mts {
-		err := p.sendMetricTypeSubscriptionEvent(mt)
-		if err != nil {
-			perrs = append(perrs, perror.New(err))
-		}
-	}
-
-	for _, sub := range prs {
-		perr := p.sendProcessorSubscriptionEvent(sub)
-		if perr != nil {
-			perrs = append(perrs, perr)
-		}
-	}
-
-	for _, sub := range pus {
-		perr := p.sendPublisherSubscriptionEvent(sub)
-		if perr != nil {
-			perrs = append(perrs, perr)
-		}
-	}
-
-	return perrs
-}
-
-// SubscribePublisher
-func (p *pluginControl) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError {
-	rplugin := &requestedPlugin{
-		name:    name,
-		version: ver,
-		config:  cdata.FromTable(config),
-	}
-	perrs := p.validatePublisherSubscription(rplugin)
-	if len(perrs) > 0 {
-		return perrs
-	}
-	perr := p.sendPublisherSubscriptionEvent(rplugin)
-	if perr != nil {
-		perrs = append(perrs, perr)
-		return perrs
-	}
-	return nil
-}
-
-// SubscribeProcessor
-func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError {
-	rplugin := &requestedPlugin{
-		name:    name,
-		version: ver,
-		config:  cdata.FromTable(config),
-	}
-	perrs := p.validateProcessorSubscription(rplugin)
-	if len(perrs) > 0 {
-		return perrs
-	}
-	perr := p.sendProcessorSubscriptionEvent(rplugin)
-	if perr != nil {
-		perrs = append(perrs, perr)
-		return perrs
 	}
 	return nil
 }

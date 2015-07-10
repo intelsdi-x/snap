@@ -6,9 +6,22 @@ import (
 	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
-type AvailablePlugin interface {
+type Plugin interface {
 	Name() string
 	Version() int
+}
+
+type PluginType int
+
+const (
+	// List of plugin type
+	CollectorPluginType PluginType = iota
+	PublisherPluginType
+	ProcessorPluginType
+)
+
+type AvailablePlugin interface {
+	Plugin
 	HitCount() int
 	LastHit() time.Time
 	TypeName() string
@@ -29,22 +42,7 @@ type CatalogedPlugin interface {
 // by mgmt modules
 type PluginCatalog []CatalogedPlugin
 
-type PluginType int
-
-const (
-	// List of plugin type
-	CollectorPluginType PluginType = iota
-	PublisherPluginType
-	ProcessorPluginType
-)
-
-type Plugin interface {
-	Name() string
-	Version() int
-}
-
 type SubscribedPlugin interface {
-	Name() string
-	Version() int
+	Plugin
 	Config() *cdata.ConfigDataNode
 }

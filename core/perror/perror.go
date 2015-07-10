@@ -14,10 +14,10 @@ type pulseError struct {
 func New(e error) *pulseError {
 	// Catch someone trying to wrap a pe around a pe.
 	// We throw a panic to make them fix this.
-	switch e.(type) {
-	case PulseError:
+	if _, ok := e.(PulseError); ok {
 		panic("You are trying to wrap a pulseError around a PulseError. Don't do this.")
 	}
+
 	return &pulseError{err: e, fields: make(map[string]interface{})}
 }
 

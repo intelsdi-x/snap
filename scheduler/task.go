@@ -40,7 +40,6 @@ type task struct {
 	killChan           chan struct{}
 	schedule           schedule.Schedule
 	workflow           *schedulerWorkflow
-	metricTypes        []core.Metric
 	state              core.TaskState
 	creationTime       time.Time
 	lastFireTime       time.Time
@@ -57,7 +56,7 @@ type task struct {
 }
 
 //NewTask creates a Task
-func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *workManager, mm managesMetrics, emitter gomit.Emitter, opts ...core.TaskOption) *task {
+func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm managesMetrics, emitter gomit.Emitter, opts ...core.TaskOption) *task {
 
 	//Task would always be given a default name.
 	//However if a user want to change this name, she can pass optional arguments, in form of core.TaskOption
@@ -70,7 +69,6 @@ func newTask(s schedule.Schedule, mtc []core.Metric, wf *schedulerWorkflow, m *w
 		name:             name,
 		schResponseChan:  make(chan schedule.Response),
 		killChan:         make(chan struct{}),
-		metricTypes:      mtc,
 		schedule:         s,
 		state:            core.TaskStopped,
 		creationTime:     time.Now(),
