@@ -44,7 +44,7 @@ type Response interface {
 }
 
 func waitOnInterval(last time.Time, i time.Duration) (uint, time.Time) {
-	if last == *new(time.Time) {
+	if last.String() == "0001-01-01 00:00:00 +0000 UTC" {
 		time.Sleep(i)
 		return uint(0), time.Now()
 	}
