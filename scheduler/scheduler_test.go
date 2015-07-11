@@ -206,7 +206,7 @@ func TestScheduler(t *testing.T) {
 
 		e := s.Start()
 		So(e, ShouldBeNil)
-		t, te := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
+		t, te := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
 		So(te.Errors(), ShouldBeEmpty)
 
 		for _, i := range t.(*task).workflow.processNodes {
@@ -220,7 +220,7 @@ func TestScheduler(t *testing.T) {
 		Convey("returns errors when metrics do not validate", func() {
 			c.failValidatingMetrics = true
 			c.failValidatingMetricsAfter = 1
-			_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
+			_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
 			So(err, ShouldNotBeNil)
 			fmt.Printf("%d", len(err.Errors()))
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
@@ -240,7 +240,7 @@ func TestScheduler(t *testing.T) {
 		Convey("returns an error when wrong namespace is given wo workflowmap ", func() {
 			w.CollectNode.AddMetric("****/&&&", 3)
 			w.CollectNode.AddConfigItem("****/&&&", "username", "user")
-			_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
+			_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
 
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
 
@@ -250,13 +250,13 @@ func TestScheduler(t *testing.T) {
 		Convey("returns an error when a schedule does not validate", func() {
 			s1 := New()
 			s1.Start()
-			_, err := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w)
+			_, err := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
 			So(err, ShouldNotBeNil)
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
 			So(err.Errors()[0], ShouldResemble, perror.New(ErrSchedulerNotStarted))
 			s1.metricManager = c
 			s1.Start()
-			_, err1 := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*0), w)
+			_, err1 := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*0), w, false)
 			So(err1.Errors()[0].Error(), ShouldResemble, "Interval must be greater than 0")
 
 		})
@@ -264,7 +264,7 @@ func TestScheduler(t *testing.T) {
 		// 		// TODO NICK
 		Convey("create a task", func() {
 
-			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*5), w)
+			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*5), w, false)
 			So(len(err.Errors()), ShouldEqual, 0)
 			So(tsk, ShouldNotBeNil)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, DefaultDeadlineDuration)
@@ -288,7 +288,7 @@ func TestScheduler(t *testing.T) {
 
 		// 		// // TODO NICK
 		Convey("returns a task with a 6 second deadline duration", func() {
-			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*6), w, core.TaskDeadlineDuration(6*time.Second))
+			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*6), w, false, core.TaskDeadlineDuration(6*time.Second))
 			So(len(err.Errors()), ShouldEqual, 0)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 			prev := tsk.(*task).Option(core.TaskDeadlineDuration(1 * time.Second))
