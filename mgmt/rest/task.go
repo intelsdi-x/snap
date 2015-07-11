@@ -76,7 +76,7 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	}
 	opts = append(opts, core.OptionStopOnFailure(10))
 
-	task, errs := s.mt.CreateTask(sch, tr.Workflow, opts...)
+	task, errs := s.mt.CreateTask(sch, tr.Workflow, tr.Start, opts...)
 	if errs != nil && len(errs.Errors()) != 0 {
 		var errMsg string
 		for _, e := range errs.Errors() {
@@ -266,22 +266,48 @@ func marshalTask(body io.ReadCloser) (*request.TaskCreationRequest, error) {
 }
 
 func makeSchedule(s request.Schedule) (cschedule.Schedule, error) {
-	var sch cschedule.Schedule
 	switch s.Type {
 	case "simple":
 		d, err := time.ParseDuration(s.Interval)
 		if err != nil {
 			return nil, err
 		}
-		sch = cschedule.NewSimpleSchedule(d)
+		sch := cschedule.NewSimpleSchedule(d)
+
+		err = sch.Validate()
+		if err != nil {
+			return nil, err
+		}
+		return sch, nil
+	case "windowed":
+		d, err := time.ParseDuration(s.Interval)
+		if err != nil {
+			return nil, err
+		}
+
+		var start, stop *time.Time
+		if s.StartTimestamp != nil {
+			t := time.Unix(*s.StartTimestamp, 0)
+			start = &t
+		}
+		if s.StopTimestamp != nil {
+			t := time.Unix(*s.StopTimestamp, 0)
+			stop = &t
+		}
+		sch := cschedule.NewWindowedSchedule(
+			d,
+			start,
+			stop,
+		)
+
+		err = sch.Validate()
+		if err != nil {
+			return nil, err
+		}
+		return sch, nil
 	default:
 		return nil, errors.New("unknown schedule type " + s.Type)
 	}
-	err := sch.Validate()
-	if err != nil {
-		return nil, err
-	}
-	return sch, nil
 }
 
 type TaskWatchHandler struct {

@@ -181,7 +181,7 @@ func removeTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func createTask(sample, name, interval string, port int) *APIResponse {
+func createTask(sample, name, interval string, noStart bool, port int) *APIResponse {
 	jsonP, err := ioutil.ReadFile("./wmap_sample/" + sample)
 	if err != nil {
 		log.Fatal(err)
@@ -197,6 +197,7 @@ func createTask(sample, name, interval string, port int) *APIResponse {
 		Schedule: request.Schedule{Type: "simple", Interval: interval},
 		Workflow: wf,
 		Name:     name,
+		Start:    !noStart,
 	}
 	// Marshal to JSON for request body
 	j, err := json.Marshal(t)
@@ -739,7 +740,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r := createTask("1.json", "foo", "1s", port)
+				r := createTask("1.json", "foo", "1s", true, port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr := r.Body.(*rbody.Error)
 				So(plr.ErrorMessage, ShouldEqual, "metric not found")
@@ -751,7 +752,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
-				r := createTask("1.json", "foo", "1s", port)
+				r := createTask("1.json", "foo", "1s", true, port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr := r.Body.(*rbody.AddScheduledTask)
 				So(plr.CreationTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
@@ -772,7 +773,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
-				r := createTask("1.json", "bar", "1s", port)
+				r := createTask("1.json", "bar", "1s", true, port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 
 				r2 := getTasks(port)
@@ -789,10 +790,10 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 
-				r1 := createTask("1.json", "alpha", "1s", port)
+				r1 := createTask("1.json", "alpha", "1s", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 
-				r2 := createTask("1.json", "beta", "1s", port)
+				r2 := createTask("1.json", "beta", "1s", true, port)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 
 				r3 := getTasks(port)
@@ -811,7 +812,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
-				r1 := createTask("1.json", "foo", "3s", port)
+				r1 := createTask("1.json", "foo", "3s", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				t1 := r1.Body.(*rbody.AddScheduledTask)
 				r2 := getTask(t1.ID, port)
@@ -828,7 +829,7 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 
-				r1 := createTask("1.json", "xenu", "1s", port)
+				r1 := createTask("1.json", "xenu", "1s", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
@@ -844,7 +845,30 @@ func TestPluginRestCalls(t *testing.T) {
 				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
 				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "xenu")
-				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Spinning")
+				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Running")
+
+				// cleanup for test perf reasons
+				removeTask(id, port)
+			})
+			Convey("starts when created", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+
+				r1 := createTask("1.json", "xenu", "1s", false, port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+
+				id := plr1.ID
+
+				r3 := getTasks(port)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
+				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
+				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
+				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "xenu")
+				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Running")
 
 				// cleanup for test perf reasons
 				removeTask(id, port)
@@ -859,7 +883,7 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 
-				r1 := createTask("1.json", "yeti", "1s", port)
+				r1 := createTask("1.json", "yeti", "1s", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
@@ -875,7 +899,7 @@ func TestPluginRestCalls(t *testing.T) {
 				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
 				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
 				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "yeti")
-				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Spinning")
+				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Running")
 
 				r4 := stopTask(id, port)
 				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStopped))
@@ -908,7 +932,7 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 
-				r1 := createTask("1.json", "yeti", "1s", port)
+				r1 := createTask("1.json", "yeti", "1s", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
@@ -941,7 +965,7 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
 				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
 
-				r1 := createTask("1.json", "xenu", "10ms", port)
+				r1 := createTask("1.json", "xenu", "10ms", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
