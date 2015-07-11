@@ -269,7 +269,7 @@ func TestPulseClient(t *testing.T) {
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
 
-				p := c.CreateTask(sch, wf, "baron")
+				p := c.CreateTask(sch, wf, "baron", true)
 				So(p.Err, ShouldNotBeNil)
 				So(p.Err.Error(), ShouldEqual, "metric not found")
 			})
@@ -283,7 +283,7 @@ func TestPulseClient(t *testing.T) {
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
 
-				p := c.CreateTask(sch, wf, "baron")
+				p := c.CreateTask(sch, wf, "baron", false)
 				So(p.Err, ShouldNotBeNil)
 				So(p.Err.Error(), ShouldEqual, "Loaded plugin not found")
 			})
@@ -298,10 +298,34 @@ func TestPulseClient(t *testing.T) {
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
 
-				p := c.CreateTask(sch, wf, "baron")
+				p := c.CreateTask(sch, wf, "baron", false)
 				So(p.Err, ShouldBeNil)
 				So(p.Name, ShouldEqual, "baron")
 				So(p.State, ShouldEqual, "Stopped")
+
+				rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON) //case len(body) == 0
+				So(rsp, ShouldBeNil)
+				So(err, ShouldBeNil)
+				b := make([]byte, 5)
+				rsp2, err2 := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON, b) //case len(body) != 0
+				So(rsp2, ShouldBeNil)
+				So(err2, ShouldBeNil)
+			})
+			Convey("valid task started on creation", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "1s"}
+
+				p := c.CreateTask(sch, wf, "baron", true)
+				So(p.Err, ShouldBeNil)
+				So(p.Name, ShouldEqual, "baron")
+				So(p.State, ShouldEqual, "Running")
 
 				rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON) //case len(body) == 0
 				So(rsp, ShouldBeNil)
@@ -319,7 +343,7 @@ func TestPulseClient(t *testing.T) {
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
 
-				p := c.CreateTask(sch, wf, "baron")
+				p := c.CreateTask(sch, wf, "baron", false)
 				So(p.Err, ShouldNotBeNil)
 				So(p.Err.Error(), ShouldEqual, "Post http://localhost:-1/v1/tasks: dial tcp: unknown port tcp/-1")
 			})
@@ -342,7 +366,7 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
 
-				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron")
+				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
 
 				p2 := c.StartTask(p1.ID)
 				So(p2.Err, ShouldBeNil)
@@ -376,13 +400,13 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
 
-				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron")
+				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
 				p2 := c.StopTask(p1.ID)
 				So(p2.Err, ShouldBeNil)
 				So(p2.ID, ShouldEqual, p1.ID)
 
 				b := make([]byte, 5)
-				rsp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", p1.ID), ContentTypeJSON, b) //case len(body) != 0
+				rsp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", p1.ID), ContentTypeJSON, b)
 				So(rsp, ShouldNotBeNil)
 				So(err, ShouldBeNil)
 			})
@@ -414,7 +438,7 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
 
-				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron")
+				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
 
 				p2 := c.RemoveTask(p1.ID)
 				So(p2.Err, ShouldBeNil)
@@ -447,7 +471,7 @@ func TestPulseClient(t *testing.T) {
 
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
-				p := c.CreateTask(sch, wf, "baron")
+				p := c.CreateTask(sch, wf, "baron", false)
 				So(p.Err, ShouldBeNil)
 				So(p.Name, ShouldEqual, "baron")
 				So(p.State, ShouldEqual, "Stopped")
@@ -485,7 +509,7 @@ func TestPulseClient(t *testing.T) {
 
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "10ms"}
-				p := c.CreateTask(sch, wf, "baron")
+				p := c.CreateTask(sch, wf, "baron", false)
 
 				a := make([]string, 0)
 				r := c.WatchTask(uint(p.ID))
@@ -507,7 +531,7 @@ func TestPulseClient(t *testing.T) {
 				So(len(a), ShouldBeGreaterThanOrEqualTo, 10)
 				So(a[0], ShouldEqual, "task-stopped")
 				So(a[1], ShouldEqual, "task-started")
-				for x := 2; x <= 11; x++ {
+				for x := 2; x <= 10; x++ {
 					So(a[x], ShouldEqual, "metric-event")
 				}
 				// Signal we are done
