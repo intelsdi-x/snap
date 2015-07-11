@@ -260,6 +260,43 @@ func TestPulseClient(t *testing.T) {
 				So(len(p.Catalog[1].Versions), ShouldEqual, 2)
 			})
 		})
+		Convey("FetchMetrics", func() {
+			Convey("leaf metric all versions", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				p := c.FetchMetrics("/intel/dummy/bar/*", 0)
+				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(len(p.Catalog[0].Versions), ShouldEqual, 2)
+				So(len(p.Catalog), ShouldEqual, 1)
+			})
+			Convey("version 2 leaf metric", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				p := c.FetchMetrics("/intel/dummy/bar/*", 2)
+				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(len(p.Catalog[0].Versions), ShouldEqual, 1)
+				So(len(p.Catalog), ShouldEqual, 1)
+			})
+			Convey("version 2 non-leaf metrics", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				p := c.FetchMetrics("/intel/dummy/*", 2)
+				So(len(p.Catalog[0].Versions), ShouldEqual, 1)
+				So(len(p.Catalog), ShouldEqual, 2)
+			})
+		})
 		Convey("CreateTask", func() {
 			Convey("invalid task (missing metric)", func() {
 				port := getPort()

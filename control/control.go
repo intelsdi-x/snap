@@ -604,10 +604,10 @@ func (p *pluginControl) AvailablePlugins() []core.AvailablePlugin {
 }
 
 func (p *pluginControl) MetricCatalog() ([]core.CatalogedMetric, error) {
-	return p.FetchMetrics([]string{})
+	return p.FetchMetrics([]string{}, 0)
 }
 
-func (p *pluginControl) FetchMetrics(ns []string) ([]core.CatalogedMetric, error) {
+func (p *pluginControl) FetchMetrics(ns []string, version int) ([]core.CatalogedMetric, error) {
 	cat := make([]*metricCatalogItem, 0)
 
 	mts, err := p.metricCatalog.Fetch(ns)
@@ -617,6 +617,9 @@ func (p *pluginControl) FetchMetrics(ns []string) ([]core.CatalogedMetric, error
 
 	// probably can be serious optimized later
 	for _, mt := range mts {
+		if version > 0 && mt.Version() != version {
+			continue
+		}
 		f := false
 		for _, mci := range cat {
 			if mci.namespace == mt.NamespaceAsString() {

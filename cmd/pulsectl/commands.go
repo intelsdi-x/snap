@@ -97,6 +97,10 @@ var (
 					Name:   "list",
 					Usage:  "list",
 					Action: listMetrics,
+					Flags: []cli.Flag{
+						flMetricVersion,
+						flMetricNamespace,
+					},
 				},
 			},
 		},

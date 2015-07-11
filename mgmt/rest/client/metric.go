@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
@@ -29,6 +30,26 @@ func (c *Client) GetMetricCatalog() *GetMetricCatalogResult {
 	return r
 }
 
+func (c *Client) FetchMetrics(ns string, ver int) *FetchMetricsResult {
+	r := &FetchMetricsResult{}
+	q := fmt.Sprintf("/metrics%s?ver=%d", ns, ver)
+	resp, err := c.do("GET", q, ContentTypeJSON)
+	if err != nil {
+		return &FetchMetricsResult{Err: err}
+	}
+
+	switch resp.Meta.Type {
+	case rbody.MetricCatalogReturnedType:
+		mc := resp.Body.(*rbody.MetricCatalogReturned)
+		r.Catalog = convertCatalog(mc.Catalog)
+	case rbody.ErrorType:
+		r.Err = resp.Body.(*rbody.Error)
+	default:
+		r.Err = ErrAPIResponseMetaType
+	}
+	return r
+}
+
 type GetMetricCatalogResult struct {
 	Catalog []MetricCatalogItem
 	Err     error
@@ -40,6 +61,15 @@ func (g *GetMetricCatalogResult) Len() int {
 
 type MetricCatalogItem struct {
 	*rbody.CatalogItem
+}
+
+type FetchMetricsResult struct {
+	Catalog []MetricCatalogItem
+	Err     error
+}
+
+func (g *FetchMetricsResult) Len() int {
+	return len(g.Catalog)
 }
 
 func convertCatalog(c []rbody.CatalogItem) []MetricCatalogItem {

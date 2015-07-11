@@ -306,6 +306,15 @@ func fetchMetrics(port int, ns string) *APIResponse {
 	return getAPIResponse(resp)
 }
 
+func fetchMetricsWithVersion(port int, ns string, ver int) *APIResponse {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics%s?ver=%d", port, ns, ver))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return getAPIResponse(resp)
+}
+
 // REST API instances that are started are killed when the tests end.
 // When we eventually have a REST API Stop command this can be killed.
 func startAPI(port int) *restAPIInstance {
@@ -733,6 +742,27 @@ func TestPluginRestCalls(t *testing.T) {
 			So(plr.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
 			So(plr.Catalog[1].Versions["1"], ShouldNotBeNil)
 			So(plr.Catalog[1].Versions["1"].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+		})
+
+		Convey("metrics with version accessible via tree-like lookup", func() {
+			port := getPort()
+			startAPI(port)
+
+			uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+			uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+			r := fetchMetricsWithVersion(port, "/intel/dummy/*", 2)
+			So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricCatalogReturned))
+			plr := r.Body.(*rbody.MetricCatalogReturned)
+
+			So(len(plr.Catalog), ShouldEqual, 2)
+			So(plr.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+			So(len(plr.Catalog[0].Versions), ShouldEqual, 1)
+			So(plr.Catalog[0].Versions["2"], ShouldNotBeNil)
+			So(plr.Catalog[0].Versions["2"].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+			So(len(plr.Catalog[1].Versions), ShouldEqual, 1)
+			So(plr.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
+			So(plr.Catalog[1].Versions["2"], ShouldNotBeNil)
+			So(plr.Catalog[1].Versions["2"].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
 
 		Convey("Create Task - POST - /v1/tasks", func() {
