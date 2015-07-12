@@ -55,14 +55,14 @@ func (w *WindowedSchedule) Wait(last time.Time) Response {
 			}).Debug("Waiting for window to start")
 			time.Sleep(wait)
 		}
-		if last.String() == "0001-01-01 00:00:00 +0000 UTC" {
+		if (last == time.Time{}) {
 			logger.WithFields(log.Fields{
 				"_block": "windowed-wait",
 			}).Debug("Last was unset using start time")
 			last = *w.StartTime
 		}
 	} else {
-		if last.String() == "0001-01-01 00:00:00 +0000 UTC" {
+		if (last == time.Time{}) {
 			logger.WithFields(log.Fields{
 				"_block": "windowed-wait",
 			}).Debug("Last was unset using start time")
@@ -109,7 +109,6 @@ func (w *WindowedSchedule) Wait(last time.Time) Response {
 
 // A response from SimpleSchedule conforming to ScheduleResponse interface
 type WindowedScheduleResponse struct {
-	// err    error
 	state    ScheduleState
 	missed   uint
 	lastTime time.Time

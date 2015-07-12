@@ -37,7 +37,6 @@ func (s *SimpleSchedule) Wait(last time.Time) Response {
 
 // A response from SimpleSchedule conforming to ScheduleResponse interface
 type SimpleScheduleResponse struct {
-	// err    error
 	state    ScheduleState
 	missed   uint
 	lastTime time.Time
