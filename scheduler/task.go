@@ -23,6 +23,8 @@ const (
 )
 
 var (
+	schedulerLogger = log.WithField("_module", "scheduler-task")
+
 	ErrTaskNotFound            = errors.New("Task not found")
 	ErrTaskNotStopped          = errors.New("Task must be stopped")
 	ErrTaskHasAlreadyBeenAdded = errors.New("Task has already been added")
@@ -182,8 +184,17 @@ func (t *task) Spin() {
 func (t *task) Stop() {
 	t.Lock()
 	defer t.Unlock()
-	if t.state != core.TaskStopped {
+	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
 		t.killChan <- struct{}{}
+	}
+}
+
+func (t *task) Kill() {
+	t.Lock()
+	defer t.Unlock()
+	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
+		t.killChan <- struct{}{}
+		t.state = core.TaskDisabled
 	}
 }
 
@@ -198,6 +209,7 @@ func (t *task) Schedule() schedule.Schedule {
 func (t *task) spin() {
 	var consecutiveFailures uint
 	for {
+		schedulerLogger.Debug("task spin loop")
 		// Start go routine to wait on schedule
 		go t.waitForSchedule()
 		// wait here on
@@ -205,16 +217,16 @@ func (t *task) spin() {
 		//  killChan - signals task needs to be stopped
 		select {
 		case sr := <-t.schResponseChan:
+			switch sr.State() {
 			// If response show this schedule is stil active we fire
-			if sr.State() == schedule.Active {
+			case schedule.Active:
 				t.missedIntervals += sr.Missed()
 				t.lastFireTime = time.Now()
 				t.hitCount++
 				t.fire()
 				if t.lastFailureTime == t.lastFireTime {
 					consecutiveFailures++
-					log.WithFields(log.Fields{
-						"_module":                   "scheduler-task",
+					schedulerLogger.WithFields(log.Fields{
 						"_block":                    "spin",
 						"task-id":                   t.id,
 						"task-name":                 t.name,
@@ -226,15 +238,17 @@ func (t *task) spin() {
 					consecutiveFailures = 0
 				}
 				if consecutiveFailures >= t.stopOnFailure {
-					log.WithFields(log.Fields{
-						"_module":              "scheduler-task",
+					schedulerLogger.WithFields(log.Fields{
 						"_block":               "spin",
 						"task-id":              t.id,
 						"task-name":            t.name,
 						"consecutive failures": consecutiveFailures,
 						"error":                t.lastFailureMessage,
 					}).Error(ErrTaskDisabledOnFailures)
+					// You must lock on state change for tasks
+					t.Lock()
 					t.state = core.TaskDisabled
+					t.Unlock()
 					// Send task disabled event
 					event := new(scheduler_event.TaskDisabledEvent)
 					event.TaskID = t.id
@@ -242,8 +256,23 @@ func (t *task) spin() {
 					defer t.eventEmitter.Emit(event)
 					return
 				}
+			// Schedule has ended
+			case schedule.Ended:
+				// You must lock task to change state
+				t.Lock()
+				t.state = core.TaskEnded
+				t.Unlock()
+				return //spin
+
+			// Schedule has errored
+			case schedule.Error:
+				// You must lock task to change state
+				t.Lock()
+				t.state = core.TaskDisabled
+				t.Unlock()
+				return //spin
+
 			}
-			// TODO stop task on schedule error state or end state
 		case <-t.killChan:
 			// Only here can it truly be stopped
 			t.state = core.TaskStopped
@@ -300,7 +329,7 @@ func (t *taskCollection) add(task *task) error {
 		//If we don't already have this task in the collection save it
 		t.table[task.id] = task
 	} else {
-		log.WithFields(log.Fields{
+		schedulerLogger.WithFields(log.Fields{
 			"_module": "scheduler-taskCollection",
 			"_block":  "add",
 			"task id": task.id,
@@ -318,8 +347,7 @@ func (t *taskCollection) remove(task *task) error {
 	defer t.Unlock()
 	if _, ok := t.table[task.id]; ok {
 		if task.state != core.TaskStopped {
-			log.WithFields(log.Fields{
-				"_module": "scheduler-taskCollection",
+			schedulerLogger.WithFields(log.Fields{
 				"_block":  "remove",
 				"task id": task.id,
 			}).Error(ErrTaskNotStopped)
@@ -327,8 +355,7 @@ func (t *taskCollection) remove(task *task) error {
 		}
 		delete(t.table, task.id)
 	} else {
-		log.WithFields(log.Fields{
-			"_module": "scheduler-taskCollection",
+		schedulerLogger.WithFields(log.Fields{
 			"_block":  "remove",
 			"task id": task.id,
 		}).Error(ErrTaskNotFound)

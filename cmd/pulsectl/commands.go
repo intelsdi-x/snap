@@ -14,11 +14,21 @@ var (
 			Name: "task",
 			Subcommands: []cli.Command{
 				{
-					Name:   "create",
-					Usage:  "create <task file json|yaml>",
-					Action: createTask,
+					Name:        "create",
+					Description: "Creates a new task in the pulse scheduler",
+					Usage:       "There are two ways to create a task.\n\t1) Use a task manifest with [--task-manifest]\n\t2) Provide a workflow manifest and schedule details.\n\n\t* Note: Start and stop date/time are optional.\n",
+					Action:      createTask,
 					Flags: []cli.Flag{
+						flTaskManifest,
+						flWorkfowManifest,
+						flTaskSchedInterval,
+						flTaskSchedStartDate,
+						flTaskSchedStartTime,
+						flTaskSchedStopDate,
+						flTaskSchedStopTime,
 						flTaskName,
+						flTaskSchedDuration,
+						flTaskSchedNoStart,
 					},
 				},
 				{

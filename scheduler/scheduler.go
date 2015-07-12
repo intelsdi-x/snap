@@ -114,7 +114,7 @@ func (s *scheduler) Name() string {
 }
 
 // CreateTask creates and returns task
-func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	logger := s.logger.WithField("_block", "create-task")
 	// Create a container for task errors
 	te := &taskErrors{
@@ -193,6 +193,13 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, o
 		"task-id":    task.ID(),
 		"task-state": task.State(),
 	}).Info("task created")
+
+	if startOnCreate {
+		logger.WithFields(log.Fields{
+			"task-id": task.ID(),
+		}).Info("starting task on creation")
+		task.Spin()
+	}
 
 	return task, te
 }
@@ -292,9 +299,8 @@ func (s *scheduler) Stop() {
 	s.state = schedulerStopped
 	// stop all tasks that are not already stopped
 	for _, t := range s.tasks.table {
-		if t.state > core.TaskStopped {
-			t.Stop()
-		}
+		// Kill ensure another task can't turn it back on while we are shutting down
+		t.Kill()
 	}
 	s.logger.WithFields(log.Fields{
 		"_block": "stop-scheduler",

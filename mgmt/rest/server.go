@@ -77,7 +77,7 @@ type managesMetrics interface {
 }
 
 type managesTasks interface {
-	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, ...core.TaskOption) (core.Task, core.TaskErrors)
+	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, bool, ...core.TaskOption) (core.Task, core.TaskErrors)
 	GetTasks() map[uint64]core.Task
 	GetTask(uint64) (core.Task, error)
 	StartTask(uint64) error

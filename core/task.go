@@ -17,14 +17,16 @@ const (
 	TaskStopped
 	TaskSpinning
 	TaskFiring
+	TaskEnded
 )
 
 var (
 	TaskStateLookup = map[TaskState]string{
-		TaskDisabled: "Disabled",
-		TaskStopped:  "Stopped",
-		TaskSpinning: "Spinning",
-		TaskFiring:   "Firing",
+		TaskDisabled: "Disabled", // on error, not resumable
+		TaskStopped:  "Stopped",  // stopped but resumable
+		TaskSpinning: "Running",  // running
+		TaskFiring:   "Running",  // running (firing can happen so briefly we don't want to try and render it as a string state)
+		TaskEnded:    "Ended",    // ended, not resumable because the schedule will not fire again
 	}
 )
 
@@ -95,9 +97,9 @@ func OptionStopOnFailure(v uint) TaskOption {
 	}
 }
 
-//SetTaskName sets the name of the task.
-//This is optional.
-//If task name is not set, the task name is then defaulted to "Task-<task-id>"
+// SetTaskName sets the name of the task.
+// This is optional.
+// If task name is not set, the task name is then defaulted to "Task-<task-id>"
 func SetTaskName(name string) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.GetName()

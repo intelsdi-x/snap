@@ -1,7 +1,6 @@
 package schedule
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func TestSimpleSchedule(t *testing.T) {
-	Convey("Schedule", t, func() {
+	Convey("Simple Schedule", t, func() {
 		Convey("test Wait()", func() {
 			interval := 100
 			overage := 467
@@ -37,7 +36,7 @@ func TestSimpleSchedule(t *testing.T) {
 		Convey("invalid schedule", func() {
 			s := NewSimpleSchedule(0)
 			err := s.Validate()
-			So(err, ShouldResemble, errors.New("Simple Schedule interval must be greater than 0"))
+			So(err, ShouldResemble, ErrInvalidInterval)
 		})
 
 	})

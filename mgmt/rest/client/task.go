@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	"github.com/intelsdi-x/pulse/mgmt/rest/request"
@@ -12,15 +13,31 @@ import (
 )
 
 type Schedule struct {
-	Type     string
-	Interval string
+	Type      string
+	Interval  string
+	StartTime *time.Time
+	StopTime  *time.Time
 }
 
-func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string) *CreateTaskResult {
+func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, startTask bool) *CreateTaskResult {
 	t := request.TaskCreationRequest{
-		Schedule: request.Schedule{Type: s.Type, Interval: s.Interval},
+		Schedule: request.Schedule{
+			Type:     s.Type,
+			Interval: s.Interval,
+		},
 		Workflow: wf,
+		Start:    startTask,
 	}
+	// Add start and/or stop timestamps if they exist
+	if s.StartTime != nil {
+		u := s.StartTime.Unix()
+		t.Schedule.StartTimestamp = &u
+	}
+	if s.StopTime != nil {
+		u := s.StopTime.Unix()
+		t.Schedule.StopTimestamp = &u
+	}
+
 	if name != "" {
 		t.Name = name
 	}
