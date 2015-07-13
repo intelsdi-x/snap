@@ -15,6 +15,7 @@ import (
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/control_event"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/core/perror"
 
@@ -69,6 +70,8 @@ func TestSwapPlugin(t *testing.T) {
 	if PulsePath != "" {
 		Convey("SwapPlugin", t, func() {
 			c := New()
+			lpe := new(listenToPluginEvent)
+			c.eventManager.RegisterHandler("Control.PluginsSwapped", lpe)
 			c.Start()
 			_, e := c.Load(PluginPath)
 
@@ -80,9 +83,15 @@ func TestSwapPlugin(t *testing.T) {
 
 			Convey("successfully swaps plugins", func() {
 				err := c.SwapPlugins(dummy2Path, dummy)
+				time.Sleep(100)
 				pc = c.PluginCatalog()
 				So(err, ShouldBeNil)
 				So(pc[0].Name(), ShouldEqual, "dummy2")
+				So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy2")
+				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 2)
+				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
+				So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 1)
+				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 			})
 
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
@@ -114,6 +123,45 @@ func TestSwapPlugin(t *testing.T) {
 	}
 }
 
+type mockPlugin struct {
+	LoadedPluginName      string
+	LoadedPluginVersion   int
+	UnloadedPluginName    string
+	UnloadedPluginVersion int
+	PluginType            int
+}
+
+type listenToPluginEvent struct {
+	plugin mockPlugin
+}
+
+func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
+	switch v := e.Body.(type) {
+	case *control_event.LoadPluginEvent:
+		l.plugin = mockPlugin{
+			LoadedPluginName:    v.Name,
+			LoadedPluginVersion: v.Version,
+			PluginType:          v.Type,
+		}
+	case *control_event.UnloadPluginEvent:
+		l.plugin = mockPlugin{
+			UnloadedPluginName:    v.Name,
+			UnloadedPluginVersion: v.Version,
+			PluginType:            v.Type,
+		}
+	case *control_event.SwapPluginsEvent:
+		l.plugin = mockPlugin{
+			LoadedPluginName:      v.LoadedPluginName,
+			LoadedPluginVersion:   v.LoadedPluginVersion,
+			UnloadedPluginName:    v.UnloadedPluginName,
+			UnloadedPluginVersion: v.UnloadedPluginVersion,
+			PluginType:            v.PluginType,
+		}
+	default:
+		fmt.Println("Got an event you're not handling")
+	}
+}
+
 // Uses the dummy collector plugin to simulate Loading
 func TestLoad(t *testing.T) {
 	// These tests only work if PULSE_PATH is known.
@@ -124,11 +172,16 @@ func TestLoad(t *testing.T) {
 
 			Convey("loads successfully", func() {
 				c := New()
+				lpe := new(listenToPluginEvent)
+				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 				c.Start()
 				_, err := c.Load(PluginPath)
-
+				time.Sleep(100)
 				So(c.pluginManager.LoadedPlugins(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
+				So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy1")
+				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
+				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 			})
 
 			Convey("returns error if not started", func() {
@@ -171,6 +224,8 @@ func TestUnload(t *testing.T) {
 		Convey("pluginControl.Unload", t, func() {
 			Convey("unloads successfully", func() {
 				c := New()
+				lpe := new(listenToPluginEvent)
+				c.eventManager.RegisterHandler("Control.PluginUnloaded", lpe)
 				c.Start()
 				_, err := c.Load(PluginPath)
 
@@ -181,7 +236,11 @@ func TestUnload(t *testing.T) {
 
 				So(len(pc), ShouldEqual, 1)
 				_, err2 := c.Unload(pc[0])
+				time.Sleep(100)
 				So(err2, ShouldBeNil)
+				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
+				So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 1)
+				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 			})
 
 			Convey("returns error on unload for unknown plugin(or already unloaded)", func() {
@@ -200,6 +259,18 @@ func TestUnload(t *testing.T) {
 				_, err3 := c.Unload(pc[0])
 				So(err3.Error(), ShouldResemble, "plugin not found (has it already been unloaded?)")
 			})
+			Convey("Listen for PluginUnloaded event", func() {
+				c := New()
+				lpe := new(listenToPluginEvent)
+				c.eventManager.RegisterHandler("Control.PluginUnloaded", lpe)
+				c.Start()
+				c.Load(PluginPath)
+				pc := c.PluginCatalog()
+				c.Unload(pc[0])
+				time.Sleep(100)
+				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
+			})
+
 		})
 
 	} else {
