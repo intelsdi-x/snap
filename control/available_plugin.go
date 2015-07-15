@@ -81,11 +81,16 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 	// Create RPC Client
 	switch resp.Type {
 	case plugin.CollectorPluginType:
-		c, e := client.NewCollectorNativeClient(resp.ListenAddress, DefaultClientTimeout)
-		if e != nil {
-			return nil, errors.New("error while creating client connection: " + e.Error())
+		switch resp.Meta.RPCType {
+		case plugin.JSONRPC:
+			ap.Client = client.NewCollectorHttpJSONRPCClient(fmt.Sprintf("http://%v", resp.ListenAddress), DefaultClientTimeout)
+		case plugin.NativeRPC:
+			c, e := client.NewCollectorNativeClient(resp.ListenAddress, DefaultClientTimeout)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.Client = c
 		}
-		ap.client = c
 	case plugin.PublisherPluginType:
 		c, e := client.NewPublisherNativeClient(resp.ListenAddress, DefaultClientTimeout)
 		if e != nil {

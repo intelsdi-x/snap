@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	PluginName = "pulse-collector-dummy"
+	PluginName = "pulse-collector-dummy2"
 	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", "collector", PluginName)
+	PluginPath = path.Join(PulsePath, "plugin", PluginName)
 )
 
 type MockController struct {

@@ -3,8 +3,10 @@ package plugin
 import (
 	"encoding/gob"
 	"fmt"
+	"io"
 	"log" // TODO proper logging to file or elsewhere
 	"net"
+	"net/http"
 	"net/rpc"
 
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -58,16 +60,30 @@ func StartCollector(c CollectorPlugin, s Session, r *Response) (error, int) {
 	fmt.Println(string(resp))
 
 	go s.heartbeatWatch(s.KillChan())
-
-	go func() {
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				panic(err)
+	switch r.Meta.RPCType {
+	case JSONRPC:
+		go func() {
+			http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+				defer req.Body.Close()
+				w.Header().Set("Content-Type", "application/json")
+				res := NewRPCRequest(req.Body).Call()
+				io.Copy(w, res)
+			})
+			http.Serve(l, nil)
+		}()
+	case NativeRPC:
+		go func() {
+			for {
+				conn, err := l.Accept()
+				if err != nil {
+					panic(err)
+				}
+				go rpc.ServeConn(conn)
 			}
-			go rpc.ServeConn(conn)
-		}
-	}()
+		}()
+	default:
+		panic("Unsupported RPC type")
+	}
 
 	if s.isDaemon() {
 		exitCode = <-s.KillChan() // Closing of channel kills

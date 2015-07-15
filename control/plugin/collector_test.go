@@ -2,7 +2,9 @@ package plugin
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -117,16 +119,20 @@ func TestStartCollector(t *testing.T) {
 					killChan:            make(chan int),
 				}
 				r := new(Response)
+				r.Meta.RPCType = JSONRPC
 				c := new(MockPlugin)
 				err, rc := StartCollector(c, s, r)
 				So(err, ShouldBeNil)
 				So(rc, ShouldEqual, 0)
+				So(s.ListenPort(), ShouldNotResemble, "")
+				response, err := http.Get(fmt.Sprintf("http://%s", s.ListenAddress()))
+				So(err, ShouldEqual, nil)
+				So(response.StatusCode, ShouldEqual, 200)
 
 				Convey("RPC service already registered", func() {
 					err, _ := StartCollector(c, s, r)
 					So(err, ShouldResemble, errors.New("rpc: service already defined: MockSessionState"))
 				})
-
 			})
 		})
 	})

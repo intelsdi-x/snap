@@ -2,9 +2,12 @@ package plugin
 
 // WARNING! Do not import "fmt" and print from a plugin to stdout!
 import (
+	"bytes"
 	"crypto/rsa"
-	"fmt" // Don't use "fmt.Print*"
+	"fmt"
+	"io" // Don't use "fmt.Print*"
 	"log"
+	"net/rpc/jsonrpc"
 	"regexp"
 	"runtime"
 	"time"
@@ -32,6 +35,13 @@ const (
 	PluginFailure
 )
 
+type RPCType int
+
+const (
+	NativeRPC RPCType = iota
+	JSONRPC
+)
+
 var (
 	// Timeout settings
 	// How much time must elapse before a lack of Ping results in a timeout
@@ -56,6 +66,7 @@ type PluginMeta struct {
 	Name    string
 	Version int
 	Type    PluginType
+	RPCType RPCType
 	// Content types accepted by this plugin in priority order
 	// pulse.* means any pulse type
 	AcceptedContentTypes []string
@@ -181,6 +192,44 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	}
 
 	return nil, retCode
+}
+
+// rpcRequest represents a RPC request.
+// rpcRequest implements the io.ReadWriteCloser interface.
+type rpcRequest struct {
+	r    io.Reader     // holds the JSON formated RPC request
+	rw   io.ReadWriter // holds the JSON formated RPC response
+	done chan bool     // signals then end of the RPC request
+}
+
+// NewRPCRequest returns a new rpcRequest.
+func NewRPCRequest(r io.Reader) *rpcRequest {
+	var buf bytes.Buffer
+	done := make(chan bool)
+	return &rpcRequest{r, &buf, done}
+}
+
+// Read implements the io.ReadWriteCloser Read method.
+func (r *rpcRequest) Read(p []byte) (n int, err error) {
+	return r.r.Read(p)
+}
+
+// Write implements the io.ReadWriteCloser Write method.
+func (r *rpcRequest) Write(p []byte) (n int, err error) {
+	return r.rw.Write(p)
+}
+
+// Close implements the io.ReadWriteCloser Close method.
+func (r *rpcRequest) Close() error {
+	r.done <- true
+	return nil
+}
+
+// Call invokes the RPC request, waits for it to complete, and returns the results.
+func (r *rpcRequest) Call() io.Reader {
+	go jsonrpc.ServeConn(r)
+	<-r.done
+	return r.rw
 }
 
 func catchPluginPanic(l *log.Logger) {

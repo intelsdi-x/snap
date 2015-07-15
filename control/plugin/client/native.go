@@ -14,9 +14,14 @@ import (
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
+// CallsRPC provides an interface for RPC clients
+type CallsRPC interface {
+	Call(methd string, args interface{}, reply interface{}) error
+}
+
 // Native clients use golang net/rpc for communication to a native rpc server.
 type PluginNativeClient struct {
-	connection *rpc.Client
+	connection CallsRPC
 	pluginType plugin.PluginType
 }
 

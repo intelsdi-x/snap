@@ -3,9 +3,11 @@ package ctree
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type ConfigTree struct {
@@ -53,6 +55,14 @@ func (c *ConfigTree) GobDecode(buf []byte) error {
 		return err
 	}
 	return decoder.Decode(&c.freezeFlag)
+}
+
+func (c *ConfigTree) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Root *node `json:"root"`
+	}{
+		Root: c.root,
+	})
 }
 
 func (c *ConfigTree) Add(ns []string, inNode Node) {
@@ -172,6 +182,20 @@ type node struct {
 	keys      []string
 	keysBytes []byte
 	Node      Node
+}
+
+func (n *node) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Nodes     []*node  `json:"nodes"`
+		Keys      []string `json:"keys"`
+		KeysBytes []byte   `json:"keysbytes"`
+		Node      Node     `json:"node"`
+	}{
+		Nodes:     n.nodes,
+		Keys:      n.keys,
+		KeysBytes: n.keysBytes,
+		Node:      n.Node,
+	})
 }
 
 func (n *node) GobEncode() ([]byte, error) {

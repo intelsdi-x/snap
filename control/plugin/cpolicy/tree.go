@@ -3,6 +3,8 @@ package cpolicy
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
+	"errors"
 
 	"github.com/intelsdi-x/pulse/pkg/ctree"
 )
@@ -34,6 +36,97 @@ func (c *ConfigPolicyTree) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
 	return decoder.Decode(&c.cTree)
+}
+
+// UnmarshalJSON unmarshals JSON into a ConfigPolicyTree
+func (c *ConfigPolicyTree) UnmarshalJSON(data []byte) error {
+	m := map[string]map[string]interface{}{}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(&m); err != nil {
+		return err
+	}
+	c.cTree = ctree.New()
+	if ctree, ok := m["PolicyTree"]["ctree"]; ok {
+		if root, ok := ctree.(map[string]interface{}); ok {
+			if node, ok := root["root"]; ok {
+				if n, ok := node.(map[string]interface{}); ok {
+					return unmarshalJSON(n, &[]string{}, c.cTree)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func unmarshalJSON(m map[string]interface{}, keys *[]string, tree *ctree.ConfigTree) error {
+	if val, ok := m["keys"]; ok {
+		if items, ok := val.([]interface{}); ok {
+			for _, i := range items {
+				if key, ok := i.(string); ok {
+					*keys = append(*keys, key)
+				}
+			}
+		}
+	}
+	if val, ok := m["node"]; ok {
+		if node, ok := val.(map[string]interface{}); ok {
+			if nval, ok := node["rules"]; ok {
+				cpn := NewPolicyNode()
+				if rules, ok := nval.(map[string]interface{}); ok {
+					for k, rule := range rules {
+						if rule, ok := rule.(map[string]interface{}); ok {
+							req, _ := rule["required"].(bool)
+							switch rule["type"] {
+							case "integer":
+								r, _ := NewIntegerRule(k, req)
+								if d, ok := rule["default"].(map[string]interface{}); ok {
+									def, _ := d["Value"].(int)
+									r.default_ = &def
+								}
+								cpn.Add(r)
+							case "string":
+								r, _ := NewStringRule(k, req)
+								if d, ok := rule["default"].(map[string]interface{}); ok {
+									def, _ := d["Value"].(string)
+									r.default_ = &def
+								}
+								cpn.Add(r)
+							case "float":
+								r, _ := NewFloatRule(k, req)
+								if d, ok := rule["default"].(map[string]interface{}); ok {
+									def, _ := d["Value"].(float64)
+									r.default_ = &def
+								}
+								cpn.Add(r)
+							default:
+								return errors.New("Error unmarshaling rule - unknown type")
+							}
+						}
+					}
+				}
+				tree.Add(*keys, cpn)
+			}
+		}
+	}
+	if val, ok := m["nodes"]; ok {
+		if nodes, ok := val.([]interface{}); ok {
+			for _, node := range nodes {
+				if n, ok := node.(map[string]interface{}); ok {
+					unmarshalJSON(n, keys, tree)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// MarshalJSON marshals a ConfigPolicyTree into JSON
+func (c *ConfigPolicyTree) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		CTree *ctree.ConfigTree `json:"ctree"`
+	}{
+		CTree: c.cTree,
+	})
 }
 
 // Adds a ConfigDataNode at the provided namespace.

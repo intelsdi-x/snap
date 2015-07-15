@@ -16,6 +16,9 @@ var (
 	PluginName = "pulse-collector-dummy1"
 	PulsePath  = os.Getenv("PULSE_PATH")
 	PluginPath = path.Join(PulsePath, "plugin", PluginName)
+
+	JSONRPC_PluginName = "pulse-collector-dummy2"
+	JSONRPC_PluginPath = path.Join(PulsePath, "plugin", JSONRPC_PluginName)
 )
 
 func TestLoadedPlugins(t *testing.T) {
@@ -65,6 +68,17 @@ func TestLoadPlugin(t *testing.T) {
 				So(p.all(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 				So(len(p.all()), ShouldBeGreaterThan, 0)
+			})
+
+			Convey("loads json-rpc plugin successfully", func() {
+				p := newPluginManager()
+				p.SetMetricCatalog(newMetricCatalog())
+				lp, err := p.LoadPlugin(JSONRPC_PluginPath, nil)
+
+				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
+				So(p.LoadedPlugins(), ShouldNotBeEmpty)
+				So(err, ShouldBeNil)
+				So(len(p.LoadedPlugins().Table()), ShouldBeGreaterThan, 0)
 			})
 
 			Convey("error is returned on a bad PluginPath", func() {

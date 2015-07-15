@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -12,6 +13,15 @@ type CollectMetricsArgs struct {
 	PluginMetricTypes []PluginMetricType
 }
 
+func (c *CollectMetricsArgs) UnmarshalJSON(data []byte) error {
+	pmt := &[]PluginMetricType{}
+	if err := json.Unmarshal(data, pmt); err != nil {
+		return err
+	}
+	c.PluginMetricTypes = *pmt
+	return nil
+}
+
 // Reply assigned by a Collector implementation using CollectMetrics()
 type CollectMetricsReply struct {
 	PluginMetrics []PluginMetricType
@@ -19,6 +29,10 @@ type CollectMetricsReply struct {
 
 // GetMetricTypesArgs args passed to GetMetricTypes
 type GetMetricTypesArgs struct {
+}
+
+func (g *GetMetricTypesArgs) UnmarshalJSON(data []byte) error {
+	return nil
 }
 
 // GetMetricTypesReply assigned by GetMetricTypes() implementation
@@ -53,7 +67,6 @@ func (c *collectorPluginProxy) GetMetricTypes(args GetMetricTypesArgs, reply *Ge
 
 func (c *collectorPluginProxy) CollectMetrics(args CollectMetricsArgs, reply *CollectMetricsReply) error {
 	defer catchPluginPanic(c.Session.Logger())
-
 	c.Session.Logger().Println("CollectMetrics called")
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()

@@ -3,6 +3,7 @@ package cpolicy
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -49,6 +50,14 @@ func NewPolicyNode() *ConfigPolicyNode {
 		rules: make(map[string]Rule),
 		mutex: &sync.Mutex{},
 	}
+}
+
+func (c *ConfigPolicyNode) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Rules map[string]Rule `json:"rules"`
+	}{
+		Rules: c.rules,
+	})
 }
 
 func (c *ConfigPolicyNode) GobEncode() ([]byte, error) {
