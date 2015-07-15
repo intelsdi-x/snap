@@ -72,4 +72,14 @@ var (
 		Name:  "--no-start",
 		Usage: "Do not start task on creation [normally started on creation]",
 	}
+
+	// metric
+	flMetricVersion = cli.IntFlag{
+		Name:  "metric-version, v",
+		Usage: "The metric version",
+	}
+	flMetricNamespace = cli.StringFlag{
+		Name:  "metric-namespace, m",
+		Usage: "A metric namespace",
+	}
 )

@@ -24,16 +24,6 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ns := parseNamespace(params.ByName("namespace"))
 
-	if ns[len(ns)-1] == "*" {
-		mets, err := s.mm.FetchMetrics(ns[:len(ns)-1])
-		if err != nil {
-			respond(404, rbody.FromError(err), w)
-			return
-		}
-		respondWithMetrics(mets, w)
-		return
-	}
-
 	var (
 		ver int
 		err error
@@ -49,6 +39,17 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			return
 		}
 	}
+
+	if ns[len(ns)-1] == "*" {
+		mets, err := s.mm.FetchMetrics(ns[:len(ns)-1], ver)
+		if err != nil {
+			respond(404, rbody.FromError(err), w)
+			return
+		}
+		respondWithMetrics(mets, w)
+		return
+	}
+
 	mt, err := s.mm.GetMetric(ns, ver)
 	if err != nil {
 		respond(404, rbody.FromError(err), w)
