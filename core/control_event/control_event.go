@@ -14,13 +14,20 @@ const (
 	HealthCheckFailed     = "Control.PluginHealthCheckFailed"
 )
 
-type LoadPluginEvent struct{}
+type LoadPluginEvent struct {
+	Name    string
+	Version int
+	Type    int
+}
 
 func (e LoadPluginEvent) Namespace() string {
 	return PluginLoaded
 }
 
 type UnloadPluginEvent struct {
+	Name    string
+	Version int
+	Type    int
 }
 
 func (e UnloadPluginEvent) Namespace() string {
@@ -40,7 +47,13 @@ func (e *DeadAvailablePluginEvent) Namespace() string {
 	return AvailablePluginDead
 }
 
-type SwapPluginsEvent struct{}
+type SwapPluginsEvent struct {
+	LoadedPluginName      string
+	LoadedPluginVersion   int
+	UnloadedPluginName    string
+	UnloadedPluginVersion int
+	PluginType            int
+}
 
 func (s SwapPluginsEvent) Namespace() string {
 	return PluginsSwapped

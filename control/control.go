@@ -210,7 +210,11 @@ func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseErr
 	}
 
 	// defer sending event
-	event := new(control_event.LoadPluginEvent)
+	event := &control_event.LoadPluginEvent{
+		Name:    pl.Meta.Name,
+		Version: pl.Meta.Version,
+		Type:    int(pl.Meta.Type),
+	}
 	defer p.eventManager.Emit(event)
 	return pl, nil
 }
@@ -221,7 +225,11 @@ func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, perror.Pul
 		return nil, err
 	}
 
-	event := new(control_event.UnloadPluginEvent)
+	event := &control_event.UnloadPluginEvent{
+		Name:    up.Meta.Name,
+		Version: up.Meta.Version,
+		Type:    int(up.Meta.Type),
+	}
 	defer p.eventManager.Emit(event)
 	return up, nil
 }
@@ -233,7 +241,7 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) per
 		return err
 	}
 
-	_, err = p.pluginManager.UnloadPlugin(out)
+	up, err := p.pluginManager.UnloadPlugin(out)
 	if err != nil {
 		_, err2 := p.pluginManager.UnloadPlugin(lp)
 		if err2 != nil {
@@ -247,7 +255,13 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) per
 		return err
 	}
 
-	event := new(control_event.SwapPluginsEvent)
+	event := &control_event.SwapPluginsEvent{
+		LoadedPluginName:      lp.Meta.Name,
+		LoadedPluginVersion:   lp.Meta.Version,
+		UnloadedPluginName:    up.Meta.Name,
+		UnloadedPluginVersion: up.Meta.Version,
+		PluginType:            int(lp.Meta.Type),
+	}
 	defer p.eventManager.Emit(event)
 
 	return nil
