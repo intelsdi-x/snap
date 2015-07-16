@@ -2,7 +2,6 @@ package control
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -306,7 +305,6 @@ func TestRunnerPluginRunning(t *testing.T) {
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
 						So(ap, ShouldNotBeNil)
-						fmt.Println(r.availablePlugins.all())
 						So(len(r.availablePlugins.all()), ShouldEqual, colCount+1)
 						So(ap, ShouldBeIn, r.availablePlugins.all())
 					})

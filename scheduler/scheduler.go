@@ -172,6 +172,17 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 		logger.WithFields(log.Fields{
 			"task-id": task.ID(),
 		}).Info("starting task on creation")
+
+		cps := make([]core.Plugin, len(plugins))
+		for i, plugin := range plugins {
+			cps[i] = plugin
+		}
+		errs := s.metricManager.SubscribeDeps(task.ID(), mts, cps)
+		if len(errs) > 0 {
+			te.errs = append(te.errs, errs...)
+			return nil, te
+		}
+
 		task.Spin()
 	}
 

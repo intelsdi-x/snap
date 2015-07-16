@@ -1,9 +1,6 @@
 package control
 
-import (
-	"fmt"
-	"time"
-)
+import "time"
 
 const (
 	MonitorStopped monitorState = iota - 1 // default is stopped
@@ -68,7 +65,6 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 				go func() {
 					availablePlugins.RLock()
 					for _, ap := range availablePlugins.all() {
-						fmt.Printf("failed health checks for %s: %d\n", ap, ap.failedHealthChecks)
 						go ap.CheckHealth()
 					}
 					availablePlugins.RUnlock()

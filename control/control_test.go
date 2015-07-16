@@ -85,8 +85,6 @@ func TestSwapPlugin(t *testing.T) {
 			dummy2Path := strings.Replace(PluginPath, "pulse-collector-dummy1", "pulse-collector-dummy2", 1)
 			pc := c.PluginCatalog()
 			dummy := pc[0]
-			fmt.Println(pc)
-			fmt.Println(dummy)
 
 			Convey("successfully swaps plugins", func() {
 				err := c.SwapPlugins(dummy2Path, dummy)
@@ -586,6 +584,9 @@ func TestCollectMetrics(t *testing.T) {
 		lp, err := c.pluginManager.get("collector:dummy1:1")
 		So(err, ShouldBeNil)
 		So(lp, ShouldNotBeNil)
+		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:dummy1:1")
+		So(errp, ShouldBeNil)
+		pool.subscribe(1, unboundSubscriptionType)
 		err = c.sendPluginSubscriptionEvent(1, lp)
 		So(err, ShouldBeNil)
 		m = append(m, m1, m2)
@@ -673,6 +674,9 @@ func TestPublishMetrics(t *testing.T) {
 				ver:        1,
 				config:     n,
 			}
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:1")
+			So(errp, ShouldBeNil)
+			pool.subscribe(1, unboundSubscriptionType)
 			errs := c.sendPluginSubscriptionEvent(1, p)
 			So(errs, ShouldBeNil)
 			time.Sleep(1 * time.Second)
@@ -722,6 +726,9 @@ func TestProcessMetrics(t *testing.T) {
 				ver:        1,
 				config:     n,
 			}
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("processor:passthru:1")
+			So(errp, ShouldBeNil)
+			pool.subscribe(1, unboundSubscriptionType)
 			errs := c.sendPluginSubscriptionEvent(1, p)
 			So(errs, ShouldBeNil)
 			time.Sleep(1 * time.Second)

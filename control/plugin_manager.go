@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -76,6 +77,19 @@ func (l *loadedPlugins) get(key string) (*loadedPlugin, error) {
 
 	lp, ok := l.table[key]
 	if !ok {
+		tnv := strings.Split(key, ":")
+		if len(tnv) != 3 {
+			return nil, ErrBadKey
+		}
+
+		v, err := strconv.Atoi(tnv[2])
+		if err != nil {
+			return nil, ErrBadKey
+		}
+		if v < 1 {
+			pmLogger.Info("finding latest plugin")
+			return l.findLatest(tnv[0], tnv[1])
+		}
 		return nil, ErrPluginNotFound
 	}
 	return lp, nil
@@ -85,6 +99,31 @@ func (l *loadedPlugins) remove(key string) {
 	l.Lock()
 	delete(l.table, key)
 	l.Unlock()
+}
+
+func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error) {
+	l.RLock()
+	defer l.RUnlock()
+
+	// quick check to see if there exists a plugin with the name/version we're looking for.
+	// if not we just return ErrNotFound before we check versions.
+	var latest *loadedPlugin
+	for _, lp := range l.table {
+		if lp.TypeName() == typeName && lp.Name() == name {
+			latest = lp
+			break
+		}
+	}
+
+	if latest != nil {
+		for _, lp := range l.table {
+			if lp.TypeName() == typeName && lp.Name() == name && lp.Version() > latest.Version() {
+				latest = lp
+			}
+		}
+		return latest, nil
+	}
+	return nil, ErrPluginNotFound
 }
 
 // the struct representing a plugin that is loaded into Pulse
@@ -152,11 +191,6 @@ func newPluginManager() *pluginManager {
 
 func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
 	p.metricCatalog = mc
-}
-
-// Returns loaded plugins
-func (p *pluginManager) LoadedPlugins() *loadedPlugins {
-	return p.loadedPlugins
 }
 
 // Load is the method for loading a plugin and
@@ -366,7 +400,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 
 	// If the plugin was loaded from os.TempDir() clean up
 	if strings.Contains(plugin.Path, os.TempDir()) {
-		runnerLog.WithFields(log.Fields{
+		pmLogger.WithFields(log.Fields{
 			"plugin-type":    plugin.TypeName(),
 			"plugin-name":    plugin.Name(),
 			"plugin-version": plugin.Version(),

@@ -12,6 +12,7 @@ const (
 	MetricSubscribed      = "Control.MetricSubscribed"
 	MetricUnsubscribed    = "Control.MetricUnsubscribed"
 	HealthCheckFailed     = "Control.PluginHealthCheckFailed"
+	MoveSubscription      = "Control.PluginSubscriptionMoved"
 )
 
 type LoadPluginEvent struct {
@@ -62,7 +63,7 @@ func (s SwapPluginsEvent) Namespace() string {
 type PluginSubscriptionEvent struct {
 	PluginName       string
 	PluginVersion    int
-	PluginType       string
+	PluginType       int
 	SubscriptionType int
 	TaskId           uint64
 }
@@ -75,7 +76,7 @@ type PluginUnsubscriptionEvent struct {
 	TaskId        uint64
 	PluginName    string
 	PluginVersion int
-	PluginType    string
+	PluginType    int
 }
 
 func (pu PluginUnsubscriptionEvent) Namespace() string {
@@ -90,4 +91,16 @@ type HealthCheckFailedEvent struct {
 
 func (hfe HealthCheckFailedEvent) Namespace() string {
 	return HealthCheckFailed
+}
+
+type MovePluginSubscriptionEvent struct {
+	TaskId          uint64
+	PluginName      string
+	PreviousVersion int
+	NewVersion      int
+	PluginType      int
+}
+
+func (mse MovePluginSubscriptionEvent) Namespace() string {
+	return MoveSubscription
 }

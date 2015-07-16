@@ -2,7 +2,6 @@ package control
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"testing"
 
@@ -63,11 +62,9 @@ func TestAvailablePlugins(t *testing.T) {
 				version:    1,
 			}
 			err := aps.insert(ap)
-			fmt.Println("AP ID:", ap.id)
 			So(err, ShouldBeNil)
 
 			pool, err := aps.getPool("collector:test:1")
-			fmt.Println("poool:", pool.plugins)
 			So(err, ShouldBeNil)
 			nap, ok := pool.plugins[ap.id]
 			So(ok, ShouldBeTrue)

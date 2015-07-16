@@ -140,7 +140,7 @@ func (a *availablePlugin) Stop(r string) error {
 		"block":   "stop",
 		"aplugin": a,
 	}).Info("stopping available plugin")
-	return a.Client.Kill(r)
+	return a.client.Kill(r)
 }
 
 // Kill assumes aplugin is not able to here a Kill RPC call
@@ -297,9 +297,10 @@ func (p *apPool) eligible() bool {
 	p.RLock()
 	defer p.RUnlock()
 
-	if len(p.subs)+1 <= p.max {
+	if p.count() < p.subscriptionCount() && p.count() < p.max {
 		return true
 	}
+
 	return false
 }
 
@@ -317,7 +318,7 @@ func (p *apPool) kill(id uint32, reason string) {
 }
 
 // kills the plugin with the lowest hit count
-func (p *apPool) killOne(reason string) {
+func (p *apPool) killLeastUsed(reason string) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -344,6 +345,12 @@ func (p *apPool) killOne(reason string) {
 	// kill that ap
 	ap, ok := p.plugins[id]
 	if ok {
+		// only log on first ok health check
+		log.WithFields(log.Fields{
+			"_module": "control-aplugin",
+			"block":   "kill-least-used",
+			"aplugin": ap,
+		}).Debug("killing available plugin")
 		ap.Kill(reason)
 		delete(p.plugins, id)
 	}
@@ -361,11 +368,20 @@ func (p *apPool) count() int {
 	return len(p.plugins)
 }
 
-func (p *apPool) subscriptions() int {
+// NOTE: The data returned by subscriptions should be constant and read only.
+func (p *apPool) subscriptions() map[uint64]*subscription {
+	p.RLock()
+	defer p.RUnlock()
+	return p.subs
+}
+
+func (p *apPool) subscriptionCount() int {
+	p.RLock()
+	defer p.RUnlock()
 	return len(p.subs)
 }
 
-func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, error) {
+func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, perror.PulseError) {
 	p.RLock()
 	defer p.RUnlock()
 
@@ -377,7 +393,7 @@ func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, error) {
 	}
 	sap, err := strat.Select(p, sp)
 	if err != nil || sap == nil {
-		return nil, err
+		return nil, perror.New(err)
 	}
 	return sap.(*availablePlugin), nil
 }
@@ -385,6 +401,10 @@ func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, error) {
 func (p *apPool) generatePID() uint32 {
 	atomic.AddUint32(&p.pidCounter, 1)
 	return p.pidCounter
+}
+
+func (p *apPool) close() {
+	p.RUnlock()
 }
 
 type subscription struct {
@@ -438,18 +458,68 @@ func (ap *availablePlugins) insert(pl *availablePlugin) error {
 	return nil
 }
 
-func (ap *availablePlugins) getPool(key string) (*apPool, error) {
+func (ap *availablePlugins) getPool(key string) (*apPool, perror.PulseError) {
 	ap.RLock()
 	defer ap.RUnlock()
-	fmt.Println("POOLS:", ap.table)
 	pool, ok := ap.table[key]
 	if !ok {
-		return nil, perror.New(ErrPoolNotFound, map[string]interface{}{
-			"key": key,
-		})
+		tnv := strings.Split(key, ":")
+		if len(tnv) != 3 {
+			return nil, perror.New(ErrBadKey, map[string]interface{}{
+				"key": key,
+			})
+		}
+
+		v, err := strconv.Atoi(tnv[2])
+		if err != nil {
+			return nil, perror.New(ErrBadKey, map[string]interface{}{
+				"key": key,
+			})
+		}
+
+		if v < 1 {
+			return ap.findLatestPool(tnv[0], tnv[1])
+		}
+
+		return nil, nil
 	}
 
 	return pool, nil
+}
+
+func (ap *availablePlugins) holdPool(key string) (*apPool, perror.PulseError) {
+	pool, err := ap.getPool(key)
+	if err != nil {
+		return nil, err
+	}
+
+	if pool != nil {
+		pool.RLock()
+	}
+	return pool, nil
+}
+
+func (ap *availablePlugins) findLatestPool(pType, name string) (*apPool, perror.PulseError) {
+	// see if there exists a pool at all which matches name version.
+	var latest *apPool
+	for key, pool := range ap.table {
+		tnv := strings.Split(key, ":")
+		if tnv[0] == pType && tnv[1] == name {
+			latest = pool
+			break
+		}
+	}
+	if latest != nil {
+		for key, pool := range ap.table {
+			tnv := strings.Split(key, ":")
+			if tnv[0] == pType && tnv[1] == name && pool.version > latest.version {
+				latest = pool
+			}
+		}
+		return latest, nil
+	}
+
+	return nil, nil
 }
 
 func (ap *availablePlugins) getOrCreatePool(key string) (*apPool, error) {
@@ -466,7 +536,7 @@ func (ap *availablePlugins) getOrCreatePool(key string) (*apPool, error) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) selectAP(key string) (*availablePlugin, error) {
+func (ap *availablePlugins) selectAP(key string) (*availablePlugin, perror.PulseError) {
 	ap.RLock()
 	defer ap.RUnlock()
 
@@ -476,6 +546,12 @@ func (ap *availablePlugins) selectAP(key string) (*availablePlugin, error) {
 	}
 
 	return pool.selectAP(ap.routingStrategy)
+}
+
+func (ap *availablePlugins) pools() map[string]*apPool {
+	ap.RLock()
+	defer ap.RUnlock()
+	return ap.table
 }
 
 func (ap *availablePlugins) all() []*availablePlugin {

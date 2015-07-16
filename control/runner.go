@@ -3,6 +3,7 @@ package control
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/control_event"
 )
 
@@ -223,7 +225,9 @@ func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
 	if err != nil {
 		return err
 	}
-	pool.remove(ap.id)
+	if pool != nil {
+		pool.remove(ap.id)
+	}
 	return nil
 }
 
@@ -245,7 +249,9 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			}).Error(err.Error())
 			return
 		}
-		pool.kill(v.Id, "plugin dead")
+		if pool != nil {
+			pool.kill(v.Id, "plugin dead")
+		}
 	case *control_event.PluginSubscriptionEvent:
 		runnerLog.WithFields(log.Fields{
 			"_block":         "subscribe-pool",
@@ -254,50 +260,114 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			"plugin-version": v.PluginVersion,
 			"plugin-type":    v.PluginType,
 		}).Debug("handling plugin subscription event")
-		fmt.Println(v)
-		plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", v.PluginType, v.PluginName, v.PluginVersion))
-		if err != nil {
-			runnerLog.WithFields(log.Fields{
-				"_block":         "subscribe-pool",
-				"event":          v.Namespace(),
-				"plugin-name":    v.PluginName,
-				"plugin-version": v.PluginVersion,
-				"plugin-type":    v.PluginType,
-			}).Error("plugin not found")
-			return
-		}
-		pool, err := r.availablePlugins.getOrCreatePool(fmt.Sprintf("%s:%s:%d", v.PluginType, v.PluginName, v.PluginVersion))
-		if err != nil {
-			runnerLog.WithFields(log.Fields{
-				"_block":         "subscribe-pool",
-				"event":          v.Namespace(),
-				"plugin-name":    v.PluginName,
-				"plugin-version": v.PluginVersion,
-				"plugin-type":    v.PluginType,
-			}).Error("ap pool not found")
-			return
-		}
-		if pool != nil && pool.eligible() {
-			pool.subscribe(v.TaskId, subscriptionType(v.SubscriptionType))
-			r.runPlugin(plugin.Path)
-		}
-	case *control_event.PluginUnsubscriptionEvent:
-		pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", v.PluginType, v.PluginName, v.PluginVersion))
-		if err != nil {
-			runnerLog.WithFields(log.Fields{
-				"_block":         "subscribe-pool",
-				"event":          v.Namespace(),
-				"plugin-name":    v.PluginName,
-				"plugin-version": v.PluginVersion,
-				"plugin-type":    v.PluginType,
-			}).Error("ap pool not found")
-			return
-		}
-		pool.unsubscribe(v.TaskId)
-		if pool.subscriptions() < pool.count() {
-			pool.killOne("ubsubscription event")
-		}
 
+		r.handleSubscription(
+			core.PluginType(v.PluginType).String(),
+			v.PluginName,
+			v.PluginVersion,
+			v.TaskId,
+			subscriptionType(v.SubscriptionType),
+		)
+
+	case *control_event.PluginUnsubscriptionEvent:
+		runnerLog.WithFields(log.Fields{
+			"_block":         "subscribe-pool",
+			"event":          v.Namespace(),
+			"plugin-name":    v.PluginName,
+			"plugin-version": v.PluginVersion,
+			"plugin-type":    v.PluginType,
+		}).Debug("handling plugin unsubscription event")
+
+		err := r.handleUnsubscription(core.PluginType(v.PluginType).String(), v.PluginName, v.PluginVersion, v.TaskId)
+		if err != nil {
+			return
+		}
+	case *control_event.LoadPluginEvent:
+		var pool *apPool
+		r.availablePlugins.RLock()
+		for key, p := range r.availablePlugins.pools() {
+			// tuple of type name and version
+			// type @ index 0, name @ index 1, version @ index 2
+			tnv := strings.Split(key, ":")
+			// make sure we don't panic and crash the service if a junk key is retrieved
+			if len(tnv) != 3 {
+				runnerLog.WithFields(log.Fields{
+					"_block":         "subscribe-pool",
+					"event":          v.Namespace(),
+					"plugin-name":    v.Name,
+					"plugin-version": v.Version,
+					"plugin-type":    v.Type,
+				}).Info("pool has bad key ", key)
+				continue
+			}
+
+			// attempt to find a pool whose type and name are the same, and whose version is
+			// less than newly loaded plugin.  If we find it, break out of loop.
+			if core.PluginType(v.Type).String() == tnv[0] && v.Name == tnv[1] && v.Version > p.version {
+				pool = p
+				break
+			}
+		}
+		r.availablePlugins.RUnlock()
+		// now check to see if anything was put where pool points.
+		// if not, there are no older pools whose subscriptions need to be
+		// moved.
+		if pool == nil {
+			runnerLog.WithFields(log.Fields{
+				"_block":         "subscribe-pool",
+				"event":          v.Namespace(),
+				"plugin-name":    v.Name,
+				"plugin-version": v.Version,
+				"plugin-type":    v.Type,
+			}).Info("No previous pool found for loaded plugin")
+			return
+		}
+		// walk through the subscriptions in the pool and move any subscriptions
+		// which are unbound.
+		for task, sub := range pool.subscriptions() {
+			if sub.subType == unboundSubscriptionType && v.Version > sub.version {
+				runnerLog.WithFields(log.Fields{
+					"_block":         "subscribe-pool",
+					"event":          v.Namespace(),
+					"plugin-name":    v.Name,
+					"plugin-version": v.Version,
+					"plugin-type":    v.Type,
+				}).Info("pool with subscriptions to move found")
+				// subscribe to new pool
+				plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", core.PluginType(v.Type).String(), v.Name, v.Version))
+				if err != nil {
+					return
+				}
+				newPool, err := r.availablePlugins.getOrCreatePool(plugin.Key())
+				if err != nil {
+					return
+				}
+				// subscribe new pool
+				newPool.subscribe(task, unboundSubscriptionType)
+				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
+					PluginName:       v.Name,
+					PluginVersion:    v.Version,
+					TaskId:           task,
+					PluginType:       v.Type,
+					SubscriptionType: int(unboundSubscriptionType),
+				})
+				// unsubscribe old pool
+				pool.unsubscribe(task)
+				r.emitter.Emit(&control_event.PluginUnsubscriptionEvent{
+					PluginName:    v.Name,
+					PluginVersion: sub.version,
+					TaskId:        task,
+					PluginType:    v.Type,
+				})
+				r.emitter.Emit(&control_event.MovePluginSubscriptionEvent{
+					PluginName:      v.Name,
+					PreviousVersion: sub.version,
+					NewVersion:      v.Version,
+					TaskId:          task,
+					PluginType:      v.Type,
+				})
+			}
+		}
 	default:
 		runnerLog.WithFields(log.Fields{
 			"_block": "handle-events",
@@ -323,4 +393,88 @@ func (r *runner) runPlugin(path string) {
 			"error":  err,
 		}).Error("error starting new plugin")
 	}
+}
+
+func (r *runner) handleSubscription(pType, pName string, pVersion int, taskId uint64, subType subscriptionType) {
+	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
+	if err != nil {
+		runnerLog.WithFields(log.Fields{
+			"_block":         "handle-subscription",
+			"plugin-name":    pName,
+			"plugin-version": pVersion,
+			"plugin-type":    pType,
+		}).Error("error retrieving pool")
+		return
+	}
+	if pool == nil {
+		runnerLog.WithFields(log.Fields{
+			"_block":         "handle-subscription",
+			"plugin-name":    pName,
+			"plugin-version": pVersion,
+			"plugin-type":    pType,
+		}).Error("pool not found")
+		return
+	}
+	runnerLog.WithFields(log.Fields{
+		"_block":         "handle-subscription",
+		"plugin-name":    pName,
+		"plugin-version": pVersion,
+		"plugin-type":    pType,
+	}).Debug(fmt.Sprintf("found pool: version %d", pool.version))
+	runnerLog.WithFields(log.Fields{
+		"_block":                  "handle-subscription",
+		"pool-count":              pool.count(),
+		"pool-subscription-count": pool.subscriptionCount(),
+		"pool-max":                pool.max,
+		"pool-eligibility":        pool.eligible(),
+	}).Debug("checking is pool is eligible to grow.")
+	if pool.eligible() {
+		runnerLog.WithFields(log.Fields{
+			"_block":         "handle-subscription",
+			"plugin-name":    pName,
+			"plugin-version": pVersion,
+			"plugin-type":    pType,
+		}).Debug("pool is eligible. starting a new available plugin")
+		plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
+		if err != nil {
+			runnerLog.WithFields(log.Fields{
+				"_block":         "handle-subscription",
+				"plugin-name":    pName,
+				"plugin-version": pVersion,
+				"plugin-type":    pType,
+			}).Error("plugin not found")
+			return
+		}
+		r.runPlugin(plugin.Path)
+	}
+}
+func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskId uint64) error {
+	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
+	if err != nil {
+		runnerLog.WithFields(log.Fields{
+			"_block":         "handle-unsubscription",
+			"plugin-name":    pName,
+			"plugin-version": pVersion,
+			"plugin-type":    pType,
+		}).Error("error retrieving pool")
+		return errors.New("error retrieving pool")
+	}
+	if pool == nil {
+		runnerLog.WithFields(log.Fields{
+			"_block":         "handle-unsubscription",
+			"plugin-name":    pName,
+			"plugin-version": pVersion,
+			"plugin-type":    pType,
+		}).Error("pool not found")
+		return errors.New("pool not found")
+	}
+	if pool.subscriptionCount() < pool.count() {
+		runnerLog.WithFields(log.Fields{
+			"_block":                  "handle-unsubscription",
+			"pool-count":              pool.count(),
+			"pool-subscription-count": pool.subscriptionCount(),
+		}).Debug(fmt.Sprintf("killing an available plugin in pool  %s:%s:%d", pType, pName, pVersion))
+		pool.killLeastUsed("unsubscription event")
+	}
+	return nil
 }

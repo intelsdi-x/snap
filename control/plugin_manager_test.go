@@ -2,7 +2,6 @@ package control
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path"
 	"testing"
@@ -63,7 +62,7 @@ func TestLoadPlugin(t *testing.T) {
 				lp, err := p.LoadPlugin(PluginPath, nil)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
-				So(p.LoadedPlugins(), ShouldNotBeEmpty)
+				So(p.all(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 				So(len(p.all()), ShouldBeGreaterThan, 0)
 			})
@@ -95,7 +94,6 @@ func TestUnloadPlugin(t *testing.T) {
 					numPluginsLoaded := len(p.all())
 					So(numPluginsLoaded, ShouldEqual, 1)
 					lp, _ := p.get("collector:dummy1:1")
-					fmt.Println("KEEEEEEEEEEYS", lp.Key())
 					_, err = p.UnloadPlugin(lp)
 
 					So(err, ShouldBeNil)
@@ -108,7 +106,6 @@ func TestUnloadPlugin(t *testing.T) {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
 					lp, err := p.LoadPlugin(PluginPath, nil)
-					fmt.Println("HERES THE KEY", lp.Key())
 					glp, err2 := p.get("collector:dummy1:1")
 					So(err2, ShouldBeNil)
 					glp.State = DetectedState
