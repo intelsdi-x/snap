@@ -48,9 +48,9 @@ func TestPublish(t *testing.T) {
 
 			// Send data to create topic. There is a weird bug where first message won't be consumed
 			// ref: http://mail-archives.apache.org/mod_mbox/kafka-users/201411.mbox/%3CCAHwHRrVmwyJg-1eyULkzwCUOXALuRA6BqcDV-ffSjEQ+tmT7dw@mail.gmail.com%3E
-			k.Publish("", []byte(t), *f)
+			k.Publish([]byte(t), *f)
 			// Send the same message. This will be consumed.
-			k.Publish("", []byte(t), *f)
+			k.Publish([]byte(t), *f)
 
 			// start timer and wait
 			m, mErr := consumer(topic, brokers)

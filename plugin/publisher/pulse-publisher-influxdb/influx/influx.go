@@ -36,7 +36,7 @@ func NewInfluxPublisher() *influxPublisher {
 type influxPublisher struct {
 }
 
-func (f *influxPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
+func (i *influxPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	config := cpolicy.NewPolicyNode()
 
 	r1, err := cpolicy.NewStringRule("host", true)
@@ -67,9 +67,14 @@ func (f *influxPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	return *config
 }
 
+// Convenience method to publish without a content type
+func (i *influxPublisher) Publish(content []byte, config map[string]ctypes.ConfigValue) error {
+	return i.PublishType("", content, config)
+}
+
 // Publish publishes metric data to influxdb
 // currently only 0.9 version of influxdb are supported
-func (f *influxPublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+func (i *influxPublisher) PublishType(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	logger := log.New()
 	var metrics []plugin.PluginMetricType
 

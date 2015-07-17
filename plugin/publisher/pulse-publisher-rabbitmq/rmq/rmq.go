@@ -32,7 +32,13 @@ const (
 	pluginType = plugin.PublisherPluginType
 )
 
-func (rmq *rmqPublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+// Convenience method to publish without a content type
+func (rmq *rmqPublisher) Publish(content []byte, config map[string]ctypes.ConfigValue) error {
+	return rmq.PublishType("", content, config)
+}
+
+// Publish sends data to a RabbitMQ server
+func (rmq *rmqPublisher) PublishType(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	logger := log.New()
 	var metrics []plugin.PluginMetricType
 	switch contentType {

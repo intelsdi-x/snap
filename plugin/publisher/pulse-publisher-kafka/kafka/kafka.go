@@ -27,8 +27,13 @@ func NewKafkaPublisher() *Kafka {
 	return k
 }
 
+// Convenience method to publish without a content type
+func (k *Kafka) Publish(content []byte, config map[string]ctypes.ConfigValue) error {
+	return k.PublishType("", content, config)
+}
+
 // Publish sends data to a Kafka server
-func (k *Kafka) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+func (k *Kafka) PublishType(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	topic := config["topic"].(ctypes.ConfigValueStr).Value
 	brokers := parseBrokerString(config["brokers"].(ctypes.ConfigValueStr).Value)
 	//

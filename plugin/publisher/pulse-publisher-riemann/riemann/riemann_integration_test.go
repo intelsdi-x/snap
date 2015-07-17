@@ -41,7 +41,7 @@ func TestPublish(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			err := r.Publish(plugin.PulseGOBContentType, buf.Bytes(), *f)
+			err := r.PublishType(plugin.PulseGOBContentType, buf.Bytes(), *f)
 			So(err, ShouldBeNil)
 
 			c, _ := raidman.Dial("tcp", broker)

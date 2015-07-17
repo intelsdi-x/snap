@@ -43,7 +43,7 @@ func (p *publisherPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs,
 func (p *publisherPluginProxy) Publish(args PublishArgs, reply *PublishReply) error {
 	defer catchPluginPanic(p.Session.Logger())
 	p.Session.ResetHeartbeat()
-	err := p.Plugin.Publish(args.ContentType, args.Content, args.Config)
+	err := p.Plugin.PublishType(args.ContentType, args.Content, args.Config)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Publish call error: %v", err.Error()))
 	}

@@ -51,8 +51,13 @@ func (r *Riemann) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	return *config
 }
 
+// Convenience method to publish without a content type
+func (r *Riemann) Publish(content []byte, config map[string]ctypes.ConfigValue) error {
+	return r.PublishType("", content, config)
+}
+
 // Publish serializes the data and calls publish to send events to Riemann
-func (r *Riemann) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+func (r *Riemann) PublishType(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	logger := log.New()
 	//err := r.publish(event, broker)
 	//return err
