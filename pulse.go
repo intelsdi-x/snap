@@ -222,7 +222,7 @@ func action(ctx *cli.Context) {
 						"_module": "pulsed",
 						"logpath": path,
 						"plugin":  file,
-					}).Fatal(err)
+					}).Error(err)
 				} else {
 					log.WithFields(log.Fields{
 						"_block":         "main",
