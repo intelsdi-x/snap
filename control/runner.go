@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -37,18 +36,6 @@ type executablePlugin interface {
 	WaitForResponse(time.Duration) (*plugin.Response, error)
 }
 
-type idCounter struct {
-	id    int
-	mutex *sync.Mutex
-}
-
-func (i *idCounter) Next() int {
-	i.mutex.Lock()
-	defer i.mutex.Unlock()
-	i.id++
-	return i.id
-}
-
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type runner struct {
 	delegates        []gomit.Delegator
@@ -57,8 +44,6 @@ type runner struct {
 	availablePlugins *availablePlugins
 	metricCatalog    catalogsMetrics
 	pluginManager    managesPlugins
-	mutex            *sync.Mutex
-	apIdCounter      *idCounter
 	routingStrategy  RoutingStrategy
 }
 
@@ -66,8 +51,6 @@ func newRunner(routingStrategy RoutingStrategy) *runner {
 	r := &runner{
 		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(routingStrategy),
-		mutex:            &sync.Mutex{},
-		apIdCounter:      &idCounter{mutex: &sync.Mutex{}},
 		routingStrategy:  routingStrategy,
 	}
 	return r
@@ -322,48 +305,43 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			}).Info("No previous pool found for loaded plugin")
 			return
 		}
-		// walk through the subscriptions in the pool and move any subscriptions
-		// which are unbound.
-		for task, sub := range pool.subscriptions() {
-			if sub.subType == unboundSubscriptionType && v.Version > sub.version {
-				runnerLog.WithFields(log.Fields{
-					"_block":         "subscribe-pool",
-					"event":          v.Namespace(),
-					"plugin-name":    v.Name,
-					"plugin-version": v.Version,
-					"plugin-type":    v.Type,
-				}).Info("pool with subscriptions to move found")
-				// subscribe to new pool
-				plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", core.PluginType(v.Type).String(), v.Name, v.Version))
-				if err != nil {
-					return
-				}
-				newPool, err := r.availablePlugins.getOrCreatePool(plugin.Key())
-				if err != nil {
-					return
-				}
-				// subscribe new pool
-				newPool.subscribe(task, unboundSubscriptionType)
+		plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", core.PluginType(v.Type).String(), v.Name, v.Version))
+		if err != nil {
+			return
+		}
+		newPool, err := r.availablePlugins.getOrCreatePool(plugin.Key())
+		if err != nil {
+			return
+		}
+
+		subs := pool.moveSubscriptions(newPool)
+		if len(subs) != 0 {
+			runnerLog.WithFields(log.Fields{
+				"_block":         "subscribe-pool",
+				"event":          v.Namespace(),
+				"plugin-name":    v.Name,
+				"plugin-version": v.Version,
+				"plugin-type":    v.Type,
+			}).Info("pool with subscriptions to move found")
+			for _, sub := range subs {
 				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
 					PluginName:       v.Name,
 					PluginVersion:    v.Version,
-					TaskId:           task,
+					TaskId:           sub.taskId,
 					PluginType:       v.Type,
 					SubscriptionType: int(unboundSubscriptionType),
 				})
-				// unsubscribe old pool
-				pool.unsubscribe(task)
 				r.emitter.Emit(&control_event.PluginUnsubscriptionEvent{
 					PluginName:    v.Name,
-					PluginVersion: sub.version,
-					TaskId:        task,
+					PluginVersion: pool.version,
+					TaskId:        sub.taskId,
 					PluginType:    v.Type,
 				})
 				r.emitter.Emit(&control_event.MovePluginSubscriptionEvent{
 					PluginName:      v.Name,
-					PreviousVersion: sub.version,
+					PreviousVersion: pool.version,
 					NewVersion:      v.Version,
-					TaskId:          task,
+					TaskId:          sub.taskId,
 					PluginType:      v.Type,
 				})
 			}

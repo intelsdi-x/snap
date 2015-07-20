@@ -608,7 +608,7 @@ func (p *pluginControl) CollectMetrics(
 			continue
 		}
 		if pool != nil {
-			defer pool.close()
+			defer pool.release()
 
 			ap, err := pool.selectAP(p.pluginRunner.Strategy())
 			if err != nil {
@@ -680,7 +680,7 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 		return errs
 	}
 	if pool != nil {
-		defer pool.close()
+		defer pool.release()
 
 		ap, err := pool.selectAP(p.pluginRunner.Strategy())
 		if err != nil {
@@ -716,7 +716,7 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 		return "", nil, errs
 	}
 	if pool != nil {
-		defer pool.close()
+		defer pool.release()
 
 		ap, err := pool.selectAP(p.pluginRunner.Strategy())
 		if err != nil {

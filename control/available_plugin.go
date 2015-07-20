@@ -403,8 +403,24 @@ func (p *apPool) generatePID() uint32 {
 	return p.pidCounter
 }
 
-func (p *apPool) close() {
+func (p *apPool) release() {
 	p.RUnlock()
+}
+
+func (p *apPool) moveSubscriptions(to *apPool) []subscription {
+	var subs []subscription
+
+	p.Lock()
+	defer p.Unlock()
+
+	for task, sub := range p.subs {
+		if sub.subType == unboundSubscriptionType && to.version > p.version {
+			subs = append(subs, *sub)
+			to.subscribe(task, unboundSubscriptionType)
+			delete(p.subs, task)
+		}
+	}
+	return subs
 }
 
 type subscription struct {
