@@ -1,18 +1,53 @@
 package core
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
-type AvailablePlugin interface {
+type Plugin interface {
+	TypeName() string
 	Name() string
 	Version() int
+}
+
+type PluginType int
+
+func ToPluginType(name string) (PluginType, error) {
+	pts := map[string]PluginType{
+		"collector": 0,
+		"processor": 1,
+		"publisher": 2,
+	}
+	t, ok := pts[name]
+	if !ok {
+		return -1, fmt.Errorf("invalid plugin type name given %s", name)
+	}
+	return t, nil
+}
+
+func (pt PluginType) String() string {
+	return []string{
+		"collector",
+		"processor",
+		"publisher",
+	}[pt]
+}
+
+const (
+	// List of plugin type
+	CollectorPluginType PluginType = iota
+	ProcessorPluginType
+	PublisherPluginType
+)
+
+type AvailablePlugin interface {
+	Plugin
 	HitCount() int
 	LastHit() time.Time
-	TypeName() string
-	ID() int
+	ID() uint32
 }
 
 // the public interface for a plugin
@@ -20,7 +55,6 @@ type AvailablePlugin interface {
 // how mgmt modules know a plugin
 type CatalogedPlugin interface {
 	Plugin
-	TypeName() string
 	Status() string
 	LoadedTimestamp() *time.Time
 }
@@ -29,22 +63,7 @@ type CatalogedPlugin interface {
 // by mgmt modules
 type PluginCatalog []CatalogedPlugin
 
-type PluginType int
-
-const (
-	// List of plugin type
-	CollectorPluginType PluginType = iota
-	PublisherPluginType
-	ProcessorPluginType
-)
-
-type Plugin interface {
-	Name() string
-	Version() int
-}
-
 type SubscribedPlugin interface {
-	Name() string
-	Version() int
+	Plugin
 	Config() *cdata.ConfigDataNode
 }

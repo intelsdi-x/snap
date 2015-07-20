@@ -46,20 +46,12 @@ func (m MockMetricType) Data() interface{} {
 func TestCollectPublishWorkflow(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	Convey("Given a started plugin control", t, func() {
-		// logger.SetLevel(logger.DebugLevel)
-		// logPath := "/tmp"
-		// file, err := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		// if err != nil {
-		// 	logger.Error("main", fmt.Sprintf("bad log path(%s) - %s\n", logPath, err.Error()))
-		// }
-		// defer file.Close()
-		// logger.Output = file
 
 		c := control.New()
 		c.Start()
 		s := New()
 		s.SetMetricManager(c)
-		Convey("Start a collector and publisher plugin", func() {
+		Convey("create a workflow", func() {
 			_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-collector-dummy2"))
 			So(err, ShouldBeNil)
 			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
@@ -81,9 +73,6 @@ func TestCollectPublishWorkflow(t *testing.T) {
 
 			pr := wmap.NewProcessNode("movingaverage", 1)
 			pr.AddConfigItem("MovingAvgBufLength", 20)
-			config2, err3 := pr.GetConfigNode()
-			So(err3, ShouldBeNil)
-			c.SubscribeProcessor("movingaverage", 1, config2.Table())
 			time.Sleep(100 * time.Millisecond)
 
 			pr.Add(pu)

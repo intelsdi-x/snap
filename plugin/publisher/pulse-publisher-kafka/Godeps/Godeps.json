@@ -13,7 +13,7 @@
 			"Rev": "c0c762fac2fc60e07f19af79c19164ac588329de"
 		},
 		{
-			"ImportPath": "github.com/golang/snappy/snappy",
+			"ImportPath": "github.com/golang/snappy",
 			"Rev": "156a073208e131d7d2e212cb749feae7c339e846"
 		},
 		{

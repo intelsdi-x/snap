@@ -197,9 +197,9 @@ func TestPulseClient(t *testing.T) {
 				uri := startAPI(port)
 				c := New(uri, "v1")
 
-				p := c.UnloadPlugin("foo", 3)
+				p := c.UnloadPlugin("not a type", "foo", 3)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "plugin not found (has it already been unloaded?)")
+				So(p.Err.Error(), ShouldEqual, "plugin not found")
 			})
 
 			Convey("unload only one there is", func() {
@@ -208,7 +208,7 @@ func TestPulseClient(t *testing.T) {
 				c := New(uri, "v1")
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				p := c.UnloadPlugin("dummy1", 1)
+				p := c.UnloadPlugin("collector", "dummy1", 1)
 				So(p.Err, ShouldBeNil)
 				So(p.Name, ShouldEqual, "dummy1")
 				So(p.Version, ShouldEqual, 1)
@@ -222,7 +222,7 @@ func TestPulseClient(t *testing.T) {
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				p1 := c.UnloadPlugin("dummy2", 2)
+				p1 := c.UnloadPlugin("collector", "dummy2", 2)
 				So(p1.Err, ShouldBeNil)
 				So(p1.Name, ShouldEqual, "dummy2")
 				So(p1.Version, ShouldEqual, 2)
@@ -393,7 +393,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.StartTask(9999999)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "No task found with id '9999999'")
+				So(p.Err.Error(), ShouldEqual, "message @ error 0: No task found with id '9999999' ")
 			})
 			Convey("existing task", func() {
 				port := getPort()
@@ -427,7 +427,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.StopTask(9999999)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "No task found with id '9999999'")
+				So(p.Err.Error(), ShouldEqual, "message @ error 0: No task found with id '9999999' ")
 			})
 			Convey("existing task", func() {
 				port := getPort()

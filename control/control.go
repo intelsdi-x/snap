@@ -68,9 +68,11 @@ type runsPlugins interface {
 }
 
 type managesPlugins interface {
+	teardown()
+	get(string) (*loadedPlugin, error)
+	all() map[string]*loadedPlugin
 	LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError)
 	UnloadPlugin(core.Plugin) (*loadedPlugin, perror.PulseError)
-	LoadedPlugins() *loadedPlugins
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(pluginPath string) plugin.Arg
 }
@@ -116,7 +118,8 @@ func New() *pluginControl {
 	c.pluginManager.SetMetricCatalog(c.metricCatalog)
 
 	// Plugin Runner
-	c.pluginRunner = newRunner()
+	// TODO (danielscottt): handle routing strat changes via events
+	c.pluginRunner = newRunner(&routing.RoundRobinStrategy{})
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("runner created")
@@ -170,19 +173,7 @@ func (p *pluginControl) Stop() {
 	}
 
 	// unload plugins
-	p.pluginManager.LoadedPlugins().Lock()
-	lps := make([]*loadedPlugin, len(p.pluginManager.LoadedPlugins().Table()))
-	for i, lp := range p.pluginManager.LoadedPlugins().Table() {
-		nlp := *lp
-		lps[i] = &nlp
-	}
-	p.pluginManager.LoadedPlugins().Unlock()
-	for _, lp := range lps {
-		_, err := p.pluginManager.UnloadPlugin(lp)
-		if err != nil {
-			controlLogger.Error(err)
-		}
-	}
+	p.pluginManager.teardown()
 
 }
 
@@ -267,108 +258,59 @@ func (p *pluginControl) SwapPlugins(inPath string, out core.CatalogedPlugin) per
 	return nil
 }
 
-// SubscribeMetricType validates the given config data, and if valid
-// returns a MetricType with a config.  On error a collection of errors is returned
-// either from config data processing, or the inability to find the metric.
-func (p *pluginControl) SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.PulseError) {
-	controlLogger.WithFields(log.Fields{
-		"_block":    "subscribe-metric-type",
-		"namespace": mt.Namespace(),
-	}).Info("subscription called on metric")
-
-	m, errs := p.validateMetricTypeSubscription(mt, cd)
-	if len(errs) > 0 {
-		return nil, errs
-	}
-	if m != nil {
-		err := p.sendMetricTypeSubscriptionEvent(m)
-		if err != nil {
-			errs = append(errs, perror.New(err))
+func (p *pluginControl) ValidateDeps(mts []core.Metric, plugins []core.SubscribedPlugin) []perror.PulseError {
+	var perrs []perror.PulseError
+	for _, mt := range mts {
+		_, errs := p.validateMetricTypeSubscription(mt, mt.Config())
+		if len(errs) > 0 {
+			perrs = append(perrs, errs...)
+			return perrs
 		}
 	}
 
-	return m, errs
+	//validate plugins
+	for _, plg := range plugins {
+		errs := p.validatePluginSubscription(plg)
+		if len(errs) > 0 {
+			perrs = append(perrs, errs...)
+			return perrs
+		}
+	}
+
+	return perrs
 }
 
-func (p *pluginControl) validateProcessorSubscription(pr core.SubscribedPlugin) (perrs []perror.PulseError) {
+func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []perror.PulseError {
+	var perrs = []perror.PulseError{}
 	controlLogger.WithFields(log.Fields{
-		"_block":    "validate-processor-subscription",
-		"processor": fmt.Sprintf("%s-%d", pr.Name(), pr.Version()),
-	}).Info("subscription called on processor")
+		"_block": "validate-plugin-subscription",
+		"plugin": fmt.Sprintf("%s:%d", pl.Name(), pl.Version()),
+	}).Info(fmt.Sprintf("validating dependencies for plugin %s:%d", pl.Name(), pl.Version()))
 
-	p.pluginManager.LoadedPlugins().Lock()
-	defer p.pluginManager.LoadedPlugins().Unlock()
-	var lp *loadedPlugin
-	for _, l := range p.pluginManager.LoadedPlugins().Table() {
-		if l.Name() == pr.Name() && l.Version() == pr.Version() {
-			lp = l
-		}
-	}
-
-	if lp == nil {
+	lp, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
+	if err != nil {
 		pe := perror.New(ErrLoadedPluginNotFound)
 		pe.SetFields(map[string]interface{}{
-			"name":    pr.Name(),
-			"version": pr.Version(),
-			"type":    plugin.ProcessorPluginType.String(),
+			"name":    pl.Name(),
+			"version": pl.Version(),
+			"type":    pl.TypeName(),
 		})
 		perrs = append(perrs, pe)
-		return
+		return perrs
 	}
 
 	if lp.ConfigPolicyTree != nil {
 		ncd := lp.ConfigPolicyTree.Get([]string{""})
-		_, errs := ncd.Process(pr.Config().Table())
+		_, errs := ncd.Process(pl.Config().Table())
 		if errs != nil && errs.HasErrors() {
 			for _, e := range errs.Errors() {
 				pe := perror.New(e)
-				pe.SetFields(map[string]interface{}{"name": pr.Name(), "version": pr.Version()})
+				pe.SetFields(map[string]interface{}{"name": pl.Name(), "version": pl.Version()})
 				perrs = append(perrs, pe)
 			}
 		}
 	}
-	return
-}
-
-func (p *pluginControl) validatePublisherSubscription(pu core.SubscribedPlugin) (perrs []perror.PulseError) {
-	controlLogger.WithFields(log.Fields{
-		"_block":    "validate-publisher-subscription",
-		"publisher": fmt.Sprintf("%s-%d", pu.Name(), pu.Version()),
-	}).Info("subscription called on publisher")
-
-	p.pluginManager.LoadedPlugins().Lock()
-	defer p.pluginManager.LoadedPlugins().Unlock()
-	var lp *loadedPlugin
-	for _, l := range p.pluginManager.LoadedPlugins().Table() {
-		if l.Name() == pu.Name() && l.Version() == pu.Version() {
-			lp = l
-		}
-	}
-
-	if lp == nil {
-		pe := perror.New(ErrLoadedPluginNotFound)
-		pe.SetFields(map[string]interface{}{
-			"name":    pu.Name(),
-			"version": pu.Version(),
-			"type":    plugin.PublisherPluginType.String(),
-		})
-		perrs = append(perrs, pe)
-		return
-	}
-
-	if lp.ConfigPolicyTree != nil {
-		ncd := lp.ConfigPolicyTree.Get([]string{""})
-		_, errs := ncd.Process(pu.Config().Table())
-		if errs != nil && errs.HasErrors() {
-			for _, e := range errs.Errors() {
-				pe := perror.New(e)
-				pe.SetFields(map[string]interface{}{"name": pu.Name(), "version": pu.Version()})
-				perrs = append(perrs, pe)
-			}
-			return
-		}
-	}
-	return
+	return perrs
 }
 
 func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.PulseError) {
@@ -405,88 +347,81 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 	return m, perrs
 }
 
-func (p *pluginControl) sendMetricTypeSubscriptionEvent(mt core.Metric) error {
-	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
-	if err != nil {
-		return err
-	}
+func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []perror.PulseError) {
+	var (
+		plugins []core.Plugin
+		perrs   []perror.PulseError
+	)
 
-	m.Subscribe()
-	e := &control_event.MetricSubscriptionEvent{
-		MetricNamespace: mt.Namespace(),
-		Version:         mt.Version(),
-	}
-	defer p.eventManager.Emit(e)
-	return nil
-}
-
-func (p *pluginControl) sendProcessorSubscriptionEvent(pr core.SubscribedPlugin) perror.PulseError {
-	e := &control_event.ProcessorSubscriptionEvent{
-		PluginName:    pr.Name(),
-		PluginVersion: pr.Version(),
-	}
-	if _, err := p.eventManager.Emit(e); err != nil {
-		return perror.New(err)
-	}
-	return nil
-}
-
-func (p *pluginControl) sendPublisherSubscriptionEvent(pu core.SubscribedPlugin) perror.PulseError {
-	e := &control_event.PublisherSubscriptionEvent{
-		PluginName:    pu.Name(),
-		PluginVersion: pu.Version(),
-	}
-	if _, err := p.eventManager.Emit(e); err != nil {
-		return perror.New(err)
-	}
-	return nil
-}
-
-func (p *pluginControl) Subscribe(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError {
-	var perrs []perror.PulseError
-	for _, sub := range mts {
-		_, subErrs := p.validateMetricTypeSubscription(sub, sub.Config())
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
-			return perrs
-		}
-	}
-
-	//subscribe to processors
-	for _, sub := range prs {
-		subErrs := p.validateProcessorSubscription(sub)
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
-			return perrs
-		}
-	}
-
-	//subscribe to publishers
-	for _, sub := range pus {
-		subErrs := p.validatePublisherSubscription(sub)
-		if len(subErrs) > 0 {
-			perrs = append(perrs, subErrs...)
-			return perrs
-		}
-	}
-
-	//send events
+	// here we resolve and retrieve plugins for each metric type.
+	// if the incoming metric type version is < 1, we treat that as
+	// latest as with plugins.  The following two loops create a set
+	// of plugins with proper versions needed to discern the subscription
+	// types.
+	colPlugins := make(map[string]*loadedPlugin)
 	for _, mt := range mts {
-		err := p.sendMetricTypeSubscriptionEvent(mt)
+		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 		if err != nil {
 			perrs = append(perrs, perror.New(err))
+			continue
+		}
+		// if the metric subscription is to version -1, we need to carry
+		// that forward in the subscription.
+		if mt.Version() < 1 {
+			// make a copy of the loadedPlugin and overwrite the version.
+			npl := *m.Plugin
+			npl.Meta.Version = -1
+			colPlugins[npl.Key()] = &npl
+		} else {
+			colPlugins[m.Plugin.Key()] = m.Plugin
 		}
 	}
-
-	for _, sub := range prs {
-		perr := p.sendProcessorSubscriptionEvent(sub)
-		if perr != nil {
-			perrs = append(perrs, perr)
-		}
+	if len(perrs) > 0 {
+		return plugins, perrs
 	}
 
-	for _, sub := range pus {
-		perr := p.sendPublisherSubscriptionEvent(sub)
+	for _, lp := range colPlugins {
+		plugins = append(plugins, lp)
+	}
+
+	return plugins, nil
+}
+
+func (p *pluginControl) SubscribeDeps(taskId uint64, mts []core.Metric, plugins []core.Plugin) []perror.PulseError {
+	var perrs []perror.PulseError
+
+	collectors, errs := p.gatherCollectors(mts)
+	if len(errs) > 0 {
+		perrs = append(perrs)
+	}
+	plugins = append(plugins, collectors...)
+
+	for _, sub := range plugins {
+		// pools are created statically, not with keys like "publisher:foo:-1"
+		// here we check to see if the version of the incoming plugin is -1, and
+		// if it is, we look up the latest in loaded plugins, and use that key to
+		// create the pool.
+		if sub.Version() < 1 {
+			latest, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
+			if err != nil {
+				perrs = append(perrs, perror.New(err))
+				return perrs
+			}
+			pool, err := p.pluginRunner.AvailablePlugins().getOrCreatePool(latest.Key())
+			if err != nil {
+				perrs = append(perrs, perror.New(err))
+				return perrs
+			}
+			pool.subscribe(taskId, unboundSubscriptionType)
+		} else {
+			pool, err := p.pluginRunner.AvailablePlugins().getOrCreatePool(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
+			if err != nil {
+				perrs = append(perrs, perror.New(err))
+				return perrs
+			}
+			pool.subscribe(taskId, boundSubscriptionType)
+		}
+		perr := p.sendPluginSubscriptionEvent(taskId, sub)
 		if perr != nil {
 			perrs = append(perrs, perr)
 		}
@@ -495,88 +430,69 @@ func (p *pluginControl) Subscribe(mts []core.Metric, prs []core.SubscribedPlugin
 	return perrs
 }
 
-// SubscribePublisher
-func (p *pluginControl) SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError {
-	rplugin := &requestedPlugin{
-		name:    name,
-		version: ver,
-		config:  cdata.FromTable(config),
-	}
-	perrs := p.validatePublisherSubscription(rplugin)
-	if len(perrs) > 0 {
-		return perrs
-	}
-	perr := p.sendPublisherSubscriptionEvent(rplugin)
-	if perr != nil {
-		perrs = append(perrs, perr)
-		return perrs
-	}
-	return nil
-}
-
-// SubscribeProcessor
-func (p *pluginControl) SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError {
-	rplugin := &requestedPlugin{
-		name:    name,
-		version: ver,
-		config:  cdata.FromTable(config),
-	}
-	perrs := p.validateProcessorSubscription(rplugin)
-	if len(perrs) > 0 {
-		return perrs
-	}
-	perr := p.sendProcessorSubscriptionEvent(rplugin)
-	if perr != nil {
-		perrs = append(perrs, perr)
-		return perrs
-	}
-	return nil
-}
-
-// UnsubscribeMetricType unsubscribes a MetricType
-// If subscriptions fall below zero we will panic.
-func (p *pluginControl) UnsubscribeMetricType(mt core.Metric) {
-	controlLogger.WithFields(log.Fields{
-		"_block":    "unsubscribe-metric-type",
-		"namespace": mt.Namespace(),
-	}).Info("unsubscribe called on metric")
-	err := p.metricCatalog.Unsubscribe(mt.Namespace(), mt.Version())
+func (p *pluginControl) sendPluginSubscriptionEvent(taskId uint64, pl core.Plugin) perror.PulseError {
+	pt, err := core.ToPluginType(pl.TypeName())
 	if err != nil {
-		// panic because if a metric falls below 0, something bad has happened
-		panic(err.Error())
+		return perror.New(err)
 	}
-	e := &control_event.MetricUnsubscriptionEvent{
-		MetricNamespace: mt.Namespace(),
+	e := &control_event.PluginSubscriptionEvent{
+		TaskId:           taskId,
+		PluginType:       int(pt),
+		PluginName:       pl.Name(),
+		PluginVersion:    pl.Version(),
+		SubscriptionType: int(unboundSubscriptionType),
 	}
-	p.eventManager.Emit(e)
+	if pl.Version() > 0 {
+		e.SubscriptionType = int(boundSubscriptionType)
+	}
+	if _, err := p.eventManager.Emit(e); err != nil {
+		return perror.New(err)
+	}
+	return nil
 }
 
-func (p *pluginControl) UnsubscribePublisher(name string, ver int) error {
-	controlLogger.WithFields(log.Fields{
-		"_block":  "unsubscribe-publisher",
-		"name":    name,
-		"version": ver,
-	}).Info("unsubscribe called on publisher")
-	e := &control_event.PublisherUnsubscriptionEvent{
-		PluginName:    name,
-		PluginVersion: ver,
+func (p *pluginControl) UnsubscribeDeps(taskId uint64, mts []core.Metric, plugins []core.Plugin) []perror.PulseError {
+	var perrs []perror.PulseError
+
+	collectors, errs := p.gatherCollectors(mts)
+	if len(errs) > 0 {
+		perrs = append(perrs, errs...)
 	}
-	_, err := p.eventManager.Emit(e)
-	return err
+	plugins = append(plugins, collectors...)
+
+	for _, sub := range plugins {
+		pool, err := p.pluginRunner.AvailablePlugins().getPool(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
+		if err != nil {
+			perrs = append(perrs, err)
+			return perrs
+		}
+		if pool != nil {
+			pool.unsubscribe(taskId)
+		}
+		perr := p.sendPluginUnsubscriptionEvent(taskId, sub)
+		if perr != nil {
+			perrs = append(perrs, perr)
+		}
+	}
+
+	return perrs
 }
 
-func (p *pluginControl) UnsubscribeProcessor(name string, ver int) error {
-	controlLogger.WithFields(log.Fields{
-		"_block":  "unsubscribe-processor",
-		"name":    name,
-		"version": ver,
-	}).Info("unsubscribe called on processor")
-	e := &control_event.ProcessorUnsubscriptionEvent{
-		PluginName:    name,
-		PluginVersion: ver,
+func (p *pluginControl) sendPluginUnsubscriptionEvent(taskId uint64, pl core.Plugin) perror.PulseError {
+	pt, err := core.ToPluginType(pl.TypeName())
+	if err != nil {
+		return perror.New(err)
 	}
-	_, err := p.eventManager.Emit(e)
-	return err
+	e := &control_event.PluginUnsubscriptionEvent{
+		TaskId:        taskId,
+		PluginType:    int(pt),
+		PluginName:    pl.Name(),
+		PluginVersion: pl.Version(),
+	}
+	if _, err := p.eventManager.Emit(e); err != nil {
+		return perror.New(err)
+	}
+	return nil
 }
 
 // SetMonitorOptions exposes monitors options
@@ -584,43 +500,37 @@ func (p *pluginControl) SetMonitorOptions(options ...monitorOption) {
 	p.pluginRunner.Monitor().Option(options...)
 }
 
-// returns a copy of the plugin catalog
+// returns the loaded plugin collection
+// NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) PluginCatalog() core.PluginCatalog {
-	p.pluginManager.LoadedPlugins().Lock()
-	defer p.pluginManager.LoadedPlugins().Unlock()
-	table := p.pluginManager.LoadedPlugins().Table()
-	pc := make([]core.CatalogedPlugin, len(table))
-	for i, lp := range table {
-		nlp := *lp
-		pc[i] = &nlp
+	table := p.pluginManager.all()
+	plugins := make([]core.CatalogedPlugin, len(table))
+	i := 0
+	for _, plugin := range table {
+		plugins[i] = plugin
+		i++
 	}
-	return pc
+	return plugins
 }
 
+// AvailablePlugins returns pointers to all the running plugins in the pools
+// NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) AvailablePlugins() []core.AvailablePlugin {
-	var acp []core.AvailablePlugin
-	for _, aa := range p.pluginRunner.AvailablePlugins().Collectors.Table() {
-		for _, a := range aa {
-			acp = append(acp, a)
-		}
+	var caps []core.AvailablePlugin
+	for _, ap := range p.pluginRunner.AvailablePlugins().all() {
+		caps = append(caps, ap)
 	}
-	for _, aa := range p.pluginRunner.AvailablePlugins().Processors.Table() {
-		for _, a := range aa {
-			acp = append(acp, a)
-		}
-	}
-	for _, aa := range p.pluginRunner.AvailablePlugins().Publishers.Table() {
-		for _, a := range aa {
-			acp = append(acp, a)
-		}
-	}
-	return acp
+	return caps
 }
 
+// MetricCatalog returns the entire metric catalog
+// NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) MetricCatalog() ([]core.CatalogedMetric, error) {
 	return p.FetchMetrics([]string{}, 0)
 }
 
+// FetchMetrics returns the metrics which fall under the given namespace
+// NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) FetchMetrics(ns []string, version int) ([]core.CatalogedMetric, error) {
 	cat := make([]*metricCatalogItem, 0)
 
@@ -691,43 +601,47 @@ func (p *pluginControl) CollectMetrics(
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
 
-		// resolve a pool (from catalog)
-		pool, err := getPool(pluginKey, p.pluginRunner.AvailablePlugins())
+		// retrieve an available plugin
+		pool, err := p.pluginRunner.AvailablePlugins().holdPool(pluginKey)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
+		if pool != nil {
+			defer pool.release()
 
-		// resolve a available plugin from pool
-		ap, err := getAvailablePlugin(pool, p.pluginRunner.Strategy())
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		// cast client to PluginCollectorClient
-		cli, ok := ap.Client.(client.PluginCollectorClient)
-		if !ok {
-			err := errors.New("unable to cast client to PluginCollectorClient")
-			errs = append(errs, err)
-			continue
-		}
-
-		wg.Add(1)
-
-		// get a metrics
-		go func(mt []core.Metric) {
-			mts, err := cli.CollectMetrics(mt)
+			ap, err := pool.selectAP(p.pluginRunner.Strategy())
 			if err != nil {
-				cError <- err
-			} else {
-				cMetrics <- mts
+				errs = append(errs, err)
+				continue
 			}
-		}(pmt.metricTypes)
 
-		// update statics about plugin
-		ap.hitCount++
-		ap.lastHitTime = time.Now()
+			// cast client to PluginCollectorClient
+			cli, ok := ap.client.(client.PluginCollectorClient)
+			if !ok {
+				err := errors.New("unable to cast client to PluginCollectorClient")
+				errs = append(errs, err)
+				continue
+			}
+
+			wg.Add(1)
+
+			// get a metrics
+			go func(mt []core.Metric) {
+				mts, err := cli.CollectMetrics(mt)
+				if err != nil {
+					cError <- err
+				} else {
+					cMetrics <- mts
+				}
+			}(pmt.metricTypes)
+
+			// update statics about plugin
+			ap.hitCount++
+			ap.lastHitTime = time.Now()
+		} else {
+			errs = append(errs, fmt.Errorf("pool not found for plugin key: %s", pluginKey))
+		}
 	}
 
 	go func() {
@@ -756,56 +670,74 @@ func (p *pluginControl) CollectMetrics(
 
 // PublishMetrics
 func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
-	key := strings.Join([]string{pluginName, strconv.Itoa(pluginVersion)}, ":")
+	var errs []error
+	key := strings.Join([]string{"publisher", pluginName, strconv.Itoa(pluginVersion)}, ":")
 
-	pool := p.pluginRunner.AvailablePlugins().Publishers.GetPluginPool(key)
-	if pool == nil {
-		return []error{errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))}
-	}
-
-	// resolve a available plugin from pool
-	ap, err := getAvailablePlugin(pool, p.pluginRunner.Strategy())
+	// retrieve an available plugin
+	pool, err := p.pluginRunner.AvailablePlugins().holdPool(key)
 	if err != nil {
-		return []error{err}
+		errs = append(errs, err)
+		return errs
 	}
+	if pool != nil {
+		defer pool.release()
 
-	cli, ok := ap.Client.(client.PluginPublisherClient)
-	if !ok {
-		return []error{errors.New("unable to cast client to PluginPublisherClient")}
-	}
+		ap, err := pool.selectAP(p.pluginRunner.Strategy())
+		if err != nil {
+			errs = append(errs, err)
+			return errs
+		}
 
-	err = cli.Publish(contentType, content, config)
-	if err != nil {
-		return []error{err}
+		cli, ok := ap.client.(client.PluginPublisherClient)
+		if !ok {
+			return []error{errors.New("unable to cast client to PluginPublisherClient")}
+		}
+
+		errp := cli.Publish(contentType, content, config)
+		if err != nil {
+			return []error{errp}
+		}
+		ap.hitCount++
+		ap.lastHitTime = time.Now()
+		return nil
 	}
-	return nil
+	return []error{errors.New("pool not found")}
 }
 
 // ProcessMetrics
 func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
-	key := strings.Join([]string{pluginName, strconv.Itoa(pluginVersion)}, ":")
+	var errs []error
+	key := strings.Join([]string{"processor", pluginName, strconv.Itoa(pluginVersion)}, ":")
 
-	pool := p.pluginRunner.AvailablePlugins().Processors.GetPluginPool(key)
-	if pool == nil {
-		return "", nil, []error{errors.New(fmt.Sprintf("No available plugin found for %v:%v", pluginName, pluginVersion))}
-	}
-
-	// resolve a available plugin from pool
-	ap, err := getAvailablePlugin(pool, p.pluginRunner.Strategy())
+	// retrieve an available plugin
+	pool, err := p.pluginRunner.AvailablePlugins().holdPool(key)
 	if err != nil {
-		return "", nil, []error{err}
+		errs = append(errs, err)
+		return "", nil, errs
 	}
+	if pool != nil {
+		defer pool.release()
 
-	cli, ok := ap.Client.(client.PluginProcessorClient)
-	if !ok {
-		return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
-	}
+		ap, err := pool.selectAP(p.pluginRunner.Strategy())
+		if err != nil {
+			errs = append(errs, err)
+			return "", nil, errs
+		}
 
-	ct, c, err := cli.Process(contentType, content, config)
-	if err != nil {
-		return "", nil, []error{err}
+		cli, ok := ap.client.(client.PluginProcessorClient)
+		if !ok {
+			return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
+		}
+
+		ct, c, errp := cli.Process(contentType, content, config)
+		if err != nil {
+			return "", nil, []error{errp}
+		}
+		ap.hitCount++
+		ap.lastHitTime = time.Now()
+		return ct, c, nil
 	}
-	return ct, c, nil
+	return "", nil, []error{errors.New("pool not found")}
 }
 
 // GetPluginContentTypes returns accepted and returned content types for the
@@ -813,7 +745,7 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 // If the version provided is 0 or less the newest plugin by version will be
 // returned.
 func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
-	lp, err := p.pluginManager.LoadedPlugins().get(n, plugin.PluginType(t), v)
+	lp, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", t.String(), n, v))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -874,8 +806,6 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 			return nil, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(mt.Namespace(), "/")))
 		}
 
-		// fmt.Printf("Found plugin (%s v%d) for metric (%s)\n", lp.Name(), lp.Version(), strings.Join(m.Namespace(), "/"))
-
 		key := lp.Key()
 
 		//
@@ -886,39 +816,4 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 
 	}
 	return pmts, nil
-}
-
-// getPool finds a pool for a given pluginKey and checks is not empty
-func getPool(pluginKey string, availablePlugins *availablePlugins) (*availablePluginPool, error) {
-
-	pool := availablePlugins.Collectors.GetPluginPool(pluginKey)
-
-	if pool == nil {
-		// return error because this plugin has no pool
-		return nil, errors.New(fmt.Sprintf("no available plugins for plugin type (%s)", pluginKey))
-	}
-
-	// TODO: Lock this apPool so we are the only one operating on it.
-	if pool.Count() == 0 {
-		// return error indicating we have no available plugins to call for Collect
-		return nil, errors.New(fmt.Sprintf("there is no availablePlugins in pool (%s)", pluginKey))
-	}
-	return pool, nil
-}
-
-// TODO this could/should exist on pool
-// getAvailablePlugin finds a "best" availablePlugin to be asked for metrics
-func getAvailablePlugin(pool *availablePluginPool, strategy RoutingStrategy) (*availablePlugin, error) {
-
-	// Use a router strategy to select an available plugin from the pool
-	ap, err := pool.SelectUsingStrategy(strategy)
-	if err != nil {
-		return nil, err
-	}
-
-	if ap == nil {
-		return nil, errors.New(fmt.Sprintf("no available plugin selected in pool %v", pool))
-	}
-
-	return ap, nil
 }

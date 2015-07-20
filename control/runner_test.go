@@ -9,6 +9,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/control/routing"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -136,7 +137,7 @@ func TestRunnerState(t *testing.T) {
 			Convey(".AddDelegates", func() {
 
 				Convey("adds a handler delegate", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 
 					r.AddDelegates(new(MockHandlerDelegate))
 					r.SetEmitter(new(MockEmitter))
@@ -144,7 +145,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("adds multiple delegates", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 
 					r.AddDelegates(new(MockHandlerDelegate))
 					r.AddDelegates(new(MockHandlerDelegate))
@@ -152,7 +153,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("adds multiple delegates (batch)", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 
 					r.AddDelegates(new(MockHandlerDelegate), new(MockHandlerDelegate))
 					So(len(r.delegates), ShouldEqual, 2)
@@ -163,7 +164,7 @@ func TestRunnerState(t *testing.T) {
 			Convey(".Start", func() {
 
 				Convey("returns error without adding delegates", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 					e := r.Start()
 
 					So(e, ShouldNotBeNil)
@@ -171,7 +172,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("starts after adding one delegates", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 					m1 := new(MockHandlerDelegate)
 					r.AddDelegates(m1)
 					e := r.Start()
@@ -181,7 +182,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("starts after  after adding multiple delegates", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 					m1 := new(MockHandlerDelegate)
 					m2 := new(MockHandlerDelegate)
 					m3 := new(MockHandlerDelegate)
@@ -196,7 +197,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("error if delegate cannot RegisterHandler", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 					me := new(MockHandlerDelegate)
 					me.ErrorMode = true
 					r.AddDelegates(me)
@@ -211,7 +212,7 @@ func TestRunnerState(t *testing.T) {
 			Convey(".Stop", func() {
 
 				Convey("removes handlers from delegates", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 					m1 := new(MockHandlerDelegate)
 					m2 := new(MockHandlerDelegate)
 					m3 := new(MockHandlerDelegate)
@@ -228,7 +229,7 @@ func TestRunnerState(t *testing.T) {
 				})
 
 				Convey("returns errors for handlers errors on stop", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 					m1 := new(MockHandlerDelegate)
 					m1.StopError = errors.New("0")
 					m2 := new(MockHandlerDelegate)
@@ -264,7 +265,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 				// These tests only work if Pulse Path is known to discover dummy plugin used for testing
 				if PulsePath != "" {
 					Convey("should return an AvailablePlugin", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
@@ -289,7 +290,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("availablePlugins should include returned availablePlugin", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
@@ -300,18 +301,16 @@ func TestRunnerPluginRunning(t *testing.T) {
 						}
 
 						So(err, ShouldBeNil)
-						t := r.availablePlugins.Collectors.Table()
-						colCount := len(t["dummy1:1"])
+						colCount := len(r.availablePlugins.all())
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
 						So(ap, ShouldNotBeNil)
-						t = r.availablePlugins.Collectors.Table()
-						So(len(t["dummy1:1"]), ShouldEqual, colCount+1)
-						So(ap, ShouldBeIn, t["dummy1:1"])
+						So(len(r.availablePlugins.all()), ShouldEqual, colCount+1)
+						So(ap, ShouldBeIn, r.availablePlugins.all())
 					})
 
 					Convey("healthcheck on healthy plugin does not increment failedHealthChecks", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
@@ -324,13 +323,13 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
-						ap.Client = new(MockHealthyPluginCollectorClient)
+						ap.client = new(MockHealthyPluginCollectorClient)
 						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 0)
 					})
 
 					Convey("healthcheck on unhealthy plugin increments failedHealthChecks", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
@@ -343,13 +342,13 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
-						ap.Client = new(MockUnhealthyPluginCollectorClient)
+						ap.client = new(MockUnhealthyPluginCollectorClient)
 						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 1)
 					})
 
 					Convey("successful healthcheck resets failedHealthChecks", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin-foo.log",
@@ -362,17 +361,17 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
-						ap.Client = new(MockUnhealthyPluginCollectorClient)
+						ap.client = new(MockUnhealthyPluginCollectorClient)
 						ap.CheckHealth()
 						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 2)
-						ap.Client = new(MockHealthyPluginCollectorClient)
+						ap.client = new(MockHealthyPluginCollectorClient)
 						ap.CheckHealth()
 						So(ap.failedHealthChecks, ShouldEqual, 0)
 					})
 
 					Convey("three consecutive failedHealthChecks disables the plugin", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
@@ -385,7 +384,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(err, ShouldBeNil)
 						ap, e := r.startPlugin(exPlugin)
 						So(e, ShouldBeNil)
-						ap.Client = new(MockUnhealthyPluginCollectorClient)
+						ap.client = new(MockUnhealthyPluginCollectorClient)
 						ap.CheckHealth()
 						ap.CheckHealth()
 						ap.CheckHealth()
@@ -393,7 +392,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("should return error for WaitForResponse error", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						exPlugin := new(MockExecutablePlugin)
 						exPlugin.Timeout = true // set to not response
@@ -404,7 +403,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("should return error for nil availablePlugin", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						exPlugin := new(MockExecutablePlugin)
 						exPlugin.NilResponse = true // set to not response
 						ap, e := r.startPlugin(exPlugin)
@@ -414,7 +413,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("should return error if plugin fails while starting", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						exPlugin := &MockExecutablePlugin{
 							StartError: true,
 						}
@@ -425,7 +424,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					})
 
 					Convey("should return error if plugin fails to start", func() {
-						r := newRunner()
+						r := newRunner(&routing.RoundRobinStrategy{})
 						exPlugin := &MockExecutablePlugin{
 							PluginFailure: true,
 						}
@@ -440,7 +439,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 
 			Convey("stopPlugin", func() {
 				Convey("should return an AvailablePlugin in a Running state", func() {
-					r := newRunner()
+					r := newRunner(&routing.RoundRobinStrategy{})
 					a := plugin.Arg{
 						PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
 					}

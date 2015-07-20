@@ -22,12 +22,12 @@ func TestLoadedPlugins(t *testing.T) {
 	Convey("Append", t, func() {
 		Convey("returns an error when loading duplicate plugins", func() {
 			lp := newLoadedPlugins()
-			lp.Append(&loadedPlugin{
+			lp.add(&loadedPlugin{
 				Meta: plugin.PluginMeta{
 					Name: "test1",
 				},
 			})
-			err := lp.Append(&loadedPlugin{
+			err := lp.add(&loadedPlugin{
 				Meta: plugin.PluginMeta{
 					Name: "test1",
 				},
@@ -36,36 +36,12 @@ func TestLoadedPlugins(t *testing.T) {
 
 		})
 	})
-	Convey("Get", t, func() {
+	Convey("get", t, func() {
 		Convey("returns an error when index is out of range", func() {
 			lp := newLoadedPlugins()
-			lp.Append(new(loadedPlugin))
 
-			_, err := lp.Get(1)
-			So(err, ShouldResemble, errors.New("index out of range"))
-
-		})
-	})
-	Convey("Splice", t, func() {
-		Convey("splices an item out of the table", func() {
-			lp := newLoadedPlugins()
-			lp.Append(&loadedPlugin{
-				Meta: plugin.PluginMeta{
-					Name: "test1",
-				},
-			})
-			lp.Append(&loadedPlugin{
-				Meta: plugin.PluginMeta{
-					Name: "test2",
-				},
-			})
-			lp.Append(&loadedPlugin{
-				Meta: plugin.PluginMeta{
-					Name: "test3",
-				},
-			})
-			lp.Splice(1)
-			So(len(lp.Table()), ShouldResemble, 2)
+			_, err := lp.get("not:found:1")
+			So(err, ShouldResemble, errors.New("plugin not found"))
 
 		})
 	})
@@ -86,9 +62,9 @@ func TestLoadPlugin(t *testing.T) {
 				lp, err := p.LoadPlugin(PluginPath, nil)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
-				So(p.LoadedPlugins(), ShouldNotBeEmpty)
+				So(p.all(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
-				So(len(p.LoadedPlugins().Table()), ShouldBeGreaterThan, 0)
+				So(len(p.all()), ShouldBeGreaterThan, 0)
 			})
 
 			Convey("error is returned on a bad PluginPath", func() {
@@ -115,13 +91,13 @@ func TestUnloadPlugin(t *testing.T) {
 					_, err := p.LoadPlugin(PluginPath, nil)
 					So(err, ShouldBeNil)
 
-					num_plugins_loaded := len(p.LoadedPlugins().Table())
-					So(num_plugins_loaded, ShouldEqual, 1)
-					lp, _ := p.LoadedPlugins().Get(0)
+					numPluginsLoaded := len(p.all())
+					So(numPluginsLoaded, ShouldEqual, 1)
+					lp, _ := p.get("collector:dummy1:1")
 					_, err = p.UnloadPlugin(lp)
 
 					So(err, ShouldBeNil)
-					So(len(p.LoadedPlugins().Table()), ShouldEqual, num_plugins_loaded-1)
+					So(len(p.all()), ShouldEqual, numPluginsLoaded-1)
 				})
 			})
 
@@ -129,9 +105,10 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := p.LoadPlugin(PluginPath, nil)
-					lp, _ := p.LoadedPlugins().Get(0)
-					lp.State = DetectedState
+					lp, err := p.LoadPlugin(PluginPath, nil)
+					glp, err2 := p.get("collector:dummy1:1")
+					So(err2, ShouldBeNil)
+					glp.State = DetectedState
 					_, err = p.UnloadPlugin(lp)
 					So(err.Error(), ShouldResemble, "Plugin must be in a LoadedState")
 				})
@@ -143,11 +120,12 @@ func TestUnloadPlugin(t *testing.T) {
 					p.SetMetricCatalog(newMetricCatalog())
 					_, err := p.LoadPlugin(PluginPath, nil)
 
-					plugin, _ := p.LoadedPlugins().Get(0)
-					_, err = p.UnloadPlugin(plugin)
+					lp, err2 := p.get("collector:dummy1:1")
+					So(err2, ShouldBeNil)
+					_, err = p.UnloadPlugin(lp)
 
-					_, err = p.UnloadPlugin(plugin)
-					So(err.Error(), ShouldResemble, "plugin not found (has it already been unloaded?)")
+					_, err = p.UnloadPlugin(lp)
+					So(err.Error(), ShouldResemble, "plugin not found")
 
 				})
 			})

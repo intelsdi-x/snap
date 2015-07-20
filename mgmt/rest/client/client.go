@@ -55,7 +55,7 @@ func New(url, ver string) *Client {
 		Version: ver,
 	}
 	c.prefix = url + "/" + ver
-	// TODO (dpittman): assert that path is valid and target is available
+	// TODO (danielscottt): assert that path is valid and target is available
 	return c
 }
 

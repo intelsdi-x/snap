@@ -80,8 +80,8 @@ type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, bool, ...core.TaskOption) (core.Task, core.TaskErrors)
 	GetTasks() map[uint64]core.Task
 	GetTask(uint64) (core.Task, error)
-	StartTask(uint64) error
-	StopTask(uint64) error
+	StartTask(uint64) []perror.PulseError
+	StopTask(uint64) []perror.PulseError
 	RemoveTask(uint64) error
 	WatchTask(uint64, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
 }
@@ -126,10 +126,11 @@ func (s *Server) BindTaskManager(t managesTasks) {
 func (s *Server) start(addrString string) {
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
-	s.r.GET("/v1/plugins/:name", s.getPluginsByName)
-	s.r.GET("/v1/plugins/:name/:version", s.getPlugin)
+	s.r.GET("/v1/plugins/:type", s.getPluginsByType)
+	s.r.GET("/v1/plugins/:type/:name", s.getPluginsByName)
+	s.r.GET("/v1/plugins/:type/:name/:version", s.getPlugin)
 	s.r.POST("/v1/plugins", s.loadPlugin)
-	s.r.DELETE("/v1/plugins/:name/:version", s.unloadPlugin)
+	s.r.DELETE("/v1/plugins/:type/:name/:version", s.unloadPlugin)
 
 	// metric routes
 	s.r.GET("/v1/metrics", s.getMetrics)

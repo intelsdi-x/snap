@@ -219,9 +219,9 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	err = s.mt.StartTask(id)
-	if err != nil {
-		respond(404, rbody.FromError(err), w)
+	errs := s.mt.StartTask(id)
+	if errs != nil {
+		respond(404, rbody.FromPulseErrors(errs), w)
 		return
 	}
 	// TODO should return resource
@@ -234,9 +234,9 @@ func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	err = s.mt.StopTask(id)
-	if err != nil {
-		respond(404, rbody.FromError(err), w)
+	errs := s.mt.StopTask(id)
+	if errs != nil {
+		respond(404, rbody.FromPulseErrors(errs), w)
 		return
 	}
 	respond(200, &rbody.ScheduledTaskStopped{ID: int(id)}, w)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -31,7 +32,7 @@ const (
 )
 
 var (
-	ErrPluginNotFound         = errors.New("plugin not found (has it already been unloaded?)")
+	ErrPluginNotFound         = errors.New("plugin not found")
 	ErrPluginAlreadyLoaded    = errors.New("plugin is already loaded")
 	ErrPluginNotInLoadedState = errors.New("Plugin must be in a LoadedState")
 
@@ -41,161 +42,88 @@ var (
 type pluginState string
 
 type loadedPlugins struct {
-	table       *[]*loadedPlugin
-	mutex       *sync.Mutex
-	currentIter int
+	*sync.RWMutex
+
+	table map[string]*loadedPlugin
 }
 
 func newLoadedPlugins() *loadedPlugins {
-	var t []*loadedPlugin
 	return &loadedPlugins{
-		table:       &t,
-		mutex:       new(sync.Mutex),
-		currentIter: 0,
+		RWMutex: &sync.RWMutex{},
+		table:   make(map[string]*loadedPlugin),
 	}
 }
 
-// adds a loadedPlugin pointer to the loadedPlugins table
-func (l *loadedPlugins) Append(lp *loadedPlugin) perror.PulseError {
-
+// add adds a loadedPlugin pointer to the table
+func (l *loadedPlugins) add(lp *loadedPlugin) perror.PulseError {
 	l.Lock()
 	defer l.Unlock()
 
-	// make sure we don't already have this plugin in the table
-	for i, pl := range *l.table {
-		if lp.Meta.Name == pl.Meta.Name && lp.Meta.Version == pl.Meta.Version {
-			pe := perror.New(ErrPluginAlreadyLoaded)
-			f := map[string]interface{}{
-				"plugin-name":         lp.Name(),
-				"plugin-version":      lp.Version(),
-				"loaded-plugin-index": i,
-				"error":               pe,
-			}
-			pe.SetFields(f)
-			pmLogger.WithFields(log.Fields{
-				"_block": "load-plugin",
-			}).WithFields(f).Warning(pe.Error())
-			return pe
-		}
+	if _, exists := l.table[lp.Key()]; exists {
+		return perror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
+			"plugin-name":    lp.Meta.Name,
+			"plugin-version": lp.Meta.Version,
+			"plugin-type":    lp.Type.String(),
+		})
 	}
-
-	// append
-	newLoadedPlugins := append(*l.table, lp)
-	// overwrite
-	l.table = &newLoadedPlugins
-
+	l.table[lp.Key()] = lp
 	return nil
 }
 
-// Table returns a collection containing loadedPlugins
-// The use of the Lock and Unlock methods is suggested with Table.
-func (l *loadedPlugins) Table() []*loadedPlugin {
-	return *l.table
-}
+// get retrieves a plugin from the table
+func (l *loadedPlugins) get(key string) (*loadedPlugin, error) {
+	l.RLock()
+	defer l.RUnlock()
 
-// used to transactionally retrieve a loadedPlugin pointer from the table
-func (l *loadedPlugins) Get(index int) (*loadedPlugin, error) {
-	l.Lock()
-	defer l.Unlock()
+	lp, ok := l.table[key]
+	if !ok {
+		tnv := strings.Split(key, ":")
+		if len(tnv) != 3 {
+			return nil, ErrBadKey
+		}
 
-	if index > len(*l.table)-1 {
-		return nil, errors.New("index out of range")
+		v, err := strconv.Atoi(tnv[2])
+		if err != nil {
+			return nil, ErrBadKey
+		}
+		if v < 1 {
+			pmLogger.Info("finding latest plugin")
+			return l.findLatest(tnv[0], tnv[1])
+		}
+		return nil, ErrPluginNotFound
 	}
-
-	return (*l.table)[index], nil
+	return lp, nil
 }
 
-// used to lock the plugin table externally,
-// when iterating in unsafe scenarios
-func (l *loadedPlugins) Lock() {
-	l.mutex.Lock()
-}
-
-func (l *loadedPlugins) Unlock() {
-	l.mutex.Unlock()
-}
-
-/* we need an atomic read / write transaction for the splice when removing a plugin,
-   as the plugin is found by its index in the table.  By having the default Splice
-   method block, we protect against accidental use.  Using nonblocking requires explicit
-   invocation.
-*/
-func (l *loadedPlugins) splice(index int) {
-	if index < len(*l.table) {
-		lp := append((*l.table)[:index], (*l.table)[index+1:]...)
-		l.table = &lp
-	}
-}
-
-// splice unsafely
-func (l *loadedPlugins) NonblockingSplice(index int) {
-	l.splice(index)
-}
-
-// atomic splice
-func (l *loadedPlugins) Splice(index int) {
-
+func (l *loadedPlugins) remove(key string) {
 	l.Lock()
-	l.splice(index)
+	delete(l.table, key)
 	l.Unlock()
-
 }
 
-// returns the item of a certain index in the table.
-// to be used when iterating over the table
-func (l *loadedPlugins) Item() (int, *loadedPlugin) {
-	i := l.currentIter - 1
-	return i, (*l.table)[i]
-}
+func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error) {
+	l.RLock()
+	defer l.RUnlock()
 
-// Returns true until the "end" of the table is reached.
-// used to iterate over the table:
-func (l *loadedPlugins) Next() bool {
-	l.currentIter++
-	if l.currentIter > len(*l.table) {
-		l.currentIter = 0
-		return false
-	}
-	return true
-}
-
-// get returns the loaded plugin matching the provided name, type and version.
-// If the version provided is 0 or less the newest plugin by version will be
-// returned.
-func (l *loadedPlugins) get(n string, t plugin.PluginType, v int) (*loadedPlugin, error) {
-	l.Lock()
-	defer l.Unlock()
-
-	pvd := make(map[int]*loadedPlugin)
-	keys := make([]int, 0)
-
-	for _, lp := range l.Table() {
-		if lp.Name() == n && lp.Type == t {
-			pvd[lp.Version()] = lp
-			keys = append(keys, lp.Version())
+	// quick check to see if there exists a plugin with the name/version we're looking for.
+	// if not we just return ErrNotFound before we check versions.
+	var latest *loadedPlugin
+	for _, lp := range l.table {
+		if lp.TypeName() == typeName && lp.Name() == name {
+			latest = lp
+			break
 		}
 	}
-	//return error if there are no matches
-	if len(keys) == 0 {
-		return nil, fmt.Errorf("There is no plugin matching {name: '%s' version: '%d' type: '%s'}.", n, v, t.String())
-	}
-	// a specific (greater than 0) version was provided
-	if v > 0 {
-		lp := pvd[v]
-		if lp == nil {
-			return nil, fmt.Errorf("There is no plugin matching {name: '%s' version: '%d' type: '%s'}.", n, v, t.String())
-		}
-		return lp, nil
-	} else {
-		// a version of 0 or less was provided meaning select the newest plugin
-		var pv int
-		for _, k := range keys {
-			if k > pv {
-				pv = k
+
+	if latest != nil {
+		for _, lp := range l.table {
+			if lp.TypeName() == typeName && lp.Name() == name && lp.Version() > latest.Version() {
+				latest = lp
 			}
 		}
-		return pvd[pv], nil
+		return latest, nil
 	}
+	return nil, ErrPluginNotFound
 }
 
 // the struct representing a plugin that is loaded into Pulse
@@ -216,7 +144,7 @@ func (lp *loadedPlugin) Name() string {
 }
 
 func (l *loadedPlugin) Key() string {
-	return fmt.Sprintf("%s:%d", l.Name(), l.Version())
+	return fmt.Sprintf("%s:%s:%d", l.TypeName(), l.Name(), l.Version())
 }
 
 // returns plugin version
@@ -265,11 +193,6 @@ func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
 	p.metricCatalog = mc
 }
 
-// Returns loaded plugins
-func (p *pluginManager) LoadedPlugins() *loadedPlugins {
-	return p.loadedPlugins
-}
-
 // Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
 func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedPlugin, perror.PulseError) {
@@ -310,7 +233,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, perror.New(err)
 	}
 
-	ap, err := newAvailablePlugin(resp, -1, emitter, ePlugin)
+	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -321,7 +244,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	switch resp.Type {
 	case plugin.CollectorPluginType:
-		colClient := ap.Client.(client.PluginCollectorClient)
+		colClient := ap.client.(client.PluginCollectorClient)
 
 		// Get the ConfigPolicyTree and add it to the loaded plugin
 		cpt, err := colClient.GetConfigPolicyTree()
@@ -381,7 +304,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		}
 
 	case plugin.PublisherPluginType:
-		pubClient := ap.Client.(client.PluginPublisherClient)
+		pubClient := ap.client.(client.PluginPublisherClient)
 		cpn, err := pubClient.GetConfigPolicyNode()
 		if err != nil {
 			pmLogger.WithFields(log.Fields{
@@ -397,7 +320,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		lPlugin.ConfigPolicyTree = cpt
 
 	case plugin.ProcessorPluginType:
-		procClient := ap.Client.(client.PluginProcessorClient)
+		procClient := ap.client.(client.PluginProcessorClient)
 
 		cpn, err := procClient.GetConfigPolicyNode()
 		if err != nil {
@@ -441,7 +364,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 	lPlugin.LoadedTime = time.Now()
 	lPlugin.State = LoadedState
 
-	aErr := p.LoadedPlugins().Append(lPlugin)
+	aErr := p.loadedPlugins.add(lPlugin)
 	if aErr != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -456,59 +379,28 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 // unloads a plugin from the LoadedPlugins table
 func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.PulseError) {
 
-	// We hold the mutex here to safely splice out the plugin from the table.
-	// Using a stale index can be slightly dangerous (unloading incorrect plugin).
-	p.LoadedPlugins().Lock()
-	defer p.LoadedPlugins().Unlock()
-
-	var (
-		index  int
-		plugin *loadedPlugin
-		found  bool
-	)
-
-	// reset the iterator
-	p.LoadedPlugins().currentIter = 0
-
-	// find it in the list
-	for p.LoadedPlugins().Next() {
-		if !found {
-			i, lp := p.LoadedPlugins().Item()
-			// plugin key is its name && version
-			if pl.Name() == lp.Meta.Name && pl.Version() == lp.Meta.Version {
-				index = i
-				plugin = lp
-				// use bool for found becase we cannot check against default type values
-				// index of given plugin may be 0
-				found = true
-			}
-		} else {
-			// break out of the loop once we find the plugin we're looking for
-			break
-		}
-	}
-
-	if !found {
-		pe := perror.New(ErrPluginNotFound)
-		pe.SetFields(map[string]interface{}{
+	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
+	if err != nil {
+		pe := perror.New(ErrPluginNotFound, map[string]interface{}{
 			"plugin-name":    pl.Name(),
 			"plugin-version": pl.Version(),
+			"plugin-type":    pl.TypeName(),
 		})
 		return nil, pe
 	}
 
 	if plugin.State != LoadedState {
-		pe := perror.New(ErrPluginNotInLoadedState)
-		pe.SetFields(map[string]interface{}{
+		pe := perror.New(ErrPluginNotInLoadedState, map[string]interface{}{
 			"plugin-name":    plugin.Name(),
 			"plugin-version": plugin.Version(),
+			"plugin-type":    pl.TypeName(),
 		})
 		return nil, pe
 	}
 
 	// If the plugin was loaded from os.TempDir() clean up
 	if strings.Contains(plugin.Path, os.TempDir()) {
-		runnerLog.WithFields(log.Fields{
+		pmLogger.WithFields(log.Fields{
 			"plugin-type":    plugin.TypeName(),
 			"plugin-name":    plugin.Name(),
 			"plugin-version": plugin.Version(),
@@ -532,8 +424,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 		}
 	}
 
-	// splice out the given plugin
-	p.LoadedPlugins().NonblockingSplice(index)
+	p.loadedPlugins.remove(plugin.Key())
 
 	// Remove any metrics from the catalog if this was a collector
 	if plugin.TypeName() == "collector" {
@@ -546,4 +437,28 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 func (p *pluginManager) GenerateArgs(pluginPath string) plugin.Arg {
 	pluginLog := filepath.Join(p.logPath, filepath.Base(pluginPath)) + ".log"
 	return plugin.NewArg(p.pubKey, pluginLog)
+}
+
+func (p *pluginManager) teardown() {
+	for _, lp := range p.loadedPlugins.table {
+		_, err := p.UnloadPlugin(lp)
+		if err != nil {
+			runnerLog.WithFields(log.Fields{
+				"plugin-type":    lp.TypeName(),
+				"plugin-name":    lp.Name(),
+				"plugin-version": lp.Version(),
+				"plugin-path":    lp.Path,
+			}).Warn("error removing plugin in teardown:", err)
+		}
+	}
+}
+
+func (p *pluginManager) get(key string) (*loadedPlugin, error) {
+	return p.loadedPlugins.get(key)
+}
+
+func (p *pluginManager) all() map[string]*loadedPlugin {
+	p.loadedPlugins.RLock()
+	defer p.loadedPlugins.RUnlock()
+	return p.loadedPlugins.table
 }

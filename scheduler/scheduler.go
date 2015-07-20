@@ -10,7 +10,6 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/core/scheduler_event"
@@ -39,13 +38,9 @@ type managesMetrics interface {
 	publishesMetrics
 	processesMetrics
 	managesPluginContentTypes
-	SubscribeMetricType(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.PulseError)
-	UnsubscribeMetricType(mt core.Metric)
-	SubscribeProcessor(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError
-	SubscribePublisher(name string, ver int, config map[string]ctypes.ConfigValue) []perror.PulseError
-	UnsubscribeProcessor(name string, ver int) error
-	UnsubscribePublisher(name string, ver int) error
-	Subscribe(mts []core.Metric, prs []core.SubscribedPlugin, pus []core.SubscribedPlugin) []perror.PulseError
+	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []perror.PulseError
+	SubscribeDeps(uint64, []core.Metric, []core.Plugin) []perror.PulseError
+	UnsubscribeDeps(uint64, []core.Metric, []core.Plugin) []perror.PulseError
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -140,7 +135,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	// Generate a workflow from the workflow map
 	wf, err := wmapToWorkflow(wfMap)
 	if err != nil {
-		te.errs = append(te.errs, perror.New(ErrSchedulerNotStarted))
+		te.errs = append(te.errs, perror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error(ErrSchedulerNotStarted.Error())
 		return nil, te
@@ -149,37 +144,16 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	// Bind plugin content type selections in workflow
 	err = wf.BindPluginContentTypes(s.metricManager)
 
-	// create metric type subscription requests
-	var mtsubs []core.Metric
-	var subscriptions []core.Metric
-	for _, m := range wf.metrics {
-		cdt, er := wfMap.CollectNode.GetConfigTree()
-		if er != nil {
-			te.errs = append(te.errs, perror.New(er))
-			continue
-		}
-		mtsubs = append(mtsubs, &metric{
-			namespace: m.Namespace(),
-			version:   m.Version(),
-			config:    cdt.Get(m.Namespace()),
-		})
-	}
-
-	var (
-		pusubs []core.SubscribedPlugin
-		prsubs []core.SubscribedPlugin
-	)
-
-	// Subscribe
-	s.subscribe(wf.processNodes, wf.publishNodes, &prsubs, &pusubs)
-	errs := s.metricManager.Subscribe(mtsubs, prsubs, pusubs)
+	// validate plugins and metrics
+	mts, plugins := s.gatherPlugins(wf)
+	errs := s.metricManager.ValidateDeps(mts, plugins)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
 		return nil, te
 	}
 
 	// Create the task object
-	task := newTask(sch, subscriptions, wf, s.workManager, s.metricManager, s.eventManager, opts...)
+	task := newTask(sch, wf, s.workManager, s.metricManager, s.eventManager, opts...)
 
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {
@@ -198,6 +172,17 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 		logger.WithFields(log.Fields{
 			"task-id": task.ID(),
 		}).Info("starting task on creation")
+
+		cps := make([]core.Plugin, len(plugins))
+		for i, plugin := range plugins {
+			cps[i] = plugin
+		}
+		errs := s.metricManager.SubscribeDeps(task.ID(), mts, cps)
+		if len(errs) > 0 {
+			te.errs = append(te.errs, errs...)
+			return nil, te
+		}
+
 		task.Spin()
 	}
 
@@ -238,11 +223,24 @@ func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 }
 
 // StartTask provided a task id a task is started
-func (s *scheduler) StartTask(id uint64) error {
+func (s *scheduler) StartTask(id uint64) []perror.PulseError {
 	t := s.tasks.Get(id)
 	if t == nil {
-		return fmt.Errorf("No task found with id '%v'", id)
+		return []perror.PulseError{
+			perror.New(fmt.Errorf("No task found with id '%v'", id)),
+		}
 	}
+
+	mts, plugins := s.gatherPlugins(t.workflow)
+	cps := make([]core.Plugin, len(plugins))
+	for i, plugin := range plugins {
+		cps[i] = plugin
+	}
+	errs := s.metricManager.SubscribeDeps(id, mts, cps)
+	if len(errs) > 0 {
+		return errs
+	}
+
 	event := new(scheduler_event.TaskStartedEvent)
 	event.TaskID = t.id
 	defer s.eventManager.Emit(event)
@@ -256,7 +254,7 @@ func (s *scheduler) StartTask(id uint64) error {
 }
 
 // StopTask provided a task id a task is stopped
-func (s *scheduler) StopTask(id uint64) error {
+func (s *scheduler) StopTask(id uint64) []perror.PulseError {
 	t := s.tasks.Get(id)
 	if t == nil {
 		e := fmt.Errorf("No task found with id '%v'", id)
@@ -265,8 +263,21 @@ func (s *scheduler) StopTask(id uint64) error {
 			"_error":  e.Error(),
 			"task-id": id,
 		}).Warning("error on stopping of task")
-		return e
+		return []perror.PulseError{
+			perror.New(e),
+		}
 	}
+
+	mts, plugins := s.gatherPlugins(t.workflow)
+	cps := make([]core.Plugin, len(plugins))
+	for i, plugin := range plugins {
+		cps[i] = plugin
+	}
+	errs := s.metricManager.UnsubscribeDeps(id, mts, cps)
+	if len(errs) > 0 {
+		return errs
+	}
+
 	event := new(scheduler_event.TaskStoppedEvent)
 	event.TaskID = t.id
 	defer s.eventManager.Emit(event)
@@ -379,14 +390,31 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 	}
 }
 
-// subscribe subscribes to all processors and publishers recursively
-func (s *scheduler) subscribe(prnodes []*processNode, punodes []*publishNode, prsubs *[]core.SubscribedPlugin, pusubs *[]core.SubscribedPlugin) {
-	for _, pr := range prnodes {
-		*prsubs = append(*prsubs, pr)
-		s.subscribe(pr.ProcessNodes, pr.PublishNodes, prsubs, pusubs)
+func (s *scheduler) gatherPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
+	var (
+		mts     []core.Metric
+		plugins []core.SubscribedPlugin
+	)
+
+	for _, m := range wf.metrics {
+		mts = append(mts, &metric{
+			namespace: m.Namespace(),
+			version:   m.Version(),
+			config:    wf.configTree.Get(m.Namespace()),
+		})
 	}
-	for _, pu := range punodes {
-		*pusubs = append(*pusubs, pu)
+	s.walkWorkflow(wf.processNodes, wf.publishNodes, &plugins)
+
+	return mts, plugins
+}
+
+func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, plugins *[]core.SubscribedPlugin) {
+	for _, pr := range prnodes {
+		*plugins = append(*plugins, pr)
+		s.walkWorkflow(pr.ProcessNodes, pr.PublishNodes, plugins)
+	}
+	for _, pb := range pbnodes {
+		*plugins = append(*plugins, pb)
 	}
 }
 

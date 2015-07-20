@@ -26,8 +26,9 @@ var (
 )
 
 type plugin struct {
-	name    string
-	version int
+	name       string
+	version    int
+	pluginType string
 }
 
 func (p *plugin) Name() string {
@@ -36,6 +37,10 @@ func (p *plugin) Name() string {
 
 func (p *plugin) Version() int {
 	return p.version
+}
+
+func (p *plugin) TypeName() string {
+	return p.pluginType
 }
 
 func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -126,26 +131,38 @@ func writePlugin(autoPaths []string, filename string, b []byte) (string, error) 
 
 func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
+	plType := p.ByName("type")
 	plVersion, iErr := strconv.ParseInt(p.ByName("version"), 10, 0)
 	f := map[string]interface{}{
 		"plugin-name":    plName,
 		"plugin-version": plVersion,
+		"plugin-type":    plType,
 	}
 
 	if iErr != nil {
-		pe := perror.New(ErrMissingPluginName)
+		pe := perror.New(errors.New("invalid version"))
 		pe.SetFields(f)
-		respond(500, rbody.FromPulseError(pe), w)
+		respond(400, rbody.FromPulseError(pe), w)
 		return
 	}
 
 	if plName == "" {
 		pe := perror.New(errors.New("missing plugin name"))
 		pe.SetFields(f)
-		respond(500, rbody.FromPulseError(pe), w)
+		respond(400, rbody.FromPulseError(pe), w)
 		return
 	}
-	up, pe := s.mm.Unload(&plugin{name: plName, version: int(plVersion)})
+	if plType == "" {
+		pe := perror.New(errors.New("missing plugin type"))
+		pe.SetFields(f)
+		respond(400, rbody.FromPulseError(pe), w)
+		return
+	}
+	up, pe := s.mm.Unload(&plugin{
+		name:       plName,
+		version:    int(plVersion),
+		pluginType: plType,
+	})
 	if pe != nil {
 		pe.SetFields(f)
 		respond(500, rbody.FromPulseError(pe), w)
@@ -203,6 +220,9 @@ func catalogedPluginToLoaded(c core.CatalogedPlugin) *rbody.LoadedPlugin {
 		Status:          c.Status(),
 		LoadedTimestamp: c.LoadedTimestamp().Unix(),
 	}
+}
+
+func (s *Server) getPluginsByType(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 }
 
 func (s *Server) getPluginsByName(w http.ResponseWriter, r *http.Request, params httprouter.Params) {

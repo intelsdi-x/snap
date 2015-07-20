@@ -25,6 +25,21 @@ func FromPulseError(pe perror.PulseError) *Error {
 	return e
 }
 
+func FromPulseErrors(errs []perror.PulseError) *Error {
+	fields := make(map[string]string)
+	var msg string
+	for i, err := range errs {
+		for k, v := range err.Fields() {
+			fields[fmt.Sprintf("%s_err_%d", k, i)] = fmt.Sprint(v)
+		}
+		msg = msg + fmt.Sprintf("message @ error %d: %s ", i, err.Error())
+	}
+	return &Error{
+		ErrorMessage: msg,
+		Fields:       fields,
+	}
+}
+
 func FromError(err error) *Error {
 	e := &Error{ErrorMessage: err.Error(), Fields: make(map[string]string)}
 	return e
