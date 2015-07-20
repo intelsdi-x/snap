@@ -14,7 +14,11 @@ import (
 // Publisher plugin
 type PublisherPlugin interface {
 	Plugin
-	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
+	// Convenience method to publish without a content type
+	Publish(content []byte, config map[string]ctypes.ConfigValue) error
+	// Publishes data
+	PublishType(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
+	// Gets config policy with required info that must be set
 	GetConfigPolicyNode() cpolicy.ConfigPolicyNode
 }
 

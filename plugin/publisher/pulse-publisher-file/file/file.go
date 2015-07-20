@@ -32,7 +32,13 @@ func NewFilePublisher() *filePublisher {
 	return &filePublisher{}
 }
 
-func (f *filePublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
+// Convenience method to publish without a content type
+func (f *filePublisher) Publish(content []byte, config map[string]ctypes.ConfigValue) error {
+	return f.PublishType("", content, config)
+}
+
+// Publish sends data to a file
+func (f *filePublisher) PublishType(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	logger := log.New()
 	logger.Println("Publishing started")
 	var metrics []plugin.PluginMetricType

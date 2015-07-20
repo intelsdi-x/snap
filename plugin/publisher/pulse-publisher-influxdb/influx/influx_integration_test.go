@@ -45,7 +45,7 @@ func TestInfluxPublish(t *testing.T) {
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
 			Convey("int", func() {
-				err := ip.Publish(plugin.ContentTypes[plugin.PulseGobContentType], buf.Bytes(), *cfg, log.New(os.Stdout, "influx_test", log.LstdFlags))
+				err := ip.PublishType(plugin.ContentTypes[plugin.PulseGobContentType], buf.Bytes(), *cfg, log.New(os.Stdout, "influx_test", log.LstdFlags))
 				So(err, ShouldBeNil)
 			})
 
@@ -56,7 +56,7 @@ func TestInfluxPublish(t *testing.T) {
 				buf.Reset()
 				enc = gob.NewEncoder(&buf)
 				enc.Encode(metrics)
-				err := ip.Publish(plugin.ContentTypes[plugin.PulseGobContentType], buf.Bytes(), *cfg, log.New(os.Stdout, "influx_test", log.LstdFlags))
+				err := ip.PublishType(plugin.ContentTypes[plugin.PulseGobContentType], buf.Bytes(), *cfg, log.New(os.Stdout, "influx_test", log.LstdFlags))
 				So(err, ShouldBeNil)
 			})
 
@@ -67,7 +67,7 @@ func TestInfluxPublish(t *testing.T) {
 				buf.Reset()
 				enc = gob.NewEncoder(&buf)
 				enc.Encode(metrics)
-				err := ip.Publish(plugin.ContentTypes[plugin.PulseGobContentType], buf.Bytes(), *cfg, log.New(os.Stdout, "influx_test", log.LstdFlags))
+				err := ip.PublishType(plugin.ContentTypes[plugin.PulseGobContentType], buf.Bytes(), *cfg, log.New(os.Stdout, "influx_test", log.LstdFlags))
 				So(err, ShouldNotBeNil)
 				So(err, ShouldResemble, errors.New("Unsupported data type 'string'"))
 

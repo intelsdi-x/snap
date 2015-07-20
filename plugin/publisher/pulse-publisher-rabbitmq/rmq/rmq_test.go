@@ -36,7 +36,7 @@ func TestPublish(t *testing.T) {
 			"exchange_type": ctypes.ConfigValueStr{Value: "fanout"},
 		}
 		logger := log.New(os.Stdout, "", log.LstdFlags)
-		err = rmqPub.Publish(plugin.PulseGOBContentType, data, config, logger)
+		err = rmqPub.PublishType(plugin.PulseGOBContentType, data, config, logger)
 		So(err, ShouldBeNil)
 		Convey("We can receive posted message", func() {
 			cKill := make(chan struct{})
