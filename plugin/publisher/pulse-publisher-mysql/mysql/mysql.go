@@ -159,8 +159,10 @@ func sliceToString(slice []string) string {
 
 // Supported types: []string, []int, int, string
 func interfaceToString(face interface{ }) (string, error) {
-	ret := ""
-	var err error = nil
+	var (
+		ret string
+		err error
+	)
 	switch val := face.(type) {
 	case []string:
 		ret = sliceToString(val)
@@ -182,7 +184,7 @@ func interfaceToString(face interface{ }) (string, error) {
 	case string:
 		ret = val
 	default:
-		err = errors.New(fmt.Sprintf("unsupported type"))
+		err = errors.New("unsupported type")
 	}
 	return ret, err
 }
