@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -84,10 +83,19 @@ func (s *mySQLPublisher) Publish(contentType string, content []byte, config map[
 		logger.Printf("Error: %v", err)
 		return err
 	}
+	nowTime := time.Now().Local()
+	key := ""
+	value := ""
 	for _, m := range metrics {
-		_, err := insert.Exec(time.Now().Local(), sliceToString(m.Namespace()), interfaceToString(m.Data()))
-		if err != nil {
-			panic(err)
+		key = sliceToString(m.Namespace())
+		value, err = interfaceToString(m.Data())
+		if err == nil {
+			_, err := insert.Exec(nowTime, key, value)
+			if err != nil {
+				panic(err)
+				logger.Printf("Error: %v", err)
+			}
+		} else {
 			logger.Printf("Error: %v", err)
 		}
 	}
@@ -150,20 +158,20 @@ func sliceToString(slice []string) string {
 }
 
 // Supported types: []string, []int, int, string
-func interfaceToString(face interface{ }) string {
+func interfaceToString(face interface{ }) (string, error) {
 	ret := ""
-	logger := log.New()
+	var err error = nil
 	switch val := face.(type) {
 	case []string:
 		ret = sliceToString(val)
 	case []int:
 		length := len(val)
 		if length == 0 {
-			return ret
+			return ret, err
 		}
 		ret = strconv.Itoa(val[0])
 		if length == 1 {
-			return ret
+			return ret, err
 		}
 		for i := 1; i < length; i++ {
 			ret += ", "
@@ -174,8 +182,7 @@ func interfaceToString(face interface{ }) string {
 	case string:
 		ret = val
 	default:
-		logger.Println(reflect.ValueOf(face).Kind().String() + " is not a supported type.")
-		ret = "unsupported type " + reflect.ValueOf(face).Kind().String()
+		err = errors.New(fmt.Sprintf("unsupported type"))
 	}
-	return ret
+	return ret, err
 }
