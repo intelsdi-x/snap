@@ -155,11 +155,8 @@ func interfaceToString(face interface{ }) string {
 	logger := log.New()
 	switch val := face.(type) {
 	case []string:
-		logger.Println("face is []string")
-		ret = sliceToString(face.([]string))
+		ret = sliceToString(val)
 	case []int:
-		logger.Println("face is []int")
-		val = face.([]int)
 		length := len(val)
 		if length == 0 {
 			return ret
@@ -173,9 +170,9 @@ func interfaceToString(face interface{ }) string {
 			ret += strconv.Itoa(val[i])
 		}
 	case int:
-		ret = strconv.Itoa(face.(int))
+		ret = strconv.Itoa(val)
 	case string:
-		ret = face.(string)
+		ret = val
 	default:
 		logger.Println(reflect.ValueOf(face).Kind().String() + " is not a supported type.")
 		ret = "unsupported type " + reflect.ValueOf(face).Kind().String()
