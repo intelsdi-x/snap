@@ -83,9 +83,8 @@ func (s *mySQLPublisher) Publish(contentType string, content []byte, config map[
 		logger.Printf("Error: %v", err)
 		return err
 	}
-	nowTime := time.Now().Local()
-	key := ""
-	value := ""
+	nowTime := time.Now()
+	var key, value string
 	for _, m := range metrics {
 		key = sliceToString(m.Namespace())
 		value, err = interfaceToString(m.Data())
@@ -141,17 +140,9 @@ func handleErr(e error) {
 }
 
 func sliceToString(slice []string) string {
-	length := len(slice)
-	str := ""
-	if length == 0 {
-		return str
-	}
-	str = string(slice[0])
-	if length == 1 {
-		return str
-	}
-	for i := 1; i < length; i++ {
-		str += ", " + string(slice[i])
+	var str string
+	for val, _ := range slice {
+		str += ", " + string(val)
 	}
 
 	return str
