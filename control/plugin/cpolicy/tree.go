@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 
 	"github.com/intelsdi-x/pulse/pkg/ctree"
 )
@@ -73,36 +72,7 @@ func unmarshalJSON(m map[string]interface{}, keys *[]string, tree *ctree.ConfigT
 			if nval, ok := node["rules"]; ok {
 				cpn := NewPolicyNode()
 				if rules, ok := nval.(map[string]interface{}); ok {
-					for k, rule := range rules {
-						if rule, ok := rule.(map[string]interface{}); ok {
-							req, _ := rule["required"].(bool)
-							switch rule["type"] {
-							case "integer":
-								r, _ := NewIntegerRule(k, req)
-								if d, ok := rule["default"].(map[string]interface{}); ok {
-									def, _ := d["Value"].(int)
-									r.default_ = &def
-								}
-								cpn.Add(r)
-							case "string":
-								r, _ := NewStringRule(k, req)
-								if d, ok := rule["default"].(map[string]interface{}); ok {
-									def, _ := d["Value"].(string)
-									r.default_ = &def
-								}
-								cpn.Add(r)
-							case "float":
-								r, _ := NewFloatRule(k, req)
-								if d, ok := rule["default"].(map[string]interface{}); ok {
-									def, _ := d["Value"].(float64)
-									r.default_ = &def
-								}
-								cpn.Add(r)
-							default:
-								return errors.New("Error unmarshaling rule - unknown type")
-							}
-						}
-					}
+					addRulesToConfigPolicyNode(rules, cpn)
 				}
 				tree.Add(*keys, cpn)
 			}

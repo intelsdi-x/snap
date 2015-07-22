@@ -210,7 +210,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
 			"error":  err.Error(),
-		}).Error("load plugin error")
+		}).Error("load plugin error while creating executable plugin")
 		return nil, perror.New(err)
 	}
 
@@ -219,7 +219,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
 			"error":  err.Error(),
-		}).Error("load plugin error")
+		}).Error("load plugin error while starting plugin")
 		return nil, perror.New(err)
 	}
 
@@ -229,7 +229,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
 			"error":  err.Error(),
-		}).Error("load plugin error")
+		}).Error("load plugin error while waiting for response from plugin")
 		return nil, perror.New(err)
 	}
 
@@ -238,7 +238,16 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
 			"error":  err.Error(),
-		}).Error("load plugin error")
+		}).Error("load plugin error while creating available plugin")
+		return nil, perror.New(err)
+	}
+
+	err = ap.client.Ping()
+	if err != nil {
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
+			"error":  err.Error(),
+		}).Error("load plugin error while pinging the plugin")
 		return nil, perror.New(err)
 	}
 
@@ -250,9 +259,12 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		cpt, err := colClient.GetConfigPolicyTree()
 		if err != nil {
 			pmLogger.WithFields(log.Fields{
-				"_block":      "load-plugin",
-				"plugin-type": "collector",
-				"error":       err.Error(),
+				"_block":         "load-plugin",
+				"plugin-type":    "collector",
+				"error":          err.Error(),
+				"plugin-name":    ap.Name(),
+				"plugin-version": ap.Version(),
+				"plugin-id":      ap.ID(),
 			}).Error("error in getting config policy tree")
 			return nil, perror.New(err)
 		}
@@ -345,15 +357,16 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
 			"error":  err.Error(),
-		}).Error("load plugin error")
+		}).Error("load plugin error while killing plugin executable plugin")
 		return nil, perror.New(err)
 	}
 
 	if resp.State != plugin.PluginSuccess {
 		e := fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
 		pmLogger.WithFields(log.Fields{
-			"_block": "load-plugin",
-			"error":  e,
+			"_block":          "load-plugin",
+			"error":           e,
+			"plugin response": resp.ErrorMessage,
 		}).Error("load plugin error")
 		return nil, perror.New(e)
 	}
@@ -369,7 +382,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
 			"error":  aErr,
-		}).Error("load plugin error")
+		}).Error("load plugin error while adding loaded plugin to load plugins collection")
 		return nil, aErr
 	}
 

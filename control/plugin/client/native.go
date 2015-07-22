@@ -26,28 +26,15 @@ type PluginNativeClient struct {
 }
 
 func NewCollectorNativeClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
-	p, err := newNativeClient(address, timeout, plugin.CollectorPluginType)
-
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return newNativeClient(address, timeout, plugin.CollectorPluginType)
 }
 
 func NewPublisherNativeClient(address string, timeout time.Duration) (PluginPublisherClient, error) {
-	p, err := newNativeClient(address, timeout, plugin.PublisherPluginType)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return newNativeClient(address, timeout, plugin.PublisherPluginType)
 }
 
 func NewProcessorNativeClient(address string, timeout time.Duration) (PluginProcessorClient, error) {
-	p, err := newNativeClient(address, timeout, plugin.ProcessorPluginType)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return newNativeClient(address, timeout, plugin.ProcessorPluginType)
 }
 
 func (p *PluginNativeClient) Ping() error {

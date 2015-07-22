@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
 const (
@@ -49,7 +51,17 @@ type waitSignalValue struct {
 
 // Starts the plugin and returns error if one occurred. This is non blocking.
 func (e *ExecutablePlugin) Start() error {
-	return e.cmd.Start()
+	err := e.cmd.Start()
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"_module":  "control-executableplugin",
+			"_block":   "start",
+			"cmd path": e.cmd.Path,
+			"cmd args": e.cmd.Args,
+			"error":    err.Error(),
+		}).Error("error in getting metric types")
+	}
+	return err
 }
 
 // Kills the plugin and returns error if one occurred. This is blocking.

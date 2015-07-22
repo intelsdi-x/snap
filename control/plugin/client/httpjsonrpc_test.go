@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -22,10 +23,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type mockCollectorPluginProxy struct {
+type mockProxy struct {
 }
 
-func (m *mockCollectorPluginProxy) CollectMetrics(args plugin.CollectMetricsArgs, reply *plugin.CollectMetricsReply) error {
+func (m *mockProxy) CollectMetrics(args plugin.CollectMetricsArgs, reply *plugin.CollectMetricsReply) error {
 	rand.Seed(time.Now().Unix())
 	for _, i := range args.PluginMetricTypes {
 		p := plugin.NewPluginMetricType(i.Namespace(), rand.Intn(100))
@@ -35,7 +36,7 @@ func (m *mockCollectorPluginProxy) CollectMetrics(args plugin.CollectMetricsArgs
 	return nil
 }
 
-func (m *mockCollectorPluginProxy) GetMetricTypes(args plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+func (m *mockProxy) GetMetricTypes(args plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
 	pmts := []plugin.PluginMetricType{}
 	pmts = append(pmts, plugin.PluginMetricType{
 		Namespace_: []string{"foo", "bar"},
@@ -44,7 +45,7 @@ func (m *mockCollectorPluginProxy) GetMetricTypes(args plugin.GetMetricTypesArgs
 	return nil
 }
 
-func (m *mockCollectorPluginProxy) GetConfigPolicyTree(args plugin.GetConfigPolicyTreeArgs, reply *plugin.GetConfigPolicyTreeReply) error {
+func (m *mockProxy) GetConfigPolicyTree(args plugin.GetConfigPolicyTreeArgs, reply *plugin.GetConfigPolicyTreeReply) error {
 	cpt := cpolicy.NewTree()
 	n1 := cpolicy.NewPolicyNode()
 	r1, _ := cpolicy.NewStringRule("name", false, "bob")
@@ -57,6 +58,26 @@ func (m *mockCollectorPluginProxy) GetConfigPolicyTree(args plugin.GetConfigPoli
 	n1.Add(r4)
 	cpt.Add([]string{"foo", "bar"}, n1)
 	reply.PolicyTree = *cpt
+	return nil
+}
+
+func (m *mockProxy) GetConfigPolicyNode(arg plugin.GetConfigPolicyNodeArgs, reply *plugin.GetConfigPolicyNodeReply) error {
+	cpn := cpolicy.NewPolicyNode()
+	r1, _ := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
+	r2, _ := cpolicy.NewStringRule("password", true)
+	r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
+	cpn.Add(r1, r2, r3)
+	reply.PolicyNode = *cpn
+	return nil
+}
+
+func (m *mockProxy) Process(args plugin.ProcessorArgs, reply *plugin.ProcessorReply) error {
+	reply.Content = args.Content
+	reply.ContentType = args.ContentType
+	return nil
+}
+
+func (m *mockProxy) Publish(args plugin.PublishArgs, reply *plugin.PublishReply) error {
 	return nil
 }
 
@@ -82,10 +103,13 @@ var (
 var httpStarted = false
 
 func startHTTPJSONRPC() string {
-	proxy := &mockCollectorPluginProxy{}
-	rpc.RegisterName("Collector", proxy)
+	mockProxy := &mockProxy{}
+	rpc.RegisterName("Collector", mockProxy)
+	rpc.RegisterName("Processor", mockProxy)
+	rpc.RegisterName("Publisher", mockProxy)
 	session := &mockSessionStatePluginProxy{}
 	rpc.RegisterName("SessionState", session)
+	rpc.HandleHTTP()
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -100,6 +124,7 @@ func startHTTPJSONRPC() string {
 		})
 		http.Serve(l, nil)
 	}()
+
 	return l.Addr().String()
 }
 
@@ -113,7 +138,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 
 		Convey("call", func() {
 			client := &httpJSONRPCClient{
-				url: fmt.Sprintf("http://%v", addr),
+				url: fmt.Sprintf("http://%v/rpc", addr),
 			}
 
 			Convey("method = SessionState.Ping", func() {
@@ -124,7 +149,8 @@ func TestHTTPJSONRPC(t *testing.T) {
 			})
 
 			Convey("method = Collector.CollectMetrics", func() {
-				result, err := client.call("Collector.CollectMetrics", []interface{}{[]core.Metric{}})
+				req := plugin.PluginMetricType{Namespace_: []string{"foo", "bar"}}
+				result, err := client.call("Collector.CollectMetrics", []interface{}{[]core.Metric{req}})
 				So(err, ShouldBeNil)
 				So(result, ShouldNotResemble, "")
 				So(result["result"], ShouldHaveSameTypeAs, map[string]interface{}{})
@@ -142,6 +168,25 @@ func TestHTTPJSONRPC(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(result, ShouldNotResemble, "")
 				So(result["result"], ShouldHaveSameTypeAs, map[string]interface{}{})
+			})
+
+			Convey("method = Processor.GetConfigPolicyNode", func() {
+				result, err := client.call("Processor.GetConfigPolicyNode", []interface{}{})
+				So(err, ShouldBeNil)
+				So(result, ShouldNotResemble, "")
+				So(result["result"], ShouldHaveSameTypeAs, map[string]interface{}{})
+			})
+
+			Convey("method = Processor.Process", func() {
+				result, err := client.call("Processor.Process", []interface{}{})
+				So(err, ShouldBeNil)
+				So(result, ShouldNotResemble, "")
+				So(result["result"], ShouldHaveSameTypeAs, map[string]interface{}{})
+			})
+
+			Convey("method = Publisher.Publish", func() {
+				_, err := client.call("Publisher.Publish", []interface{}{})
+				So(err, ShouldBeNil)
 			})
 		})
 	})
@@ -233,6 +278,89 @@ func TestHTTPJSONRPC(t *testing.T) {
 				So(len(cperrs.Errors()), ShouldEqual, 1)
 				So(cperrs.Errors()[0].Error(), ShouldContainSubstring, "password")
 			})
+		})
+
+		Convey("Processor Client", func() {
+			p := NewProcessorHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second)
+			So(c, ShouldNotBeNil)
+
+			Convey("Ping", func() {
+				err := p.Ping()
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Kill", func() {
+				err := p.Kill("somereason")
+				So(err, ShouldBeNil)
+			})
+
+			Convey("GetConfigPolicyNode", func() {
+				cpn, err := p.GetConfigPolicyNode()
+				So(err, ShouldBeNil)
+				So(cpn, ShouldNotBeNil)
+				cpn_ := cpolicy.NewPolicyNode()
+				r1, err := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
+				r2, _ := cpolicy.NewStringRule("password", true)
+				r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
+				So(err, ShouldBeNil)
+				cpn_.Add(r1, r2, r3)
+				cpnjson, _ := cpn.MarshalJSON()
+				cpn_json, _ := cpn_.MarshalJSON()
+				So(string(cpnjson), ShouldResemble, string(cpn_json))
+			})
+
+			Convey("Process metrics", func() {
+				pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, 1)
+				b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
+				contentType, content, err := p.Process(plugin.PulseJSONContentType, b, nil)
+				So(contentType, ShouldResemble, plugin.PulseJSONContentType)
+				So(content, ShouldNotBeNil)
+				So(err, ShouldEqual, nil)
+				var pmts []plugin.PluginMetricType
+				err = json.Unmarshal(content, &pmts)
+				So(err, ShouldBeNil)
+				So(len(pmts), ShouldEqual, 1)
+				So(pmts[0].Data(), ShouldEqual, 1)
+				So(pmts[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+			})
+		})
+
+		Convey("Publisher Client", func() {
+			p := NewPublisherHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second)
+			So(c, ShouldNotBeNil)
+
+			Convey("Ping", func() {
+				err := p.Ping()
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Kill", func() {
+				err := p.Kill("somereason")
+				So(err, ShouldBeNil)
+			})
+
+			Convey("GetConfigPolicyNode", func() {
+				cpn, err := p.GetConfigPolicyNode()
+				So(err, ShouldBeNil)
+				So(cpn, ShouldNotBeNil)
+				cpn_ := cpolicy.NewPolicyNode()
+				r1, err := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
+				r2, _ := cpolicy.NewStringRule("password", true)
+				r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
+				So(err, ShouldBeNil)
+				cpn_.Add(r1, r2, r3)
+				cpnjson, _ := cpn.MarshalJSON()
+				cpn_json, _ := cpn_.MarshalJSON()
+				So(string(cpnjson), ShouldResemble, string(cpn_json))
+			})
+
+			Convey("Publish metrics", func() {
+				pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, 1)
+				b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
+				err := p.Publish(plugin.PulseJSONContentType, b, nil)
+				So(err, ShouldBeNil)
+			})
+
 		})
 
 	})

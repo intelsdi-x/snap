@@ -78,31 +78,42 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 	}
 	ap.key = fmt.Sprintf("%s:%s:%d", ap.pluginType.String(), ap.name, ap.version)
 
+	listenUrl := fmt.Sprintf("http://%v/rpc", resp.ListenAddress)
 	// Create RPC Client
 	switch resp.Type {
 	case plugin.CollectorPluginType:
 		switch resp.Meta.RPCType {
 		case plugin.JSONRPC:
-			ap.Client = client.NewCollectorHttpJSONRPCClient(fmt.Sprintf("http://%v", resp.ListenAddress), DefaultClientTimeout)
+			ap.client = client.NewCollectorHttpJSONRPCClient(listenUrl, DefaultClientTimeout)
 		case plugin.NativeRPC:
 			c, e := client.NewCollectorNativeClient(resp.ListenAddress, DefaultClientTimeout)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
-			ap.Client = c
+			ap.client = c
 		}
 	case plugin.PublisherPluginType:
-		c, e := client.NewPublisherNativeClient(resp.ListenAddress, DefaultClientTimeout)
-		if e != nil {
-			return nil, errors.New("error while creating client connection: " + e.Error())
+		switch resp.Meta.RPCType {
+		case plugin.JSONRPC:
+			ap.client = client.NewPublisherHttpJSONRPCClient(listenUrl, DefaultClientTimeout)
+		case plugin.NativeRPC:
+			c, e := client.NewPublisherNativeClient(resp.ListenAddress, DefaultClientTimeout)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
 		}
-		ap.client = c
 	case plugin.ProcessorPluginType:
-		c, e := client.NewProcessorNativeClient(resp.ListenAddress, DefaultClientTimeout)
-		if e != nil {
-			return nil, errors.New("error while creating client connection: " + e.Error())
+		switch resp.Meta.RPCType {
+		case plugin.JSONRPC:
+			ap.client = client.NewProcessorHttpJSONRPCClient(listenUrl, DefaultClientTimeout)
+		case plugin.NativeRPC:
+			c, e := client.NewProcessorNativeClient(resp.ListenAddress, DefaultClientTimeout)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
 		}
-		ap.client = c
 	default:
 		return nil, errors.New("Cannot create a client for a plugin of the type: " + resp.Type.String())
 	}

@@ -125,7 +125,7 @@ func TestStartCollector(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(rc, ShouldEqual, 0)
 				So(s.ListenPort(), ShouldNotResemble, "")
-				response, err := http.Get(fmt.Sprintf("http://%s", s.ListenAddress()))
+				response, err := http.Get(fmt.Sprintf("http://%s/debug/rpc", s.ListenAddress()))
 				So(err, ShouldEqual, nil)
 				So(response.StatusCode, ShouldEqual, 200)
 

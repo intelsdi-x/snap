@@ -3,8 +3,10 @@ package plugin
 import (
 	"encoding/gob"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/rpc"
 
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -48,21 +50,35 @@ func StartPublisher(p PublisherPlugin, s Session, r *Response) (error, int) {
 		}
 	}
 
+	switch r.Meta.RPCType {
+	case JSONRPC:
+		rpc.HandleHTTP()
+		http.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
+			defer req.Body.Close()
+			w.Header().Set("Content-Type", "application/json")
+			res := NewRPCRequest(req.Body).Call()
+			io.Copy(w, res)
+		})
+		go http.Serve(l, nil)
+	case NativeRPC:
+		go func() {
+			for {
+				conn, err := l.Accept()
+				if err != nil {
+					panic(err)
+				}
+				go rpc.ServeConn(conn)
+			}
+		}()
+	default:
+		panic("Unsupported RPC type")
+	}
+
 	resp := s.generateResponse(r)
 	// Output response to stdout
 	fmt.Println(string(resp))
 
 	go s.heartbeatWatch(s.KillChan())
-
-	go func() {
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				panic(err)
-			}
-			go rpc.ServeConn(conn)
-		}
-	}()
 
 	if s.isDaemon() {
 		exitCode = <-s.KillChan() // Closing of channel kills

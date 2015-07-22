@@ -31,10 +31,6 @@ type CollectMetricsReply struct {
 type GetMetricTypesArgs struct {
 }
 
-func (g *GetMetricTypesArgs) UnmarshalJSON(data []byte) error {
-	return nil
-}
-
 // GetMetricTypesReply assigned by GetMetricTypes() implementation
 type GetMetricTypesReply struct {
 	PluginMetricTypes []PluginMetricType

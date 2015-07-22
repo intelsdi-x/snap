@@ -216,12 +216,13 @@ func (r *rpcRequest) Read(p []byte) (n int, err error) {
 
 // Write implements the io.ReadWriteCloser Write method.
 func (r *rpcRequest) Write(p []byte) (n int, err error) {
-	return r.rw.Write(p)
+	n, err = r.rw.Write(p)
+	defer func(done chan bool) { done <- true }(r.done)
+	return
 }
 
 // Close implements the io.ReadWriteCloser Close method.
 func (r *rpcRequest) Close() error {
-	r.done <- true
 	return nil
 }
 

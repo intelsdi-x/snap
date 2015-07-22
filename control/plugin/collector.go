@@ -55,22 +55,16 @@ func StartCollector(c CollectorPlugin, s Session, r *Response) (error, int) {
 		}
 	}
 
-	resp := s.generateResponse(r)
-	// Output response to stdout
-	fmt.Println(string(resp))
-
-	go s.heartbeatWatch(s.KillChan())
 	switch r.Meta.RPCType {
 	case JSONRPC:
-		go func() {
-			http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-				defer req.Body.Close()
-				w.Header().Set("Content-Type", "application/json")
-				res := NewRPCRequest(req.Body).Call()
-				io.Copy(w, res)
-			})
-			http.Serve(l, nil)
-		}()
+		rpc.HandleHTTP()
+		http.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
+			defer req.Body.Close()
+			w.Header().Set("Content-Type", "application/json")
+			res := NewRPCRequest(req.Body).Call()
+			io.Copy(w, res)
+		})
+		go http.Serve(l, nil)
 	case NativeRPC:
 		go func() {
 			for {
@@ -84,6 +78,12 @@ func StartCollector(c CollectorPlugin, s Session, r *Response) (error, int) {
 	default:
 		panic("Unsupported RPC type")
 	}
+
+	resp := s.generateResponse(r)
+	// Output response to stdout
+	fmt.Println(string(resp))
+
+	go s.heartbeatWatch(s.KillChan())
 
 	if s.isDaemon() {
 		exitCode = <-s.KillChan() // Closing of channel kills
