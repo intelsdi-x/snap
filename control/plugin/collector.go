@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log" // TODO proper logging to file or elsewhere
@@ -61,6 +62,19 @@ func StartCollector(c CollectorPlugin, s Session, r *Response) (error, int) {
 		http.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
 			defer req.Body.Close()
 			w.Header().Set("Content-Type", "application/json")
+			if req.ContentLength == 0 {
+				encoder := json.NewEncoder(w)
+				encoder.Encode(&struct {
+					Id     interface{} `json:"id"`
+					Result interface{} `json:"result"`
+					Error  interface{} `json:"error"`
+				}{
+					Id:     nil,
+					Result: nil,
+					Error:  "rpc: method request ill-formed",
+				})
+				return
+			}
 			res := NewRPCRequest(req.Body).Call()
 			io.Copy(w, res)
 		})
