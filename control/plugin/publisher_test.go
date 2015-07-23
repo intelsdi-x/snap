@@ -1,9 +1,7 @@
 package plugin
 
 import (
-	"errors"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -86,44 +84,19 @@ func (s *MockPublisherSessionState) heartbeatWatch(killChan chan int) {
 }
 
 func TestStartPublisher(t *testing.T) {
-	// These setting ensure it exists before test timeout
-	PingTimeoutLimit = 1
-	logger := log.New(os.Stdout,
-		"test: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Convey("Collector", t, func() {
-		Convey("start with unknown port", func() {
-			s := &MockPublisherSessionState{
-				listenPort:          "-1",
-				token:               "abcdef",
-				logger:              logger,
-				PingTimeoutDuration: time.Millisecond * 100,
-				killChan:            make(chan int),
+	Convey("Publisher", t, func() {
+		Convey("start with dynamic port", func() {
+			c := new(MockProcessor)
+			m := &PluginMeta{
+				RPCType: JSONRPC,
+				Type:    PublisherPluginType,
 			}
-			r := new(Response)
-			c := new(MockPublisher)
-			So(func() { StartPublisher(c, s, r) }, ShouldPanic)
-			Convey("start with dynamic port", func() {
-				s = &MockPublisherSessionState{
-					listenPort:          "0",
-					token:               "1234",
-					logger:              logger,
-					PingTimeoutDuration: time.Millisecond * 100,
-					killChan:            make(chan int),
-				}
-				r := new(Response)
-				c := new(MockPublisher)
-				err, rc := StartPublisher(c, s, r)
-				So(err, ShouldBeNil)
-				So(rc, ShouldEqual, 0)
-
-				Convey("RPC service already registered", func() {
-					err, _ := StartPublisher(c, s, r)
-					So(err, ShouldResemble, errors.New("rpc: service already defined: MockPublisherSessionState"))
-				})
-
+			// we will panic since rpc.HandleHttp has already
+			// been called during TestStartCollector
+			Convey("RPC service already registered", func() {
+				So(func() { Start(m, c, "{}") }, ShouldPanic)
 			})
+
 		})
 	})
 }

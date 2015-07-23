@@ -4,9 +4,13 @@ package plugin
 import (
 	"bytes"
 	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 	"io" // Don't use "fmt.Print*"
 	"log"
+	"net"
+	"net/http"
+	"net/rpc"
 	"net/rpc/jsonrpc"
 	"regexp"
 	"runtime"
@@ -150,48 +154,127 @@ type Response struct {
 // requestString - plugins arguments (marshaled json of control/plugin Arg struct)
 // returns an error and exitCode (exitCode from SessionState initilization or plugin termination code)
 func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
-	sessionState, sErr, retCode := NewSessionState(requestString)
+	s, sErr, retCode := NewSessionState(requestString)
 	if sErr != nil {
 		return sErr, retCode
 	}
 
-	//should we be initializing this
-	sessionState.LastPing = time.Now()
+	var (
+		r        *Response
+		exitCode int = 0
+	)
 
 	switch m.Type {
 	case CollectorPluginType:
-		r := &Response{
+		r = &Response{
 			Type:  CollectorPluginType,
 			State: PluginSuccess,
 			Meta:  *m,
 		}
-		err, retCode := StartCollector(c.(CollectorPlugin), sessionState, r)
-		if err != nil {
-			return sErr, retCode
+		// Create our proxy
+		proxy := &collectorPluginProxy{
+			Plugin:  c.(CollectorPlugin),
+			Session: s,
 		}
+		// Register the proxy under the "Collector" namespace
+		rpc.RegisterName("Collector", proxy)
 	case PublisherPluginType:
-		r := &Response{
+		r = &Response{
 			Type:  PublisherPluginType,
 			State: PluginSuccess,
 			Meta:  *m,
 		}
-		err, retCode := StartPublisher(c.(PublisherPlugin), sessionState, r)
-		if err != nil {
-			return sErr, retCode
+		// Create our proxy
+		proxy := &publisherPluginProxy{
+			Plugin:  c.(PublisherPlugin),
+			Session: s,
 		}
+
+		// Register the proxy under the "Publisher" namespace
+		rpc.RegisterName("Publisher", proxy)
 	case ProcessorPluginType:
-		r := &Response{
+		r = &Response{
 			Type:  ProcessorPluginType,
 			State: PluginSuccess,
 			Meta:  *m,
 		}
-		err, retCode := StartProcessor(c.(ProcessorPlugin), sessionState, r)
-		if err != nil {
-			return sErr, retCode
+		// Create our proxy
+		proxy := &processorPluginProxy{
+			Plugin:  c.(ProcessorPlugin),
+			Session: s,
+		}
+		// Register the proxy under the "Publisher" namespace
+		rpc.RegisterName("Processor", proxy)
+	}
+
+	// Register common plugin methods used for utility reasons
+	e := rpc.Register(s)
+	if e != nil {
+		if e.Error() != "rpc: service already defined: SessionState" {
+			log.Println(e.Error())
+			s.Logger().Println(e.Error())
+			return e, 2
 		}
 	}
 
-	return nil, retCode
+	l, err := net.Listen("tcp", "127.0.0.1:"+s.ListenPort())
+	if err != nil {
+		s.Logger().Println(err.Error())
+		panic(err)
+	}
+	s.SetListenAddress(l.Addr().String())
+	s.Logger().Printf("Listening %s\n", l.Addr())
+	s.Logger().Printf("Session token %s\n", s.Token())
+
+	switch r.Meta.RPCType {
+	case JSONRPC:
+		rpc.HandleHTTP()
+		http.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
+			defer req.Body.Close()
+			w.Header().Set("Content-Type", "application/json")
+			if req.ContentLength == 0 {
+				encoder := json.NewEncoder(w)
+				encoder.Encode(&struct {
+					Id     interface{} `json:"id"`
+					Result interface{} `json:"result"`
+					Error  interface{} `json:"error"`
+				}{
+					Id:     nil,
+					Result: nil,
+					Error:  "rpc: method request ill-formed",
+				})
+				return
+			}
+			res := NewRPCRequest(req.Body).Call()
+			io.Copy(w, res)
+		})
+		go http.Serve(l, nil)
+	case NativeRPC:
+		go func() {
+			for {
+				conn, err := l.Accept()
+				if err != nil {
+					panic(err)
+				}
+				go rpc.ServeConn(conn)
+			}
+		}()
+	default:
+		panic("Unsupported RPC type")
+	}
+
+	resp := s.generateResponse(r)
+	// Output response to stdout
+	fmt.Println(string(resp))
+
+	go s.heartbeatWatch(s.KillChan())
+
+	if s.isDaemon() {
+		exitCode = <-s.KillChan() // Closing of channel kills
+	}
+
+	return nil, exitCode
+	// return nil, retCode
 }
 
 // rpcRequest represents a RPC request.
