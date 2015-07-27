@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -57,7 +58,7 @@ func (s *mySQLPublisher) Publish(contentType string, content []byte, config map[
 	database := config["database"].(ctypes.ConfigValueStr).Value
 	tableName := config["table name"].(ctypes.ConfigValueStr).Value
 	tableColumns := "(time_posted VARCHAR(200), key_column VARCHAR(200), value_column VARCHAR(200))"
-	db, err := sql.Open("mysql", username + ":" + password + "@/" + database)
+	db, err := sql.Open("mysql", username+":"+password+"@/"+database)
 	defer db.Close()
 	if err != nil {
 		logger.Printf("Error: %v", err)
@@ -140,16 +141,11 @@ func handleErr(e error) {
 }
 
 func sliceToString(slice []string) string {
-	var str string
-	for val, _ := range slice {
-		str += ", " + string(val)
-	}
-
-	return str
+	return strings.Join(slice, ", ")
 }
 
 // Supported types: []string, []int, int, string
-func interfaceToString(face interface{ }) (string, error) {
+func interfaceToString(face interface{}) (string, error) {
 	var (
 		ret string
 		err error

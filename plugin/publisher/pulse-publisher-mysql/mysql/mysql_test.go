@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
-	//"os"
 	"testing"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
