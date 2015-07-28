@@ -62,7 +62,14 @@ func (h *httpJSONRPCClient) Kill(reason string) error {
 }
 
 // CollectMetrics returns collected metrics
-func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {
+func (h *httpJSONRPCClient) CollectMetrics(mts_ []core.Metric) ([]core.Metric, error) {
+	mts := make([]core.Metric, len(mts_))
+	for i, m := range mts_ {
+		mts[i] = &plugin.PluginMetricType{
+			Namespace_: m.Namespace(),
+			Config_:    m.Config(),
+		}
+	}
 	res, err := h.call("Collector.CollectMetrics", []interface{}{mts})
 	if err != nil {
 		return nil, err
