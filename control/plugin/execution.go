@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -15,6 +13,10 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+)
+
+var (
+	execLogger = logrus.WithField("_module", "control-plugin-execution")
 )
 
 const (
@@ -66,6 +68,7 @@ func (e *ExecutablePlugin) Start() error {
 
 // Kills the plugin and returns error if one occurred. This is blocking.
 func (e *ExecutablePlugin) Kill() error {
+	execLogger.WithField("path", e.cmd.Path).Debug("Hard killing plugin")
 	return e.cmd.Process.Kill()
 }
 
@@ -121,8 +124,8 @@ func (e *ExecutablePlugin) WaitForResponse(timeout time.Duration) (*Response, er
 
 // Private method which handles behvaior for wait for response for daemon and non-daemon modes.
 func waitHandling(p pluginExecutor, timeout time.Duration, logpath string) (*Response, error) {
-	// disable to turn debug logging back on
-	log.SetOutput(ioutil.Discard)
+	log := execLogger.WithField("_block", "waitHandling")
+
 	/*
 		Bit of complex behavior so some notes:
 			A. We need to wait for three scenarios depending on the daemon setting
@@ -158,18 +161,18 @@ func waitHandling(p pluginExecutor, timeout time.Duration, logpath string) (*Res
 	waitChannel := make(chan waitSignalValue, 3)
 
 	// send timeout signal to our channel on timeout
-	log.Println("timeout chan start")
+	log.Debug("timeout chan start")
 	go waitForPluginTimeout(timeout, p, waitChannel)
 
 	// send response received signal to our channel on response
-	log.Println("response chan start")
+	log.Debug("response chan start")
 	go waitForResponseFromPlugin(p.ResponseReader(), waitChannel, logpath)
 
 	// log stderr from the plugin
 	go logStdErr(p.ErrorResponseReader(), logpath)
 
 	// send killed plugin signal to our channel on kill
-	log.Println("kill chan start")
+	log.Debug("kill chan start")
 	go waitForKilledPlugin(p, waitChannel)
 
 	// flag to indicate a timeout occurred
@@ -183,41 +186,40 @@ func waitHandling(p pluginExecutor, timeout time.Duration, logpath string) (*Res
 		w := <-waitChannel
 		switch w.Signal {
 		case pluginTimeout: // plugin timeout signal received
-			log.Println("plugin timeout signal received")
+			log.Debug("plugin timeout signal received")
 			// If timeout received after response we are ok with it and
 			// don't need to flip the timeout flag.
-			fmt.Println(response)
 			if response == nil {
-				log.Println("timeout flag flipped")
+				log.Debug("timeout flag set")
 				// We got a timeout without getting a response
 				// set the flag
 				timeoutFlag = true
-				// Kill the plugin. This will eventually trigger a kill signal.
+				// Kill the plugin.
 				p.Kill()
 				break
 			}
-			log.Println("timeout flag ignored because of response")
+			log.Debug("timeout flag ignored because of response")
 
 		case pluginKilled: // plugin killed signal received
-			log.Println("plugin kill signal received")
+			log.Error("plugin kill signal received")
 			// We check a few scenarios and return based on how things worked out to this point
 			// 1) If a bad response was received we return signalling this with an error (fail)
 			if errResponse != nil {
-				log.Println("returning with error (bad response)")
+				log.Error("returning with error (bad response)")
 				return nil, *errResponse
 			}
 			// 2) If a timeout occurred we return that as error (fail)
 			if timeoutFlag {
-				log.Println("returning with error (timeout)")
+				log.Error("returning with error (timeout)")
 				return nil, errors.New("timeout waiting for response")
 			}
 			// 3) If a good response was returned we return that with no error (success)
 			if response != nil {
-				log.Println("returning with response (after wait for kill)")
+				log.Error("returning with response (after wait for kill)")
 				return response, nil
 			}
 			// 4) otherwise we return no response and an error that no response was received (fail)
-			log.Println("returning with error (killed without response)")
+			log.Error("returning with error (killed without response)")
 			// The kill could have been without error so we check if ExitError was returned and return
 			// our own if not.
 			if *w.Error != nil {
@@ -227,14 +229,14 @@ func waitHandling(p pluginExecutor, timeout time.Duration, logpath string) (*Res
 			}
 
 		case pluginResponseOk: // plugin response (valid) signal received
-			log.Println("plugin response (ok) received")
+			log.Debug("plugin response (ok) received")
 			// If in daemon mode we can return now (succes) since the plugin will continue to run
 			// if not we let the loop continue (to wait for kill)
 			response = w.Response
 			return response, nil
 
 		case pluginResponseBad: // plugin response (invalid) signal received
-			log.Println("plugin response (bad) received")
+			log.Error("plugin response (bad) received")
 			// A bad response is end of game in all scerarios and indictive of an unhealthy or unsupported plugin
 			// We save the response bad error var (for handling later on plugin kill)
 			errResponse = w.Error
