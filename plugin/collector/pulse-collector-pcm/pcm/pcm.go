@@ -116,7 +116,7 @@ func New() (*PCM, error) {
 			pcm.mutex.Lock()
 			datal := strings.Split(strings.TrimSuffix(scanner.Text(), ";"), ";")
 			for i, d := range datal[2:] {
-				v, err := strconv.ParseFloat(d, 64)
+				v, err := strconv.ParseFloat(strings.TrimSpace(d), 64)
 				if err == nil {
 					pcm.data[pcm.keys[i]] = v
 				} else {
