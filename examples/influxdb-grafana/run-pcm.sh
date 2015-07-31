@@ -77,7 +77,7 @@ echo -n ">>adding pulse task"
 TASK="${TMPDIR}/pulse-task-$$.json"
 echo "$TASK"
 cat $PULSE_PATH/../examples/tasks/pcm-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK 
-$PULSE_PATH/bin/pulsectl task create $TASK
+$PULSE_PATH/bin/pulsectl task create -t $TASK
 
 sleep 1
 
