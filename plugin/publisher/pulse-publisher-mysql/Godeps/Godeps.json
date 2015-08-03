@@ -1,0 +1,37 @@
+{
+	"ImportPath": "github.com/intelsdi-x/pulse/plugin/publisher/pulse-publisher-sql",
+	"GoVersion": "go1.3.3",
+	"Deps": [
+		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Rev": "fb7299726d2e68745a8805b14f2ff44b5c2cfa84"
+		},
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.7.3",
+			"Rev": "55eb11d21d2a31a3cc93838241d04800f52e823d"
+		},
+		{
+			"ImportPath": "github.com/intelsdi-x/gomit",
+			"Rev": "4f098da2bbb51d787be003e4abfbc25d01837564"
+		},
+		{
+			"ImportPath": "github.com/jtolds/gls",
+			"Rev": "f1ac7f4f24f50328e6bc838ca4437d1612a0243c"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/assertions",
+			"Comment": "1.5.0-379-g75acd40",
+			"Rev": "75acd402ca38dc205641a826bb58b9de014926dd"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/goconvey/convey",
+			"Comment": "1.5.0-386-geb2e83c",
+			"Rev": "eb2e83c1df892d2c9ad5a3c85672da30be585dfd"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "c1cd2254a6dd314c9d73c338c12688c9325d85c6"
+		}
+	]
+}
