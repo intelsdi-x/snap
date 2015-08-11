@@ -274,7 +274,6 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	}
 
 	return nil, exitCode
-	// return nil, retCode
 }
 
 // rpcRequest represents a RPC request.

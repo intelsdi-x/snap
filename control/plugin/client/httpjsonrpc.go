@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -75,16 +76,50 @@ func (h *httpJSONRPCClient) CollectMetrics(mts_ []core.Metric) ([]core.Metric, e
 		return nil, err
 	}
 	var metrics []core.Metric
-	for _, m := range res["result"].(map[string]interface{})["PluginMetrics"].([]interface{}) {
-		j, err := json.Marshal(m)
-		if err != nil {
+	if _, ok := res["result"]; !ok {
+		err := errors.New("Invalid response: expected the response map to contain the key 'result'.")
+		logger.WithFields(log.Fields{
+			"_block":           "CollectMetrics",
+			"jsonrpc response": fmt.Sprintf("%+v", res),
+		}).Error(err)
+		return nil, err
+	}
+	if resmap, ok := res["result"].(map[string]interface{}); ok {
+		if _, ok := resmap["PluginMetrics"]; !ok {
+			err := errors.New("Invalid response: expected the result value to be a map that contains key 'PluginMetrics'.")
+			logger.WithFields(log.Fields{
+				"_block":           "CollectMetrics",
+				"jsonrpc response": fmt.Sprintf("%+v", res),
+			}).Error(err)
 			return nil, err
 		}
-		pmt := &plugin.PluginMetricType{}
-		if err := json.Unmarshal(j, &pmt); err != nil {
+		if pms, ok := resmap["PluginMetrics"].([]interface{}); ok {
+			for _, m := range pms {
+				j, err := json.Marshal(m)
+				if err != nil {
+					return nil, err
+				}
+				pmt := &plugin.PluginMetricType{}
+				if err := json.Unmarshal(j, &pmt); err != nil {
+					return nil, err
+				}
+				metrics = append(metrics, pmt)
+			}
+		} else {
+			err := errors.New("Invalid response: expected 'PluginMetrics' to contain a list of metrics")
+			logger.WithFields(log.Fields{
+				"_block":           "CollectMetrics",
+				"jsonrpc response": fmt.Sprintf("%+v", res),
+			}).Error(err)
 			return nil, err
 		}
-		metrics = append(metrics, pmt)
+	} else {
+		err := errors.New("Invalid response: expected 'result' to be a map")
+		logger.WithFields(log.Fields{
+			"_block":           "CollectMetrics",
+			"jsonrpc response": fmt.Sprintf("%+v", res),
+		}).Error(err)
+		return nil, err
 	}
 	return metrics, err
 }
@@ -202,7 +237,6 @@ func (h *httpJSONRPCClient) call(method string, args []interface{}) (map[string]
 		return nil, err
 	}
 	client := http.Client{Timeout: h.timeout}
-	// log.Debugf("Request: %v", string(data))
 	resp, err := client.Post(h.url,
 		"application/json", strings.NewReader(string(data)))
 	if err != nil {
@@ -215,8 +249,6 @@ func (h *httpJSONRPCClient) call(method string, args []interface{}) (map[string]
 		return nil, err
 	}
 	defer resp.Body.Close()
-	// bs, err := ioutil.ReadAll(resp.Body)
-	// log.Debugf("json-result: %v \n", string(bs))
 	result := make(map[string]interface{})
 	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		bs, _ := ioutil.ReadAll(resp.Body)

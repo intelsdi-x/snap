@@ -146,7 +146,6 @@ func NewSessionState(pluginArgsMsg string) (*SessionState, error, int) {
 	if err != nil {
 		return nil, err, 2
 	}
-	println(fmt.Sprintf("%+v", pluginArg))
 
 	// If no port was provided we let the OS select a port for us.
 	// This is safe as address is returned in the Response and keep
