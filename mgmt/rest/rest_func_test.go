@@ -449,13 +449,18 @@ func TestPluginRestCalls(t *testing.T) {
 				plr3 := r3.Body.(*rbody.PluginListReturned)
 
 				So(len(plr3.LoadedPlugins), ShouldEqual, 2)
-				So(plr3.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(plr3.LoadedPlugins[0].Version, ShouldEqual, 1)
+				So(plr3.LoadedPlugins[0].Name, ShouldContainSubstring, "dummy")
+				So(plr3.LoadedPlugins[0].Version, ShouldBeIn, []int{1, 2})
 				So(plr3.LoadedPlugins[0].Status, ShouldEqual, "loaded")
 				So(plr3.LoadedPlugins[0].Type, ShouldEqual, "collector")
 				So(plr3.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So(plr3.LoadedPlugins[1].Name, ShouldEqual, "dummy2")
-				So(plr3.LoadedPlugins[1].Version, ShouldEqual, 2)
+				if plr3.LoadedPlugins[0].Name == "dummy1" {
+					So(plr3.LoadedPlugins[1].Name, ShouldEqual, "dummy2")
+					So(plr3.LoadedPlugins[1].Version, ShouldEqual, 2)
+				} else {
+					So(plr3.LoadedPlugins[1].Name, ShouldEqual, "dummy1")
+					So(plr3.LoadedPlugins[1].Version, ShouldEqual, 1)
+				}
 				So(plr3.LoadedPlugins[1].Status, ShouldEqual, "loaded")
 				So(plr3.LoadedPlugins[1].Type, ShouldEqual, "collector")
 				So(plr3.LoadedPlugins[1].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
@@ -585,17 +590,25 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
 				So(len(plr.LoadedPlugins), ShouldEqual, 2)
 				So(len(plr.AvailablePlugins), ShouldEqual, 0)
-				So(plr.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(plr.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(plr.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+				var (
+					x, y int
+				)
+				if plr.LoadedPlugins[0].Name == "dummy1" {
+					y = 1
+				} else {
+					x = 1
+				}
+				So(plr.LoadedPlugins[x].Name, ShouldEqual, "dummy1")
+				So(plr.LoadedPlugins[x].Version, ShouldEqual, 1)
+				So(plr.LoadedPlugins[x].Status, ShouldEqual, "loaded")
+				So(plr.LoadedPlugins[x].Type, ShouldEqual, "collector")
+				So(plr.LoadedPlugins[x].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 				//
-				So(plr.LoadedPlugins[1].Name, ShouldEqual, "dummy2")
-				So(plr.LoadedPlugins[1].Version, ShouldEqual, 2)
-				So(plr.LoadedPlugins[1].Status, ShouldEqual, "loaded")
-				So(plr.LoadedPlugins[1].Type, ShouldEqual, "collector")
-				So(plr.LoadedPlugins[1].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+				So(plr.LoadedPlugins[y].Name, ShouldEqual, "dummy2")
+				So(plr.LoadedPlugins[y].Version, ShouldEqual, 2)
+				So(plr.LoadedPlugins[y].Status, ShouldEqual, "loaded")
+				So(plr.LoadedPlugins[y].Type, ShouldEqual, "collector")
+				So(plr.LoadedPlugins[y].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 			})
 		})
 

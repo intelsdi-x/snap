@@ -3,6 +3,7 @@ package cpolicy
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -49,6 +50,33 @@ func NewPolicyNode() *ConfigPolicyNode {
 		rules: make(map[string]Rule),
 		mutex: &sync.Mutex{},
 	}
+}
+
+// UnmarshalJSON unmarshals JSON into a ConfigPolicyTree
+func (c *ConfigPolicyNode) UnmarshalJSON(data []byte) error {
+	m := map[string]interface{}{}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(&m); err != nil {
+		return err
+	}
+	if n, ok := m["PolicyNode"]; ok {
+		if pn, ok := n.(map[string]interface{}); ok {
+			if rs, ok := pn["rules"]; ok {
+				if rules, ok := rs.(map[string]interface{}); ok {
+					addRulesToConfigPolicyNode(rules, c)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (c *ConfigPolicyNode) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Rules map[string]Rule `json:"rules"`
+	}{
+		Rules: c.rules,
+	})
 }
 
 func (c *ConfigPolicyNode) GobEncode() ([]byte, error) {
@@ -124,4 +152,44 @@ func (c ConfigPolicyNode) Merge(n ctree.Node) ctree.Node {
 	}
 	// Return modified version of ConfigPolicyNode(as ctree.Node)
 	return c
+}
+
+// addRulesToConfigPolicyNode accepts a map of empty interfaces that will be
+// marshalled into rules which will be added to the ConfigPolicyNode provided
+// as the second argument.  This function is called used by the UnmarshalJSON
+// for ConfigPolicyTree and ConfigPolicyNode.
+func addRulesToConfigPolicyNode(rules map[string]interface{}, cpn *ConfigPolicyNode) error {
+	for k, rule := range rules {
+		if rule, ok := rule.(map[string]interface{}); ok {
+			req, _ := rule["required"].(bool)
+			switch rule["type"] {
+			case "integer":
+				r, _ := NewIntegerRule(k, req)
+				if d, ok := rule["default"].(map[string]interface{}); ok {
+					// json encoding an int results in a float when decoding
+					def_, _ := d["Value"].(float64)
+					def := int(def_)
+					r.default_ = &def
+				}
+				cpn.Add(r)
+			case "string":
+				r, _ := NewStringRule(k, req)
+				if d, ok := rule["default"].(map[string]interface{}); ok {
+					def, _ := d["Value"].(string)
+					r.default_ = &def
+				}
+				cpn.Add(r)
+			case "float":
+				r, _ := NewFloatRule(k, req)
+				if d, ok := rule["default"].(map[string]interface{}); ok {
+					def, _ := d["Value"].(float64)
+					r.default_ = &def
+				}
+				cpn.Add(r)
+			default:
+				return errors.New("unknown type")
+			}
+		}
+	}
+	return nil
 }

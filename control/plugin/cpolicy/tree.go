@@ -3,6 +3,7 @@ package cpolicy
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 
 	"github.com/intelsdi-x/pulse/pkg/ctree"
 )
@@ -34,6 +35,68 @@ func (c *ConfigPolicyTree) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
 	return decoder.Decode(&c.cTree)
+}
+
+// UnmarshalJSON unmarshals JSON into a ConfigPolicyTree
+func (c *ConfigPolicyTree) UnmarshalJSON(data []byte) error {
+	m := map[string]map[string]interface{}{}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(&m); err != nil {
+		return err
+	}
+	c.cTree = ctree.New()
+	if ctree, ok := m["PolicyTree"]["ctree"]; ok {
+		if root, ok := ctree.(map[string]interface{}); ok {
+			if node, ok := root["root"]; ok {
+				if n, ok := node.(map[string]interface{}); ok {
+					return unmarshalJSON(n, &[]string{}, c.cTree)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func unmarshalJSON(m map[string]interface{}, keys *[]string, tree *ctree.ConfigTree) error {
+	if val, ok := m["keys"]; ok {
+		if items, ok := val.([]interface{}); ok {
+			for _, i := range items {
+				if key, ok := i.(string); ok {
+					*keys = append(*keys, key)
+				}
+			}
+		}
+	}
+	if val, ok := m["node"]; ok {
+		if node, ok := val.(map[string]interface{}); ok {
+			if nval, ok := node["rules"]; ok {
+				cpn := NewPolicyNode()
+				if rules, ok := nval.(map[string]interface{}); ok {
+					addRulesToConfigPolicyNode(rules, cpn)
+				}
+				tree.Add(*keys, cpn)
+			}
+		}
+	}
+	if val, ok := m["nodes"]; ok {
+		if nodes, ok := val.([]interface{}); ok {
+			for _, node := range nodes {
+				if n, ok := node.(map[string]interface{}); ok {
+					unmarshalJSON(n, keys, tree)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// MarshalJSON marshals a ConfigPolicyTree into JSON
+func (c *ConfigPolicyTree) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		CTree *ctree.ConfigTree `json:"ctree"`
+	}{
+		CTree: c.cTree,
+	})
 }
 
 // Adds a ConfigDataNode at the provided namespace.

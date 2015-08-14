@@ -1,9 +1,7 @@
 package plugin
 
 import (
-	"errors"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -90,43 +88,18 @@ func (c *MockPlugin) GetMetricTypes() ([]PluginMetricType, error) {
 }
 
 func TestStartCollector(t *testing.T) {
-	// These setting ensure it exists before test timeout
-	PingTimeoutLimit = 1
-	logger := log.New(os.Stdout,
-		"test: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
 	Convey("Collector", t, func() {
-		Convey("start with unknown port", func() {
-			s := &MockSessionState{
-				listenPort:          "-1",
-				token:               "abcdef",
-				logger:              logger,
-				PingTimeoutDuration: time.Millisecond * 100,
-				killChan:            make(chan int),
+		Convey("start with dynamic port", func() {
+			m := &PluginMeta{
+				RPCType: JSONRPC,
+				Type:    CollectorPluginType,
 			}
-			r := new(Response)
 			c := new(MockPlugin)
-			So(func() { StartCollector(c, s, r) }, ShouldPanic)
-			Convey("start with dynamic port", func() {
-				s = &MockSessionState{
-					listenPort:          "0",
-					token:               "abcdef",
-					logger:              logger,
-					PingTimeoutDuration: time.Millisecond * 100,
-					killChan:            make(chan int),
-				}
-				r := new(Response)
-				c := new(MockPlugin)
-				err, rc := StartCollector(c, s, r)
-				So(err, ShouldBeNil)
-				So(rc, ShouldEqual, 0)
-
-				Convey("RPC service already registered", func() {
-					err, _ := StartCollector(c, s, r)
-					So(err, ShouldResemble, errors.New("rpc: service already defined: MockSessionState"))
-				})
-
+			err, rc := Start(m, c, "{}")
+			So(err, ShouldBeNil)
+			So(rc, ShouldEqual, 0)
+			Convey("RPC service already registered", func() {
+				So(func() { Start(m, c, "{}") }, ShouldPanic)
 			})
 		})
 	})

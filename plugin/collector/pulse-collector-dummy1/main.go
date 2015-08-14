@@ -17,6 +17,7 @@ func main() {
 
 	// Define metadata about Plugin
 	meta := dummy.Meta()
+	meta.RPCType = plugin.JSONRPC
 
 	// Start a collector
 	plugin.Start(meta, new(dummy.Dummy), os.Args[1])

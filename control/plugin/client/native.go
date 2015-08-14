@@ -14,35 +14,27 @@ import (
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
+// CallsRPC provides an interface for RPC clients
+type CallsRPC interface {
+	Call(methd string, args interface{}, reply interface{}) error
+}
+
 // Native clients use golang net/rpc for communication to a native rpc server.
 type PluginNativeClient struct {
-	connection *rpc.Client
+	connection CallsRPC
 	pluginType plugin.PluginType
 }
 
 func NewCollectorNativeClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
-	p, err := newNativeClient(address, timeout, plugin.CollectorPluginType)
-
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return newNativeClient(address, timeout, plugin.CollectorPluginType)
 }
 
 func NewPublisherNativeClient(address string, timeout time.Duration) (PluginPublisherClient, error) {
-	p, err := newNativeClient(address, timeout, plugin.PublisherPluginType)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return newNativeClient(address, timeout, plugin.PublisherPluginType)
 }
 
 func NewProcessorNativeClient(address string, timeout time.Duration) (PluginProcessorClient, error) {
-	p, err := newNativeClient(address, timeout, plugin.ProcessorPluginType)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
+	return newNativeClient(address, timeout, plugin.ProcessorPluginType)
 }
 
 func (p *PluginNativeClient) Ping() error {

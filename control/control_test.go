@@ -3,6 +3,7 @@ package control
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
@@ -79,6 +80,7 @@ func TestSwapPlugin(t *testing.T) {
 			c.eventManager.RegisterHandler("Control.PluginsSwapped", lpe)
 			c.Start()
 			_, e := c.Load(PluginPath)
+			time.Sleep(100 * time.Millisecond)
 
 			So(e, ShouldBeNil)
 
@@ -88,9 +90,9 @@ func TestSwapPlugin(t *testing.T) {
 
 			Convey("successfully swaps plugins", func() {
 				err := c.SwapPlugins(dummy2Path, dummy)
-				time.Sleep(100)
-				pc = c.PluginCatalog()
 				So(err, ShouldBeNil)
+				time.Sleep(50 * time.Millisecond)
+				pc = c.PluginCatalog()
 				So(pc[0].Name(), ShouldEqual, "dummy2")
 				So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy2")
 				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 2)
@@ -107,12 +109,12 @@ func TestSwapPlugin(t *testing.T) {
 
 			Convey("rollsback loaded plugin & returns an error if it cannot unload a plugin", func() {
 				dummy := pc[0]
-				c.SwapPlugins(dummy2Path, dummy)
+				err := c.SwapPlugins(dummy2Path, dummy)
+				So(err, ShouldBeNil)
+				err = c.SwapPlugins(PluginPath+"oops", dummy)
 				pc = c.PluginCatalog()
-
-				err := c.SwapPlugins(PluginPath+"oops", dummy)
 				So(err, ShouldNotBeNil)
-				So(pc[0].Name(), ShouldEqual, "dummy2")
+				So(pc[0].Name(), ShouldNotResemble, dummy.Name())
 			})
 
 			Convey("rollback failure returns error", func() {
@@ -272,7 +274,7 @@ func TestUnload(t *testing.T) {
 				c.Load(PluginPath)
 				pc := c.PluginCatalog()
 				c.Unload(pc[0])
-				time.Sleep(100)
+				time.Sleep(100 * time.Millisecond)
 				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
 			})
 
@@ -533,6 +535,16 @@ type MockMetricType struct {
 	cfg       *cdata.ConfigDataNode
 }
 
+func (m MockMetricType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Namespace []string              `json:"namespace"`
+		Config    *cdata.ConfigDataNode `json:"config"`
+	}{
+		Namespace: m.namespace,
+		Config:    m.cfg,
+	})
+}
+
 func (m MockMetricType) Namespace() []string {
 	return m.namespace
 }
@@ -591,7 +603,7 @@ func TestCollectMetrics(t *testing.T) {
 		So(err, ShouldBeNil)
 		m = append(m, m1, m2)
 
-		time.Sleep(time.Millisecond * 200)
+		time.Sleep(time.Millisecond * 900)
 
 		for x := 0; x < 5; x++ {
 			cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*60))

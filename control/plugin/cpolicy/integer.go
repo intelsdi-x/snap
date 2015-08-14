@@ -3,6 +3,7 @@ package cpolicy
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -39,6 +40,22 @@ func NewIntegerRule(key string, req bool, opts ...int) (*IntRule, error) {
 	}, nil
 }
 
+// MarshalJSON marshals a IntRule into JSON
+func (i *IntRule) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Key      string             `json:"key"`
+		Required bool               `json:"required"`
+		Default  ctypes.ConfigValue `json:"default"`
+		Type     string             `json:"type"`
+	}{
+		Key:      i.key,
+		Required: i.required,
+		Default:  i.Default(),
+		Type:     "integer",
+	})
+}
+
+// GobEncode encodes a IntRule into a GOB
 func (i *IntRule) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -75,6 +92,7 @@ func (i *IntRule) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes a GOB into a IntRule
 func (i *IntRule) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
@@ -106,12 +124,12 @@ func (i *IntRule) GobDecode(buf []byte) error {
 	return nil
 }
 
-// Returns the key
+// Key Returns the key
 func (i *IntRule) Key() string {
 	return i.key
 }
 
-// Validates a config value against this rule.
+// Validate Validates a config value against this rule.
 func (i *IntRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
 	// when unmarshalling JSON numbers are converted to floats which is the reason
@@ -131,6 +149,7 @@ func (i *IntRule) Validate(cv ctypes.ConfigValue) error {
 	return nil
 }
 
+// Default return this rules default value
 func (i *IntRule) Default() ctypes.ConfigValue {
 	if i.default_ != nil {
 		return &ctypes.ConfigValueInt{Value: *i.default_}
@@ -138,14 +157,17 @@ func (i *IntRule) Default() ctypes.ConfigValue {
 	return nil
 }
 
+// Required returns a boolean indicating if this rule is required
 func (i *IntRule) Required() bool {
 	return i.required
 }
 
+// SetMinimum sets the minimum allowed value
 func (i *IntRule) SetMinimum(m int) {
 	i.minimum = &m
 }
 
+// SetMaximum sets the maximum allowed value
 func (i *IntRule) SetMaximum(m int) {
 	i.maximum = &m
 }

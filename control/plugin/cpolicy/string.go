@@ -3,6 +3,7 @@ package cpolicy
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
@@ -35,6 +36,22 @@ func NewStringRule(key string, req bool, opts ...string) (*StringRule, error) {
 	}, nil
 }
 
+// MarshalJSON marshals a StringRule into JSON
+func (s *StringRule) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Key      string             `json:"key"`
+		Required bool               `json:"required"`
+		Default  ctypes.ConfigValue `json:"default"`
+		Type     string             `json:"type"`
+	}{
+		Key:      s.key,
+		Required: s.required,
+		Default:  s.Default(),
+		Type:     "string",
+	})
+}
+
+//GobEncode encodes a StringRule in to a GOB
 func (s *StringRule) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -55,6 +72,7 @@ func (s *StringRule) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes a GOB into a StringRule
 func (s *StringRule) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)

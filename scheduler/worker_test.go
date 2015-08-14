@@ -21,6 +21,7 @@ func TestWorker(t *testing.T) {
 			deadline:  time.Now().Add(1 * time.Second),
 		}
 		rcv <- mj
+		<-mj.ReplChan()
 		So(mj.worked, ShouldEqual, true)
 	})
 	Convey("replies without running job if deadline is exceeded", t, func() {

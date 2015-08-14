@@ -3,6 +3,8 @@ package cdata
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/intelsdi-x/pulse/core/ctypes"
@@ -15,6 +17,7 @@ type ConfigDataNode struct {
 	table map[string]ctypes.ConfigValue
 }
 
+// GobEcode encodes a ConfigDataNode in go binary format
 func (c *ConfigDataNode) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -24,11 +27,55 @@ func (c *ConfigDataNode) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes a GOB into a ConfigDataNode
 func (c *ConfigDataNode) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	c.mutex = new(sync.Mutex)
 	decoder := gob.NewDecoder(r)
 	return decoder.Decode(&c.table)
+}
+
+// MarshalJSON marshals a ConfigDataNode into JSON
+func (c *ConfigDataNode) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Table map[string]ctypes.ConfigValue `json:"table"`
+	}{
+		Table: c.table,
+	})
+}
+
+// UnmarshalJSON unmarshals JSON into a ConfigDataNode
+func (c *ConfigDataNode) UnmarshalJSON(data []byte) error {
+	t := map[string]map[string]interface{}{}
+	c.table = map[string]ctypes.ConfigValue{}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	if err := dec.Decode(&t); err != nil {
+		return err
+	}
+
+	for k, i := range t["table"] {
+		switch t := i.(map[string]interface{})["Value"].(type) {
+		case string:
+			c.table[k] = ctypes.ConfigValueStr{Value: t}
+		case bool:
+			c.table[k] = ctypes.ConfigValueBool{Value: t}
+		case json.Number:
+			if v, err := t.Int64(); err == nil {
+				c.table[k] = ctypes.ConfigValueInt{Value: int(v)}
+				continue
+			}
+			if v, err := t.Float64(); err == nil {
+				fmt.Printf("%v is a float64\n", k)
+				c.table[k] = ctypes.ConfigValueFloat{Value: v}
+				continue
+			}
+		default:
+			return fmt.Errorf("Error Unmarshalling ConfigDataNode into JSON.  Type %v is unsupported.", k)
+		}
+	}
+	c.mutex = new(sync.Mutex)
+	return nil
 }
 
 // Returns a new and empty node.
