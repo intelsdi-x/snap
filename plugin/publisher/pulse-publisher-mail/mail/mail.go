@@ -76,40 +76,40 @@ func Meta() *plugin.PluginMeta {
 func (m *mailPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	config := cpolicy.NewPolicyNode()
 
-	r1, err := cpolicy.NewStringRule("username", true)
+	username, err := cpolicy.NewStringRule("username", true)
 	handleErr(err)
-	r1.Description = "User name used in smtp connection"
-	config.Add(r1)
+	username.Description = "User name used in smtp connection"
+	config.Add(username)
 
-	r2, err := cpolicy.NewStringRule("password", true)
+	password, err := cpolicy.NewStringRule("password", true)
 	handleErr(err)
-	r2.Description = "Password used in smtp connection"
-	config.Add(r2)
+	password.Description = "Password used in smtp connection"
+	config.Add(password)
 
-	r3, err := cpolicy.NewStringRule("sender address", true)
+	senderAddress, err := cpolicy.NewStringRule("sender address", true)
 	handleErr(err)
-	r3.Description = "Mail address to set as sender address"
-	config.Add(r3)
+	senderAddress.Description = "Mail address to set as sender address"
+	config.Add(senderAddress)
 
-	r4, err := cpolicy.NewStringRule("recipient address", true)
+	recipientAddress, err := cpolicy.NewStringRule("recipient address", true)
 	handleErr(err)
-	r4.Description = "Recipient address"
-	config.Add(r4)
+	recipientAddress.Description = "Recipient address"
+	config.Add(recipientAddress)
 
-	r5, err := cpolicy.NewStringRule("server address", true, "smtp.gmail.com")
+	serverAddress, err := cpolicy.NewStringRule("server address", true, "smtp.gmail.com")
 	handleErr(err)
-	r5.Description = "SMTP server address to use (defualt: smtp.gmail.com)"
-	config.Add(r5)
+	serverAddress.Description = "SMTP server address to use (defualt: smtp.gmail.com)"
+	config.Add(serverAddress)
 
-	r6, err := cpolicy.NewIntegerRule("server port", true, 587)
+	serverPort, err := cpolicy.NewIntegerRule("server port", true, 587)
 	handleErr(err)
-	r6.Description = "SMTP server port to use (defualt: 587)"
-	config.Add(r6)
+	serverPort.Description = "SMTP server port to use (defualt: 587)"
+	config.Add(serverPort)
 
-	r7, err := cpolicy.NewStringRule("subject", true, "[Pulse metrics]")
+	subject, err := cpolicy.NewStringRule("subject", true, "[Pulse metrics]")
 	handleErr(err)
-	r7.Description = "Mail subject (default: [Pulse metrics])"
-	config.Add(r7)
+	subject.Description = "Mail subject (default: [Pulse metrics])"
+	config.Add(subject)
 
 	return *config
 }
