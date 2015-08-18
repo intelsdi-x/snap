@@ -58,11 +58,11 @@ type runsPlugins interface {
 	Start() error
 	Stop() []error
 	AvailablePlugins() *availablePlugins
-	AddDelegates(delegates ...gomit.Delegator)
-	SetEmitter(emitter gomit.Emitter)
-	SetMetricCatalog(c catalogsMetrics)
-	SetPluginManager(m managesPlugins)
-	SetStrategy(rs RoutingStrategy)
+	AddDelegates(...gomit.Delegator)
+	SetEmitter(gomit.Emitter)
+	SetMetricCatalog(catalogsMetrics)
+	SetPluginManager(managesPlugins)
+	SetStrategy(RoutingStrategy)
 	Strategy() RoutingStrategy
 	Monitor() *monitor
 }
@@ -581,10 +581,7 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 // CollectMetrics is a blocking call to collector plugins returning a collection
 // of metrics and errors.  If an error is encountered no metrics will be
 // returned.
-func (p *pluginControl) CollectMetrics(
-	metricTypes []core.Metric,
-	deadline time.Time,
-) (metrics []core.Metric, errs []error) {
+func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.Time) (metrics []core.Metric, errs []error) {
 
 	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
