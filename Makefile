@@ -14,3 +14,5 @@ pulse:
 install:
 	cp build/bin/pulsed /usr/local/bin/
 	cp build/bin/pulsectl /usr/local/bin/
+release:
+	bash -c "./scripts/release.sh $(TAG) $(RELEASE)"
