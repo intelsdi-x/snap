@@ -308,7 +308,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.CreateTask(sch, wf, "baron", true)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "metric not found")
+				So(p.Err.Error(), ShouldResemble, "Metric not found: intel/dummy/foo")
 			})
 			Convey("invalid task (missing publisher)", func() {
 				port := getPort()
@@ -322,7 +322,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.CreateTask(sch, wf, "baron", false)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "Loaded plugin not found")
+				So(p.Err.Error(), ShouldEqual, "Plugin not found: type(publisher) name(riemann) version(1)")
 			})
 			Convey("valid task", func() {
 				port := getPort()

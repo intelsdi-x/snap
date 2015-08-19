@@ -286,10 +286,9 @@ func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []p
 		"_block": "validate-plugin-subscription",
 		"plugin": fmt.Sprintf("%s:%d", pl.Name(), pl.Version()),
 	}).Info(fmt.Sprintf("validating dependencies for plugin %s:%d", pl.Name(), pl.Version()))
-
 	lp, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
-		pe := perror.New(ErrLoadedPluginNotFound)
+		pe := perror.New(errors.New(fmt.Sprintf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version())))
 		pe.SetFields(map[string]interface{}{
 			"name":    pl.Name(),
 			"version": pl.Version(),
@@ -803,7 +802,7 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 		}
 		// if loaded plugin is nil, we have failed.  return error
 		if lp == nil {
-			return nil, errors.New(fmt.Sprintf("Metric missing: %s", strings.Join(mt.Namespace(), "/")))
+			return nil, errors.New(fmt.Sprintf("Metric not found: %s", strings.Join(mt.Namespace(), "/")))
 		}
 
 		key := lp.Key()

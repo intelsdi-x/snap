@@ -84,7 +84,7 @@ func TestTrie(t *testing.T) {
 		Convey("Fetch with error: not found", func() {
 			_, err := trie.Fetch([]string{"not", "present"})
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, ErrNotFound)
+			So(err, ShouldResemble, errorMetricNotFound([]string{"not", "present"}))
 		})
 		Convey("Fetch with error: depth exceeded", func() {
 			lp := new(loadedPlugin)
@@ -93,7 +93,7 @@ func TestTrie(t *testing.T) {
 			trie.Add(mt)
 			_, err := trie.Fetch([]string{"intel", "foo", "bar", "baz"})
 			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, ErrNotFound)
+			So(err, ShouldResemble, errorMetricNotFound([]string{"intel", "foo", "bar", "baz"}))
 		})
 	})
 	Convey("Get", t, func() {
@@ -115,7 +115,7 @@ func TestTrie(t *testing.T) {
 			trie.Add(mt)
 			n, err := trie.Get([]string{"intel"})
 			So(n, ShouldBeNil)
-			So(err, ShouldEqual, ErrNotFound)
+			So(err, ShouldResemble, errorMetricNotFound([]string{"intel"}))
 		})
 	})
 }

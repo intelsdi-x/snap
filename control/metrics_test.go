@@ -1,7 +1,6 @@
 package control
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -121,7 +120,7 @@ func TestMetricCatalog(t *testing.T) {
 			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
 			mc.Add(m35)
 			_, err := mc.Get([]string{"foo", "bar"}, 7)
-			So(err, ShouldResemble, errMetricNotFound)
+			So(err, ShouldResemble, errorMetricNotFound([]string{"foo", "bar"}))
 		})
 
 	})
@@ -144,7 +143,7 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Remove(ns)
 			_mt, err := mc.Get(ns, -1)
 			So(_mt, ShouldBeNil)
-			So(err, ShouldResemble, errors.New("metric not found"))
+			So(err, ShouldResemble, errorMetricNotFound([]string{"test"}))
 		})
 	})
 	Convey("metricCatalog.Next()", t, func() {
@@ -222,7 +221,7 @@ func TestSubscribe(t *testing.T) {
 	Convey("when the metric is not in the table", t, func() {
 		Convey("then it returns an error", func() {
 			err := mc.Subscribe([]string{"test4"}, -1)
-			So(err, ShouldResemble, errMetricNotFound)
+			So(err, ShouldResemble, errorMetricNotFound([]string{"test4"}))
 		})
 	})
 	Convey("when the metric is in the table", t, func() {
@@ -267,7 +266,7 @@ func TestUnsubscribe(t *testing.T) {
 	Convey("when the metric is not in the table", t, func() {
 		Convey("then it returns metric not found error", func() {
 			err := mc.Unsubscribe([]string{"test4"}, -1)
-			So(err, ShouldResemble, errMetricNotFound)
+			So(err, ShouldResemble, errorMetricNotFound([]string{"test4"}))
 		})
 	})
 	Convey("when the metric's count is already 0", t, func() {
