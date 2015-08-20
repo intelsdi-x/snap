@@ -28,9 +28,10 @@ var (
 		Value: 8181,
 	}
 	flMaxProcs = cli.IntFlag{
-		Name:  "max-procs, c",
-		Usage: "Set max cores to use for Pulse Agent. Default is 1 core.",
-		Value: 1,
+		Name:   "max-procs, c",
+		Usage:  "Set max cores to use for Pulse Agent. Default is 1 core.",
+		Value:  1,
+		EnvVar: "GOMAXPROCS",
 	}
 	// plugin
 	flLogPath = cli.StringFlag{
@@ -243,58 +244,47 @@ func action(ctx *cli.Context) {
 	select {} //run forever and ever
 }
 
+// setMaxProcs configures runtime.GOMAXPROCS for pulsed. GOMAXPROCS can be set by using
+// the env variable GOMAXPROCS and pulsed will honor this setting. A user can override the env
+// variable by setting max-procs flag on the command line. Pulsed will be limited to the max CPUs
+// on the system even if the env variable or the command line setting is set above the max CPUs.
+// The default value if the env variable or the command line option is not set is 1.
 func setMaxProcs(maxProcs int) {
 	var _maxProcs int
-	envGoMaxProcs := runtime.GOMAXPROCS(-1)
 	numProcs := runtime.NumCPU()
-	if maxProcs == 0 && envGoMaxProcs <= numProcs {
-		// By default if max_procs is not set, we set _maxProcs to the ENV variable GOMAXPROCS on the system. If this variable is not set by the user or is a negative number, runtime.GOMAXPROCS(-1) returns 1
-		_maxProcs = envGoMaxProcs
-	} else if envGoMaxProcs > numProcs {
-		// We do not allow the user to exceed the number of cores in the system.
+	if maxProcs <= 0 {
+		// We prefer sane values for GOMAXPROCS
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
 				"_module":  "pulsed",
-				"maxprocs": _maxProcs,
-			}).Warning("ENV variable GOMAXPROCS greater than number of cores in the system")
-		log.WithFields(
-			log.Fields{
-				"_block":   "main",
-				"_module":  "pulsed",
-				"maxprocs": _maxProcs,
-			}).Error("setting pulse to use the number of cores in the system")
-		_maxProcs = numProcs
-	} else if maxProcs > 0 && maxProcs <= numProcs {
-		// Our flag override is set. Use this value
-		_maxProcs = maxProcs
-	} else if maxProcs > numProcs {
-		// Do not let the user set a value larger than number of cores in the system
-		log.WithFields(
-			log.Fields{
-				"_block":   "main",
-				"_module":  "pulsed",
-				"maxprocs": _maxProcs,
-			}).Warning("flag max_procs exceeds number of cores in the system. Setting Pulse to use the number of cores in the system")
-		_maxProcs = numProcs
-	} else if maxProcs < 0 {
-		// Do not let the user set a negative value to get around number of cores limit
-		log.WithFields(
-			log.Fields{
-				"_block":   "main",
-				"_module":  "pulsed",
-				"maxprocs": _maxProcs,
-			}).Warning("flag max_procs set to negative number. Setting Pulse to use 1 core")
+				"maxprocs": maxProcs,
+			}).Error("Trying to set GOMAXPROCS to an invalid value")
 		_maxProcs = 1
+		log.WithFields(
+			log.Fields{
+				"_block":   "main",
+				"_module":  "pulsed",
+				"maxprocs": _maxProcs,
+			}).Warning("Setting GOMAXPROCS to 1")
+		_maxProcs = 1
+	} else if maxProcs <= numProcs {
+		_maxProcs = maxProcs
+	} else {
+		log.WithFields(
+			log.Fields{
+				"_block":   "main",
+				"_module":  "pulsed",
+				"maxprocs": maxProcs,
+			}).Error("Trying to set GOMAXPROCS larger than number of CPUs available on system")
+		_maxProcs = numProcs
+		log.WithFields(
+			log.Fields{
+				"_block":   "main",
+				"_module":  "pulsed",
+				"maxprocs": _maxProcs,
+			}).Warning("Setting GOMAXPROCS to number of CPUs on host")
 	}
-
-	log.WithFields(
-		log.Fields{
-			"_block":   "main",
-			"_module":  "pulsed",
-			"maxprocs": _maxProcs,
-		}).Debug("maxprocs")
-	runtime.GOMAXPROCS(_maxProcs)
 
 	log.Info("setting GOMAXPROCS to: ", _maxProcs, " core(s)")
 	//Verify setting worked
