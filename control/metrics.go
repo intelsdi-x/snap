@@ -18,6 +18,10 @@ var (
 	errNegativeSubCount = errors.New("subscription count cannot be < 0")
 )
 
+func errorMetricNotFound(ns []string) error {
+	return errors.New(fmt.Sprintf("Metric not found: %s", strings.Join(ns, "/")))
+}
+
 type metricCatalogItem struct {
 	namespace string
 	versions  map[int]core.Metric
@@ -251,7 +255,7 @@ func (mc *metricCatalog) get(ns []string, ver int) (*metricType, error) {
 		if ver >= 0 {
 			l, err := getVersion(mts, ver)
 			if err != nil {
-				return nil, err
+				return nil, errorMetricNotFound(ns)
 			}
 			return l, nil
 		}

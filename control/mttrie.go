@@ -173,7 +173,7 @@ func (mtt *mttNode) Get(ns []string) ([]*metricType, error) {
 		return nil, err
 	}
 	if node.mts == nil {
-		return nil, ErrNotFound
+		return nil, errorMetricNotFound(ns)
 	}
 	var mts []*metricType
 	for _, mt := range node.mts {
@@ -203,7 +203,7 @@ func (mtt *mttNode) walk(ns []string) (*mttNode, int) {
 func (mtt *mttNode) find(ns []string) (*mttNode, error) {
 	node, index := mtt.walk(ns)
 	if index != len(ns) {
-		return nil, ErrNotFound
+		return nil, errorMetricNotFound(ns)
 	}
 	return node, nil
 }

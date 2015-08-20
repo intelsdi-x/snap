@@ -430,19 +430,19 @@ func (m *mc) Get(ns []string, ver int) (*metricType, error) {
 			policy: &mockCDProc{},
 		}, nil
 	}
-	return nil, errMetricNotFound
+	return nil, errorMetricNotFound(ns)
 }
 
 func (m *mc) Subscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
-		return errMetricNotFound
+		return errorMetricNotFound(ns)
 	}
 	return nil
 }
 
 func (m *mc) Unsubscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
-		return errMetricNotFound
+		return errorMetricNotFound(ns)
 	}
 	if ns[0] == "neg" {
 		return errNegativeSubCount
