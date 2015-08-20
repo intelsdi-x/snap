@@ -139,25 +139,27 @@ type mockPluginEvent struct {
 }
 
 type listenToPluginEvent struct {
-	plugin mockPluginEvent
+	plugin *mockPluginEvent
+	done   chan struct{}
 }
 
 func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 	switch v := e.Body.(type) {
 	case *control_event.LoadPluginEvent:
-		l.plugin = mockPluginEvent{
+		l.plugin = &mockPluginEvent{
 			LoadedPluginName:    v.Name,
 			LoadedPluginVersion: v.Version,
 			PluginType:          v.Type,
 		}
 	case *control_event.UnloadPluginEvent:
-		l.plugin = mockPluginEvent{
+		l.plugin = &mockPluginEvent{
 			UnloadedPluginName:    v.Name,
 			UnloadedPluginVersion: v.Version,
 			PluginType:            v.Type,
 		}
+		l.done <- struct{}{}
 	case *control_event.SwapPluginsEvent:
-		l.plugin = mockPluginEvent{
+		l.plugin = &mockPluginEvent{
 			LoadedPluginName:      v.LoadedPluginName,
 			LoadedPluginVersion:   v.LoadedPluginVersion,
 			UnloadedPluginName:    v.UnloadedPluginName,
@@ -232,6 +234,8 @@ func TestUnload(t *testing.T) {
 			Convey("unloads successfully", func() {
 				c := New()
 				lpe := new(listenToPluginEvent)
+				done := make(chan struct{})
+				lpe.done = done
 				c.eventManager.RegisterHandler("Control.PluginUnloaded", lpe)
 				c.Start()
 				_, err := c.Load(PluginPath)
@@ -243,7 +247,7 @@ func TestUnload(t *testing.T) {
 
 				So(len(pc), ShouldEqual, 1)
 				_, err2 := c.Unload(pc[0])
-				time.Sleep(100)
+				<-done
 				So(err2, ShouldBeNil)
 				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
 				So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 1)
@@ -269,12 +273,14 @@ func TestUnload(t *testing.T) {
 			Convey("Listen for PluginUnloaded event", func() {
 				c := New()
 				lpe := new(listenToPluginEvent)
+				done := make(chan struct{})
+				lpe.done = done
 				c.eventManager.RegisterHandler("Control.PluginUnloaded", lpe)
 				c.Start()
 				c.Load(PluginPath)
 				pc := c.PluginCatalog()
 				c.Unload(pc[0])
-				time.Sleep(100 * time.Millisecond)
+				<-done
 				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
 			})
 

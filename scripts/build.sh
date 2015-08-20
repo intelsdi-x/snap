@@ -32,7 +32,7 @@ mkdir -p $PROCESSORDIR
 # pulsed
 echo "Source Dir = $SOURCEDIR"
 echo " Building Pulse Daemon"
-go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/pulsed . || exit 1
+go build -ldflags "-w -X main.gitversion=$GITVERSION" -o $BINDIR/pulsed . || exit 1
 
 # pulsectl
 echo " Building Pulse Command Line"
@@ -40,7 +40,7 @@ cd $SOURCEDIR/cmd
 for d in *; do
 	if [[ -d $d ]]; then
 		echo "    $d => $BINDIR/$d"
-		go build -ldflags "-w -X main.gitversion $GITVERSION" -o $BINDIR/$d ./$d/ || exit 3
+		go build -ldflags "-w -X main.gitversion=$GITVERSION" -o $BINDIR/$d ./$d/ || exit 3
 	fi
 done
 

@@ -19,6 +19,8 @@ func TestQueue(t *testing.T) {
 		q := newQueue(5, func(job) { time.Sleep(1 * time.Second) })
 		q.Start()
 		q.Event <- &collectorJob{}
+		q.Event <- &collectorJob{}
+		time.Sleep(100 * time.Millisecond)
 		So(q.length(), ShouldEqual, 1)
 		q.Stop()
 	})

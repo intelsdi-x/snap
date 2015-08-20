@@ -72,9 +72,8 @@ func TestWorkerManager(t *testing.T) {
 			}
 			go manager.Work(j1)
 			go manager.Work(j2)
-			go manager.Work(j3)
+			manager.Work(j3)
 
-			time.Sleep(time.Millisecond * 50)
 			worked := 0
 			for _, j := range []*mockJob{j1, j2, j3} {
 
@@ -82,7 +81,7 @@ func TestWorkerManager(t *testing.T) {
 					worked++
 				}
 			}
-			So(worked, ShouldEqual, 1)
+			So(worked, ShouldEqual, 2)
 		})
 
 		// The below convey is WIP
