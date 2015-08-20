@@ -150,7 +150,7 @@ func (p *pluginControl) Start() error {
 	p.Started = true
 	controlLogger.WithFields(log.Fields{
 		"_block": "start",
-	}).Info("started")
+	}).Info("control started")
 	return nil
 }
 
@@ -158,7 +158,7 @@ func (p *pluginControl) Stop() {
 	p.Started = false
 	controlLogger.WithFields(log.Fields{
 		"_block": "stop",
-	}).Info("stopped")
+	}).Info("control stopped")
 
 	// stop runner
 	err := p.pluginRunner.Stop()
@@ -174,7 +174,6 @@ func (p *pluginControl) Stop() {
 
 	// unload plugins
 	p.pluginManager.teardown()
-
 }
 
 // Load is the public method to load a plugin into
