@@ -80,14 +80,6 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
-	log.Info("Starting pulsed (version: ", gitversion, ")")
-	logLevel := ctx.Int("log-level")
-	logPath := ctx.String("log-path")
-	maxProcs := ctx.Int("max-procs")
-	disableApi := ctx.Bool("disable-api")
-	apiPort := ctx.Int("api-port")
-	autodiscoverPath := ctx.String("auto-discover")
-
 	var l = map[int]string{
 		1: "debug",
 		2: "info",
@@ -95,25 +87,18 @@ func action(ctx *cli.Context) {
 		4: "error",
 		5: "fatal",
 	}
-	log.Info("setting log level to: ", l[logLevel])
-	if logPath == "" {
-		log.Info("setting log path to: stdout")
-	} else {
-		log.Info("setting log path to: ", logPath)
-	}
-	log.Info("setting max procs to: ", maxProcs, " core(s)")
-	if disableApi == false {
-		log.Info("api is enabled")
-		log.Info("setting api port to: ", apiPort)
-	} else {
-		log.Info("api is disabled")
-	}
-	if autodiscoverPath == "" {
-		log.Info("auto discover path is disabled")
-	} else {
-		log.Info("auto discover path is enabled")
-		log.Info("autoloading plugins from: ", autodiscoverPath)
-	}
+
+	logLevel := ctx.Int("log-level")
+	logPath := ctx.String("log-path")
+	maxProcs := ctx.Int("max-procs")
+	disableApi := ctx.Bool("disable-api")
+	apiPort := ctx.Int("api-port")
+	autodiscoverPath := ctx.String("auto-discover")
+
+	log.Info("Starting pulsed (version: ", gitversion, ")")
+
+	// Set Max Processors for pulsed.
+	setMaxProcs(maxProcs)
 
 	if logLevel < 1 || logLevel > 5 {
 		log.WithFields(
@@ -124,8 +109,6 @@ func action(ctx *cli.Context) {
 			}).Fatal("log level was invalid (needs: 1-5)")
 		os.Exit(1)
 	}
-
-	log.SetLevel(getLevel(logLevel))
 
 	if logPath != "" {
 
@@ -162,17 +145,12 @@ func action(ctx *cli.Context) {
 				}).Fatal("bad log path")
 		}
 		defer file.Close()
+		log.Info("setting log path to: ", logPath)
 		log.SetOutput(file)
+	} else {
+		log.Info("setting log path to: stdout")
 	}
 
-	// Set Max Processors for the Pulse agent.
-	setMaxProcs(maxProcs)
-
-	log.WithFields(
-		log.Fields{
-			"block":   "main",
-			"_module": "pulsed",
-		}).Info("pulse agent starting")
 	c := control.New()
 	s := scheduler.New(
 		scheduler.CollectQSizeOption(defaultQueueSize),
@@ -198,6 +176,8 @@ func action(ctx *cli.Context) {
 	}
 
 	if autodiscoverPath != "" {
+		log.Info("auto discover path is enabled")
+		log.Info("autoloading plugins from: ", autodiscoverPath)
 		paths := filepath.SplitList(autodiscoverPath)
 		c.SetAutodiscoverPaths(paths)
 		for _, path := range paths {
@@ -236,13 +216,29 @@ func action(ctx *cli.Context) {
 				}
 			}
 		}
+	} else {
+		log.Info("auto discover path is disabled")
 	}
+
 	if !disableApi {
+		log.Info("Rest API enabled on port ", apiPort)
 		r := rest.New()
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
 		r.Start(fmt.Sprintf(":%d", apiPort))
+	} else {
+		log.Info("Rest API is disabled")
 	}
+
+	log.WithFields(
+		log.Fields{
+			"block":   "main",
+			"_module": "pulsed",
+		}).Info("pulsed started")
+
+	// Switch log level to user defined
+	log.Info("setting log level to: ", l[logLevel])
+	log.SetLevel(getLevel(logLevel))
 
 	select {} //run forever and ever
 }
@@ -300,6 +296,7 @@ func setMaxProcs(maxProcs int) {
 		}).Debug("maxprocs")
 	runtime.GOMAXPROCS(_maxProcs)
 
+	log.Info("setting GOMAXPROCS to: ", _maxProcs, " core(s)")
 	//Verify setting worked
 	actualNumProcs := runtime.GOMAXPROCS(0)
 	if actualNumProcs != _maxProcs {
