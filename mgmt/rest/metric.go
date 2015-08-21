@@ -58,7 +58,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 
 	b := &rbody.MetricReturned{}
 	mb := &rbody.Metric{
-		Namespace:               joinNamespace(mt.Namespace()),
+		Namespace:               core.JoinNamespace(mt.Namespace()),
 		Version:                 mt.Version(),
 		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
 	}

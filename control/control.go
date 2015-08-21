@@ -814,7 +814,7 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 		}
 		// if loaded plugin is nil, we have failed.  return error
 		if lp == nil {
-			return nil, errors.New(fmt.Sprintf("Metric not found: %s", strings.Join(mt.Namespace(), "/")))
+			return nil, errorMetricNotFound(mt.Namespace())
 		}
 
 		key := lp.Key()

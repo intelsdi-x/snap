@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/shirou/gopsutil/net"
 )
 
@@ -27,42 +28,42 @@ func netIOCounters(ns []string) (*plugin.PluginMetricType, error) {
 
 	for _, net := range nets {
 		switch {
-		case regexp.MustCompile(`^/psutil/net/.*/bytes_sent$`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/net/.*/bytes_sent$`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      net.BytesSent,
 			}, nil
-		case regexp.MustCompile(`^/psutil/net/.*/bytes_recv`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/net/.*/bytes_recv`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      net.BytesRecv,
 			}, nil
-		case regexp.MustCompile(`^/psutil/net/.*/packets_sent`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/net/.*/packets_sent`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      net.BytesSent,
 			}, nil
-		case regexp.MustCompile(`^/psutil/net/.*/packets_recv`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/net/.*/packets_recv`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      net.BytesRecv,
 			}, nil
-		case regexp.MustCompile(`^/psutil/net/.*/errin`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/net/.*/errin`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      net.Errin,
 			}, nil
-		case regexp.MustCompile(`^/psutil/net/.*/errout`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/net/.*/errout`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      net.Errout,
 			}, nil
-		case regexp.MustCompile(`^/psutil/net/.*/dropin`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/net/.*/dropin`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      net.Dropin,
 			}, nil
-		case regexp.MustCompile(`^/psutil/net/.*/dropout`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/net/.*/dropout`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      net.Dropout,

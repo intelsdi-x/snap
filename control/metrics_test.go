@@ -120,9 +120,8 @@ func TestMetricCatalog(t *testing.T) {
 			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
 			mc.Add(m35)
 			_, err := mc.Get([]string{"foo", "bar"}, 7)
-			So(err, ShouldResemble, errorMetricNotFound([]string{"foo", "bar"}))
+			So(err, ShouldResemble, errorMetricNotFound([]string{"foo", "bar"}, 7))
 		})
-
 	})
 	Convey("metricCatalog.Table()", t, func() {
 		Convey("returns a copy of the table", func() {

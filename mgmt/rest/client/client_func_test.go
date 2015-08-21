@@ -308,7 +308,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.CreateTask(sch, wf, "baron", true)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldResemble, "Metric not found: intel/dummy/foo")
+				So(p.Err.Error(), ShouldResemble, "Metric not found: /intel/dummy/foo")
 			})
 			Convey("invalid task (missing publisher)", func() {
 				port := getPort()

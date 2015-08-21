@@ -320,7 +320,7 @@ func (t *TaskWatchHandler) CatchCollection(m []core.Metric) {
 	sm := make([]rbody.StreamedMetric, len(m))
 	for i, _ := range m {
 		sm[i] = rbody.StreamedMetric{
-			Namespace: joinNamespace(m[i].Namespace()),
+			Namespace: core.JoinNamespace(m[i].Namespace()),
 			Data:      m[i].Data(),
 		}
 	}

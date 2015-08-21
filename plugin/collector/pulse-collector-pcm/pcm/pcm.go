@@ -13,6 +13,7 @@ import (
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/core"
 )
 
 const (
@@ -45,7 +46,7 @@ func (p *PCM) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetr
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	for i, m := range mts {
-		if v, ok := p.data[joinNamespace(m.Namespace())]; ok {
+		if v, ok := p.data[core.JoinNamespace(m.Namespace())]; ok {
 			metrics[i] = plugin.PluginMetricType{
 				Namespace_: m.Namespace(),
 				Data_:      v,
@@ -157,8 +158,4 @@ func New() (*PCM, error) {
 	// }
 
 	return pcm, nil
-}
-
-func joinNamespace(ns []string) string {
-	return "/" + strings.Join(ns, "/")
 }

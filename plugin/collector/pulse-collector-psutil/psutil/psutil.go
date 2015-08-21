@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/core"
 )
 
 const (
@@ -32,7 +32,7 @@ func (p *Psutil) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginM
 	netre := regexp.MustCompile(`^/psutil/net/.*`)
 
 	for i, p := range mts {
-		ns := joinNamespace(p.Namespace())
+		ns := core.JoinNamespace(p.Namespace())
 		switch {
 		case loadre.MatchString(ns):
 			metric, err := loadAvg(p.Namespace())
@@ -88,10 +88,6 @@ func (p *Psutil) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 func (p *Psutil) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
 	c := cpolicy.NewTree()
 	return *c, nil
-}
-
-func joinNamespace(ns []string) string {
-	return "/" + strings.Join(ns, "/")
 }
 
 func prettyPrint(mts []plugin.PluginMetricType) error {

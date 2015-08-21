@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/shirou/gopsutil/load"
 )
 
@@ -13,7 +14,7 @@ func loadAvg(ns []string) (*plugin.PluginMetricType, error) {
 		return nil, err
 	}
 
-	switch joinNamespace(ns) {
+	switch core.JoinNamespace(ns) {
 	case "/psutil/load/load1":
 		return &plugin.PluginMetricType{
 			Namespace_: ns,

@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/shirou/gopsutil/cpu"
 )
 
@@ -20,57 +21,57 @@ func cpuTimes(ns []string) (*plugin.PluginMetricType, error) {
 
 	for _, cpu := range cpus {
 		switch {
-		case regexp.MustCompile(`^/psutil/cpu.*/user`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/user`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.User,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/system`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/system`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.System,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/idle`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/idle`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.Idle,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/nice`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/nice`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.Nice,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/iowait`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/iowait`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.Iowait,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/irq`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/irq`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.Irq,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/softirq`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/softirq`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.Softirq,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/steal`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/steal`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.Steal,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/guest`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/guest`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.Guest,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/guest_nice`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/guest_nice`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.GuestNice,
 			}, nil
-		case regexp.MustCompile(`^/psutil/cpu.*/stolen`).MatchString(joinNamespace(ns)):
+		case regexp.MustCompile(`^/psutil/cpu.*/stolen`).MatchString(core.JoinNamespace(ns)):
 			return &plugin.PluginMetricType{
 				Namespace_: ns,
 				Data_:      cpu.Stolen,

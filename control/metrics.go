@@ -18,8 +18,11 @@ var (
 	errNegativeSubCount = errors.New("subscription count cannot be < 0")
 )
 
-func errorMetricNotFound(ns []string) error {
-	return errors.New(fmt.Sprintf("Metric not found: %s", strings.Join(ns, "/")))
+func errorMetricNotFound(ns []string, ver ...int) error {
+	if len(ver) > 0 {
+		return fmt.Errorf("Metric not found: %s (version: %d)", core.JoinNamespace(ns), ver[0])
+	}
+	return fmt.Errorf("Metric not found: %s", core.JoinNamespace(ns))
 }
 
 type metricCatalogItem struct {
@@ -60,7 +63,7 @@ func newMetricType(ns []string, last time.Time, plugin *loadedPlugin) *metricTyp
 }
 
 func (m *metricType) Key() string {
-	return fmt.Sprintf("/%s/%d", strings.Join(m.Namespace(), "/"), m.Version())
+	return fmt.Sprintf("%s/%d", core.JoinNamespace(m.Namespace()), m.Version())
 }
 
 func (m *metricType) Namespace() []string {
@@ -68,7 +71,7 @@ func (m *metricType) Namespace() []string {
 }
 
 func (m *metricType) NamespaceAsString() string {
-	return "/" + strings.Join(m.Namespace(), "/")
+	return core.JoinNamespace(m.Namespace())
 }
 
 func (m *metricType) Data() interface{} {
@@ -249,23 +252,16 @@ func (mc *metricCatalog) get(ns []string, ver int) (*metricType, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	if len(mts) > 1 {
-		// a version IS given
-		if ver >= 0 {
-			l, err := getVersion(mts, ver)
-			if err != nil {
-				return nil, errorMetricNotFound(ns)
-			}
-			return l, nil
+	// a version IS given
+	if ver > 0 {
+		l, err := getVersion(mts, ver)
+		if err != nil {
+			return nil, errorMetricNotFound(ns, ver)
 		}
-		// ver is less than 0 get the latest
-		return getLatest(mts), nil
+		return l, nil
 	}
-
-	//only one version so return it
-	return mts[0], nil
-
+	// ver is less than or equal to 0 get the latest
+	return getLatest(mts), nil
 }
 
 func getMetricKey(metric []string) string {
