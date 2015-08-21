@@ -14,7 +14,7 @@
 		},
 		{
 			"ImportPath": "github.com/golang/snappy",
-			"Rev": "156a073208e131d7d2e212cb749feae7c339e846"
+			"Rev": "723cc1e459b8eea2dea4583200fd60757d40097a"
 		},
 		{
 			"ImportPath": "github.com/intelsdi-x/gomit",
@@ -35,9 +35,7 @@
 			"Rev": "eb2e83c1df892d2c9ad5a3c85672da30be585dfd"
 		},
 		{
-			"ImportPath": "gopkg.in/Shopify/sarama.v1",
-			"Comment": "v1.4.2",
-			"Rev": "d546818f24718ecca1fe4c84c2b834109746da86"
+			"ImportPath": "gopkg.in/Shopify/sarama.v1"
 		}
 	]
 }
