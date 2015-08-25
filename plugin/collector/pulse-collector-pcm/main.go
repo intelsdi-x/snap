@@ -26,7 +26,7 @@ func main() {
 	// fmt.Printf("Data >>>", p.Data())
 	// fmt.Printf("err >>> %v \n mts >>> %v", err, mts_)
 	plugin.Start(
-		plugin.NewPluginMeta(pcm.Name, pcm.Version, pcm.Type, []string{}, []string{plugin.PulseGOBContentType}),
+		plugin.NewPluginMeta(pcm.Name, pcm.Version, pcm.Type, []string{}, []string{plugin.PulseGOBContentType}, plugin.ConcurrencyCount(1)),
 		p,
 		os.Args[1],
 	)

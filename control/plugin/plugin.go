@@ -77,10 +77,21 @@ type PluginMeta struct {
 	// Return content types in priority order
 	// This is only really valid on processors
 	ReturnedContentTypes []string
+	// the max number of running instances this plugin
+	// is capable of running concurrently
+	ConcurrencyCount int
+}
+
+type metaOp func(m *PluginMeta)
+
+func ConcurrencyCount(cc int) metaOp {
+	return func(m *PluginMeta) {
+		m.ConcurrencyCount = cc
+	}
 }
 
 // NewPluginMeta constructs and returns a PluginMeta struct
-func NewPluginMeta(name string, version int, pluginType PluginType, acceptContentTypes, returnContentTypes []string) *PluginMeta {
+func NewPluginMeta(name string, version int, pluginType PluginType, acceptContentTypes, returnContentTypes []string, opts ...metaOp) *PluginMeta {
 	// An empty accepted content type default to "pulse.*"
 	if len(acceptContentTypes) == 0 {
 		acceptContentTypes = append(acceptContentTypes, "pulse.*")
@@ -105,13 +116,19 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 		}
 	}
 
-	return &PluginMeta{
+	p := &PluginMeta{
 		Name:                 name,
 		Version:              version,
 		Type:                 pluginType,
 		AcceptedContentTypes: acceptContentTypes,
 		ReturnedContentTypes: returnContentTypes,
 	}
+
+	for _, opt := range opts {
+		opt(p)
+	}
+
+	return p
 }
 
 // Arguments passed to startup of Plugin
