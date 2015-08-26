@@ -33,6 +33,12 @@ var (
 		Value:  1,
 		EnvVar: "GOMAXPROCS",
 	}
+	flNumberOfPLs = cli.IntFlag{
+		Name:   "max-running-plugins, m",
+		Usage:  "The maximum number of instances of a loaded plugin to run",
+		Value:  3,
+		EnvVar: "PULSE_MAX_PLUGINS",
+	}
 	// plugin
 	flLogPath = cli.StringFlag{
 		Name:   "log-path, o",
@@ -74,7 +80,7 @@ func main() {
 	app.Name = "pulsed"
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
-	app.Flags = []cli.Flag{flAPIDisabled, flAPIPort, flLogLevel, flLogPath, flMaxProcs, flPluginVersion}
+	app.Flags = []cli.Flag{flAPIDisabled, flAPIPort, flLogLevel, flLogPath, flMaxProcs, flPluginVersion, flNumberOfPLs}
 
 	app.Action = action
 	app.Run(os.Args)
@@ -95,6 +101,7 @@ func action(ctx *cli.Context) {
 	disableApi := ctx.Bool("disable-api")
 	apiPort := ctx.Int("api-port")
 	autodiscoverPath := ctx.String("auto-discover")
+	maxRunning := ctx.Int("max-running-plugins")
 
 	log.Info("Starting pulsed (version: ", gitversion, ")")
 
@@ -152,14 +159,17 @@ func action(ctx *cli.Context) {
 		log.Info("setting log path to: stdout")
 	}
 
-	c := control.New()
+	c := control.New(
+		control.MaxRunningPlugins(maxRunning),
+	)
 	s := scheduler.New(
 		scheduler.CollectQSizeOption(defaultQueueSize),
 		scheduler.CollectWkrSizeOption(defaultPoolSize),
 		scheduler.PublishQSizeOption(defaultQueueSize),
 		scheduler.PublishWkrSizeOption(defaultPoolSize),
 		scheduler.ProcessQSizeOption(defaultQueueSize),
-		scheduler.ProcessWkrSizeOption(defaultPoolSize))
+		scheduler.ProcessWkrSizeOption(defaultPoolSize),
+	)
 	s.SetMetricManager(c)
 
 	// Set interrupt handling so we can die gracefully.

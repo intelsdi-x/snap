@@ -90,8 +90,16 @@ type catalogsMetrics interface {
 	GetPlugin([]string, int) (*loadedPlugin, error)
 }
 
+type controlOpt func(*pluginControl)
+
+func MaxRunningPlugins(m int) controlOpt {
+	return func(c *pluginControl) {
+		maximumRunningPlugins = m
+	}
+}
+
 // New returns a new pluginControl instance
-func New() *pluginControl {
+func New(opts ...controlOpt) *pluginControl {
 
 	c := &pluginControl{}
 	// Initialize components
@@ -135,6 +143,14 @@ func New() *pluginControl {
 	err := c.pluginRunner.Start()
 	if err != nil {
 		panic(err)
+	}
+
+	// apply options
+
+	// it is important that this happens last, as an option may
+	// require that an internal member of c be constructed.
+	for _, opt := range opts {
+		opt(c)
 	}
 
 	return c

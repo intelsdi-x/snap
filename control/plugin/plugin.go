@@ -77,9 +77,11 @@ type PluginMeta struct {
 	// Return content types in priority order
 	// This is only really valid on processors
 	ReturnedContentTypes []string
-	// the max number of running instances this plugin
-	// is capable of running concurrently
+	// the max number of subscriptions this plugin
+	// can handle
 	ConcurrencyCount int
+	// should always only be one instance of this plugin running
+	Exclusive bool
 }
 
 type metaOp func(m *PluginMeta)
@@ -87,6 +89,12 @@ type metaOp func(m *PluginMeta)
 func ConcurrencyCount(cc int) metaOp {
 	return func(m *PluginMeta) {
 		m.ConcurrencyCount = cc
+	}
+}
+
+func Exclusive(e bool) metaOp {
+	return func(m *PluginMeta) {
+		m.Exclusive = e
 	}
 }
 
@@ -122,6 +130,9 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 		Type:                 pluginType,
 		AcceptedContentTypes: acceptContentTypes,
 		ReturnedContentTypes: returnContentTypes,
+
+		//set the default for concurrency count to 1
+		ConcurrencyCount: 1,
 	}
 
 	for _, opt := range opts {
