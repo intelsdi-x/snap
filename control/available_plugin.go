@@ -26,14 +26,16 @@ const (
 	DefaultHealthCheckTimeout = time.Second * 1
 	// DefaultHealthCheckFailureLimit - how any consecutive health check timeouts must occur to trigger a failure
 	DefaultHealthCheckFailureLimit = 3
-	// default for pool size when not set in plugin meta
-	maximumRunningPlugins = 3
 )
 
 var (
 	ErrPoolNotFound = errors.New("plugin pool not found")
 	ErrBadKey       = errors.New("bad key")
 	ErrBadType      = errors.New("bad plugin type")
+
+	// This defines the maximum running instances of a loaded plugin.
+	// It is initialized at runtime via the cli.
+	maximumRunningPlugins = 3
 )
 
 type subscriptionType int
@@ -250,8 +252,12 @@ type apPool struct {
 	// pulsed epoch (`service pulsed start`).
 	plugins    map[uint32]*availablePlugin
 	pidCounter uint32
+
 	// The max size which this pool may grow.
 	max int
+
+	// The number of subscriptions per running instance
+	concurrencyCount int
 }
 
 func newPool(key string, plugins ...*availablePlugin) (*apPool, error) {
@@ -261,11 +267,13 @@ func newPool(key string, plugins ...*availablePlugin) (*apPool, error) {
 		return nil, err
 	}
 	p := &apPool{
-		RWMutex: &sync.RWMutex{},
-		version: ver,
-		key:     key,
-		subs:    map[uint64]*subscription{},
-		plugins: make(map[uint32]*availablePlugin),
+		RWMutex:          &sync.RWMutex{},
+		version:          ver,
+		key:              key,
+		subs:             map[uint64]*subscription{},
+		plugins:          make(map[uint32]*availablePlugin),
+		max:              maximumRunningPlugins,
+		concurrencyCount: 1,
 	}
 
 	if len(plugins) > 0 {
@@ -273,12 +281,17 @@ func newPool(key string, plugins ...*availablePlugin) (*apPool, error) {
 			plg.id = p.generatePID()
 			p.plugins[plg.id] = plg
 		}
-		// Setting the max according to the concurrency count
-		// from the incoming available plugin.
-		// Since plugin metadata is a singleton, and immutable (in static code)
+		// Because plugin metadata is a singleton and immutable (in static code)
 		// it is safe to take the first item.  Reloading an identical plugin
 		// with new metadata is protected by plugin loading.
-		p.max = plugins[0].meta.ConcurrencyCount
+
+		// Checking if plugin is exclusive
+		// (only one instance should be running).
+		if plugins[0].meta.Exclusive {
+			p.max = 1
+		}
+		// set concurrency count
+		p.concurrencyCount = plugins[0].meta.ConcurrencyCount
 	}
 
 	return p, nil
@@ -290,12 +303,15 @@ func (p *apPool) insert(ap *availablePlugin) error {
 	}
 	ap.id = p.generatePID()
 	p.plugins[ap.id] = ap
-	// This tests that the pool's max size is set correctly.  If an empty pool is created, it
-	// does not have any available plugins from which to retrieve a concurrency count.
-	// we only only make changes if necessary.
-	if ap.meta.ConcurrencyCount != maximumRunningPlugins && ap.meta.ConcurrencyCount != p.max {
-		p.max = ap.meta.ConcurrencyCount
+
+	// If an empty pool is created, it does not have
+	// any available plugins from which to retrieve
+	// concurrency count or exclusivity.  We ensure it
+	// is set correctly on an insert.
+	if ap.meta.Exclusive {
+		p.max = 1
 	}
+	p.concurrencyCount = ap.meta.ConcurrencyCount
 	return nil
 }
 
@@ -328,13 +344,14 @@ func (p *apPool) eligible() bool {
 	p.RLock()
 	defer p.RUnlock()
 
-	// if max is not set, use default
-	max := maximumRunningPlugins
-	if p.max > 0 {
-		max = p.max
+	// optimization: don't even bother with concurrency
+	// count if we have already reached pool max
+	if p.count() == p.max {
+		return false
 	}
 
-	if p.count() < p.subscriptionCount() && p.count() < max {
+	should := p.subscriptionCount() / p.concurrencyCount
+	if should > p.count() && should <= p.max {
 		return true
 	}
 
