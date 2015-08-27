@@ -67,9 +67,9 @@ func (p *PCM) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 	return mts, nil
 }
 
-//GetConfigPolicyTree
-func (p *PCM) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	c := cpolicy.NewTree()
+//GetConfigPolicy
+func (p *PCM) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	c := cpolicy.New()
 	return *c, nil
 }
 

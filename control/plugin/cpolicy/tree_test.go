@@ -8,11 +8,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestConfigPolicyTree(t *testing.T) {
-	Convey("ConfigPolicyTree", t, func() {
-		t := NewTree()
+func TestConfigPolicy(t *testing.T) {
+	Convey("ConfigPolicy", t, func() {
+		cp := New()
 
-		Convey("new tree", func() {
+		Convey("new config policy", func() {
 			So(t, ShouldNotBeNil)
 		})
 
@@ -23,10 +23,10 @@ func TestConfigPolicyTree(t *testing.T) {
 			cpn.Add(r1, r2)
 			ns := []string{"one", "two", "potato"}
 
-			t.Add(ns, cpn)
-			t.Freeze()
+			cp.Add(ns, cpn)
+			cp.Freeze()
 			Convey("retrieves store policy", func() {
-				gc := t.Get(ns)
+				gc := cp.Get(ns)
 				So(gc.rules["username"].Required(), ShouldEqual, false)
 				So(gc.rules["username"].Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "root")
 				So(gc.rules["password"].Required(), ShouldEqual, true)
@@ -34,15 +34,14 @@ func TestConfigPolicyTree(t *testing.T) {
 			Convey("encode & decode", func() {
 				gob.Register(NewPolicyNode())
 				gob.Register(&StringRule{})
-				buf, err := t.GobEncode()
+				buf, err := cp.GobEncode()
 				So(err, ShouldBeNil)
 				So(buf, ShouldNotBeNil)
-				// t2 := NewTree()
-				t2 := &ConfigPolicyTree{}
-				err = t2.GobDecode(buf)
+				cp2 := &ConfigPolicy{}
+				err = cp2.GobDecode(buf)
 				So(err, ShouldBeNil)
-				So(t2.cTree, ShouldNotBeNil)
-				gc := t2.Get([]string{"one", "two", "potato"})
+				So(cp2.config, ShouldNotBeNil)
+				gc := cp2.Get([]string{"one", "two", "potato"})
 				So(gc, ShouldNotBeNil)
 				So(gc.rules["username"], ShouldNotBeNil)
 				So(gc.rules["username"].Required(), ShouldEqual, false)
@@ -50,7 +49,6 @@ func TestConfigPolicyTree(t *testing.T) {
 				So(gc.rules["username"].Default(), ShouldNotBeNil)
 				So(gc.rules["password"].Default(), ShouldBeNil)
 				So(gc.rules["username"].Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "root")
-				println(len(gc.rules))
 			})
 
 		})
@@ -73,17 +71,17 @@ func TestConfigPolicyTree(t *testing.T) {
 			cpn3.Add(r31)
 			ns3 := []string{"one", "two"}
 
-			t.Add(ns1, cpn1)
-			t.Add(ns2, cpn2)
-			t.Add(ns3, cpn3)
+			cp.Add(ns1, cpn1)
+			cp.Add(ns2, cpn2)
+			cp.Add(ns3, cpn3)
 
 			Convey("base node is nil", func() {
-				gc := t.Get([]string{"one"})
+				gc := cp.Get([]string{"one"})
 				So(gc, ShouldResemble, NewPolicyNode())
 			})
 
 			Convey("two is correct", func() {
-				gc := t.Get([]string{"one", "two"})
+				gc := cp.Get([]string{"one", "two"})
 				So(gc, ShouldNotBeNil)
 
 				So(gc.rules["username"].Required(), ShouldEqual, false)
@@ -93,7 +91,7 @@ func TestConfigPolicyTree(t *testing.T) {
 			})
 
 			Convey("potato is correct", func() {
-				gc := t.Get([]string{"one", "two", "potato"})
+				gc := cp.Get([]string{"one", "two", "potato"})
 				So(gc, ShouldNotBeNil)
 
 				So(gc.rules["username"].Required(), ShouldEqual, false)
@@ -103,7 +101,7 @@ func TestConfigPolicyTree(t *testing.T) {
 			})
 
 			Convey("grapefruit is correct", func() {
-				gc := t.Get([]string{"one", "two", "grapefruit"})
+				gc := cp.Get([]string{"one", "two", "grapefruit"})
 				So(gc, ShouldNotBeNil)
 
 				So(gc.rules["username"].Required(), ShouldEqual, false)

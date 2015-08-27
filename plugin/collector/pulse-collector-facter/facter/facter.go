@@ -158,8 +158,8 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 	return metrics, nil
 }
 
-func (f *Facter) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	c := cpolicy.NewTree()
+func (f *Facter) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	c := cpolicy.New()
 	rule, _ := cpolicy.NewStringRule("name", false, "bob")
 	rule2, _ := cpolicy.NewStringRule("password", true)
 	p := cpolicy.NewPolicyNode()

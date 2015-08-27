@@ -689,7 +689,7 @@ func TestPublishMetrics(t *testing.T) {
 		lp, err2 := c.pluginManager.get("publisher:file:1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "file")
-		So(lp.ConfigPolicyTree, ShouldNotBeNil)
+		So(lp.ConfigPolicy, ShouldNotBeNil)
 
 		Convey("Subscribe to file publisher with good config", func() {
 			n := cdata.NewNode()
@@ -742,7 +742,7 @@ func TestProcessMetrics(t *testing.T) {
 		lp, err2 := c.pluginManager.get("processor:passthru:1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "passthru")
-		So(lp.ConfigPolicyTree, ShouldNotBeNil)
+		So(lp.ConfigPolicy, ShouldNotBeNil)
 
 		Convey("Subscribe to passthru processor with good config", func() {
 			n := cdata.NewNode()

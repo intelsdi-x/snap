@@ -8,8 +8,6 @@ import (
 	"net"
 	"net/http"
 	"net/rpc"
-	"os"
-	"path"
 	"testing"
 	"time"
 
@@ -26,48 +24,15 @@ import (
 type mockProxy struct {
 }
 
-func (m *mockProxy) CollectMetrics(args plugin.CollectMetricsArgs, reply *plugin.CollectMetricsReply) error {
-	rand.Seed(time.Now().Unix())
-	for _, i := range args.PluginMetricTypes {
-		p := plugin.NewPluginMetricType(i.Namespace(), time.Now(), "", rand.Intn(100))
-		p.Config_ = i.Config()
-		reply.PluginMetrics = append(reply.PluginMetrics, *p)
-	}
-	return nil
-}
-
-func (m *mockProxy) GetMetricTypes(args plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
-	pmts := []plugin.PluginMetricType{}
-	pmts = append(pmts, plugin.PluginMetricType{
-		Namespace_: []string{"foo", "bar"},
-	})
-	reply.PluginMetricTypes = pmts
-	return nil
-}
-
-func (m *mockProxy) GetConfigPolicyTree(args plugin.GetConfigPolicyTreeArgs, reply *plugin.GetConfigPolicyTreeReply) error {
-	cpt := cpolicy.NewTree()
+func (m *mockProxy) GetConfigPolicy(args plugin.GetConfigPolicyArgs, reply *plugin.GetConfigPolicyReply) error {
+	cp := cpolicy.New()
 	n1 := cpolicy.NewPolicyNode()
-	r1, _ := cpolicy.NewStringRule("name", false, "bob")
-	n1.Add(r1)
-	r2, _ := cpolicy.NewIntegerRule("someInt", true, 100)
-	n1.Add(r2)
-	r3, _ := cpolicy.NewStringRule("password", true)
-	n1.Add(r3)
-	r4, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
-	n1.Add(r4)
-	cpt.Add([]string{"foo", "bar"}, n1)
-	reply.PolicyTree = *cpt
-	return nil
-}
-
-func (m *mockProxy) GetConfigPolicyNode(arg plugin.GetConfigPolicyNodeArgs, reply *plugin.GetConfigPolicyNodeReply) error {
-	cpn := cpolicy.NewPolicyNode()
 	r1, _ := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
 	r2, _ := cpolicy.NewStringRule("password", true)
 	r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
-	cpn.Add(r1, r2, r3)
-	reply.PolicyNode = *cpn
+	n1.Add(r1, r2, r3)
+	cp.Add([]string{""}, n1)
+	reply.Policy = *cp
 	return nil
 }
 
@@ -78,6 +43,44 @@ func (m *mockProxy) Process(args plugin.ProcessorArgs, reply *plugin.ProcessorRe
 }
 
 func (m *mockProxy) Publish(args plugin.PublishArgs, reply *plugin.PublishReply) error {
+	return nil
+}
+
+type mockCollectorProxy struct {
+}
+
+func (m *mockCollectorProxy) CollectMetrics(args plugin.CollectMetricsArgs, reply *plugin.CollectMetricsReply) error {
+	rand.Seed(time.Now().Unix())
+	for _, i := range args.PluginMetricTypes {
+		p := plugin.NewPluginMetricType(i.Namespace(), time.Now(), "", rand.Intn(100))
+		p.Config_ = i.Config()
+		reply.PluginMetrics = append(reply.PluginMetrics, *p)
+	}
+	return nil
+}
+
+func (m *mockCollectorProxy) GetMetricTypes(args plugin.GetMetricTypesArgs, reply *plugin.GetMetricTypesReply) error {
+	pmts := []plugin.PluginMetricType{}
+	pmts = append(pmts, plugin.PluginMetricType{
+		Namespace_: []string{"foo", "bar"},
+	})
+	reply.PluginMetricTypes = pmts
+	return nil
+}
+
+func (m *mockCollectorProxy) GetConfigPolicy(args plugin.GetConfigPolicyArgs, reply *plugin.GetConfigPolicyReply) error {
+	cp := cpolicy.New()
+	n1 := cpolicy.NewPolicyNode()
+	r1, _ := cpolicy.NewStringRule("name", false, "bob")
+	n1.Add(r1)
+	r2, _ := cpolicy.NewIntegerRule("someInt", true, 100)
+	n1.Add(r2)
+	r3, _ := cpolicy.NewStringRule("password", true)
+	n1.Add(r3)
+	r4, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
+	n1.Add(r4)
+	cp.Add([]string{"foo", "bar"}, n1)
+	reply.Policy = *cp
 	return nil
 }
 
@@ -94,17 +97,12 @@ func (m *mockSessionStatePluginProxy) Kill(arg plugin.KillArgs, b *bool) error {
 	return nil
 }
 
-var (
-	PluginName = "pulse-collector-dummy2"
-	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", PluginName)
-)
-
 var httpStarted = false
 
 func startHTTPJSONRPC() string {
 	mockProxy := &mockProxy{}
-	rpc.RegisterName("Collector", mockProxy)
+	mockCollectorProxy := &mockCollectorProxy{}
+	rpc.RegisterName("Collector", mockCollectorProxy)
 	rpc.RegisterName("Processor", mockProxy)
 	rpc.RegisterName("Publisher", mockProxy)
 	session := &mockSessionStatePluginProxy{}
@@ -163,15 +161,15 @@ func TestHTTPJSONRPC(t *testing.T) {
 				So(result["result"], ShouldHaveSameTypeAs, map[string]interface{}{})
 			})
 
-			Convey("method = Collector.GetConfigPolicyTree", func() {
-				result, err := client.call("Collector.GetConfigPolicyTree", []interface{}{})
+			Convey("method = Collector.GetConfigPolicy", func() {
+				result, err := client.call("Collector.GetConfigPolicy", []interface{}{})
 				So(err, ShouldBeNil)
 				So(result, ShouldNotResemble, "")
 				So(result["result"], ShouldHaveSameTypeAs, map[string]interface{}{})
 			})
 
-			Convey("method = Processor.GetConfigPolicyNode", func() {
-				result, err := client.call("Processor.GetConfigPolicyNode", []interface{}{})
+			Convey("method = Processor.GetConfigPolicy", func() {
+				result, err := client.call("Processor.GetConfigPolicy", []interface{}{})
 				So(err, ShouldBeNil)
 				So(result, ShouldNotResemble, "")
 				So(result["result"], ShouldHaveSameTypeAs, map[string]interface{}{})
@@ -232,12 +230,12 @@ func TestHTTPJSONRPC(t *testing.T) {
 			So(mts[0].Config().Table(), ShouldNotBeEmpty)
 			So(mts[0].Config().Table()["someInt"].Type(), ShouldResemble, "integer")
 
-			Convey("Get and process the ConfigPolicyTree", func() {
-				cpt, err := c.GetConfigPolicyTree()
+			Convey("Get and process the ConfigPolicy", func() {
+				cp, err := c.GetConfigPolicy()
 				So(err, ShouldBeNil)
-				So(cpt, ShouldNotBeNil)
-				So(cpt.Get([]string{"foo", "bar"}), ShouldNotBeNil)
-				node := cpt.Get([]string{"foo", "bar"})
+				So(cp, ShouldNotBeNil)
+				So(cp.Get([]string{"foo", "bar"}), ShouldNotBeNil)
+				node := cp.Get([]string{"foo", "bar"})
 				So(err, ShouldBeNil)
 				So(node, ShouldNotBeNil)
 				cpn, cperrs := node.Process(mts[0].Config().Table())
@@ -266,11 +264,11 @@ func TestHTTPJSONRPC(t *testing.T) {
 			So(mts[0].Config().Table(), ShouldNotBeEmpty)
 			So(mts[0].Config().Table()["someInt"].Type(), ShouldResemble, "integer")
 
-			Convey("Get and process the ConfigPolicyTree", func() {
-				cpt, err := c.GetConfigPolicyTree()
+			Convey("Get and process the ConfigPolicy", func() {
+				cp, err := c.GetConfigPolicy()
 				So(err, ShouldBeNil)
-				So(cpt, ShouldNotBeNil)
-				node := cpt.Get([]string{"foo", "bar"})
+				So(cp, ShouldNotBeNil)
+				node := cp.Get([]string{"foo", "bar"})
 				So(node, ShouldNotBeNil)
 				So(err, ShouldBeNil)
 				cpn, cperrs := node.Process(mts[0].Config().Table())
@@ -280,88 +278,91 @@ func TestHTTPJSONRPC(t *testing.T) {
 				So(cperrs.Errors()[0].Error(), ShouldContainSubstring, "password")
 			})
 		})
+	})
 
-		Convey("Processor Client", func() {
-			p := NewProcessorHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second)
-			So(c, ShouldNotBeNil)
+	Convey("Processor Client", t, func() {
+		p := NewProcessorHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second)
+		So(p, ShouldNotBeNil)
 
-			Convey("Ping", func() {
-				err := p.Ping()
-				So(err, ShouldBeNil)
-			})
-
-			Convey("Kill", func() {
-				err := p.Kill("somereason")
-				So(err, ShouldBeNil)
-			})
-
-			Convey("GetConfigPolicyNode", func() {
-				cpn, err := p.GetConfigPolicyNode()
-				So(err, ShouldBeNil)
-				So(cpn, ShouldNotBeNil)
-				cpn_ := cpolicy.NewPolicyNode()
-				r1, err := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
-				r2, _ := cpolicy.NewStringRule("password", true)
-				r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
-				So(err, ShouldBeNil)
-				cpn_.Add(r1, r2, r3)
-				cpnjson, _ := cpn.MarshalJSON()
-				cpn_json, _ := cpn_.MarshalJSON()
-				So(string(cpnjson), ShouldResemble, string(cpn_json))
-			})
-
-			Convey("Process metrics", func() {
-				pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1)
-				b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
-				contentType, content, err := p.Process(plugin.PulseJSONContentType, b, nil)
-				So(contentType, ShouldResemble, plugin.PulseJSONContentType)
-				So(content, ShouldNotBeNil)
-				So(err, ShouldEqual, nil)
-				var pmts []plugin.PluginMetricType
-				err = json.Unmarshal(content, &pmts)
-				So(err, ShouldBeNil)
-				So(len(pmts), ShouldEqual, 1)
-				So(pmts[0].Data(), ShouldEqual, 1)
-				So(pmts[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
-			})
+		Convey("Ping", func() {
+			err := p.Ping()
+			So(err, ShouldBeNil)
 		})
 
-		Convey("Publisher Client", func() {
-			p := NewPublisherHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second)
-			So(c, ShouldNotBeNil)
+		Convey("Kill", func() {
+			err := p.Kill("somereason")
+			So(err, ShouldBeNil)
+		})
 
-			Convey("Ping", func() {
-				err := p.Ping()
-				So(err, ShouldBeNil)
-			})
+		Convey("GetConfigPolicy", func() {
+			cp, err := p.GetConfigPolicy()
+			So(err, ShouldBeNil)
+			So(cp, ShouldNotBeNil)
+			cp_ := cpolicy.New()
+			cpn_ := cpolicy.NewPolicyNode()
+			r1, err := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
+			r2, _ := cpolicy.NewStringRule("password", true)
+			r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
+			So(err, ShouldBeNil)
+			cpn_.Add(r1, r2, r3)
+			cp_.Add([]string{""}, cpn_)
+			cpjson, _ := cp.MarshalJSON()
+			cp_json, _ := cp_.MarshalJSON()
+			So(string(cpjson), ShouldResemble, string(cp_json))
+		})
 
-			Convey("Kill", func() {
-				err := p.Kill("somereason")
-				So(err, ShouldBeNil)
-			})
+		Convey("Process metrics", func() {
+			pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1)
+			b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
+			contentType, content, err := p.Process(plugin.PulseJSONContentType, b, nil)
+			So(contentType, ShouldResemble, plugin.PulseJSONContentType)
+			So(content, ShouldNotBeNil)
+			So(err, ShouldEqual, nil)
+			var pmts []plugin.PluginMetricType
+			err = json.Unmarshal(content, &pmts)
+			So(err, ShouldBeNil)
+			So(len(pmts), ShouldEqual, 1)
+			So(pmts[0].Data(), ShouldEqual, 1)
+			So(pmts[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+		})
+	})
 
-			Convey("GetConfigPolicyNode", func() {
-				cpn, err := p.GetConfigPolicyNode()
-				So(err, ShouldBeNil)
-				So(cpn, ShouldNotBeNil)
-				cpn_ := cpolicy.NewPolicyNode()
-				r1, err := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
-				r2, _ := cpolicy.NewStringRule("password", true)
-				r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
-				So(err, ShouldBeNil)
-				cpn_.Add(r1, r2, r3)
-				cpnjson, _ := cpn.MarshalJSON()
-				cpn_json, _ := cpn_.MarshalJSON()
-				So(string(cpnjson), ShouldResemble, string(cpn_json))
-			})
+	Convey("Publisher Client", t, func() {
+		p := NewPublisherHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second)
+		So(p, ShouldNotBeNil)
 
-			Convey("Publish metrics", func() {
-				pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1)
-				b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
-				err := p.Publish(plugin.PulseJSONContentType, b, nil)
-				So(err, ShouldBeNil)
-			})
+		Convey("Ping", func() {
+			err := p.Ping()
+			So(err, ShouldBeNil)
+		})
 
+		Convey("Kill", func() {
+			err := p.Kill("somereason")
+			So(err, ShouldBeNil)
+		})
+
+		Convey("GetConfigPolicy", func() {
+			cp, err := p.GetConfigPolicy()
+			So(err, ShouldBeNil)
+			So(cp, ShouldNotBeNil)
+			cp_ := cpolicy.New()
+			cpn_ := cpolicy.NewPolicyNode()
+			r1, err := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
+			r2, _ := cpolicy.NewStringRule("password", true)
+			r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
+			So(err, ShouldBeNil)
+			cpn_.Add(r1, r2, r3)
+			cp_.Add([]string{""}, cpn_)
+			cpjson, _ := cp.MarshalJSON()
+			cp_json, _ := cp_.MarshalJSON()
+			So(string(cpjson), ShouldResemble, string(cp_json))
+		})
+
+		Convey("Publish metrics", func() {
+			pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1)
+			b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
+			err := p.Publish(plugin.PulseJSONContentType, b, nil)
+			So(err, ShouldBeNil)
 		})
 
 	})

@@ -52,7 +52,7 @@ func NewPolicyNode() *ConfigPolicyNode {
 	}
 }
 
-// UnmarshalJSON unmarshals JSON into a ConfigPolicyTree
+// UnmarshalJSON unmarshals JSON into a ConfigPolicyNode
 func (c *ConfigPolicyNode) UnmarshalJSON(data []byte) error {
 	m := map[string]interface{}{}
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -157,7 +157,7 @@ func (c ConfigPolicyNode) Merge(n ctree.Node) ctree.Node {
 // addRulesToConfigPolicyNode accepts a map of empty interfaces that will be
 // marshalled into rules which will be added to the ConfigPolicyNode provided
 // as the second argument.  This function is called used by the UnmarshalJSON
-// for ConfigPolicyTree and ConfigPolicyNode.
+// for ConfigPolicy and ConfigPolicyNode.
 func addRulesToConfigPolicyNode(rules map[string]interface{}, cpn *ConfigPolicyNode) error {
 	for k, rule := range rules {
 		if rule, ok := rule.(map[string]interface{}); ok {

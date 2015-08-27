@@ -28,17 +28,17 @@ func (p *mockPlugin) CollectMetrics(mockPluginMetricType []PluginMetricType) ([]
 	return mockPluginMetricType, nil
 }
 
-func (p *mockPlugin) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	t := cpolicy.NewTree()
+func (p *mockPlugin) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	cp := cpolicy.New()
 	cpn := cpolicy.NewPolicyNode()
 	r1, _ := cpolicy.NewStringRule("username", false, "root")
 	r2, _ := cpolicy.NewStringRule("password", true)
 	cpn.Add(r1, r2)
 	ns := []string{"one", "two", "potato"}
-	t.Add(ns, cpn)
-	t.Freeze()
+	cp.Add(ns, cpn)
+	cp.Freeze()
 
-	return *t, nil
+	return *cp, nil
 }
 
 type mockErrorPlugin struct {
@@ -52,8 +52,8 @@ func (p *mockErrorPlugin) CollectMetrics(mockPluginMetricType []PluginMetricType
 	return nil, errors.New("Error in collect Metric")
 }
 
-func (p *mockErrorPlugin) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	return cpolicy.ConfigPolicyTree{}, errors.New("Error in get config policy tree")
+func (p *mockErrorPlugin) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	return cpolicy.ConfigPolicy{}, errors.New("Error in get config policy")
 }
 
 func TestCollectorProxy(t *testing.T) {
@@ -127,21 +127,21 @@ func TestCollectorProxy(t *testing.T) {
 			})
 
 		})
-		Convey("Get Config Policy Tree", func() {
-			replyPolicyTree := &GetConfigPolicyTreeReply{}
+		Convey("Get Config Policy", func() {
+			replyPolicy := &GetConfigPolicyReply{}
 
-			c.GetConfigPolicyTree(struct{}{}, replyPolicyTree)
+			c.GetConfigPolicy(struct{}{}, replyPolicy)
 
-			So(replyPolicyTree.PolicyTree, ShouldNotBeNil)
+			So(replyPolicy.Policy, ShouldNotBeNil)
 
-			Convey("Get error in Config Policy Tree ", func() {
+			Convey("Get error in Config Policy ", func() {
 				mockErrorPlugin := &mockErrorPlugin{}
 				errC := &collectorPluginProxy{
 					Plugin:  mockErrorPlugin,
 					Session: mockSessionState,
 				}
-				err := errC.GetConfigPolicyTree(struct{}{}, replyPolicyTree)
-				So(err.Error(), ShouldResemble, "ConfigPolicyTree call error : Error in get config policy tree")
+				err := errC.GetConfigPolicy(struct{}{}, replyPolicy)
+				So(err.Error(), ShouldResemble, "GetConfigPolicy call error : Error in get config policy")
 
 			})
 

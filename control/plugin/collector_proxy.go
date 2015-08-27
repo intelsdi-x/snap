@@ -36,10 +36,10 @@ type GetMetricTypesReply struct {
 	PluginMetricTypes []PluginMetricType
 }
 
-type GetConfigPolicyTreeArgs struct{}
+type GetConfigPolicyArgs struct{}
 
-type GetConfigPolicyTreeReply struct {
-	PolicyTree cpolicy.ConfigPolicyTree
+type GetConfigPolicyReply struct {
+	Policy cpolicy.ConfigPolicy
 }
 
 type collectorPluginProxy struct {
@@ -74,15 +74,15 @@ func (c *collectorPluginProxy) CollectMetrics(args CollectMetricsArgs, reply *Co
 	return nil
 }
 
-func (c *collectorPluginProxy) GetConfigPolicyTree(args GetConfigPolicyTreeArgs, reply *GetConfigPolicyTreeReply) error {
+func (c *collectorPluginProxy) GetConfigPolicy(args GetConfigPolicyArgs, reply *GetConfigPolicyReply) error {
 	defer catchPluginPanic(c.Session.Logger())
 
-	c.Session.Logger().Println("GetConfigPolicyTree called")
-	policy, err := c.Plugin.GetConfigPolicyTree()
+	c.Session.Logger().Println("GetConfigPolicy called")
+	policy, err := c.Plugin.GetConfigPolicy()
 
 	if err != nil {
-		return errors.New(fmt.Sprintf("ConfigPolicyTree call error : %s", err.Error()))
+		return errors.New(fmt.Sprintf("GetConfigPolicy call error : %s", err.Error()))
 	}
-	reply.PolicyTree = policy
+	reply.Policy = policy
 	return nil
 }

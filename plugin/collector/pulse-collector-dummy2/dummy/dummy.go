@@ -50,9 +50,9 @@ func (f *Dummy) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 	return []plugin.PluginMetricType{*m1, *m2}, nil
 }
 
-//GetConfigPolicyTree returns a ConfigPolicyTree for testing
-func (f *Dummy) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	c := cpolicy.NewTree()
+//GetConfigPolicy returns a ConfigPolicy for testing
+func (f *Dummy) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	c := cpolicy.New()
 	rule, _ := cpolicy.NewStringRule("name", false, "bob")
 	rule2, _ := cpolicy.NewStringRule("password", true)
 	p := cpolicy.NewPolicyNode()

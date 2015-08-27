@@ -19,8 +19,8 @@ func (f *MockPublisher) Publish(_ string, _ []byte, _ map[string]ctypes.ConfigVa
 	return nil
 }
 
-func (f *MockPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
-	return cpolicy.ConfigPolicyNode{}
+func (f *MockPublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
+	return cpolicy.ConfigPolicy{}
 }
 
 type MockPublisherSessionState struct {

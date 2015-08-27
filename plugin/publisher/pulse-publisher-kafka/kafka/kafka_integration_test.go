@@ -40,7 +40,8 @@ func TestPublish(t *testing.T) {
 			cdn.AddItem("topic", ctypes.ConfigValueStr{Value: topic})
 
 			// Get validated policy
-			p := k.GetConfigPolicyNode()
+			cp := k.GetConfigPolicy()
+			p := cp.Get([]string{""})
 			f, err := p.Process(cdn.Table())
 			So(getProcessErrorStr(err), ShouldEqual, "")
 

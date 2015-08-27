@@ -141,7 +141,7 @@ func newMetricCatalog() *metricCatalog {
 }
 
 func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
-	if lp.ConfigPolicyTree == nil {
+	if lp.ConfigPolicy == nil {
 		panic("NO")
 	}
 
@@ -150,7 +150,7 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
 		namespace:          mt.Namespace(),
 		version:            mt.Version(),
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
-		policy:             lp.ConfigPolicyTree.Get(mt.Namespace()),
+		policy:             lp.ConfigPolicy.Get(mt.Namespace()),
 	}
 	mc.Add(&newMt)
 }

@@ -15,10 +15,10 @@ func TestPluginMeta(t *testing.T) {
 	})
 }
 
-func TestConfigPolicyNode(t *testing.T) {
-	Convey("GetConfigPolicyNode returns non nil object", t, func() {
+func TestConfigPolicy(t *testing.T) {
+	Convey("GetConfigPolicy returns non nil object", t, func() {
 		r := NewRiemannPublisher()
-		c := r.GetConfigPolicyNode()
+		c := r.GetConfigPolicy()
 		So(c, ShouldNotBeNil)
 	})
 }

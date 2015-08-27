@@ -107,7 +107,8 @@ func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
-func (f *mySQLPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
+func (f *mySQLPublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
+	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 
 	username, err := cpolicy.NewStringRule("username", true, "root")
@@ -131,7 +132,8 @@ func (f *mySQLPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	config.Add(database)
 	config.Add(tableName)
 
-	return *config
+	cp.Add([]string{""}, config)
+	return *cp
 }
 
 func handleErr(e error) {

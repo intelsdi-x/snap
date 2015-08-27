@@ -57,7 +57,8 @@ func (rmq *rmqPublisher) Publish(contentType string, content []byte, config map[
 	return err
 }
 
-func (f *rmqPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
+func (rmq *rmqPublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
+	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 
 	r1, err := cpolicy.NewStringRule("address", true)
@@ -80,7 +81,8 @@ func (f *rmqPublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	r4.Description = "RabbitMQ Routing Key"
 	config.Add(r4)
 
-	return *config
+	cp.Add([]string{""}, config)
+	return *cp
 }
 
 func publishDataToRmq(metrics []plugin.PluginMetricType, address string, exName string, rtKey string, exKind string, logger *log.Logger) error {

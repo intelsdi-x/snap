@@ -15,7 +15,7 @@ type CollectorPlugin interface {
 	Plugin
 	CollectMetrics([]PluginMetricType) ([]PluginMetricType, error)
 	GetMetricTypes() ([]PluginMetricType, error)
-	GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error)
+	GetConfigPolicy() (cpolicy.ConfigPolicy, error)
 }
 
 func init() {

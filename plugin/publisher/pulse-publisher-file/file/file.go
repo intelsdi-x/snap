@@ -69,7 +69,8 @@ func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
-func (f *filePublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
+func (f *filePublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
+	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 
 	r1, err := cpolicy.NewStringRule("file", true)
@@ -77,7 +78,8 @@ func (f *filePublisher) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	r1.Description = "Absolute path to the output file for publishing"
 
 	config.Add(r1)
-	return *config
+	cp.Add([]string{""}, config)
+	return *cp
 }
 
 func handleErr(e error) {

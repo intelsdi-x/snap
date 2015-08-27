@@ -32,7 +32,8 @@ func TestPublish(t *testing.T) {
 			cdn := cdata.NewNode()
 			cdn.AddItem("broker", ctypes.ConfigValueStr{Value: broker})
 			cdn.AddItem("host", ctypes.ConfigValueStr{Value: "bacon-powered"})
-			p := r.GetConfigPolicyNode()
+			cp := r.GetConfigPolicy()
+			p := cp.Get([]string{""})
 			f, cErr := p.Process(cdn.Table())
 			So(getProcessErrorStr(cErr), ShouldEqual, "")
 

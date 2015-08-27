@@ -19,10 +19,10 @@ You can start a plugin manually for testing by increasing the ping timeout durat
 ./pulse-collector-dummy2 '{"NoDaemon": false, "PingTimeoutDuration": 1000000000000}'
 ```
 
-###### GetConfigPolicyTree
+###### GetConfigPolicy
 
 ```
-curl -d '{"method": "Collector.GetConfigPolicyTree", "params": [], "id": 1}' http://127.0.0.1:<REPLACE WITH PORT> | python -m "json.tool"
+curl -d '{"method": "Collector.GetConfigPolicy", "params": [], "id": 1}' http://127.0.0.1:<REPLACE WITH PORT> | python -m "json.tool"
 ```
 
 ###### GetMetricTypes
