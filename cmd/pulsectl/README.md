@@ -1,4 +1,4 @@
-# pulsectl 
+# pulsectl
 A powerful telemetry agent framework
 
 ## Usage
@@ -49,7 +49,7 @@ Example Usage
 Start pulse with the REST interface enabled
 
 ```
-$PULSE_PATH/bin/pulsed 
+$PULSE_PATH/bin/pulsed
 ```
 
 1. load a collector plugin
@@ -68,8 +68,7 @@ $PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-processor-passthru
 $PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-publisher-influxdb
 $PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-publisher-file
 $PULSE_PATH/bin/pulsectl plugin list
-$PULSE_PATH/bin/pulsectl task create $PULSE_PATH/../cmd/pulsectl/sample/psutil-influx.json
-$PULSE_PATH/bin/pulsectl task start 1
+$PULSE_PATH/bin/pulsectl task create -t $PULSE_PATH/../cmd/pulsectl/sample/psutil-influx.json
 $PULSE_PATH/bin/pulsectl task list
 $PULSE_PATH/bin/pulsectl plugin unload -n psutil -v 1
 ```
