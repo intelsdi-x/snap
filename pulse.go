@@ -287,6 +287,7 @@ func setMaxProcs(maxProcs int) {
 	}
 
 	log.Info("setting GOMAXPROCS to: ", _maxProcs, " core(s)")
+	runtime.GOMAXPROCS(_maxProcs)
 	//Verify setting worked
 	actualNumProcs := runtime.GOMAXPROCS(0)
 	if actualNumProcs != _maxProcs {
