@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 BUILDCMD='go build -a -ldflags "-w"'
 BUILDDIR=$1

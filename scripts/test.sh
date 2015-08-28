@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 # The script does automatic checking on a Go package and its sub-packages, including:
 # 1. gofmt         (http://golang.org/cmd/gofmt/)
 # 2. goimports     (https://github.com/bradfitz/goimports)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 GITVERSION=`git describe --always`
 SOURCEDIR=$1

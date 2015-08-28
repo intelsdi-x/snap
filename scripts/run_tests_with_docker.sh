@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 die() {
     echo >&2 $@
