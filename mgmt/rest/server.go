@@ -208,7 +208,3 @@ func parseNamespace(ns string) []string {
 	}
 	return strings.Split(ns, "/")
 }
-
-func JoinNamespace(ns []string) string {
-	return "/" + strings.Join(ns, "/")
-}

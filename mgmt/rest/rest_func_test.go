@@ -786,7 +786,7 @@ func TestPluginRestCalls(t *testing.T) {
 				r := createTask("1.json", "foo", "1s", true, port)
 				So(r.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr := r.Body.(*rbody.Error)
-				So(plr.ErrorMessage, ShouldEqual, "Metric not found: /intel/dummy/foo")
+				So(plr.ErrorMessage, ShouldContainSubstring, "Metric not found: /intel/dummy/foo")
 			})
 
 			Convey("create task works when plugins are loaded", func() {

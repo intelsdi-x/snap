@@ -78,16 +78,16 @@ type managesPlugins interface {
 }
 
 type catalogsMetrics interface {
-	Get([]string, int) (*metricType, error)
+	Get([]string, int) (*metricType, perror.PulseError)
 	Add(*metricType)
 	AddLoadedMetricType(*loadedPlugin, core.Metric)
 	RmUnloadedPluginMetrics(lp *loadedPlugin)
-	Fetch([]string) ([]*metricType, error)
+	Fetch([]string) ([]*metricType, perror.PulseError)
 	Item() (string, []*metricType)
 	Next() bool
-	Subscribe([]string, int) error
-	Unsubscribe([]string, int) error
-	GetPlugin([]string, int) (*loadedPlugin, error)
+	Subscribe([]string, int) perror.PulseError
+	Unsubscribe([]string, int) perror.PulseError
+	GetPlugin([]string, int) (*loadedPlugin, perror.PulseError)
 }
 
 type controlOpt func(*pluginControl)
@@ -303,7 +303,7 @@ func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []p
 	}).Info(fmt.Sprintf("validating dependencies for plugin %s:%d", pl.Name(), pl.Version()))
 	lp, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
-		pe := perror.New(errors.New(fmt.Sprintf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version())))
+		pe := perror.New(fmt.Errorf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version()))
 		pe.SetFields(map[string]interface{}{
 			"name":    pl.Name(),
 			"version": pl.Version(),
@@ -336,7 +336,7 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 
 	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 	if err != nil {
-		perrs = append(perrs, perror.New(err))
+		perrs = append(perrs, err)
 		return nil, perrs
 	}
 

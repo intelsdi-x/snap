@@ -415,9 +415,9 @@ type mc struct {
 	e int
 }
 
-func (m *mc) Fetch(ns []string) ([]*metricType, error) {
+func (m *mc) Fetch(ns []string) ([]*metricType, perror.PulseError) {
 	if m.e == 2 {
-		return nil, errors.New("test")
+		return nil, perror.New(errors.New("test"))
 	}
 	return nil, nil
 }
@@ -426,29 +426,29 @@ func (m *mc) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
 	return nil, nil
 }
 
-func (m *mc) GetPlugin([]string, int) (*loadedPlugin, error) {
+func (m *mc) GetPlugin([]string, int) (*loadedPlugin, perror.PulseError) {
 	return nil, nil
 }
 
-func (m *mc) Get(ns []string, ver int) (*metricType, error) {
+func (m *mc) Get(ns []string, ver int) (*metricType, perror.PulseError) {
 	if m.e == 1 {
 		return &metricType{
 			policy: &mockCDProc{},
 		}, nil
 	}
-	return nil, errorMetricNotFound(ns)
+	return nil, perror.New(errorMetricNotFound(ns))
 }
 
-func (m *mc) Subscribe(ns []string, ver int) error {
+func (m *mc) Subscribe(ns []string, ver int) perror.PulseError {
 	if ns[0] == "nf" {
-		return errorMetricNotFound(ns)
+		return perror.New(errorMetricNotFound(ns))
 	}
 	return nil
 }
 
-func (m *mc) Unsubscribe(ns []string, ver int) error {
+func (m *mc) Unsubscribe(ns []string, ver int) perror.PulseError {
 	if ns[0] == "nf" {
-		return errorMetricNotFound(ns)
+		return perror.New(errorMetricNotFound(ns))
 	}
 	if ns[0] == "neg" {
 		return errNegativeSubCount
