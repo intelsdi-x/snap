@@ -85,7 +85,7 @@
               "target": ""
             }
           ],
-          "timeFrom": null,
+          "timeFrom": "5m",
           "timeShift": null,
           "title": "load",
           "tooltip": {
@@ -160,7 +160,7 @@
               "tags": []
             }
           ],
-          "timeFrom": null,
+          "timeFrom": "5m",
           "timeShift": null,
           "title": "Mem Avail",
           "tooltip": {
@@ -226,7 +226,7 @@
               "tags": []
             }
           ],
-          "timeFrom": null,
+          "timeFrom": "5m",
           "timeShift": null,
           "title": "Mem Used",
           "tooltip": {
@@ -251,13 +251,13 @@
       "collapse": false,
       "panels": [
         {
-          "title": "no title (click here)",
+          "title": "Mem Free",
           "error": false,
           "span": 12,
           "editable": true,
           "type": "graph",
           "id": 4,
-          "datasource": null,
+          "datasource": "influx",
           "renderer": "flot",
           "x-axis": true,
           "y-axis": true,
@@ -300,13 +300,25 @@
             "value_type": "cumulative",
             "shared": true
           },
-          "timeFrom": null,
+          "timeFrom": "5m",
           "timeShift": null,
           "targets": [
-            {}
+            {
+              "tags": [],
+              "groupByTags": [],
+              "fields": [
+                {
+                  "name": "value",
+                  "func": "mean"
+                }
+              ],
+              "measurement": "psutil/vm/free",
+              "query": "SELECT mean(value) FROM \"psutil/vm/free\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc"
+            }
           ],
           "aliasColors": {},
-          "seriesOverrides": []
+          "seriesOverrides": [],
+          "links": []
         }
       ]
     }
@@ -318,6 +330,8 @@
       "notice": false,
       "now": true,
       "refresh_intervals": [
+        "1s",
+        "2s",
         "5s",
         "10s",
         "30s",
@@ -331,6 +345,7 @@
       ],
       "status": "Stable",
       "time_options": [
+      	"1m",
         "5m",
         "15m",
         "1h",
@@ -356,7 +371,7 @@
   },
   "schemaVersion": 6,
   "version": 5,
-  "refresh": "5s",
+  "refresh": "2s",
   "links": []
   }
 }
