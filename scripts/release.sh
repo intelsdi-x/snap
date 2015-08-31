@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 # Update path in order for Godeps to function
 export PATH=$PATH:$GOPATH/bin
 
