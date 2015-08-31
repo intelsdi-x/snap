@@ -114,6 +114,8 @@ func (m *metric) Version() int {
 
 func (m *metric) Data() interface{}             { return nil }
 func (m *metric) LastAdvertisedTime() time.Time { return time.Unix(0, 0) }
+func (m *metric) Source() string                { return "" }
+func (m *metric) Timestamp() time.Time          { return time.Unix(0, 0) }
 
 func (c *collectorJob) Run() {
 	log.WithFields(log.Fields{
@@ -154,7 +156,6 @@ func (c *collectorJob) Run() {
 	c.replchan <- struct{}{}
 }
 
-//todo rename to processJob
 type processJob struct {
 	*coreJob
 	processor     processesMetrics
@@ -200,7 +201,7 @@ func (p *processJob) Run() {
 		case plugin.PulseGOBContentType:
 			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
 			for i, m := range p.parentJob.(*collectorJob).metrics {
-				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
+				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Timestamp(), m.Source(), m.Data())
 			}
 			enc.Encode(metrics)
 			_, content, errs := p.processor.ProcessMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
@@ -290,7 +291,7 @@ func (p *publisherJob) Run() {
 		case plugin.PulseGOBContentType:
 			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
 			for i, m := range p.parentJob.(*collectorJob).metrics {
-				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Data())
+				metrics[i] = *plugin.NewPluginMetricType(m.Namespace(), m.Timestamp(), m.Source(), m.Data())
 			}
 			enc.Encode(metrics)
 			errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)

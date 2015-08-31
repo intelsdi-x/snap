@@ -29,18 +29,35 @@ const (
 // Represents a metric type. Only used within plugins and across plugin calls.
 // Converted to core.MetricType before being used within modules.
 type PluginMetricType struct {
-	Namespace_          []string              `json:"namespace"`
-	LastAdvertisedTime_ time.Time             `json:"last_advertised_time"`
-	Version_            int                   `json:"version"`
-	Config_             *cdata.ConfigDataNode `json:"config"`
-	Data_               interface{}           `json:"data"`
+	// Namespace is the identifier for a metric.
+	Namespace_ []string `json:"namespace"`
+
+	// Last advertised time is the last time the Pulse agent was told about
+	// a metric.
+	LastAdvertisedTime_ time.Time `json:"last_advertised_time"`
+
+	// The metric version. It is bound to the Plugin version.
+	Version_ int `json:"version"`
+
+	// The config data needed to collect a metric.
+	Config_ *cdata.ConfigDataNode `json:"config"`
+
+	Data_ interface{} `json:"data"`
+
+	// The source of the metric (host, IP, etc).
+	Source_ string `json:"source"`
+
+	// The timestamp from when the metric was created.
+	Timestamp_ time.Time `json:"timestamp"`
 }
 
 // // PluginMetricType Constructor
-func NewPluginMetricType(namespace []string, data interface{}) *PluginMetricType {
+func NewPluginMetricType(namespace []string, timestamp time.Time, source string, data interface{}) *PluginMetricType {
 	return &PluginMetricType{
 		Namespace_: namespace,
 		Data_:      data,
+		Timestamp_: timestamp,
+		Source_:    source,
 	}
 }
 
@@ -62,6 +79,16 @@ func (p PluginMetricType) Version() int {
 // Config returns the map of config data for this metric
 func (p PluginMetricType) Config() *cdata.ConfigDataNode {
 	return p.Config_
+}
+
+// returns the timestamp of when the metric was collected
+func (p PluginMetricType) Timestamp() time.Time {
+	return p.Timestamp_
+}
+
+// returns the source of the metric
+func (p PluginMetricType) Source() string {
+	return p.Source_
 }
 
 func (p PluginMetricType) Data() interface{} {

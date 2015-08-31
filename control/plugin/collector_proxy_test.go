@@ -16,8 +16,8 @@ type mockPlugin struct {
 }
 
 var mockPluginMetricType []PluginMetricType = []PluginMetricType{
-	*NewPluginMetricType([]string{"foo", "bar"}, 1),
-	*NewPluginMetricType([]string{"foo", "baz"}, 2),
+	*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
+	*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", 2),
 }
 
 func (p *mockPlugin) GetMetricTypes() ([]PluginMetricType, error) {

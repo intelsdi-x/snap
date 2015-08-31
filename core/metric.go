@@ -12,6 +12,8 @@ type Metric interface {
 	LastAdvertisedTime() time.Time
 	Config() *cdata.ConfigDataNode
 	Data() interface{}
+	Source() string
+	Timestamp() time.Time
 }
 
 // RequestedMetric is a metric requested for collection

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -36,7 +37,7 @@ func TestPublish(t *testing.T) {
 			So(getProcessErrorStr(cErr), ShouldEqual, "")
 
 			metrics := []plugin.PluginMetricType{
-				*plugin.NewPluginMetricType([]string{"intel", "cpu", "temp"}, 100),
+				*plugin.NewPluginMetricType([]string{"intel", "cpu", "temp"}, time.Now(), "", 100),
 			}
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)

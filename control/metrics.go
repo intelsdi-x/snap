@@ -44,6 +44,8 @@ type metricType struct {
 	policy             processesConfigData
 	config             *cdata.ConfigDataNode
 	data               interface{}
+	source             string
+	timestamp          time.Time
 }
 
 type processesConfigData interface {
@@ -107,6 +109,14 @@ func (m *metricType) Version() int {
 
 func (m *metricType) Config() *cdata.ConfigDataNode {
 	return m.config
+}
+
+func (m *metricType) Source() string {
+	return m.source
+}
+
+func (m *metricType) Timestamp() time.Time {
+	return m.timestamp
 }
 
 type metricCatalog struct {

@@ -555,7 +555,15 @@ func (m MockMetricType) Namespace() []string {
 	return m.namespace
 }
 
+func (m MockMetricType) Source() string {
+	return ""
+}
+
 func (m MockMetricType) LastAdvertisedTime() time.Time {
+	return time.Now()
+}
+
+func (m MockMetricType) Timestamp() time.Time {
 	return time.Now()
 }
 
@@ -701,7 +709,7 @@ func TestPublishMetrics(t *testing.T) {
 
 			Convey("Publish to file", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType([]string{"foo"}, 1),
+					*plugin.NewPluginMetricType([]string{"foo"}, time.Now(), "", 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -753,7 +761,7 @@ func TestProcessMetrics(t *testing.T) {
 
 			Convey("process metrics", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType([]string{"foo"}, 1),
+					*plugin.NewPluginMetricType([]string{"foo"}, time.Now(), "", 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
