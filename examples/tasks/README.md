@@ -16,3 +16,12 @@
     - psutil
   - publish
     - influxdb  
+
+- **psutil-opentsdb**
+  - schedule
+    - interval (1s)
+  - collectors
+    - psutil
+  - publish
+    - opentsdb
+
