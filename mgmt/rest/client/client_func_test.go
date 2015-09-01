@@ -308,7 +308,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.CreateTask(sch, wf, "baron", true)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldResemble, "Metric not found: intel/dummy/foo")
+				So(p.Err.Error(), ShouldContainSubstring, "Metric not found: /intel/dummy/foo")
 			})
 			Convey("invalid task (missing publisher)", func() {
 				port := getPort()
@@ -322,7 +322,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.CreateTask(sch, wf, "baron", false)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "Plugin not found: type(publisher) name(riemann) version(1)")
+				So(p.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(riemann) version(1)")
 			})
 			Convey("valid task", func() {
 				port := getPort()
@@ -393,7 +393,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.StartTask(9999999)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "message @ error 0: No task found with id '9999999' ")
+				So(p.Err.Error(), ShouldEqual, "error 0: No task found with id '9999999' ")
 			})
 			Convey("existing task", func() {
 				port := getPort()
@@ -427,7 +427,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.StopTask(9999999)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "message @ error 0: No task found with id '9999999' ")
+				So(p.Err.Error(), ShouldEqual, "error 0: No task found with id '9999999' ")
 			})
 			Convey("existing task", func() {
 				port := getPort()

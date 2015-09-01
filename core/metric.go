@@ -1,6 +1,7 @@
 package core
 
 import (
+	"strings"
 	"time"
 
 	"github.com/intelsdi-x/pulse/core/cdata"
@@ -25,4 +26,8 @@ type RequestedMetric interface {
 type CatalogedMetric interface {
 	Namespace() string
 	Versions() map[int]Metric
+}
+
+func JoinNamespace(ns []string) string {
+	return "/" + strings.Join(ns, "/")
 }

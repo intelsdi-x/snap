@@ -65,7 +65,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			So(metrics, ShouldNotBeEmpty)
 
 			w := wmap.NewWorkflowMap()
-			w.CollectNode.AddMetric("/intel/dummy/foo", 1)
+			w.CollectNode.AddMetric("/intel/dummy/foo", 2)
 			w.CollectNode.AddConfigItem("/intel/dummy/foo", "password", "secret")
 
 			pu := wmap.NewPublishNode("file", 1)
@@ -87,6 +87,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 					So(t, ShouldNotBeNil)
 					t.(*task).Spin()
 					time.Sleep(3 * time.Second)
+
 				})
 			})
 		})
