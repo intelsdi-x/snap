@@ -2,6 +2,8 @@ package dummy
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -28,7 +30,9 @@ func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMe
 		metrics[i] = plugin.PluginMetricType{
 			Namespace_: p.Namespace(),
 			Data_:      data,
+			Timestamp_: time.Now(),
 		}
+		metrics[i].Source_, _ = os.Hostname()
 	}
 	return metrics, nil
 }

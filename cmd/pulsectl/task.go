@@ -293,27 +293,41 @@ func watchTask(ctx *cli.Context) {
 
 	// catch interrupt so we signal the server we are done before exiting
 	c := make(chan os.Signal, 1)
+	lineCountChan := make(chan int)
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, syscall.SIGTERM)
 	go func() {
-		<-c
-		fmt.Println("Stopping task watch")
-		r.Close()
+		var lines int
+		for {
+			select {
+			case lines = <-lineCountChan:
+			case <-c:
+				fmt.Printf("%sStopping task watch\n", strings.Repeat("\n", lines))
+				r.Close()
+				return
+			}
+		}
 	}()
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
+	printFields(w, false, 0, "NAMESPACE", "DATA", "TIMESTAMP", "SOURCE")
 	// Loop listening to events
 	for {
 		select {
 		case e := <-r.EventChan:
 			switch e.EventType {
 			case "metric-event":
-				out := "[metrics collected] "
-				p := make([]string, len(e.Event))
-				for i, _ := range e.Event {
-					p[i] = fmt.Sprintf("%s=%+v", e.Event[i].Namespace, e.Event[i].Data)
+				for _, event := range e.Event {
+					printFields(w, false, 0,
+						event.Namespace,
+						event.Data,
+						event.Timestamp,
+						event.Source,
+					)
 				}
-				out += strings.Join(p, " ")
-				fmt.Println(out)
+				lineCountChan <- len(e.Event)
+				fmt.Fprintf(w, "\033[%dA\n", len(e.Event)+1)
+				w.Flush()
 			default:
 				fmt.Printf("[%s]\n", e.EventType)
 			}

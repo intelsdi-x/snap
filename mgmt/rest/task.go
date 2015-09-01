@@ -322,6 +322,8 @@ func (t *TaskWatchHandler) CatchCollection(m []core.Metric) {
 		sm[i] = rbody.StreamedMetric{
 			Namespace: joinNamespace(m[i].Namespace()),
 			Data:      m[i].Data(),
+			Source:    m[i].Source(),
+			Timestamp: m[i].Timestamp(),
 		}
 	}
 	t.mChan <- rbody.StreamedTaskEvent{

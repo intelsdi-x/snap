@@ -25,6 +25,7 @@ package facter
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -146,11 +147,12 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 		return nil, errors.New("assertion: getFacts returns more/less than asked!")
 	}
 
+	host, _ := os.Hostname()
 	// convert facts into PluginMetrics
 	metrics := make([]plugin.PluginMetricType, 0, len(facts))
 	for name, value := range facts {
 		namespace := createNamespace(name)
-		metric := *plugin.NewPluginMetricType(namespace, value)
+		metric := *plugin.NewPluginMetricType(namespace, time.Now(), host, value)
 		metrics = append(metrics, metric)
 	}
 	return metrics, nil

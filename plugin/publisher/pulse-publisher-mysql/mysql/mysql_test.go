@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core/ctypes"
@@ -15,11 +16,11 @@ import (
 func TestMySQLPublish(t *testing.T) {
 	var buf bytes.Buffer
 	metrics := []plugin.PluginMetricType{
-		*plugin.NewPluginMetricType([]string{"test_string"}, "example_string"),
-		*plugin.NewPluginMetricType([]string{"test_int"}, 1),
-		*plugin.NewPluginMetricType([]string{"test_string_slice"}, []string{"str1", "str2"}),
-		*plugin.NewPluginMetricType([]string{"test_string_slice"}, []int{1, 2}),
-		*plugin.NewPluginMetricType([]string{"test_uint8"}, uint8(1)),
+		*plugin.NewPluginMetricType([]string{"test_string"}, time.Now(), "", "example_string"),
+		*plugin.NewPluginMetricType([]string{"test_int"}, time.Now(), "", 1),
+		*plugin.NewPluginMetricType([]string{"test_string_slice"}, time.Now(), "", []string{"str1", "str2"}),
+		*plugin.NewPluginMetricType([]string{"test_string_slice"}, time.Now(), "", []int{1, 2}),
+		*plugin.NewPluginMetricType([]string{"test_uint8"}, time.Now(), "", uint8(1)),
 	}
 	config := make(map[string]ctypes.ConfigValue)
 	enc := gob.NewEncoder(&buf)

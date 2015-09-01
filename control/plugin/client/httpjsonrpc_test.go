@@ -29,7 +29,7 @@ type mockProxy struct {
 func (m *mockProxy) CollectMetrics(args plugin.CollectMetricsArgs, reply *plugin.CollectMetricsReply) error {
 	rand.Seed(time.Now().Unix())
 	for _, i := range args.PluginMetricTypes {
-		p := plugin.NewPluginMetricType(i.Namespace(), rand.Intn(100))
+		p := plugin.NewPluginMetricType(i.Namespace(), time.Now(), "", rand.Intn(100))
 		p.Config_ = i.Config()
 		reply.PluginMetrics = append(reply.PluginMetrics, *p)
 	}
@@ -310,7 +310,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 			})
 
 			Convey("Process metrics", func() {
-				pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, 1)
+				pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1)
 				b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
 				contentType, content, err := p.Process(plugin.PulseJSONContentType, b, nil)
 				So(contentType, ShouldResemble, plugin.PulseJSONContentType)
@@ -355,7 +355,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 			})
 
 			Convey("Publish metrics", func() {
-				pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, 1)
+				pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1)
 				b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
 				err := p.Publish(plugin.PulseJSONContentType, b, nil)
 				So(err, ShouldBeNil)
