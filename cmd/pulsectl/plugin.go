@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -9,10 +10,23 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+var (
+	DirectoryError = errors.New("Provided plugin path is a directory not file")
+)
+
 func loadPlugin(ctx *cli.Context) {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+	file, err := os.Stat(ctx.Args().First())
+	if err != nil {
+		fmt.Printf("Error loading plugin:\n%v\n", err.Error())
+		os.Exit(1)
+	}
+	if file.IsDir() {
+		fmt.Printf("Error loading plugin:\n%v\n", DirectoryError.Error())
 		os.Exit(1)
 	}
 	r := pClient.LoadPlugin(ctx.Args().First())
