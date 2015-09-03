@@ -70,6 +70,9 @@ var (
 					Name:   "load",
 					Usage:  "load <plugin path>",
 					Action: loadPlugin,
+					Flags: []cli.Flag{
+						flPluginAsc,
+					},
 				},
 				{
 					Name:   "unload",
@@ -118,7 +121,7 @@ var (
 )
 
 func printFields(tw *tabwriter.Writer, indent bool, width int, fields ...interface{}) {
-	argArray := make([]interface{}, 0)
+	var argArray []interface{}
 	if indent {
 		argArray = append(argArray, strings.Repeat(" ", width))
 	}

@@ -5,10 +5,11 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
-func (c *Client) LoadPlugin(p string) *LoadPluginResult {
+func (c *Client) LoadPlugin(p []string) *LoadPluginResult {
 	r := new(LoadPluginResult)
 	resp, err := c.pluginUploadRequest(p)
 	if err != nil {
@@ -21,9 +22,14 @@ func (c *Client) LoadPlugin(p string) *LoadPluginResult {
 		pl := resp.Body.(*rbody.PluginsLoaded)
 		r.LoadedPlugins = convertLoadedPlugins(pl.LoadedPlugins)
 	case rbody.ErrorType:
-		r.Err = resp.Body.(*rbody.Error)
+		f := resp.Body.(*rbody.Error).Fields
+		fields := make(map[string]interface{})
+		for k, v := range f {
+			fields[k] = v
+		}
+		r.Err = perror.New(resp.Body.(*rbody.Error), fields)
 	default:
-		r.Err = ErrAPIResponseMetaType
+		r.Err = perror.New(ErrAPIResponseMetaType)
 	}
 	return r
 }
@@ -89,7 +95,7 @@ type GetPluginsResult struct {
 
 type LoadPluginResult struct {
 	LoadedPlugins []LoadedPlugin
-	Err           error
+	Err           perror.PulseError
 }
 
 // UnloadPluginResponse is the response from pulse/client on an UnloadPlugin call.

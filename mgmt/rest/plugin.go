@@ -53,8 +53,9 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 		lp := &rbody.PluginsLoaded{}
 		lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
 		mr := multipart.NewReader(r.Body, params["boundary"])
+		p, err := mr.NextPart()
+		var fname, fname2 string
 		for {
-			p, err := mr.NextPart()
 			if err == io.EOF {
 				respond(201, lp, w)
 				return
@@ -63,7 +64,6 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				respond(500, rbody.FromError(err), w)
 				return
 			}
-			var fname string
 			if r.Header.Get("Plugin-Compression") == "gzip" {
 				g, err := gzip.NewReader(p)
 				if err != nil {
@@ -75,39 +75,54 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 					respond(500, rbody.FromError(err), w)
 					return
 				}
-				fname, err = writePlugin(s.mm.GetAutodiscoverPaths(), p.FileName(), b)
+				fname, err = writePlugin(s.mm.GetAutodiscoverPaths(), p.FileName(), b, fname)
+				if err != nil {
+				}
 			} else {
 				b, err := ioutil.ReadAll(p)
 				if err != nil {
 					respond(500, rbody.FromError(err), w)
 					return
 				}
-				fname, err = writePlugin(s.mm.GetAutodiscoverPaths(), p.FileName(), b)
+				fname, err = writePlugin(s.mm.GetAutodiscoverPaths(), p.FileName(), b, fname)
 			}
 			if err != nil {
 				respond(500, rbody.FromError(err), w)
 				return
 			}
-
-			pl, err := s.mm.Load(fname)
+			p, err = mr.NextPart()
 			if err != nil {
-				respond(500, rbody.FromError(err), w)
-				return
+				if fname2 == "" {
+					fname2 = fname
+				}
+				pl, err := s.mm.Load(fname2)
+				if err != nil {
+					restLogger.Error(err)
+					respond(500, rbody.FromPulseError(err), w)
+					return
+				}
+				lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(pl))
+			} else {
+				fname2 = fname
 			}
-			lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(pl))
 		}
 	}
 }
 
-func writePlugin(autoPaths []string, filename string, b []byte) (string, error) {
+func writePlugin(autoPaths []string, filename string, b []byte, fqfile string) (string, error) {
 	var f *os.File
 	var err error
 	if len(autoPaths) > 0 {
 		// write to first autoPath
 		f, err = os.Create(path.Join(autoPaths[0], filename))
 	} else {
-		// write to temp location
-		f, err = ioutil.TempFile("", filename)
+		// write to temp location for binary
+		if fqfile == "" {
+			f, err = ioutil.TempFile("", filename)
+		} else {
+			// write asc to same location as binary
+			f, err = os.Create(fqfile + ".asc")
+		}
 	}
 	if err != nil {
 		// respond(500, rbody.FromError(err), w)
@@ -217,6 +232,7 @@ func catalogedPluginToLoaded(c core.CatalogedPlugin) *rbody.LoadedPlugin {
 		Name:            c.Name(),
 		Version:         c.Version(),
 		Type:            c.TypeName(),
+		Signed:          c.IsSigned(),
 		Status:          c.Status(),
 		LoadedTimestamp: c.LoadedTimestamp().Unix(),
 	}

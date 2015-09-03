@@ -19,6 +19,7 @@ type LoadPluginEvent struct {
 	Name    string
 	Version int
 	Type    int
+	Signed  bool
 }
 
 func (e LoadPluginEvent) Namespace() string {

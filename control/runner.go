@@ -280,6 +280,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 					"plugin-name":    v.Name,
 					"plugin-version": v.Version,
 					"plugin-type":    v.Type,
+					"plugin-signed":  v.Signed,
 				}).Info("pool has bad key ", key)
 				continue
 			}

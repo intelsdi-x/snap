@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest"
 )
 
@@ -131,54 +132,59 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rest.
 	return httpRespToAPIResp(rsp)
 }
 
-func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, error) {
+func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, perror.PulseError) {
 	resp := new(rest.APIResponse)
 	b, err := ioutil.ReadAll(rsp.Body)
 	rsp.Body.Close()
 	if err != nil {
-		return nil, err
+		return nil, perror.New(err)
 	}
-
 	jErr := json.Unmarshal(b, resp)
 	if jErr != nil {
-		return nil, jErr
+		return nil, perror.New(jErr)
 	}
 	if resp == nil {
 		// Catch corner case where JSON gives no error but resp is nil
-		return nil, ErrNilResponse
+		return nil, perror.New(ErrNilResponse)
 	}
 	// Add copy of JSON response string
 	resp.JSONResponse = string(b)
 	return resp, nil
 }
 
-func (c *Client) pluginUploadRequest(pluginPath string) (*rest.APIResponse, error) {
+func (c *Client) pluginUploadRequest(pluginPaths []string) (*rest.APIResponse, perror.PulseError) {
 	client := &http.Client{}
-	path, err := os.Stat(pluginPath)
-	if err != nil {
-		return nil, err
-	}
-	if path.IsDir() {
-		err := ErrDirNotFile
-		return nil, err
-	}
-	file, err := os.Open(pluginPath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	bufin := bufio.NewReader(file)
+	errChan := make(chan error)
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
+	var bufins []*bufio.Reader
+	var paths []string
 
+	for i, pluginPath := range pluginPaths {
+		path, err := os.Stat(pluginPaths[i])
+		if err != nil {
+			return nil, perror.New(err)
+		}
+		if path.IsDir() {
+			err := ErrDirNotFile
+			return nil, perror.New(err)
+		}
+		file, err := os.Open(pluginPaths[i])
+		if err != nil {
+			return nil, perror.New(err)
+		}
+		defer file.Close()
+		bufin := bufio.NewReader(file)
+		bufins = append(bufins, bufin)
+
+		paths = append(paths, filepath.Base(pluginPath))
+	}
 	// with io.Pipe the write needs to be async
-	errChan := make(chan error)
-	go writePluginToWriter(pw, bufin, writer, filepath.Base(pluginPath), errChan)
+	go writePluginToWriter(pw, bufins, writer, paths, errChan)
 
 	req, err := http.NewRequest("POST", c.prefix+"/plugins", pr)
 	if err != nil {
-		return nil, err
+		return nil, perror.New(err)
 	}
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
@@ -188,40 +194,42 @@ func (c *Client) pluginUploadRequest(pluginPath string) (*rest.APIResponse, erro
 	rsp, err := client.Do(req)
 	cErr := <-errChan
 	if cErr != nil {
-		return nil, err
+		return nil, perror.New(err)
 	}
 	if err != nil {
-		return nil, err
+		return nil, perror.New(err)
 	}
 	return httpRespToAPIResp(rsp)
 }
 
-func writePluginToWriter(pw io.WriteCloser, bufin *bufio.Reader, writer *multipart.Writer, pluginPath string, errChan chan error) {
-	part, err := writer.CreateFormFile("pulse-plugins", pluginPath)
-	if err != nil {
-		errChan <- err
-		return
+func writePluginToWriter(pw io.WriteCloser, bufin []*bufio.Reader, writer *multipart.Writer, pluginPaths []string, errChan chan error) {
+	for i, pluginPath := range pluginPaths {
+		part, err := writer.CreateFormFile("pulse-plugins", pluginPath)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		if CompressUpload {
+			cpart := gzip.NewWriter(part)
+			_, err := bufin[i].WriteTo(cpart)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			err = cpart.Close()
+			if err != nil {
+				errChan <- err
+				return
+			}
+		} else {
+			_, err := bufin[i].WriteTo(part)
+			if err != nil {
+				errChan <- err
+				return
+			}
+		}
 	}
-	if CompressUpload {
-		cpart := gzip.NewWriter(part)
-		_, err := bufin.WriteTo(cpart)
-		if err != nil {
-			errChan <- err
-			return
-		}
-		err = cpart.Close()
-		if err != nil {
-			errChan <- err
-			return
-		}
-	} else {
-		_, err := bufin.WriteTo(part)
-		if err != nil {
-			errChan <- err
-			return
-		}
-	}
-	err = writer.Close()
+	err := writer.Close()
 	if err != nil {
 		errChan <- err
 		return

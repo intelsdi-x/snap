@@ -62,6 +62,7 @@ type LoadedPlugin struct {
 	Name            string `json:"name"`
 	Version         int    `json:"version"`
 	Type            string `json:"type"`
+	Signed          bool   `json:"signed"`
 	Status          string `json:"status"`
 	LoadedTimestamp int64  `json:"loaded_timestamp"`
 }
