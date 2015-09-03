@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"syscall"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
@@ -56,6 +57,12 @@ var (
 		Usage:  "Auto discover paths separated by colons.",
 		EnvVar: "PULSE_AUTOLOAD_PATH",
 	}
+	flCache = cli.StringFlag{
+		Name:   "cache-expiration",
+		Usage:  "The time limit for which a metric cache entry is valid",
+		EnvVar: "PULSE_CACHE_EXPIRATION",
+		Value:  "500ms",
+	}
 	gitversion string
 )
 
@@ -80,7 +87,7 @@ func main() {
 	app.Name = "pulsed"
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
-	app.Flags = []cli.Flag{flAPIDisabled, flAPIPort, flLogLevel, flLogPath, flMaxProcs, flPluginVersion, flNumberOfPLs}
+	app.Flags = []cli.Flag{flAPIDisabled, flAPIPort, flLogLevel, flLogPath, flMaxProcs, flPluginVersion, flNumberOfPLs, flCache}
 
 	app.Action = action
 	app.Run(os.Args)
@@ -102,6 +109,11 @@ func action(ctx *cli.Context) {
 	apiPort := ctx.Int("api-port")
 	autodiscoverPath := ctx.String("auto-discover")
 	maxRunning := ctx.Int("max-running-plugins")
+	cachestr := ctx.String("cache-expiration")
+	cache, err := time.ParseDuration(cachestr)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
+	}
 
 	log.Info("Starting pulsed (version: ", gitversion, ")")
 
@@ -161,6 +173,7 @@ func action(ctx *cli.Context) {
 
 	c := control.New(
 		control.MaxRunningPlugins(maxRunning),
+		control.CacheExpiration(cache),
 	)
 	s := scheduler.New(
 		scheduler.CollectQSizeOption(defaultQueueSize),

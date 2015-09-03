@@ -10,6 +10,7 @@ import (
 )
 
 func TestCache(t *testing.T) {
+	CacheExpiration = time.Duration(500 * time.Millisecond)
 	Convey("puts and gets a metric", t, func() {
 		mc := &cache{
 			table: make(map[string]*cachecell),

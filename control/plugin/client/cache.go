@@ -8,9 +8,11 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 )
 
+// the time limit for which a cache entry is valid.
+var CacheExpiration time.Duration
+
 var (
-	cacheExpiration = time.Duration(500 * time.Millisecond)
-	metricCache     = cache{
+	metricCache = cache{
 		table: make(map[string]*cachecell),
 	}
 	cacheLog = log.WithField("_module", "client-cache")
@@ -32,7 +34,7 @@ func (c *cache) get(key string) core.Metric {
 		cell *cachecell
 		ok   bool
 	)
-	if cell, ok = c.table[key]; ok && time.Since(cell.time) < cacheExpiration {
+	if cell, ok = c.table[key]; ok && time.Since(cell.time) < CacheExpiration {
 		cell.hits++
 		cacheLog.WithFields(log.Fields{
 			"namespace": key,

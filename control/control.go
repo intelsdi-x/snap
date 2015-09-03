@@ -98,6 +98,12 @@ func MaxRunningPlugins(m int) controlOpt {
 	}
 }
 
+func CacheExpiration(t time.Duration) controlOpt {
+	return func(c *pluginControl) {
+		client.CacheExpiration = t
+	}
+}
+
 // New returns a new pluginControl instance
 func New(opts ...controlOpt) *pluginControl {
 
