@@ -218,6 +218,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 			cdn.AddItem("someInt", ctypes.ConfigValueInt{Value: 1})
 			cdn.AddItem("password", ctypes.ConfigValueStr{Value: "secure"})
 
+			time.Sleep(500 * time.Millisecond)
 			mts, err := c.CollectMetrics([]core.Metric{
 				&plugin.PluginMetricType{
 					Namespace_: []string{"foo", "bar"},
@@ -251,6 +252,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 			cdn := cdata.NewNode()
 			cdn.AddItem("someInt", ctypes.ConfigValueInt{Value: 1})
 
+			time.Sleep(500 * time.Millisecond)
 			mts, err := c.CollectMetrics([]core.Metric{
 				&plugin.PluginMetricType{
 					Namespace_: []string{"foo", "bar"},
@@ -264,14 +266,13 @@ func TestHTTPJSONRPC(t *testing.T) {
 			So(mts[0].Config().Table(), ShouldNotBeEmpty)
 			So(mts[0].Config().Table()["someInt"].Type(), ShouldResemble, "integer")
 
-			Convey("Get and proces the ConfigPolicyTree", func() {
+			Convey("Get and process the ConfigPolicyTree", func() {
 				cpt, err := c.GetConfigPolicyTree()
 				So(err, ShouldBeNil)
 				So(cpt, ShouldNotBeNil)
-				So(cpt.Get([]string{"foo", "bar"}), ShouldNotBeNil)
 				node := cpt.Get([]string{"foo", "bar"})
-				So(err, ShouldBeNil)
 				So(node, ShouldNotBeNil)
+				So(err, ShouldBeNil)
 				cpn, cperrs := node.Process(mts[0].Config().Table())
 				So(cpn, ShouldBeNil)
 				So(cperrs.Errors(), ShouldNotBeEmpty)

@@ -3,6 +3,7 @@ package dummy
 import (
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
@@ -36,6 +37,8 @@ func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMe
 	for i, _ := range mts {
 		data := randInt(65, 90)
 		mts[i].Data_ = data
+		mts[i].Source_, _ = os.Hostname()
+		mts[i].Timestamp_ = time.Now()
 	}
 	return mts, nil
 }

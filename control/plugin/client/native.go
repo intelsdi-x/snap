@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"net"
 	"net/rpc"
@@ -72,30 +73,57 @@ func (p *PluginNativeClient) Process(contentType string, content []byte, config 
 func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]core.Metric, error) {
 	// Convert core.MetricType slice into plugin.PluginMetricType slice as we have
 	// to send structs over RPC
-	pluginMetricTypes := make([]plugin.PluginMetricType, len(coreMetricTypes))
-	for i, _ := range coreMetricTypes {
-		pluginMetricTypes[i] = plugin.PluginMetricType{
-			Namespace_:          coreMetricTypes[i].Namespace(),
-			LastAdvertisedTime_: coreMetricTypes[i].LastAdvertisedTime(),
-			Version_:            coreMetricTypes[i].Version(),
-		}
-		if coreMetricTypes[i].Config() != nil {
-			///pluginMetricTypes[i].Config_ = coreMetricTypes[i].Config().Table()
-			pluginMetricTypes[i].Config_ = coreMetricTypes[i].Config()
-		}
+	if len(coreMetricTypes) == 0 {
+		return nil, errors.New("no metrics to collect")
 	}
 
-	// TODO return err if mts is empty
-	args := plugin.CollectMetricsArgs{PluginMetricTypes: pluginMetricTypes}
-	reply := plugin.CollectMetricsReply{}
-
-	err := p.connection.Call("Collector.CollectMetrics", args, &reply)
-
-	retMetrics := make([]core.Metric, len(reply.PluginMetrics))
-	for i, _ := range reply.PluginMetrics {
-		retMetrics[i] = reply.PluginMetrics[i]
+	var fromCache []core.Metric
+	for i, mt := range coreMetricTypes {
+		var metric core.Metric
+		// Attempt to retreive the metric from the cache. If it is available,
+		// nil out that entry in the requested collection.
+		if metric = metricCache.get(core.JoinNamespace(mt.Namespace())); metric != nil {
+			fromCache = append(fromCache, metric)
+			coreMetricTypes[i] = nil
+		}
 	}
-	return retMetrics, err
+	// If the size of fromCache is equal to the length of the requested metrics,
+	// then we retrieved all of the requested metrics and do not need to go the
+	// motions of the rpc call.
+	if len(fromCache) != len(coreMetricTypes) {
+		var pluginMetricTypes []plugin.PluginMetricType
+		// Walk through the requested collection. If the entry is not nil,
+		// add it to the slice of metrics to collect over rpc.
+		for i, mt := range coreMetricTypes {
+			if mt != nil {
+				pluginMetricTypes = append(pluginMetricTypes, plugin.PluginMetricType{
+					Namespace_:          mt.Namespace(),
+					LastAdvertisedTime_: mt.LastAdvertisedTime(),
+					Version_:            mt.Version(),
+				})
+				if mt.Config() != nil {
+					pluginMetricTypes[i].Config_ = mt.Config()
+				}
+			}
+		}
+
+		args := plugin.CollectMetricsArgs{PluginMetricTypes: pluginMetricTypes}
+		reply := plugin.CollectMetricsReply{}
+
+		err := p.connection.Call("Collector.CollectMetrics", args, &reply)
+
+		var offset int
+		for i, mt := range fromCache {
+			coreMetricTypes[i] = mt
+			offset++
+		}
+		for i, mt := range reply.PluginMetrics {
+			metricCache.put(core.JoinNamespace(mt.Namespace_), mt)
+			coreMetricTypes[i+offset] = mt
+		}
+		return coreMetricTypes, err
+	}
+	return fromCache, nil
 }
 
 func (p *PluginNativeClient) GetMetricTypes() ([]core.Metric, error) {
