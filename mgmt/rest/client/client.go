@@ -21,6 +21,7 @@ var (
 
 	ErrUnknown     = errors.New("Unknown error calling API")
 	ErrNilResponse = errors.New("Nil response from JSON unmarshalling")
+	ErrDirNotFile  = errors.New("Provided plugin path is a directory not file")
 )
 
 const (
@@ -153,6 +154,14 @@ func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, error) {
 
 func (c *Client) pluginUploadRequest(pluginPath string) (*rest.APIResponse, error) {
 	client := &http.Client{}
+	path, err := os.Stat(pluginPath)
+	if err != nil {
+		return nil, err
+	}
+	if path.IsDir() {
+		err := ErrDirNotFile
+		return nil, err
+	}
 	file, err := os.Open(pluginPath)
 	if err != nil {
 		return nil, err
