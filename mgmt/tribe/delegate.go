@@ -19,13 +19,13 @@ func (t *delegate) NotifyMsg(buf []byte) {
 
 	switch msgType(buf[0]) {
 	case addPluginMsgType:
-		msg := &tribeMsg{}
+		msg := &pluginMsg{}
 		if err := decodeMessage(buf[1:], msg); err != nil {
 			panic(err)
 		}
 		rebroadcast = t.tribe.handleAddPlugin(msg)
 	case removePluginMsgType:
-		msg := &tribeMsg{}
+		msg := &pluginMsg{}
 		if err := decodeMessage(buf[1:], msg); err != nil {
 			panic(err)
 		}
@@ -54,6 +54,18 @@ func (t *delegate) NotifyMsg(buf []byte) {
 			panic(err)
 		}
 		rebroadcast = t.tribe.handleLeaveAgreement(msg)
+	case addTaskMsgType:
+		msg := &taskMsg{}
+		if err := decodeMessage(buf[1:], msg); err != nil {
+			panic(err)
+		}
+		rebroadcast = t.tribe.handleAddTask(msg)
+	case removeTaskMsgType:
+		msg := &taskMsg{}
+		if err := decodeMessage(buf[1:], msg); err != nil {
+			panic(err)
+		}
+		rebroadcast = t.tribe.handleRemoveTask(msg)
 	default:
 		logger.WithField("_block", "NotifyMsg").Errorln("NodeMeta called")
 		return
@@ -77,17 +89,79 @@ func (t *delegate) LocalState(join bool) []byte {
 	t.tribe.mutex.Lock()
 	defer t.tribe.mutex.Unlock()
 
-	fs := fullStateMsg{
-		LTime:      t.tribe.clock.Time(),
-		PluginMsgs: t.tribe.msgBuffer,
-		Agreements: map[string]*agreements{},
+	// TODO the sizes here need to be set with a flag that is also ref in tribe.go
+	pluginMsgs := make([]*pluginMsg, 512)
+	agreementMsgs := make([]*agreementMsg, 512)
+	taskMsgs := make([]*taskMsg, 512)
+	pluginIntentMsgs := make([]*pluginMsg, 512)
+	agreementIntentMsgs := make([]*agreementMsg, 512)
+	taskIntentMsgs := make([]*taskMsg, 512)
+
+	for idx, msg := range t.tribe.msgBuffer {
+		if msg == nil {
+			continue
+		}
+		switch msg.GetType() {
+		case addPluginMsgType:
+			pluginMsgs[idx] = msg.(*pluginMsg)
+		case removePluginMsgType:
+			pluginMsgs[idx] = msg.(*pluginMsg)
+		case addAgreementMsgType:
+			agreementMsgs[idx] = msg.(*agreementMsg)
+		case removeAgreementMsgType:
+			agreementMsgs[idx] = msg.(*agreementMsg)
+		case joinAgreementMsgType:
+			agreementMsgs[idx] = msg.(*agreementMsg)
+		case leaveAgreementMsgType:
+			agreementMsgs[idx] = msg.(*agreementMsg)
+		case addTaskMsgType:
+			taskMsgs[idx] = msg.(*taskMsg)
+		case removeTaskMsgType:
+			taskMsgs[idx] = msg.(*taskMsg)
+		}
 	}
 
-	for name, agreements := range t.tribe.agreements {
-		agreements.PluginAgreement.mutex.Lock()
-		fs.Agreements[name] = agreements
-		agreements.PluginAgreement.mutex.Unlock()
+	for idx, msg := range t.tribe.intentBuffer {
+		if msg == nil {
+			continue
+		}
+		switch msg.GetType() {
+		case addPluginMsgType:
+			pluginIntentMsgs[idx] = msg.(*pluginMsg)
+		case removePluginMsgType:
+			pluginIntentMsgs[idx] = msg.(*pluginMsg)
+		case addAgreementMsgType:
+			agreementIntentMsgs[idx] = msg.(*agreementMsg)
+		case removeAgreementMsgType:
+			agreementIntentMsgs[idx] = msg.(*agreementMsg)
+		case joinAgreementMsgType:
+			agreementIntentMsgs[idx] = msg.(*agreementMsg)
+		case leaveAgreementMsgType:
+			agreementIntentMsgs[idx] = msg.(*agreementMsg)
+		case addTaskMsgType:
+			taskIntentMsgs[idx] = msg.(*taskMsg)
+		case removeTaskMsgType:
+			taskIntentMsgs[idx] = msg.(*taskMsg)
+		}
 	}
+
+	fs := fullStateMsg{
+		LTime:               t.tribe.clock.Time(),
+		PluginMsgs:          pluginMsgs,
+		AgreementMsgs:       agreementMsgs,
+		TaskMsgs:            taskMsgs,
+		PluginIntentMsgs:    pluginIntentMsgs,
+		AgreementIntentMsgs: agreementIntentMsgs,
+		TaskIntentMsgs:      taskIntentMsgs,
+		Agreements:          t.tribe.agreements,
+		Members:             t.tribe.members,
+	}
+
+	// for name, agreements := range t.tribe.agreements {
+	// 	agreements.PluginAgreement.mutex.Lock()
+	// 	fs.Agreements[name] = agreements
+	// 	agreements.PluginAgreement.mutex.Unlock()
+	// }
 
 	buf, err := encodeMessage(fullStateMsgType, fs)
 	if err != nil {
@@ -98,11 +172,10 @@ func (t *delegate) LocalState(join bool) []byte {
 }
 
 func (t *delegate) MergeRemoteState(buf []byte, join bool) {
-	logger = logger.WithField("_block", "MergeRemoteState")
-	logger.Debugln("calling merge")
+	logger.WithField("_block", "MergeRemoteState").Debugln("calling merge")
 
 	if msgType(buf[0]) != fullStateMsgType {
-		logger.Errorln("NodeMeta called")
+		logger.Errorln("Unknown message type")
 		return
 	}
 
@@ -117,21 +190,90 @@ func (t *delegate) MergeRemoteState(buf []byte, join bool) {
 	}
 
 	logger.Debugln("Updating full state")
+	t.tribe.mutex.Lock()
+	defer t.tribe.mutex.Unlock()
 	if join {
-		t.tribe.mutex.Lock()
-		t.tribe.agreements = fs.Agreements
-		t.tribe.msgBuffer = fs.PluginMsgs
 		t.tribe.clock.Update(fs.LTime - 1)
-		t.tribe.mutex.Unlock()
-		//todo what about the intents???
+		t.tribe.agreements = fs.Agreements
+		// TODO investigate this more ..jc
+		for k, v := range fs.Members {
+			t.tribe.members[k] = v
+		}
+		// t.tribe.members = fs.Members
+		for idx, pluginMsg := range fs.PluginMsgs {
+			if pluginMsg == nil {
+				continue
+			}
+			t.tribe.msgBuffer[idx] = pluginMsg
+		}
+		for idx, agreementMsg := range fs.AgreementMsgs {
+			if agreementMsg == nil {
+				continue
+			}
+			t.tribe.msgBuffer[idx] = agreementMsg
+		}
+		for idx, taskMsg := range fs.TaskMsgs {
+			if taskMsg == nil {
+				continue
+			}
+			t.tribe.msgBuffer[idx] = taskMsg
+		}
+		for idx, pluginMsg := range fs.PluginIntentMsgs {
+			if pluginMsg == nil {
+				continue
+			}
+			t.tribe.intentBuffer[idx] = pluginMsg
+		}
+		for idx, agreementMsg := range fs.AgreementIntentMsgs {
+			if agreementMsg == nil {
+				continue
+			}
+			t.tribe.intentBuffer[idx] = agreementMsg
+		}
+		for idx, taskMsg := range fs.TaskIntentMsgs {
+			if taskMsg == nil {
+				continue
+			}
+			t.tribe.intentBuffer[idx] = taskMsg
+		}
 	} else {
-		//Process Plugin adds
 		for _, m := range fs.PluginMsgs {
-			// if m == nil {
-			// 	continue
-			// }
+			if m == nil {
+				continue
+			}
 			if m.GetType() == addPluginMsgType {
-				t.tribe.handleAddPlugin(m.(*tribeMsg))
+				t.tribe.handleAddPlugin(m)
+			}
+			if m.GetType() == removePluginMsgType {
+				t.tribe.handleRemovePlugin(m)
+			}
+		}
+		for _, m := range fs.AgreementMsgs {
+			if m == nil {
+				continue
+			}
+			if m.GetType() == addAgreementMsgType {
+				t.tribe.handleAddAgreement(m)
+			}
+			if m.GetType() == removeAgreementMsgType {
+				t.tribe.handleRemoveAgreement(m)
+			}
+			if m.GetType() == joinAgreementMsgType {
+				t.tribe.handleJoinAgreement(m)
+			}
+			if m.GetType() == leaveAgreementMsgType {
+				t.tribe.handleLeaveAgreement(m)
+			}
+		}
+		for _, m := range fs.TaskMsgs {
+			if m == nil {
+				continue
+			}
+			if m.GetType() == addTaskMsgType {
+				t.tribe.handleAddTask(m)
+			}
+			if m.GetType() == removeTaskMsgType {
+				t.tribe.handleRemoveTask(m)
 			}
 		}
 	}
