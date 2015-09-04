@@ -63,65 +63,91 @@ func (h *httpJSONRPCClient) Kill(reason string) error {
 }
 
 // CollectMetrics returns collected metrics
-func (h *httpJSONRPCClient) CollectMetrics(mts_ []core.Metric) ([]core.Metric, error) {
-	mts := make([]core.Metric, len(mts_))
-	for i, m := range mts_ {
-		mts[i] = &plugin.PluginMetricType{
-			Namespace_: m.Namespace(),
-			Config_:    m.Config(),
+func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {
+	// Here we create two slices from the requested metric collection. One which
+	// contains the metrics we retreived from the cache, and one from which we had
+	// to use the plugin.
+
+	// This is managed by walking through the complete list and hitting the cache for each item.
+	// If the metric is found in the cache, we nil out that entry in the complete collection.
+	// Then, we walk through the collection once more and create a new slice of metrics which
+	// were not found in the cache.
+	var fromCache []core.Metric
+	for i, m := range mts {
+		var metric core.Metric
+		if metric = metricCache.get(core.JoinNamespace(m.Namespace())); metric != nil {
+			fromCache = append(fromCache, metric)
+			mts[i] = nil
 		}
 	}
-	res, err := h.call("Collector.CollectMetrics", []interface{}{mts})
-	if err != nil {
-		return nil, err
+	var fromPlugin []core.Metric
+	for _, mt := range mts {
+		if mt != nil {
+			fromPlugin = append(fromPlugin, &plugin.PluginMetricType{
+				Namespace_: mt.Namespace(),
+				Config_:    mt.Config(),
+			})
+		}
 	}
-	var metrics []core.Metric
-	if _, ok := res["result"]; !ok {
-		err := errors.New("Invalid response: expected the response map to contain the key 'result'.")
-		logger.WithFields(log.Fields{
-			"_block":           "CollectMetrics",
-			"jsonrpc response": fmt.Sprintf("%+v", res),
-		}).Error(err)
-		return nil, err
-	}
-	if resmap, ok := res["result"].(map[string]interface{}); ok {
-		if _, ok := resmap["PluginMetrics"]; !ok {
-			err := errors.New("Invalid response: expected the result value to be a map that contains key 'PluginMetrics'.")
+	// We only need to send a request to the plugin if there are metrics which were not available in the cache.
+	if len(fromPlugin) > 0 {
+		res, err := h.call("Collector.CollectMetrics", []interface{}{fromPlugin})
+		if err != nil {
+			return nil, err
+		}
+		var metrics []core.Metric
+		if _, ok := res["result"]; !ok {
+			err := errors.New("Invalid response: expected the response map to contain the key 'result'.")
 			logger.WithFields(log.Fields{
 				"_block":           "CollectMetrics",
 				"jsonrpc response": fmt.Sprintf("%+v", res),
 			}).Error(err)
 			return nil, err
 		}
-		if pms, ok := resmap["PluginMetrics"].([]interface{}); ok {
-			for _, m := range pms {
-				j, err := json.Marshal(m)
-				if err != nil {
-					return nil, err
+		if resmap, ok := res["result"].(map[string]interface{}); ok {
+			if _, ok := resmap["PluginMetrics"]; !ok {
+				err := errors.New("Invalid response: expected the result value to be a map that contains key 'PluginMetrics'.")
+				logger.WithFields(log.Fields{
+					"_block":           "CollectMetrics",
+					"jsonrpc response": fmt.Sprintf("%+v", res),
+				}).Error(err)
+				return nil, err
+			}
+			if pms, ok := resmap["PluginMetrics"].([]interface{}); ok {
+				for _, m := range pms {
+					j, err := json.Marshal(m)
+					if err != nil {
+						return nil, err
+					}
+					pmt := &plugin.PluginMetricType{}
+					if err := json.Unmarshal(j, &pmt); err != nil {
+						return nil, err
+					}
+					metrics = append(metrics, pmt)
 				}
-				pmt := &plugin.PluginMetricType{}
-				if err := json.Unmarshal(j, &pmt); err != nil {
-					return nil, err
-				}
-				metrics = append(metrics, pmt)
+			} else {
+				err := errors.New("Invalid response: expected 'PluginMetrics' to contain a list of metrics")
+				logger.WithFields(log.Fields{
+					"_block":           "CollectMetrics",
+					"jsonrpc response": fmt.Sprintf("%+v", res),
+				}).Error(err)
+				return nil, err
 			}
 		} else {
-			err := errors.New("Invalid response: expected 'PluginMetrics' to contain a list of metrics")
+			err := errors.New("Invalid response: expected 'result' to be a map")
 			logger.WithFields(log.Fields{
 				"_block":           "CollectMetrics",
 				"jsonrpc response": fmt.Sprintf("%+v", res),
 			}).Error(err)
 			return nil, err
 		}
-	} else {
-		err := errors.New("Invalid response: expected 'result' to be a map")
-		logger.WithFields(log.Fields{
-			"_block":           "CollectMetrics",
-			"jsonrpc response": fmt.Sprintf("%+v", res),
-		}).Error(err)
-		return nil, err
+		for _, m := range metrics {
+			metricCache.put(core.JoinNamespace(m.Namespace()), m)
+		}
+		metrics = append(metrics, fromCache...)
+		return metrics, err
 	}
-	return metrics, err
+	return fromCache, nil
 }
 
 // GetMetricTypes returns metric types that can be collected
