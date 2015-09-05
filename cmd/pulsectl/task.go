@@ -88,7 +88,11 @@ func createTaskUsingTaskManifest(ctx *cli.Context) {
 	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, !ctx.IsSet("no-start"))
 
 	if r.Err != nil {
-		fmt.Printf("Error creating task:\n%v\n", r.Err)
+		errors := strings.Split(r.Err.Error(), " -- ")
+		fmt.Println("Error creating task:")
+		for _, err := range errors {
+			fmt.Printf("%v\n", err)
+		}
 		os.Exit(1)
 	}
 	fmt.Println("Task created")
@@ -199,7 +203,11 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 	// Create task
 	r := pClient.CreateTask(sch, wf, name, !ctx.IsSet("no-start"))
 	if r.Err != nil {
-		fmt.Printf("Error creating task:\n%v\n", r.Err)
+		errors := strings.Split(r.Err.Error(), " -- ")
+		fmt.Println("Error creating task:")
+		for _, err := range errors {
+			fmt.Printf("%v\n", err)
+		}
 		os.Exit(1)
 	}
 	fmt.Println("Task created")
