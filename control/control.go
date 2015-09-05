@@ -285,8 +285,10 @@ func (p *pluginControl) ValidateDeps(mts []core.Metric, plugins []core.Subscribe
 		_, errs := p.validateMetricTypeSubscription(mt, mt.Config())
 		if len(errs) > 0 {
 			perrs = append(perrs, errs...)
-			return perrs
 		}
+	}
+	if len(perrs) > 0 {
+		return perrs
 	}
 
 	//validate plugins
