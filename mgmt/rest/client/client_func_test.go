@@ -26,6 +26,7 @@ var (
 	DUMMY_PLUGIN_PATH1  = PULSE_PATH + "/plugin/pulse-collector-dummy1"
 	DUMMY_PLUGIN_PATH2  = PULSE_PATH + "/plugin/pulse-collector-dummy2"
 	RIEMANN_PLUGIN_PATH = PULSE_PATH + "/plugin/pulse-publisher-riemann"
+	DIRECTORY_PATH      = PULSE_PATH + "/plugin/"
 
 	NextPort = 9000
 )
@@ -94,7 +95,7 @@ func TestPulseClient(t *testing.T) {
 				So(p2.AvailablePlugins, ShouldBeEmpty)
 
 				_, err := c.pluginUploadRequest("")
-				So(err.Error(), ShouldEqual, "open : no such file or directory")
+				So(err.Error(), ShouldEqual, "stat : no such file or directory")
 			})
 			Convey("single item", func() {
 				port := getPort()
@@ -189,6 +190,17 @@ func TestPulseClient(t *testing.T) {
 				p2 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				So(p2.Err, ShouldNotBeNil)
 				So(p2.Err.Error(), ShouldEqual, "plugin is already loaded")
+			})
+
+			Convey("directory error", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1")
+
+				p1 := c.LoadPlugin(DIRECTORY_PATH)
+				So(p1.Err, ShouldNotBeNil)
+				So(p1.LoadedPlugins, ShouldBeEmpty)
+				So(p1.Err.Error(), ShouldEqual, "Provided plugin path is a directory not file")
 			})
 		})
 		Convey("UnloadPlugin", func() {
