@@ -27,8 +27,8 @@ func (p PluginType) String() string {
 
 const (
 	CollectorPluginType PluginType = iota
-	PublisherPluginType
 	ProcessorPluginType
+	PublisherPluginType
 )
 
 // Plugin response states
@@ -57,8 +57,8 @@ var (
 	// note: in string represenation we use lower case
 	types = [...]string{
 		"collector",
-		"publisher",
 		"processor",
+		"publisher",
 	}
 )
 

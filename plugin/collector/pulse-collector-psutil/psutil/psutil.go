@@ -84,9 +84,9 @@ func (p *Psutil) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 	return mts, nil
 }
 
-//GetConfigPolicyTree returns a ConfigPolicyTree for testing
-func (p *Psutil) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	c := cpolicy.NewTree()
+//GetConfigPolicy returns a ConfigPolicy
+func (p *Psutil) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	c := cpolicy.New()
 	return *c, nil
 }
 

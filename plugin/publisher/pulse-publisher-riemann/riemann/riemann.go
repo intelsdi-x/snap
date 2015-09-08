@@ -34,8 +34,9 @@ func NewRiemannPublisher() *Riemann {
 	return r
 }
 
-// GetConfigPolicyNode returns the config policy for the Riemann Publisher Plugin
-func (r *Riemann) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
+// GetConfigPolicy returns the config policy for the Riemann Publisher Plugin
+func (r *Riemann) GetConfigPolicy() cpolicy.ConfigPolicy {
+	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 	// Host metric applies to
 	r1, err := cpolicy.NewStringRule("host", true)
@@ -48,7 +49,8 @@ func (r *Riemann) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	r2.Description = "Broker in the format of broker-ip:port (ex: 192.168.1.1:5555)"
 
 	config.Add(r1, r2)
-	return *config
+	cp.Add([]string{""}, config)
+	return *cp
 }
 
 // Publish serializes the data and calls publish to send events to Riemann

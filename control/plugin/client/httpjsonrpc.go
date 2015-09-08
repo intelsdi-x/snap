@@ -21,30 +21,34 @@ import (
 var logger = log.WithField("_module", "client-httpjsonrpc")
 
 type httpJSONRPCClient struct {
-	url     string
-	id      uint64
-	timeout time.Duration
+	url        string
+	id         uint64
+	timeout    time.Duration
+	pluginType plugin.PluginType
 }
 
 // NewCollectorHttpJSONRPCClient returns CollectorHttpJSONRPCClient
 func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration) PluginCollectorClient {
 	return &httpJSONRPCClient{
-		url:     u,
-		timeout: timeout,
+		url:        u,
+		timeout:    timeout,
+		pluginType: plugin.CollectorPluginType,
 	}
 }
 
 func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration) PluginProcessorClient {
 	return &httpJSONRPCClient{
-		url:     u,
-		timeout: timeout,
+		url:        u,
+		timeout:    timeout,
+		pluginType: plugin.ProcessorPluginType,
 	}
 }
 
 func NewPublisherHttpJSONRPCClient(u string, timeout time.Duration) PluginPublisherClient {
 	return &httpJSONRPCClient{
-		url:     u,
-		timeout: timeout,
+		url:        u,
+		timeout:    timeout,
+		pluginType: plugin.PublisherPluginType,
 	}
 }
 
@@ -171,52 +175,36 @@ func (h *httpJSONRPCClient) GetMetricTypes() ([]core.Metric, error) {
 	return metrics, nil
 }
 
-// GetConfigPolicyTree returns a config policy tree
-func (h *httpJSONRPCClient) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	res, err := h.call("Collector.GetConfigPolicyTree", []interface{}{})
+// GetConfigPolicy returns a config policy
+func (h *httpJSONRPCClient) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	res, err := h.call(fmt.Sprintf("%s.GetConfigPolicy", h.GetType()), []interface{}{})
 	if err != nil {
 		logger.WithFields(log.Fields{
-			"_block": "GetConfigPolicyTree",
+			"_block": "GetConfigPolicy",
 			"result": fmt.Sprintf("%+v", res),
 			"error":  err,
-		}).Error("error getting config policy tree")
-		return cpolicy.ConfigPolicyTree{}, err
+		}).Error("error getting config policy")
+		return cpolicy.ConfigPolicy{}, err
 	}
 	bres, err := json.Marshal(res["result"].(map[string]interface{}))
 	if err != nil {
 		logger.WithFields(log.Fields{
-			"_block": "GetConfigPolicyTree",
+			"_block": "GetConfigPolicy",
 			"result": fmt.Sprintf("%+v", res),
 			"error":  err,
 		}).Error("error marshalling result into json")
-		return cpolicy.ConfigPolicyTree{}, err
+		return cpolicy.ConfigPolicy{}, err
 	}
-	cpt := cpolicy.NewTree()
-	if err := json.Unmarshal(bres, cpt); err != nil {
+	cp := cpolicy.New()
+	if err := json.Unmarshal(bres, cp); err != nil {
 		logger.WithFields(log.Fields{
-			"_block": "GetConfigPolicyTree",
+			"_block": "GetConfigPolicy",
 			"result": string(bres),
 			"error":  err,
-		}).Error("error unmarshalling result into cpolicy tree")
-		return cpolicy.ConfigPolicyTree{}, err
+		}).Error("error unmarshalling result into cpolicy")
+		return cpolicy.ConfigPolicy{}, err
 	}
-	return *cpt, nil
-}
-
-func (h *httpJSONRPCClient) GetConfigPolicyNode() (cpolicy.ConfigPolicyNode, error) {
-	res, err := h.call("Processor.GetConfigPolicyNode", []interface{}{})
-	if err != nil {
-		return cpolicy.ConfigPolicyNode{}, err
-	}
-	bres, err := json.Marshal(res["result"].(map[string]interface{}))
-	if err != nil {
-		return cpolicy.ConfigPolicyNode{}, err
-	}
-	cpn := cpolicy.NewPolicyNode()
-	if err := json.Unmarshal(bres, cpn); err != nil {
-		return cpolicy.ConfigPolicyNode{}, err
-	}
-	return *cpn, nil
+	return *cp, nil
 }
 
 func (h *httpJSONRPCClient) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
@@ -243,6 +231,10 @@ func (h *httpJSONRPCClient) Process(contentType string, content []byte, config m
 		return "", nil, err
 	}
 	return processorReply.ContentType, processorReply.Content, nil
+}
+
+func (h *httpJSONRPCClient) GetType() string {
+	return upcaseInitial(h.pluginType.String())
 }
 
 func (h *httpJSONRPCClient) call(method string, args []interface{}) (map[string]interface{}, error) {
@@ -288,7 +280,6 @@ func (h *httpJSONRPCClient) call(method string, args []interface{}) (map[string]
 		}).Error("error decoding result")
 		return nil, err
 	}
-	// log.Debugf("result: %v \n", result)
 	atomic.AddUint64(&h.id, 1)
 	return result, nil
 }

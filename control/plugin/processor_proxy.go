@@ -24,13 +24,13 @@ type processorPluginProxy struct {
 	Session Session
 }
 
-func (p *processorPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs, reply *GetConfigPolicyNodeReply) error {
+func (p *processorPluginProxy) GetConfigPolicy(args GetConfigPolicyArgs, reply *GetConfigPolicyReply) error {
 	defer catchPluginPanic(p.Session.Logger())
 
-	p.Session.Logger().Println("GetConfigPolicyNode called")
+	p.Session.Logger().Println("GetConfigPolicy called")
 	p.Session.ResetHeartbeat()
 
-	reply.PolicyNode = p.Plugin.GetConfigPolicyNode()
+	reply.Policy = p.Plugin.GetConfigPolicy()
 
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
@@ -23,19 +22,13 @@ type publisherPluginProxy struct {
 	Session Session
 }
 
-type GetConfigPolicyNodeArgs struct{}
-
-type GetConfigPolicyNodeReply struct {
-	PolicyNode cpolicy.ConfigPolicyNode
-}
-
-func (p *publisherPluginProxy) GetConfigPolicyNode(args GetConfigPolicyNodeArgs, reply *GetConfigPolicyNodeReply) error {
+func (p *publisherPluginProxy) GetConfigPolicy(args GetConfigPolicyArgs, reply *GetConfigPolicyReply) error {
 	defer catchPluginPanic(p.Session.Logger())
 
-	p.Session.Logger().Println("GetConfigPolicyNode called")
+	p.Session.Logger().Println("GetConfigPolicy called")
 	p.Session.ResetHeartbeat()
 
-	reply.PolicyNode = p.Plugin.GetConfigPolicyNode()
+	reply.Policy = p.Plugin.GetConfigPolicy()
 
 	return nil
 }

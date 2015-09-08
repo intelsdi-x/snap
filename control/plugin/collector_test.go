@@ -73,8 +73,8 @@ type MockPlugin struct {
 	Meta PluginMeta
 }
 
-func (f *MockPlugin) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	return cpolicy.ConfigPolicyTree{}, nil
+func (f *MockPlugin) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	return cpolicy.ConfigPolicy{}, nil
 }
 
 func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetricType, error) {

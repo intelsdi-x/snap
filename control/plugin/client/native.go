@@ -141,26 +141,15 @@ func (p *PluginNativeClient) GetMetricTypes() ([]core.Metric, error) {
 	return retMetricTypes, err
 }
 
-func (p *PluginNativeClient) GetConfigPolicyTree() (cpolicy.ConfigPolicyTree, error) {
-	args := plugin.GetConfigPolicyTreeArgs{}
-	reply := plugin.GetConfigPolicyTreeReply{PolicyTree: *cpolicy.NewTree()}
-	err := p.connection.Call("Collector.GetConfigPolicyTree", args, &reply)
+func (p *PluginNativeClient) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+	args := plugin.GetConfigPolicyArgs{}
+	reply := plugin.GetConfigPolicyReply{Policy: *cpolicy.New()}
+	err := p.connection.Call(fmt.Sprintf("%s.GetConfigPolicy", p.GetType()), args, &reply)
 	if err != nil {
-		return cpolicy.ConfigPolicyTree{}, err
+		return cpolicy.ConfigPolicy{}, err
 	}
 
-	return reply.PolicyTree, nil
-}
-
-func (p *PluginNativeClient) GetConfigPolicyNode() (cpolicy.ConfigPolicyNode, error) {
-	args := plugin.GetConfigPolicyNodeArgs{}
-	reply := plugin.GetConfigPolicyNodeReply{PolicyNode: *cpolicy.NewPolicyNode()}
-	err := p.connection.Call(fmt.Sprintf("%s.GetConfigPolicyNode", p.GetType()), args, &reply)
-	if err != nil {
-		return cpolicy.ConfigPolicyNode{}, err
-	}
-
-	return reply.PolicyNode, nil
+	return reply.Policy, nil
 }
 
 // GetType returns the string type of the plugin

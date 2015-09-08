@@ -36,7 +36,8 @@ func (k *Kafka) Publish(contentType string, content []byte, config map[string]ct
 	return err
 }
 
-func (k *Kafka) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
+func (k *Kafka) GetConfigPolicy() cpolicy.ConfigPolicy {
+	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 
 	r1, err := cpolicy.NewStringRule("topic", true)
@@ -48,7 +49,8 @@ func (k *Kafka) GetConfigPolicyNode() cpolicy.ConfigPolicyNode {
 	r2.Description = "List of brokers in the format: broker-ip:port;broker-ip:port (ex: 192.168.1.1:9092;172.16.9.99:9092"
 
 	config.Add(r1, r2)
-	return *config
+	cp.Add([]string{""}, config)
+	return *cp
 }
 
 // Internal method after data has been converted to serialized bytes to send

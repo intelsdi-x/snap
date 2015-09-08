@@ -11,7 +11,7 @@ import (
 type ProcessorPlugin interface {
 	Plugin
 	Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error)
-	GetConfigPolicyNode() cpolicy.ConfigPolicyNode
+	GetConfigPolicy() cpolicy.ConfigPolicy
 }
 
 func init() {

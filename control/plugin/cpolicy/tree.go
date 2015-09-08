@@ -10,46 +10,46 @@ import (
 
 // Allows adding of config policy by namespace and retrieving of policy from a tree
 // at a specific namespace (merging the relevant hiearchy). Uses pkg.ConfigTree.
-type ConfigPolicyTree struct {
-	cTree *ctree.ConfigTree
+type ConfigPolicy struct {
+	config *ctree.ConfigTree
 }
 
-// Returns a new ConfigDataTree.
-func NewTree() *ConfigPolicyTree {
-	return &ConfigPolicyTree{
-		cTree: ctree.New(),
+// Returns a new ConfigPolicy.
+func New() *ConfigPolicy {
+	return &ConfigPolicy{
+		config: ctree.New(),
 	}
 }
 
-func (c *ConfigPolicyTree) GobEncode() ([]byte, error) {
+func (c *ConfigPolicy) GobEncode() ([]byte, error) {
 	//todo throw an error if not frozen
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
-	if err := encoder.Encode(c.cTree); err != nil {
+	if err := encoder.Encode(c.config); err != nil {
 		return nil, err
 	}
 	return w.Bytes(), nil
 }
 
-func (c *ConfigPolicyTree) GobDecode(buf []byte) error {
+func (c *ConfigPolicy) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
-	return decoder.Decode(&c.cTree)
+	return decoder.Decode(&c.config)
 }
 
-// UnmarshalJSON unmarshals JSON into a ConfigPolicyTree
-func (c *ConfigPolicyTree) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON unmarshals JSON into a ConfigPolicy
+func (c *ConfigPolicy) UnmarshalJSON(data []byte) error {
 	m := map[string]map[string]interface{}{}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	if err := decoder.Decode(&m); err != nil {
 		return err
 	}
-	c.cTree = ctree.New()
-	if ctree, ok := m["PolicyTree"]["ctree"]; ok {
-		if root, ok := ctree.(map[string]interface{}); ok {
+	c.config = ctree.New()
+	if config, ok := m["Policy"]["config"]; ok {
+		if root, ok := config.(map[string]interface{}); ok {
 			if node, ok := root["root"]; ok {
 				if n, ok := node.(map[string]interface{}); ok {
-					return unmarshalJSON(n, &[]string{}, c.cTree)
+					return unmarshalJSON(n, &[]string{}, c.config)
 				}
 			}
 		}
@@ -57,7 +57,7 @@ func (c *ConfigPolicyTree) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func unmarshalJSON(m map[string]interface{}, keys *[]string, tree *ctree.ConfigTree) error {
+func unmarshalJSON(m map[string]interface{}, keys *[]string, config *ctree.ConfigTree) error {
 	if val, ok := m["keys"]; ok {
 		if items, ok := val.([]interface{}); ok {
 			for _, i := range items {
@@ -74,7 +74,7 @@ func unmarshalJSON(m map[string]interface{}, keys *[]string, tree *ctree.ConfigT
 				if rules, ok := nval.(map[string]interface{}); ok {
 					addRulesToConfigPolicyNode(rules, cpn)
 				}
-				tree.Add(*keys, cpn)
+				config.Add(*keys, cpn)
 			}
 		}
 	}
@@ -82,7 +82,7 @@ func unmarshalJSON(m map[string]interface{}, keys *[]string, tree *ctree.ConfigT
 		if nodes, ok := val.([]interface{}); ok {
 			for _, node := range nodes {
 				if n, ok := node.(map[string]interface{}); ok {
-					unmarshalJSON(n, keys, tree)
+					unmarshalJSON(n, keys, config)
 				}
 			}
 		}
@@ -90,28 +90,28 @@ func unmarshalJSON(m map[string]interface{}, keys *[]string, tree *ctree.ConfigT
 	return nil
 }
 
-// MarshalJSON marshals a ConfigPolicyTree into JSON
-func (c *ConfigPolicyTree) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals a ConfigPolicy into JSON
+func (c *ConfigPolicy) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		CTree *ctree.ConfigTree `json:"ctree"`
+		Config *ctree.ConfigTree `json:"config"`
 	}{
-		CTree: c.cTree,
+		Config: c.config,
 	})
 }
 
-// Adds a ConfigDataNode at the provided namespace.
-func (c *ConfigPolicyTree) Add(ns []string, cpn *ConfigPolicyNode) {
-	c.cTree.Add(ns, cpn)
+// Adds a ConfigPolicyNode at the provided namespace.
+func (c *ConfigPolicy) Add(ns []string, cpn *ConfigPolicyNode) {
+	c.config.Add(ns, cpn)
 }
 
-// Returns a ConfigDataNode that is a merged version of the namespace provided.
-func (c *ConfigPolicyTree) Get(ns []string) *ConfigPolicyNode {
+// Returns a ConfigPolicyNode that is a merged version of the namespace provided.
+func (c *ConfigPolicy) Get(ns []string) *ConfigPolicyNode {
 	// Automatically freeze on first Get
-	if !c.cTree.Frozen() {
-		c.cTree.Freeze()
+	if !c.config.Frozen() {
+		c.config.Freeze()
 	}
 
-	n := c.cTree.Get(ns)
+	n := c.config.Get(ns)
 	if n == nil {
 		return NewPolicyNode()
 	}
@@ -124,8 +124,8 @@ func (c *ConfigPolicyTree) Get(ns []string) *ConfigPolicyNode {
 	}
 }
 
-// Freezes the ConfigDataTree from future writes (adds) and triggers compression
+// Freezes the ConfigPolicy from future writes (adds) and triggers compression
 // of tree into read-performant version.
-func (c *ConfigPolicyTree) Freeze() {
-	c.cTree.Freeze()
+func (c *ConfigPolicy) Freeze() {
+	c.config.Freeze()
 }

@@ -11,7 +11,7 @@ import (
 type PublisherPlugin interface {
 	Plugin
 	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
-	GetConfigPolicyNode() cpolicy.ConfigPolicyNode
+	GetConfigPolicy() cpolicy.ConfigPolicy
 }
 
 func init() {

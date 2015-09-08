@@ -128,13 +128,13 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 
 // the struct representing a plugin that is loaded into Pulse
 type loadedPlugin struct {
-	Meta             plugin.PluginMeta
-	Path             string
-	Type             plugin.PluginType
-	State            pluginState
-	Token            string
-	LoadedTime       time.Time
-	ConfigPolicyTree *cpolicy.ConfigPolicyTree
+	Meta         plugin.PluginMeta
+	Path         string
+	Type         plugin.PluginType
+	State        pluginState
+	Token        string
+	LoadedTime   time.Time
+	ConfigPolicy *cpolicy.ConfigPolicy
 }
 
 // returns plugin name
@@ -255,8 +255,8 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 	case plugin.CollectorPluginType:
 		colClient := ap.client.(client.PluginCollectorClient)
 
-		// Get the ConfigPolicyTree and add it to the loaded plugin
-		cpt, err := colClient.GetConfigPolicyTree()
+		// Get the ConfigPolicy and add it to the loaded plugin
+		cp, err := colClient.GetConfigPolicy()
 		if err != nil {
 			pmLogger.WithFields(log.Fields{
 				"_block":         "load-plugin",
@@ -265,10 +265,10 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 				"plugin-name":    ap.Name(),
 				"plugin-version": ap.Version(),
 				"plugin-id":      ap.ID(),
-			}).Error("error in getting config policy tree")
+			}).Error("error in getting config policy")
 			return nil, perror.New(err)
 		}
-		lPlugin.ConfigPolicyTree = &cpt
+		lPlugin.ConfigPolicy = &cp
 
 		// Get metric types
 		metricTypes, err := colClient.GetMetricTypes()
@@ -317,7 +317,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	case plugin.PublisherPluginType:
 		pubClient := ap.client.(client.PluginPublisherClient)
-		cpn, err := pubClient.GetConfigPolicyNode()
+		cp, err := pubClient.GetConfigPolicy()
 		if err != nil {
 			pmLogger.WithFields(log.Fields{
 				"_block":      "load-plugin",
@@ -326,15 +326,12 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 			}).Error("error in getting config policy node")
 			return nil, perror.New(err)
 		}
-
-		cpt := cpolicy.NewTree()
-		cpt.Add([]string{""}, &cpn)
-		lPlugin.ConfigPolicyTree = cpt
+		lPlugin.ConfigPolicy = &cp
 
 	case plugin.ProcessorPluginType:
 		procClient := ap.client.(client.PluginProcessorClient)
 
-		cpn, err := procClient.GetConfigPolicyNode()
+		cp, err := procClient.GetConfigPolicy()
 		if err != nil {
 			pmLogger.WithFields(log.Fields{
 				"_block":      "load-plugin",
@@ -343,10 +340,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 			}).Error("error in getting config policy node")
 			return nil, perror.New(err)
 		}
-
-		cpt := cpolicy.NewTree()
-		cpt.Add([]string{""}, &cpn)
-		lPlugin.ConfigPolicyTree = cpt
+		lPlugin.ConfigPolicy = &cp
 
 	default:
 		return nil, perror.New(fmt.Errorf("Unknown plugin type '%s'", resp.Type.String()))

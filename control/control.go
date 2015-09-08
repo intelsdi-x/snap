@@ -321,8 +321,8 @@ func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []p
 		return perrs
 	}
 
-	if lp.ConfigPolicyTree != nil {
-		ncd := lp.ConfigPolicyTree.Get([]string{""})
+	if lp.ConfigPolicy != nil {
+		ncd := lp.ConfigPolicy.Get([]string{""})
 		_, errs := ncd.Process(pl.Config().Table())
 		if errs != nil && errs.HasErrors() {
 			for _, e := range errs.Errors() {
