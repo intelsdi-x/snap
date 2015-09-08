@@ -95,7 +95,7 @@ func TestPulseClient(t *testing.T) {
 				So(p2.AvailablePlugins, ShouldBeEmpty)
 
 				_, err := c.pluginUploadRequest("")
-				So(err.Error(), ShouldEqual, "open : no such file or directory")
+				So(err.Error(), ShouldEqual, "stat : no such file or directory")
 			})
 			Convey("single item", func() {
 				port := getPort()
