@@ -15,16 +15,6 @@ func TestQueue(t *testing.T) {
 		So(q, ShouldHaveSameTypeAs, new(queue))
 	})
 
-	Convey("it receives jobs and adds them to queue", t, func() {
-		q := newQueue(5, func(job) { time.Sleep(1 * time.Second) })
-		q.Start()
-		q.Event <- &collectorJob{}
-		q.Event <- &collectorJob{}
-		time.Sleep(100 * time.Millisecond)
-		So(q.length(), ShouldEqual, 1)
-		q.Stop()
-	})
-
 	Convey("it pops items off and works them", t, func() {
 		x := 0
 		q := newQueue(5, func(job) { x = 1 })
@@ -45,7 +35,6 @@ func TestQueue(t *testing.T) {
 			q.Event <- j
 		}
 		time.Sleep(time.Millisecond * 10)
-		//So(x, ShouldResemble, []time.Duration{time.Duration(0), time.Duration(1 * time.Second), time.Duration(2 * time.Second), time.Duration(3 * time.Second)})
 		So(x[0].Unix(), ShouldBeLessThan, x[1].Unix())
 		So(x[1].Unix(), ShouldBeLessThan, x[2].Unix())
 		So(x[2].Unix(), ShouldBeLessThan, x[3].Unix())

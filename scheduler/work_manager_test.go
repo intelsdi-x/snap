@@ -24,7 +24,7 @@ func (mj *mockJob) ReplChan() chan struct{} { return mj.replchan }
 
 func (mj *mockJob) Run() {
 	mj.worked = true
-	time.Sleep(time.Millisecond * 50)
+	time.Sleep(time.Millisecond * 100)
 	mj.replchan <- struct{}{}
 }
 
