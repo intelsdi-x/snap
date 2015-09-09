@@ -554,43 +554,24 @@ func (p *pluginControl) MetricCatalog() ([]core.CatalogedMetric, error) {
 // FetchMetrics returns the metrics which fall under the given namespace
 // NOTE: The returned data from this function should be considered constant and read only
 func (p *pluginControl) FetchMetrics(ns []string, version int) ([]core.CatalogedMetric, error) {
-	cat := make([]*metricCatalogItem, 0)
-
 	mts, err := p.metricCatalog.Fetch(ns)
 	if err != nil {
 		return nil, err
 	}
-
-	// probably can be serious optimized later
+	cmt := make([]core.CatalogedMetric, 0, len(mts))
 	for _, mt := range mts {
-		if version > 0 && mt.Version() != version {
-			continue
-		}
-		f := false
-		for _, mci := range cat {
-			if mci.namespace == mt.NamespaceAsString() {
-				mci.versions[mt.version] = mt
-				f = true
+		if version > 0 {
+			if mt.version == version {
+				cmt = append(cmt, mt)
 			}
-		}
-		if !f {
-			mci := &metricCatalogItem{
-				namespace: mt.NamespaceAsString(),
-				versions:  make(map[int]core.Metric),
-			}
-			mci.versions[mt.version] = mt
-			cat = append(cat, mci)
+		} else {
+			cmt = append(cmt, mt)
 		}
 	}
-
-	ncat := make([]core.CatalogedMetric, len(cat))
-	for i, _ := range cat {
-		ncat[i] = cat[i]
-	}
-	return ncat, nil
+	return cmt, nil
 }
 
-func (p *pluginControl) GetMetric(ns []string, ver int) (core.Metric, error) {
+func (p *pluginControl) GetMetric(ns []string, ver int) (core.CatalogedMetric, error) {
 	return p.metricCatalog.Get(ns, ver)
 }
 

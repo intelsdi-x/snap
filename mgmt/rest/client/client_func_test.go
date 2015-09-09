@@ -265,11 +265,15 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
 				p := c.GetMetricCatalog()
 				So(p.Err, ShouldBeNil)
-				So(p.Len(), ShouldEqual, 2)
+				So(p.Len(), ShouldEqual, 4)
 				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(len(p.Catalog[0].Versions), ShouldEqual, 2)
-				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So(len(p.Catalog[1].Versions), ShouldEqual, 2)
+				So(p.Catalog[0].Version, ShouldEqual, 1)
+				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(p.Catalog[1].Version, ShouldEqual, 2)
+				So(p.Catalog[2].Namespace, ShouldEqual, "/intel/dummy/foo")
+				So(p.Catalog[2].Version, ShouldEqual, 1)
+				So(p.Catalog[3].Namespace, ShouldEqual, "/intel/dummy/foo")
+				So(p.Catalog[3].Version, ShouldEqual, 2)
 			})
 		})
 		Convey("FetchMetrics", func() {
@@ -282,8 +286,9 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
 				p := c.FetchMetrics("/intel/dummy/bar/*", 0)
 				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(len(p.Catalog[0].Versions), ShouldEqual, 2)
-				So(len(p.Catalog), ShouldEqual, 1)
+				So(p.Catalog[0].Version, ShouldEqual, 1)
+				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(p.Catalog[1].Version, ShouldEqual, 2)
 			})
 			Convey("version 2 leaf metric", func() {
 				port := getPort()
@@ -293,9 +298,10 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
 				p := c.FetchMetrics("/intel/dummy/bar/*", 2)
+
 				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(len(p.Catalog[0].Versions), ShouldEqual, 1)
-				So(len(p.Catalog), ShouldEqual, 1)
+				So(p.Catalog[0].Version, ShouldEqual, 2)
+
 			})
 			Convey("version 2 non-leaf metrics", func() {
 				port := getPort()
@@ -305,8 +311,12 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
 				p := c.FetchMetrics("/intel/dummy/*", 2)
-				So(len(p.Catalog[0].Versions), ShouldEqual, 1)
-				So(len(p.Catalog), ShouldEqual, 2)
+
+				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(p.Catalog[0].Version, ShouldEqual, 2)
+				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
+				So(p.Catalog[1].Version, ShouldEqual, 2)
+
 			})
 		})
 		Convey("CreateTask", func() {
@@ -352,13 +362,14 @@ func TestPulseClient(t *testing.T) {
 				So(p.Name, ShouldEqual, "baron")
 				So(p.State, ShouldEqual, "Stopped")
 
+				// method not allowed
 				rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON) //case len(body) == 0
 				So(rsp, ShouldBeNil)
-				So(err, ShouldBeNil)
+				So(err, ShouldNotBeNil)
 				b := make([]byte, 5)
 				rsp2, err2 := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON, b) //case len(body) != 0
 				So(rsp2, ShouldBeNil)
-				So(err2, ShouldBeNil)
+				So(err2, ShouldNotBeNil)
 			})
 			Convey("valid task started on creation", func() {
 				port := getPort()
@@ -376,13 +387,14 @@ func TestPulseClient(t *testing.T) {
 				So(p.Name, ShouldEqual, "baron")
 				So(p.State, ShouldEqual, "Running")
 
+				// method not allowed
 				rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON) //case len(body) == 0
 				So(rsp, ShouldBeNil)
-				So(err, ShouldBeNil)
+				So(err, ShouldNotBeNil)
 				b := make([]byte, 5)
 				rsp2, err2 := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON, b) //case len(body) != 0
 				So(rsp2, ShouldBeNil)
-				So(err2, ShouldBeNil)
+				So(err2, ShouldNotBeNil)
 			})
 			Convey("do returns err!=nil", func() {
 				port := -1

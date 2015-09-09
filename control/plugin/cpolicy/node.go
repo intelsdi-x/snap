@@ -104,6 +104,29 @@ func (p *ConfigPolicyNode) Add(rules ...Rule) {
 	}
 }
 
+type RuleTable struct {
+	Name     string
+	Type     string
+	Default  interface{}
+	Required bool
+}
+
+func (p *ConfigPolicyNode) RulesAsTable() []RuleTable {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	rt := make([]RuleTable, 0, len(p.rules))
+	for _, r := range p.rules {
+		rt = append(rt, RuleTable{
+			Name:     r.Key(),
+			Type:     r.Type(),
+			Default:  r.Default(),
+			Required: r.Required(),
+		})
+	}
+	return rt
+}
+
 // Validates and returns a processed policy node or nil and error if validation has failed
 func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *ProcessingErrors) {
 	c.mutex.Lock()

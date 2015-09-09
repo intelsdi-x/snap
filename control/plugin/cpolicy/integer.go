@@ -40,6 +40,10 @@ func NewIntegerRule(key string, req bool, opts ...int) (*IntRule, error) {
 	}, nil
 }
 
+func (i *IntRule) Type() string {
+	return "integer"
+}
+
 // MarshalJSON marshals a IntRule into JSON
 func (i *IntRule) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {

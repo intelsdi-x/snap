@@ -115,6 +115,10 @@ func (m *metricType) Config() *cdata.ConfigDataNode {
 	return m.config
 }
 
+func (m *metricType) Policy() *cpolicy.ConfigPolicyNode {
+	return m.policy.(*cpolicy.ConfigPolicyNode)
+}
+
 func (m *metricType) Source() string {
 	return m.source
 }
@@ -180,7 +184,7 @@ func (mc *metricCatalog) Get(ns []string, version int) (*metricType, perror.Puls
 	return mc.get(ns, version)
 }
 
-// Fetch transactionally retrieves all loadedPlugins
+// Fetch transactionally retrieves all metrics which fall under namespace ns
 func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, perror.PulseError) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()

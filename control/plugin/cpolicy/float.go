@@ -36,6 +36,10 @@ func (f *FloatRule) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (s *FloatRule) Type() string {
+	return "float"
+}
+
 // GobEncode encodes a FloatRule into a GOB
 func (f *FloatRule) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)

@@ -4,14 +4,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
 // Metric represents a Pulse metric collected or to be collected
 type Metric interface {
 	RequestedMetric
-	LastAdvertisedTime() time.Time
 	Config() *cdata.ConfigDataNode
+	LastAdvertisedTime() time.Time
 	Data() interface{}
 	Source() string
 	Timestamp() time.Time
@@ -24,8 +25,9 @@ type RequestedMetric interface {
 }
 
 type CatalogedMetric interface {
-	Namespace() string
-	Versions() map[int]Metric
+	RequestedMetric
+	LastAdvertisedTime() time.Time
+	Policy() *cpolicy.ConfigPolicyNode
 }
 
 func JoinNamespace(ns []string) string {

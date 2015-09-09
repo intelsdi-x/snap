@@ -141,7 +141,7 @@ func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, error) {
 
 	jErr := json.Unmarshal(b, resp)
 	if jErr != nil {
-		return nil, err
+		return nil, jErr
 	}
 	if resp == nil {
 		// Catch corner case where JSON gives no error but resp is nil

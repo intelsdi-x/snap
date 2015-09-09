@@ -11,17 +11,17 @@ var (
 	ErrAPIResponseMetaType = errors.New("Received an invalid API response (META/TYPE)")
 )
 
-func (c *Client) GetMetricCatalog() *GetMetricCatalogResult {
-	r := &GetMetricCatalogResult{}
+func (c *Client) GetMetricCatalog() *GetMetricsResult {
+	r := &GetMetricsResult{}
 	resp, err := c.do("GET", "/metrics", ContentTypeJSON)
 	if err != nil {
-		return &GetMetricCatalogResult{Err: err}
+		return &GetMetricsResult{Err: err}
 	}
 
 	switch resp.Meta.Type {
-	case rbody.MetricCatalogReturnedType:
-		mc := resp.Body.(*rbody.MetricCatalogReturned)
-		r.Catalog = convertCatalog(mc.Catalog)
+	case rbody.MetricsReturnedType:
+		mc := resp.Body.(*rbody.MetricsReturned)
+		r.Catalog = convertCatalog(mc)
 	case rbody.ErrorType:
 		r.Err = resp.Body.(*rbody.Error)
 	default:
@@ -30,18 +30,21 @@ func (c *Client) GetMetricCatalog() *GetMetricCatalogResult {
 	return r
 }
 
-func (c *Client) FetchMetrics(ns string, ver int) *FetchMetricsResult {
-	r := &FetchMetricsResult{}
+func (c *Client) FetchMetrics(ns string, ver int) *GetMetricsResult {
+	r := &GetMetricsResult{}
 	q := fmt.Sprintf("/metrics%s?ver=%d", ns, ver)
 	resp, err := c.do("GET", q, ContentTypeJSON)
 	if err != nil {
-		return &FetchMetricsResult{Err: err}
+		return &GetMetricsResult{Err: err}
 	}
 
 	switch resp.Meta.Type {
-	case rbody.MetricCatalogReturnedType:
-		mc := resp.Body.(*rbody.MetricCatalogReturned)
-		r.Catalog = convertCatalog(mc.Catalog)
+	case rbody.MetricsReturnedType:
+		mc := resp.Body.(*rbody.MetricsReturned)
+		r.Catalog = convertCatalog(mc)
+	case rbody.MetricReturnedType:
+		mc := resp.Body.(*rbody.MetricReturned)
+		r.Catalog = []*rbody.Metric{mc.Metric}
 	case rbody.ErrorType:
 		r.Err = resp.Body.(*rbody.Error)
 	default:
@@ -50,32 +53,24 @@ func (c *Client) FetchMetrics(ns string, ver int) *FetchMetricsResult {
 	return r
 }
 
-type GetMetricCatalogResult struct {
-	Catalog []MetricCatalogItem
+type GetMetricsResult struct {
+	Catalog []*rbody.Metric
 	Err     error
 }
 
-func (g *GetMetricCatalogResult) Len() int {
+type GetMetricResult struct {
+	Metric *rbody.Metric
+	Err    error
+}
+
+func (g *GetMetricsResult) Len() int {
 	return len(g.Catalog)
 }
 
-type MetricCatalogItem struct {
-	*rbody.CatalogItem
-}
-
-type FetchMetricsResult struct {
-	Catalog []MetricCatalogItem
-	Err     error
-}
-
-func (g *FetchMetricsResult) Len() int {
-	return len(g.Catalog)
-}
-
-func convertCatalog(c []rbody.CatalogItem) []MetricCatalogItem {
-	mci := make([]MetricCatalogItem, len(c))
-	for i, _ := range c {
-		mci[i] = MetricCatalogItem{&c[i]}
+func convertCatalog(c *rbody.MetricsReturned) []*rbody.Metric {
+	mci := make([]*rbody.Metric, len(*c))
+	for i, _ := range *c {
+		mci[i] = &(*c)[i]
 	}
 	return mci
 }

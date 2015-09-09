@@ -103,6 +103,15 @@ var (
 						flMetricNamespace,
 					},
 				},
+				{
+					Name:   "get",
+					Usage:  "get details on a single metric",
+					Action: getMetric,
+					Flags: []cli.Flag{
+						flMetricVersion,
+						flMetricNamespace,
+					},
+				},
 			},
 		},
 	}

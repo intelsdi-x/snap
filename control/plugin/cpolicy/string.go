@@ -36,6 +36,10 @@ func NewStringRule(key string, req bool, opts ...string) (*StringRule, error) {
 	}, nil
 }
 
+func (s *StringRule) Type() string {
+	return "string"
+}
+
 // MarshalJSON marshals a StringRule into JSON
 func (s *StringRule) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
