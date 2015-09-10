@@ -19,6 +19,7 @@ type Rule interface {
 	Validate(ctypes.ConfigValue) error
 	Default() ctypes.ConfigValue
 	Required() bool
+	Type() string
 }
 
 type rule struct {

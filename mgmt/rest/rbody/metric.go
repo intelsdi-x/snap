@@ -1,23 +1,24 @@
 package rbody
 
+import "fmt"
+
 const (
-	MetricCatalogReturnedType = "metric_catalog_returned"
-	MetricReturnedType        = "metric_returned"
+	MetricsReturnedType = "metrics_returned"
+	MetricReturnedType  = "metric_returned"
 )
 
-type CatalogItem struct {
-	Namespace string             `json:"namespace"`
-	Versions  map[string]*Metric `json:"versions"`
-}
-
-func (m *CatalogItem) key() string {
-	return m.Namespace
+type PolicyTable struct {
+	Name     string      `json:"name"`
+	Type     string      `json:"type"`
+	Default  interface{} `json:"default"`
+	Required bool        `json:"required"`
 }
 
 type Metric struct {
-	LastAdvertisedTimestamp int64  `json:"last_advertised_timestamp,omitempty"`
-	Namespace               string `json:"namespace,omitempty"`
-	Version                 int    `json:"version,omitempty"`
+	LastAdvertisedTimestamp int64         `json:"last_advertised_timestamp,omitempty"`
+	Namespace               string        `json:"namespace,omitempty"`
+	Version                 int           `json:"version,omitempty"`
+	Policy                  []PolicyTable `json:"policy,omitempty"`
 }
 
 type MetricReturned struct {
@@ -32,30 +33,28 @@ func (m *MetricReturned) ResponseBodyType() string {
 	return MetricReturnedType
 }
 
-type MetricCatalogReturned struct {
-	Catalog []CatalogItem
+type MetricsReturned []Metric
+
+func (m MetricsReturned) Len() int {
+	return len(m)
 }
 
-func (m *MetricCatalogReturned) Len() int {
-	return len(m.Catalog)
+func (m MetricsReturned) Less(i, j int) bool {
+	return (fmt.Sprintf("%s:%d", m[i].Namespace, m[i].Version)) < (fmt.Sprintf("%s:%d", m[j].Namespace, m[j].Version))
 }
 
-func (m *MetricCatalogReturned) Less(i, j int) bool {
-	return m.Catalog[i].key() < m.Catalog[j].key()
+func (m MetricsReturned) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
 }
 
-func (m *MetricCatalogReturned) Swap(i, j int) {
-	m.Catalog[i], m.Catalog[j] = m.Catalog[j], m.Catalog[i]
+func NewMetricsReturned() MetricsReturned {
+	return make([]Metric, 0)
 }
 
-func NewMetricCatalogReturned() *MetricCatalogReturned {
-	return &MetricCatalogReturned{Catalog: make([]CatalogItem, 0)}
+func (m MetricsReturned) ResponseBodyMessage() string {
+	return "Metric"
 }
 
-func (m *MetricCatalogReturned) ResponseBodyMessage() string {
-	return "Metric catalog returned"
-}
-
-func (m *MetricCatalogReturned) ResponseBodyType() string {
-	return MetricCatalogReturnedType
+func (m MetricsReturned) ResponseBodyType() string {
+	return MetricsReturnedType
 }

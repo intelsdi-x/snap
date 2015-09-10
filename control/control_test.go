@@ -515,7 +515,7 @@ func TestExportedMetricCatalog(t *testing.T) {
 			t, err := c.MetricCatalog()
 			So(err, ShouldBeNil)
 			So(len(t), ShouldEqual, 1)
-			So(t[0].Namespace(), ShouldResemble, "/foo/bar")
+			So(t[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
 		})
 		Convey("If metric catalog fetch fails", func() {
 			c.metricCatalog = &mc{e: 2}

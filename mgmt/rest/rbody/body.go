@@ -40,8 +40,8 @@ func UnmarshalBody(t string, b []byte) (Body, error) {
 		return unmarshalAndHandleError(b, &ScheduledTaskRemoved{})
 	case MetricReturnedType:
 		return unmarshalAndHandleError(b, &MetricReturned{})
-	case MetricCatalogReturnedType:
-		return unmarshalAndHandleError(b, &MetricCatalogReturned{})
+	case MetricsReturnedType:
+		return unmarshalAndHandleError(b, &MetricsReturned{})
 	case ScheduledTaskWatchingEndedType:
 		return unmarshalAndHandleError(b, &ScheduledTaskWatchingEnded{})
 	case ErrorType:

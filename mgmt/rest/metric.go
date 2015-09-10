@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -62,25 +61,41 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		Version:                 mt.Version(),
 		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
 	}
+	rt := mt.Policy().RulesAsTable()
+	policies := make([]rbody.PolicyTable, 0, len(rt))
+	for _, r := range rt {
+		policies = append(policies, rbody.PolicyTable{
+			Name:     r.Name,
+			Type:     r.Type,
+			Default:  r.Default,
+			Required: r.Required,
+		})
+	}
+	mb.Policy = policies
 	b.Metric = mb
 	respond(200, b, w)
 }
 
 func respondWithMetrics(mets []core.CatalogedMetric, w http.ResponseWriter) {
-	b := rbody.NewMetricCatalogReturned()
+	b := rbody.NewMetricsReturned()
 
-	for _, cm := range mets {
-		ci := &rbody.CatalogItem{
-			Namespace: cm.Namespace(),
-			Versions:  make(map[string]*rbody.Metric, len(cm.Versions())),
+	for _, met := range mets {
+		rt := met.Policy().RulesAsTable()
+		policies := make([]rbody.PolicyTable, 0, len(rt))
+		for _, r := range rt {
+			policies = append(policies, rbody.PolicyTable{
+				Name:     r.Name,
+				Type:     r.Type,
+				Default:  r.Default,
+				Required: r.Required,
+			})
 		}
-		for k, m := range cm.Versions() {
-			ci.Versions[fmt.Sprintf("%d", k)] = &rbody.Metric{
-				LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
-			}
-		}
-
-		b.Catalog = append(b.Catalog, *ci)
+		b = append(b, rbody.Metric{
+			Namespace:               core.JoinNamespace(met.Namespace()),
+			Version:                 met.Version(),
+			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
+			Policy:                  policies,
+		})
 	}
 	sort.Sort(b)
 	respond(200, b, w)
