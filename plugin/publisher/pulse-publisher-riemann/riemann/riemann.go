@@ -35,7 +35,7 @@ func NewRiemannPublisher() *Riemann {
 }
 
 // GetConfigPolicy returns the config policy for the Riemann Publisher Plugin
-func (r *Riemann) GetConfigPolicy() cpolicy.ConfigPolicy {
+func (r *Riemann) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 	// Host metric applies to
@@ -50,7 +50,7 @@ func (r *Riemann) GetConfigPolicy() cpolicy.ConfigPolicy {
 
 	config.Add(r1, r2)
 	cp.Add([]string{""}, config)
-	return *cp
+	return cp, nil
 }
 
 // Publish serializes the data and calls publish to send events to Riemann
