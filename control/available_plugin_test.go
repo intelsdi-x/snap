@@ -20,6 +20,8 @@ limitations under the License.
 package control
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"errors"
 	"net"
 	"testing"
@@ -31,6 +33,8 @@ import (
 
 func TestAvailablePlugin(t *testing.T) {
 	Convey("newAvailablePlugin()", t, func() {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		So(err, ShouldBeNil)
 		Convey("returns an availablePlugin", func() {
 			ln, _ := net.Listen("tcp", ":4000")
 			defer ln.Close()
@@ -42,7 +46,7 @@ func TestAvailablePlugin(t *testing.T) {
 				Type:          plugin.CollectorPluginType,
 				ListenAddress: "127.0.0.1:4000",
 			}
-			ap, err := newAvailablePlugin(resp, nil, nil)
+			ap, err := newAvailablePlugin(resp, key, nil, nil)
 			So(ap, ShouldHaveSameTypeAs, new(availablePlugin))
 			So(err, ShouldBeNil)
 		})
@@ -50,7 +54,9 @@ func TestAvailablePlugin(t *testing.T) {
 
 	Convey("Stop()", t, func() {
 		Convey("returns nil if plugin successfully stopped", func() {
-			r := newRunner(&routing.RoundRobinStrategy{})
+			key, err := rsa.GenerateKey(rand.Reader, 2048)
+			So(err, ShouldBeNil)
+			r := newRunner(&routing.RoundRobinStrategy{}, key)
 			a := plugin.Arg{
 				PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
 			}
@@ -102,6 +108,8 @@ func TestAvailablePlugins(t *testing.T) {
 		})
 	})
 	Convey("it returns an error if client cannot be created", t, func() {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		So(err, ShouldBeNil)
 		resp := &plugin.Response{
 			Meta: plugin.PluginMeta{
 				Name:    "test",
@@ -110,7 +118,7 @@ func TestAvailablePlugins(t *testing.T) {
 			Type:          plugin.CollectorPluginType,
 			ListenAddress: "localhost:",
 		}
-		ap, err := newAvailablePlugin(resp, nil, nil)
+		ap, err := newAvailablePlugin(resp, key, nil, nil)
 		So(ap, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 	})

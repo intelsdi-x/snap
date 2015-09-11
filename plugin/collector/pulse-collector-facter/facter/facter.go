@@ -177,7 +177,7 @@ func (f *Facter) CollectMetrics(metricTypes []plugin.PluginMetricType) ([]plugin
 	return metrics, nil
 }
 
-func (f *Facter) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+func (f *Facter) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	c := cpolicy.New()
 	rule, _ := cpolicy.NewStringRule("name", false, "bob")
 	rule2, _ := cpolicy.NewStringRule("password", true)
@@ -185,7 +185,7 @@ func (f *Facter) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
 	p.Add(rule)
 	p.Add(rule2)
 	c.Add([]string{"intel", "facter", "foo"}, p)
-	return *c, nil
+	return c, nil
 }
 
 // ------------ helper functions --------------

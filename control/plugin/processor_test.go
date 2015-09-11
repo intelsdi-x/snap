@@ -38,8 +38,8 @@ func (f *MockProcessor) Process(contentType string, content []byte, config map[s
 	return "", nil, nil
 }
 
-func (f *MockProcessor) GetConfigPolicy() cpolicy.ConfigPolicy {
-	return cpolicy.ConfigPolicy{}
+func (f *MockProcessor) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+	return &cpolicy.ConfigPolicy{}, nil
 }
 
 type MockProcessorSessionState struct {

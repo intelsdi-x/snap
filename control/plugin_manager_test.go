@@ -20,6 +20,8 @@ limitations under the License.
 package control
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"errors"
 	"os"
 	"path"
@@ -76,10 +78,11 @@ func TestLoadPlugin(t *testing.T) {
 	// build the plugins first into the build dir
 
 	if PulsePath != "" {
+		key, _ := rsa.GenerateKey(rand.Reader, 2048)
 		Convey("PluginManager.LoadPlugin", t, func() {
 
 			Convey("loads plugin successfully", func() {
-				p := newPluginManager()
+				p := newPluginManager(&key.PublicKey, key)
 				p.SetMetricCatalog(newMetricCatalog())
 				lp, err := p.LoadPlugin(PluginPath, nil)
 
@@ -90,7 +93,7 @@ func TestLoadPlugin(t *testing.T) {
 			})
 
 			Convey("loads json-rpc plugin successfully", func() {
-				p := newPluginManager()
+				p := newPluginManager(&key.PublicKey, key)
 				p.SetMetricCatalog(newMetricCatalog())
 				lp, err := p.LoadPlugin(JSONRPC_PluginPath, nil)
 
@@ -115,11 +118,12 @@ func TestLoadPlugin(t *testing.T) {
 
 func TestUnloadPlugin(t *testing.T) {
 	if PulsePath != "" {
+		key, _ := rsa.GenerateKey(rand.Reader, 2048)
 		Convey("pluginManager.UnloadPlugin", t, func() {
 
 			Convey("when a loaded plugin is unloaded", func() {
 				Convey("then it is removed from the loadedPlugins", func() {
-					p := newPluginManager()
+					p := newPluginManager(&key.PublicKey, key)
 					p.SetMetricCatalog(newMetricCatalog())
 					_, err := p.LoadPlugin(PluginPath, nil)
 					So(err, ShouldBeNil)
@@ -136,7 +140,7 @@ func TestUnloadPlugin(t *testing.T) {
 
 			Convey("when a loaded plugin is not in a PluginLoaded state", func() {
 				Convey("then an error is thrown", func() {
-					p := newPluginManager()
+					p := newPluginManager(&key.PublicKey, key)
 					p.SetMetricCatalog(newMetricCatalog())
 					lp, err := p.LoadPlugin(PluginPath, nil)
 					glp, err2 := p.get("collector:dummy1:1")
@@ -149,7 +153,7 @@ func TestUnloadPlugin(t *testing.T) {
 
 			Convey("when a plugin is already unloaded", func() {
 				Convey("then an error is thrown", func() {
-					p := newPluginManager()
+					p := newPluginManager(&key.PublicKey, key)
 					p.SetMetricCatalog(newMetricCatalog())
 					_, err := p.LoadPlugin(PluginPath, nil)
 

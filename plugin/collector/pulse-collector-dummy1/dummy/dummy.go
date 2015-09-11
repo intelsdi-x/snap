@@ -64,7 +64,7 @@ func (f *Dummy) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 }
 
 //GetConfigPolicy returns a ConfigPolicyTree for testing
-func (f *Dummy) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+func (f *Dummy) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	c := cpolicy.New()
 	rule, _ := cpolicy.NewStringRule("name", false, "bob")
 	rule2, _ := cpolicy.NewStringRule("password", true)
@@ -72,7 +72,7 @@ func (f *Dummy) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
 	p.Add(rule)
 	p.Add(rule2)
 	c.Add([]string{"intel", "dummy", "foo"}, p)
-	return *c, nil
+	return c, nil
 }
 
 //Meta returns meta data for testing

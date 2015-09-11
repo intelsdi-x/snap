@@ -20,9 +20,9 @@ limitations under the License.
 package client
 
 import (
+	"crypto/rsa"
 	"encoding/gob"
 	"errors"
-	"fmt"
 	"net"
 	"net/rpc"
 	"time"
@@ -30,6 +30,8 @@ import (
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/control/plugin/encoding"
+	"github.com/intelsdi-x/pulse/control/plugin/encrypter"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
@@ -43,50 +45,84 @@ type CallsRPC interface {
 type PluginNativeClient struct {
 	connection CallsRPC
 	pluginType plugin.PluginType
+	encoder    encoding.Encoder
+	encrypter  *encrypter.Encrypter
 }
 
-func NewCollectorNativeClient(address string, timeout time.Duration) (PluginCollectorClient, error) {
-	return newNativeClient(address, timeout, plugin.CollectorPluginType)
+func NewCollectorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginCollectorClient, error) {
+	return newNativeClient(address, timeout, plugin.CollectorPluginType, pub, priv)
 }
 
-func NewPublisherNativeClient(address string, timeout time.Duration) (PluginPublisherClient, error) {
-	return newNativeClient(address, timeout, plugin.PublisherPluginType)
+func NewPublisherNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginPublisherClient, error) {
+	return newNativeClient(address, timeout, plugin.PublisherPluginType, pub, priv)
 }
 
-func NewProcessorNativeClient(address string, timeout time.Duration) (PluginProcessorClient, error) {
-	return newNativeClient(address, timeout, plugin.ProcessorPluginType)
+func NewProcessorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginProcessorClient, error) {
+	return newNativeClient(address, timeout, plugin.ProcessorPluginType, pub, priv)
 }
 
 func (p *PluginNativeClient) Ping() error {
-	a := plugin.PingArgs{}
-	b := true
-	err := p.connection.Call("SessionState.Ping", a, &b)
+	var reply []byte
+	err := p.connection.Call("SessionState.Ping", []byte{}, &reply)
 	return err
 }
 
+func (p *PluginNativeClient) SetKey() error {
+	out, err := p.encrypter.EncryptKey()
+	if err != nil {
+		return err
+	}
+	return p.connection.Call("SessionState.SetKey", plugin.SetKeyArgs{
+		Key: out,
+	}, &[]byte{})
+}
+
 func (p *PluginNativeClient) Kill(reason string) error {
-	a := plugin.KillArgs{Reason: reason}
-	var b bool
-	err := p.connection.Call("SessionState.Kill", a, &b)
+	args := plugin.KillArgs{Reason: reason}
+	out, err := p.encoder.Encode(args)
+	if err != nil {
+		return err
+	}
+
+	var reply []byte
+	err = p.connection.Call("SessionState.Kill", out, &reply)
 	return err
 }
 
 func (p *PluginNativeClient) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	args := plugin.PublishArgs{ContentType: contentType, Content: content, Config: config}
-	reply := plugin.PublishReply{}
 
-	err := p.connection.Call("Publisher.Publish", args, &reply)
+	out, err := p.encoder.Encode(args)
+	if err != nil {
+		return err
+	}
 
+	var reply []byte
+	err = p.connection.Call("Publisher.Publish", out, &reply)
 	return err
 }
 
 func (p *PluginNativeClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
 	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
-	reply := plugin.ProcessorReply{}
 
-	err := p.connection.Call("Processor.Process", args, &reply)
+	out, err := p.encoder.Encode(args)
+	if err != nil {
+		return "", nil, err
+	}
 
-	return reply.ContentType, reply.Content, err
+	var reply []byte
+	err = p.connection.Call("Processor.Process", out, &reply)
+	if err != nil {
+		return "", nil, err
+	}
+
+	r := plugin.ProcessorReply{}
+	err = p.encoder.Decode(reply, &r)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return r.ContentType, r.Content, nil
 }
 
 func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]core.Metric, error) {
@@ -107,8 +143,8 @@ func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]co
 		}
 	}
 	// If the size of fromCache is equal to the length of the requested metrics,
-	// then we retrieved all of the requested metrics and do not need to go the
-	// motions of the rpc call.
+	// then we retrieved all of the requested metrics and do not need to go
+	// through the motions of the rpc call.
 	if len(fromCache) != len(coreMetricTypes) {
 		var pluginMetricTypes []plugin.PluginMetricType
 		// Walk through the requested collection. If the entry is not nil,
@@ -127,16 +163,30 @@ func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]co
 		}
 
 		args := plugin.CollectMetricsArgs{PluginMetricTypes: pluginMetricTypes}
-		reply := plugin.CollectMetricsReply{}
 
-		err := p.connection.Call("Collector.CollectMetrics", args, &reply)
+		out, err := p.encoder.Encode(args)
+		if err != nil {
+			return nil, err
+		}
+
+		var reply []byte
+		err = p.connection.Call("Collector.CollectMetrics", out, &reply)
+		if err != nil {
+			return nil, err
+		}
+
+		r := &plugin.CollectMetricsReply{}
+		err = p.encoder.Decode(reply, r)
+		if err != nil {
+			return nil, err
+		}
 
 		var offset int
 		for i, mt := range fromCache {
 			coreMetricTypes[i] = mt
 			offset++
 		}
-		for i, mt := range reply.PluginMetrics {
+		for i, mt := range r.PluginMetrics {
 			metricCache.put(core.JoinNamespace(mt.Namespace_), mt)
 			coreMetricTypes[i+offset] = mt
 		}
@@ -146,29 +196,41 @@ func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]co
 }
 
 func (p *PluginNativeClient) GetMetricTypes() ([]core.Metric, error) {
-	args := plugin.GetMetricTypesArgs{}
-	reply := plugin.GetMetricTypesReply{}
-
-	err := p.connection.Call("Collector.GetMetricTypes", args, &reply)
-
-	retMetricTypes := make([]core.Metric, len(reply.PluginMetricTypes))
-	for i, _ := range reply.PluginMetricTypes {
-		// Set the advertised time
-		reply.PluginMetricTypes[i].LastAdvertisedTime_ = time.Now()
-		retMetricTypes[i] = reply.PluginMetricTypes[i]
+	var reply []byte
+	err := p.connection.Call("Collector.GetMetricTypes", []byte{}, &reply)
+	if err != nil {
+		return nil, err
 	}
-	return retMetricTypes, err
+
+	r := &plugin.GetMetricTypesReply{}
+	err = p.encoder.Decode(reply, r)
+	if err != nil {
+		return nil, err
+	}
+
+	retMetricTypes := make([]core.Metric, len(r.PluginMetricTypes))
+	for i, _ := range r.PluginMetricTypes {
+		// Set the advertised time
+		r.PluginMetricTypes[i].LastAdvertisedTime_ = time.Now()
+		retMetricTypes[i] = r.PluginMetricTypes[i]
+	}
+	return retMetricTypes, nil
 }
 
-func (p *PluginNativeClient) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
-	args := plugin.GetConfigPolicyArgs{}
-	reply := plugin.GetConfigPolicyReply{Policy: *cpolicy.New()}
-	err := p.connection.Call(fmt.Sprintf("%s.GetConfigPolicy", p.GetType()), args, &reply)
+func (p *PluginNativeClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+	var reply []byte
+	err := p.connection.Call("SessionState.GetConfigPolicy", []byte{}, &reply)
 	if err != nil {
-		return cpolicy.ConfigPolicy{}, err
+		return nil, err
 	}
 
-	return reply.Policy, nil
+	r := &plugin.GetConfigPolicyReply{}
+	err = p.encoder.Decode(reply, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Policy, nil
 }
 
 // GetType returns the string type of the plugin
@@ -177,7 +239,7 @@ func (p *PluginNativeClient) GetType() string {
 	return upcaseInitial(p.pluginType.String())
 }
 
-func newNativeClient(address string, timeout time.Duration, t plugin.PluginType) (*PluginNativeClient, error) {
+func newNativeClient(address string, timeout time.Duration, t plugin.PluginType, pub *rsa.PublicKey, priv *rsa.PrivateKey) (*PluginNativeClient, error) {
 	// Attempt to dial address error on timeout or problem
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	// Return nil RPCClient and err if encoutered
@@ -185,7 +247,22 @@ func newNativeClient(address string, timeout time.Duration, t plugin.PluginType)
 		return nil, err
 	}
 	r := rpc.NewClient(conn)
-	p := &PluginNativeClient{connection: r, pluginType: t}
+	p := &PluginNativeClient{
+		connection: r,
+		pluginType: t,
+	}
+
+	key, err := encrypter.GenerateKey()
+	if err != nil {
+		return nil, err
+	}
+	p.encoder = encoding.NewGobEncoder()
+
+	encrypter := encrypter.New(pub, priv)
+	encrypter.Key = key
+	p.encrypter = encrypter
+	p.encoder.SetEncrypter(encrypter)
+
 	return p, nil
 }
 

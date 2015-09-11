@@ -170,9 +170,9 @@ func (p *Perfevents) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 }
 
 // GetConfigPolicy returns a ConfigPolicy
-func (p *Perfevents) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+func (p *Perfevents) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	c := cpolicy.New()
-	return *c, nil
+	return c, nil
 }
 
 // New initializes Perfevents plugin

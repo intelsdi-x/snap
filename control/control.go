@@ -20,6 +20,7 @@ limitations under the License.
 package control
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
 	"errors"
 	"fmt"
@@ -65,8 +66,8 @@ type pluginControl struct {
 	Started        bool
 
 	autodiscoverPaths []string
-	controlPrivKey    *rsa.PrivateKey
-	controlPubKey     *rsa.PublicKey
+	privKey           *rsa.PrivateKey
+	pubKey            *rsa.PublicKey
 	eventManager      *gomit.EventController
 
 	pluginManager  managesPlugins
@@ -135,7 +136,14 @@ func CacheExpiration(t time.Duration) controlOpt {
 // New returns a new pluginControl instance
 func New(opts ...controlOpt) *pluginControl {
 
-	c := &pluginControl{}
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+	c := &pluginControl{
+		pubKey:  &key.PublicKey,
+		privKey: key,
+	}
 	// Initialize components
 	//
 	// Event Manager
@@ -152,7 +160,7 @@ func New(opts ...controlOpt) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager()
+	c.pluginManager = newPluginManager(c.pubKey, c.privKey)
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
@@ -167,7 +175,7 @@ func New(opts ...controlOpt) *pluginControl {
 
 	// Plugin Runner
 	// TODO (danielscottt): handle routing strat changes via events
-	c.pluginRunner = newRunner(&routing.RoundRobinStrategy{})
+	c.pluginRunner = newRunner(&routing.RoundRobinStrategy{}, c.privKey)
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("runner created")
@@ -180,7 +188,7 @@ func New(opts ...controlOpt) *pluginControl {
 	// Wire event manager
 
 	// Start stuff
-	err := c.pluginRunner.Start()
+	err = c.pluginRunner.Start()
 	if err != nil {
 		panic(err)
 	}

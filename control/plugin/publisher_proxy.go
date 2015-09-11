@@ -27,7 +27,6 @@ import (
 )
 
 type PublishArgs struct {
-	//PluginMetrics []PluginMetric
 	ContentType string
 	Content     []byte
 	Config      map[string]ctypes.ConfigValue
@@ -41,21 +40,17 @@ type publisherPluginProxy struct {
 	Session Session
 }
 
-func (p *publisherPluginProxy) GetConfigPolicy(args GetConfigPolicyArgs, reply *GetConfigPolicyReply) error {
-	defer catchPluginPanic(p.Session.Logger())
-
-	p.Session.Logger().Println("GetConfigPolicy called")
-	p.Session.ResetHeartbeat()
-
-	reply.Policy = p.Plugin.GetConfigPolicy()
-
-	return nil
-}
-
-func (p *publisherPluginProxy) Publish(args PublishArgs, reply *PublishReply) error {
+func (p *publisherPluginProxy) Publish(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(p.Session.Logger())
 	p.Session.ResetHeartbeat()
-	err := p.Plugin.Publish(args.ContentType, args.Content, args.Config)
+
+	dargs := &PublishArgs{}
+	err := p.Session.Decode(args, dargs)
+	if err != nil {
+		return err
+	}
+
+	err = p.Plugin.Publish(dargs.ContentType, dargs.Content, dargs.Config)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Publish call error: %v", err.Error()))
 	}

@@ -88,7 +88,7 @@ func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
-func (f *filePublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
+func (f *filePublisher) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 
@@ -98,7 +98,7 @@ func (f *filePublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
 
 	config.Add(r1)
 	cp.Add([]string{""}, config)
-	return *cp
+	return cp, nil
 }
 
 func handleErr(e error) {

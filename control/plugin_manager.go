@@ -202,15 +202,17 @@ func (lp *loadedPlugin) LoadedTimestamp() *time.Time {
 type pluginManager struct {
 	metricCatalog catalogsMetrics
 	loadedPlugins *loadedPlugins
-	privKey       *rsa.PrivateKey
-	pubKey        *rsa.PublicKey
+	privateKey    *rsa.PrivateKey
+	publicKey     *rsa.PublicKey
 	logPath       string
 }
 
-func newPluginManager() *pluginManager {
+func newPluginManager(pubKey *rsa.PublicKey, privKey *rsa.PrivateKey) *pluginManager {
 	p := &pluginManager{
 		loadedPlugins: newLoadedPlugins(),
 		logPath:       "/tmp",
+		privateKey:    privKey,
+		publicKey:     pubKey,
 	}
 	return p
 }
@@ -259,7 +261,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, perror.New(err)
 	}
 
-	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
+	ap, err := newAvailablePlugin(resp, p.privateKey, emitter, ePlugin)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -268,7 +270,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, perror.New(err)
 	}
 
-	err = ap.client.Ping()
+	err = ap.client.SetKey()
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -277,24 +279,27 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, perror.New(err)
 	}
 
-	switch resp.Type {
-	case plugin.CollectorPluginType:
-		colClient := ap.client.(client.PluginCollectorClient)
+	// Get the ConfigPolicy and add it to the loaded plugin
+	c, ok := ap.client.(plugin.Plugin)
+	if !ok {
+		return nil, perror.New(errors.New("missing GetConfigPolicy function"))
+	}
+	cp, err := c.GetConfigPolicy()
+	if err != nil {
+		pmLogger.WithFields(log.Fields{
+			"_block":         "load-plugin",
+			"plugin-type":    "collector",
+			"error":          err.Error(),
+			"plugin-name":    ap.Name(),
+			"plugin-version": ap.Version(),
+			"plugin-id":      ap.ID(),
+		}).Error("error in getting config policy")
+		return nil, perror.New(err)
+	}
+	lPlugin.ConfigPolicy = cp
 
-		// Get the ConfigPolicy and add it to the loaded plugin
-		cp, err := colClient.GetConfigPolicy()
-		if err != nil {
-			pmLogger.WithFields(log.Fields{
-				"_block":         "load-plugin",
-				"plugin-type":    "collector",
-				"error":          err.Error(),
-				"plugin-name":    ap.Name(),
-				"plugin-version": ap.Version(),
-				"plugin-id":      ap.ID(),
-			}).Error("error in getting config policy")
-			return nil, perror.New(err)
-		}
-		lPlugin.ConfigPolicy = &cp
+	if resp.Type == plugin.CollectorPluginType {
+		colClient := ap.client.(client.PluginCollectorClient)
 
 		// Get metric types
 		metricTypes, err := colClient.GetMetricTypes()
@@ -340,36 +345,6 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 			}
 			p.metricCatalog.AddLoadedMetricType(lPlugin, nmt)
 		}
-
-	case plugin.PublisherPluginType:
-		pubClient := ap.client.(client.PluginPublisherClient)
-		cp, err := pubClient.GetConfigPolicy()
-		if err != nil {
-			pmLogger.WithFields(log.Fields{
-				"_block":      "load-plugin",
-				"plugin-type": "publisher",
-				"error":       err.Error(),
-			}).Error("error in getting config policy node")
-			return nil, perror.New(err)
-		}
-		lPlugin.ConfigPolicy = &cp
-
-	case plugin.ProcessorPluginType:
-		procClient := ap.client.(client.PluginProcessorClient)
-
-		cp, err := procClient.GetConfigPolicy()
-		if err != nil {
-			pmLogger.WithFields(log.Fields{
-				"_block":      "load-plugin",
-				"plugin-type": "processor",
-				"error":       err.Error(),
-			}).Error("error in getting config policy node")
-			return nil, perror.New(err)
-		}
-		lPlugin.ConfigPolicy = &cp
-
-	default:
-		return nil, perror.New(fmt.Errorf("Unknown plugin type '%s'", resp.Type.String()))
 	}
 
 	err = ePlugin.Kill()
@@ -469,7 +444,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 
 func (p *pluginManager) GenerateArgs(pluginPath string) plugin.Arg {
 	pluginLog := filepath.Join(p.logPath, filepath.Base(pluginPath)) + ".log"
-	return plugin.NewArg(p.pubKey, pluginLog)
+	return plugin.NewArg(p.publicKey, pluginLog)
 }
 
 func (p *pluginManager) teardown() {

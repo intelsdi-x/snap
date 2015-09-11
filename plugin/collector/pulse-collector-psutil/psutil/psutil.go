@@ -104,9 +104,9 @@ func (p *Psutil) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 }
 
 //GetConfigPolicy returns a ConfigPolicy
-func (p *Psutil) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+func (p *Psutil) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	c := cpolicy.New()
-	return *c, nil
+	return c, nil
 }
 
 func joinNamespace(ns []string) string {

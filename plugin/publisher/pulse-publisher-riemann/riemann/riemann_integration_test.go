@@ -51,7 +51,8 @@ func TestPublish(t *testing.T) {
 			cdn := cdata.NewNode()
 			cdn.AddItem("broker", ctypes.ConfigValueStr{Value: broker})
 			cdn.AddItem("host", ctypes.ConfigValueStr{Value: "bacon-powered"})
-			cp := r.GetConfigPolicy()
+			cp, err := r.GetConfigPolicy()
+			So(err, ShouldBeNil)
 			p := cp.Get([]string{""})
 			f, cErr := p.Process(cdn.Table())
 			So(getProcessErrorStr(cErr), ShouldEqual, "")
@@ -62,7 +63,7 @@ func TestPublish(t *testing.T) {
 			var buf bytes.Buffer
 			enc := gob.NewEncoder(&buf)
 			enc.Encode(metrics)
-			err := r.Publish(plugin.PulseGOBContentType, buf.Bytes(), *f)
+			err = r.Publish(plugin.PulseGOBContentType, buf.Bytes(), *f)
 			So(err, ShouldBeNil)
 
 			c, _ := raidman.Dial("tcp", broker)

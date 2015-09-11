@@ -35,6 +35,7 @@ import (
 	"github.com/intelsdi-x/pulse/core/ctypes"
 
 	"database/sql"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -126,7 +127,7 @@ func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
 }
 
-func (f *mySQLPublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
+func (f *mySQLPublisher) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 
@@ -152,7 +153,7 @@ func (f *mySQLPublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
 	config.Add(tableName)
 
 	cp.Add([]string{""}, config)
-	return *cp
+	return cp, nil
 }
 
 func handleErr(e error) {

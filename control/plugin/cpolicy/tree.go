@@ -64,12 +64,10 @@ func (c *ConfigPolicy) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	c.config = ctree.New()
-	if config, ok := m["Policy"]["config"]; ok {
-		if root, ok := config.(map[string]interface{}); ok {
-			if node, ok := root["root"]; ok {
-				if n, ok := node.(map[string]interface{}); ok {
-					return unmarshalJSON(n, &[]string{}, c.config)
-				}
+	if config, ok := m["config"]; ok {
+		if node, ok := config["root"]; ok {
+			if n, ok := node.(map[string]interface{}); ok {
+				return unmarshalJSON(n, &[]string{}, c.config)
 			}
 		}
 	}
@@ -91,7 +89,10 @@ func unmarshalJSON(m map[string]interface{}, keys *[]string, config *ctree.Confi
 			if nval, ok := node["rules"]; ok {
 				cpn := NewPolicyNode()
 				if rules, ok := nval.(map[string]interface{}); ok {
-					addRulesToConfigPolicyNode(rules, cpn)
+					err := addRulesToConfigPolicyNode(rules, cpn)
+					if err != nil {
+						return err
+					}
 				}
 				config.Add(*keys, cpn)
 			}

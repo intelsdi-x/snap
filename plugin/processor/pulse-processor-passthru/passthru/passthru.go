@@ -44,9 +44,9 @@ func NewPassthruPublisher() *passthruProcessor {
 
 type passthruProcessor struct{}
 
-func (p *passthruProcessor) GetConfigPolicy() cpolicy.ConfigPolicy {
+func (p *passthruProcessor) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cp := cpolicy.New()
-	return *cp
+	return cp, nil
 }
 
 func (p *passthruProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {

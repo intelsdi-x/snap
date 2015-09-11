@@ -41,6 +41,10 @@ func (mp *mockPluginClient) Kill(r string) error {
 	return nil
 }
 
+func (mp *mockPluginClient) GetConfigPolicy() error {
+	return nil
+}
+
 func TestMonitor(t *testing.T) {
 	Convey("monitor", t, func() {
 		aps := newAvailablePlugins(&routing.RoundRobinStrategy{})
