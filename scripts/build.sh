@@ -18,7 +18,7 @@ echo "****  Pulse Build ($GITVERSION)  ****"
 echo
 
 # Disable CGO for builds
-export CGO_ENABLED=0
+export CGO_ENABLED=1
 
 # Clean build bin dir
 rm -rf $BINDIR/*
