@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/control/plugin/encoding"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -28,7 +29,7 @@ func (p *mockPlugin) CollectMetrics(mockPluginMetricType []PluginMetricType) ([]
 	return mockPluginMetricType, nil
 }
 
-func (p *mockPlugin) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+func (p *mockPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cp := cpolicy.New()
 	cpn := cpolicy.NewPolicyNode()
 	r1, _ := cpolicy.NewStringRule("username", false, "root")
@@ -38,7 +39,7 @@ func (p *mockPlugin) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
 	cp.Add(ns, cpn)
 	cp.Freeze()
 
-	return *cp, nil
+	return cp, nil
 }
 
 type mockErrorPlugin struct {
@@ -52,8 +53,8 @@ func (p *mockErrorPlugin) CollectMetrics(mockPluginMetricType []PluginMetricType
 	return nil, errors.New("Error in collect Metric")
 }
 
-func (p *mockErrorPlugin) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
-	return cpolicy.ConfigPolicy{}, errors.New("Error in get config policy")
+func (p *mockErrorPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+	return &cpolicy.ConfigPolicy{}, errors.New("Error in get config policy")
 }
 
 func TestCollectorProxy(t *testing.T) {
@@ -65,6 +66,7 @@ func TestCollectorProxy(t *testing.T) {
 		mockPlugin := &mockPlugin{}
 
 		mockSessionState := &MockSessionState{
+			Encoder:             encoding.NewGobEncoder(),
 			listenPort:          "0",
 			token:               "abcdef",
 			logger:              logger,
@@ -76,73 +78,50 @@ func TestCollectorProxy(t *testing.T) {
 			Session: mockSessionState,
 		}
 		Convey("Get Metric Types", func() {
-			reply := &GetMetricTypesReply{
-				PluginMetricTypes: nil,
+			var reply []byte
+			c.GetMetricTypes([]byte{}, &reply)
+			var mtr GetMetricTypesReply
+			err := c.Session.Decode(reply, &mtr)
+			So(err, ShouldBeNil)
+			So(mtr.PluginMetricTypes[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+
+		})
+		Convey("Get error in Get Metric Type", func() {
+			mockErrorPlugin := &mockErrorPlugin{}
+			errC := &collectorPluginProxy{
+				Plugin:  mockErrorPlugin,
+				Session: mockSessionState,
 			}
-			c.GetMetricTypes(struct{}{}, reply)
-			So(reply.PluginMetricTypes[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
-
-			Convey("Get error in Get Metric Type", func() {
-				reply := &GetMetricTypesReply{
-					PluginMetricTypes: nil,
-				}
-				mockErrorPlugin := &mockErrorPlugin{}
-				errC := &collectorPluginProxy{
-					Plugin:  mockErrorPlugin,
-					Session: mockSessionState,
-				}
-				err := errC.GetMetricTypes(struct{}{}, reply)
-				So(len(reply.PluginMetricTypes), ShouldResemble, 0)
-				So(err.Error(), ShouldResemble, "GetMetricTypes call error : Error in get Metric Type")
-
-			})
-
+			var reply []byte
+			err := errC.GetMetricTypes([]byte{}, &reply)
+			So(err.Error(), ShouldResemble, "GetMetricTypes call error : Error in get Metric Type")
 		})
 		Convey("Collect Metric ", func() {
 			args := CollectMetricsArgs{
 				PluginMetricTypes: mockPluginMetricType,
 			}
-			reply := &CollectMetricsReply{
-				PluginMetrics: nil,
-			}
-			c.CollectMetrics(args, reply)
-			So(reply.PluginMetrics[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+			out, err := c.Session.Encode(args)
+			So(err, ShouldBeNil)
+			var reply []byte
+			c.CollectMetrics(out, &reply)
+			var mtr CollectMetricsReply
+			err = c.Session.Decode(reply, &mtr)
+			So(mtr.PluginMetrics[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
 
 			Convey("Get error in Collect Metric ", func() {
 				args := CollectMetricsArgs{
 					PluginMetricTypes: mockPluginMetricType,
 				}
-				reply := &CollectMetricsReply{
-					PluginMetrics: nil,
-				}
 				mockErrorPlugin := &mockErrorPlugin{}
 				errC := &collectorPluginProxy{
 					Plugin:  mockErrorPlugin,
 					Session: mockSessionState,
 				}
-				err := errC.CollectMetrics(args, reply)
-				So(len(reply.PluginMetrics), ShouldResemble, 0)
-				So(err.Error(), ShouldResemble, "CollectMetrics call error : Error in collect Metric")
-
-			})
-
-		})
-		Convey("Get Config Policy", func() {
-			replyPolicy := &GetConfigPolicyReply{}
-
-			c.GetConfigPolicy(struct{}{}, replyPolicy)
-
-			So(replyPolicy.Policy, ShouldNotBeNil)
-
-			Convey("Get error in Config Policy ", func() {
-				mockErrorPlugin := &mockErrorPlugin{}
-				errC := &collectorPluginProxy{
-					Plugin:  mockErrorPlugin,
-					Session: mockSessionState,
-				}
-				err := errC.GetConfigPolicy(struct{}{}, replyPolicy)
-				So(err.Error(), ShouldResemble, "GetConfigPolicy call error : Error in get config policy")
-
+				out, err := errC.Session.Encode(args)
+				So(err, ShouldBeNil)
+				var reply []byte
+				err = errC.CollectMetrics(out, &reply)
+				So(err, ShouldNotBeNil)
 			})
 
 		})

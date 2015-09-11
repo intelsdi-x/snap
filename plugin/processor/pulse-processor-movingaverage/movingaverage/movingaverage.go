@@ -261,7 +261,7 @@ func handleErr(e error) {
 	}
 }
 
-func (p *movingAverageProcessor) GetConfigPolicy() cpolicy.ConfigPolicy {
+func (p *movingAverageProcessor) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cp := cpolicy.New()
 	config := cpolicy.NewPolicyNode()
 	r1, err := cpolicy.NewIntegerRule("MovingAvgBufLength", true)
@@ -269,7 +269,7 @@ func (p *movingAverageProcessor) GetConfigPolicy() cpolicy.ConfigPolicy {
 	r1.Description = "Buffer Length for moving average "
 	config.Add(r1)
 	cp.Add([]string{""}, config)
-	return *cp
+	return cp, nil
 }
 
 func (p *movingAverageProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {

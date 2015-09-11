@@ -3,9 +3,10 @@ package smart
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-	"strings"
 )
 
 const (
@@ -116,7 +117,7 @@ func (sc *SmartCollector) GetMetricTypes() ([]plugin.PluginMetricType, error) {
 }
 
 //GetConfigPolicy returns a ConfigPolicy
-func (p *SmartCollector) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
+func (p *SmartCollector) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	c := cpolicy.New()
-	return *c, nil
+	return c, nil
 }

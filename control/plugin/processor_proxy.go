@@ -24,24 +24,26 @@ type processorPluginProxy struct {
 	Session Session
 }
 
-func (p *processorPluginProxy) GetConfigPolicy(args GetConfigPolicyArgs, reply *GetConfigPolicyReply) error {
-	defer catchPluginPanic(p.Session.Logger())
-
-	p.Session.Logger().Println("GetConfigPolicy called")
-	p.Session.ResetHeartbeat()
-
-	reply.Policy = p.Plugin.GetConfigPolicy()
-
-	return nil
-}
-
-func (p *processorPluginProxy) Process(args ProcessorArgs, reply *ProcessorReply) error {
+func (p *processorPluginProxy) Process(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(p.Session.Logger())
 	p.Session.ResetHeartbeat()
-	var err error
-	reply.ContentType, reply.Content, err = p.Plugin.Process(args.ContentType, args.Content, args.Config)
+
+	dargs := &ProcessorArgs{}
+	err := p.Session.Decode(args, dargs)
+	if err != nil {
+		return err
+	}
+
+	r := ProcessorReply{}
+	r.ContentType, r.Content, err = p.Plugin.Process(dargs.ContentType, dargs.Content, dargs.Config)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Processor call error: %v", err.Error()))
 	}
+
+	*reply, err = p.Session.Encode(r)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

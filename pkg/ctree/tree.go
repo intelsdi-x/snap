@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"sync"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -16,13 +15,10 @@ type ConfigTree struct {
 
 	freezeFlag bool
 	root       *node
-	mutex      *sync.Mutex
 }
 
 func New() *ConfigTree {
-	return &ConfigTree{
-		mutex: &sync.Mutex{},
-	}
+	return &ConfigTree{}
 }
 
 func (c *ConfigTree) log(s string) {
@@ -67,8 +63,6 @@ func (c *ConfigTree) MarshalJSON() ([]byte, error) {
 
 func (c *ConfigTree) Add(ns []string, inNode Node) {
 	c.log(fmt.Sprintf("Adding %v at %s\n", inNode, ns))
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
 	if len(ns) == 0 {
 		c.log(fmt.Sprintln("ns is empty - returning with no change to tree"))
 		return
@@ -151,12 +145,10 @@ func (c *ConfigTree) Get(ns []string) Node {
 }
 
 func (c *ConfigTree) Freeze() {
-	c.mutex.Lock()
 	if !c.freezeFlag {
 		c.freezeFlag = true
 		c.compact()
 	}
-	c.mutex.Unlock()
 }
 
 func (c *ConfigTree) Frozen() bool {

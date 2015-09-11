@@ -1,6 +1,7 @@
 package control
 
 import (
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"strconv"
@@ -67,7 +68,7 @@ type availablePlugin struct {
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
-func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
+func newAvailablePlugin(resp *plugin.Response, privKey *rsa.PrivateKey, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
 	if resp.Type != plugin.CollectorPluginType && resp.Type != plugin.ProcessorPluginType && resp.Type != plugin.PublisherPluginType {
 		return nil, ErrBadType
 	}
@@ -89,9 +90,13 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 	case plugin.CollectorPluginType:
 		switch resp.Meta.RPCType {
 		case plugin.JSONRPC:
-			ap.client = client.NewCollectorHttpJSONRPCClient(listenUrl, DefaultClientTimeout)
+			c, e := client.NewCollectorHttpJSONRPCClient(listenUrl, DefaultClientTimeout, resp.PublicKey, privKey)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
 		case plugin.NativeRPC:
-			c, e := client.NewCollectorNativeClient(resp.ListenAddress, DefaultClientTimeout)
+			c, e := client.NewCollectorNativeClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, privKey)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -100,9 +105,13 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 	case plugin.PublisherPluginType:
 		switch resp.Meta.RPCType {
 		case plugin.JSONRPC:
-			ap.client = client.NewPublisherHttpJSONRPCClient(listenUrl, DefaultClientTimeout)
+			c, e := client.NewPublisherHttpJSONRPCClient(listenUrl, DefaultClientTimeout, resp.PublicKey, privKey)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
 		case plugin.NativeRPC:
-			c, e := client.NewPublisherNativeClient(resp.ListenAddress, DefaultClientTimeout)
+			c, e := client.NewPublisherNativeClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, privKey)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -111,9 +120,13 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 	case plugin.ProcessorPluginType:
 		switch resp.Meta.RPCType {
 		case plugin.JSONRPC:
-			ap.client = client.NewProcessorHttpJSONRPCClient(listenUrl, DefaultClientTimeout)
+			c, e := client.NewProcessorHttpJSONRPCClient(listenUrl, DefaultClientTimeout, resp.PublicKey, privKey)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
 		case plugin.NativeRPC:
-			c, e := client.NewProcessorNativeClient(resp.ListenAddress, DefaultClientTimeout)
+			c, e := client.NewProcessorNativeClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, privKey)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
