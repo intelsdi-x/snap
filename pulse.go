@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -57,6 +58,17 @@ var (
 		Usage:  "Auto discover paths separated by colons.",
 		EnvVar: "PULSE_AUTOLOAD_PATH",
 	}
+	flPluginTrust = cli.IntFlag{
+		Name:   "plugin-trust, t",
+		Usage:  "0-2 (Disabled, Enabled, Warning)",
+		EnvVar: "PULSE_TRUST_LEVEL",
+		Value:  1,
+	}
+	flKeyringFile = cli.StringFlag{
+		Name:   "keyring-file, k",
+		Usage:  "Keyring file for signing verification",
+		EnvVar: "PULSE_KEYRING_FILE",
+	}
 	flCache = cli.StringFlag{
 		Name:   "cache-expiration",
 		Usage:  "The time limit for which a metric cache entry is valid",
@@ -87,7 +99,7 @@ func main() {
 	app.Name = "pulsed"
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
-	app.Flags = []cli.Flag{flAPIDisabled, flAPIPort, flLogLevel, flLogPath, flMaxProcs, flPluginVersion, flNumberOfPLs, flCache}
+	app.Flags = []cli.Flag{flAPIDisabled, flAPIPort, flLogLevel, flLogPath, flMaxProcs, flPluginVersion, flNumberOfPLs, flCache, flPluginTrust, flKeyringFile}
 
 	app.Action = action
 	app.Run(os.Args)
@@ -102,6 +114,12 @@ func action(ctx *cli.Context) {
 		5: "fatal",
 	}
 
+	var t = map[int]string{
+		0: "disabled",
+		1: "enabled",
+		2: "warning",
+	}
+
 	logLevel := ctx.Int("log-level")
 	logPath := ctx.String("log-path")
 	maxProcs := ctx.Int("max-procs")
@@ -109,6 +127,8 @@ func action(ctx *cli.Context) {
 	apiPort := ctx.Int("api-port")
 	autodiscoverPath := ctx.String("auto-discover")
 	maxRunning := ctx.Int("max-running-plugins")
+	pluginTrust := ctx.Int("plugin-trust")
+	keyringFile := ctx.String("keyring-file")
 	cachestr := ctx.String("cache-expiration")
 	cache, err := time.ParseDuration(cachestr)
 	if err != nil {
@@ -131,10 +151,8 @@ func action(ctx *cli.Context) {
 	}
 
 	if logPath != "" {
-
 		f, err := os.Stat(logPath)
 		if err != nil {
-
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
@@ -150,7 +168,7 @@ func action(ctx *cli.Context) {
 					"block":   "main",
 					"_module": "pulsed",
 					"logpath": logPath,
-				}).Fatal("bad log path this is not a directory")
+				}).Fatal("bad log path (this is not a directory)")
 			os.Exit(0)
 		}
 
@@ -167,9 +185,8 @@ func action(ctx *cli.Context) {
 		defer file.Close()
 		log.Info("setting log path to: ", logPath)
 		log.SetOutput(file)
-	} else {
-		log.Info("setting log path to: stdout")
 	}
+	log.Info("setting log path to: stdout")
 
 	c := control.New(
 		control.MaxRunningPlugins(maxRunning),
@@ -199,6 +216,66 @@ func action(ctx *cli.Context) {
 		printErrorAndExit(s.Name(), err)
 	}
 
+	//Plugin Trust
+	if pluginTrust < 0 || pluginTrust > 3 {
+		log.WithFields(
+			log.Fields{
+				"block":   "main",
+				"_module": "pulsed",
+				"level":   pluginTrust,
+			}).Fatal("Plugin trust was invalid (needs: 0-2)")
+		os.Exit(1)
+	}
+	c.SetPluginTrustLevel(pluginTrust)
+	log.Info("setting plugin trust level to: ", t[pluginTrust])
+	//Keyring checking for trust levels 1 and 2
+	if pluginTrust > 0 {
+		if keyringFile == "" {
+			log.WithFields(
+				log.Fields{
+					"block":       "main",
+					"_module":     "pulsed",
+					"keyringFile": keyringFile,
+				}).Fatal("need keyring file when trust is on (--keyring-file or -k)")
+			os.Exit(0)
+		}
+		f, err := os.Stat(keyringFile)
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"block":       "main",
+					"_module":     "pulsed",
+					"error":       err.Error(),
+					"keyringFile": keyringFile,
+				}).Fatal("bad keyring file")
+			os.Exit(0)
+		}
+		if f.IsDir() {
+			log.WithFields(
+				log.Fields{
+					"block":   "main",
+					"_module": "pulsed",
+					"logpath": keyringFile,
+				}).Fatal("bad keyring file (this is not a file)")
+			os.Exit(0)
+		}
+		file, err := os.Open(keyringFile)
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"block":       "main",
+					"_module":     "pulsed",
+					"error":       err.Error(),
+					"keyringFile": keyringFile,
+				}).Fatal("can't open keyring path")
+			os.Exit(0)
+			defer file.Close()
+		}
+		log.Info("setting keyring file to: ", keyringFile)
+		c.SetKeyringFile(keyringFile)
+	}
+
+	//Autodiscover
 	if autodiscoverPath != "" {
 		log.Info("auto discover path is enabled")
 		log.Info("autoloading plugins from: ", autodiscoverPath)
@@ -209,9 +286,9 @@ func action(ctx *cli.Context) {
 			if err != nil {
 				log.WithFields(
 					log.Fields{
-						"_block":  "main",
-						"_module": "pulsed",
-						"logpath": path,
+						"_block":           "main",
+						"_module":          "pulsed",
+						"autodiscoverpath": path,
 					}).Fatal(err)
 				os.Exit(0)
 			}
@@ -219,24 +296,26 @@ func action(ctx *cli.Context) {
 				if file.IsDir() {
 					continue
 				}
-				pl, err := c.Load(fmt.Sprintf("%s/%s", path, file.Name()))
-				if err != nil {
-					log.WithFields(log.Fields{
-						"_block":  "main",
-						"_module": "pulsed",
-						"logpath": path,
-						"plugin":  file,
-					}).Error(err)
-				} else {
-					log.WithFields(log.Fields{
-						"_block":         "main",
-						"_module":        "pulsed",
-						"logpath":        path,
-						"plugin":         file,
-						"plugin-name":    pl.Name,
-						"plugin-version": pl.Version,
-						"plugin-type":    pl.TypeName,
-					}).Info("Loading plugin")
+				if !strings.Contains(file.Name(), ".") {
+					pl, err := c.Load(fmt.Sprintf("%s/%s", path, file.Name()))
+					if err != nil {
+						log.WithFields(log.Fields{
+							"_block":           "main",
+							"_module":          "pulsed",
+							"autodiscoverpath": path,
+							"plugin":           file,
+						}).Error(err)
+					} else {
+						log.WithFields(log.Fields{
+							"_block":           "main",
+							"_module":          "pulsed",
+							"autodiscoverpath": path,
+							"plugin":           file,
+							"plugin-name":      pl.Name,
+							"plugin-version":   pl.Version,
+							"plugin-type":      pl.TypeName,
+						}).Info("Loading plugin")
+					}
 				}
 			}
 		}
@@ -244,6 +323,7 @@ func action(ctx *cli.Context) {
 		log.Info("auto discover path is disabled")
 	}
 
+	//API
 	if !disableApi {
 		log.Info("Rest API enabled on port ", apiPort)
 		r := rest.New()

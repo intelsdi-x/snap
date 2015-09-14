@@ -20,6 +20,7 @@ import (
 	"github.com/intelsdi-x/pulse/core/control_event"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/pulse/pkg/psigning"
 )
 
 // control private key (RSA private key)
@@ -49,9 +50,13 @@ type pluginControl struct {
 	controlPubKey     *rsa.PublicKey
 	eventManager      *gomit.EventController
 
-	pluginManager managesPlugins
-	metricCatalog catalogsMetrics
-	pluginRunner  runsPlugins
+	pluginManager  managesPlugins
+	metricCatalog  catalogsMetrics
+	pluginRunner   runsPlugins
+	signingManager managesSigning
+
+	pluginTrust int
+	keyringFile string
 }
 
 type runsPlugins interface {
@@ -88,6 +93,10 @@ type catalogsMetrics interface {
 	Subscribe([]string, int) perror.PulseError
 	Unsubscribe([]string, int) perror.PulseError
 	GetPlugin([]string, int) (*loadedPlugin, perror.PulseError)
+}
+
+type managesSigning interface {
+	ValidateSignature(keyringFile string, signedFile string, signatureFile string) perror.PulseError
 }
 
 type controlOpt func(*pluginControl)
@@ -128,8 +137,14 @@ func New(opts ...controlOpt) *pluginControl {
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
-	//    Plugin Manager needs a reference to the metric catalog
+	// Plugin Manager needs a reference to the metric catalog
 	c.pluginManager.SetMetricCatalog(c.metricCatalog)
+
+	// Signing Manager
+	c.signingManager = &psigning.SigningManager{}
+	controlLogger.WithFields(log.Fields{
+		"_block": "new",
+	}).Debug("signing manager created")
 
 	// Plugin Runner
 	// TODO (danielscottt): handle routing strat changes via events
@@ -207,9 +222,23 @@ func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseErr
 		"path":   path,
 	}
 
+	//Check plugin signing
+	signatureFile := path + ".asc"
+	var signed bool
+	if p.pluginTrust == 1 || p.pluginTrust == 2 {
+		err := p.signingManager.ValidateSignature(p.keyringFile, path, signatureFile)
+		if err != nil {
+			if p.pluginTrust == 1 {
+				return nil, err
+			}
+			controlLogger.WithFields(f).Error(err)
+		} else {
+			signed = true
+		}
+	}
+
 	controlLogger.WithFields(f).Info("plugin load called")
 	if !p.Started {
-
 		pe := perror.New(ErrControllerNotStarted)
 		pe.SetFields(f)
 		controlLogger.WithFields(f).Error(pe)
@@ -220,12 +249,14 @@ func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseErr
 	if err != nil {
 		return nil, err
 	}
+	pl.Signed = signed
 
 	// defer sending event
 	event := &control_event.LoadPluginEvent{
 		Name:    pl.Meta.Name,
 		Version: pl.Meta.Version,
 		Type:    int(pl.Meta.Type),
+		Signed:  pl.Signed,
 	}
 	defer p.eventManager.Emit(event)
 	return pl, nil
@@ -758,6 +789,14 @@ func (p *pluginControl) SetAutodiscoverPaths(paths []string) {
 
 func (p *pluginControl) GetAutodiscoverPaths() []string {
 	return p.autodiscoverPaths
+}
+
+func (p *pluginControl) SetPluginTrustLevel(trust int) {
+	p.pluginTrust = trust
+}
+
+func (p *pluginControl) SetKeyringFile(keyring string) {
+	p.keyringFile = keyring
 }
 
 type requestedPlugin struct {

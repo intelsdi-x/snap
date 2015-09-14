@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -10,14 +11,29 @@ import (
 )
 
 func loadPlugin(ctx *cli.Context) {
+	pAsc := ctx.String("plugin-asc")
+	var paths []string
 	if len(ctx.Args()) != 1 {
-		fmt.Print("Incorrect usage\n")
+		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
-	r := pClient.LoadPlugin(ctx.Args().First())
+	paths = append(paths, ctx.Args().First())
+	if pAsc != "" {
+		if !strings.Contains(pAsc, ".asc") {
+			fmt.Println("Must be a .asc file for the -a flag")
+			cli.ShowCommandHelp(ctx, ctx.Command.Name)
+			os.Exit(1)
+		}
+		paths = append(paths, pAsc)
+	}
+	r := pClient.LoadPlugin(paths)
 	if r.Err != nil {
-		fmt.Printf("Error loading plugin:\n%v\n", r.Err.Error())
+		if r.Err.Fields()["error"] != nil {
+			fmt.Printf("Error loading plugin:\n%v\n%v\n", r.Err.Error(), r.Err.Fields()["error"])
+		} else {
+			fmt.Printf("Error loading plugin:\n%v\n", r.Err.Error())
+		}
 		os.Exit(1)
 	}
 	for _, p := range r.LoadedPlugins {
@@ -25,6 +41,7 @@ func loadPlugin(ctx *cli.Context) {
 		fmt.Printf("Name: %s\n", p.Name)
 		fmt.Printf("Version: %d\n", p.Version)
 		fmt.Printf("Type: %s\n", p.Type)
+		fmt.Printf("Signed: %v\n", p.Signed)
 		fmt.Printf("Loaded Time: %s\n\n", p.LoadedTime().Format(timeFormat))
 	}
 }
@@ -69,9 +86,9 @@ func listPlugins(ctx *cli.Context) {
 			printFields(w, false, 0, rp.Name, rp.HitCount, time.Unix(rp.LastHitTimestamp, 0).Format(timeFormat), rp.Type)
 		}
 	} else {
-		printFields(w, false, 0, "NAME", "VERSION", "TYPE", "STATUS", "LOADED TIME")
+		printFields(w, false, 0, "NAME", "VERSION", "TYPE", "SIGNED", "STATUS", "LOADED TIME")
 		for _, lp := range plugins.LoadedPlugins {
-			printFields(w, false, 0, lp.Name, lp.Version, lp.Type, lp.Status, lp.LoadedTime().Format(timeFormat))
+			printFields(w, false, 0, lp.Name, lp.Version, lp.Type, lp.Signed, lp.Status, lp.LoadedTime().Format(timeFormat))
 		}
 	}
 	w.Flush()

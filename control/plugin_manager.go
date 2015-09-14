@@ -131,6 +131,7 @@ type loadedPlugin struct {
 	Meta         plugin.PluginMeta
 	Path         string
 	Type         plugin.PluginType
+	Signed       bool
 	State        pluginState
 	Token        string
 	LoadedTime   time.Time
@@ -163,6 +164,12 @@ func (lp *loadedPlugin) TypeName() string {
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Status() string {
 	return string(lp.State)
+}
+
+// returns plugin signing as a bool
+// implements the CatalogedPlugin interface
+func (lp *loadedPlugin) IsSigned() bool {
+	return lp.Signed
 }
 
 // returns a unix timestamp of the LoadTime of a plugin

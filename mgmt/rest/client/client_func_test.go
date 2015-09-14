@@ -23,10 +23,10 @@ var (
 	LOG_LEVEL = log.FatalLevel
 
 	PULSE_PATH          = os.Getenv("PULSE_PATH")
-	DUMMY_PLUGIN_PATH1  = PULSE_PATH + "/plugin/pulse-collector-dummy1"
-	DUMMY_PLUGIN_PATH2  = PULSE_PATH + "/plugin/pulse-collector-dummy2"
-	RIEMANN_PLUGIN_PATH = PULSE_PATH + "/plugin/pulse-publisher-riemann"
-	DIRECTORY_PATH      = PULSE_PATH + "/plugin/"
+	DUMMY_PLUGIN_PATH1  = []string{PULSE_PATH + "/plugin/pulse-collector-dummy1"}
+	DUMMY_PLUGIN_PATH2  = []string{PULSE_PATH + "/plugin/pulse-collector-dummy2"}
+	RIEMANN_PLUGIN_PATH = []string{PULSE_PATH + "/plugin/pulse-publisher-riemann"}
+	DIRECTORY_PATH      = []string{PULSE_PATH + "/plugin/"}
 
 	NextPort = 9000
 )
@@ -94,7 +94,7 @@ func TestPulseClient(t *testing.T) {
 				So(len(p2.LoadedPlugins), ShouldEqual, 0)
 				So(p2.AvailablePlugins, ShouldBeEmpty)
 
-				_, err := c.pluginUploadRequest("")
+				_, err := c.pluginUploadRequest([]string{""})
 				So(err.Error(), ShouldEqual, "stat : no such file or directory")
 			})
 			Convey("single item", func() {

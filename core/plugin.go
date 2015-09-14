@@ -55,6 +55,7 @@ type AvailablePlugin interface {
 // how mgmt modules know a plugin
 type CatalogedPlugin interface {
 	Plugin
+	IsSigned() bool
 	Status() string
 	LoadedTimestamp() *time.Time
 }

@@ -171,6 +171,17 @@ func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 	}
 }
 
+type mocksigningManager struct {
+	signed bool
+}
+
+func (ps *mocksigningManager) ValidateSignature(string, string, string) perror.PulseError {
+	if ps.signed {
+		return nil
+	}
+	return perror.New(errors.New("fake"))
+}
+
 // Uses the dummy collector plugin to simulate Loading
 func TestLoad(t *testing.T) {
 	// These tests only work if PULSE_PATH is known.
@@ -219,6 +230,41 @@ func TestLoad(t *testing.T) {
 				// So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
 			})
 
+			Convey("loads successfully with trust enabled", func() {
+				c := New()
+				c.pluginTrust = 1
+				c.signingManager = &mocksigningManager{signed: true}
+				lpe := new(listenToPluginEvent)
+				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+				c.Start()
+				_, err := c.Load(PluginPath)
+				time.Sleep(100)
+				So(err, ShouldBeNil)
+			})
+
+			Convey("loads successfully with trust warning and signing not validated", func() {
+				c := New()
+				c.pluginTrust = 2
+				c.signingManager = &mocksigningManager{signed: false}
+				lpe := new(listenToPluginEvent)
+				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+				c.Start()
+				_, err := c.Load(PluginPath)
+				time.Sleep(100)
+				So(err, ShouldBeNil)
+			})
+
+			Convey("returns error with trust enabled and signing not validated", func() {
+				c := New()
+				c.pluginTrust = 1
+				c.signingManager = &mocksigningManager{signed: false}
+				lpe := new(listenToPluginEvent)
+				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+				c.Start()
+				_, err := c.Load(PluginPath)
+				time.Sleep(100)
+				So(err, ShouldNotBeNil)
+			})
 		})
 	} else {
 		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
