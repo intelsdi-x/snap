@@ -37,7 +37,7 @@ var (
 	PSUTIL_PLUGIN_PATH  = PULSE_PATH + "/plugin/pulse-collector-psutil"
 	RIEMANN_PLUGIN_PATH = PULSE_PATH + "/plugin/pulse-publisher-riemann"
 
-	NextPort         = 8000
+	NextPort         = 40000
 	CompressedUpload = true
 	TotalUploadSize  = 0
 	UploadCount      = 0
