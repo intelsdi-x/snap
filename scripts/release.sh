@@ -2,27 +2,33 @@
 # Update path in order for Godeps to function
 export PATH=$PATH:$GOPATH/bin
 
-REPO="intelsdi-x/pulse"
-
-# Collect release data before tagging repository if tag specified
-LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
-COMPARISON="$LATEST_TAG..HEAD"
-CHANGELOG=`git log $COMPARISON --oneline --no-merges --reverse`
-BRANCH=`git rev-parse --abbrev-ref HEAD`
+USER="intelsdi-x"
+REPO="pulse"
 
 # Set GITVERSION that will be used in release. If tag specified during make release call,
 # then use that version and tag the repo so pulse version corresponds to tag.
 if [ -n "$1" ]; then
 	GITVERSION=$1
-	git tag -a $GITVERSION -m $GITVERSION
 else
 	GITVERSION=`git describe --always`
 fi
 
-if [ -n "$2" ];  then 
-	RELEASE=$2
+# Collect release data before tagging repository if tag specified
+LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+if [ -n "$2" ]; then
+	COMMIT=$2
+	COMPARISON="$LATEST_TAG..$COMMIT"
+	github-release tag create -u $USER -r $REPO -t $GITVERSION -m $GITVERSION -c $COMMIT
+else
+	COMPARISON="$LATEST_TAG..HEAD"
+	github-release tag create -u $USER -r $REPO -t $GITVERSION -m $GITVERSION
 fi
+CHANGELOG=`git log $COMPARISON --oneline --no-merges --reverse`
 
+# Fetch the tag we created to version the binaries
+git fetch -t --all
+
+git checkout $GITVERSION
 # Build Pulse for each OS and arch specified.
 # Currently support:
 #   - Darwin (Mac OS X) 64bit
@@ -48,4 +54,13 @@ for GOOS in darwin linux; do
 done
 
 echo "Pushing Pulse release $GITVERSION"
-github-release $REPO $GITVERSION $BRANCH "**CHANGELOG**<br/>$CHANGELOG" "$DIST_DIR/*" $RELEASE 
+github-release release create \
+	-u $USER \
+	-r $REPO \
+	-t $GITVERSION \
+        -n $GITVERSION \
+	-o "**CHANGELOG**<br/>$CHANGELOG" \
+	-f "$DIST_DIR/*" \
+	-p
+
+git checkout master
