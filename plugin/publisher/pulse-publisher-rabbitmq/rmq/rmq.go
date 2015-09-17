@@ -66,9 +66,9 @@ func (rmq *rmqPublisher) GetConfigPolicy() cpolicy.ConfigPolicy {
 	r1.Description = "RabbitMQ Address (host:port)"
 	config.Add(r1)
 
-	r2, err := cpolicy.NewIntegerRule("exchange_name", true)
+	r2, err := cpolicy.NewStringRule("exchange_name", true)
 	handleErr(err)
-	r2.Description = "RabbitMQ Exhcnage Name"
+	r2.Description = "RabbitMQ Exchange Name"
 	config.Add(r2)
 
 	r3, err := cpolicy.NewStringRule("exchange_type", true)
