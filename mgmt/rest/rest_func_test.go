@@ -364,8 +364,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Should only be one in the list
 				r2 := getPluginList(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr2 := r2.Body.(*rbody.PluginListReturned)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr2 := r2.Body.(*rbody.PluginList)
 
 				So(len(plr2.LoadedPlugins), ShouldEqual, 1)
 				So(plr2.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
@@ -402,8 +402,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Should only be one in the list
 				r3 := getPluginList(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr3 := r3.Body.(*rbody.PluginListReturned)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr3 := r3.Body.(*rbody.PluginList)
 
 				So(len(plr3.LoadedPlugins), ShouldEqual, 1)
 				So(plr3.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
@@ -445,8 +445,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Should be two in the list
 				r3 := getPluginList(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr3 := r3.Body.(*rbody.PluginListReturned)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr3 := r3.Body.(*rbody.PluginList)
 
 				So(len(plr3.LoadedPlugins), ShouldEqual, 2)
 				So(plr3.LoadedPlugins[0].Name, ShouldContainSubstring, "dummy")
@@ -500,8 +500,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Plugin should NOT be in the list
 				r2 := getPluginList(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr2 := r2.Body.(*rbody.PluginListReturned)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr2 := r2.Body.(*rbody.PluginList)
 
 				So(len(plr2.LoadedPlugins), ShouldEqual, 0)
 			})
@@ -528,8 +528,8 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.Type, ShouldEqual, "collector")
 
 				r = getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr2 := r.Body.(*rbody.PluginListReturned)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr2 := r.Body.(*rbody.PluginList)
 
 				So(len(plr2.LoadedPlugins), ShouldEqual, 1)
 				So(plr2.LoadedPlugins[0].Name, ShouldNotEqual, "dummy2")
@@ -545,10 +545,10 @@ func TestPluginRestCalls(t *testing.T) {
 				startAPI(port)
 
 				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr := r.Body.(*rbody.PluginListReturned)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr := r.Body.(*rbody.PluginList)
 
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListReturnedType)
+				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
 				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
 				So(len(plr.LoadedPlugins), ShouldEqual, 0)
 				So(len(plr.AvailablePlugins), ShouldEqual, 0)
@@ -561,10 +561,10 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 
 				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr := r.Body.(*rbody.PluginListReturned)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr := r.Body.(*rbody.PluginList)
 
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListReturnedType)
+				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
 				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
 				So(len(plr.LoadedPlugins), ShouldEqual, 1)
 				So(len(plr.AvailablePlugins), ShouldEqual, 0)
@@ -583,10 +583,10 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 
 				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr := r.Body.(*rbody.PluginListReturned)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr := r.Body.(*rbody.PluginList)
 
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListReturnedType)
+				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
 				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
 				So(len(plr.LoadedPlugins), ShouldEqual, 2)
 				So(len(plr.AvailablePlugins), ShouldEqual, 0)

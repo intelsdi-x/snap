@@ -16,6 +16,7 @@ import (
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest"
+	"github.com/intelsdi-x/pulse/mgmt/tribe"
 	"github.com/intelsdi-x/pulse/scheduler"
 )
 
@@ -89,6 +90,8 @@ type coreModule interface {
 	Name() string
 }
 
+var coreModules []coreModule
+
 func main() {
 	// Add a check to see if gitversion is blank from the build process
 	if gitversion == "" {
@@ -100,7 +103,7 @@ func main() {
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
 	app.Flags = []cli.Flag{flAPIDisabled, flAPIPort, flLogLevel, flLogPath, flMaxProcs, flPluginVersion, flNumberOfPLs, flCache, flPluginTrust, flKeyringFile}
-
+	app.Flags = append(app.Flags, tribe.Flags...)
 	app.Action = action
 	app.Run(os.Args)
 }
@@ -123,13 +126,18 @@ func action(ctx *cli.Context) {
 	logLevel := ctx.Int("log-level")
 	logPath := ctx.String("log-path")
 	maxProcs := ctx.Int("max-procs")
-	disableApi := ctx.Bool("disable-api")
+	disableAPI := ctx.Bool("disable-api")
 	apiPort := ctx.Int("api-port")
 	autodiscoverPath := ctx.String("auto-discover")
 	maxRunning := ctx.Int("max-running-plugins")
 	pluginTrust := ctx.Int("plugin-trust")
 	keyringFile := ctx.String("keyring-file")
 	cachestr := ctx.String("cache-expiration")
+	isTribeEnabled := ctx.Bool("tribe")
+	tribeSeed := ctx.String("tribe-seed")
+	tribeNodeName := ctx.String("tribe-node-name")
+	tribeAddr := ctx.String("tribe-addr")
+	tribePort := ctx.Int("tribe-port")
 	cache, err := time.ParseDuration(cachestr)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
@@ -188,10 +196,14 @@ func action(ctx *cli.Context) {
 	}
 	log.Info("setting log path to: stdout")
 
+	coreModules = []coreModule{}
+
 	c := control.New(
 		control.MaxRunningPlugins(maxRunning),
 		control.CacheExpiration(cache),
 	)
+
+	coreModules = append(coreModules, c)
 	s := scheduler.New(
 		scheduler.CollectQSizeOption(defaultQueueSize),
 		scheduler.CollectWkrSizeOption(defaultPoolSize),
@@ -201,19 +213,35 @@ func action(ctx *cli.Context) {
 		scheduler.ProcessWkrSizeOption(defaultPoolSize),
 	)
 	s.SetMetricManager(c)
+	coreModules = append(coreModules, s)
+
+	var tr tribe.ManagesTribe
+	if isTribeEnabled {
+		log.Info("Tribe is enabled")
+		tc := tribe.DefaultConfig(tribeNodeName, tribeAddr, tribePort, tribeSeed, apiPort)
+		t, err := tribe.New(tc)
+		c.RegisterEventHandler("tribe", t)
+		t.SetPluginCatalog(c)
+		if err != nil {
+			printErrorAndExit(t.Name(), err)
+		}
+		coreModules = append(coreModules, t)
+		tr = t
+	}
 
 	// Set interrupt handling so we can die gracefully.
-	startInterruptHandling(s, c)
+	startInterruptHandling(coreModules...)
 
 	//  Start our modules
-	if err := startModule(c); err != nil {
-		printErrorAndExit(c.Name(), err)
-	}
-	if err := startModule(s); err != nil {
-		if c.Started {
-			c.Stop()
+	var started []coreModule
+	for _, m := range coreModules {
+		if err := startModule(m); err != nil {
+			for _, m := range started {
+				m.Stop()
+			}
+			printErrorAndExit(m.Name(), err)
 		}
-		printErrorAndExit(s.Name(), err)
+		started = append(started, m)
 	}
 
 	//Plugin Trust
@@ -323,12 +351,14 @@ func action(ctx *cli.Context) {
 		log.Info("auto discover path is disabled")
 	}
 
-	//API
-	if !disableApi {
+	if !disableAPI {
 		log.Info("Rest API enabled on port ", apiPort)
 		r := rest.New()
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
+		if tr != nil {
+			r.BindTribeManager(tr)
+		}
 		r.Start(fmt.Sprintf(":%d", apiPort))
 	} else {
 		log.Info("Rest API is disabled")

@@ -144,6 +144,10 @@ func (lp *loadedPlugin) Name() string {
 	return lp.Meta.Name
 }
 
+func (lp *loadedPlugin) PluginPath() string {
+	return lp.Path
+}
+
 func (l *loadedPlugin) Key() string {
 	return fmt.Sprintf("%s:%s:%d", l.TypeName(), l.Name(), l.Version())
 }

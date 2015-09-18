@@ -79,6 +79,7 @@ type agreementMsg struct {
 	UUID          string
 	AgreementName string
 	MemberName    string
+	APIPort       int
 	Type          msgType
 }
 
@@ -141,7 +142,7 @@ type fullStateMsg struct {
 	AgreementIntentMsgs []*agreementMsg
 	TaskIntentMsgs      []*taskMsg
 
-	Agreements map[string]*agreements
+	Agreements map[string]*Agreement
 	Members    map[string]*member
 }
 
