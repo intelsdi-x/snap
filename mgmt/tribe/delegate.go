@@ -1,13 +1,18 @@
 package tribe
 
+import "fmt"
+
 type delegate struct {
 	tribe *tribe
 }
 
 func (t *delegate) NodeMeta(limit int) []byte {
 	logger.WithField("_block", "NodeMeta").Debugln("NodeMeta called")
-	//consider using NodeMeta to store declared, inferred and derived facts
-	return []byte{}
+	tags := t.tribe.encodeTags(t.tribe.tags)
+	if len(tags) > limit {
+		panic(fmt.Errorf("Node tags '%v' exceeds length limit of %d bytes", t.tribe.tags, limit))
+	}
+	return tags
 }
 
 func (t *delegate) NotifyMsg(buf []byte) {
@@ -86,8 +91,8 @@ func (t *delegate) GetBroadcasts(overhead, limit int) [][]byte {
 }
 
 func (t *delegate) LocalState(join bool) []byte {
-	t.tribe.mutex.Lock()
-	defer t.tribe.mutex.Unlock()
+	// t.tribe.mutex.RLock()
+	// defer t.tribe.mutex.RUnlock()
 
 	// TODO the sizes here need to be set with a flag that is also ref in tribe.go
 	pluginMsgs := make([]*pluginMsg, 512)
@@ -157,12 +162,6 @@ func (t *delegate) LocalState(join bool) []byte {
 		Members:             t.tribe.members,
 	}
 
-	// for name, agreements := range t.tribe.agreements {
-	// 	agreements.PluginAgreement.mutex.Lock()
-	// 	fs.Agreements[name] = agreements
-	// 	agreements.PluginAgreement.mutex.Unlock()
-	// }
-
 	buf, err := encodeMessage(fullStateMsgType, fs)
 	if err != nil {
 		panic(err)
@@ -173,6 +172,7 @@ func (t *delegate) LocalState(join bool) []byte {
 
 func (t *delegate) MergeRemoteState(buf []byte, join bool) {
 	logger.WithField("_block", "MergeRemoteState").Debugln("calling merge")
+	logger.Debugln("Updating full state")
 
 	if msgType(buf[0]) != fullStateMsgType {
 		logger.Errorln("Unknown message type")
@@ -185,17 +185,13 @@ func (t *delegate) MergeRemoteState(buf []byte, join bool) {
 	}
 
 	if t.tribe.clock.Time() > fs.LTime {
-		//we are ahead return now
 		return
 	}
 
-	logger.Debugln("Updating full state")
-	t.tribe.mutex.Lock()
-	defer t.tribe.mutex.Unlock()
+	t.tribe.clock.Update(fs.LTime - 1)
+
 	if join {
-		t.tribe.clock.Update(fs.LTime - 1)
 		t.tribe.agreements = fs.Agreements
-		// TODO investigate this more ..jc
 		for k, v := range fs.Members {
 			t.tribe.members[k] = v
 		}

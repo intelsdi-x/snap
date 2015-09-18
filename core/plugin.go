@@ -57,6 +57,7 @@ type CatalogedPlugin interface {
 	Plugin
 	IsSigned() bool
 	Status() string
+	PluginPath() string
 	LoadedTimestamp() *time.Time
 }
 

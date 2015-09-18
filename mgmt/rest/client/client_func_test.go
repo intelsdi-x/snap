@@ -67,7 +67,7 @@ func startAPI(port int) string {
 	r.BindMetricManager(c)
 	r.BindTaskManager(s)
 	r.Start(":" + fmt.Sprint(port))
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(100 * time.Millisecond)
 	return fmt.Sprintf("http://localhost:%d", port)
 }
 

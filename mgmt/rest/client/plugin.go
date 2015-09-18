@@ -73,9 +73,9 @@ func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 
 	switch resp.Meta.Type {
 	// TODO change this to concrete const type when Joel adds it
-	case rbody.PluginListReturnedType:
+	case rbody.PluginListType:
 		// Success
-		b := resp.Body.(*rbody.PluginListReturned)
+		b := resp.Body.(*rbody.PluginList)
 		r.LoadedPlugins = convertLoadedPlugins(b.LoadedPlugins)
 		r.AvailablePlugins = convertAvailablePlugins(b.AvailablePlugins)
 		return r

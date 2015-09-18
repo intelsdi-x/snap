@@ -18,8 +18,8 @@ var (
 
 func UnmarshalBody(t string, b []byte) (Body, error) {
 	switch t {
-	case PluginListReturnedType:
-		return unmarshalAndHandleError(b, &PluginListReturned{})
+	case PluginListType:
+		return unmarshalAndHandleError(b, &PluginList{})
 	case PluginsLoadedType:
 		return unmarshalAndHandleError(b, &PluginsLoaded{})
 	case PluginUnloadedType:
@@ -44,6 +44,18 @@ func UnmarshalBody(t string, b []byte) (Body, error) {
 		return unmarshalAndHandleError(b, &MetricsReturned{})
 	case ScheduledTaskWatchingEndedType:
 		return unmarshalAndHandleError(b, &ScheduledTaskWatchingEnded{})
+	case TribeMemberListType:
+		return unmarshalAndHandleError(b, &TribeMemberList{})
+	case TribeAgreementListType:
+		return unmarshalAndHandleError(b, &TribeAgreementList{})
+	case TribeAddAgreementType:
+		return unmarshalAndHandleError(b, &TribeAddAgreement{})
+	case TribeMemberShowType:
+		return unmarshalAndHandleError(b, &TribeMemberShow{})
+	case TribeJoinAgreementType:
+		return unmarshalAndHandleError(b, &TribeJoinAgreement{})
+	case TribeGetAgreementType:
+		return unmarshalAndHandleError(b, &TribeGetAgreement{})
 	case ErrorType:
 		return unmarshalAndHandleError(b, &Error{})
 	default:

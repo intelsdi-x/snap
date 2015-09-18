@@ -15,6 +15,7 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/pulse/mgmt/tribe"
 	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
@@ -89,6 +90,7 @@ type managesTasks interface {
 type Server struct {
 	mm managesMetrics
 	mt managesTasks
+	tr tribe.ManagesTribe
 	n  *negroni.Negroni
 	r  *httprouter.Router
 }
@@ -123,6 +125,10 @@ func (s *Server) BindTaskManager(t managesTasks) {
 	s.mt = t
 }
 
+func (s *Server) BindTribeManager(t tribe.ManagesTribe) {
+	s.tr = t
+}
+
 func (s *Server) start(addrString string) {
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
@@ -144,6 +150,15 @@ func (s *Server) start(addrString string) {
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
 	s.r.DELETE("/v1/tasks/:id", s.removeTask)
+
+	if s.tr != nil {
+		s.r.GET("/v1/tribe/agreements", s.getAgreements)
+		s.r.POST("/v1/tribe/agreements", s.addAgreement)
+		s.r.GET("/v1/tribe/agreements/:name", s.getAgreement)
+		s.r.POST("/v1/tribe/agreements/:name/join", s.joinAgreement)
+		s.r.GET("/v1/tribe/members", s.getMembers)
+		s.r.GET("/v1/tribe/member/:name", s.getMember)
+	}
 
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)
