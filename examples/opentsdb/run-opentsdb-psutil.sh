@@ -25,10 +25,8 @@ echo "docker machine ip: ${dm_ip}"
 
 #start containers
 echo "prepare docker container"
-docker stop opentsdb_opentsdb_1  >/dev/null 2>&1 
-docker rm opentsdb_opentsdb_1  >/dev/null 2>&1 
-docker stop opentsdb_grafana_1  >/dev/null 2>&1 
-docker rm opentsdb_grafana_1  >/dev/null 2>&1 
+docker stop opentsdb_opentsdb_1 opentsdb_grafana_1 >/dev/null 2>&1 
+docker rm opentsdb_opentsdb_1 opentsdb_grafana_1 >/dev/null 2>&1 
 docker run -d --name opentsdb_opentsdb_1 -p 4242:4242 opower/opentsdb || die "Error: cannot run the opentsdb container"
 
 echo -n "waiting for opentsdb to start"
@@ -67,6 +65,16 @@ curl --cookie "$COOKIEJAR" \
 	--data-binary "{\"name\":\"opentsdb\",\"type\":\"opentsdb\",\"url\":\"http://${opentsdb_ip}:4242\",\"access\":\"proxy\"}" \
 	"http://${dm_ip}:3000/api/datasources"
 echo ""
+
+dashboard=$(cat $PULSE_PATH/../examples/opentsdb/opentsdb-psutil.json)
+curl --cookie "$COOKIEJAR" \
+  -X POST \
+  --silent \
+  -H 'Content-Type: application/json;charset=UTF-8' \
+  --data "$dashboard" \
+  "http://${dm_ip}:3000/api/dashboards/db"
+echo ""
+
 
 echo -n "starting pulsed"
 $PULSE_PATH/bin/pulsed --log-level 1 -t 0 --auto-discover $PULSE_PATH/plugin > /tmp/pulse.out 2>&1  &
