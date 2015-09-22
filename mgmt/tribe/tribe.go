@@ -88,6 +88,9 @@ type tribe struct {
 
 	pluginCatalog   managesPlugins
 	pluginWorkQueue chan pluginRequest
+
+	workerQuitChan  chan interface{}
+	workerWaitGroup *sync.WaitGroup
 }
 
 type ManagesTribe interface {
@@ -154,6 +157,8 @@ func New(c *config) (*tribe, error) {
 		logger:          logger.WithField("_name", c.memberlistConfig.Name),
 		tags:            map[string]string{RestAPIPort: strconv.Itoa(c.restAPIPort)},
 		pluginWorkQueue: make(chan pluginRequest, 999),
+		workerQuitChan:  make(chan interface{}),
+		workerWaitGroup: &sync.WaitGroup{},
 	}
 
 	tribe.broadcasts = &memberlist.TransmitLimitedQueue{
@@ -221,8 +226,20 @@ func (t *tribe) Start() error {
 }
 
 func (t *tribe) Stop() {
-	//TODO send tribe shutdown msg here
-	//TODO stop workers
+	err := t.memberlist.Leave(1 * time.Second)
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"_block": "Stop",
+		}).Error(err)
+	}
+	err = t.memberlist.Shutdown()
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"_block": "Stop",
+		}).Error(err)
+	}
+	close(t.workerQuitChan)
+	t.workerWaitGroup.Wait()
 }
 
 func (t *tribe) startDispatcher(nworkers int, cp managesPlugins, mm getsMembers) {
@@ -230,7 +247,7 @@ func (t *tribe) startDispatcher(nworkers int, cp managesPlugins, mm getsMembers)
 
 	for i := 0; i < nworkers; i++ {
 		logger.Infof("Starting tribe plugin worker-%d", i+1)
-		worker := newPluginWorker(i+1, pluginWorkerQueue, cp, mm)
+		worker := newPluginWorker(i+1, pluginWorkerQueue, t.workerQuitChan, t.workerWaitGroup, cp, mm)
 		worker.Start()
 	}
 
@@ -245,6 +262,9 @@ func (t *tribe) startDispatcher(nworkers int, cp managesPlugins, mm getsMembers)
 					logger.Debug("Dispatching plugin work request")
 					worker <- work
 				}()
+			case <-t.workerQuitChan:
+				logger.Debug("Stopping plugin work dispatcher")
+				return
 			}
 		}
 	}()

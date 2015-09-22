@@ -40,7 +40,7 @@ func (m msgType) String() string {
 type msg interface {
 	ID() string
 	Time() LTime
-	GetType() msgType //TODO rename to Type
+	GetType() msgType
 	Agreement() string
 	String() string
 }
