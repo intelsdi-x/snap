@@ -15,7 +15,7 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
-	"github.com/intelsdi-x/pulse/mgmt/tribe"
+	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
@@ -48,24 +48,6 @@ var (
 	restLogger = log.WithField("_module", "_mgmt-rest")
 )
 
-type APIResponse struct {
-	Meta         *APIResponseMeta `json:"meta"`
-	Body         rbody.Body       `json:"body"`
-	JSONResponse string           `json:"-"`
-}
-
-type apiResponseJSON struct {
-	Meta *APIResponseMeta `json:"meta"`
-	Body json.RawMessage  `json:"body"`
-}
-
-type APIResponseMeta struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Type    string `json:"type"`
-	Version int    `json:"version"`
-}
-
 type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics([]string, int) ([]core.CatalogedMetric, error)
@@ -87,10 +69,19 @@ type managesTasks interface {
 	WatchTask(uint64, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
 }
 
+type managesTribe interface {
+	GetAgreement(name string) (*agreement.Agreement, perror.PulseError)
+	GetAgreements() map[string]*agreement.Agreement
+	AddAgreement(name string) perror.PulseError
+	JoinAgreement(agreementName, memberName string) perror.PulseError
+	GetMembers() []string
+	GetMember(name string) *agreement.Member
+}
+
 type Server struct {
 	mm managesMetrics
 	mt managesTasks
-	tr tribe.ManagesTribe
+	tr managesTribe
 	n  *negroni.Negroni
 	r  *httprouter.Router
 }
@@ -125,7 +116,7 @@ func (s *Server) BindTaskManager(t managesTasks) {
 	s.mt = t
 }
 
-func (s *Server) BindTribeManager(t tribe.ManagesTribe) {
+func (s *Server) BindTribeManager(t managesTribe) {
 	s.tr = t
 }
 
@@ -167,8 +158,8 @@ func (s *Server) start(addrString string) {
 }
 
 func respond(code int, b rbody.Body, w http.ResponseWriter) {
-	resp := &APIResponse{
-		Meta: &APIResponseMeta{
+	resp := &rbody.APIResponse{
+		Meta: &rbody.APIResponseMeta{
 			Code:    code,
 			Message: b.ResponseBodyMessage(),
 			Type:    b.ResponseBodyType(),
@@ -184,22 +175,6 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 		panic(err)
 	}
 	fmt.Fprint(w, string(j))
-}
-
-func (a *APIResponse) UnmarshalJSON(b []byte) error {
-	ar := &apiResponseJSON{}
-	err := json.Unmarshal(b, ar)
-	if err != nil {
-		panic(err)
-	}
-	body, err := rbody.UnmarshalBody(ar.Meta.Type, ar.Body)
-	if err != nil {
-		return err
-	}
-	// Assign
-	a.Meta = ar.Meta
-	a.Body = body
-	return nil
 }
 
 func marshalBody(in interface{}, body io.ReadCloser) (int, error) {

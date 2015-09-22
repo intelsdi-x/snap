@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	TaskCreated            = "Control.TaskCreated"
+	TaskDeleted            = "Control.TaskDeleted"
 	TaskStarted            = "Control.TaskStarted"
 	TaskStopped            = "Control.TaskStopped"
 	TaskDisabled           = "Control.TaskDisabled"
@@ -18,6 +20,23 @@ type TaskStartedEvent struct {
 
 func (e TaskStartedEvent) Namespace() string {
 	return TaskStarted
+}
+
+type TaskCreatedEvent struct {
+	TaskID        uint64
+	StartOnCreate bool
+}
+
+func (e TaskCreatedEvent) Namespace() string {
+	return TaskCreated
+}
+
+type TaskDeletedEvent struct {
+	TaskID uint64
+}
+
+func (e TaskDeletedEvent) Namespace() string {
+	return TaskDeleted
 }
 
 type TaskStoppedEvent struct {

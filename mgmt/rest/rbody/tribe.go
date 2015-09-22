@@ -1,6 +1,6 @@
 package rbody
 
-import "github.com/intelsdi-x/pulse/mgmt/tribe"
+import "github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 
 const (
 	TribeAgreementListType = "tribe_agreement_list_returned"
@@ -25,7 +25,7 @@ func (t *TribeAddAgreement) ResponseBodyType() string {
 }
 
 type TribeGetAgreement struct {
-	Agreement *tribe.Agreement `json:"agreement"`
+	Agreement *agreement.Agreement `json:"agreement"`
 }
 
 func (t *TribeGetAgreement) ResponseBodyMessage() string {
@@ -37,7 +37,7 @@ func (t *TribeGetAgreement) ResponseBodyType() string {
 }
 
 type TribeAgreementList struct {
-	Agreements map[string]*tribe.Agreement `json:"agreements"`
+	Agreements map[string]*agreement.Agreement `json:"agreements"`
 }
 
 func (t *TribeAgreementList) ResponseBodyMessage() string {
@@ -49,7 +49,7 @@ func (t *TribeAgreementList) ResponseBodyType() string {
 }
 
 type TribeJoinAgreement struct {
-	Agreement *tribe.Agreement `json:"agreement"`
+	Agreement *agreement.Agreement `json:"agreement"`
 }
 
 func (t *TribeJoinAgreement) ResponseBodyMessage() string {

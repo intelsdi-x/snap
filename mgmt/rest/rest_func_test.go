@@ -71,8 +71,8 @@ func readBody(r *http.Response) []byte {
 	return b
 }
 
-func getAPIResponse(resp *http.Response) *APIResponse {
-	r := new(APIResponse)
+func getAPIResponse(resp *http.Response) *rbody.APIResponse {
+	r := new(rbody.APIResponse)
 	rb := readBody(resp)
 	err := json.Unmarshal(rb, r)
 	if err != nil {
@@ -82,8 +82,8 @@ func getAPIResponse(resp *http.Response) *APIResponse {
 	return r
 }
 
-func getStreamingAPIResponse(resp *http.Response) *APIResponse {
-	r := new(APIResponse)
+func getStreamingAPIResponse(resp *http.Response) *rbody.APIResponse {
+	r := new(rbody.APIResponse)
 	rb := readBody(resp)
 	err := json.Unmarshal(rb, r)
 	if err != nil {
@@ -145,7 +145,7 @@ func watchTask(id, port int) *watchTaskResult {
 	return r
 }
 
-func getTasks(port int) *APIResponse {
+func getTasks(port int) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks", port))
 	if err != nil {
 		log.Fatal(err)
@@ -153,7 +153,7 @@ func getTasks(port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func getTask(id, port int) *APIResponse {
+func getTask(id, port int) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id))
 	if err != nil {
 		log.Fatal(err)
@@ -161,7 +161,7 @@ func getTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func startTask(id, port int) *APIResponse {
+func startTask(id, port int) *rbody.APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/start", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
@@ -177,7 +177,7 @@ func startTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func stopTask(id, port int) *APIResponse {
+func stopTask(id, port int) *rbody.APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/stop", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
@@ -193,7 +193,7 @@ func stopTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func removeTask(id, port int) *APIResponse {
+func removeTask(id, port int) *rbody.APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
@@ -208,7 +208,7 @@ func removeTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func createTask(sample, name, interval string, noStart bool, port int) *APIResponse {
+func createTask(sample, name, interval string, noStart bool, port int) *rbody.APIResponse {
 	jsonP, err := ioutil.ReadFile("./wmap_sample/" + sample)
 	if err != nil {
 		log.Fatal(err)
@@ -246,7 +246,7 @@ func createTask(sample, name, interval string, noStart bool, port int) *APIRespo
 	return getAPIResponse(resp)
 }
 
-func uploadPlugin(pluginPath string, port int) *APIResponse {
+func uploadPlugin(pluginPath string, port int) *rbody.APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/plugins", port)
 
 	client := &http.Client{}
@@ -297,7 +297,7 @@ func uploadPlugin(pluginPath string, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func unloadPlugin(port int, pluginType string, name string, version int) *APIResponse {
+func unloadPlugin(port int, pluginType string, name string, version int) *rbody.APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%d", port, pluginType, name, version)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
@@ -312,7 +312,7 @@ func unloadPlugin(port int, pluginType string, name string, version int) *APIRes
 	return getAPIResponse(resp)
 }
 
-func getPluginList(port int) *APIResponse {
+func getPluginList(port int) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/plugins", port))
 	if err != nil {
 		log.Fatal(err)
@@ -320,11 +320,11 @@ func getPluginList(port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func getMetricCatalog(port int) *APIResponse {
+func getMetricCatalog(port int) *rbody.APIResponse {
 	return fetchMetrics(port, "")
 }
 
-func fetchMetrics(port int, ns string) *APIResponse {
+func fetchMetrics(port int, ns string) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics%s", port, ns))
 	if err != nil {
 		log.Fatal(err)
@@ -333,7 +333,7 @@ func fetchMetrics(port int, ns string) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func fetchMetricsWithVersion(port int, ns string, ver int) *APIResponse {
+func fetchMetricsWithVersion(port int, ns string, ver int) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics%s?ver=%d", port, ns, ver))
 	if err != nil {
 		log.Fatal(err)

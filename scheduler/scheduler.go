@@ -108,6 +108,10 @@ func (s *scheduler) Name() string {
 	return "scheduler"
 }
 
+func (s *scheduler) RegisterEventHandler(name string, h gomit.Handler) error {
+	return s.eventManager.RegisterHandler(name, h)
+}
+
 // CreateTask creates and returns task
 func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	logger := s.logger.WithField("_block", "create-task")
@@ -168,6 +172,12 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 		"task-state": task.State(),
 	}).Info("task created")
 
+	event := &scheduler_event.TaskCreatedEvent{
+		TaskID:        task.id,
+		StartOnCreate: startOnCreate,
+	}
+	defer s.eventManager.Emit(event)
+
 	if startOnCreate {
 		logger.WithFields(log.Fields{
 			"task-id": task.ID(),
@@ -201,6 +211,10 @@ func (s *scheduler) RemoveTask(id uint64) error {
 		}).Error(ErrTaskNotFound)
 		return fmt.Errorf("No task found with id '%v'", id)
 	}
+	event := &scheduler_event.TaskDeletedEvent{
+		TaskID: t.id,
+	}
+	defer s.eventManager.Emit(event)
 	return s.tasks.remove(t)
 }
 

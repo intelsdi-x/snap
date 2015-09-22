@@ -16,6 +16,40 @@ var (
 	ErrCannotUnmarshalBody = errors.New("Cannot unmarshal body: invalid type")
 )
 
+type APIResponse struct {
+	Meta         *APIResponseMeta `json:"meta"`
+	Body         Body             `json:"body"`
+	JSONResponse string           `json:"-"`
+}
+
+type apiResponseJSON struct {
+	Meta *APIResponseMeta `json:"meta"`
+	Body json.RawMessage  `json:"body"`
+}
+
+type APIResponseMeta struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Type    string `json:"type"`
+	Version int    `json:"version"`
+}
+
+func (a *APIResponse) UnmarshalJSON(b []byte) error {
+	ar := &apiResponseJSON{}
+	err := json.Unmarshal(b, ar)
+	if err != nil {
+		panic(err)
+	}
+	body, err := UnmarshalBody(ar.Meta.Type, ar.Body)
+	if err != nil {
+		return err
+	}
+	// Assign
+	a.Meta = ar.Meta
+	a.Body = body
+	return nil
+}
+
 func UnmarshalBody(t string, b []byte) (Body, error) {
 	switch t {
 	case PluginListType:

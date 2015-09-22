@@ -10,6 +10,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 	"github.com/pborman/uuid"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -19,12 +20,19 @@ func init() {
 	log.SetLevel(log.InfoLevel)
 }
 
+var inc uint64
+
+func getNextTaskID() uint64 {
+	inc = inc + 1
+	return inc
+}
+
 func TestFullStateSync(t *testing.T) {
 	tribes := []*tribe{}
 	numOfTribes := 8
 	agreement1 := "agreement1"
-	plugin1 := plugin{Name_: "plugin1", Version_: 1, Type_: core.ProcessorPluginType}
-	task1 := task{ID: uuid.New()}
+	plugin1 := agreement.Plugin{Name_: "plugin1", Version_: 1, Type_: core.ProcessorPluginType}
+	task1 := agreement.Task{ID: getNextTaskID()}
 	Convey("Tribe members are started", t, func() {
 		conf := DefaultConfig("seed", "127.0.0.1", getAvailablePort(), "", getAvailablePort())
 		conf.memberlistConfig.PushPullInterval = 200 * time.Millisecond
@@ -67,7 +75,7 @@ func TestFullStateSync(t *testing.T) {
 			So(perr, ShouldBeNil)
 			err := t.AddPlugin(agreement1, plugin1)
 			So(err, ShouldBeNil)
-			perr = t.AddTask(agreement1, task1.ID)
+			perr = t.AddTask(agreement1, task1)
 			So(perr, ShouldBeNil)
 			So(len(t.agreements), ShouldEqual, 1)
 			Convey("the state is consistent across the tribe", func() {
@@ -84,7 +92,7 @@ func TestFullStateSync(t *testing.T) {
 							default:
 								if a, ok := tr.agreements[agreement1]; ok {
 									if a.PluginAgreement != nil {
-										if ok, _ := a.PluginAgreement.Plugins.contains(plugin1); ok {
+										if ok, _ := a.PluginAgreement.Plugins.Contains(plugin1); ok {
 											return
 										}
 									}
@@ -112,10 +120,10 @@ func TestFullStateSync(t *testing.T) {
 func TestFullStateSyncOnJoin(t *testing.T) {
 	numOfTribes := 6
 	agreement1 := "agreement1"
-	plugin1 := plugin{Name_: "plugin1", Version_: 1}
-	plugin2 := plugin{Name_: "plugin2", Version_: 1}
-	task1 := task{ID: uuid.New()}
-	task2 := task{ID: uuid.New()}
+	plugin1 := agreement.Plugin{Name_: "plugin1", Version_: 1}
+	plugin2 := agreement.Plugin{Name_: "plugin2", Version_: 1}
+	task1 := agreement.Task{ID: getNextTaskID()}
+	task2 := agreement.Task{ID: getNextTaskID()}
 	Convey("A seed is started", t, func() {
 		conf := DefaultConfig("seed", "127.0.0.1", getAvailablePort(), "", getAvailablePort())
 		seed, err := New(conf)
@@ -126,8 +134,8 @@ func TestFullStateSyncOnJoin(t *testing.T) {
 			seed.JoinAgreement(agreement1, "seed")
 			seed.AddPlugin(agreement1, plugin1)
 			seed.AddPlugin(agreement1, plugin2)
-			seed.AddTask(agreement1, task1.ID)
-			seed.AddTask(agreement1, task2.ID)
+			seed.AddTask(agreement1, task1)
+			seed.AddTask(agreement1, task2)
 			So(seed.intentBuffer, ShouldBeEmpty)
 			So(len(seed.members["seed"].PluginAgreement.Plugins), ShouldEqual, 2)
 			So(len(seed.members["seed"].TaskAgreements[agreement1].Tasks), ShouldEqual, 2)
@@ -201,8 +209,8 @@ func TestTaskAgreements(t *testing.T) {
 
 			agreementName := "agreement1"
 			agreementName2 := "agreement2"
-			task1 := task{ID: uuid.New()}
-			task2 := task{ID: uuid.New()}
+			task1 := agreement.Task{ID: getNextTaskID()}
+			task2 := agreement.Task{ID: getNextTaskID()}
 			Convey("a member handles", func() {
 				t := tribes[rand.Intn(numOfTribes)]
 				Convey("an out of order 'add task' message", func() {
@@ -217,26 +225,26 @@ func TestTaskAgreements(t *testing.T) {
 					So(b, ShouldEqual, true)
 					t.broadcast(addTaskMsgType, msg, nil)
 					So(len(t.intentBuffer), ShouldEqual, 1)
-					err := t.AddTask(agreementName, task1.ID)
+					err := t.AddTask(agreementName, task1)
 					So(err.Error(), ShouldResemble, errAgreementDoesNotExist.Error())
 					err = t.AddAgreement(agreementName)
 					So(err, ShouldBeNil)
 					So(len(t.intentBuffer), ShouldEqual, 0)
 					So(len(t.agreements[agreementName].TaskAgreement.Tasks), ShouldEqual, 1)
-					ok, _ := t.agreements[agreementName].TaskAgreement.Tasks.contains(task1)
+					ok, _ := t.agreements[agreementName].TaskAgreement.Tasks.Contains(task1)
 					So(ok, ShouldBeTrue)
 					Convey("adding an existing task", func() {
-						err := t.AddTask(agreementName, task1.ID)
+						err := t.AddTask(agreementName, task1)
 						So(err.Error(), ShouldResemble, errTaskAlreadyExists.Error())
 						Convey("removing a task that doesn't exist", func() {
-							err := t.RemoveTask(agreementName, "1234")
+							err := t.RemoveTask(agreementName, agreement.Task{ID: 999})
 							So(err.Error(), ShouldResemble, errTaskDoesNotExist.Error())
-							err = t.RemoveTask("doesn't exist", task1.ID)
+							err = t.RemoveTask("doesn't exist", task1)
 							So(err.Error(), ShouldResemble, errAgreementDoesNotExist.Error())
 							Convey("joining an agreement with tasks", func() {
 								err := t.AddAgreement(agreementName2)
 								So(err, ShouldBeNil)
-								err = t.AddTask(agreementName2, task2.ID)
+								err = t.AddTask(agreementName2, task2)
 								So(err, ShouldBeNil)
 								err = t.JoinAgreement(agreementName, t.memberlist.LocalNode().Name)
 								So(err, ShouldBeNil)
@@ -255,7 +263,7 @@ func TestTaskAgreements(t *testing.T) {
 											defer wg.Done()
 											for {
 												if a, ok := t.agreements[agreementName]; ok {
-													if ok, _ := a.TaskAgreement.Tasks.contains(task1); ok {
+													if ok, _ := a.TaskAgreement.Tasks.Contains(task1); ok {
 														return
 													}
 												}
@@ -267,10 +275,10 @@ func TestTaskAgreements(t *testing.T) {
 									Convey("a member handles removing a task", func() {
 										t := tribes[rand.Intn(numOfTribes)]
 										So(t.intentBuffer, ShouldBeEmpty)
-										ok, _ := t.agreements[agreementName].TaskAgreement.Tasks.contains(task1)
+										ok, _ := t.agreements[agreementName].TaskAgreement.Tasks.Contains(task1)
 										So(ok, ShouldBeTrue)
-										err := t.RemoveTask(agreementName, task1.ID)
-										ok, _ = t.agreements[agreementName].TaskAgreement.Tasks.contains(task1)
+										err := t.RemoveTask(agreementName, task1)
+										ok, _ = t.agreements[agreementName].TaskAgreement.Tasks.Contains(task1)
 										So(ok, ShouldBeFalse)
 										So(err, ShouldBeNil)
 										So(t.intentBuffer, ShouldBeEmpty)
@@ -338,7 +346,7 @@ func TestTribeAgreements(t *testing.T) {
 					t.broadcast(joinAgreementMsgType, msg, nil)
 
 					Convey("an out-of-order add plugin message", func() {
-						plugin := plugin{Name_: "plugin1", Version_: 1}
+						plugin := agreement.Plugin{Name_: "plugin1", Version_: 1}
 						msg := &pluginMsg{
 							LTime:         t.clock.Increment(),
 							UUID:          uuid.New(),
@@ -364,7 +372,7 @@ func TestTribeAgreements(t *testing.T) {
 									for {
 										if a, ok := t.agreements[agreementName]; ok {
 											logger.Debugf("%s has %d plugins in agreement '%s' and %d intents", t.memberlist.LocalNode().Name, len(t.agreements[agreementName].PluginAgreement.Plugins), agreementName, len(t.intentBuffer))
-											if ok, _ := a.PluginAgreement.Plugins.contains(plugin); ok {
+											if ok, _ := a.PluginAgreement.Plugins.Contains(plugin); ok {
 												if len(t.intentBuffer) == 0 {
 													return
 												}
@@ -456,7 +464,7 @@ func TestTribeMembership(t *testing.T) {
 				So(len(tribes[0].members), ShouldEqual, len(tribes[i].members))
 			}
 			Convey("Adds an agreement", func(c C) {
-				agreement := "agreement1"
+				a := "agreement1"
 				t := tribes[numOfTribes-1]
 				t.AddAgreement("agreement1")
 				var wg sync.WaitGroup
@@ -466,7 +474,7 @@ func TestTribeMembership(t *testing.T) {
 						defer wg.Done()
 						for {
 							if t.agreements != nil {
-								if _, ok := t.agreements[agreement]; ok {
+								if _, ok := t.agreements[a]; ok {
 									c.So(ok, ShouldEqual, true)
 									return
 								}
@@ -483,20 +491,20 @@ func TestTribeMembership(t *testing.T) {
 				wg.Wait()
 				for _, t := range tribes {
 					So(len(t.agreements), ShouldEqual, 1)
-					So(t.agreements[agreement], ShouldNotBeNil)
+					So(t.agreements[a], ShouldNotBeNil)
 				}
 				Convey("A member", func() {
 					Convey("joins an agreement", func() {
-						err := t.JoinAgreement(agreement, t.memberlist.LocalNode().Name)
+						err := t.JoinAgreement(a, t.memberlist.LocalNode().Name)
 						So(err, ShouldBeNil)
 					})
 					Convey("is added to an agreement it already belongs to", func() {
 						Convey("adds a plugin to agreement", func() {
-							err := t.AddPlugin(agreement, plugin{Name_: "plugin1", Version_: 1})
+							err := t.AddPlugin(a, agreement.Plugin{Name_: "plugin1", Version_: 1})
 							So(err, ShouldBeNil)
 						})
 
-						err := t.JoinAgreement(agreement, t.memberlist.LocalNode().Name)
+						err := t.JoinAgreement(a, t.memberlist.LocalNode().Name)
 						So(err.Error(), ShouldResemble, errAlreadyMemberOfPluginAgreement.Error())
 					})
 					Convey("leaves an agreement that doesn't exist", func() {
@@ -504,18 +512,18 @@ func TestTribeMembership(t *testing.T) {
 						So(err.Error(), ShouldResemble, errAgreementDoesNotExist.Error())
 					})
 					Convey("handles an unknown member trying to leave an agreement", func() {
-						err := t.LeaveAgreement(agreement, "whatever")
+						err := t.LeaveAgreement(a, "whatever")
 						So(err.Error(), ShouldResemble, errUnknownMember.Error())
 					})
 					Convey("handles a member leaving an agreement it isn't part of", func() {
-						err := t.LeaveAgreement(agreement, tribes[0].memberlist.LocalNode().Name)
+						err := t.LeaveAgreement(a, tribes[0].memberlist.LocalNode().Name)
 						So(err.Error(), ShouldResemble, errNotAMember.Error())
 					})
 					Convey("handles an unknown member trying to join an agreement", func() {
 						msg := &agreementMsg{
 							LTime:         t.clock.Time(),
 							UUID:          uuid.New(),
-							AgreementName: agreement,
+							AgreementName: a,
 							MemberName:    "whatever",
 							Type:          joinAgreementMsgType,
 						}
@@ -628,7 +636,7 @@ func TestTribePluginAgreement(t *testing.T) {
 						numAddMessages := 10
 						Convey(fmt.Sprintf("Handles %d plugin 'add messages' broadcasted across the cluster", numAddMessages), func() {
 							for i := 0; i < numAddMessages; i++ {
-								tribes[0].AddPlugin("clan1", plugin{Name_: fmt.Sprintf("plugin%v", i), Version_: 1})
+								tribes[0].AddPlugin("clan1", agreement.Plugin{Name_: fmt.Sprintf("plugin%v", i), Version_: 1})
 								// time.Sleep(time.Millisecond * 50)
 							}
 							wg := sync.WaitGroup{}
@@ -663,7 +671,7 @@ func TestTribePluginAgreement(t *testing.T) {
 							Convey("Handles duplicate 'add plugin' messages", func() {
 								t := tribes[rand.Intn(numOfTribes)]
 								msg := &pluginMsg{
-									Plugin: plugin{
+									Plugin: agreement.Plugin{
 										Name_:    "pluginABC",
 										Version_: 1,
 									},
@@ -681,7 +689,7 @@ func TestTribePluginAgreement(t *testing.T) {
 
 								Convey("Handles out-of-order 'add plugin' messages", func() {
 									msg := &pluginMsg{
-										Plugin: plugin{
+										Plugin: agreement.Plugin{
 											Name_:    "pluginABC",
 											Version_: 1,
 										},
@@ -703,7 +711,7 @@ func TestTribePluginAgreement(t *testing.T) {
 										So(len(t.agreements["clan1"].PluginAgreement.Plugins), ShouldBeGreaterThan, numAddMessages)
 										t.handleRemovePlugin(&pluginMsg{
 											LTime:         t.clock.Time(),
-											Plugin:        plugin{Name_: "pluginABC", Version_: 1},
+											Plugin:        agreement.Plugin{Name_: "pluginABC", Version_: 1},
 											AgreementName: "clan1",
 											Type:          removePluginMsgType,
 										})
@@ -712,7 +720,7 @@ func TestTribePluginAgreement(t *testing.T) {
 										So(len(t.intentBuffer), ShouldEqual, 0)
 										t.handleRemovePlugin(&pluginMsg{
 											LTime:         t.clock.Time(),
-											Plugin:        plugin{Name_: "pluginABC", Version_: 1},
+											Plugin:        agreement.Plugin{Name_: "pluginABC", Version_: 1},
 											AgreementName: "clan1",
 											Type:          removePluginMsgType,
 										})
@@ -786,7 +794,7 @@ func TestTribePluginAgreement(t *testing.T) {
 														Type:          addPluginMsgType,
 													})
 													So(len(t.intentBuffer), ShouldEqual, 0)
-													ok, _ := t.agreements["clan1"].PluginAgreement.Plugins.contains(msg.Plugin)
+													ok, _ := t.agreements["clan1"].PluginAgreement.Plugins.Contains(msg.Plugin)
 													So(ok, ShouldBeFalse)
 
 													Convey("Handles old 'remove plugin' messages", func() {

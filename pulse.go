@@ -15,8 +15,10 @@ import (
 	"github.com/codegangsta/cli"
 
 	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest"
 	"github.com/intelsdi-x/pulse/mgmt/tribe"
+	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/pulse/scheduler"
 )
 
@@ -88,6 +90,15 @@ type coreModule interface {
 	Start() error
 	Stop()
 	Name() string
+}
+
+type managesTribe interface {
+	GetAgreement(name string) (*agreement.Agreement, perror.PulseError)
+	GetAgreements() map[string]*agreement.Agreement
+	AddAgreement(name string) perror.PulseError
+	JoinAgreement(agreementName, memberName string) perror.PulseError
+	GetMembers() []string
+	GetMember(name string) *agreement.Member
 }
 
 var coreModules []coreModule
@@ -215,13 +226,15 @@ func action(ctx *cli.Context) {
 	s.SetMetricManager(c)
 	coreModules = append(coreModules, s)
 
-	var tr tribe.ManagesTribe
+	var tr managesTribe
 	if isTribeEnabled {
 		log.Info("Tribe is enabled")
 		tc := tribe.DefaultConfig(tribeNodeName, tribeAddr, tribePort, tribeSeed, apiPort)
 		t, err := tribe.New(tc)
 		c.RegisterEventHandler("tribe", t)
 		t.SetPluginCatalog(c)
+		s.RegisterEventHandler("tribe", t)
+		t.SetTaskManager(s)
 		if err != nil {
 			printErrorAndExit(t.Name(), err)
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 )
 
 type msgType uint8
@@ -47,7 +48,7 @@ type msg interface {
 
 type pluginMsg struct {
 	LTime         LTime
-	Plugin        plugin
+	Plugin        agreement.Plugin
 	UUID          string
 	AgreementName string
 	Type          msgType
@@ -107,7 +108,7 @@ func (a *agreementMsg) String() string {
 type taskMsg struct {
 	LTime         LTime
 	UUID          string
-	TaskID        string
+	TaskID        uint64
 	AgreementName string
 	Type          msgType
 }
@@ -142,8 +143,8 @@ type fullStateMsg struct {
 	AgreementIntentMsgs []*agreementMsg
 	TaskIntentMsgs      []*taskMsg
 
-	Agreements map[string]*Agreement
-	Members    map[string]*member
+	Agreements map[string]*agreement.Agreement
+	Members    map[string]*agreement.Member
 }
 
 func decodeMessage(buf []byte, out interface{}) error {
