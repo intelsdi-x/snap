@@ -182,7 +182,7 @@ func (p *pluginControl) Name() string {
 }
 
 func (p *pluginControl) RegisterEventHandler(name string, h gomit.Handler) error {
-	return p.eventManager.RegisterHandler("tribe", h)
+	return p.eventManager.RegisterHandler(name, h)
 }
 
 // Begin handling load, unload, and inventory

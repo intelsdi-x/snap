@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -27,15 +28,17 @@ type pluginRequest struct {
 }
 
 // newPluginWorker
-func newPluginWorker(id int, workerQueue chan chan pluginRequest, pm managesPlugins, mm getsMembers) pluginWorker {
+func newPluginWorker(id int, workerQueue chan chan pluginRequest, quitChan chan interface{}, wg *sync.WaitGroup, pm managesPlugins, mm getsMembers) pluginWorker {
 	// Create, and return the worker.
 	worker := pluginWorker{
 		pluginManager: pm,
 		memberManager: mm,
-		ID:            id,
-		Work:          make(chan pluginRequest),
-		WorkerQueue:   workerQueue,
-		QuitChan:      make(chan bool)}
+		id:            id,
+		work:          make(chan pluginRequest),
+		workerQueue:   workerQueue,
+		quitChan:      quitChan,
+		waitGroup:     wg,
+	}
 
 	return worker
 }
@@ -43,10 +46,11 @@ func newPluginWorker(id int, workerQueue chan chan pluginRequest, pm managesPlug
 type pluginWorker struct {
 	pluginManager managesPlugins
 	memberManager getsMembers
-	ID            int
-	Work          chan pluginRequest
-	WorkerQueue   chan chan pluginRequest
-	QuitChan      chan bool
+	id            int
+	work          chan pluginRequest
+	workerQueue   chan chan pluginRequest
+	quitChan      chan interface{}
+	waitGroup     *sync.WaitGroup
 }
 
 type getsMembers interface {
@@ -55,20 +59,22 @@ type getsMembers interface {
 
 // Start "starts" the worker
 func (w pluginWorker) Start() {
+	w.waitGroup.Add(1)
 	go func() {
+		defer w.waitGroup.Done()
 		for {
 			// Add ourselves into the worker queue.
-			w.WorkerQueue <- w.Work
+			w.workerQueue <- w.work
 
 			var done bool
 			select {
-			case work := <-w.Work:
+			case work := <-w.work:
 				// Receive a work request.
 				wlogger := workerLogger.WithFields(log.Fields{
 					"plugin_name":    work.Plugin.Name_,
 					"plugin_version": work.Plugin.Version_,
 					"plugin_type":    work.Plugin.Type_.String(),
-					"worker":         w.ID,
+					"worker":         w.id,
 				})
 				workerLogger.Debug("received work")
 				done = false
@@ -83,7 +89,7 @@ func (w pluginWorker) Start() {
 					}
 					for _, member := range shuffle(members) {
 						url := fmt.Sprintf("http://%s:%s/v1/plugins/%s/%s/%d", member.Node.Addr, member.Tags[RestAPIPort], work.Plugin.Type_.String(), work.Plugin.Name_, work.Plugin.Version_)
-						workerLogger.Debugf("worker-%v is trying %v ", w.ID, url)
+						workerLogger.Debugf("worker-%v is trying %v ", w.id, url)
 						resp, err := http.Get(url)
 						if err != nil {
 							wlogger.Error(err)
@@ -123,8 +129,8 @@ func (w pluginWorker) Start() {
 					time.Sleep(200 * time.Millisecond)
 				}
 
-			case <-w.QuitChan:
-				workerLogger.Debugf("Tribe plugin worker-%d is stopping\n", w.ID)
+			case <-w.quitChan:
+				workerLogger.Debugf("Tribe plugin worker-%d is stopping\n", w.id)
 				return
 			}
 		}
@@ -134,7 +140,7 @@ func (w pluginWorker) Start() {
 // Stop tells the worker to stop listening
 func (w pluginWorker) Stop() {
 	go func() {
-		w.QuitChan <- true
+		w.quitChan <- true
 	}()
 }
 
