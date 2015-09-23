@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -25,6 +27,7 @@ type Psutil struct {
 
 // CollectMetrics returns metrics from gopsutil
 func (p *Psutil) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
+	hostname, _ := os.Hostname()
 	metrics := make([]plugin.PluginMetricType, len(mts))
 	loadre := regexp.MustCompile(`^/psutil/load/load[1,5,15]`)
 	cpure := regexp.MustCompile(`^/psutil/cpu.*/.*`)
@@ -59,6 +62,8 @@ func (p *Psutil) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginM
 			}
 			metrics[i] = *metric
 		}
+		metrics[i].Source_ = hostname
+		metrics[i].Timestamp_ = time.Now()
 
 	}
 	return metrics, nil

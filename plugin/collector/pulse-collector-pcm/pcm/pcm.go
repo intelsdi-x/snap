@@ -44,11 +44,14 @@ func (p *PCM) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetr
 	metrics := make([]plugin.PluginMetricType, len(mts))
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
+	hostname, _ := os.Hostname()
 	for i, m := range mts {
 		if v, ok := p.data[joinNamespace(m.Namespace())]; ok {
 			metrics[i] = plugin.PluginMetricType{
 				Namespace_: m.Namespace(),
 				Data_:      v,
+				Source_:    hostname,
+				Timestamp_: time.Now(),
 			}
 		}
 	}
