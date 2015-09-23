@@ -58,5 +58,5 @@ func (f *Dummy) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 
 //Meta returns meta data for testing
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(Name, Version, Type, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType})
+	return plugin.NewPluginMeta(Name, Version, Type, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType}, plugin.Unsecure(true))
 }

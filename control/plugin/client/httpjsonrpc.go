@@ -33,58 +33,64 @@ type httpJSONRPCClient struct {
 }
 
 // NewCollectorHttpJSONRPCClient returns CollectorHttpJSONRPCClient
-func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginCollectorClient, error) {
-	key, err := encrypter.GenerateKey()
-	if err != nil {
-		return nil, err
-	}
-	e := encrypter.New(pub, priv)
-	e.Key = key
-	enc := encoding.NewJsonEncoder()
-	enc.SetEncrypter(e)
-	return &httpJSONRPCClient{
+func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginCollectorClient, error) {
+	hjr := &httpJSONRPCClient{
 		url:        u,
 		timeout:    timeout,
 		pluginType: plugin.CollectorPluginType,
-		encrypter:  e,
-		encoder:    enc,
-	}, nil
+		encoder:    encoding.NewJsonEncoder(),
+	}
+	if secure {
+		key, err := encrypter.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
+		e := encrypter.New(pub, nil)
+		e.Key = key
+		hjr.encoder.SetEncrypter(e)
+		hjr.encrypter = e
+	}
+	return hjr, nil
 }
 
-func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginProcessorClient, error) {
-	key, err := encrypter.GenerateKey()
-	if err != nil {
-		return nil, err
-	}
-	e := encrypter.New(pub, priv)
-	e.Key = key
-	enc := encoding.NewJsonEncoder()
-	enc.SetEncrypter(e)
-	return &httpJSONRPCClient{
+func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginProcessorClient, error) {
+	hjr := &httpJSONRPCClient{
 		url:        u,
 		timeout:    timeout,
 		pluginType: plugin.ProcessorPluginType,
-		encrypter:  e,
-		encoder:    enc,
-	}, nil
+		encoder:    encoding.NewJsonEncoder(),
+	}
+	if secure {
+		key, err := encrypter.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
+		e := encrypter.New(pub, nil)
+		e.Key = key
+		hjr.encoder.SetEncrypter(e)
+		hjr.encrypter = e
+	}
+	return hjr, nil
 }
 
-func NewPublisherHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginPublisherClient, error) {
-	key, err := encrypter.GenerateKey()
-	if err != nil {
-		return nil, err
-	}
-	e := encrypter.New(pub, priv)
-	e.Key = key
-	enc := encoding.NewJsonEncoder()
-	enc.SetEncrypter(e)
-	return &httpJSONRPCClient{
+func NewPublisherHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginPublisherClient, error) {
+	hjr := &httpJSONRPCClient{
 		url:        u,
 		timeout:    timeout,
 		pluginType: plugin.PublisherPluginType,
-		encrypter:  e,
-		encoder:    enc,
-	}, nil
+		encoder:    encoding.NewJsonEncoder(),
+	}
+	if secure {
+		key, err := encrypter.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
+		e := encrypter.New(pub, nil)
+		e.Key = key
+		hjr.encoder.SetEncrypter(e)
+		hjr.encrypter = e
+	}
+	return hjr, nil
 }
 
 // Ping

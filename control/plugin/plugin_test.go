@@ -38,7 +38,7 @@ func TestMetricType(t *testing.T) {
 
 func TestArg(t *testing.T) {
 	Convey("NewArg", t, func() {
-		arg := NewArg(nil, "/tmp/pulse/plugin.log")
+		arg := NewArg("/tmp/pulse/plugin.log")
 		So(arg, ShouldNotBeNil)
 	})
 }
