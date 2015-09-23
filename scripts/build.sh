@@ -18,7 +18,7 @@ echo "****  Pulse Build ($GITVERSION)  ****"
 echo
 
 # Disable CGO for builds
-export CGO_ENABLED=0
+export CGO_ENABLED=1
 
 # Clean build bin dir
 rm -rf $BINDIR/*
@@ -61,7 +61,7 @@ if [ "$BUILDPLUGINS" == "true" ]; then
 		rm -rf $BUILDDIR/$PLUGINDIR/*
 		cd $SOURCEDIR
 		echo " Building Plugin(s)"
-		find ./plugin/* -iname "pulse-*" -print0 | xargs -0 -P 4 -n 1 $SOURCEDIR/scripts/build-plugin.sh $BUILDDIR/$PLUGINDIR/ || exit 2		
+		find ./plugin/* -iname "pulse-*" -print0 | xargs -0 -P 4 -n 1 $SOURCEDIR/scripts/build-plugin.sh $BUILDDIR/$PLUGINDIR/ || exit 2
 
 		cd $SOURCEDIR
 	fi
