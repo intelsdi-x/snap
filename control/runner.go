@@ -20,7 +20,6 @@ limitations under the License.
 package control
 
 import (
-	"crypto/rsa"
 	"errors"
 	"fmt"
 	"strings"
@@ -65,12 +64,10 @@ type runner struct {
 	metricCatalog    catalogsMetrics
 	pluginManager    managesPlugins
 	routingStrategy  RoutingStrategy
-	privKey          *rsa.PrivateKey
 }
 
-func newRunner(routingStrategy RoutingStrategy, privKey *rsa.PrivateKey) *runner {
+func newRunner(routingStrategy RoutingStrategy) *runner {
 	r := &runner{
-		privKey:          privKey,
 		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(routingStrategy),
 		routingStrategy:  routingStrategy,
@@ -200,12 +197,16 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// build availablePlugin
-	ap, err := newAvailablePlugin(resp, r.privKey, r.emitter, p)
+	ap, err := newAvailablePlugin(resp, r.emitter, p)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ap.client.SetKey()
+	if resp.Meta.Unsecure {
+		err = ap.client.Ping()
+	} else {
+		err = ap.client.SetKey()
+	}
 	if err != nil {
 		return nil, err
 	}

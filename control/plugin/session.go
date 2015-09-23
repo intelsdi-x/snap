@@ -267,24 +267,27 @@ func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*Se
 	case NativeRPC:
 		enc = encoding.NewGobEncoder()
 	}
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, err, 2
+	ss := &SessionState{
+		Arg:     pluginArg,
+		Encoder: enc,
+
+		plugin:   plugin,
+		token:    rs,
+		killChan: make(chan int),
+		logger:   logger,
 	}
-	encrypt := encrypter.New(pluginArg.ControlPubKey, key)
-	enc.SetEncrypter(encrypt)
 
-	return &SessionState{
-		Arg:       pluginArg,
-		Encoder:   enc,
-		Encrypter: encrypt,
-
-		plugin:     plugin,
-		token:      rs,
-		killChan:   make(chan int),
-		logger:     logger,
-		privateKey: key,
-	}, nil, 0
+	if !meta.Unsecure {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return nil, err, 2
+		}
+		encrypt := encrypter.New(nil, key)
+		enc.SetEncrypter(encrypt)
+		ss.Encrypter = encrypt
+		ss.privateKey = key
+	}
+	return ss, nil, 0
 }
 
 func init() {
