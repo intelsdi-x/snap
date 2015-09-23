@@ -3,7 +3,6 @@
 package control
 
 import (
-	"crypto/rsa"
 	"errors"
 	"fmt"
 	"os"
@@ -183,17 +182,13 @@ func (lp *loadedPlugin) LoadedTimestamp() *time.Time {
 type pluginManager struct {
 	metricCatalog catalogsMetrics
 	loadedPlugins *loadedPlugins
-	privateKey    *rsa.PrivateKey
-	publicKey     *rsa.PublicKey
 	logPath       string
 }
 
-func newPluginManager(pubKey *rsa.PublicKey, privKey *rsa.PrivateKey) *pluginManager {
+func newPluginManager() *pluginManager {
 	p := &pluginManager{
 		loadedPlugins: newLoadedPlugins(),
 		logPath:       "/tmp",
-		privateKey:    privKey,
-		publicKey:     pubKey,
 	}
 	return p
 }
@@ -242,7 +237,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, perror.New(err)
 	}
 
-	ap, err := newAvailablePlugin(resp, p.privateKey, emitter, ePlugin)
+	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -251,7 +246,11 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		return nil, perror.New(err)
 	}
 
-	err = ap.client.SetKey()
+	if resp.Meta.Unsecure {
+		err = ap.client.Ping()
+	} else {
+		err = ap.client.SetKey()
+	}
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -425,7 +424,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 
 func (p *pluginManager) GenerateArgs(pluginPath string) plugin.Arg {
 	pluginLog := filepath.Join(p.logPath, filepath.Base(pluginPath)) + ".log"
-	return plugin.NewArg(p.publicKey, pluginLog)
+	return plugin.NewArg(pluginLog)
 }
 
 func (p *pluginManager) teardown() {

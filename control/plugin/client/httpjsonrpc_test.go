@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	key, _    = rsa.GenerateKey(crand.Reader, 2048)
+	key, _    = rsa.GenerateKey(crand.Reader, 1024)
 	symkey, _ = encrypter.GenerateKey()
 )
 
@@ -122,7 +122,7 @@ func (m *mockSessionStatePluginProxy) Kill(arg []byte, b *[]byte) error {
 var httpStarted = false
 
 func startHTTPJSONRPC() (string, *mockSessionStatePluginProxy) {
-	encr := encrypter.New(&key.PublicKey, key)
+	encr := encrypter.New(&key.PublicKey, nil)
 	encr.Key = symkey
 	ee := encoding.NewJsonEncoder()
 	ee.SetEncrypter(encr)
@@ -159,7 +159,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 
 	Convey("Collector Client", t, func() {
 		session.c = true
-		c, err := NewCollectorHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second, &key.PublicKey, key)
+		c, err := NewCollectorHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second, &key.PublicKey, true)
 		So(err, ShouldBeNil)
 		So(c, ShouldNotBeNil)
 		cl := c.(*httpJSONRPCClient)
@@ -253,7 +253,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 
 	Convey("Processor Client", t, func() {
 		session.c = false
-		p, _ := NewProcessorHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second, &key.PublicKey, key)
+		p, _ := NewProcessorHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second, &key.PublicKey, true)
 		cl := p.(*httpJSONRPCClient)
 		cl.encrypter.Key = symkey
 		So(p, ShouldNotBeNil)
@@ -293,7 +293,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 
 	Convey("Publisher Client", t, func() {
 		session.c = false
-		p, _ := NewPublisherHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second, &key.PublicKey, key)
+		p, _ := NewPublisherHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second, &key.PublicKey, true)
 		cl := p.(*httpJSONRPCClient)
 		cl.encrypter.Key = symkey
 		So(p, ShouldNotBeNil)

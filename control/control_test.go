@@ -2,8 +2,6 @@ package control
 
 import (
 	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
@@ -363,7 +361,6 @@ func TestStop(t *testing.T) {
 }
 
 func TestPluginCatalog(t *testing.T) {
-	key, _ := rsa.GenerateKey(rand.Reader, 2048)
 	ts := time.Now()
 
 	c := New()
@@ -371,7 +368,7 @@ func TestPluginCatalog(t *testing.T) {
 	// We need our own plugin manager to drop mock
 	// loaded plugins into.  Aribitrarily adding
 	// plugins from the pm is no longer supported.
-	tpm := newPluginManager(&key.PublicKey, key)
+	tpm := newPluginManager()
 	c.pluginManager = tpm
 
 	lp1 := new(loadedPlugin)

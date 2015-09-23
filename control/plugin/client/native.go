@@ -30,16 +30,16 @@ type PluginNativeClient struct {
 	encrypter  *encrypter.Encrypter
 }
 
-func NewCollectorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginCollectorClient, error) {
-	return newNativeClient(address, timeout, plugin.CollectorPluginType, pub, priv)
+func NewCollectorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginCollectorClient, error) {
+	return newNativeClient(address, timeout, plugin.CollectorPluginType, pub, secure)
 }
 
-func NewPublisherNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginPublisherClient, error) {
-	return newNativeClient(address, timeout, plugin.PublisherPluginType, pub, priv)
+func NewPublisherNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginPublisherClient, error) {
+	return newNativeClient(address, timeout, plugin.PublisherPluginType, pub, secure)
 }
 
-func NewProcessorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, priv *rsa.PrivateKey) (PluginProcessorClient, error) {
-	return newNativeClient(address, timeout, plugin.ProcessorPluginType, pub, priv)
+func NewProcessorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginProcessorClient, error) {
+	return newNativeClient(address, timeout, plugin.ProcessorPluginType, pub, secure)
 }
 
 func (p *PluginNativeClient) Ping() error {
@@ -220,7 +220,7 @@ func (p *PluginNativeClient) GetType() string {
 	return upcaseInitial(p.pluginType.String())
 }
 
-func newNativeClient(address string, timeout time.Duration, t plugin.PluginType, pub *rsa.PublicKey, priv *rsa.PrivateKey) (*PluginNativeClient, error) {
+func newNativeClient(address string, timeout time.Duration, t plugin.PluginType, pub *rsa.PublicKey, secure bool) (*PluginNativeClient, error) {
 	// Attempt to dial address error on timeout or problem
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	// Return nil RPCClient and err if encoutered
@@ -233,16 +233,18 @@ func newNativeClient(address string, timeout time.Duration, t plugin.PluginType,
 		pluginType: t,
 	}
 
-	key, err := encrypter.GenerateKey()
-	if err != nil {
-		return nil, err
-	}
 	p.encoder = encoding.NewGobEncoder()
 
-	encrypter := encrypter.New(pub, priv)
-	encrypter.Key = key
-	p.encrypter = encrypter
-	p.encoder.SetEncrypter(encrypter)
+	if secure {
+		key, err := encrypter.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
+		encrypter := encrypter.New(pub, nil)
+		encrypter.Key = key
+		p.encrypter = encrypter
+		p.encoder.SetEncrypter(encrypter)
+	}
 
 	return p, nil
 }
