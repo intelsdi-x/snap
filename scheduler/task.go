@@ -68,7 +68,6 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 		id:               taskId,
 		name:             name,
 		schResponseChan:  make(chan schedule.Response),
-		killChan:         make(chan struct{}),
 		schedule:         s,
 		state:            core.TaskStopped,
 		creationTime:     time.Now(),
@@ -174,6 +173,7 @@ func (t *task) Spin() {
 	defer t.Unlock()
 	if t.state == core.TaskStopped {
 		t.state = core.TaskSpinning
+		t.killChan = make(chan struct{})
 		// spin in a goroutine
 		go t.spin()
 	}
@@ -183,7 +183,7 @@ func (t *task) Stop() {
 	t.Lock()
 	defer t.Unlock()
 	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
-		t.killChan <- struct{}{}
+		close(t.killChan)
 	}
 }
 
@@ -191,7 +191,7 @@ func (t *task) Kill() {
 	t.Lock()
 	defer t.Unlock()
 	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
-		t.killChan <- struct{}{}
+		close(t.killChan)
 		t.state = core.TaskDisabled
 	}
 }
@@ -274,6 +274,7 @@ func (t *task) spin() {
 		case <-t.killChan:
 			// Only here can it truly be stopped
 			t.state = core.TaskStopped
+			t.lastFireTime = time.Time{}
 			return
 		}
 	}
@@ -289,7 +290,11 @@ func (t *task) fire() {
 }
 
 func (t *task) waitForSchedule() {
-	t.schResponseChan <- t.schedule.Wait(t.lastFireTime)
+	select {
+	case <-t.killChan:
+		return
+	case t.schResponseChan <- t.schedule.Wait(t.lastFireTime):
+	}
 }
 
 type taskCollection struct {
