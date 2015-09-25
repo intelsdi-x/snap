@@ -938,6 +938,8 @@ func TestPluginRestCalls(t *testing.T) {
 				plr4 := r4.Body.(*rbody.ScheduledTaskStopped)
 				So(plr4.ID, ShouldEqual, id)
 
+				time.Sleep(1 * time.Second)
+
 				r5 := getTasks(port)
 				So(r5.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
 				plr5 := r5.Body.(*rbody.ScheduledTaskListReturned)

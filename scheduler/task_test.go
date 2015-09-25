@@ -89,18 +89,6 @@ func TestTask(t *testing.T) {
 				task.Stop()
 				time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 				So(task.state, ShouldEqual, core.TaskStopped)
-				Convey("Stopping a stopped tasks should not send to kill channel", func() {
-					task.Stop()
-					b := false
-					select {
-					case <-task.killChan:
-						b = true
-					default:
-						b = false
-					}
-					So(task.state, ShouldEqual, core.TaskStopped)
-					So(b, ShouldBeFalse)
-				})
 			})
 		})
 
