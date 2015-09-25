@@ -125,12 +125,13 @@ func watchTask(id, port int) *watchTaskResult {
 				ste := &rbody.StreamedTaskEvent{}
 				err := json.Unmarshal(line, ste)
 				if err != nil {
+					r.close()
 					return
 				}
 				switch ste.EventType {
 				case rbody.TaskWatchTaskDisabled:
 					r.eventChan <- ste.EventType
-					close(r.doneChan)
+					r.close()
 					return
 				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
 					r.eventChan <- ste.EventType
@@ -1029,7 +1030,6 @@ func TestPluginRestCalls(t *testing.T) {
 				id := plr1.ID
 
 				// Change buffer window to 10ms (do not do this IRL)
-				// sample 1.json should fail after 10 attempts and be disabled
 				StreamingBufferWindow = 0.01
 				r := watchTask(id, port)
 				time.Sleep(time.Millisecond * 100)
@@ -1052,24 +1052,8 @@ func TestPluginRestCalls(t *testing.T) {
 				}()
 				<-wait
 				stopTask(id, port)
-				//var r []string
-				//wait := make(chan struct{})
-				//go func() {
-				//	r = watchTask(id, port)
-				//	close(wait)
-				//}()
-
-				// Just enough time for watcher to start
-				//time.Sleep(time.Millisecond * 100)
-				//stopTask(id, port)
-				//startTask(id, port)
-
-				// Wait for streaming to end and then test the order and type of events from stream
-				//<-wait
 				So(len(events), ShouldBeGreaterThanOrEqualTo, 0)
 				So(events[0], ShouldEqual, "task-started")
-				// So(r[0], ShouldEqual, "task-stopped") disabled because of Bug
-				// So(r[1], ShouldEqual, "task-started")
 				for x := 1; x <= 9; x++ {
 					So(events[x], ShouldEqual, "metric-event")
 				}
