@@ -24,6 +24,7 @@ var (
 	StreamingBufferWindow = 0.1
 
 	ErrStreamingUnsupported = errors.New("Streaming unsupported")
+	ErrStateUnsupported     = errors.New("State unsupported")
 )
 
 type configItem struct {
@@ -77,6 +78,46 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	opts = append(opts, core.OptionStopOnFailure(10))
 
 	task, errs := s.mt.CreateTask(sch, tr.Workflow, tr.Start, opts...)
+	if errs != nil && len(errs.Errors()) != 0 {
+		var errMsg string
+		for _, e := range errs.Errors() {
+			errMsg = errMsg + e.Error() + " -- "
+		}
+		respond(500, rbody.FromError(errors.New(errMsg[:len(errMsg)-4])), w)
+		return
+	}
+
+	taskB := rbody.AddSchedulerTaskFromTask(task)
+	respond(201, taskB, w)
+}
+
+//enableTask enables a disabled task by cloning the original task
+//and start it on the creation.
+func (s *Server) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
+		return
+	}
+	tr, err1 := s.mt.GetTask(id)
+	if err1 != nil {
+		respond(404, rbody.FromError(err1), w)
+		return
+	}
+
+	//Only Disabled state allows to be enabled
+	if tr.State() != core.TaskDisabled {
+		respond(400, rbody.FromError(ErrStateUnsupported), w)
+		return
+	}
+
+	var opts []core.TaskOption
+	//Copy the original task name
+	opts = append(opts, core.SetTaskName(tr.GetName()))
+	if tr.DeadlineDuration() > 0 {
+		opts = append(opts, core.TaskDeadlineDuration(tr.DeadlineDuration()))
+	}
+	task, errs := s.mt.CreateTask(tr.Schedule(), tr.WMap(), true, opts...)
 	if errs != nil && len(errs.Errors()) != 0 {
 		var errMsg string
 		for _, e := range errs.Errors() {

@@ -181,6 +181,21 @@ func removeTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
+func enableTask(id, port int) *APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/enable", port, id)
+	client := &http.Client{}
+	req, err := http.NewRequest("PUT", uri, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
 func createTask(sample, name, interval string, noStart bool, port int) *APIResponse {
 	jsonP, err := ioutil.ReadFile("./wmap_sample/" + sample)
 	if err != nil {
@@ -1028,6 +1043,69 @@ func TestPluginRestCalls(t *testing.T) {
 				for x := 2; x <= 11; x++ {
 					So(r[x], ShouldEqual, "metric-event")
 				}
+			})
+		})
+		Convey("Enale task - put - /v1/tasks/:id/enable", func() {
+			Convey("enable a disabled task", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
+
+				r1 := createTask("1.json", "xenu", "10ms", true, port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+
+				id := plr1.ID
+
+				// Change buffer window to 10ms
+				// sample 1.json should fail after 10 attempts and be disabled
+				var r []string
+				wait := make(chan struct{})
+				go func() {
+					r = watchTask(id, port)
+					close(wait)
+				}()
+
+				// Just enough time for watcher to start
+				time.Sleep(time.Millisecond * 100)
+				stopTask(id, port)
+				startTask(id, port)
+
+				// Wait for streaming to end and then test the order and type of events from stream
+				<-wait
+				So(len(r), ShouldBeGreaterThanOrEqualTo, 12)
+				for x := 2; x <= 11; x++ {
+					So(r[x], ShouldEqual, "metric-event")
+				}
+
+				//enable a disabled task
+				r2 := enableTask(id, port)
+				plr2 := r2.Body.(*rbody.AddScheduledTask)
+
+				So(plr2.State, ShouldEqual, "Running")
+				So(plr2.Name, ShouldEqual, plr1.Name)
+			})
+			Convey("enable a running task", func() {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(RIEMANN_PLUGIN_PATH, port)
+				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
+
+				r1 := createTask("1.json", "apple", "10ms", true, port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+
+				id := plr1.ID
+
+				//enable a running task
+				r2 := enableTask(id, port)
+				plr2 := r2.Body.(*rbody.Error)
+				So(plr2.Error(), ShouldEqual, "State unsupported")
 			})
 		})
 	})

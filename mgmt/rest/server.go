@@ -84,6 +84,7 @@ type managesTasks interface {
 	StopTask(uint64) []perror.PulseError
 	RemoveTask(uint64) error
 	WatchTask(uint64, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
+	EnableTask(uint64) (core.Task, core.TaskErrors)
 }
 
 type Server struct {
@@ -144,6 +145,7 @@ func (s *Server) start(addrString string) {
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
 	s.r.DELETE("/v1/tasks/:id", s.removeTask)
+	s.r.PUT("/v1/tasks/:id/enable", s.enableTask)
 
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)

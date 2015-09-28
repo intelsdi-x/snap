@@ -22,6 +22,7 @@ help, h		Shows a list of commands or help for one command
 #### task
 ```
 create		create <task file json|yaml>
+enable      enable <task_id>
 list		list
 start		start <task_id>
 stop		stop <task_id>
