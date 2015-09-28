@@ -77,7 +77,7 @@ var (
 		Usage: "The amount of time to run the task [appends to start or creates a start time before a stop]",
 	}
 	flTaskSchedNoStart = cli.BoolFlag{
-		Name:  "--no-start",
+		Name:  "no-start",
 		Usage: "Do not start task on creation [normally started on creation]",
 	}
 
