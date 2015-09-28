@@ -425,3 +425,24 @@ func exportTask(ctx *cli.Context) {
 	tb, err := json.Marshal(task)
 	fmt.Println(string(tb))
 }
+
+func enableTask(ctx *cli.Context) {
+	if len(ctx.Args()) != 1 {
+		fmt.Print("Incorrect usage\n")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+
+	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
+	if err != nil {
+		fmt.Printf("Incorrect usage - %v\n", err.Error())
+		os.Exit(1)
+	}
+	r := pClient.EnableTask(int(id))
+	if r.Err != nil {
+		fmt.Printf("Error enable task:\n%v\n", r.Err)
+		os.Exit(1)
+	}
+	fmt.Println("Task enabled:")
+	fmt.Printf("ID: %d\n", r.ID)
+}

@@ -22,6 +22,7 @@ var (
 
 	ErrMetricManagerNotSet = errors.New("MetricManager is not set.")
 	ErrSchedulerNotStarted = errors.New("Scheduler is not started.")
+	ErrGetTask             = errors.New("Task can not be found.")
 )
 
 type schedulerState int
@@ -187,6 +188,27 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	}
 
 	return task, te
+}
+
+func (s *scheduler) EnableTask(id uint64) (core.Task, core.TaskErrors) {
+	logger := s.logger.WithField("_block", "enable-task")
+	// Create a container for task errors
+	te := &taskErrors{
+		errs: make([]perror.PulseError, 0),
+	}
+
+	task, err := s.GetTask(id)
+	if err != nil {
+		te.errs = append(te.errs, perror.New(err))
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error(ErrGetTask.Error())
+		return nil, te
+	}
+	tsk, er := s.CreateTask(task.Schedule(), task.WMap(), true, task.Option())
+	if er != nil {
+		return nil, er
+	}
+	return tsk, nil
 }
 
 // RemoveTask given a tasks id.  The task must be stopped.
