@@ -162,7 +162,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	// send initial stream open event
 	so := rbody.StreamedTaskEvent{
 		EventType: rbody.TaskWatchStreamOpen,
-		Message:   "Stream opended",
+		Message:   "Stream opened",
 	}
 	fmt.Fprintf(w, "%s\n", so.ToJSON())
 	flusher.Flush()
