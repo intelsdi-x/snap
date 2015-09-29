@@ -1,3 +1,22 @@
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2015 Intel Coporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package rest
 
 import (
@@ -84,6 +103,7 @@ type managesTasks interface {
 	StopTask(uint64) []perror.PulseError
 	RemoveTask(uint64) error
 	WatchTask(uint64, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
+	EnableTask(uint64) (core.Task, core.TaskErrors)
 }
 
 type Server struct {
@@ -144,6 +164,7 @@ func (s *Server) start(addrString string) {
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
 	s.r.DELETE("/v1/tasks/:id", s.removeTask)
+	s.r.PUT("/v1/tasks/:id/enable", s.enableTask)
 
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)

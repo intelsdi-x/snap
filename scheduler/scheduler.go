@@ -1,3 +1,22 @@
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2015 Intel Coporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package scheduler
 
 import (
@@ -22,6 +41,7 @@ var (
 
 	ErrMetricManagerNotSet = errors.New("MetricManager is not set.")
 	ErrSchedulerNotStarted = errors.New("Scheduler is not started.")
+	ErrGetTask             = errors.New("Task can not be found.")
 )
 
 type schedulerState int
@@ -187,6 +207,27 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	}
 
 	return task, te
+}
+
+func (s *scheduler) EnableTask(id uint64) (core.Task, core.TaskErrors) {
+	logger := s.logger.WithField("_block", "enable-task")
+	// Create a container for task errors
+	te := &taskErrors{
+		errs: make([]perror.PulseError, 0),
+	}
+
+	task, err := s.GetTask(id)
+	if err != nil {
+		te.errs = append(te.errs, perror.New(err))
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error(ErrGetTask.Error())
+		return nil, te
+	}
+	tsk, er := s.CreateTask(task.Schedule(), task.WMap(), true, task.Option())
+	if er != nil {
+		return nil, er
+	}
+	return tsk, nil
 }
 
 // RemoveTask given a tasks id.  The task must be stopped.
