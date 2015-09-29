@@ -1,12 +1,13 @@
 package client
 
 import (
+	"bytes"
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/control/plugin/encoding"
+	"github.com/intelsdi-x/pulse/control/plugin/encrypter"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
@@ -25,44 +28,96 @@ type httpJSONRPCClient struct {
 	id         uint64
 	timeout    time.Duration
 	pluginType plugin.PluginType
+	encrypter  *encrypter.Encrypter
+	encoder    encoding.Encoder
 }
 
 // NewCollectorHttpJSONRPCClient returns CollectorHttpJSONRPCClient
-func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration) PluginCollectorClient {
-	return &httpJSONRPCClient{
+func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginCollectorClient, error) {
+	hjr := &httpJSONRPCClient{
 		url:        u,
 		timeout:    timeout,
 		pluginType: plugin.CollectorPluginType,
+		encoder:    encoding.NewJsonEncoder(),
 	}
+	if secure {
+		key, err := encrypter.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
+		e := encrypter.New(pub, nil)
+		e.Key = key
+		hjr.encoder.SetEncrypter(e)
+		hjr.encrypter = e
+	}
+	return hjr, nil
 }
 
-func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration) PluginProcessorClient {
-	return &httpJSONRPCClient{
+func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginProcessorClient, error) {
+	hjr := &httpJSONRPCClient{
 		url:        u,
 		timeout:    timeout,
 		pluginType: plugin.ProcessorPluginType,
+		encoder:    encoding.NewJsonEncoder(),
 	}
+	if secure {
+		key, err := encrypter.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
+		e := encrypter.New(pub, nil)
+		e.Key = key
+		hjr.encoder.SetEncrypter(e)
+		hjr.encrypter = e
+	}
+	return hjr, nil
 }
 
-func NewPublisherHttpJSONRPCClient(u string, timeout time.Duration) PluginPublisherClient {
-	return &httpJSONRPCClient{
+func NewPublisherHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginPublisherClient, error) {
+	hjr := &httpJSONRPCClient{
 		url:        u,
 		timeout:    timeout,
 		pluginType: plugin.PublisherPluginType,
+		encoder:    encoding.NewJsonEncoder(),
 	}
+	if secure {
+		key, err := encrypter.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
+		e := encrypter.New(pub, nil)
+		e.Key = key
+		hjr.encoder.SetEncrypter(e)
+		hjr.encrypter = e
+	}
+	return hjr, nil
 }
 
 // Ping
 func (h *httpJSONRPCClient) Ping() error {
-	a := plugin.PingArgs{}
-	_, err := h.call("SessionState.Ping", []interface{}{a})
+	_, err := h.call("SessionState.Ping", []interface{}{})
+	return err
+}
+
+func (h *httpJSONRPCClient) SetKey() error {
+	key, err := h.encrypter.EncryptKey()
+	if err != nil {
+		return err
+	}
+	a := plugin.SetKeyArgs{Key: key}
+	_, err = h.call("SessionState.SetKey", []interface{}{a})
 	return err
 }
 
 // kill
 func (h *httpJSONRPCClient) Kill(reason string) error {
-	k := plugin.KillArgs{Reason: reason}
-	_, err := h.call("SessionState.Kill", []interface{}{k})
+	args := plugin.KillArgs{Reason: reason}
+	out, err := h.encoder.Encode(args)
+	if err != nil {
+		return err
+	}
+
+	_, err = h.call("SessionState.Kill", []interface{}{out})
 	return err
 }
 
@@ -84,10 +139,10 @@ func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, er
 			mts[i] = nil
 		}
 	}
-	var fromPlugin []core.Metric
+	var fromPlugin []plugin.PluginMetricType
 	for _, mt := range mts {
 		if mt != nil {
-			fromPlugin = append(fromPlugin, &plugin.PluginMetricType{
+			fromPlugin = append(fromPlugin, plugin.PluginMetricType{
 				Namespace_: mt.Namespace(),
 				Config_:    mt.Config(),
 			})
@@ -95,61 +150,32 @@ func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, er
 	}
 	// We only need to send a request to the plugin if there are metrics which were not available in the cache.
 	if len(fromPlugin) > 0 {
-		res, err := h.call("Collector.CollectMetrics", []interface{}{fromPlugin})
+		args := &plugin.CollectMetricsArgs{PluginMetricTypes: fromPlugin}
+		out, err := h.encoder.Encode(args)
 		if err != nil {
 			return nil, err
 		}
-		var metrics []core.Metric
-		if _, ok := res["result"]; !ok {
-			err := errors.New("Invalid response: expected the response map to contain the key 'result'.")
+		res, err := h.call("Collector.CollectMetrics", []interface{}{out})
+		if err != nil {
+			return nil, err
+		}
+		if len(res.Result) == 0 {
+			err := errors.New("Invalid response: result is 0")
 			logger.WithFields(log.Fields{
 				"_block":           "CollectMetrics",
 				"jsonrpc response": fmt.Sprintf("%+v", res),
 			}).Error(err)
 			return nil, err
 		}
-		if resmap, ok := res["result"].(map[string]interface{}); ok {
-			if _, ok := resmap["PluginMetrics"]; !ok {
-				err := errors.New("Invalid response: expected the result value to be a map that contains key 'PluginMetrics'.")
-				logger.WithFields(log.Fields{
-					"_block":           "CollectMetrics",
-					"jsonrpc response": fmt.Sprintf("%+v", res),
-				}).Error(err)
-				return nil, err
-			}
-			if pms, ok := resmap["PluginMetrics"].([]interface{}); ok {
-				for _, m := range pms {
-					j, err := json.Marshal(m)
-					if err != nil {
-						return nil, err
-					}
-					pmt := &plugin.PluginMetricType{}
-					if err := json.Unmarshal(j, &pmt); err != nil {
-						return nil, err
-					}
-					metrics = append(metrics, pmt)
-				}
-			} else {
-				err := errors.New("Invalid response: expected 'PluginMetrics' to contain a list of metrics")
-				logger.WithFields(log.Fields{
-					"_block":           "CollectMetrics",
-					"jsonrpc response": fmt.Sprintf("%+v", res),
-				}).Error(err)
-				return nil, err
-			}
-		} else {
-			err := errors.New("Invalid response: expected 'result' to be a map")
-			logger.WithFields(log.Fields{
-				"_block":           "CollectMetrics",
-				"jsonrpc response": fmt.Sprintf("%+v", res),
-			}).Error(err)
+		var mtr plugin.CollectMetricsReply
+		err = h.encoder.Decode(res.Result, &mtr)
+		if err != nil {
 			return nil, err
 		}
-		for _, m := range metrics {
+		for _, m := range mtr.PluginMetrics {
 			metricCache.put(core.JoinNamespace(m.Namespace()), m)
+			fromCache = append(fromCache, m)
 		}
-		metrics = append(metrics, fromCache...)
-		return metrics, err
 	}
 	return fromCache, nil
 }
@@ -160,56 +186,47 @@ func (h *httpJSONRPCClient) GetMetricTypes() ([]core.Metric, error) {
 	if err != nil {
 		return nil, err
 	}
-	var metrics []core.Metric
-	for _, m := range res["result"].(map[string]interface{})["PluginMetricTypes"].([]interface{}) {
-		j, err := json.Marshal(m)
-		if err != nil {
-			return nil, err
-		}
-		pmt := &plugin.PluginMetricType{}
-		if err := json.Unmarshal(j, &pmt); err != nil {
-			return nil, err
-		}
-		metrics = append(metrics, pmt)
+	var mtr plugin.GetMetricTypesReply
+	err = h.encoder.Decode(res.Result, &mtr)
+	if err != nil {
+		return nil, err
+	}
+	metrics := make([]core.Metric, len(mtr.PluginMetricTypes))
+	for i, mt := range mtr.PluginMetricTypes {
+		metrics[i] = mt
 	}
 	return metrics, nil
 }
 
 // GetConfigPolicy returns a config policy
-func (h *httpJSONRPCClient) GetConfigPolicy() (cpolicy.ConfigPolicy, error) {
-	res, err := h.call(fmt.Sprintf("%s.GetConfigPolicy", h.GetType()), []interface{}{})
+func (h *httpJSONRPCClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+	res, err := h.call("SessionState.GetConfigPolicy", []interface{}{})
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"_block": "GetConfigPolicy",
 			"result": fmt.Sprintf("%+v", res),
 			"error":  err,
 		}).Error("error getting config policy")
-		return cpolicy.ConfigPolicy{}, err
+		return nil, err
 	}
-	bres, err := json.Marshal(res["result"].(map[string]interface{}))
+	if len(res.Result) == 0 {
+		return nil, errors.New(res.Error)
+	}
+	var cpr plugin.GetConfigPolicyReply
+	err = h.encoder.Decode(res.Result, &cpr)
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"_block": "GetConfigPolicy",
-			"result": fmt.Sprintf("%+v", res),
-			"error":  err,
-		}).Error("error marshalling result into json")
-		return cpolicy.ConfigPolicy{}, err
+		return nil, err
 	}
-	cp := cpolicy.New()
-	if err := json.Unmarshal(bres, cp); err != nil {
-		logger.WithFields(log.Fields{
-			"_block": "GetConfigPolicy",
-			"result": string(bres),
-			"error":  err,
-		}).Error("error unmarshalling result into cpolicy")
-		return cpolicy.ConfigPolicy{}, err
-	}
-	return *cp, nil
+	return cpr.Policy, nil
 }
 
 func (h *httpJSONRPCClient) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
-	publisherArgs := plugin.PublishArgs{ContentType: contentType, Content: content, Config: config}
-	_, err := h.call("Publisher.Publish", []interface{}{publisherArgs})
+	args := plugin.PublishArgs{ContentType: contentType, Content: content, Config: config}
+	out, err := h.encoder.Encode(args)
+	if err != nil {
+		return nil
+	}
+	_, err = h.call("Publisher.Publish", []interface{}{out})
 	if err != nil {
 		return err
 	}
@@ -217,17 +234,17 @@ func (h *httpJSONRPCClient) Publish(contentType string, content []byte, config m
 }
 
 func (h *httpJSONRPCClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
-	processorArgs := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
-	res, err := h.call("Processor.Process", []interface{}{processorArgs})
+	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
+	out, err := h.encoder.Encode(args)
 	if err != nil {
 		return "", nil, err
 	}
-	bres, err := json.Marshal(res["result"].(map[string]interface{}))
+	res, err := h.call("Processor.Process", []interface{}{out})
 	if err != nil {
 		return "", nil, err
 	}
 	processorReply := &plugin.ProcessorReply{}
-	if err := json.Unmarshal(bres, processorReply); err != nil {
+	if err := h.encoder.Decode(res.Result, processorReply); err != nil {
 		return "", nil, err
 	}
 	return processorReply.ContentType, processorReply.Content, nil
@@ -237,7 +254,13 @@ func (h *httpJSONRPCClient) GetType() string {
 	return upcaseInitial(h.pluginType.String())
 }
 
-func (h *httpJSONRPCClient) call(method string, args []interface{}) (map[string]interface{}, error) {
+type jsonRpcResp struct {
+	Id     int    `json:"id"`
+	Result []byte `json:"result"`
+	Error  string `json:"error"`
+}
+
+func (h *httpJSONRPCClient) call(method string, args []interface{}) (*jsonRpcResp, error) {
 	data, err := json.Marshal(map[string]interface{}{
 		"method": method,
 		"id":     h.id,
@@ -255,8 +278,7 @@ func (h *httpJSONRPCClient) call(method string, args []interface{}) (map[string]
 		return nil, err
 	}
 	client := http.Client{Timeout: h.timeout}
-	resp, err := client.Post(h.url,
-		"application/json", strings.NewReader(string(data)))
+	resp, err := client.Post(h.url, "application/json", bytes.NewReader(data))
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"_block":  "call",
@@ -267,8 +289,8 @@ func (h *httpJSONRPCClient) call(method string, args []interface{}) (map[string]
 		return nil, err
 	}
 	defer resp.Body.Close()
-	result := make(map[string]interface{})
-	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	result := &jsonRpcResp{}
+	if err = json.NewDecoder(resp.Body).Decode(result); err != nil {
 		bs, _ := ioutil.ReadAll(resp.Body)
 		logger.WithFields(log.Fields{
 			"_block":      "call",

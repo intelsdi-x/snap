@@ -183,8 +183,11 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 		return nil, err
 	}
 
-	// Ping through client
-	err = ap.client.Ping()
+	if resp.Meta.Unsecure {
+		err = ap.client.Ping()
+	} else {
+		err = ap.client.SetKey()
+	}
 	if err != nil {
 		return nil, err
 	}

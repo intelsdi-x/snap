@@ -15,6 +15,8 @@ import (
 	"regexp"
 	"runtime"
 	"time"
+
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 )
 
 // Plugin type
@@ -63,6 +65,7 @@ var (
 )
 
 type Plugin interface {
+	GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
 }
 
 // PluginMeta for plugin
@@ -82,6 +85,8 @@ type PluginMeta struct {
 	ConcurrencyCount int
 	// should always only be one instance of this plugin running
 	Exclusive bool
+	// do not encrypt communication with this plugin
+	Unsecure bool
 }
 
 type metaOp func(m *PluginMeta)
@@ -95,6 +100,12 @@ func ConcurrencyCount(cc int) metaOp {
 func Exclusive(e bool) metaOp {
 	return func(m *PluginMeta) {
 		m.Exclusive = e
+	}
+}
+
+func Unsecure(e bool) metaOp {
+	return func(m *PluginMeta) {
+		m.Unsecure = e
 	}
 }
 
@@ -146,8 +157,6 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 type Arg struct {
 	// Plugin file path to binary
 	PluginLogPath string
-	// A public key from control used to verify RPC calls - not implemented yet
-	ControlPubKey *rsa.PublicKey
 	// Ping timeout duration
 	PingTimeoutDuration time.Duration
 
@@ -156,9 +165,8 @@ type Arg struct {
 	listenPort string
 }
 
-func NewArg(pubkey *rsa.PublicKey, logpath string) Arg {
+func NewArg(logpath string) Arg {
 	return Arg{
-		ControlPubKey:       pubkey,
 		PluginLogPath:       logpath,
 		PingTimeoutDuration: PingTimeoutDurationDefault,
 	}
@@ -174,6 +182,7 @@ type Response struct {
 	// its own loading requirements
 	State        PluginResponseState
 	ErrorMessage string
+	PublicKey    *rsa.PublicKey
 }
 
 // Start starts a plugin where:
@@ -182,7 +191,7 @@ type Response struct {
 // requestString - plugins arguments (marshaled json of control/plugin Arg struct)
 // returns an error and exitCode (exitCode from SessionState initilization or plugin termination code)
 func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
-	s, sErr, retCode := NewSessionState(requestString)
+	s, sErr, retCode := NewSessionState(requestString, c, m)
 	if sErr != nil {
 		return sErr, retCode
 	}
@@ -194,11 +203,6 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 
 	switch m.Type {
 	case CollectorPluginType:
-		r = &Response{
-			Type:  CollectorPluginType,
-			State: PluginSuccess,
-			Meta:  *m,
-		}
 		// Create our proxy
 		proxy := &collectorPluginProxy{
 			Plugin:  c.(CollectorPlugin),
@@ -206,11 +210,23 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 		}
 		// Register the proxy under the "Collector" namespace
 		rpc.RegisterName("Collector", proxy)
+
+		r = &Response{
+			Type:  CollectorPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		if !m.Unsecure {
+			r.PublicKey = &s.privateKey.PublicKey
+		}
 	case PublisherPluginType:
 		r = &Response{
 			Type:  PublisherPluginType,
 			State: PluginSuccess,
 			Meta:  *m,
+		}
+		if !m.Unsecure {
+			r.PublicKey = &s.privateKey.PublicKey
 		}
 		// Create our proxy
 		proxy := &publisherPluginProxy{
@@ -225,6 +241,9 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 			Type:  ProcessorPluginType,
 			State: PluginSuccess,
 			Meta:  *m,
+		}
+		if !m.Unsecure {
+			r.PublicKey = &s.privateKey.PublicKey
 		}
 		// Create our proxy
 		proxy := &processorPluginProxy{

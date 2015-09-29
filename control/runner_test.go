@@ -9,6 +9,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/control/routing"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -110,6 +111,14 @@ func (mpcc *MockHealthyPluginCollectorClient) Kill(string) error {
 	return nil
 }
 
+func (mucc *MockHealthyPluginCollectorClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+	return nil, errors.New("Fail")
+}
+
+func (mucc *MockHealthyPluginCollectorClient) SetKey() error {
+	return nil
+}
+
 type MockUnhealthyPluginCollectorClient struct{}
 
 func (mucc *MockUnhealthyPluginCollectorClient) Ping() error {
@@ -118,6 +127,14 @@ func (mucc *MockUnhealthyPluginCollectorClient) Ping() error {
 
 func (mucc *MockUnhealthyPluginCollectorClient) Kill(string) error {
 	return errors.New("Fail")
+}
+
+func (mucc *MockUnhealthyPluginCollectorClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+	return nil, errors.New("Fail")
+}
+
+func (mucc *MockUnhealthyPluginCollectorClient) SetKey() error {
+	return nil
 }
 
 type MockEmitter struct{}
@@ -258,7 +275,6 @@ func TestRunnerState(t *testing.T) {
 func TestRunnerPluginRunning(t *testing.T) {
 	// log.SetLevel(log.DebugLevel)
 	Convey("pulse/control", t, func() {
-
 		Convey("Runner", func() {
 			Convey("startPlugin", func() {
 

@@ -1,9 +1,6 @@
 package plugin
 
 import (
-	"encoding/json"
-	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -39,76 +36,9 @@ func TestMetricType(t *testing.T) {
 	})
 }
 
-func TestSessionState(t *testing.T) {
-	Convey("SessionState", t, func() {
-		now := time.Now()
-		ss := &SessionState{
-			LastPing: now,
-			Arg:      &Arg{PingTimeoutDuration: 500 * time.Millisecond},
-		}
-		flag := true
-		ss.logger = log.New(os.Stdout, ">>>", log.Ldate|log.Ltime)
-		Convey("Ping", func() {
-
-			ss.Ping(PingArgs{}, &flag)
-			So(ss.LastPing.Nanosecond(), ShouldBeGreaterThan, now.Nanosecond())
-		})
-		Convey("Kill", func() {
-			wtf := ss.Kill(KillArgs{Reason: "testing"}, &flag)
-			So(wtf, ShouldBeNil)
-		})
-		Convey("GenerateResponse", func() {
-			r := &Response{}
-			ss.listenAddress = "1234"
-			ss.token = "asdf"
-			response := ss.generateResponse(r)
-			So(response, ShouldHaveSameTypeAs, []byte{})
-			json.Unmarshal(response, &r)
-			So(r.ListenAddress, ShouldEqual, "1234")
-			So(r.Token, ShouldEqual, "asdf")
-		})
-		Convey("InitSessionState", func() {
-			var mockPluginArgs string = "{\"RunAsDaemon\": true, \"PingTimeoutDuration\": 2000000000}"
-			sessionState, err, rc := NewSessionState(mockPluginArgs)
-			So(sessionState.ListenAddress(), ShouldEqual, "")
-			So(rc, ShouldEqual, 0)
-			So(err, ShouldBeNil)
-			So(sessionState, ShouldNotBeNil)
-			So(sessionState.PingTimeoutDuration, ShouldResemble, 2*time.Second)
-		})
-		Convey("InitSessionState with invalid args", func() {
-			var mockPluginArgs string = ""
-			_, err, _ := NewSessionState(mockPluginArgs)
-			So(err, ShouldNotBeNil)
-		})
-		Convey("InitSessionState with a custom log path", func() {
-			var mockPluginArgs string = "{\"RunAsDaemon\": false, \"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
-			sessionState, err, rc := NewSessionState(mockPluginArgs)
-			So(rc, ShouldEqual, 0)
-			So(err, ShouldBeNil)
-			So(sessionState, ShouldNotBeNil)
-		})
-		Convey("heartbeatWatch timeout expired", func() {
-			PingTimeoutLimit = 1
-			ss.LastPing = now.Truncate(time.Minute)
-			killChan := make(chan int)
-			ss.heartbeatWatch(killChan)
-			rc := <-killChan
-			So(rc, ShouldEqual, 0)
-		})
-		Convey("heatbeatWatch reset", func() {
-			PingTimeoutLimit = 2
-			killChan := make(chan int)
-			ss.heartbeatWatch(killChan)
-			rc := <-killChan
-			So(rc, ShouldEqual, 0)
-		})
-	})
-}
-
 func TestArg(t *testing.T) {
 	Convey("NewArg", t, func() {
-		arg := NewArg(nil, "/tmp/pulse/plugin.log")
+		arg := NewArg("/tmp/pulse/plugin.log")
 		So(arg, ShouldNotBeNil)
 	})
 }

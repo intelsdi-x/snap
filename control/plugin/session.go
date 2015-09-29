@@ -2,19 +2,27 @@ package plugin
 
 import (
 	"crypto/rand"
+	"crypto/rsa"
 	"encoding/base64"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"time"
+
+	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/control/plugin/encoding"
+	"github.com/intelsdi-x/pulse/control/plugin/encrypter"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
 // Session interface
 type Session interface {
-	Ping(arg PingArgs, b *bool) error
-	Kill(arg KillArgs, b *bool) error
+	Ping([]byte, *[]byte) error
+	Kill([]byte, *[]byte) error
+	GetConfigPolicy([]byte, *[]byte) error
 	Logger() *log.Logger
 	ListenAddress() string
 	SetListenAddress(string)
@@ -26,6 +34,11 @@ type Session interface {
 	generateResponse(r *Response) []byte
 	heartbeatWatch(killChan chan int)
 	isDaemon() bool
+
+	SetKey(SetKeyArgs, *[]byte) error
+
+	Encode(interface{}) ([]byte, error)
+	Decode([]byte, interface{}) error
 }
 
 // Arguments passed to ping
@@ -38,33 +51,70 @@ type KillArgs struct {
 // Started plugin session state
 type SessionState struct {
 	*Arg
+	*encrypter.Encrypter
+	encoding.Encoder
+
 	LastPing time.Time
 
+	plugin        Plugin
 	token         string
 	listenAddress string
 	killChan      chan int
 	logger        *log.Logger
+	privateKey    *rsa.PrivateKey
+	encoder       encoding.Encoder
+}
+
+type GetConfigPolicyArgs struct{}
+
+type GetConfigPolicyReply struct {
+	Policy *cpolicy.ConfigPolicy
+}
+
+// GetConfigPolicy returns the plugin's policy
+func (s *SessionState) GetConfigPolicy(args []byte, reply *[]byte) error {
+	defer catchPluginPanic(s.Logger())
+
+	s.logger.Println("GetConfigPolicy called")
+
+	policy, err := s.plugin.GetConfigPolicy()
+	if err != nil {
+		return errors.New(fmt.Sprintf("GetConfigPolicy call error : %s", err.Error()))
+	}
+
+	r := GetConfigPolicyReply{Policy: policy}
+	*reply, err = s.Encode(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Ping returns nothing in normal operation
-func (s *SessionState) Ping(arg PingArgs, b *bool) error {
+func (s *SessionState) Ping(arg []byte, reply *[]byte) error {
 	// For now we return nil. We can return an error if we are shutting
 	// down or otherwise in a state we should signal poor health.
 	// Reply should contain any context.
 	s.ResetHeartbeat()
 	s.logger.Println("Ping received")
+	*reply = []byte{}
 	return nil
 }
 
 // Kill will stop a running plugin
-func (s *SessionState) Kill(arg KillArgs, b *bool) error {
-	// Right now we have no coordination needed. In the future we should
-	// add control to wait on a lock before halting.
-	s.logger.Printf("Kill called by agent, reason: %s\n", arg.Reason)
+func (s *SessionState) Kill(args []byte, reply *[]byte) error {
+	a := &KillArgs{}
+	err := s.Decode(args, a)
+	if err != nil {
+		return err
+	}
+	s.logger.Printf("Kill called by agent, reason: %s\n", a.Reason)
 	go func() {
 		time.Sleep(time.Second * 2)
 		s.killChan <- 0
 	}()
+	*reply = []byte{}
 	return nil
 }
 
@@ -106,6 +156,20 @@ func (s *SessionState) isDaemon() bool {
 	return !s.NoDaemon
 }
 
+type SetKeyArgs struct {
+	Key []byte
+}
+
+func (s *SessionState) SetKey(args SetKeyArgs, reply *[]byte) error {
+	s.logger.Println("SetKey called")
+	out, err := s.DecryptKey(args.Key)
+	if err != nil {
+		return err
+	}
+	s.Key = out
+	return nil
+}
+
 func (s *SessionState) generateResponse(r *Response) []byte {
 	// Add common plugin response properties
 	r.ListenAddress = s.listenAddress
@@ -140,7 +204,7 @@ func (s *SessionState) heartbeatWatch(killChan chan int) {
 // 0 - ok
 // 2 - error when unmarshaling pluginArgs
 // 3 - cannot open error files
-func NewSessionState(pluginArgsMsg string) (*SessionState, error, int) {
+func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*SessionState, error, int) {
 	pluginArg := &Arg{}
 	err := json.Unmarshal([]byte(pluginArgsMsg), pluginArg)
 	if err != nil {
@@ -177,9 +241,43 @@ func NewSessionState(pluginArgsMsg string) (*SessionState, error, int) {
 	}
 	logger := log.New(lf, ">>>", log.Ldate|log.Ltime)
 
-	return &SessionState{
-		Arg:      pluginArg,
+	var enc encoding.Encoder
+	switch meta.RPCType {
+	case JSONRPC:
+		enc = encoding.NewJsonEncoder()
+	case NativeRPC:
+		enc = encoding.NewGobEncoder()
+	}
+	ss := &SessionState{
+		Arg:     pluginArg,
+		Encoder: enc,
+
+		plugin:   plugin,
 		token:    rs,
 		killChan: make(chan int),
-		logger:   logger}, nil, 0
+		logger:   logger,
+	}
+
+	if !meta.Unsecure {
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return nil, err, 2
+		}
+		encrypt := encrypter.New(nil, key)
+		enc.SetEncrypter(encrypt)
+		ss.Encrypter = encrypt
+		ss.privateKey = key
+	}
+	return ss, nil, 0
+}
+
+func init() {
+	gob.Register(*(&ctypes.ConfigValueInt{}))
+	gob.Register(*(&ctypes.ConfigValueStr{}))
+	gob.Register(*(&ctypes.ConfigValueFloat{}))
+
+	gob.Register(cpolicy.NewPolicyNode())
+	gob.Register(&cpolicy.StringRule{})
+	gob.Register(&cpolicy.IntRule{})
+	gob.Register(&cpolicy.FloatRule{})
 }

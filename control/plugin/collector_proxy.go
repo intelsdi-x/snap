@@ -1,11 +1,8 @@
 package plugin
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 )
 
 // Arguments passed to CollectMetrics() for a Collector implementation
@@ -13,14 +10,14 @@ type CollectMetricsArgs struct {
 	PluginMetricTypes []PluginMetricType
 }
 
-func (c *CollectMetricsArgs) UnmarshalJSON(data []byte) error {
-	pmt := &[]PluginMetricType{}
-	if err := json.Unmarshal(data, pmt); err != nil {
-		return err
-	}
-	c.PluginMetricTypes = *pmt
-	return nil
-}
+//func (c *CollectMetricsArgs) UnmarshalJSON(data []byte) error {
+//	pmt := &[]PluginMetricType{}
+//	if err := json.Unmarshal(data, pmt); err != nil {
+//		return err
+//	}
+//	c.PluginMetricTypes = *pmt
+//	return nil
+//}
 
 // Reply assigned by a Collector implementation using CollectMetrics()
 type CollectMetricsReply struct {
@@ -36,53 +33,50 @@ type GetMetricTypesReply struct {
 	PluginMetricTypes []PluginMetricType
 }
 
-type GetConfigPolicyArgs struct{}
-
-type GetConfigPolicyReply struct {
-	Policy cpolicy.ConfigPolicy
-}
-
 type collectorPluginProxy struct {
 	Plugin  CollectorPlugin
 	Session Session
 }
 
-func (c *collectorPluginProxy) GetMetricTypes(args GetMetricTypesArgs, reply *GetMetricTypesReply) error {
+func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(c.Session.Logger())
 
 	c.Session.Logger().Println("GetMetricTypes called")
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()
+
 	mts, err := c.Plugin.GetMetricTypes()
 	if err != nil {
 		return errors.New(fmt.Sprintf("GetMetricTypes call error : %s", err.Error()))
 	}
-	reply.PluginMetricTypes = mts
+
+	r := GetMetricTypesReply{PluginMetricTypes: mts}
+	*reply, err = c.Session.Encode(r)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (c *collectorPluginProxy) CollectMetrics(args CollectMetricsArgs, reply *CollectMetricsReply) error {
+func (c *collectorPluginProxy) CollectMetrics(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(c.Session.Logger())
 	c.Session.Logger().Println("CollectMetrics called")
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()
-	ms, err := c.Plugin.CollectMetrics(args.PluginMetricTypes)
+
+	dargs := &CollectMetricsArgs{}
+	c.Session.Decode(args, dargs)
+
+	ms, err := c.Plugin.CollectMetrics(dargs.PluginMetricTypes)
 	if err != nil {
 		return errors.New(fmt.Sprintf("CollectMetrics call error : %s", err.Error()))
 	}
-	reply.PluginMetrics = ms
-	return nil
-}
 
-func (c *collectorPluginProxy) GetConfigPolicy(args GetConfigPolicyArgs, reply *GetConfigPolicyReply) error {
-	defer catchPluginPanic(c.Session.Logger())
-
-	c.Session.Logger().Println("GetConfigPolicy called")
-	policy, err := c.Plugin.GetConfigPolicy()
-
+	r := CollectMetricsReply{PluginMetrics: ms}
+	*reply, err = c.Session.Encode(r)
 	if err != nil {
-		return errors.New(fmt.Sprintf("GetConfigPolicy call error : %s", err.Error()))
+		return err
 	}
-	reply.Policy = policy
 	return nil
 }
