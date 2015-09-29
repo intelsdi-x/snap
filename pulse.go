@@ -389,7 +389,7 @@ func action(ctx *cli.Context) {
 				if file.IsDir() {
 					continue
 				}
-				if !strings.Contains(file.Name(), ".") {
+				if strings.HasSuffix(file.Name(), ".aci") || !(strings.HasSuffix(file.Name(), ".asc")) {
 					pl, err := c.Load(fmt.Sprintf("%s/%s", path, file.Name()))
 					if err != nil {
 						log.WithFields(log.Fields{
@@ -416,6 +416,7 @@ func action(ctx *cli.Context) {
 		log.Info("auto discover path is disabled")
 	}
 
+	//API
 	if !disableAPI {
 		log.Info("Rest API enabled on port ", apiPort)
 		r, err := rest.New(restHttps, restCert, restKey)

@@ -194,6 +194,11 @@ func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 	}
 }
 
+var (
+	AciPath = path.Join(strings.TrimRight(PulsePath, "build"), "pkg/unpackage/")
+	AciFile = "pulse-collector-plugin-dummy1.darwin-x86_64.aci"
+)
+
 type mocksigningManager struct {
 	signed bool
 }
@@ -253,6 +258,7 @@ func TestLoad(t *testing.T) {
 				// So(len(c.pluginManager.LoadedPlugins.Table()), ShouldBeGreaterThan, 0)
 			})
 
+			//Plugin Signing
 			Convey("loads successfully with trust enabled", func() {
 				c := New()
 				c.pluginTrust = 1
@@ -287,6 +293,32 @@ func TestLoad(t *testing.T) {
 				_, err := c.Load(PluginPath)
 				time.Sleep(100)
 				So(err, ShouldNotBeNil)
+			})
+
+			//Unpackaging
+			Convey("load untar error with package", func() {
+				c := New()
+				lpe := newListenToPluginEvent()
+				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+				c.Start()
+				PackagePath := path.Join(AciPath, "dummy.aci")
+				_, err := c.Load(PackagePath)
+				time.Sleep(100)
+				So(err, ShouldNotBeNil)
+				So(c.pluginManager.all(), ShouldBeEmpty)
+			})
+
+			Convey("No exec file error", func() {
+				c := New()
+				lpe := newListenToPluginEvent()
+				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+				c.Start()
+				PackagePath := path.Join(AciPath, "noExec.aci")
+				_, err := c.Load(PackagePath)
+				time.Sleep(100)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, "Error no executable files found")
+				So(c.pluginManager.all(), ShouldBeEmpty)
 			})
 		})
 	} else {

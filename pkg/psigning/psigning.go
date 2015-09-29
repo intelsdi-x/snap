@@ -38,7 +38,7 @@ var (
 	ErrKeyringFileNotFound   = errors.New("Keyring file (.gpg) not found")
 	ErrUnableToReadKeyring   = errors.New("Unable to read keyring")
 	ErrSignedFileNotFound    = errors.New("Signed file not found")
-	ErrSignatureFileNotFound = errors.New("Signature file (.asc) not found")
+	ErrSignatureFileNotFound = errors.New("Signature file (.asc) not found. Did you use the -a flag?")
 	ErrCheckSignature        = errors.New("Error checking signature")
 )
 
