@@ -1095,12 +1095,12 @@ func TestPluginRestCalls(t *testing.T) {
 				stopTask(id, port)
 				startTask(id, port)
 
-				// Wait for streaming to end and then test the order and type of events from stream
+				// Wait for streaming to end
 				<-wait
-				So(len(r), ShouldBeGreaterThanOrEqualTo, 12)
-				for x := 2; x <= 11; x++ {
-					So(r[x], ShouldEqual, "metric-event")
-				}
+				So(len(r), ShouldBeGreaterThanOrEqualTo, 3)
+				So(r[0], ShouldEqual, "task-stopped")
+				So(r[1], ShouldEqual, "task-started")
+				So(r[2], ShouldEqual, "task-disabled")
 
 				//enable a disabled task
 				r2 := enableTask(id, port)
