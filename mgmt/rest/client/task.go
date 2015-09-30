@@ -1,12 +1,33 @@
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2015 Intel Coporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package client
 
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	"github.com/intelsdi-x/pulse/mgmt/rest/request"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
@@ -18,6 +39,10 @@ type Schedule struct {
 	StartTime *time.Time
 	StopTime  *time.Time
 }
+
+var (
+	disabledErr = errors.New("Enable can only be used for a disabled task")
+)
 
 func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, startTask bool) *CreateTaskResult {
 	t := request.TaskCreationRequest{
@@ -200,6 +225,26 @@ func (c *Client) RemoveTask(id int) *RemoveTasksResult {
 	default:
 		return &RemoveTasksResult{Err: ErrAPIResponseMetaType}
 	}
+}
+
+//EnableTask can enable a disabled task by cloning it.
+//The newly cloned task is started on the creation.
+func (c *Client) EnableTask(id int) *CreateTaskResult {
+	r := c.GetTask(uint(id))
+	if r.Err != nil {
+		return &CreateTaskResult{Err: r.Err}
+	}
+
+	if r.State != core.TaskStateLookup[core.TaskDisabled] {
+		return &CreateTaskResult{Err: disabledErr}
+	}
+
+	sch := &Schedule{Type: r.Schedule.Type, Interval: r.Schedule.Interval}
+	ct := c.CreateTask(sch, r.Workflow, r.Name, true)
+	if ct.Err != nil {
+		return &CreateTaskResult{Err: r.Err}
+	}
+	return ct
 }
 
 type CreateTaskResult struct {
