@@ -264,7 +264,6 @@ func TestTaskAgreements(t *testing.T) {
 									wg.Wait()
 									Convey("a member handles removing a task", func() {
 										t := tribes[rand.Intn(numOfTribes)]
-										So(t.intentBuffer, ShouldBeEmpty)
 										ok, _ := t.agreements[agreementName].TaskAgreement.Tasks.Contains(task1)
 										So(ok, ShouldBeTrue)
 										err := t.RemoveTask(agreementName, task1)
@@ -320,7 +319,7 @@ func TestTribeAgreements(t *testing.T) {
 
 			Convey("A member handles", func() {
 				agreementName := "agreement1"
-				t := tribes[rand.Intn(numOfTribes)]
+				t := tribes[1]
 				Convey("an out-of-order join agreement message", func() {
 					msg := &agreementMsg{
 						LTime:         t.clock.Increment(),
@@ -388,8 +387,8 @@ func TestTribeAgreements(t *testing.T) {
 										So(err.Error(), ShouldResemble, errUnknownMember.Error())
 
 										Convey("a member leaving an agreement it isn't part of", func() {
-											i := (int(t.memberlist.LocalNode().Port) + 1) % numOfTribes
-											err := t.LeaveAgreement(agreementName, tribes[i].memberlist.LocalNode().Name)
+											err := t.LeaveAgreement(agreementName, tribes[2].memberlist.LocalNode().Name)
+											So(err, ShouldNotBeNil)
 											So(err.Error(), ShouldResemble, errNotAMember.Error())
 
 											Convey("an unknown member trying to join an agreement", func() {

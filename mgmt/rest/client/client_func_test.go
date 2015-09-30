@@ -58,6 +58,7 @@ func getWMFromSample(sample string) *wmap.WorkflowMap {
 // When we eventually have a REST API Stop command this can be killed.
 func startAPI(port int) string {
 	// Start a REST API to talk to
+	rest.StreamingBufferWindow = 0.01
 	log.SetLevel(LOG_LEVEL)
 	r := rest.New()
 	c := control.New()
@@ -582,7 +583,7 @@ func TestPulseClient(t *testing.T) {
 				}
 
 				a := new(ea)
-				r := c.WatchTask(uint(p.ID))
+				r := c.WatchTask(p.ID)
 				wait := make(chan struct{})
 				go func() {
 					for {
@@ -606,8 +607,7 @@ func TestPulseClient(t *testing.T) {
 				a.Lock()
 				So(len(a.events), ShouldEqual, 10)
 				a.Unlock()
-				So(a.events[0], ShouldEqual, "task-stopped")
-				So(a.events[1], ShouldEqual, "task-started")
+				So(a.events[0], ShouldEqual, "task-started")
 				for x := 2; x <= 9; x++ {
 					So(a.events[x], ShouldEqual, "metric-event")
 				}

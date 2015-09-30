@@ -152,7 +152,7 @@ func TestTribeTaskAgreements(t *testing.T) {
 						resp := uploadPlugin(DUMMY_PLUGIN_PATH1, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.PluginsLoadedType)
-						resp = uploadPlugin(DUMMY_PUBLISHER_PATH, mgtPorts[0])
+						resp = uploadPlugin(FILE_PLUGIN_PATH, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.PluginsLoadedType)
 						resp = getPluginList(mgtPorts[0])

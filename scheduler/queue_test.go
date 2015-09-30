@@ -34,7 +34,7 @@ func TestQueue(t *testing.T) {
 			j.deadline = time.Now().Add(time.Duration(i) * time.Second)
 			q.Event <- j
 		}
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * 30)
 		So(x[0].Unix(), ShouldBeLessThan, x[1].Unix())
 		So(x[1].Unix(), ShouldBeLessThan, x[2].Unix())
 		So(x[2].Unix(), ShouldBeLessThan, x[3].Unix())
