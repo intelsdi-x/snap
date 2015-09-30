@@ -569,7 +569,7 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "10ms"}
+				sch := &Schedule{Type: "simple", Interval: "100ms"}
 				p := c.CreateTask(sch, wf, "baron", false)
 
 				a := make([]string, 0)
@@ -593,7 +593,7 @@ func TestPulseClient(t *testing.T) {
 				c.StopTask(p.ID)
 				c.StartTask(p.ID)
 				<-wait
-				So(len(a), ShouldBeGreaterThanOrEqualTo, 0)
+				So(len(a), ShouldEqual, 10)
 				So(a[0], ShouldEqual, "task-stopped")
 				So(a[1], ShouldEqual, "task-started")
 				for x := 2; x <= 9; x++ {

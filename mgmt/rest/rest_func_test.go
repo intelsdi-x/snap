@@ -125,6 +125,7 @@ func watchTask(id, port int) *watchTaskResult {
 				ste := &rbody.StreamedTaskEvent{}
 				err := json.Unmarshal(line, ste)
 				if err != nil {
+					log.Fatal(err)
 					r.close()
 					return
 				}
@@ -134,6 +135,7 @@ func watchTask(id, port int) *watchTaskResult {
 					r.close()
 					return
 				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
+					log.Info(ste.EventType)
 					r.eventChan <- ste.EventType
 				}
 			}
@@ -1023,7 +1025,7 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(FILE_PLUGIN_PATH, port)
 				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
 
-				r1 := createTask("1.json", "xenu", "10ms", true, port)
+				r1 := createTask("1.json", "xenu", "100ms", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
@@ -1052,7 +1054,7 @@ func TestPluginRestCalls(t *testing.T) {
 				}()
 				<-wait
 				stopTask(id, port)
-				So(len(events), ShouldBeGreaterThanOrEqualTo, 0)
+				So(len(events), ShouldEqual, 10)
 				So(events[0], ShouldEqual, "task-started")
 				for x := 1; x <= 9; x++ {
 					So(events[x], ShouldEqual, "metric-event")
