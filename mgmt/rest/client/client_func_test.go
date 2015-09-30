@@ -479,12 +479,12 @@ func TestPulseClient(t *testing.T) {
 
 				So(pe.Err, ShouldNotBeNil)
 			})
-			Convey("enabled a disabled task", func() {
+			Convey("enable a disabled task", func() {
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
 
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
 
 				wf := getWMFromSample("1.json")
@@ -506,17 +506,15 @@ func TestPulseClient(t *testing.T) {
 					}
 				}()
 
-				// Just enough time for running
-				// more than 10 times
 				time.Sleep(time.Millisecond * 100)
 				c.StopTask(p.ID)
 				c.StartTask(p.ID)
 				<-wait
 
-				So(len(a), ShouldBeGreaterThanOrEqualTo, 16)
-				for x := 2; x <= 10; x++ {
-					So(a[x], ShouldEqual, "metric-event")
-				}
+				So(len(a), ShouldBeGreaterThanOrEqualTo, 3)
+				So(a[0], ShouldEqual, "task-stopped")
+				So(a[1], ShouldEqual, "task-started")
+				So(a[2], ShouldEqual, "task-disabled")
 
 				pe := c.EnableTask(p.ID)
 				So(pe.Err, ShouldBeNil)

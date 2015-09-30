@@ -1066,7 +1066,7 @@ func TestPluginRestCalls(t *testing.T) {
 				//}
 			})
 		})
-		Convey("Enale task - put - /v1/tasks/:id/enable", func() {
+		Convey("Enable task - put - /v1/tasks/:id/enable", func() {
 			Convey("enable a disabled task", func() {
 				port := getPort()
 				startAPI(port)
