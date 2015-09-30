@@ -1,0 +1,44 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {                
+                "/psutil/load/load1": {},
+                "/psutil/load/load5": {},
+                "/psutil/load/load15": {},
+                "/psutil/vm/available": {},
+                "/psutil/vm/free": {},
+                "/psutil/vm/used": {}
+            },
+            "config": {
+                "/intel/dummy": {
+                    "password": "secret",
+                    "user": "root"
+                }
+            },
+            "process": [
+                {
+                    "plugin_name": "passthru",
+                    "plugin_version": 1,
+                    "process": null,
+                    "publish": [
+                        {
+                            "plugin_name": "opentsdb",
+                            "plugin_version": 1,
+                            "config": {
+                                "host": "OPENTSDB_IP",
+                                "port": 4242                          
+                            }
+                        }
+                    ],
+                    "config": null
+                }
+            ],
+            "publish": null
+        }
+    }
+}
