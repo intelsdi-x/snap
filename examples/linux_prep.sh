@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #
 #
@@ -14,8 +16,6 @@
 #WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #See the License for the specific language governing permissions and
 #limitations under the License.
-
-#!/bin/bash
 
 HOST_PUBLIC_KEY_FILE="/root/.ssh/id_rsa.pub"
 DOCKER_IMAGE_NAME="pulse_image_ssh_container"

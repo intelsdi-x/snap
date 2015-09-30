@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #
 #
@@ -15,7 +17,6 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-#!/bin/bash -e
 # This script runs the correct godep sequences for pulse and built-in plugins
 # This will rebase back to the committed version. It should be run from pulse/.
 ctrl_c()

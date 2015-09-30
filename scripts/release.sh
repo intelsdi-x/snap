@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #
 #
@@ -15,7 +17,6 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-#!/bin/bash -e
 # Update path in order for Godeps to function
 export PATH=$PATH:$GOPATH/bin
 

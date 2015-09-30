@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #
 #
@@ -15,7 +17,6 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-#!/bin/bash -e
 # The script does automatic checking on a Go package and its sub-packages, including:
 # 1. gofmt         (http://golang.org/cmd/gofmt/)
 # 2. goimports     (https://github.com/bradfitz/goimports)
