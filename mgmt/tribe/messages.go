@@ -108,7 +108,8 @@ func (a *agreementMsg) String() string {
 type taskMsg struct {
 	LTime         LTime
 	UUID          string
-	TaskID        uint64
+	TaskID        string
+	StartOnCreate bool
 	AgreementName string
 	Type          msgType
 }

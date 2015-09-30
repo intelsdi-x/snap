@@ -22,7 +22,6 @@ import (
 
 const (
 	PluginLoadedType = iota
-	// pluginAddedToAgreementType
 )
 
 const (
@@ -44,7 +43,8 @@ type TaskRequest struct {
 }
 
 type Task struct {
-	ID uint64
+	ID            string
+	StartOnCreate bool
 }
 
 type ManagesPlugins interface {
@@ -54,7 +54,7 @@ type ManagesPlugins interface {
 }
 
 type ManagesTasks interface {
-	GetTask(id uint64) (core.Task, error)
+	GetTask(id string) (core.Task, error)
 	CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
 }
 
@@ -88,7 +88,8 @@ func newWorker(id int,
 		pluginWorkerQueue: pluginWorkerQueue,
 		taskWork:          make(chan TaskRequest),
 		taskWorkerQueue:   taskWorkerQueue,
-		quitChan:          make(chan bool)}
+		quitChan:          make(chan bool),
+	}
 
 	return worker
 }
@@ -120,37 +121,112 @@ func DispatchWorkers(nworkers int, pluginWorkQueue chan PluginRequest, taskWorkQ
 		for {
 			select {
 			case pluginWork := <-pluginWorkQueue:
-				workerLogger.Debug("Received plugin work requeust")
+				workerLogger.Infof("Received plugin work request")
 				go func() {
 					pluginWorker := <-pluginWorkerQueue
 
-					workerLogger.Debug("Dispatching plugin work request")
+					workerLogger.Infof("Dispatching plugin work request")
 					pluginWorker <- pluginWork
 				}()
 			case taskWork := <-taskWorkQueue:
-				workerLogger.Debug("Received task work requeust")
+				workerLogger.Infof("Received task work request")
 				go func() {
+					workerLogger.Infof("Waiting for free worker")
 					taskWorker := <-taskWorkerQueue
 
-					workerLogger.Debug("Dispatching plugin work request")
+					workerLogger.Infof("Dispatching task work request")
 					taskWorker <- taskWork
 				}()
 			case <-quitChan:
-				workerLogger.Debug("Stopping plugin work dispatcher")
+				workerLogger.Infof("Stopping plugin work dispatcher")
 				return
 			}
 		}
 	}()
 }
 
-// Start "starts" the worker
+// Start "starts" the workers
 func (w worker) start() {
+	// task worker
+	go func() {
+		for {
+			defer w.waitGroup.Done()
+			w.taskWorkerQueue <- w.taskWork
+
+			select {
+			case work := <-w.taskWork:
+				done := false
+				// Receive a work request.
+				wLogger := workerLogger.WithFields(log.Fields{
+					"task":   work.Task.ID,
+					"worker": w.id,
+					"_block": "start",
+				})
+				if work.RequestType == TaskCreatedType {
+					task, _ := w.taskManager.GetTask(work.Task.ID)
+					if task != nil {
+						wLogger.Warn("we already have a task with this Id")
+					} else {
+						for {
+							members, err := w.memberManager.GetTaskAgreementMembers()
+							if err != nil {
+								wLogger.Error(err)
+								continue
+							}
+							for _, member := range shuffle(members) {
+								uri := fmt.Sprintf("http://%s:%s", member.GetAddr(), member.GetRESTAPIPort())
+								wLogger.Debugf("getting task %v from %v", work.Task.ID, uri)
+								c := client.New(uri, "v1")
+								taskResult := c.GetTask(work.Task.ID)
+								if taskResult.Err != nil {
+									wLogger.WithField("err", taskResult.Err.Error()).Debug("error getting task")
+									continue
+								}
+								wLogger.Debug("creating task")
+								opt := core.SetTaskID(work.Task.ID)
+								t, errs := w.taskManager.CreateTask(
+									getSchedule(taskResult.ScheduledTaskReturned.Schedule),
+									taskResult.Workflow,
+									work.Task.StartOnCreate,
+									opt)
+								if errs != nil && len(errs.Errors()) > 0 {
+									fields := log.Fields{
+										"task":   work.Task.ID,
+										"worker": w.id,
+										"_block": "start",
+									}
+									for idx, e := range errs.Errors() {
+										fields[fmt.Sprintf("err-%d", idx)] = e
+									}
+									wLogger.WithFields(fields).Debug("error creating task")
+									continue
+								}
+								wLogger.WithField("id", t.ID()).Debugf("task created")
+								done = true
+								break
+							}
+							if done {
+								break
+							}
+							time.Sleep(500 * time.Millisecond)
+						}
+					}
+				}
+
+			case <-w.quitChan:
+				workerLogger.Infof("Tribe plugin worker-%d is stopping\n", w.id)
+				return
+
+			}
+		}
+	}()
+
+	// plugin worker
 	go func() {
 		defer w.waitGroup.Done()
 		for {
 			// Add ourselves into the worker queue.
 			w.pluginWorkerQueue <- w.pluginWork
-			w.taskWorkerQueue <- w.taskWork
 
 			select {
 			case work := <-w.pluginWork:
@@ -162,7 +238,6 @@ func (w worker) start() {
 					"worker":         w.id,
 					"_block":         "start",
 				})
-				wLogger.Debug("received work")
 				done := false
 				for {
 					if w.isPluginLoaded(work.Plugin.Name(), work.Plugin.TypeName(), work.Plugin.Version()) {
@@ -175,7 +250,6 @@ func (w worker) start() {
 					}
 					for _, member := range shuffle(members) {
 						url := fmt.Sprintf("http://%s:%s/v1/plugins/%s/%s/%d", member.GetAddr(), member.GetRESTAPIPort(), work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version())
-						wLogger.Debugf("worker-%v is trying %v ", w.id, url)
 						resp, err := http.Get(url)
 						if err != nil {
 							wLogger.Error(err)
@@ -188,6 +262,7 @@ func (w worker) start() {
 							f, err := ioutil.TempFile("", fmt.Sprintf("%s-%s-%d", work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version()))
 							if err != nil {
 								wLogger.Error(err)
+								f.Close()
 								continue
 							}
 							io.Copy(f, resp.Body)
@@ -203,7 +278,6 @@ func (w worker) start() {
 								continue
 							}
 							if w.isPluginLoaded(work.Plugin.Name(), work.Plugin.TypeName(), work.Plugin.Version()) {
-								wLogger.WithField("path", f.Name()).Info("loaded plugin")
 								done = true
 								break
 							}
@@ -212,52 +286,8 @@ func (w worker) start() {
 					if done {
 						break
 					}
-					time.Sleep(200 * time.Millisecond)
+					time.Sleep(500 * time.Millisecond)
 				}
-			case work := <-w.taskWork:
-				done := false
-				// Receive a work request.
-				wLogger := workerLogger.WithFields(log.Fields{
-					"task":   work.Task.ID,
-					"worker": w.id,
-					"_block": "start",
-				})
-				wLogger.Debug("received work")
-				if work.RequestType == TaskCreatedType {
-					task, _ := w.taskManager.GetTask(work.Task.ID)
-					if task != nil {
-						wLogger.Warn("we already have a task with this Id")
-					} else {
-						for {
-							members, err := w.memberManager.GetTaskAgreementMembers()
-							if err != nil {
-								wLogger.Error(err)
-								continue
-							}
-							for _, member := range shuffle(members) {
-								// workerLogger.Error(member)
-								c := client.New(fmt.Sprintf("http://%s:%s", member.GetAddr(), member.GetRESTAPIPort()), "v1")
-								taskResult := c.GetTask(uint(work.Task.ID))
-								if taskResult.Err != nil {
-									wLogger.Debug(err)
-									continue
-								}
-								_, err := w.taskManager.CreateTask(getSchedule(taskResult.ScheduledTaskReturned.Schedule), taskResult.Workflow, false)
-								if err != nil {
-									wLogger.Error(err)
-									continue
-								}
-								done = true
-								break
-							}
-							if done {
-								break
-							}
-							time.Sleep(200 * time.Millisecond)
-						}
-					}
-				}
-
 			case <-w.quitChan:
 				workerLogger.Debugf("Tribe plugin worker-%d is stopping\n", w.id)
 				return
@@ -285,10 +315,15 @@ func shuffle(m []Member) []Member {
 func (w worker) isPluginLoaded(n, t string, v int) bool {
 	catalog := w.pluginManager.PluginCatalog()
 	for _, item := range catalog {
+		workerLogger.WithFields(log.Fields{
+			"name":    n,
+			"version": v,
+			"type":    t,
+		}).Errorf("loaded plugin.. looking for %v %v %v", item.Name(), item.Version(), item.TypeName())
 		if item.TypeName() == t &&
 			item.Name() == n &&
 			item.Version() == v {
-			workerLogger.WithField("_block", "isPluginLoaded").Info("Plugin already loaded")
+			workerLogger.WithField("_block", "isPluginLoaded").Error("Plugin already loaded")
 			return true
 		}
 	}

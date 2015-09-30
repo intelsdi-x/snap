@@ -66,7 +66,7 @@ type PluginSubscriptionEvent struct {
 	PluginVersion    int
 	PluginType       int
 	SubscriptionType int
-	TaskId           uint64
+	TaskId           string
 }
 
 func (ps PluginSubscriptionEvent) Namespace() string {
@@ -74,7 +74,7 @@ func (ps PluginSubscriptionEvent) Namespace() string {
 }
 
 type PluginUnsubscriptionEvent struct {
-	TaskId        uint64
+	TaskId        string
 	PluginName    string
 	PluginVersion int
 	PluginType    int
@@ -95,7 +95,7 @@ func (hfe HealthCheckFailedEvent) Namespace() string {
 }
 
 type MovePluginSubscriptionEvent struct {
-	TaskId          uint64
+	TaskId          string
 	PluginName      string
 	PreviousVersion int
 	NewVersion      int

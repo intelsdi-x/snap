@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,28 +17,17 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func init() {
-	log.SetLevel(log.InfoLevel)
-}
-
-var inc uint64
-
-func getNextTaskID() uint64 {
-	inc = inc + 1
-	return inc
-}
-
 func TestFullStateSync(t *testing.T) {
 	tribes := []*tribe{}
-	numOfTribes := 8
+	numOfTribes := 5
 	agreement1 := "agreement1"
 	plugin1 := agreement.Plugin{Name_: "plugin1", Version_: 1, Type_: core.ProcessorPluginType}
-	task1 := agreement.Task{ID: getNextTaskID()}
+	task1 := agreement.Task{ID: uuid.New()}
 	Convey("Tribe members are started", t, func() {
 		conf := DefaultConfig("seed", "127.0.0.1", getAvailablePort(), "", getAvailablePort())
-		conf.memberlistConfig.PushPullInterval = 200 * time.Millisecond
+		conf.MemberlistConfig.PushPullInterval = 200 * time.Millisecond
 		// conf.memberlistConfig.GossipInterval = 300 * time.Second
-		conf.memberlistConfig.GossipNodes = numOfTribes / 2
+		conf.MemberlistConfig.GossipNodes = numOfTribes / 2
 		seed, err := New(conf)
 		tribes = append(tribes, seed)
 		So(err, ShouldBeNil)
@@ -45,8 +35,8 @@ func TestFullStateSync(t *testing.T) {
 		timer := time.After(4 * time.Second)
 		for i := 1; i < numOfTribes; i++ {
 			conf = DefaultConfig(fmt.Sprintf("member-%v", i), "127.0.0.1", getAvailablePort(), fmt.Sprintf("%v:%v", "127.0.0.1", seed.memberlist.LocalNode().Port), getAvailablePort())
-			conf.memberlistConfig.GossipInterval = 300 * time.Second
-			conf.memberlistConfig.GossipNodes = numOfTribes / 2
+			conf.MemberlistConfig.GossipInterval = 300 * time.Second
+			conf.MemberlistConfig.GossipNodes = numOfTribes / 2
 			tr, err := New(conf)
 			So(err, ShouldBeNil)
 			So(tr, ShouldNotBeNil)
@@ -122,8 +112,8 @@ func TestFullStateSyncOnJoin(t *testing.T) {
 	agreement1 := "agreement1"
 	plugin1 := agreement.Plugin{Name_: "plugin1", Version_: 1}
 	plugin2 := agreement.Plugin{Name_: "plugin2", Version_: 1}
-	task1 := agreement.Task{ID: getNextTaskID()}
-	task2 := agreement.Task{ID: getNextTaskID()}
+	task1 := agreement.Task{ID: uuid.New()}
+	task2 := agreement.Task{ID: uuid.New()}
 	Convey("A seed is started", t, func() {
 		conf := DefaultConfig("seed", "127.0.0.1", getAvailablePort(), "", getAvailablePort())
 		seed, err := New(conf)
@@ -209,8 +199,8 @@ func TestTaskAgreements(t *testing.T) {
 
 			agreementName := "agreement1"
 			agreementName2 := "agreement2"
-			task1 := agreement.Task{ID: getNextTaskID()}
-			task2 := agreement.Task{ID: getNextTaskID()}
+			task1 := agreement.Task{ID: uuid.New()}
+			task2 := agreement.Task{ID: uuid.New()}
 			Convey("a member handles", func() {
 				t := tribes[rand.Intn(numOfTribes)]
 				Convey("an out of order 'add task' message", func() {
@@ -237,7 +227,7 @@ func TestTaskAgreements(t *testing.T) {
 						err := t.AddTask(agreementName, task1)
 						So(err.Error(), ShouldResemble, errTaskAlreadyExists.Error())
 						Convey("removing a task that doesn't exist", func() {
-							err := t.RemoveTask(agreementName, agreement.Task{ID: 999})
+							err := t.RemoveTask(agreementName, agreement.Task{ID: uuid.New()})
 							So(err.Error(), ShouldResemble, errTaskDoesNotExist.Error())
 							err = t.RemoveTask("doesn't exist", task1)
 							So(err.Error(), ShouldResemble, errAgreementDoesNotExist.Error())
@@ -925,15 +915,18 @@ func getTribes(numOfTribes int, seedTribe *tribe) []*tribe {
 	return tribes
 }
 
+var nextPort uint64 = 55234
+
 func getAvailablePort() int {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	atomic.AddUint64(&nextPort, 1)
+	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", nextPort))
 	if err != nil {
 		panic(err)
 	}
 
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		panic(err)
+		return getAvailablePort()
 	}
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port

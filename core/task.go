@@ -46,12 +46,13 @@ func (t TaskState) String() string {
 }
 
 type Task interface {
-	ID() uint64
+	ID() string
 	// Status() WorkflowState TODO, switch to string
 	State() TaskState
 	HitCount() uint
 	GetName() string
 	SetName(string)
+	SetID(string)
 	MissedCount() uint
 	FailedCount() uint
 	LastFailureMessage() string
@@ -59,6 +60,7 @@ type Task interface {
 	CreationTime() *time.Time
 	DeadlineDuration() time.Duration
 	SetDeadlineDuration(time.Duration)
+	SetTaskID(id string)
 	SetStopOnFailure(uint)
 	GetStopOnFailure() uint
 	Option(...TaskOption) TaskOption
@@ -105,6 +107,14 @@ func SetTaskName(name string) TaskOption {
 		previous := t.GetName()
 		t.SetName(name)
 		return SetTaskName(previous)
+	}
+}
+
+func SetTaskID(id string) TaskOption {
+	return func(t Task) TaskOption {
+		previous := t.ID()
+		t.SetID(id)
+		return SetTaskID(previous)
 	}
 }
 

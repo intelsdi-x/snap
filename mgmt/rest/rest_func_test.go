@@ -19,6 +19,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
@@ -103,8 +104,8 @@ func (w *watchTaskResult) close() {
 	close(w.doneChan)
 }
 
-func watchTask(id, port int) *watchTaskResult {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%d/watch", port, id))
+func watchTask(id string, port int) *watchTaskResult {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%s/watch", port, id))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -153,16 +154,16 @@ func getTasks(port int) *rbody.APIResponse {
 	return getAPIResponse(resp)
 }
 
-func getTask(id, port int) *rbody.APIResponse {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id))
+func getTask(id string, port int) *rbody.APIResponse {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%s", port, id))
 	if err != nil {
 		log.Fatal(err)
 	}
 	return getAPIResponse(resp)
 }
 
-func startTask(id, port int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/start", port, id)
+func startTask(id string, port int) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s/start", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
 	req, err := http.NewRequest("PUT", uri, b)
@@ -177,8 +178,8 @@ func startTask(id, port int) *rbody.APIResponse {
 	return getAPIResponse(resp)
 }
 
-func stopTask(id, port int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/stop", port, id)
+func stopTask(id string, port int) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s/stop", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
 	req, err := http.NewRequest("PUT", uri, b)
@@ -193,8 +194,8 @@ func stopTask(id, port int) *rbody.APIResponse {
 	return getAPIResponse(resp)
 }
 
-func removeTask(id, port int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id)
+func removeTask(id string, port int) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s", port, id)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
 	if err != nil {
@@ -981,10 +982,11 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r1 := removeTask(99999, port)
+				uuid := uuid.New()
+				r1 := removeTask(uuid, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr1 := r1.Body.(*rbody.Error)
-				So(plr1.ErrorMessage, ShouldEqual, "No task found with id '99999'")
+				So(plr1.ErrorMessage, ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
 			})
 			Convey("removes a task", func() {
 				port := getPort()
@@ -1018,7 +1020,7 @@ func TestPluginRestCalls(t *testing.T) {
 			})
 		})
 		Convey("Watch task - get - /v1/tasks/:id/watch", func() {
-			Convey("---", func() {
+			Convey("---", func(c C) {
 				port := getPort()
 				startAPI(port)
 
@@ -1027,9 +1029,9 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
 
 				r1 := createTask("1.json", "xenu", "500ms", true, port)
+				So(r1.Meta.Code, ShouldEqual, 201)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
-
 				id := plr1.ID
 
 				// Change buffer window to 10ms (do not do this IRL)

@@ -3,13 +3,12 @@ package scheduler
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
+	"github.com/pborman/uuid"
 
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/scheduler_event"
@@ -34,7 +33,7 @@ var (
 type task struct {
 	sync.Mutex //protects state
 
-	id                 uint64
+	id                 string
 	name               string
 	schResponseChan    chan schedule.Response
 	killChan           chan struct{}
@@ -61,11 +60,12 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 	//Task would always be given a default name.
 	//However if a user want to change this name, she can pass optional arguments, in form of core.TaskOption
 	//The new name then get over written.
-	taskId := id()
-	name := "Task-" + string(strconv.FormatInt(int64(taskId), 10))
+
+	taskID := uuid.New()
+	name := fmt.Sprintf("Task-%s", taskID)
 	wf.eventEmitter = emitter
 	task := &task{
-		id:               taskId,
+		id:               taskID,
 		name:             name,
 		schResponseChan:  make(chan schedule.Response),
 		schedule:         s,
@@ -117,13 +117,17 @@ func (t *task) SetDeadlineDuration(d time.Duration) {
 	t.deadlineDuration = d
 }
 
+func (t *task) SetTaskID(id string) {
+	t.id = id
+}
+
 // HitCount returns the number of times the task has fired.
 func (t *task) HitCount() uint {
 	return t.hitCount
 }
 
 // Id returns the tasks Id.
-func (t *task) ID() uint64 {
+func (t *task) ID() string {
 	return t.id
 }
 
@@ -159,6 +163,10 @@ func (t *task) Status() WorkflowState {
 
 func (t *task) SetStopOnFailure(v uint) {
 	t.stopOnFailure = v
+}
+
+func (t *task) SetID(id string) {
+	t.id = id
 }
 
 func (t *task) GetStopOnFailure() uint {
@@ -300,19 +308,19 @@ func (t *task) waitForSchedule() {
 type taskCollection struct {
 	*sync.Mutex
 
-	table map[uint64]*task
+	table map[string]*task
 }
 
 func newTaskCollection() *taskCollection {
 	return &taskCollection{
 		Mutex: &sync.Mutex{},
 
-		table: make(map[uint64]*task),
+		table: make(map[string]*task),
 	}
 }
 
 // Get given a task id returns a Task or nil if not found
-func (t *taskCollection) Get(id uint64) *task {
+func (t *taskCollection) Get(id string) *task {
 	t.Lock()
 	defer t.Unlock()
 
@@ -368,19 +376,12 @@ func (t *taskCollection) remove(task *task) error {
 }
 
 // Table returns a copy of the taskCollection
-func (t *taskCollection) Table() map[uint64]*task {
+func (t *taskCollection) Table() map[string]*task {
 	t.Lock()
 	defer t.Unlock()
-	tasks := make(map[uint64]*task)
+	tasks := make(map[string]*task)
 	for id, t := range t.table {
 		tasks[id] = t
 	}
 	return tasks
-}
-
-var idCounter uint64
-
-// id generates the sequential next id (starting from 0)
-func id() uint64 {
-	return atomic.AddUint64(&idCounter, 1)
 }

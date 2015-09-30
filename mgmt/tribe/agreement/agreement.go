@@ -39,7 +39,8 @@ type taskAgreement struct {
 }
 
 type Task struct {
-	ID uint64 `json:"id"`
+	ID            string `json:"id"`
+	StartOnCreate bool   `json:"start_on_create"`
 }
 
 func New(name string) *Agreement {

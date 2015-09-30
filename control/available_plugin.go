@@ -257,7 +257,7 @@ type apPool struct {
 	key string
 
 	// The subscriptions to this pool.
-	subs map[uint64]*subscription
+	subs map[string]*subscription
 
 	// The plugins in the pool.
 	// the primary key is an increasing --> uint from
@@ -282,7 +282,7 @@ func newPool(key string, plugins ...*availablePlugin) (*apPool, error) {
 		RWMutex:          &sync.RWMutex{},
 		version:          ver,
 		key:              key,
-		subs:             map[uint64]*subscription{},
+		subs:             map[string]*subscription{},
 		plugins:          make(map[uint32]*availablePlugin),
 		max:              maximumRunningPlugins,
 		concurrencyCount: 1,
@@ -329,7 +329,7 @@ func (p *apPool) insert(ap *availablePlugin) error {
 
 // subscribe adds a subscription to the pool.
 // Using subscribe is idempotent.
-func (p *apPool) subscribe(taskId uint64, subType subscriptionType) {
+func (p *apPool) subscribe(taskId string, subType subscriptionType) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -346,7 +346,7 @@ func (p *apPool) subscribe(taskId uint64, subType subscriptionType) {
 
 // subscribe adds a subscription to the pool.
 // Using unsubscribe is idempotent.
-func (p *apPool) unsubscribe(taskId uint64) {
+func (p *apPool) unsubscribe(taskId string) {
 	p.Lock()
 	defer p.Unlock()
 	delete(p.subs, taskId)
@@ -435,7 +435,7 @@ func (p *apPool) count() int {
 }
 
 // NOTE: The data returned by subscriptions should be constant and read only.
-func (p *apPool) subscriptions() map[uint64]*subscription {
+func (p *apPool) subscriptions() map[string]*subscription {
 	p.RLock()
 	defer p.RUnlock()
 	return p.subs
@@ -492,7 +492,7 @@ func (p *apPool) moveSubscriptions(to *apPool) []subscription {
 type subscription struct {
 	subType subscriptionType
 	version int
-	taskId  uint64
+	taskId  string
 }
 
 type availablePlugins struct {

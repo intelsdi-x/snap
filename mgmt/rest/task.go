@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"sort"
-	"strconv"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -106,11 +105,7 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 }
 
 func (s *Server) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
-	if err != nil {
-		respond(500, rbody.FromError(err), w)
-		return
-	}
+	id := p.ByName("id")
 	t, err1 := s.mt.GetTask(id)
 	if err1 != nil {
 		respond(404, rbody.FromError(err1), w)
@@ -128,11 +123,8 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 		"client":  r.RemoteAddr,
 	})
 
-	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
-	if err != nil {
-		respond(500, rbody.FromError(err), w)
-		return
-	}
+	id := p.ByName("id")
+
 	logger.WithFields(log.Fields{
 		"task-id": id,
 	}).Debug("request to watch task")
@@ -179,11 +171,11 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 				"task-watcher-event": e.EventType,
 			}).Debug("new event")
 			switch e.EventType {
-			case rbody.TaskWatchMetricEvent, rbody.TaskWatchTaskStarted, rbody.TaskWatchTaskStopped:
+			case rbody.TaskWatchMetricEvent, rbody.TaskWatchTaskStarted:
 				// The client can decide to stop receiving on the stream on Task Stopped.
 				// We write the event to the buffer
 				fmt.Fprintf(w, "%s\n", e.ToJSON())
-			case rbody.TaskWatchTaskDisabled:
+			case rbody.TaskWatchTaskDisabled, rbody.TaskWatchTaskStopped:
 				// A disabled task should end the streaming and close the connection
 				fmt.Fprintf(w, "%s\n", e.ToJSON())
 				// Flush since we are sending nothing new
@@ -214,46 +206,34 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 }
 
 func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
-	if err != nil {
-		respond(500, rbody.FromError(err), w)
-		return
-	}
+	id := p.ByName("id")
 	errs := s.mt.StartTask(id)
 	if errs != nil {
 		respond(404, rbody.FromPulseErrors(errs), w)
 		return
 	}
 	// TODO should return resource
-	respond(200, &rbody.ScheduledTaskStarted{ID: int(id)}, w)
+	respond(200, &rbody.ScheduledTaskStarted{ID: id}, w)
 }
 
 func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
-	if err != nil {
-		respond(500, rbody.FromError(err), w)
-		return
-	}
+	id := p.ByName("id")
 	errs := s.mt.StopTask(id)
 	if errs != nil {
 		respond(404, rbody.FromPulseErrors(errs), w)
 		return
 	}
-	respond(200, &rbody.ScheduledTaskStopped{ID: int(id)}, w)
+	respond(200, &rbody.ScheduledTaskStopped{ID: id}, w)
 }
 
 func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	id, err := strconv.ParseUint(p.ByName("id"), 0, 64)
-	if err != nil {
-		respond(500, rbody.FromError(err), w)
-		return
-	}
-	err = s.mt.RemoveTask(id)
+	id := p.ByName("id")
+	err := s.mt.RemoveTask(id)
 	if err != nil {
 		respond(404, rbody.FromError(err), w)
 		return
 	}
-	respond(200, &rbody.ScheduledTaskRemoved{ID: int(id)}, w)
+	respond(200, &rbody.ScheduledTaskRemoved{ID: id}, w)
 }
 
 func marshalTask(body io.ReadCloser) (*request.TaskCreationRequest, error) {

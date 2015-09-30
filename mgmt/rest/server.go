@@ -61,12 +61,12 @@ type managesMetrics interface {
 
 type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, bool, ...core.TaskOption) (core.Task, core.TaskErrors)
-	GetTasks() map[uint64]core.Task
-	GetTask(uint64) (core.Task, error)
-	StartTask(uint64) []perror.PulseError
-	StopTask(uint64) []perror.PulseError
-	RemoveTask(uint64) error
-	WatchTask(uint64, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
+	GetTasks() map[string]core.Task
+	GetTask(string) (core.Task, error)
+	StartTask(string) []perror.PulseError
+	StopTask(string) []perror.PulseError
+	RemoveTask(string) error
+	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
 }
 
 type managesTribe interface {

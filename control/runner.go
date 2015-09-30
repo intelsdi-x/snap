@@ -377,7 +377,7 @@ func (r *runner) runPlugin(path string) {
 	}
 }
 
-func (r *runner) handleSubscription(pType, pName string, pVersion int, taskId uint64, subType subscriptionType) {
+func (r *runner) handleSubscription(pType, pName string, pVersion int, taskId string, subType subscriptionType) {
 	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
@@ -430,7 +430,7 @@ func (r *runner) handleSubscription(pType, pName string, pVersion int, taskId ui
 		r.runPlugin(plugin.Path)
 	}
 }
-func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskId uint64) error {
+func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskId string) error {
 	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
 	if err != nil {
 		runnerLog.WithFields(log.Fields{

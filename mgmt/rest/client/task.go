@@ -63,7 +63,7 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, star
 	}
 }
 
-func (c *Client) WatchTask(id uint) *WatchTasksResult {
+func (c *Client) WatchTask(id string) *WatchTasksResult {
 	r := &WatchTasksResult{
 		EventChan: make(chan *rbody.StreamedTaskEvent),
 		DoneChan:  make(chan struct{}),
@@ -123,7 +123,7 @@ func (c *Client) GetTasks() *GetTasksResult {
 	}
 }
 
-func (c *Client) GetTask(id uint) *GetTaskResult {
+func (c *Client) GetTask(id string) *GetTaskResult {
 	resp, err := c.do("GET", fmt.Sprintf("/tasks/%v", id), ContentTypeJSON, nil)
 	if err != nil {
 		return &GetTaskResult{Err: err}
@@ -139,7 +139,7 @@ func (c *Client) GetTask(id uint) *GetTaskResult {
 	}
 }
 
-func (c *Client) StartTask(id int) *StartTasksResult {
+func (c *Client) StartTask(id string) *StartTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id), ContentTypeJSON)
 
 	if err != nil {
@@ -157,7 +157,7 @@ func (c *Client) StartTask(id int) *StartTasksResult {
 	}
 }
 
-func (c *Client) StopTask(id int) *StopTasksResult {
+func (c *Client) StopTask(id string) *StopTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id), ContentTypeJSON)
 	if err != nil {
 		return &StopTasksResult{Err: err}
@@ -177,7 +177,7 @@ func (c *Client) StopTask(id int) *StopTasksResult {
 	}
 }
 
-func (c *Client) RemoveTask(id int) *RemoveTasksResult {
+func (c *Client) RemoveTask(id string) *RemoveTasksResult {
 	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id), ContentTypeJSON)
 	if err != nil {
 		return &RemoveTasksResult{Err: err}

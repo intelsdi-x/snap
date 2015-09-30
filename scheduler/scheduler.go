@@ -39,8 +39,8 @@ type managesMetrics interface {
 	processesMetrics
 	managesPluginContentTypes
 	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []perror.PulseError
-	SubscribeDeps(uint64, []core.Metric, []core.Plugin) []perror.PulseError
-	UnsubscribeDeps(uint64, []core.Metric, []core.Plugin) []perror.PulseError
+	SubscribeDeps(string, []core.Metric, []core.Plugin) []perror.PulseError
+	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []perror.PulseError
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -201,7 +201,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 
 // RemoveTask given a tasks id.  The task must be stopped.
 // Can return errors ErrTaskNotFound and ErrTaskNotStopped.
-func (s *scheduler) RemoveTask(id uint64) error {
+func (s *scheduler) RemoveTask(id string) error {
 	t := s.tasks.Get(id)
 	if t == nil {
 		log.WithFields(log.Fields{
@@ -219,8 +219,8 @@ func (s *scheduler) RemoveTask(id uint64) error {
 }
 
 // GetTasks returns a copy of the tasks in a map where the task id is the key
-func (s *scheduler) GetTasks() map[uint64]core.Task {
-	tasks := make(map[uint64]core.Task)
+func (s *scheduler) GetTasks() map[string]core.Task {
+	tasks := make(map[string]core.Task)
 	for id, t := range s.tasks.Table() {
 		tasks[id] = t
 	}
@@ -228,7 +228,7 @@ func (s *scheduler) GetTasks() map[uint64]core.Task {
 }
 
 // GetTask provided the task id a task is returned
-func (s *scheduler) GetTask(id uint64) (core.Task, error) {
+func (s *scheduler) GetTask(id string) (core.Task, error) {
 	task := s.tasks.Get(id)
 	if task == nil {
 		return nil, fmt.Errorf("No task with Id '%v'", id)
@@ -237,7 +237,7 @@ func (s *scheduler) GetTask(id uint64) (core.Task, error) {
 }
 
 // StartTask provided a task id a task is started
-func (s *scheduler) StartTask(id uint64) []perror.PulseError {
+func (s *scheduler) StartTask(id string) []perror.PulseError {
 	t := s.tasks.Get(id)
 	if t == nil {
 		return []perror.PulseError{
@@ -268,7 +268,7 @@ func (s *scheduler) StartTask(id uint64) []perror.PulseError {
 }
 
 // StopTask provided a task id a task is stopped
-func (s *scheduler) StopTask(id uint64) []perror.PulseError {
+func (s *scheduler) StopTask(id string) []perror.PulseError {
 	t := s.tasks.Get(id)
 	if t == nil {
 		e := fmt.Errorf("No task found with id '%v'", id)
@@ -341,7 +341,7 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 }
 
 //
-func (s *scheduler) WatchTask(id uint64, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
+func (s *scheduler) WatchTask(id string, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
 	if task := s.tasks.Get(id); task != nil {
 		a, b := s.taskWatcherColl.add(id, tw)
 		return a, b

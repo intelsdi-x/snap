@@ -68,26 +68,26 @@ type tribe struct {
 type config struct {
 	seed             string
 	restAPIPort      int
-	memberlistConfig *memberlist.Config
+	MemberlistConfig *memberlist.Config
 }
 
 func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string, restAPIPort int) *config {
 	c := &config{seed: seed, restAPIPort: restAPIPort}
-	c.memberlistConfig = memberlist.DefaultLANConfig()
-	c.memberlistConfig.PushPullInterval = 300 * time.Second
-	c.memberlistConfig.Name = name
-	c.memberlistConfig.BindAddr = advertiseAddr
-	c.memberlistConfig.BindPort = advertisePort
-	c.memberlistConfig.GossipNodes = c.memberlistConfig.GossipNodes * 2
+	c.MemberlistConfig = memberlist.DefaultLANConfig()
+	c.MemberlistConfig.PushPullInterval = 300 * time.Second
+	c.MemberlistConfig.Name = name
+	c.MemberlistConfig.BindAddr = advertiseAddr
+	c.MemberlistConfig.BindPort = advertisePort
+	c.MemberlistConfig.GossipNodes = c.MemberlistConfig.GossipNodes * 2
 	return c
 }
 
 func New(c *config) (*tribe, error) {
 	logger := logger.WithFields(log.Fields{
 		"_block": "New",
-		"port":   c.memberlistConfig.BindPort,
-		"addr":   c.memberlistConfig.BindAddr,
-		"name":   c.memberlistConfig.Name,
+		"port":   c.MemberlistConfig.BindPort,
+		"addr":   c.MemberlistConfig.BindAddr,
+		"name":   c.MemberlistConfig.Name,
 	})
 
 	tribe := &tribe{
@@ -95,7 +95,7 @@ func New(c *config) (*tribe, error) {
 		members:         map[string]*agreement.Member{},
 		msgBuffer:       make([]msg, 512),
 		intentBuffer:    []msg{},
-		logger:          logger.WithField("_name", c.memberlistConfig.Name),
+		logger:          logger.WithField("_name", c.MemberlistConfig.Name),
 		tags:            map[string]string{agreement.RestAPIPort: strconv.Itoa(c.restAPIPort)},
 		pluginWorkQueue: make(chan worker.PluginRequest, 999),
 		taskWorkQueue:   make(chan worker.TaskRequest, 999),
@@ -109,10 +109,10 @@ func New(c *config) (*tribe, error) {
 	}
 
 	//configure delegates
-	c.memberlistConfig.Delegate = &delegate{tribe: tribe}
-	c.memberlistConfig.Events = &memberDelegate{tribe: tribe}
+	c.MemberlistConfig.Delegate = &delegate{tribe: tribe}
+	c.MemberlistConfig.Events = &memberDelegate{tribe: tribe}
 
-	ml, err := memberlist.Create(c.memberlistConfig)
+	ml, err := memberlist.Create(c.MemberlistConfig)
 	if err != nil {
 		logger.WithFields(log.Fields{
 			"_block": "New",
@@ -254,7 +254,7 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 			"plugin_name":    v.Name,
 			"plugin_version": v.Version,
 			"plugin_type":    core.PluginType(v.Type).String(),
-		}).Debugf("Handling load plugin event")
+		}).Errorf("Handling load plugin event")
 		plugin := agreement.Plugin{
 			Name_:    v.Name,
 			Version_: v.Version,
@@ -293,11 +293,11 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 			"event":                e.Namespace(),
 			"task_id":              v.TaskID,
 			"task_start_on_create": v.StartOnCreate,
-		}).Debugf("Handling task create event")
+		}).Errorf("Handling task create event")
 		task := agreement.Task{
-			ID: v.TaskID,
+			ID:            v.TaskID,
+			StartOnCreate: v.StartOnCreate,
 		}
-
 		if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
 			if m.TaskAgreements != nil {
 				for n, a := range m.TaskAgreements {
@@ -306,7 +306,6 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 					}
 				}
 			}
-
 		}
 
 	}
@@ -432,6 +431,7 @@ func (t *tribe) AddTask(agreementName string, task agreement.Task) perror.PulseE
 	msg := &taskMsg{
 		LTime:         t.clock.Increment(),
 		TaskID:        task.ID,
+		StartOnCreate: task.StartOnCreate,
 		AgreementName: agreementName,
 		UUID:          uuid.New(),
 		Type:          addTaskMsgType,
@@ -520,6 +520,18 @@ func (t *tribe) processAddPluginIntents() bool {
 				if ok, _ := t.agreements[intent.AgreementName].PluginAgreement.Plugins.Contains(intent.Plugin); !ok {
 					t.agreements[intent.AgreementName].PluginAgreement.Plugins = append(t.agreements[intent.AgreementName].PluginAgreement.Plugins, intent.Plugin)
 					t.intentBuffer = append(t.intentBuffer[:idx], t.intentBuffer[idx+1:]...)
+
+					ptype, _ := core.ToPluginType(intent.Plugin.TypeName())
+					work := worker.PluginRequest{
+						Plugin: agreement.Plugin{
+							Name_:    intent.Plugin.Name(),
+							Version_: intent.Plugin.Version(),
+							Type_:    ptype,
+						},
+						RequestType: worker.PluginLoadedType,
+					}
+					t.pluginWorkQueue <- work
+
 					return false
 				}
 			}
@@ -552,6 +564,16 @@ func (t *tribe) processAddTaskIntents() bool {
 				if ok, _ := a.TaskAgreement.Tasks.Contains(agreement.Task{ID: intent.TaskID}); !ok {
 					a.TaskAgreement.Tasks = append(a.TaskAgreement.Tasks, agreement.Task{ID: intent.TaskID})
 					t.intentBuffer = append(t.intentBuffer[:idx], t.intentBuffer[idx+1:]...)
+
+					work := worker.TaskRequest{
+						Task: worker.Task{
+							ID:            intent.TaskID,
+							StartOnCreate: intent.StartOnCreate,
+						},
+						RequestType: worker.TaskCreatedType,
+					}
+					t.taskWorkQueue <- work
+
 					return false
 				}
 			}
@@ -731,7 +753,8 @@ func (t *tribe) handleAddTask(msg *taskMsg) bool {
 
 			work := worker.TaskRequest{
 				Task: worker.Task{
-					ID: msg.TaskID,
+					ID:            msg.TaskID,
+					StartOnCreate: msg.StartOnCreate,
 				},
 				RequestType: worker.TaskCreatedType,
 			}

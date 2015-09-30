@@ -437,7 +437,7 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []pe
 	return plugins, nil
 }
 
-func (p *pluginControl) SubscribeDeps(taskId uint64, mts []core.Metric, plugins []core.Plugin) []perror.PulseError {
+func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins []core.Plugin) []perror.PulseError {
 	var perrs []perror.PulseError
 
 	collectors, errs := p.gatherCollectors(mts)
@@ -480,7 +480,7 @@ func (p *pluginControl) SubscribeDeps(taskId uint64, mts []core.Metric, plugins 
 	return perrs
 }
 
-func (p *pluginControl) sendPluginSubscriptionEvent(taskId uint64, pl core.Plugin) perror.PulseError {
+func (p *pluginControl) sendPluginSubscriptionEvent(taskId string, pl core.Plugin) perror.PulseError {
 	pt, err := core.ToPluginType(pl.TypeName())
 	if err != nil {
 		return perror.New(err)
@@ -501,7 +501,7 @@ func (p *pluginControl) sendPluginSubscriptionEvent(taskId uint64, pl core.Plugi
 	return nil
 }
 
-func (p *pluginControl) UnsubscribeDeps(taskId uint64, mts []core.Metric, plugins []core.Plugin) []perror.PulseError {
+func (p *pluginControl) UnsubscribeDeps(taskId string, mts []core.Metric, plugins []core.Plugin) []perror.PulseError {
 	var perrs []perror.PulseError
 
 	collectors, errs := p.gatherCollectors(mts)
@@ -528,7 +528,7 @@ func (p *pluginControl) UnsubscribeDeps(taskId uint64, mts []core.Metric, plugin
 	return perrs
 }
 
-func (p *pluginControl) sendPluginUnsubscriptionEvent(taskId uint64, pl core.Plugin) perror.PulseError {
+func (p *pluginControl) sendPluginUnsubscriptionEvent(taskId string, pl core.Plugin) perror.PulseError {
 	pt, err := core.ToPluginType(pl.TypeName())
 	if err != nil {
 		return perror.New(err)
