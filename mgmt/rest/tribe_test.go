@@ -440,7 +440,7 @@ func startTribes(count int) []int {
 		t.SetPluginCatalog(c)
 		t.SetTaskManager(s)
 		t.Start()
-		r := New()
+		r, _ := New(false, "", "")
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
 		r.BindTribeManager(t)
