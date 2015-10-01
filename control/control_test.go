@@ -630,6 +630,27 @@ func (m MockMetricType) Data() interface{} {
 	return nil
 }
 
+func TestMetricConfig(t *testing.T) {
+	c := New()
+	c.Start()
+	c.Load(PluginPath)
+	cd := cdata.NewNode()
+	m1 := MockMetricType{
+		namespace: []string{"intel", "dummy", "foo"},
+	}
+	metric, errs := c.validateMetricTypeSubscription(m1, cd)
+	Convey("So metric should not be valid without config", t, func() {
+		So(metric, ShouldBeNil)
+		So(errs, ShouldNotBeNil)
+	})
+	cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+	metric, errs = c.validateMetricTypeSubscription(m1, cd)
+	Convey("So metric should be valid with config", t, func() {
+		So(metric, ShouldNotBeNil)
+		So(errs, ShouldBeNil)
+	})
+}
+
 func TestCollectMetrics(t *testing.T) {
 
 	Convey("given a new router", t, func() {

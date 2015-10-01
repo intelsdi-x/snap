@@ -610,7 +610,22 @@ func TestPulseClient(t *testing.T) {
 					So(a.events[x], ShouldEqual, "metric-event")
 				}
 			})
+		})
+		Convey("Passing a bad task manifest", func() {
+			port := getPort()
+			uri := startAPI(port)
+			c := New(uri, "v1")
 
+			c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+			c.LoadPlugin(FILE_PLUGIN_PATH)
+
+			wf := getWMFromSample("bad.json")
+			sch := &Schedule{Type: "simple", Interval: "1s"}
+			p := c.CreateTask(sch, wf, "bad", true)
+
+			Convey("Should generate an error", func() {
+				So(p.Err, ShouldNotBeNil)
+			})
 		})
 	})
 }
