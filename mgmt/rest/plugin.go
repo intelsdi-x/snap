@@ -23,6 +23,7 @@ import (
 
 var (
 	ErrMissingPluginName = errors.New("missing plugin name")
+	ErrPluginNotFound    = errors.New("plugin not found")
 )
 
 type plugin struct {
@@ -200,7 +201,7 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 		}
 	}
 
-	plugins := new(rbody.PluginListReturned)
+	plugins := new(rbody.PluginList)
 
 	// Cache the catalog here to avoid multiple reads
 	plCatalog := s.mm.PluginCatalog()
@@ -244,5 +245,70 @@ func (s *Server) getPluginsByType(w http.ResponseWriter, r *http.Request, params
 func (s *Server) getPluginsByName(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 }
 
-func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	plName := p.ByName("name")
+	plType := p.ByName("type")
+	plVersion, iErr := strconv.ParseInt(p.ByName("version"), 10, 0)
+	f := map[string]interface{}{
+		"plugin-name":    plName,
+		"plugin-version": plVersion,
+		"plugin-type":    plType,
+	}
+
+	if iErr != nil {
+		pe := perror.New(errors.New("invalid version"))
+		pe.SetFields(f)
+		respond(400, rbody.FromPulseError(pe), w)
+		return
+	}
+
+	if plName == "" {
+		pe := perror.New(errors.New("missing plugin name"))
+		pe.SetFields(f)
+		respond(400, rbody.FromPulseError(pe), w)
+		return
+	}
+	if plType == "" {
+		pe := perror.New(errors.New("missing plugin type"))
+		pe.SetFields(f)
+		respond(400, rbody.FromPulseError(pe), w)
+		return
+	}
+
+	pluginCatalog := s.mm.PluginCatalog()
+	var plugin core.CatalogedPlugin
+	for _, item := range pluginCatalog {
+		if item.Name() == plName &&
+			item.Version() == int(plVersion) &&
+			item.TypeName() == plType {
+			plugin = item
+			break
+		}
+	}
+	if plugin == nil {
+		pe := perror.New(ErrPluginNotFound, f)
+		respond(404, rbody.FromPulseError(pe), w)
+		return
+	}
+
+	b, err := ioutil.ReadFile(plugin.PluginPath())
+	if err != nil {
+		f["plugin-path"] = plugin.PluginPath()
+		pe := perror.New(err, f)
+		respond(500, rbody.FromPulseError(pe), w)
+		return
+	}
+
+	w.Header().Set("Content-Encoding", "gzip")
+	gz := gzip.NewWriter(w)
+	defer gz.Close()
+	_, err = gz.Write(b)
+	if err != nil {
+		f["plugin-path"] = plugin.PluginPath()
+		pe := perror.New(err, f)
+		respond(500, rbody.FromPulseError(pe), w)
+		return
+	}
+
+	// w.WriteHeader(200)
 }

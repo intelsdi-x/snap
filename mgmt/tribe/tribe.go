@@ -1,15 +1,27 @@
 package tribe
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/gomit"
+	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/control_event"
 	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/pborman/uuid"
 
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/memberlist"
+)
+
+const (
+	HandlerRegistrationName = "tribe"
+	RestAPIPort             = "rest_api_port"
 )
 
 var (
@@ -20,44 +32,51 @@ var (
 	errNotAMember                     = errors.New("Not a member of agreement")
 	errTaskAlreadyExists              = errors.New("Task already exists")
 	errTaskDoesNotExist               = errors.New("Task does not exist")
-	errCreateMemberlist               = errors.New("Failed to create memberlist")
-	errMemberlistJoin                 = errors.New("Failed to join memberlist")
+	errCreateMemberlist               = errors.New("Failed to start tribe")
+	errMemberlistJoin                 = errors.New("Failed to join tribe")
 )
+
+// A buffered channel that we can send work requests on.
+// var pluginWorkQueue = make(chan pluginRequest, 999)
 
 var logger = log.WithFields(log.Fields{
 	"_module": "tribe",
 })
 
-type agreements struct {
-	PluginAgreement *pluginAgreement
-	TaskAgreement   *taskAgreement
-	Members         map[string]*member
+type Agreement struct {
+	Name            string             `json:"name"`
+	PluginAgreement *pluginAgreement   `json:"plugin_agreement,omitempty"`
+	TaskAgreement   *taskAgreement     `json:"task_agreement,omitempty"`
+	Members         map[string]*member `json:"members,omitempty"`
 }
 
 type plugins []plugin
 
 type pluginAgreement struct {
-	Plugins plugins
+	Name    string  `json:"-"`
+	Plugins plugins `json:"plugins,omitempty"`
 }
 
 type tasks []task
 
 type taskAgreement struct {
-	Tasks tasks
+	Name  string `json:"-"`
+	Tasks tasks  `json:"tasks,omitempty"`
 }
 
 type task struct {
-	ID string
+	ID string `json:"id"`
 }
 
 type plugin struct {
-	Name    string
-	Version int
+	Name_    string          `json:"name"`
+	Version_ int             `json:"version"`
+	Type_    core.PluginType `json:"type"`
 }
 
 type tribe struct {
 	clock        LClock
-	agreements   map[string]*agreements
+	agreements   map[string]*Agreement
 	mutex        sync.RWMutex
 	msgBuffer    []msg
 	intentBuffer []msg
@@ -65,13 +84,36 @@ type tribe struct {
 	memberlist   *memberlist.Memberlist
 	logger       *log.Entry
 	members      map[string]*member
+	tags         map[string]string
+
+	pluginCatalog   managesPlugins
+	pluginWorkQueue chan pluginRequest
+
+	workerQuitChan  chan interface{}
+	workerWaitGroup *sync.WaitGroup
+}
+
+type ManagesTribe interface {
+	GetAgreement(name string) (*Agreement, perror.PulseError)
+	GetAgreements() map[string]*Agreement
+	AddAgreement(name string) perror.PulseError
+	JoinAgreement(agreementName, memberName string) perror.PulseError
+	GetMembers() []string
+	GetMember(name string) *member
+}
+
+type managesPlugins interface {
+	Load(path string) (core.CatalogedPlugin, perror.PulseError)
+	Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.PulseError)
+	PluginCatalog() core.PluginCatalog
 }
 
 type member struct {
-	Name            string
-	Node            *memberlist.Node
-	PluginAgreement *pluginAgreement
-	TaskAgreements  map[string]*taskAgreement
+	Tags            map[string]string         `json:"tags,omitempty"`
+	Name            string                    `json:"name"`
+	Node            *memberlist.Node          `json:"-"`
+	PluginAgreement *pluginAgreement          `json:"-"`
+	TaskAgreements  map[string]*taskAgreement `json:"-"`
 }
 
 func newMember(node *memberlist.Node) *member {
@@ -84,11 +126,12 @@ func newMember(node *memberlist.Node) *member {
 
 type config struct {
 	seed             string
+	restAPIPort      int
 	memberlistConfig *memberlist.Config
 }
 
-func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string) *config {
-	c := &config{seed: seed}
+func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string, restAPIPort int) *config {
+	c := &config{seed: seed, restAPIPort: restAPIPort}
 	c.memberlistConfig = memberlist.DefaultLANConfig()
 	c.memberlistConfig.PushPullInterval = 300 * time.Second
 	c.memberlistConfig.Name = name
@@ -99,12 +142,23 @@ func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string) *
 }
 
 func New(c *config) (*tribe, error) {
+	logger = logger.WithFields(log.Fields{
+		"_block": "New",
+		"port":   c.memberlistConfig.BindPort,
+		"addr":   c.memberlistConfig.BindAddr,
+		"name":   c.memberlistConfig.Name,
+	})
+
 	tribe := &tribe{
-		agreements:   map[string]*agreements{},
-		members:      map[string]*member{},
-		msgBuffer:    make([]msg, 512),
-		intentBuffer: []msg{},
-		logger:       logger.WithField("_name", c.memberlistConfig.Name),
+		agreements:      map[string]*Agreement{},
+		members:         map[string]*member{},
+		msgBuffer:       make([]msg, 512),
+		intentBuffer:    []msg{},
+		logger:          logger.WithField("_name", c.memberlistConfig.Name),
+		tags:            map[string]string{RestAPIPort: strconv.Itoa(c.restAPIPort)},
+		pluginWorkQueue: make(chan pluginRequest, 999),
+		workerQuitChan:  make(chan interface{}),
+		workerWaitGroup: &sync.WaitGroup{},
 	}
 
 	tribe.broadcasts = &memberlist.TransmitLimitedQueue{
@@ -120,7 +174,9 @@ func New(c *config) (*tribe, error) {
 
 	ml, err := memberlist.Create(c.memberlistConfig)
 	if err != nil {
-		log.Error(err)
+		logger.WithFields(log.Fields{
+			"_block": "New",
+		}).Error(err)
 		return nil, err
 	}
 	tribe.memberlist = ml
@@ -128,24 +184,188 @@ func New(c *config) (*tribe, error) {
 	if c.seed != "" {
 		_, err := ml.Join([]string{c.seed})
 		if err != nil {
-			log.Error(errMemberlistJoin)
+			logger.WithFields(log.Fields{
+				"seed": c.seed,
+			}).Error(errMemberlistJoin)
 			return nil, errMemberlistJoin
 		}
-
+		logger.WithFields(log.Fields{
+			"seed": c.seed,
+		}).Infoln("tribe started")
+		return tribe, nil
 	}
-
+	logger.WithFields(log.Fields{
+		"seed": "none",
+	}).Infoln("Tribe started")
 	return tribe, nil
 }
 
-func newAgreements() *agreements {
-	return &agreements{
+func (p plugin) Name() string {
+	return p.Name_
+}
+
+func (p plugin) Version() int {
+	return p.Version_
+}
+
+func (p plugin) TypeName() string {
+	return p.Type_.String()
+}
+
+func (t *tribe) SetPluginCatalog(p managesPlugins) {
+	t.pluginCatalog = p
+}
+
+func (t *tribe) Name() string {
+	return "tribe"
+}
+
+func (t *tribe) Start() error {
+	t.startDispatcher(4, t.pluginCatalog, t)
+	return nil
+}
+
+func (t *tribe) Stop() {
+	err := t.memberlist.Leave(1 * time.Second)
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"_block": "Stop",
+		}).Error(err)
+	}
+	err = t.memberlist.Shutdown()
+	if err != nil {
+		logger.WithFields(log.Fields{
+			"_block": "Stop",
+		}).Error(err)
+	}
+	close(t.workerQuitChan)
+	t.workerWaitGroup.Wait()
+}
+
+func (t *tribe) startDispatcher(nworkers int, cp managesPlugins, mm getsMembers) {
+	pluginWorkerQueue := make(chan chan pluginRequest, nworkers)
+
+	for i := 0; i < nworkers; i++ {
+		logger.Infof("Starting tribe plugin worker-%d", i+1)
+		worker := newPluginWorker(i+1, pluginWorkerQueue, t.workerQuitChan, t.workerWaitGroup, cp, mm)
+		worker.Start()
+	}
+
+	go func() {
+		for {
+			select {
+			case work := <-t.pluginWorkQueue:
+				logger.Debug("Received plugin work requeust")
+				go func() {
+					worker := <-pluginWorkerQueue
+
+					logger.Debug("Dispatching plugin work request")
+					worker <- work
+				}()
+			case <-t.workerQuitChan:
+				logger.Debug("Stopping plugin work dispatcher")
+				return
+			}
+		}
+	}()
+}
+
+func newAgreements(name string) *Agreement {
+	return &Agreement{
+		Name: name,
 		PluginAgreement: &pluginAgreement{
+			Name:    name,
 			Plugins: plugins{},
 		},
 		TaskAgreement: &taskAgreement{
+			Name:  name,
 			Tasks: tasks{},
 		},
 		Members: map[string]*member{},
+	}
+}
+
+func (t *tribe) getPluginAgreementMembers() ([]*member, error) {
+	m, ok := t.members[t.memberlist.LocalNode().Name]
+	if !ok || m.PluginAgreement == nil {
+		return nil, errNotAMember
+	}
+	logger.Debugf("agreement %s has %d members", m.PluginAgreement.Name, len(t.agreements[m.PluginAgreement.Name].Members))
+	members := make([]*member, 0, len(t.agreements[m.PluginAgreement.Name].Members))
+	for _, v := range t.agreements[m.PluginAgreement.Name].Members {
+		members = append(members, v)
+	}
+	return members, nil
+}
+
+// encodeTags
+func (t *tribe) encodeTags(tags map[string]string) []byte {
+	var buf bytes.Buffer
+	enc := codec.NewEncoder(&buf, &codec.MsgpackHandle{})
+	if err := enc.Encode(tags); err != nil {
+		panic(fmt.Sprintf("Failed to encode tags: %v", err))
+	}
+	return buf.Bytes()
+}
+
+// decodeTags is used to decode a tag map
+func (t *tribe) decodeTags(buf []byte) map[string]string {
+	tags := make(map[string]string)
+	r := bytes.NewReader(buf)
+	dec := codec.NewDecoder(r, &codec.MsgpackHandle{})
+	if err := dec.Decode(&tags); err != nil {
+		logger.WithFields(log.Fields{
+			"_block": "decodeTags",
+			"error":  err,
+		}).Error("Failed to decode tags")
+	}
+	return tags
+}
+
+// HandleGomitEvent handles events emitted from control
+func (t *tribe) HandleGomitEvent(e gomit.Event) {
+	switch v := e.Body.(type) {
+	case *control_event.LoadPluginEvent:
+		logger.WithFields(log.Fields{
+			"_block":         "HandleGomitEvent",
+			"event":          e.Namespace(),
+			"plugin_name":    v.Name,
+			"plugin_version": v.Version,
+			"plugin_type":    core.PluginType(v.Type).String(),
+		}).Debugf("Handling load plugin event")
+		plugin := plugin{
+			Name_:    v.Name,
+			Version_: v.Version,
+			Type_:    core.PluginType(v.Type),
+		}
+		if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+			if m.PluginAgreement != nil {
+				if ok, _ := m.PluginAgreement.Plugins.contains(plugin); !ok {
+					t.AddPlugin(m.PluginAgreement.Name, plugin)
+				}
+			}
+		}
+	case *control_event.UnloadPluginEvent:
+		logger.WithFields(log.Fields{
+			"_block":         "HandleGomitEvent",
+			"event":          e.Namespace(),
+			"plugin_name":    v.Name,
+			"plugin_version": v.Version,
+			"plugin_type":    core.PluginType(v.Type).String(),
+		}).Debugf("Handling unload plugin event")
+		plugin := plugin{
+			Name_:    v.Name,
+			Version_: v.Version,
+			Type_:    core.PluginType(v.Type),
+		}
+		if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+			if m.PluginAgreement != nil {
+				if ok, _ := m.PluginAgreement.Plugins.contains(plugin); ok {
+					t.RemovePlugin(m.PluginAgreement.Name, plugin)
+				}
+			}
+		}
+
 	}
 }
 
@@ -163,6 +383,21 @@ func (t *tribe) broadcast(mt msgType, msg interface{}, notify chan<- struct{}) e
 		notify: notify,
 	})
 	return nil
+}
+
+func (t *tribe) GetMember(name string) *member {
+	if m, ok := t.members[name]; ok {
+		return m
+	}
+	return nil
+}
+
+func (t *tribe) GetMembers() []string {
+	var members []string
+	for _, member := range t.memberlist.Members() {
+		members = append(members, member.Name)
+	}
+	return members
 }
 
 func (t *tribe) LeaveAgreement(agreementName, memberName string) perror.PulseError {
@@ -201,13 +436,13 @@ func (t *tribe) JoinAgreement(agreementName, memberName string) perror.PulseErro
 	return nil
 }
 
-func (t *tribe) AddPlugin(agreementName, pluginName string, ver int) error {
+func (t *tribe) AddPlugin(agreementName string, p plugin) error {
 	if _, ok := t.agreements[agreementName]; !ok {
 		return errAgreementDoesNotExist
 	}
 	msg := &pluginMsg{
 		LTime:         t.clock.Increment(),
-		Plugin:        plugin{Name: pluginName, Version: ver},
+		Plugin:        p,
 		AgreementName: agreementName,
 		UUID:          uuid.New(),
 		Type:          addPluginMsgType,
@@ -218,14 +453,14 @@ func (t *tribe) AddPlugin(agreementName, pluginName string, ver int) error {
 	return nil
 }
 
-func (t *tribe) RemovePlugin(clan, name string, ver int) error {
-	if _, ok := t.agreements[clan]; !ok {
+func (t *tribe) RemovePlugin(agreementName string, p plugin) error {
+	if _, ok := t.agreements[agreementName]; !ok {
 		return errAgreementDoesNotExist
 	}
 	msg := &pluginMsg{
 		LTime:         t.clock.Increment(),
-		Plugin:        plugin{Name: name, Version: ver},
-		AgreementName: clan,
+		Plugin:        p,
+		AgreementName: agreementName,
 		UUID:          uuid.New(),
 		Type:          removePluginMsgType,
 	}
@@ -233,6 +468,18 @@ func (t *tribe) RemovePlugin(clan, name string, ver int) error {
 		t.broadcast(removePluginMsgType, msg, nil)
 	}
 	return nil
+}
+
+func (t *tribe) GetAgreement(name string) (*Agreement, perror.PulseError) {
+	a, ok := t.agreements[name]
+	if !ok {
+		return nil, perror.New(errAgreementDoesNotExist, map[string]interface{}{"agreement_name": name})
+	}
+	return a, nil
+}
+
+func (t *tribe) GetAgreements() map[string]*Agreement {
+	return t.agreements
 }
 
 func (t *tribe) AddTask(agreementName, taskID string) perror.PulseError {
@@ -391,7 +638,7 @@ func (t *tribe) processAddAgreementIntents() bool {
 		if v.GetType() == addAgreementMsgType {
 			intent := v.(*agreementMsg)
 			if _, ok := t.agreements[intent.AgreementName]; !ok {
-				t.agreements[intent.AgreementName] = newAgreements()
+				t.agreements[intent.AgreementName] = newAgreements(intent.AgreementName)
 				t.intentBuffer = append(t.intentBuffer[:idx], t.intentBuffer[idx+1:]...)
 				return false
 			}
@@ -468,6 +715,17 @@ func (t *tribe) handleRemovePlugin(msg *pluginMsg) bool {
 	if _, ok := t.agreements[msg.Agreement()]; ok {
 		if t.agreements[msg.AgreementName].PluginAgreement.remove(msg, t.logger) {
 			t.processIntents()
+			if t.pluginCatalog != nil {
+				_, err := t.pluginCatalog.Unload(msg.Plugin)
+				if err != nil {
+					logger.WithFields(log.Fields{
+						"_block":         "handleRemovePlugin",
+						"plugin_name":    msg.Plugin.Name(),
+						"plugin_type":    msg.Plugin.TypeName(),
+						"plugin_version": msg.Plugin.Version(),
+					}).Error(err)
+				}
+			}
 			return true
 		}
 	}
@@ -491,6 +749,17 @@ func (t *tribe) handleAddPlugin(msg *pluginMsg) bool {
 
 	if _, ok := t.agreements[msg.AgreementName]; ok {
 		if t.agreements[msg.AgreementName].PluginAgreement.add(msg, t.logger) {
+
+			work := pluginRequest{
+				Plugin: plugin{
+					Name_:    msg.Plugin.Name_,
+					Version_: msg.Plugin.Version_,
+					Type_:    msg.Plugin.Type_,
+				},
+				requestType: pluginLoadedType,
+			}
+			t.pluginWorkQueue <- work
+
 			t.processIntents()
 			return true
 		}
@@ -553,6 +822,7 @@ func (t *tribe) handleMemberJoin(n *memberlist.Node) {
 	defer t.mutex.Unlock()
 	if _, ok := t.members[n.Name]; !ok {
 		t.members[n.Name] = newMember(n)
+		t.members[n.Name].Tags = t.decodeTags(n.Meta)
 	}
 	t.processIntents()
 }
@@ -566,7 +836,11 @@ func (t *tribe) handleMemberLeave(n *memberlist.Node) {
 }
 
 func (t *tribe) handleMemberUpdate(n *memberlist.Node) {
-
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	if _, ok := t.members[n.Name]; ok {
+		t.members[n.Name].Tags = t.decodeTags(n.Meta)
+	}
 }
 
 func (t *tribe) handleAddAgreement(msg *agreementMsg) bool {
@@ -585,7 +859,7 @@ func (t *tribe) handleAddAgreement(msg *agreementMsg) bool {
 
 	// add agreement
 	if _, ok := t.agreements[msg.AgreementName]; !ok {
-		t.agreements[msg.AgreementName] = newAgreements()
+		t.agreements[msg.AgreementName] = newAgreements(msg.AgreementName)
 		t.processIntents()
 		return true
 	}
@@ -816,7 +1090,7 @@ func (t *tribe) isDuplicate(msg msg) bool {
 // If the plugin is found the index returned as the second return value.
 func (p plugins) contains(item plugin) (bool, int) {
 	for idx, i := range p {
-		if i.Name == item.Name && i.Version == item.Version {
+		if i.Name_ == item.Name_ && i.Version_ == item.Version_ && i.Type_ == item.Type_ {
 			return true, idx
 		}
 	}

@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	PluginsLoadedType      = "plugins_loaded"
-	PluginUnloadedType     = "plugin_unloaded"
-	PluginListReturnedType = "plugin_list_returned"
+	PluginsLoadedType  = "plugins_loaded"
+	PluginUnloadedType = "plugin_unloaded"
+	PluginListType     = "plugin_list_returned"
 )
 
 // Successful response to the loading of a plugins
@@ -45,17 +45,17 @@ func (u *PluginUnloaded) ResponseBodyType() string {
 	return PluginUnloadedType
 }
 
-type PluginListReturned struct {
+type PluginList struct {
 	LoadedPlugins    []LoadedPlugin    `json:"loaded_plugins,omitempty"`
 	AvailablePlugins []AvailablePlugin `json:"available_plugins,omitempty"`
 }
 
-func (p *PluginListReturned) ResponseBodyMessage() string {
+func (p *PluginList) ResponseBodyMessage() string {
 	return "Plugin list returned"
 }
 
-func (p *PluginListReturned) ResponseBodyType() string {
-	return PluginListReturnedType
+func (p *PluginList) ResponseBodyType() string {
+	return PluginListType
 }
 
 type LoadedPlugin struct {
