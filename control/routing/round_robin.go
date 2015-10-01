@@ -51,6 +51,6 @@ func (r *RoundRobinStrategy) Select(spp SelectablePluginPool, spa []SelectablePl
 		"block":    "select",
 		"strategy": "round-robin",
 		"error":    ErrorCouldNotSelect,
-	}).Debug("error selecting")
+	}).Error("error selecting")
 	return nil, ErrorCouldNotSelect
 }
