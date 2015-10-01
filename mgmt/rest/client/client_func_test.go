@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,11 +23,11 @@ var (
 	// Change to set the REST API logging to debug
 	LOG_LEVEL = log.FatalLevel
 
-	PULSE_PATH          = os.Getenv("PULSE_PATH")
-	DUMMY_PLUGIN_PATH1  = []string{PULSE_PATH + "/plugin/pulse-collector-dummy1"}
-	DUMMY_PLUGIN_PATH2  = []string{PULSE_PATH + "/plugin/pulse-collector-dummy2"}
-	RIEMANN_PLUGIN_PATH = []string{PULSE_PATH + "/plugin/pulse-publisher-riemann"}
-	DIRECTORY_PATH      = []string{PULSE_PATH + "/plugin/"}
+	PULSE_PATH         = os.Getenv("PULSE_PATH")
+	DUMMY_PLUGIN_PATH1 = []string{PULSE_PATH + "/plugin/pulse-collector-dummy1"}
+	DUMMY_PLUGIN_PATH2 = []string{PULSE_PATH + "/plugin/pulse-collector-dummy2"}
+	FILE_PLUGIN_PATH   = []string{PULSE_PATH + "/plugin/pulse-publisher-file"}
+	DIRECTORY_PATH     = []string{PULSE_PATH + "/plugin/"}
 
 	NextPort = 9000
 )
@@ -344,7 +345,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.CreateTask(sch, wf, "baron", false)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(riemann) version(1)")
+				So(p.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file) version(1)")
 			})
 			Convey("valid task", func() {
 				port := getPort()
@@ -352,7 +353,7 @@ func TestPulseClient(t *testing.T) {
 				c := New(uri, "v1")
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
@@ -377,7 +378,7 @@ func TestPulseClient(t *testing.T) {
 				c := New(uri, "v1")
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
@@ -425,7 +426,7 @@ func TestPulseClient(t *testing.T) {
 				c := New(uri, "v1")
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
 
@@ -459,7 +460,7 @@ func TestPulseClient(t *testing.T) {
 				c := New(uri, "v1")
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
 				p2 := c.StopTask(p1.ID)
@@ -497,7 +498,7 @@ func TestPulseClient(t *testing.T) {
 				c := New(uri, "v1")
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
 
@@ -528,7 +529,7 @@ func TestPulseClient(t *testing.T) {
 				c := New(uri, "v1")
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
@@ -561,25 +562,36 @@ func TestPulseClient(t *testing.T) {
 		})
 		Convey("WatchTasks", func() {
 			Convey("event stream", func() {
+				rest.StreamingBufferWindow = 0.01
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				c.LoadPlugin(RIEMANN_PLUGIN_PATH)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "10ms"}
+				sch := &Schedule{Type: "simple", Interval: "500ms"}
 				p := c.CreateTask(sch, wf, "baron", false)
 
-				a := make([]string, 0)
+				type ea struct {
+					events []string
+					sync.Mutex
+				}
+
+				a := new(ea)
 				r := c.WatchTask(uint(p.ID))
 				wait := make(chan struct{})
 				go func() {
 					for {
 						select {
 						case e := <-r.EventChan:
-							a = append(a, e.EventType)
+							a.Lock()
+							a.events = append(a.events, e.EventType)
+							if len(a.events) == 10 {
+								r.Close()
+							}
+							a.Unlock()
 						case <-r.DoneChan:
 							close(wait)
 							return
@@ -589,17 +601,14 @@ func TestPulseClient(t *testing.T) {
 				c.StopTask(p.ID)
 				c.StartTask(p.ID)
 				<-wait
-				So(len(a), ShouldBeGreaterThanOrEqualTo, 3)
-				So(a[0], ShouldEqual, "task-stopped")
-				So(a[1], ShouldEqual, "task-started")
-				// same as rest_func_test: 1027
-				// dependent on >= 12 events which is unlikely on a system
-				// under stress.
-				//for x := 2; x <= 10; x++ {
-				//	So(a[x], ShouldEqual, "metric-event")
-				//}
-				// Signal we are done
-				r.Close()
+				a.Lock()
+				So(len(a.events), ShouldEqual, 10)
+				a.Unlock()
+				So(a.events[0], ShouldEqual, "task-stopped")
+				So(a.events[1], ShouldEqual, "task-started")
+				for x := 2; x <= 9; x++ {
+					So(a.events[x], ShouldEqual, "metric-event")
+				}
 			})
 
 		})

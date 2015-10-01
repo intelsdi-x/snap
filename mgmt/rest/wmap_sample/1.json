@@ -7,11 +7,10 @@
         "process": [],
         "publish": [
             {
-                "plugin_name": "riemann",
+                "plugin_name": "file",
                 "plugin_version": 1,
                 "config": {
-                    "host": "localhost",
-                    "broker": "wat"
+                    "file": "/tmp/rest.test"
                 }
             }
         ]
