@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -561,6 +562,7 @@ func TestPulseClient(t *testing.T) {
 		})
 		Convey("WatchTasks", func() {
 			Convey("event stream", func() {
+				rest.StreamingBufferWindow = 0.01
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
@@ -569,21 +571,27 @@ func TestPulseClient(t *testing.T) {
 				c.LoadPlugin(FILE_PLUGIN_PATH)
 
 				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "100ms"}
+				sch := &Schedule{Type: "simple", Interval: "500ms"}
 				p := c.CreateTask(sch, wf, "baron", false)
 
-				a := make([]string, 0)
+				type ea struct {
+					events []string
+					sync.Mutex
+				}
+
+				a := new(ea)
 				r := c.WatchTask(uint(p.ID))
-				time.Sleep(time.Millisecond * 100)
 				wait := make(chan struct{})
 				go func() {
 					for {
 						select {
 						case e := <-r.EventChan:
-							a = append(a, e.EventType)
-							if len(a) == 10 {
+							a.Lock()
+							a.events = append(a.events, e.EventType)
+							if len(a.events) == 10 {
 								r.Close()
 							}
+							a.Unlock()
 						case <-r.DoneChan:
 							close(wait)
 							return
@@ -593,11 +601,13 @@ func TestPulseClient(t *testing.T) {
 				c.StopTask(p.ID)
 				c.StartTask(p.ID)
 				<-wait
-				So(len(a), ShouldEqual, 10)
-				So(a[0], ShouldEqual, "task-stopped")
-				So(a[1], ShouldEqual, "task-started")
+				a.Lock()
+				So(len(a.events), ShouldEqual, 10)
+				a.Unlock()
+				So(a.events[0], ShouldEqual, "task-stopped")
+				So(a.events[1], ShouldEqual, "task-started")
 				for x := 2; x <= 9; x++ {
-					So(a[x], ShouldEqual, "metric-event")
+					So(a.events[x], ShouldEqual, "metric-event")
 				}
 			})
 

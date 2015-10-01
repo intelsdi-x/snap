@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -1025,7 +1026,7 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(FILE_PLUGIN_PATH, port)
 				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
 
-				r1 := createTask("1.json", "xenu", "100ms", true, port)
+				r1 := createTask("1.json", "xenu", "500ms", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
@@ -1036,16 +1037,22 @@ func TestPluginRestCalls(t *testing.T) {
 				r := watchTask(id, port)
 				time.Sleep(time.Millisecond * 100)
 				startTask(id, port)
-				var events []string
+				type ea struct {
+					events []string
+					sync.Mutex
+				}
+				a := new(ea)
 				wait := make(chan struct{})
 				go func() {
 					for {
 						select {
 						case e := <-r.eventChan:
-							events = append(events, e)
-							if len(events) == 10 {
+							a.Lock()
+							a.events = append(a.events, e)
+							if len(a.events) == 10 {
 								r.close()
 							}
+							a.Unlock()
 						case <-r.doneChan:
 							close(wait)
 							return
@@ -1054,10 +1061,12 @@ func TestPluginRestCalls(t *testing.T) {
 				}()
 				<-wait
 				stopTask(id, port)
-				So(len(events), ShouldEqual, 10)
-				So(events[0], ShouldEqual, "task-started")
+				a.Lock()
+				So(len(a.events), ShouldEqual, 10)
+				a.Unlock()
+				So(a.events[0], ShouldEqual, "task-started")
 				for x := 1; x <= 9; x++ {
-					So(events[x], ShouldEqual, "metric-event")
+					So(a.events[x], ShouldEqual, "metric-event")
 				}
 			})
 		})
