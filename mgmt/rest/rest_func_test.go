@@ -19,6 +19,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
@@ -71,8 +72,8 @@ func readBody(r *http.Response) []byte {
 	return b
 }
 
-func getAPIResponse(resp *http.Response) *APIResponse {
-	r := new(APIResponse)
+func getAPIResponse(resp *http.Response) *rbody.APIResponse {
+	r := new(rbody.APIResponse)
 	rb := readBody(resp)
 	err := json.Unmarshal(rb, r)
 	if err != nil {
@@ -82,8 +83,8 @@ func getAPIResponse(resp *http.Response) *APIResponse {
 	return r
 }
 
-func getStreamingAPIResponse(resp *http.Response) *APIResponse {
-	r := new(APIResponse)
+func getStreamingAPIResponse(resp *http.Response) *rbody.APIResponse {
+	r := new(rbody.APIResponse)
 	rb := readBody(resp)
 	err := json.Unmarshal(rb, r)
 	if err != nil {
@@ -103,8 +104,8 @@ func (w *watchTaskResult) close() {
 	close(w.doneChan)
 }
 
-func watchTask(id, port int) *watchTaskResult {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%d/watch", port, id))
+func watchTask(id string, port int) *watchTaskResult {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%s/watch", port, id))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,7 +146,7 @@ func watchTask(id, port int) *watchTaskResult {
 	return r
 }
 
-func getTasks(port int) *APIResponse {
+func getTasks(port int) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks", port))
 	if err != nil {
 		log.Fatal(err)
@@ -153,16 +154,16 @@ func getTasks(port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func getTask(id, port int) *APIResponse {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id))
+func getTask(id string, port int) *rbody.APIResponse {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%s", port, id))
 	if err != nil {
 		log.Fatal(err)
 	}
 	return getAPIResponse(resp)
 }
 
-func startTask(id, port int) *APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/start", port, id)
+func startTask(id string, port int) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s/start", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
 	req, err := http.NewRequest("PUT", uri, b)
@@ -177,8 +178,8 @@ func startTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func stopTask(id, port int) *APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d/stop", port, id)
+func stopTask(id string, port int) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s/stop", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
 	req, err := http.NewRequest("PUT", uri, b)
@@ -193,8 +194,8 @@ func stopTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func removeTask(id, port int) *APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%d", port, id)
+func removeTask(id string, port int) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s", port, id)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
 	if err != nil {
@@ -208,7 +209,7 @@ func removeTask(id, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func createTask(sample, name, interval string, noStart bool, port int) *APIResponse {
+func createTask(sample, name, interval string, noStart bool, port int) *rbody.APIResponse {
 	jsonP, err := ioutil.ReadFile("./wmap_sample/" + sample)
 	if err != nil {
 		log.Fatal(err)
@@ -246,7 +247,7 @@ func createTask(sample, name, interval string, noStart bool, port int) *APIRespo
 	return getAPIResponse(resp)
 }
 
-func uploadPlugin(pluginPath string, port int) *APIResponse {
+func uploadPlugin(pluginPath string, port int) *rbody.APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/plugins", port)
 
 	client := &http.Client{}
@@ -297,7 +298,7 @@ func uploadPlugin(pluginPath string, port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func unloadPlugin(port int, pluginType string, name string, version int) *APIResponse {
+func unloadPlugin(port int, pluginType string, name string, version int) *rbody.APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%d", port, pluginType, name, version)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
@@ -312,7 +313,7 @@ func unloadPlugin(port int, pluginType string, name string, version int) *APIRes
 	return getAPIResponse(resp)
 }
 
-func getPluginList(port int) *APIResponse {
+func getPluginList(port int) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/plugins", port))
 	if err != nil {
 		log.Fatal(err)
@@ -320,11 +321,11 @@ func getPluginList(port int) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func getMetricCatalog(port int) *APIResponse {
+func getMetricCatalog(port int) *rbody.APIResponse {
 	return fetchMetrics(port, "")
 }
 
-func fetchMetrics(port int, ns string) *APIResponse {
+func fetchMetrics(port int, ns string) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics%s", port, ns))
 	if err != nil {
 		log.Fatal(err)
@@ -333,7 +334,7 @@ func fetchMetrics(port int, ns string) *APIResponse {
 	return getAPIResponse(resp)
 }
 
-func fetchMetricsWithVersion(port int, ns string, ver int) *APIResponse {
+func fetchMetricsWithVersion(port int, ns string, ver int) *rbody.APIResponse {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics%s?ver=%d", port, ns, ver))
 	if err != nil {
 		log.Fatal(err)
@@ -391,8 +392,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Should only be one in the list
 				r2 := getPluginList(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr2 := r2.Body.(*rbody.PluginListReturned)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr2 := r2.Body.(*rbody.PluginList)
 
 				So(len(plr2.LoadedPlugins), ShouldEqual, 1)
 				So(plr2.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
@@ -429,8 +430,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Should only be one in the list
 				r3 := getPluginList(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr3 := r3.Body.(*rbody.PluginListReturned)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr3 := r3.Body.(*rbody.PluginList)
 
 				So(len(plr3.LoadedPlugins), ShouldEqual, 1)
 				So(plr3.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
@@ -472,8 +473,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Should be two in the list
 				r3 := getPluginList(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr3 := r3.Body.(*rbody.PluginListReturned)
+				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr3 := r3.Body.(*rbody.PluginList)
 
 				So(len(plr3.LoadedPlugins), ShouldEqual, 2)
 				So(plr3.LoadedPlugins[0].Name, ShouldContainSubstring, "dummy")
@@ -527,8 +528,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 				// Plugin should NOT be in the list
 				r2 := getPluginList(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr2 := r2.Body.(*rbody.PluginListReturned)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr2 := r2.Body.(*rbody.PluginList)
 
 				So(len(plr2.LoadedPlugins), ShouldEqual, 0)
 			})
@@ -555,8 +556,8 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.Type, ShouldEqual, "collector")
 
 				r = getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr2 := r.Body.(*rbody.PluginListReturned)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr2 := r.Body.(*rbody.PluginList)
 
 				So(len(plr2.LoadedPlugins), ShouldEqual, 1)
 				So(plr2.LoadedPlugins[0].Name, ShouldNotEqual, "dummy2")
@@ -572,10 +573,10 @@ func TestPluginRestCalls(t *testing.T) {
 				startAPI(port)
 
 				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr := r.Body.(*rbody.PluginListReturned)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr := r.Body.(*rbody.PluginList)
 
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListReturnedType)
+				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
 				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
 				So(len(plr.LoadedPlugins), ShouldEqual, 0)
 				So(len(plr.AvailablePlugins), ShouldEqual, 0)
@@ -588,10 +589,10 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
 
 				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr := r.Body.(*rbody.PluginListReturned)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr := r.Body.(*rbody.PluginList)
 
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListReturnedType)
+				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
 				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
 				So(len(plr.LoadedPlugins), ShouldEqual, 1)
 				So(len(plr.AvailablePlugins), ShouldEqual, 0)
@@ -610,10 +611,10 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 
 				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginListReturned))
-				plr := r.Body.(*rbody.PluginListReturned)
+				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
+				plr := r.Body.(*rbody.PluginList)
 
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListReturnedType)
+				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
 				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
 				So(len(plr.LoadedPlugins), ShouldEqual, 2)
 				So(len(plr.AvailablePlugins), ShouldEqual, 0)
@@ -981,10 +982,11 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				r1 := removeTask(99999, port)
+				uuid := uuid.New()
+				r1 := removeTask(uuid, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr1 := r1.Body.(*rbody.Error)
-				So(plr1.ErrorMessage, ShouldEqual, "No task found with id '99999'")
+				So(plr1.ErrorMessage, ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
 			})
 			Convey("removes a task", func() {
 				port := getPort()
@@ -1018,7 +1020,7 @@ func TestPluginRestCalls(t *testing.T) {
 			})
 		})
 		Convey("Watch task - get - /v1/tasks/:id/watch", func() {
-			Convey("---", func() {
+			Convey("---", func(c C) {
 				port := getPort()
 				startAPI(port)
 
@@ -1027,9 +1029,9 @@ func TestPluginRestCalls(t *testing.T) {
 				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
 
 				r1 := createTask("1.json", "xenu", "500ms", true, port)
+				So(r1.Meta.Code, ShouldEqual, 201)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
-
 				id := plr1.ID
 
 				// Change buffer window to 10ms (do not do this IRL)

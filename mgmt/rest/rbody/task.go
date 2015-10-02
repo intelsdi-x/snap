@@ -58,7 +58,7 @@ type ScheduledTaskReturned struct {
 }
 
 func (s *ScheduledTaskReturned) ResponseBodyMessage() string {
-	return fmt.Sprintf("Scheduled task (%d) returned", s.ID)
+	return fmt.Sprintf("Scheduled task (%s) returned", s.ID)
 }
 
 func (s *ScheduledTaskReturned) ResponseBodyType() string {
@@ -68,7 +68,7 @@ func (s *ScheduledTaskReturned) ResponseBodyType() string {
 type AddScheduledTask ScheduledTask
 
 func (s *AddScheduledTask) ResponseBodyMessage() string {
-	return fmt.Sprintf("Scheduled task created (%d)", s.ID)
+	return fmt.Sprintf("Scheduled task created (%s)", s.ID)
 }
 
 func (s *AddScheduledTask) ResponseBodyType() string {
@@ -77,7 +77,7 @@ func (s *AddScheduledTask) ResponseBodyType() string {
 
 func AddSchedulerTaskFromTask(t core.Task) *AddScheduledTask {
 	st := &AddScheduledTask{
-		ID:                 int(t.ID()),
+		ID:                 t.ID(),
 		Name:               t.GetName(),
 		Deadline:           t.DeadlineDuration().String(),
 		CreationTimestamp:  t.CreationTime().Unix(),
@@ -97,7 +97,7 @@ func AddSchedulerTaskFromTask(t core.Task) *AddScheduledTask {
 }
 
 type ScheduledTask struct {
-	ID                 int               `json:"id"`
+	ID                 string            `json:"id"`
 	Name               string            `json:"name"`
 	Deadline           string            `json:"deadline"`
 	Workflow           *wmap.WorkflowMap `json:"workflow,omitempty"`
@@ -116,7 +116,7 @@ func (s *ScheduledTask) CreationTime() time.Time {
 }
 
 func (s *ScheduledTask) ResponseBodyMessage() string {
-	return fmt.Sprintf("Scheduled task created (%d)", s.ID)
+	return fmt.Sprintf("Scheduled task created (%s)", s.ID)
 }
 
 func (s *ScheduledTask) ResponseBodyType() string {
@@ -125,7 +125,7 @@ func (s *ScheduledTask) ResponseBodyType() string {
 
 func SchedulerTaskFromTask(t core.Task) *ScheduledTask {
 	st := &ScheduledTask{
-		ID:                 int(t.ID()),
+		ID:                 t.ID(),
 		Name:               t.GetName(),
 		Deadline:           t.DeadlineDuration().String(),
 		CreationTimestamp:  t.CreationTime().Unix(),
@@ -144,11 +144,11 @@ func SchedulerTaskFromTask(t core.Task) *ScheduledTask {
 
 type ScheduledTaskStarted struct {
 	// TODO return resource
-	ID int `json:"id"`
+	ID string `json:"id"`
 }
 
 func (s *ScheduledTaskStarted) ResponseBodyMessage() string {
-	return fmt.Sprintf("Scheduled task (%d) started", s.ID)
+	return fmt.Sprintf("Scheduled task (%s) started", s.ID)
 }
 
 func (s *ScheduledTaskStarted) ResponseBodyType() string {
@@ -157,11 +157,11 @@ func (s *ScheduledTaskStarted) ResponseBodyType() string {
 
 type ScheduledTaskStopped struct {
 	// TODO return resource
-	ID int `json:"id"`
+	ID string `json:"id"`
 }
 
 func (s *ScheduledTaskStopped) ResponseBodyMessage() string {
-	return fmt.Sprintf("Scheduled task (%d) stopped", s.ID)
+	return fmt.Sprintf("Scheduled task (%s) stopped", s.ID)
 }
 
 func (s *ScheduledTaskStopped) ResponseBodyType() string {
@@ -170,11 +170,11 @@ func (s *ScheduledTaskStopped) ResponseBodyType() string {
 
 type ScheduledTaskRemoved struct {
 	// TODO return resource
-	ID int `json:"id"`
+	ID string `json:"id"`
 }
 
 func (s *ScheduledTaskRemoved) ResponseBodyMessage() string {
-	return fmt.Sprintf("Scheduled task (%d) removed", s.ID)
+	return fmt.Sprintf("Scheduled task (%s) removed", s.ID)
 }
 
 func (s *ScheduledTaskRemoved) ResponseBodyType() string {

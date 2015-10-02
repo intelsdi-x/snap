@@ -68,10 +68,12 @@ curl --cookie "$COOKIEJAR" \
 echo ""
 
 echo -n ">>starting pulsed"
-$PULSE_PATH/bin/pulsed --log-level 1 --auto-discover $PULSE_PATH/plugin > /tmp/pulse.out 2>&1  &
+$PULSE_PATH/bin/pulsed --log-level 1 --auto-discover $PULSE_PATH/plugin -t 0 > /tmp/pulse.out 2>&1  &
 echo ""
 
 sleep 3
+
+$PULSE_PATH/bin/pulsectl plugin load /Users/jrcookli/.gvm/pkgsets/go1.5/pulse/src/github.com/intelsdi-x/pulse-plugin-publisher-influxdb/build/rootfs/pulse-plugin-publisher-influxdb
 
 echo -n ">>adding pulse task"
 TASK="${TMPDIR}/pulse-task-$$.json"

@@ -6,9 +6,11 @@ type PulseError interface {
 	SetFields(map[string]interface{})
 }
 
+type Fields map[string]interface{}
+
 type pulseError struct {
 	err    error
-	fields map[string]interface{}
+	fields Fields
 }
 
 // New returns an initialized PulseError.

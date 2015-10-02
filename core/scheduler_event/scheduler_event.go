@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	TaskCreated            = "Control.TaskCreated"
+	TaskDeleted            = "Control.TaskDeleted"
 	TaskStarted            = "Control.TaskStarted"
 	TaskStopped            = "Control.TaskStopped"
 	TaskDisabled           = "Control.TaskDisabled"
@@ -13,15 +15,32 @@ const (
 )
 
 type TaskStartedEvent struct {
-	TaskID uint64
+	TaskID string
 }
 
 func (e TaskStartedEvent) Namespace() string {
 	return TaskStarted
 }
 
+type TaskCreatedEvent struct {
+	TaskID        string
+	StartOnCreate bool
+}
+
+func (e TaskCreatedEvent) Namespace() string {
+	return TaskCreated
+}
+
+type TaskDeletedEvent struct {
+	TaskID string
+}
+
+func (e TaskDeletedEvent) Namespace() string {
+	return TaskDeleted
+}
+
 type TaskStoppedEvent struct {
-	TaskID uint64
+	TaskID string
 }
 
 func (e TaskStoppedEvent) Namespace() string {
@@ -29,7 +48,7 @@ func (e TaskStoppedEvent) Namespace() string {
 }
 
 type TaskDisabledEvent struct {
-	TaskID uint64
+	TaskID string
 	Why    string
 }
 
@@ -38,7 +57,7 @@ func (e TaskDisabledEvent) Namespace() string {
 }
 
 type MetricCollectedEvent struct {
-	TaskID  uint64
+	TaskID  string
 	Metrics []core.Metric
 }
 
@@ -47,7 +66,7 @@ func (e MetricCollectedEvent) Namespace() string {
 }
 
 type MetricCollectionFailedEvent struct {
-	TaskID uint64
+	TaskID string
 	Errors []error
 }
 

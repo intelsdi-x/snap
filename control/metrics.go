@@ -267,6 +267,9 @@ func (mc *metricCatalog) get(ns []string, ver int) (*metricType, perror.PulseErr
 	if err != nil {
 		return nil, err
 	}
+	if mts == nil {
+		return nil, perror.New(errMetricNotFound)
+	}
 	// a version IS given
 	if ver > 0 {
 		l, err := getVersion(mts, ver)

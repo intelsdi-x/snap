@@ -80,13 +80,13 @@ func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.Subscribe
 	}
 	return nil
 }
-func (m *mockMetricManager) SubscribeDeps(taskId uint64, mts []core.Metric, prs []core.Plugin) []perror.PulseError {
+func (m *mockMetricManager) SubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []perror.PulseError {
 	return []perror.PulseError{
 		perror.New(errors.New("metric validation error")),
 	}
 }
 
-func (m *mockMetricManager) UnsubscribeDeps(taskId uint64, mts []core.Metric, prs []core.Plugin) []perror.PulseError {
+func (m *mockMetricManager) UnsubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []perror.PulseError {
 	return nil
 }
 
@@ -256,7 +256,7 @@ func TestScheduler(t *testing.T) {
 				So(t, ShouldEqual, tsk)
 			})
 			Convey("error when attempting to get a task that doesn't exist", func() {
-				t, err := s.GetTask(uint64(1234))
+				t, err := s.GetTask("1234")
 				So(err, ShouldNotBeNil)
 				So(t, ShouldBeNil)
 			})

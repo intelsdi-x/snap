@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
@@ -50,7 +49,7 @@ func TestTask(t *testing.T) {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
 			task := newTask(sch, wf, newWorkManager(), c, emitter)
 			task.Spin()
-			So(task.GetName(), ShouldResemble, "Task-"+string(strconv.FormatInt(int64(task.ID()), 10)))
+			So(task.GetName(), ShouldResemble, "Task-"+task.ID())
 
 		})
 
@@ -138,13 +137,13 @@ func TestTask(t *testing.T) {
 			})
 
 			Convey("Attempt to get task with an invalid Id", func() {
-				t := taskCollection.Get(1234)
+				t := taskCollection.Get("1234")
 				So(t, ShouldBeNil)
 			})
 
 			Convey("Create another task and compare the id", func() {
 				task2 := newTask(sch, wf, newWorkManager(), &mockMetricManager{}, emitter)
-				So(task2.id, ShouldEqual, task.id+1)
+				So(task2.id, ShouldNotEqual, task.ID())
 			})
 
 		})

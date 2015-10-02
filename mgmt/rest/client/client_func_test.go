@@ -11,6 +11,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/pborman/uuid"
 
 	"github.com/intelsdi-x/pulse/control"
 	"github.com/intelsdi-x/pulse/mgmt/rest"
@@ -29,7 +30,7 @@ var (
 	FILE_PLUGIN_PATH   = []string{PULSE_PATH + "/plugin/pulse-publisher-file"}
 	DIRECTORY_PATH     = []string{PULSE_PATH + "/plugin/"}
 
-	NextPort = 9000
+	NextPort = 45000
 )
 
 func getPort() int {
@@ -57,6 +58,7 @@ func getWMFromSample(sample string) *wmap.WorkflowMap {
 // When we eventually have a REST API Stop command this can be killed.
 func startAPI(port int) string {
 	// Start a REST API to talk to
+	rest.StreamingBufferWindow = 0.01
 	log.SetLevel(LOG_LEVEL)
 	r := rest.New()
 	c := control.New()
@@ -67,7 +69,7 @@ func startAPI(port int) string {
 	r.BindMetricManager(c)
 	r.BindTaskManager(s)
 	r.Start(":" + fmt.Sprint(port))
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(100 * time.Millisecond)
 	return fmt.Sprintf("http://localhost:%d", port)
 }
 
@@ -415,10 +417,10 @@ func TestPulseClient(t *testing.T) {
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
-
-				p := c.StartTask(9999999)
+				uuid := uuid.New()
+				p := c.StartTask(uuid)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "error 0: No task found with id '9999999' ")
+				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
 			})
 			Convey("existing task", func() {
 				port := getPort()
@@ -438,10 +440,10 @@ func TestPulseClient(t *testing.T) {
 				port := -1
 				uri := startAPI(port)
 				c := New(uri, "v1")
-
-				p := c.StartTask(9999999)
+				uuid := uuid.New()
+				p := c.StartTask(uuid)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "Put http://localhost:-1/v1/tasks/9999999/start: dial tcp: unknown port tcp/-1")
+				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/start: dial tcp: unknown port tcp/-1", uuid))
 			})
 		})
 		Convey("StopTask", func() {
@@ -449,10 +451,10 @@ func TestPulseClient(t *testing.T) {
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
-
-				p := c.StopTask(9999999)
+				uuid := uuid.New()
+				p := c.StopTask(uuid)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "error 0: No task found with id '9999999' ")
+				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
 			})
 			Convey("existing task", func() {
 				port := getPort()
@@ -476,10 +478,10 @@ func TestPulseClient(t *testing.T) {
 				port := -1
 				uri := startAPI(port)
 				c := New(uri, "v1")
-
-				p := c.StopTask(9999999)
+				uuid := uuid.New()
+				p := c.StopTask(uuid)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "Put http://localhost:-1/v1/tasks/9999999/stop: dial tcp: unknown port tcp/-1")
+				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/stop: dial tcp: unknown port tcp/-1", uuid))
 			})
 		})
 		Convey("RemoveTask", func() {
@@ -487,10 +489,10 @@ func TestPulseClient(t *testing.T) {
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1")
-
-				p := c.RemoveTask(9999999)
+				uuid := uuid.New()
+				p := c.RemoveTask(uuid)
 				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "No task found with id '9999999'")
+				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
 			})
 			Convey("existing task", func() {
 				port := getPort()
@@ -515,8 +517,8 @@ func TestPulseClient(t *testing.T) {
 				port := -1
 				uri := startAPI(port)
 				c := New(uri, "v1")
-
-				p := c.RemoveTask(9999999)
+				uuid := uuid.New()
+				p := c.RemoveTask(uuid)
 				So(p.Err, ShouldNotBeNil)
 				So(p.Err.Error(), ShouldEqual, "dial tcp: unknown port tcp/-1")
 			})
@@ -540,11 +542,12 @@ func TestPulseClient(t *testing.T) {
 
 				p2 := c.GetTasks()
 				So(p2.Err, ShouldBeNil)
-				p3 := c.GetTask(uint(p.ID))
+				p3 := c.GetTask(p.ID)
 				So(p3.Err, ShouldBeNil)
-				p4 := c.GetTask(0)
+				uuid := uuid.New()
+				p4 := c.GetTask(uuid)
 				So(p4.Err, ShouldNotBeNil)
-				So(p4.Err.Error(), ShouldEqual, "No task with Id '0'")
+				So(p4.Err.Error(), ShouldEqual, fmt.Sprintf("No task with Id '%s'", uuid))
 				So(p4.ScheduledTaskReturned, ShouldBeNil)
 			})
 			Convey("do returns err!=nil", func() {
@@ -552,7 +555,7 @@ func TestPulseClient(t *testing.T) {
 				uri := startAPI(port)
 				c := New(uri, "v1")
 
-				p := c.GetTask(0)
+				p := c.GetTask(uuid.New())
 				p2 := c.GetTasks()
 
 				So(p.Err, ShouldNotBeNil)
@@ -580,7 +583,7 @@ func TestPulseClient(t *testing.T) {
 				}
 
 				a := new(ea)
-				r := c.WatchTask(uint(p.ID))
+				r := c.WatchTask(p.ID)
 				wait := make(chan struct{})
 				go func() {
 					for {
@@ -598,14 +601,13 @@ func TestPulseClient(t *testing.T) {
 						}
 					}
 				}()
-				c.StopTask(p.ID)
-				c.StartTask(p.ID)
+				startResp := c.StartTask(p.ID)
+				So(startResp.Err, ShouldBeNil)
 				<-wait
 				a.Lock()
 				So(len(a.events), ShouldEqual, 10)
 				a.Unlock()
-				So(a.events[0], ShouldEqual, "task-stopped")
-				So(a.events[1], ShouldEqual, "task-started")
+				So(a.events[0], ShouldEqual, "task-started")
 				for x := 2; x <= 9; x++ {
 					So(a.events[x], ShouldEqual, "metric-event")
 				}

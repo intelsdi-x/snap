@@ -14,7 +14,7 @@ var (
 
 type TaskWatcher struct {
 	id      uint64
-	taskIds []uint64
+	taskIds []string
 	parent  *taskWatcherCollection
 	stopped bool
 	handler core.TaskWatcherHandler
@@ -30,20 +30,20 @@ func (t *TaskWatcher) Close() error {
 
 type taskWatcherCollection struct {
 	// Collection of task watchers by
-	coll       map[uint64][]*TaskWatcher
+	coll       map[string][]*TaskWatcher
 	tIdCounter uint64
 	mutex      *sync.Mutex
 }
 
 func newTaskWatcherCollection() *taskWatcherCollection {
 	return &taskWatcherCollection{
-		coll:       make(map[uint64][]*TaskWatcher),
+		coll:       make(map[string][]*TaskWatcher),
 		tIdCounter: 1,
 		mutex:      &sync.Mutex{},
 	}
 }
 
-func (t *taskWatcherCollection) rm(taskId uint64, tw *TaskWatcher) {
+func (t *taskWatcherCollection) rm(taskId string, tw *TaskWatcher) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if t.coll[taskId] != nil {
@@ -62,7 +62,7 @@ func (t *taskWatcherCollection) rm(taskId uint64, tw *TaskWatcher) {
 	}
 }
 
-func (t *taskWatcherCollection) add(taskId uint64, twh core.TaskWatcherHandler) (*TaskWatcher, error) {
+func (t *taskWatcherCollection) add(taskId string, twh core.TaskWatcherHandler) (*TaskWatcher, error) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	// init map for task ID if it does not eist
@@ -90,7 +90,7 @@ func (t *taskWatcherCollection) add(taskId uint64, twh core.TaskWatcherHandler) 
 	return tw, nil
 }
 
-func (t *taskWatcherCollection) handleMetricCollected(taskId uint64, m []core.Metric) {
+func (t *taskWatcherCollection) handleMetricCollected(taskId string, m []core.Metric) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	// no taskID means no watches, early exit
@@ -113,7 +113,7 @@ func (t *taskWatcherCollection) handleMetricCollected(taskId uint64, m []core.Me
 	}
 }
 
-func (t *taskWatcherCollection) handleTaskStarted(taskId uint64) {
+func (t *taskWatcherCollection) handleTaskStarted(taskId string) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	// no taskID means no watches, early exit
@@ -136,7 +136,7 @@ func (t *taskWatcherCollection) handleTaskStarted(taskId uint64) {
 	}
 }
 
-func (t *taskWatcherCollection) handleTaskStopped(taskId uint64) {
+func (t *taskWatcherCollection) handleTaskStopped(taskId string) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	// no taskID means no watches, early exit
@@ -159,7 +159,7 @@ func (t *taskWatcherCollection) handleTaskStopped(taskId uint64) {
 	}
 }
 
-func (t *taskWatcherCollection) handleTaskDisabled(taskId uint64, why string) {
+func (t *taskWatcherCollection) handleTaskDisabled(taskId string, why string) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	// no taskID means no watches, early exit

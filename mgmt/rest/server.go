@@ -15,6 +15,7 @@ import (
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
@@ -47,24 +48,6 @@ var (
 	restLogger = log.WithField("_module", "_mgmt-rest")
 )
 
-type APIResponse struct {
-	Meta         *APIResponseMeta `json:"meta"`
-	Body         rbody.Body       `json:"body"`
-	JSONResponse string           `json:"-"`
-}
-
-type apiResponseJSON struct {
-	Meta *APIResponseMeta `json:"meta"`
-	Body json.RawMessage  `json:"body"`
-}
-
-type APIResponseMeta struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Type    string `json:"type"`
-	Version int    `json:"version"`
-}
-
 type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics([]string, int) ([]core.CatalogedMetric, error)
@@ -78,17 +61,27 @@ type managesMetrics interface {
 
 type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, bool, ...core.TaskOption) (core.Task, core.TaskErrors)
-	GetTasks() map[uint64]core.Task
-	GetTask(uint64) (core.Task, error)
-	StartTask(uint64) []perror.PulseError
-	StopTask(uint64) []perror.PulseError
-	RemoveTask(uint64) error
-	WatchTask(uint64, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
+	GetTasks() map[string]core.Task
+	GetTask(string) (core.Task, error)
+	StartTask(string) []perror.PulseError
+	StopTask(string) []perror.PulseError
+	RemoveTask(string) error
+	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
+}
+
+type managesTribe interface {
+	GetAgreement(name string) (*agreement.Agreement, perror.PulseError)
+	GetAgreements() map[string]*agreement.Agreement
+	AddAgreement(name string) perror.PulseError
+	JoinAgreement(agreementName, memberName string) perror.PulseError
+	GetMembers() []string
+	GetMember(name string) *agreement.Member
 }
 
 type Server struct {
 	mm managesMetrics
 	mt managesTasks
+	tr managesTribe
 	n  *negroni.Negroni
 	r  *httprouter.Router
 }
@@ -123,6 +116,10 @@ func (s *Server) BindTaskManager(t managesTasks) {
 	s.mt = t
 }
 
+func (s *Server) BindTribeManager(t managesTribe) {
+	s.tr = t
+}
+
 func (s *Server) start(addrString string) {
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
@@ -145,6 +142,15 @@ func (s *Server) start(addrString string) {
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
 	s.r.DELETE("/v1/tasks/:id", s.removeTask)
 
+	if s.tr != nil {
+		s.r.GET("/v1/tribe/agreements", s.getAgreements)
+		s.r.POST("/v1/tribe/agreements", s.addAgreement)
+		s.r.GET("/v1/tribe/agreements/:name", s.getAgreement)
+		s.r.POST("/v1/tribe/agreements/:name/join", s.joinAgreement)
+		s.r.GET("/v1/tribe/members", s.getMembers)
+		s.r.GET("/v1/tribe/member/:name", s.getMember)
+	}
+
 	// set negroni router to the server's router (httprouter)
 	s.n.UseHandler(s.r)
 	// start http handling
@@ -152,8 +158,8 @@ func (s *Server) start(addrString string) {
 }
 
 func respond(code int, b rbody.Body, w http.ResponseWriter) {
-	resp := &APIResponse{
-		Meta: &APIResponseMeta{
+	resp := &rbody.APIResponse{
+		Meta: &rbody.APIResponseMeta{
 			Code:    code,
 			Message: b.ResponseBodyMessage(),
 			Type:    b.ResponseBodyType(),
@@ -169,22 +175,6 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 		panic(err)
 	}
 	fmt.Fprint(w, string(j))
-}
-
-func (a *APIResponse) UnmarshalJSON(b []byte) error {
-	ar := &apiResponseJSON{}
-	err := json.Unmarshal(b, ar)
-	if err != nil {
-		panic(err)
-	}
-	body, err := rbody.UnmarshalBody(ar.Meta.Type, ar.Body)
-	if err != nil {
-		return err
-	}
-	// Assign
-	a.Meta = ar.Meta
-	a.Body = body
-	return nil
 }
 
 func marshalBody(in interface{}, body io.ReadCloser) (int, error) {

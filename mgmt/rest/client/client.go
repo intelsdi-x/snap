@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 
 	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/mgmt/rest"
+	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
 var (
@@ -71,7 +71,7 @@ func (t contentType) String() string {
    function, including ones which do not include a request body.
 */
 
-func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rest.APIResponse, error) {
+func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody.APIResponse, error) {
 	var (
 		rsp *http.Response
 		err error
@@ -132,8 +132,8 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rest.
 	return httpRespToAPIResp(rsp)
 }
 
-func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, perror.PulseError) {
-	resp := new(rest.APIResponse)
+func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, perror.PulseError) {
+	resp := new(rbody.APIResponse)
 	b, err := ioutil.ReadAll(rsp.Body)
 	rsp.Body.Close()
 	if err != nil {
@@ -152,7 +152,7 @@ func httpRespToAPIResp(rsp *http.Response) (*rest.APIResponse, perror.PulseError
 	return resp, nil
 }
 
-func (c *Client) pluginUploadRequest(pluginPaths []string) (*rest.APIResponse, perror.PulseError) {
+func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, perror.PulseError) {
 	client := &http.Client{}
 	errChan := make(chan error)
 	pr, pw := io.Pipe()

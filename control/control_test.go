@@ -664,8 +664,8 @@ func TestCollectMetrics(t *testing.T) {
 		So(lp, ShouldNotBeNil)
 		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:dummy1:1")
 		So(errp, ShouldBeNil)
-		pool.subscribe(1, unboundSubscriptionType)
-		err = c.sendPluginSubscriptionEvent(1, lp)
+		pool.subscribe("1", unboundSubscriptionType)
+		err = c.sendPluginSubscriptionEvent("1", lp)
 		So(err, ShouldBeNil)
 		m = append(m, m1, m2)
 
@@ -758,8 +758,8 @@ func TestPublishMetrics(t *testing.T) {
 			}
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:1")
 			So(errp, ShouldBeNil)
-			pool.subscribe(1, unboundSubscriptionType)
-			errs := c.sendPluginSubscriptionEvent(1, p)
+			pool.subscribe("1", unboundSubscriptionType)
+			errs := c.sendPluginSubscriptionEvent("1", p)
 			So(errs, ShouldBeNil)
 			<-lpe.done
 			time.Sleep(1500 * time.Millisecond)
@@ -815,8 +815,8 @@ func TestProcessMetrics(t *testing.T) {
 			}
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("processor:passthru:1")
 			So(errp, ShouldBeNil)
-			pool.subscribe(1, unboundSubscriptionType)
-			errs := c.sendPluginSubscriptionEvent(1, p)
+			pool.subscribe("1", unboundSubscriptionType)
+			errs := c.sendPluginSubscriptionEvent("1", p)
 			So(errs, ShouldBeNil)
 			<-lpe.done
 			time.Sleep(1500 * time.Millisecond)

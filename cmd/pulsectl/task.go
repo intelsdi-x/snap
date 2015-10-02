@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"text/tabwriter"
@@ -96,7 +95,7 @@ func createTaskUsingTaskManifest(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	fmt.Println("Task created")
-	fmt.Printf("ID: %d\n", r.ID)
+	fmt.Printf("ID: %s\n", r.ID)
 	fmt.Printf("Name: %s\n", r.Name)
 	fmt.Printf("State: %s\n", r.State)
 }
@@ -211,7 +210,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	fmt.Println("Task created")
-	fmt.Printf("ID: %d\n", r.ID)
+	fmt.Printf("ID: %s\n", r.ID)
 	fmt.Printf("Name: %s\n", r.Name)
 	fmt.Printf("State: %s\n", r.State)
 }
@@ -285,19 +284,14 @@ func watchTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
-	if err != nil {
-		fmt.Printf("Incorrect usage - %v\n", err.Error())
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
-	}
-	r := pClient.WatchTask(uint(id))
+	id := ctx.Args().First()
+	r := pClient.WatchTask(id)
 	if r.Err != nil {
 		fmt.Printf("Error starting task:\n%v\n", r.Err)
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
-	fmt.Printf("Watching Task (%d):\n", id)
+	fmt.Printf("Watching Task (%s):\n", id)
 
 	// catch interrupt so we signal the server we are done before exiting
 	c := make(chan os.Signal, 1)
@@ -354,18 +348,14 @@ func startTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
-	if err != nil {
-		fmt.Printf("Incorrect usage - %v\n", err.Error())
-		os.Exit(1)
-	}
-	r := pClient.StartTask(int(id))
+	id := ctx.Args().First()
+	r := pClient.StartTask(id)
 	if r.Err != nil {
 		fmt.Printf("Error starting task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
 	fmt.Println("Task started:")
-	fmt.Printf("ID: %d\n", r.ID)
+	fmt.Printf("ID: %s\n", r.ID)
 }
 
 func stopTask(ctx *cli.Context) {
@@ -375,18 +365,14 @@ func stopTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
-	if err != nil {
-		fmt.Printf("Incorrect usage - %v\n", err.Error())
-		os.Exit(1)
-	}
-	r := pClient.StopTask(int(id))
+	id := ctx.Args().First()
+	r := pClient.StopTask(id)
 	if r.Err != nil {
 		fmt.Printf("Error stopping task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
 	fmt.Println("Task stopped:")
-	fmt.Printf("ID: %d\n", r.ID)
+	fmt.Printf("ID: %s\n", r.ID)
 }
 
 func removeTask(ctx *cli.Context) {
@@ -396,18 +382,14 @@ func removeTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	id, err := strconv.ParseUint(ctx.Args().First(), 0, 64)
-	if err != nil {
-		fmt.Printf("Incorrect usage - %v\n", err.Error())
-		os.Exit(1)
-	}
-	r := pClient.RemoveTask(int(id))
+	id := ctx.Args().First()
+	r := pClient.RemoveTask(id)
 	if r.Err != nil {
 		fmt.Printf("Error stopping task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
 	fmt.Println("Task removed:")
-	fmt.Printf("ID: %d\n", r.ID)
+	fmt.Printf("ID: %s\n", r.ID)
 }
 
 func exportTask(ctx *cli.Context) {
@@ -416,12 +398,16 @@ func exportTask(ctx *cli.Context) {
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		os.Exit(1)
 	}
-	id, err := strconv.ParseUint(ctx.Args().First(), 0, 32)
-	if err != nil {
-		fmt.Printf("Incorrect usage - %v\n", err.Error())
+	id := ctx.Args().First()
+	task := pClient.GetTask(id)
+	if task.Err != nil {
+		fmt.Printf("Error exporting task:\n%v\n", task.Err)
 		os.Exit(1)
 	}
-	task := pClient.GetTask(uint(id))
 	tb, err := json.Marshal(task)
+	if err != nil {
+		fmt.Printf("Error exporting task:\n%v\n", err)
+		os.Exit(1)
+	}
 	fmt.Println(string(tb))
 }
