@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -45,6 +46,8 @@ const (
 )
 
 var (
+	ErrBadCert = errors.New("Invalid certificate given")
+
 	restLogger = log.WithField("_module", "_mgmt-rest")
 )
 
@@ -79,24 +82,33 @@ type managesTribe interface {
 }
 
 type Server struct {
-	mm managesMetrics
-	mt managesTasks
-	tr managesTribe
-	n  *negroni.Negroni
-	r  *httprouter.Router
+	mm  managesMetrics
+	mt  managesTasks
+	tr  managesTribe
+	n   *negroni.Negroni
+	r   *httprouter.Router
+	tls *tls
 }
 
-func New() *Server {
+func New(https bool, cpath, kpath string) (*Server, error) {
+	s := &Server{}
 
-	n := negroni.New(
+	if https {
+		var err error
+		s.tls, err = newtls(cpath, kpath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	restLogger.Info(fmt.Sprintf("Loading REST API with HTTPS set to: %v", https))
+
+	s.n = negroni.New(
 		NewLogger(),
 		negroni.NewRecovery(),
 	)
-	return &Server{
-		r: httprouter.New(),
-		n: n,
-	}
-
+	s.r = httprouter.New()
+	return s, nil
 }
 
 func (s *Server) Start(addrString string) {
@@ -105,7 +117,14 @@ func (s *Server) Start(addrString string) {
 
 func (s *Server) run(addrString string) {
 	log.Printf("[pulse-rest] listening on %s\n", addrString)
-	http.ListenAndServe(addrString, s.n)
+	if s.tls != nil {
+		err := http.ListenAndServeTLS(addrString, s.tls.cert, s.tls.key, s.n)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		http.ListenAndServe(addrString, s.n)
+	}
 }
 
 func (s *Server) BindMetricManager(m managesMetrics) {

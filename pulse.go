@@ -78,6 +78,20 @@ var (
 		EnvVar: "PULSE_CACHE_EXPIRATION",
 		Value:  "500ms",
 	}
+
+	flRestHttps = cli.BoolFlag{
+		Name:  "rest-https",
+		Usage: "start Pulse's API as https",
+	}
+	flRestCert = cli.StringFlag{
+		Name:  "rest-cert",
+		Usage: "a path to a certificate to use for HTTPS deployment of Pulse's REST API.",
+	}
+	flRestKey = cli.StringFlag{
+		Name:  "rest-key",
+		Usage: "a path to a key file to use for HTTPS deployment of Pulse's REST API.",
+	}
+
 	gitversion string
 )
 
@@ -113,8 +127,23 @@ func main() {
 	app.Name = "pulsed"
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
-	app.Flags = []cli.Flag{flAPIDisabled, flAPIPort, flLogLevel, flLogPath, flMaxProcs, flPluginVersion, flNumberOfPLs, flCache, flPluginTrust, flKeyringFile}
+	app.Flags = []cli.Flag{
+		flAPIDisabled,
+		flAPIPort,
+		flLogLevel,
+		flLogPath,
+		flMaxProcs,
+		flPluginVersion,
+		flNumberOfPLs,
+		flCache,
+		flPluginTrust,
+		flKeyringFile,
+		flRestCert,
+		flRestHttps,
+		flRestKey,
+	}
 	app.Flags = append(app.Flags, tribe.Flags...)
+
 	app.Action = action
 	app.Run(os.Args)
 }
@@ -153,6 +182,10 @@ func action(ctx *cli.Context) {
 	if err != nil {
 		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
 	}
+
+	restHttps := ctx.Bool("rest-https")
+	restKey := ctx.String("rest-key")
+	restCert := ctx.String("rest-cert")
 
 	log.Info("Starting pulsed (version: ", gitversion, ")")
 
@@ -366,7 +399,11 @@ func action(ctx *cli.Context) {
 
 	if !disableAPI {
 		log.Info("Rest API enabled on port ", apiPort)
-		r := rest.New()
+		r, err := rest.New(restHttps, restCert, restKey)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
 		if tr != nil {

@@ -348,7 +348,7 @@ func fetchMetricsWithVersion(port int, ns string, ver int) *rbody.APIResponse {
 func startAPI(port int) *restAPIInstance {
 	// Start a REST API to talk to
 	log.SetLevel(LOG_LEVEL)
-	r := New()
+	r, _ := New(false, "", "")
 	c := control.New()
 	c.Start()
 	s := scheduler.New()
