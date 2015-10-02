@@ -61,7 +61,7 @@ type tribe struct {
 	pluginWorkQueue chan worker.PluginRequest
 	taskWorkQueue   chan worker.TaskRequest
 
-	workerQuitChan  chan interface{}
+	workerQuitChan  chan struct{}
 	workerWaitGroup *sync.WaitGroup
 }
 
@@ -99,6 +99,8 @@ func New(c *config) (*tribe, error) {
 		tags:            map[string]string{agreement.RestAPIPort: strconv.Itoa(c.restAPIPort)},
 		pluginWorkQueue: make(chan worker.PluginRequest, 999),
 		taskWorkQueue:   make(chan worker.TaskRequest, 999),
+		workerQuitChan:  make(chan struct{}),
+		workerWaitGroup: &sync.WaitGroup{},
 	}
 
 	tribe.broadcasts = &memberlist.TransmitLimitedQueue{
