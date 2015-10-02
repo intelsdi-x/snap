@@ -291,24 +291,27 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		return
 	}
 
-	b, err := ioutil.ReadFile(plugin.PluginPath())
-	if err != nil {
-		f["plugin-path"] = plugin.PluginPath()
-		pe := perror.New(err, f)
-		respond(500, rbody.FromPulseError(pe), w)
+	rd := r.FormValue("download")
+	d, _ := strconv.ParseBool(rd)
+	if d {
+		b, err := ioutil.ReadFile(plugin.PluginPath())
+		if err != nil {
+			f["plugin-path"] = plugin.PluginPath()
+			pe := perror.New(err, f)
+			respond(500, rbody.FromPulseError(pe), w)
+			return
+		}
+
+		w.Header().Set("Content-Encoding", "gzip")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+		_, err = gz.Write(b)
+		if err != nil {
+			f["plugin-path"] = plugin.PluginPath()
+			pe := perror.New(err, f)
+			respond(500, rbody.FromPulseError(pe), w)
+			return
+		}
 		return
 	}
-
-	w.Header().Set("Content-Encoding", "gzip")
-	gz := gzip.NewWriter(w)
-	defer gz.Close()
-	_, err = gz.Write(b)
-	if err != nil {
-		f["plugin-path"] = plugin.PluginPath()
-		pe := perror.New(err, f)
-		respond(500, rbody.FromPulseError(pe), w)
-		return
-	}
-
-	// w.WriteHeader(200)
 }
