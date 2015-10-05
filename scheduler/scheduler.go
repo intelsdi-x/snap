@@ -202,14 +202,14 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 // RemoveTask given a tasks id.  The task must be stopped.
 // Can return errors ErrTaskNotFound and ErrTaskNotStopped.
 func (s *scheduler) RemoveTask(id string) error {
-	t := s.tasks.Get(id)
-	if t == nil {
+	t, err := s.getTask(id)
+	if err != nil {
 		log.WithFields(log.Fields{
 			"_module": "scheduler",
 			"block":   "RemoveTask",
 			"task id": id,
 		}).Error(ErrTaskNotFound)
-		return fmt.Errorf("No task found with id '%v'", id)
+		return err
 	}
 	event := &scheduler_event.TaskDeletedEvent{
 		TaskID: t.id,
@@ -229,19 +229,19 @@ func (s *scheduler) GetTasks() map[string]core.Task {
 
 // GetTask provided the task id a task is returned
 func (s *scheduler) GetTask(id string) (core.Task, error) {
-	task := s.tasks.Get(id)
-	if task == nil {
-		return nil, fmt.Errorf("No task with Id '%v'", id)
+	t, err := s.getTask(id)
+	if err != nil {
+		return nil, err // We do this to send back an explicit nil on the interface
 	}
-	return task, nil
+	return t, nil
 }
 
 // StartTask provided a task id a task is started
 func (s *scheduler) StartTask(id string) []perror.PulseError {
-	t := s.tasks.Get(id)
-	if t == nil {
+	t, err := s.getTask(id)
+	if err != nil {
 		return []perror.PulseError{
-			perror.New(fmt.Errorf("No task found with id '%v'", id)),
+			perror.New(err),
 		}
 	}
 
@@ -269,16 +269,15 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 
 // StopTask provided a task id a task is stopped
 func (s *scheduler) StopTask(id string) []perror.PulseError {
-	t := s.tasks.Get(id)
-	if t == nil {
-		e := fmt.Errorf("No task found with id '%v'", id)
+	t, err := s.getTask(id)
+	if err != nil {
 		s.logger.WithFields(log.Fields{
 			"_block":  "stop-task",
-			"_error":  e.Error(),
+			"_error":  err.Error(),
 			"task-id": id,
 		}).Warning("error on stopping of task")
 		return []perror.PulseError{
-			perror.New(e),
+			perror.New(err),
 		}
 	}
 
@@ -342,11 +341,11 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 
 //
 func (s *scheduler) WatchTask(id string, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
-	if task := s.tasks.Get(id); task != nil {
-		a, b := s.taskWatcherColl.add(task.ID(), tw)
-		return a, b
+	task, err := s.getTask(id)
+	if err != nil {
+		return nil, err
 	}
-	return nil, ErrTaskNotFound
+	return s.taskWatcherColl.add(task.ID(), tw)
 }
 
 // Central handling for all async events in scheduler
@@ -402,6 +401,14 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 			"event-namespace": e.Namespace(),
 		}).Debug("event received")
 	}
+}
+
+func (s *scheduler) getTask(id string) (*task, error) {
+	task := s.tasks.Get(id)
+	if task == nil {
+		return nil, fmt.Errorf("No task found with id '%v'", id)
+	}
+	return task, nil
 }
 
 func (s *scheduler) gatherPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
