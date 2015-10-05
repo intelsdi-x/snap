@@ -183,10 +183,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 			"task-id": task.ID(),
 		}).Info("starting task on creation")
 
-		cps := make([]core.Plugin, len(plugins))
-		for i, plugin := range plugins {
-			cps[i] = plugin
-		}
+		cps := returnCorePlugin(plugins)
 		errs := s.metricManager.SubscribeDeps(task.ID(), mts, cps)
 		if len(errs) > 0 {
 			te.errs = append(te.errs, errs...)
@@ -246,10 +243,7 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 	}
 
 	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
-	cps := make([]core.Plugin, len(plugins))
-	for i, plugin := range plugins {
-		cps[i] = plugin
-	}
+	cps := returnCorePlugin(plugins)
 	errs := s.metricManager.SubscribeDeps(id, mts, cps)
 	if len(errs) > 0 {
 		return errs
@@ -282,10 +276,7 @@ func (s *scheduler) StopTask(id string) []perror.PulseError {
 	}
 
 	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
-	cps := make([]core.Plugin, len(plugins))
-	for i, plugin := range plugins {
-		cps[i] = plugin
-	}
+	cps := returnCorePlugin(plugins)
 	errs := s.metricManager.UnsubscribeDeps(t.ID(), mts, cps)
 	if len(errs) > 0 {
 		return errs
@@ -437,6 +428,14 @@ func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode,
 	for _, pb := range pbnodes {
 		*plugins = append(*plugins, pb)
 	}
+}
+
+func returnCorePlugin(plugins []core.SubscribedPlugin) []core.Plugin {
+	cps := make([]core.Plugin, len(plugins))
+	for i, plugin := range plugins {
+		cps[i] = plugin
+	}
+	return cps
 }
 
 func buildErrorsLog(errs []perror.PulseError, logger *log.Entry) *log.Entry {
