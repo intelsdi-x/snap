@@ -244,7 +244,7 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 
 	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
 	cps := returnCorePlugin(plugins)
-	errs := s.metricManager.SubscribeDeps(id, mts, cps)
+	errs := s.metricManager.SubscribeDeps(t.ID(), mts, cps)
 	if len(errs) > 0 {
 		return errs
 	}
@@ -384,6 +384,11 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 			"task-id":         v.TaskID,
 			"disabled-reason": v.Why,
 		}).Debug("event received")
+		// We need to unsubscribe from deps when a task goes disabled
+		task, _ := s.getTask(v.TaskID)
+		mts, plugins := s.gatherMetricsAndPlugins(task.workflow)
+		cps := returnCorePlugin(plugins)
+		s.metricManager.UnsubscribeDeps(task.ID(), mts, cps)
 		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
 	default:
 		log.WithFields(log.Fields{
