@@ -149,7 +149,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	err = wf.BindPluginContentTypes(s.metricManager)
 
 	// validate plugins and metrics
-	mts, plugins := s.gatherPlugins(wf)
+	mts, plugins := s.gatherMetricsAndPlugins(wf)
 	errs := s.metricManager.ValidateDeps(mts, plugins)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
@@ -245,7 +245,7 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 		}
 	}
 
-	mts, plugins := s.gatherPlugins(t.workflow)
+	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
 	cps := make([]core.Plugin, len(plugins))
 	for i, plugin := range plugins {
 		cps[i] = plugin
@@ -281,7 +281,7 @@ func (s *scheduler) StopTask(id string) []perror.PulseError {
 		}
 	}
 
-	mts, plugins := s.gatherPlugins(t.workflow)
+	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
 	cps := make([]core.Plugin, len(plugins))
 	for i, plugin := range plugins {
 		cps[i] = plugin
@@ -411,7 +411,7 @@ func (s *scheduler) getTask(id string) (*task, error) {
 	return task, nil
 }
 
-func (s *scheduler) gatherPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
+func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
 	var (
 		mts     []core.Metric
 		plugins []core.SubscribedPlugin
