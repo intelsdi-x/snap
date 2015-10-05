@@ -256,7 +256,7 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 	}
 
 	event := new(scheduler_event.TaskStartedEvent)
-	event.TaskID = t.id
+	event.TaskID = t.ID()
 	defer s.eventManager.Emit(event)
 	t.Spin()
 	s.logger.WithFields(log.Fields{
@@ -287,13 +287,13 @@ func (s *scheduler) StopTask(id string) []perror.PulseError {
 	for i, plugin := range plugins {
 		cps[i] = plugin
 	}
-	errs := s.metricManager.UnsubscribeDeps(id, mts, cps)
+	errs := s.metricManager.UnsubscribeDeps(t.ID(), mts, cps)
 	if len(errs) > 0 {
 		return errs
 	}
 
 	event := new(scheduler_event.TaskStoppedEvent)
-	event.TaskID = t.id
+	event.TaskID = t.ID()
 	defer s.eventManager.Emit(event)
 	t.Stop()
 	s.logger.WithFields(log.Fields{
@@ -343,7 +343,7 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 //
 func (s *scheduler) WatchTask(id string, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
 	if task := s.tasks.Get(id); task != nil {
-		a, b := s.taskWatcherColl.add(id, tw)
+		a, b := s.taskWatcherColl.add(task.ID(), tw)
 		return a, b
 	}
 	return nil, ErrTaskNotFound
