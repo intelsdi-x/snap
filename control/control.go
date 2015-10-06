@@ -383,7 +383,11 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 	}
 	m.config = cd
 
-	if m.Config() != nil {
+	if m.policy != nil {
+		if m.Config() == nil {
+			perrs = append(perrs, perror.New(errors.New(fmt.Sprintf("Policy defined for metric, (%s) version (%d), but no config defined in manifest", mt.Namespace(), mt.Version()))))
+			return nil, perrs
+		}
 		ncdTable, errs := m.policy.Process(m.Config().Table())
 		if errs != nil && errs.HasErrors() {
 			for _, e := range errs.Errors() {

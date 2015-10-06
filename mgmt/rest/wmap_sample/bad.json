@@ -3,11 +3,7 @@
         "metrics": {
             "/intel/dummy/foo": {}
         },
-        "config": {
-	    "/intel/dummy/foo": {
-		"password": "testval"
-            }
-	},
+        "config": {},
         "process": [],
         "publish": [
             {
