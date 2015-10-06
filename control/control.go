@@ -722,7 +722,7 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 		}
 
 		errp := cli.Publish(contentType, content, config)
-		if err != nil {
+		if errp != nil {
 			return []error{errp}
 		}
 		ap.hitCount++
@@ -758,7 +758,7 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 		}
 
 		ct, c, errp := cli.Process(contentType, content, config)
-		if err != nil {
+		if errp != nil {
 			return "", nil, []error{errp}
 		}
 		ap.hitCount++
