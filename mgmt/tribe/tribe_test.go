@@ -108,7 +108,7 @@ func TestFullStateSync(t *testing.T) {
 }
 
 func TestFullStateSyncOnJoin(t *testing.T) {
-	numOfTribes := 6
+	numOfTribes := 5
 	agreement1 := "agreement1"
 	plugin1 := agreement.Plugin{Name_: "plugin1", Version_: 1}
 	plugin2 := agreement.Plugin{Name_: "plugin2", Version_: 1}
@@ -180,7 +180,7 @@ func TestFullStateSyncOnJoin(t *testing.T) {
 }
 
 func TestTaskAgreements(t *testing.T) {
-	numOfTribes := 10
+	numOfTribes := 5
 	tribes := getTribes(numOfTribes, nil)
 	Convey(fmt.Sprintf("%d tribes are started", numOfTribes), t, func() {
 		for i := 0; i < numOfTribes; i++ {
@@ -299,7 +299,7 @@ func TestTaskAgreements(t *testing.T) {
 }
 
 func TestTribeAgreements(t *testing.T) {
-	numOfTribes := 10
+	numOfTribes := 5
 	tribes := getTribes(numOfTribes, nil)
 	Convey(fmt.Sprintf("%d tribes are started", numOfTribes), t, func() {
 		for i := 0; i < numOfTribes; i++ {
@@ -882,13 +882,14 @@ func getTribes(numOfTribes int, seedTribe *tribe) []*tribe {
 		// 	seed = fmt.Sprintf("127.0.0.1:%d", seedPort)
 		// }
 		conf := DefaultConfig(fmt.Sprintf("member-%v", i), "127.0.0.1", port, seed, getAvailablePort())
+		conf.MemberlistConfig.RetransmitMult = conf.MemberlistConfig.RetransmitMult * 2
 		tr, err := New(conf)
 		if err != nil {
 			panic(err)
 		}
 		tribes = append(tribes, tr)
 		wg.Add(1)
-		to := time.After(4 * time.Second)
+		to := time.After(15 * time.Second)
 		go func(tr *tribe) {
 			defer wg.Done()
 			for {

@@ -422,6 +422,7 @@ func startTribes(count int) []int {
 		tribePort := getAvailablePort()
 		conf := tribe.DefaultConfig(fmt.Sprintf("member-%v", mgtPort), "127.0.0.1", tribePort, seed, mgtPort)
 		conf.MemberlistConfig.PushPullInterval = 5 * time.Second
+		conf.MemberlistConfig.RetransmitMult = conf.MemberlistConfig.RetransmitMult * 2
 		if seed == "" {
 			seed = fmt.Sprintf("%s:%d", "127.0.0.1", tribePort)
 		}
