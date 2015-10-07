@@ -20,12 +20,12 @@ func main() {
 	app.Name = "pulsectl"
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
-	app.Flags = []cli.Flag{flURL}
+	app.Flags = []cli.Flag{flURL, flSecure, flAPIVer}
 	app.Commands = commands
 
 	app.Before = func(c *cli.Context) error {
 		if pClient == nil {
-			pClient = client.New(c.GlobalString("url"), "")
+			pClient = client.New(c.GlobalString("url"), c.GlobalString("api-version"), c.GlobalBool("insecure"))
 		}
 		return nil
 	}

@@ -4,16 +4,18 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
@@ -43,18 +45,27 @@ type Client struct {
 	URL     string
 	Version string
 
+	http   *http.Client
 	prefix string
 }
 
 // New returns a pointer to a pulse api client
 // if ver is an empty string, v1 is used by default
-func New(url, ver string) *Client {
+func New(url, ver string, insecure bool) *Client {
 	if ver == "" {
 		ver = "v1"
 	}
 	c := &Client{
 		URL:     url,
 		Version: ver,
+
+		http: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: insecure,
+				},
+			},
+		},
 	}
 	c.prefix = url + "/" + ver
 	// TODO (danielscottt): assert that path is valid and target is available
@@ -78,12 +89,14 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 	)
 	switch method {
 	case "GET":
-		rsp, err = http.Get(c.prefix + path)
+		rsp, err = c.http.Get(c.prefix + path)
 		if err != nil {
+			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
+				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
+			}
 			return nil, err
 		}
 	case "PUT":
-		client := &http.Client{}
 		var b *bytes.Reader
 		if len(body) == 0 {
 			b = bytes.NewReader([]byte{})
@@ -95,12 +108,14 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		if err != nil {
 			return nil, err
 		}
-		rsp, err = client.Do(req)
+		rsp, err = c.http.Do(req)
 		if err != nil {
+			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
+				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
+			}
 			return nil, err
 		}
 	case "DELETE":
-		client := &http.Client{}
 		var b *bytes.Reader
 		if len(body) == 0 {
 			b = bytes.NewReader([]byte{})
@@ -112,8 +127,11 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		if err != nil {
 			return nil, err
 		}
-		rsp, err = client.Do(req)
+		rsp, err = c.http.Do(req)
 		if err != nil {
+			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
+				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
+			}
 			return nil, err
 		}
 	case "POST":
@@ -123,8 +141,11 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		} else {
 			b = bytes.NewReader(body[0])
 		}
-		rsp, err = http.Post(c.prefix+path, ct.String(), b)
+		rsp, err = c.http.Post(c.prefix+path, ct.String(), b)
 		if err != nil {
+			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
+				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
+			}
 			return nil, err
 		}
 	}
@@ -132,28 +153,27 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 	return httpRespToAPIResp(rsp)
 }
 
-func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, perror.PulseError) {
+func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, error) {
 	resp := new(rbody.APIResponse)
 	b, err := ioutil.ReadAll(rsp.Body)
 	rsp.Body.Close()
 	if err != nil {
-		return nil, perror.New(err)
+		return nil, err
 	}
 	jErr := json.Unmarshal(b, resp)
 	if jErr != nil {
-		return nil, perror.New(jErr)
+		return nil, jErr
 	}
 	if resp == nil {
 		// Catch corner case where JSON gives no error but resp is nil
-		return nil, perror.New(ErrNilResponse)
+		return nil, ErrNilResponse
 	}
 	// Add copy of JSON response string
 	resp.JSONResponse = string(b)
 	return resp, nil
 }
 
-func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, perror.PulseError) {
-	client := &http.Client{}
+func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, error) {
 	errChan := make(chan error)
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
@@ -163,15 +183,15 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 	for i, pluginPath := range pluginPaths {
 		path, err := os.Stat(pluginPaths[i])
 		if err != nil {
-			return nil, perror.New(err)
+			return nil, err
 		}
 		if path.IsDir() {
 			err := ErrDirNotFile
-			return nil, perror.New(err)
+			return nil, err
 		}
 		file, err := os.Open(pluginPaths[i])
 		if err != nil {
-			return nil, perror.New(err)
+			return nil, err
 		}
 		defer file.Close()
 		bufin := bufio.NewReader(file)
@@ -184,20 +204,23 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 
 	req, err := http.NewRequest("POST", c.prefix+"/plugins", pr)
 	if err != nil {
-		return nil, perror.New(err)
+		return nil, err
 	}
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	if CompressUpload {
 		req.Header.Add("Plugin-Compression", "gzip")
 	}
-	rsp, err := client.Do(req)
+	rsp, err := c.http.Do(req)
+	if err != nil {
+		if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
+			return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
+		}
+		return nil, err
+	}
 	cErr := <-errChan
 	if cErr != nil {
-		return nil, perror.New(err)
-	}
-	if err != nil {
-		return nil, perror.New(err)
+		return nil, cErr
 	}
 	return httpRespToAPIResp(rsp)
 }
@@ -240,19 +263,4 @@ func writePluginToWriter(pw io.WriteCloser, bufin []*bufio.Reader, writer *multi
 		return
 	}
 	errChan <- nil
-}
-
-type response struct {
-	status int
-	body   []byte
-	header http.Header
-}
-
-type respBody struct {
-	Meta *metaResp `json:"meta"`
-}
-
-type metaResp struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
 }

@@ -65,7 +65,9 @@ type getsMembers interface {
 
 type Member interface {
 	GetAddr() net.IP
-	GetRESTAPIPort() string
+	GetRestPort() string
+	GetRestProto() string
+	GetRestInsecureSkipVerify() bool
 	GetName() string
 }
 
@@ -142,9 +144,9 @@ func (w worker) start() {
 								continue
 							}
 							for _, member := range shuffle(members) {
-								uri := fmt.Sprintf("http://%s:%s", member.GetAddr(), member.GetRESTAPIPort())
+								uri := fmt.Sprintf("%s://%s:%s", member.GetRestProto(), member.GetAddr(), member.GetRestPort())
 								wLogger.Debugf("getting task %v from %v", work.Task.ID, uri)
-								c := client.New(uri, "v1")
+								c := client.New(uri, "v1", member.GetRestInsecureSkipVerify())
 								taskResult := c.GetTask(work.Task.ID)
 								if taskResult.Err != nil {
 									wLogger.WithField("err", taskResult.Err.Error()).Debug("error getting task")
@@ -217,7 +219,7 @@ func (w worker) start() {
 						continue
 					}
 					for _, member := range shuffle(members) {
-						url := fmt.Sprintf("http://%s:%s/v1/plugins/%s/%s/%d?download=true", member.GetAddr(), member.GetRESTAPIPort(), work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version())
+						url := fmt.Sprintf("%s://%s:%s/v1/plugins/%s/%s/%d?download=true", member.GetRestProto(), member.GetAddr(), member.GetRestPort(), work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version())
 						resp, err := http.Get(url)
 						if err != nil {
 							wLogger.Error(err)

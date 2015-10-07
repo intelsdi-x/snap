@@ -66,13 +66,19 @@ type tribe struct {
 }
 
 type config struct {
-	seed             string
-	restAPIPort      int
-	MemberlistConfig *memberlist.Config
+	seed                      string
+	restAPIPort               int
+	restAPIProto              string
+	restAPIInsecureSkipVerify string
+	MemberlistConfig          *memberlist.Config
 }
 
 func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string, restAPIPort int) *config {
-	c := &config{seed: seed, restAPIPort: restAPIPort}
+	c := &config{
+		seed:         seed,
+		restAPIPort:  restAPIPort,
+		restAPIProto: "http",
+	}
 	c.MemberlistConfig = memberlist.DefaultLANConfig()
 	c.MemberlistConfig.PushPullInterval = 300 * time.Second
 	c.MemberlistConfig.Name = name
@@ -91,12 +97,16 @@ func New(c *config) (*tribe, error) {
 	})
 
 	tribe := &tribe{
-		agreements:      map[string]*agreement.Agreement{},
-		members:         map[string]*agreement.Member{},
-		msgBuffer:       make([]msg, 512),
-		intentBuffer:    []msg{},
-		logger:          logger.WithField("_name", c.MemberlistConfig.Name),
-		tags:            map[string]string{agreement.RestAPIPort: strconv.Itoa(c.restAPIPort)},
+		agreements:   map[string]*agreement.Agreement{},
+		members:      map[string]*agreement.Member{},
+		msgBuffer:    make([]msg, 512),
+		intentBuffer: []msg{},
+		logger:       logger.WithField("_name", c.MemberlistConfig.Name),
+		tags: map[string]string{
+			agreement.RestPort:               strconv.Itoa(c.restAPIPort),
+			agreement.RestProtocol:           c.restAPIProto,
+			agreement.RestInsecureSkipVerify: c.restAPIInsecureSkipVerify,
+		},
 		pluginWorkQueue: make(chan worker.PluginRequest, 999),
 		taskWorkQueue:   make(chan worker.TaskRequest, 999),
 		workerQuitChan:  make(chan struct{}),

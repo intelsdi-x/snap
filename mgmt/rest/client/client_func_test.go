@@ -80,13 +80,13 @@ func TestPulseClient(t *testing.T) {
 			Convey("empty version", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "")
+				c := New(uri, "", true)
 				So(c.Version, ShouldEqual, "v1")
 			})
 			Convey("empty list", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 				p := c.GetPlugins(false)
 				p2 := c.GetPlugins(true)
 
@@ -103,7 +103,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("single item", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				p := c.GetPlugins(false)
@@ -115,7 +115,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("multiple items", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
@@ -128,7 +128,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("empty list, err!=nil", func() {
 				port := -1
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				p := c.GetPlugins(false)
 				p2 := c.GetPlugins(true)
@@ -148,7 +148,7 @@ func TestPulseClient(t *testing.T) {
 				CompressUpload = true
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				p := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				So(p.Err, ShouldBeNil)
@@ -161,7 +161,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("multiple load", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				So(p1.Err, ShouldBeNil)
@@ -181,7 +181,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("already loaded", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				So(p1.Err, ShouldBeNil)
@@ -198,7 +198,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("directory error", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				p1 := c.LoadPlugin(DIRECTORY_PATH)
 				So(p1.Err, ShouldNotBeNil)
@@ -210,7 +210,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("unload unknown plugin", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				p := c.UnloadPlugin("not a type", "foo", 3)
 				So(p.Err, ShouldNotBeNil)
@@ -220,7 +220,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("unload only one there is", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				p := c.UnloadPlugin("collector", "dummy1", 1)
@@ -233,7 +233,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("unload one of multiple", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
@@ -253,7 +253,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("empty catalog", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				p := c.GetMetricCatalog()
 				So(p.Err, ShouldBeNil)
@@ -262,7 +262,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("items in catalog", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
@@ -283,7 +283,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("leaf metric all versions", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
@@ -296,7 +296,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("version 2 leaf metric", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
@@ -309,7 +309,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("version 2 non-leaf metrics", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
@@ -326,7 +326,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("invalid task (missing metric)", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
@@ -338,7 +338,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("invalid task (missing publisher)", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 
@@ -352,7 +352,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("valid task", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(FILE_PLUGIN_PATH)
@@ -377,7 +377,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("valid task started on creation", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(FILE_PLUGIN_PATH)
@@ -402,7 +402,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("do returns err!=nil", func() {
 				port := -1
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				wf := getWMFromSample("1.json")
 				sch := &Schedule{Type: "simple", Interval: "1s"}
@@ -416,7 +416,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("unknown task", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 				uuid := uuid.New()
 				p := c.StartTask(uuid)
 				So(p.Err, ShouldNotBeNil)
@@ -425,7 +425,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("existing task", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(FILE_PLUGIN_PATH)
@@ -439,7 +439,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("do returns err!=nil", func() {
 				port := -1
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 				uuid := uuid.New()
 				p := c.StartTask(uuid)
 				So(p.Err, ShouldNotBeNil)
@@ -450,7 +450,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("unknown task", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 				uuid := uuid.New()
 				p := c.StopTask(uuid)
 				So(p.Err, ShouldNotBeNil)
@@ -459,7 +459,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("existing task", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(FILE_PLUGIN_PATH)
@@ -477,7 +477,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("do returns err!=nil", func() {
 				port := -1
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 				uuid := uuid.New()
 				p := c.StopTask(uuid)
 				So(p.Err, ShouldNotBeNil)
@@ -488,7 +488,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("unknown task", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 				uuid := uuid.New()
 				p := c.RemoveTask(uuid)
 				So(p.Err, ShouldNotBeNil)
@@ -497,7 +497,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("existing task", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(FILE_PLUGIN_PATH)
@@ -516,7 +516,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("do returns err!=nil", func() {
 				port := -1
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 				uuid := uuid.New()
 				p := c.RemoveTask(uuid)
 				So(p.Err, ShouldNotBeNil)
@@ -528,7 +528,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("valid task", func() {
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
 				c.LoadPlugin(FILE_PLUGIN_PATH)
@@ -553,7 +553,7 @@ func TestPulseClient(t *testing.T) {
 			Convey("do returns err!=nil", func() {
 				port := -1
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				p := c.GetTask(uuid.New())
 				p2 := c.GetTasks()
@@ -568,7 +568,7 @@ func TestPulseClient(t *testing.T) {
 				rest.StreamingBufferWindow = 0.01
 				port := getPort()
 				uri := startAPI(port)
-				c := New(uri, "v1")
+				c := New(uri, "v1", true)
 
 				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
 				c.LoadPlugin(FILE_PLUGIN_PATH)
@@ -616,7 +616,7 @@ func TestPulseClient(t *testing.T) {
 		Convey("Passing a bad task manifest", func() {
 			port := getPort()
 			uri := startAPI(port)
-			c := New(uri, "v1")
+			c := New(uri, "v1", true)
 
 			c.LoadPlugin(DUMMY_PLUGIN_PATH2)
 			c.LoadPlugin(FILE_PLUGIN_PATH)

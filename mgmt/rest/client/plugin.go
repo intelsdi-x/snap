@@ -13,7 +13,7 @@ func (c *Client) LoadPlugin(p []string) *LoadPluginResult {
 	r := new(LoadPluginResult)
 	resp, err := c.pluginUploadRequest(p)
 	if err != nil {
-		r.Err = err
+		r.Err = perror.New(err)
 		return r
 	}
 

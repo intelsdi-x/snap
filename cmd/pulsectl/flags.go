@@ -11,6 +11,15 @@ var (
 		EnvVar: "PULSE_URL",
 		Value:  "http://localhost:8181",
 	}
+	flAPIVer = cli.StringFlag{
+		Name:  "api-version, a",
+		Usage: "The Pulse API version",
+		Value: "v1",
+	}
+	flSecure = cli.BoolFlag{
+		Name:  "insecure",
+		Usage: "Ignore certificate errors when Pulse's API is running HTTPS",
+	}
 	flRunning = cli.BoolFlag{
 		Name:  "running",
 		Usage: "Shows running plugins",
