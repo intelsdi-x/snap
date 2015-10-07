@@ -422,6 +422,7 @@ func TestPluginRestCalls(t *testing.T) {
 				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
 
 				r2 := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
+				So(r2.Meta.Code, ShouldEqual, 409)
 				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr2 := r2.Body.(*rbody.Error)
 
