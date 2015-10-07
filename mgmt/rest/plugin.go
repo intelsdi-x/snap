@@ -21,6 +21,8 @@ import (
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
+const PluginAlreadyLoaded = "plugin is already loaded"
+
 var (
 	ErrMissingPluginName = errors.New("missing plugin name")
 	ErrPluginNotFound    = errors.New("plugin not found")
@@ -98,8 +100,16 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				}
 				pl, err := s.mm.Load(fname2)
 				if err != nil {
+					var ec int
 					restLogger.Error(err)
-					respond(500, rbody.FromPulseError(err), w)
+					rb := rbody.FromPulseError(err)
+					switch rb.ResponseBodyMessage() {
+					case PluginAlreadyLoaded:
+						ec = 409
+					default:
+						ec = 500
+					}
+					respond(ec, rb, w)
 					return
 				}
 				lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(pl))
