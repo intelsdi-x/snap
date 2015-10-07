@@ -10,7 +10,9 @@ import (
 )
 
 const (
-	RestAPIPort = "rest_api_port"
+	RestPort               = "rest_api_port"
+	RestProtocol           = "rest_proto"
+	RestInsecureSkipVerify = "rest_insecure"
 )
 
 var logger = log.WithFields(log.Fields{
@@ -74,8 +76,19 @@ func NewMember(node *memberlist.Node) *Member {
 	}
 }
 
-func (m *Member) GetRESTAPIPort() string {
-	return m.Tags[RestAPIPort]
+func (m *Member) GetRestPort() string {
+	return m.Tags[RestPort]
+}
+
+func (m *Member) GetRestProto() string {
+	return m.Tags[RestProtocol]
+}
+
+func (m *Member) GetRestInsecureSkipVerify() bool {
+	if m.Tags[RestInsecureSkipVerify] == "true" {
+		return true
+	}
+	return false
 }
 
 func (m *Member) GetName() string {
