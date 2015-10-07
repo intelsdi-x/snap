@@ -209,27 +209,6 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	return task, te
 }
 
-func (s *scheduler) EnableTask(id uint64) (core.Task, core.TaskErrors) {
-	logger := s.logger.WithField("_block", "enable-task")
-	// Create a container for task errors
-	te := &taskErrors{
-		errs: make([]perror.PulseError, 0),
-	}
-
-	task, err := s.GetTask(id)
-	if err != nil {
-		te.errs = append(te.errs, perror.New(err))
-		f := buildErrorsLog(te.Errors(), logger)
-		f.Error(ErrGetTask.Error())
-		return nil, te
-	}
-	tsk, er := s.CreateTask(task.Schedule(), task.WMap(), true, task.Option())
-	if er != nil {
-		return nil, er
-	}
-	return tsk, nil
-}
-
 // RemoveTask given a tasks id.  The task must be stopped.
 // Can return errors ErrTaskNotFound and ErrTaskNotStopped.
 func (s *scheduler) RemoveTask(id uint64) error {
@@ -328,6 +307,35 @@ func (s *scheduler) StopTask(id uint64) []perror.PulseError {
 		"task-id":    t.ID(),
 		"task-state": t.State(),
 	}).Info("task stopped")
+	return nil
+}
+
+func (s *scheduler) EnableTask(id uint64) []perror.PulseError {
+	t := s.tasks.Get(id)
+	if t == nil {
+		e := fmt.Errorf("No task found with id '%v'", id)
+		s.logger.WithFields(log.Fields{
+			"_block":  "enable-task",
+			"_error":  e.Error(),
+			"task-id": id,
+		}).Warning("error on enabling a task")
+		return []perror.PulseError{
+			perror.New(e),
+		}
+	}
+
+	err := t.Enable()
+	if err != nil {
+		s.logger.WithFields(log.Fields{
+			"_block":  "enable-task",
+			"_error":  err.Error(),
+			"task-id": id,
+		}).Warning("error on enabling a task")
+		return []perror.PulseError{
+			perror.New(err),
+		}
+	}
+
 	return nil
 }
 

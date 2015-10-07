@@ -1103,11 +1103,11 @@ func TestPluginRestCalls(t *testing.T) {
 				So(r[2], ShouldEqual, "task-disabled")
 
 				//enable a disabled task
-				r2 := enableTask(id, port)
-				plr2 := r2.Body.(*rbody.AddScheduledTask)
-
-				So(plr2.State, ShouldEqual, "Running")
-				So(plr2.Name, ShouldEqual, plr1.Name)
+				enableTask(id, port)
+				r3 := getTask(id, port)
+				plr3 := r3.Body.(*rbody.ScheduledTaskReturned)
+				So(plr3.State, ShouldEqual, "Stopped")
+				So(plr3.Name, ShouldEqual, plr1.Name)
 			})
 			Convey("enable a running task", func() {
 				port := getPort()
@@ -1126,7 +1126,7 @@ func TestPluginRestCalls(t *testing.T) {
 				//enable a running task
 				r2 := enableTask(id, port)
 				plr2 := r2.Body.(*rbody.Error)
-				So(plr2.Error(), ShouldEqual, "State unsupported")
+				So(plr2.Error(), ShouldEqual, "error 0: Task must be disabled ")
 			})
 		})
 	})

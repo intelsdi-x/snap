@@ -291,6 +291,27 @@ func TestScheduler(t *testing.T) {
 			tsk.(*task).Option(prev)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 		})
+
+		Convey("Enable a stopped task", func() {
+			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
+			So(tsk, ShouldNotBeNil)
+			s.Stop()
+			err := s.EnableTask(tsk.ID())
+			So(err, ShouldNotBeNil)
+		})
+		Convey("Enable a disabled task", func() {
+			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
+			So(tsk, ShouldNotBeNil)
+
+			t := s.tasks.Get(tsk.ID())
+			t.UpdateTaskState(core.TaskDisabled)
+
+			err := s.EnableTask(tsk.ID())
+			So(err, ShouldBeNil)
+
+			t = s.tasks.Get(tsk.ID())
+			So(t.State(), ShouldEqual, core.TaskStopped)
+		})
 	})
 	Convey("Stop()", t, func() {
 		Convey("Should set scheduler state to SchedulerStopped", func() {

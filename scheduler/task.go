@@ -46,6 +46,7 @@ var (
 
 	ErrTaskNotFound            = errors.New("Task not found")
 	ErrTaskNotStopped          = errors.New("Task must be stopped")
+	ErrTaskNotDisabled         = errors.New("Task must be disabled")
 	ErrTaskHasAlreadyBeenAdded = errors.New("Task has already been added")
 	ErrTaskDisabledOnFailures  = errors.New("Task disabled due to consecutive failures")
 )
@@ -213,6 +214,27 @@ func (t *task) Kill() {
 		close(t.killChan)
 		t.state = core.TaskDisabled
 	}
+}
+
+//Enable changes the state of a task from Disabled to Stopped
+func (t *task) Enable() error {
+	t.Lock()
+	defer t.Unlock()
+
+	if t.state != core.TaskDisabled {
+		return ErrTaskNotDisabled
+	}
+	t.state = core.TaskStopped
+	return nil
+}
+
+//UpdateTaskState updates the state. It's for testing
+//purpose only
+func (t *task) UpdateTaskState(ts core.TaskState) {
+	t.Lock()
+	defer t.Unlock()
+
+	t.state = ts
 }
 
 func (t *task) WMap() *wmap.WorkflowMap {

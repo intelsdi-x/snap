@@ -425,7 +425,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.CreateTask(sch, wf, "baron", false)
 				So(p.Err, ShouldNotBeNil)
-				// So(p.Err.Error(), ShouldEqual, "Post http://localhost:-1/v1/tasks: dial tcp: unknown port tcp/-1")
+				So(p.Err.Error(), ShouldEqual, "Post http://localhost:-1/v1/tasks: dial tcp: lookup tcp/-1: nodename nor servname provided, or not known")
 			})
 		})
 		Convey("StartTask", func() {
@@ -459,7 +459,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.StartTask(9999999)
 				So(p.Err, ShouldNotBeNil)
-				// So(p.Err.Error(), ShouldEqual, "Put http://localhost:-1/v1/tasks/9999999/start: dial tcp: unknown port tcp/-1")
+				So(p.Err.Error(), ShouldEqual, "Put http://localhost:-1/v1/tasks/9999999/start: dial tcp: lookup tcp/-1: nodename nor servname provided, or not known")
 			})
 		})
 		Convey("EnableTask", func() {
@@ -519,6 +519,9 @@ func TestPulseClient(t *testing.T) {
 				pe := c.EnableTask(p.ID)
 				So(pe.Err, ShouldBeNil)
 
+				t := c.GetTask(uint(p.ID))
+				So(t.State, ShouldEqual, "Stopped")
+
 				// Signal we are done
 				r.Close()
 			})
@@ -558,7 +561,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.StopTask(9999999)
 				So(p.Err, ShouldNotBeNil)
-				// So(p.Err.Error(), ShouldEqual, "Put http://localhost:-1/v1/tasks/9999999/stop: dial tcp: unknown port tcp/-1")
+				So(p.Err.Error(), ShouldEqual, "Put http://localhost:-1/v1/tasks/9999999/stop: dial tcp: lookup tcp/-1: nodename nor servname provided, or not known")
 			})
 		})
 		Convey("RemoveTask", func() {
@@ -597,7 +600,7 @@ func TestPulseClient(t *testing.T) {
 
 				p := c.RemoveTask(9999999)
 				So(p.Err, ShouldNotBeNil)
-				// So(p.Err.Error(), ShouldEqual, "dial tcp: unknown port tcp/-1")
+				So(p.Err.Error(), ShouldEqual, "dial tcp: lookup tcp/-1: nodename nor servname provided, or not known")
 			})
 		})
 

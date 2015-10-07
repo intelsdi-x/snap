@@ -103,7 +103,7 @@ type managesTasks interface {
 	StopTask(uint64) []perror.PulseError
 	RemoveTask(uint64) error
 	WatchTask(uint64, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
-	EnableTask(uint64) (core.Task, core.TaskErrors)
+	EnableTask(uint64) []perror.PulseError
 }
 
 type Server struct {

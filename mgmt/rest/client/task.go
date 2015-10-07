@@ -27,7 +27,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	"github.com/intelsdi-x/pulse/mgmt/rest/request"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
@@ -41,7 +40,7 @@ type Schedule struct {
 }
 
 var (
-	disabledErr = errors.New("Enable can only be used for a disabled task")
+	disabledErr = errors.New("Task state must be Disabled")
 )
 
 func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, startTask bool) *CreateTaskResult {
@@ -227,24 +226,25 @@ func (c *Client) RemoveTask(id int) *RemoveTasksResult {
 	}
 }
 
-//EnableTask can enable a disabled task by cloning it.
-//The newly cloned task is started on the creation.
-func (c *Client) EnableTask(id int) *CreateTaskResult {
-	r := c.GetTask(uint(id))
-	if r.Err != nil {
-		return &CreateTaskResult{Err: r.Err}
+//EnableTask changes the state of the task from Disabled to Stopped
+func (c *Client) EnableTask(id int) *StopTasksResult {
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/enable", id), ContentTypeJSON)
+	if err != nil {
+		return &StopTasksResult{Err: err}
 	}
 
-	if r.State != core.TaskStateLookup[core.TaskDisabled] {
-		return &CreateTaskResult{Err: disabledErr}
+	if resp == nil {
+		return nil
 	}
-
-	sch := &Schedule{Type: r.Schedule.Type, Interval: r.Schedule.Interval}
-	ct := c.CreateTask(sch, r.Workflow, r.Name, true)
-	if ct.Err != nil {
-		return &CreateTaskResult{Err: r.Err}
+	switch resp.Meta.Type {
+	case rbody.ScheduledTaskStoppedType:
+		// Success
+		return &StopTasksResult{resp.Body.(*rbody.ScheduledTaskStopped), nil}
+	case rbody.ErrorType:
+		return &StopTasksResult{Err: resp.Body.(*rbody.Error)}
+	default:
+		return &StopTasksResult{Err: ErrAPIResponseMetaType}
 	}
-	return ct
 }
 
 type CreateTaskResult struct {
