@@ -149,7 +149,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	err = wf.BindPluginContentTypes(s.metricManager)
 
 	// validate plugins and metrics
-	mts, plugins := s.gatherPlugins(wf)
+	mts, plugins := s.gatherMetricsAndPlugins(wf)
 	errs := s.metricManager.ValidateDeps(mts, plugins)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
@@ -183,10 +183,7 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 			"task-id": task.ID(),
 		}).Info("starting task on creation")
 
-		cps := make([]core.Plugin, len(plugins))
-		for i, plugin := range plugins {
-			cps[i] = plugin
-		}
+		cps := returnCorePlugin(plugins)
 		errs := s.metricManager.SubscribeDeps(task.ID(), mts, cps)
 		if len(errs) > 0 {
 			te.errs = append(te.errs, errs...)
@@ -202,14 +199,14 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 // RemoveTask given a tasks id.  The task must be stopped.
 // Can return errors ErrTaskNotFound and ErrTaskNotStopped.
 func (s *scheduler) RemoveTask(id string) error {
-	t := s.tasks.Get(id)
-	if t == nil {
+	t, err := s.getTask(id)
+	if err != nil {
 		log.WithFields(log.Fields{
 			"_module": "scheduler",
 			"block":   "RemoveTask",
 			"task id": id,
 		}).Error(ErrTaskNotFound)
-		return fmt.Errorf("No task found with id '%v'", id)
+		return err
 	}
 	event := &scheduler_event.TaskDeletedEvent{
 		TaskID: t.id,
@@ -229,34 +226,31 @@ func (s *scheduler) GetTasks() map[string]core.Task {
 
 // GetTask provided the task id a task is returned
 func (s *scheduler) GetTask(id string) (core.Task, error) {
-	task := s.tasks.Get(id)
-	if task == nil {
-		return nil, fmt.Errorf("No task with Id '%v'", id)
+	t, err := s.getTask(id)
+	if err != nil {
+		return nil, err // We do this to send back an explicit nil on the interface
 	}
-	return task, nil
+	return t, nil
 }
 
 // StartTask provided a task id a task is started
 func (s *scheduler) StartTask(id string) []perror.PulseError {
-	t := s.tasks.Get(id)
-	if t == nil {
+	t, err := s.getTask(id)
+	if err != nil {
 		return []perror.PulseError{
-			perror.New(fmt.Errorf("No task found with id '%v'", id)),
+			perror.New(err),
 		}
 	}
 
-	mts, plugins := s.gatherPlugins(t.workflow)
-	cps := make([]core.Plugin, len(plugins))
-	for i, plugin := range plugins {
-		cps[i] = plugin
-	}
-	errs := s.metricManager.SubscribeDeps(id, mts, cps)
+	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
+	cps := returnCorePlugin(plugins)
+	errs := s.metricManager.SubscribeDeps(t.ID(), mts, cps)
 	if len(errs) > 0 {
 		return errs
 	}
 
 	event := new(scheduler_event.TaskStartedEvent)
-	event.TaskID = t.id
+	event.TaskID = t.ID()
 	defer s.eventManager.Emit(event)
 	t.Spin()
 	s.logger.WithFields(log.Fields{
@@ -269,31 +263,27 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 
 // StopTask provided a task id a task is stopped
 func (s *scheduler) StopTask(id string) []perror.PulseError {
-	t := s.tasks.Get(id)
-	if t == nil {
-		e := fmt.Errorf("No task found with id '%v'", id)
+	t, err := s.getTask(id)
+	if err != nil {
 		s.logger.WithFields(log.Fields{
 			"_block":  "stop-task",
-			"_error":  e.Error(),
+			"_error":  err.Error(),
 			"task-id": id,
 		}).Warning("error on stopping of task")
 		return []perror.PulseError{
-			perror.New(e),
+			perror.New(err),
 		}
 	}
 
-	mts, plugins := s.gatherPlugins(t.workflow)
-	cps := make([]core.Plugin, len(plugins))
-	for i, plugin := range plugins {
-		cps[i] = plugin
-	}
-	errs := s.metricManager.UnsubscribeDeps(id, mts, cps)
+	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
+	cps := returnCorePlugin(plugins)
+	errs := s.metricManager.UnsubscribeDeps(t.ID(), mts, cps)
 	if len(errs) > 0 {
 		return errs
 	}
 
 	event := new(scheduler_event.TaskStoppedEvent)
-	event.TaskID = t.id
+	event.TaskID = t.ID()
 	defer s.eventManager.Emit(event)
 	t.Stop()
 	s.logger.WithFields(log.Fields{
@@ -342,11 +332,11 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 
 //
 func (s *scheduler) WatchTask(id string, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
-	if task := s.tasks.Get(id); task != nil {
-		a, b := s.taskWatcherColl.add(id, tw)
-		return a, b
+	task, err := s.getTask(id)
+	if err != nil {
+		return nil, err
 	}
-	return nil, ErrTaskNotFound
+	return s.taskWatcherColl.add(task.ID(), tw)
 }
 
 // Central handling for all async events in scheduler
@@ -394,6 +384,11 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 			"task-id":         v.TaskID,
 			"disabled-reason": v.Why,
 		}).Debug("event received")
+		// We need to unsubscribe from deps when a task goes disabled
+		task, _ := s.getTask(v.TaskID)
+		mts, plugins := s.gatherMetricsAndPlugins(task.workflow)
+		cps := returnCorePlugin(plugins)
+		s.metricManager.UnsubscribeDeps(task.ID(), mts, cps)
 		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
 	default:
 		log.WithFields(log.Fields{
@@ -404,7 +399,15 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 	}
 }
 
-func (s *scheduler) gatherPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
+func (s *scheduler) getTask(id string) (*task, error) {
+	task := s.tasks.Get(id)
+	if task == nil {
+		return nil, fmt.Errorf("No task found with id '%v'", id)
+	}
+	return task, nil
+}
+
+func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
 	var (
 		mts     []core.Metric
 		plugins []core.SubscribedPlugin
@@ -430,6 +433,14 @@ func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode,
 	for _, pb := range pbnodes {
 		*plugins = append(*plugins, pb)
 	}
+}
+
+func returnCorePlugin(plugins []core.SubscribedPlugin) []core.Plugin {
+	cps := make([]core.Plugin, len(plugins))
+	for i, plugin := range plugins {
+		cps[i] = plugin
+	}
+	return cps
 }
 
 func buildErrorsLog(errs []perror.PulseError, logger *log.Entry) *log.Entry {
