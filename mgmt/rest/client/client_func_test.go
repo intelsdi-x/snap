@@ -454,6 +454,7 @@ func TestPulseClient(t *testing.T) {
 				uuid := uuid.New()
 				p := c.StopTask(uuid)
 				So(p.Err, ShouldNotBeNil)
+
 				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
 			})
 			Convey("existing task", func() {
@@ -627,6 +628,17 @@ func TestPulseClient(t *testing.T) {
 
 			Convey("Should generate an error", func() {
 				So(p.Err, ShouldNotBeNil)
+			})
+		})
+		Convey("EnableTask", func() {
+			Convey("enable a stopped task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1", true)
+				uuid := uuid.New()
+				p := c.EnableTask(uuid)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
 			})
 		})
 	})

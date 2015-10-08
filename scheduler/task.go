@@ -28,6 +28,7 @@ var (
 	ErrTaskNotStopped          = errors.New("Task must be stopped")
 	ErrTaskHasAlreadyBeenAdded = errors.New("Task has already been added")
 	ErrTaskDisabledOnFailures  = errors.New("Task disabled due to consecutive failures")
+	ErrTaskNotDisabled         = errors.New("Task must be disabled")
 )
 
 type task struct {
@@ -193,6 +194,19 @@ func (t *task) Stop() {
 	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
 		close(t.killChan)
 	}
+}
+
+//Enable changes the state from Disabled to Stopped
+func (t *task) Enable() error {
+	t.Lock()
+	defer t.Unlock()
+
+	if t.state != core.TaskDisabled {
+		return ErrTaskNotDisabled
+	}
+	t.state = core.TaskStopped
+
+	return nil
 }
 
 func (t *task) Kill() {

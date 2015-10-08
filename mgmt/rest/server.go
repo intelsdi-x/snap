@@ -70,6 +70,7 @@ type managesTasks interface {
 	StopTask(string) []perror.PulseError
 	RemoveTask(string) error
 	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
+	EnableTask(string) []perror.PulseError
 }
 
 type managesTribe interface {
@@ -160,6 +161,7 @@ func (s *Server) start(addrString string) {
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
 	s.r.DELETE("/v1/tasks/:id", s.removeTask)
+	s.r.PUT("/v1/tasks/:id/enable", s.enableTask)
 
 	if s.tr != nil {
 		s.r.GET("/v1/tribe/agreements", s.getAgreements)

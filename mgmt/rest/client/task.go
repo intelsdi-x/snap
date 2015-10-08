@@ -159,22 +159,7 @@ func (c *Client) StartTask(id string) *StartTasksResult {
 
 func (c *Client) StopTask(id string) *StopTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id), ContentTypeJSON)
-	if err != nil {
-		return &StopTasksResult{Err: err}
-	}
-
-	if resp == nil {
-		return nil
-	}
-	switch resp.Meta.Type {
-	case rbody.ScheduledTaskStoppedType:
-		// Success
-		return &StopTasksResult{resp.Body.(*rbody.ScheduledTaskStopped), nil}
-	case rbody.ErrorType:
-		return &StopTasksResult{Err: resp.Body.(*rbody.Error)}
-	default:
-		return &StopTasksResult{Err: ErrAPIResponseMetaType}
-	}
+	return c.stopTaskHandler(resp, err)
 }
 
 func (c *Client) RemoveTask(id string) *RemoveTasksResult {
@@ -191,6 +176,30 @@ func (c *Client) RemoveTask(id string) *RemoveTasksResult {
 		return &RemoveTasksResult{Err: resp.Body.(*rbody.Error)}
 	default:
 		return &RemoveTasksResult{Err: ErrAPIResponseMetaType}
+	}
+}
+
+func (c *Client) EnableTask(id string) *StopTasksResult {
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/enable", id), ContentTypeJSON)
+	return c.stopTaskHandler(resp, err)
+}
+
+func (c *Client) stopTaskHandler(resp *rbody.APIResponse, err error) *StopTasksResult {
+	if err != nil {
+		return &StopTasksResult{Err: err}
+	}
+
+	if resp == nil {
+		return nil
+	}
+	switch resp.Meta.Type {
+	case rbody.ScheduledTaskStoppedType:
+		// Success
+		return &StopTasksResult{resp.Body.(*rbody.ScheduledTaskStopped), nil}
+	case rbody.ErrorType:
+		return &StopTasksResult{Err: resp.Body.(*rbody.Error)}
+	default:
+		return &StopTasksResult{Err: ErrAPIResponseMetaType}
 	}
 }
 

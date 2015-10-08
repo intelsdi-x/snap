@@ -26,6 +26,7 @@ list		list
 start		start <task_id>
 stop		stop <task_id>
 remove		remove <task_id>
+enable      enable <task_id>
 help, h		Shows a list of commands or help for one command
 ```
 #### plugin

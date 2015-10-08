@@ -236,6 +236,17 @@ func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter
 	respond(200, &rbody.ScheduledTaskRemoved{ID: id}, w)
 }
 
+//enableTask changes the task state from Disabled to Stopped
+func (s *Server) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	errs := s.mt.EnableTask(id)
+	if errs != nil {
+		respond(404, rbody.FromPulseErrors(errs), w)
+		return
+	}
+	respond(200, &rbody.ScheduledTaskStopped{ID: id}, w)
+}
+
 func marshalTask(body io.ReadCloser) (*request.TaskCreationRequest, error) {
 	var tr request.TaskCreationRequest
 	errCode, err := marshalBody(&tr, body)
