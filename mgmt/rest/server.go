@@ -70,7 +70,7 @@ type managesTasks interface {
 	StopTask(string) []perror.PulseError
 	RemoveTask(string) error
 	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
-	EnableTask(string) []perror.PulseError
+	EnableTask(string) (core.Task, error)
 }
 
 type managesTribe interface {

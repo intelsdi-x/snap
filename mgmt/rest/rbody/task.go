@@ -20,6 +20,7 @@ const (
 	ScheduledTaskStoppedType       = "scheduled_task_stopped"
 	ScheduledTaskRemovedType       = "scheduled_task_removed"
 	ScheduledTaskWatchingEndedType = "schedule_task_watch_ended"
+	ScheduledTaskEnabledType       = "scheduled_task_enabled"
 
 	// Event types for task watcher streaming
 	TaskWatchStreamOpen   = "stream-open"
@@ -179,6 +180,18 @@ func (s *ScheduledTaskRemoved) ResponseBodyMessage() string {
 
 func (s *ScheduledTaskRemoved) ResponseBodyType() string {
 	return ScheduledTaskRemovedType
+}
+
+type ScheduledTaskEnabled struct {
+	AddScheduledTask
+}
+
+func (s *ScheduledTaskEnabled) ResponseBodyMessage() string {
+	return fmt.Sprintf("Disabled task (%s) enabled", s.AddScheduledTask.ID)
+}
+
+func (s *ScheduledTaskEnabled) ResponseBodyType() string {
+	return ScheduledTaskEnabledType
 }
 
 func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {

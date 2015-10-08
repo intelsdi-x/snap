@@ -635,10 +635,17 @@ func TestPulseClient(t *testing.T) {
 				port := getPort()
 				uri := startAPI(port)
 				c := New(uri, "v1", true)
-				uuid := uuid.New()
-				p := c.EnableTask(uuid)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "1s"}
+				p := c.CreateTask(sch, wf, "diabled", true)
+
+				ep := c.EnableTask(p.ID)
+				So(ep.Err, ShouldNotBeNil)
+				So(ep.Err.Error(), ShouldEqual, "Task must be disabled")
 			})
 		})
 	})
