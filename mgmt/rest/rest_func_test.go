@@ -1112,7 +1112,7 @@ func TestPluginRestCalls(t *testing.T) {
 				r4 := enableTask(id, port)
 				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr4 := r4.Body.(*rbody.Error)
-				So(plr4.ErrorMessage, ShouldEqual, "error 0: Task must be disabled ")
+				So(plr4.ErrorMessage, ShouldEqual, "Task must be disabled")
 			})
 		})
 	})
