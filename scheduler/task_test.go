@@ -114,7 +114,7 @@ func TestTask(t *testing.T) {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
 			task := newTask(sch, wf, newWorkManager(), c, emitter)
 
-			task.state := core.TaskDisabled
+			task.state = core.TaskDisabled
 			err := task.Enable()
 			So(err, ShouldBeNil)
 			So(task.State(), ShouldEqual, core.TaskStopped)
