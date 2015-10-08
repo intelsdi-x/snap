@@ -5,13 +5,13 @@ import (
 )
 
 const (
-	TaskCreated            = "Control.TaskCreated"
-	TaskDeleted            = "Control.TaskDeleted"
-	TaskStarted            = "Control.TaskStarted"
-	TaskStopped            = "Control.TaskStopped"
-	TaskDisabled           = "Control.TaskDisabled"
-	MetricCollected        = "Control.MetricsCollected"
-	MetricCollectionFailed = "Control.MetricCollectionFailed"
+	TaskCreated            = "Scheduler.TaskCreated"
+	TaskDeleted            = "Scheduler.TaskDeleted"
+	TaskStarted            = "Scheduler.TaskStarted"
+	TaskStopped            = "Scheduler.TaskStopped"
+	TaskDisabled           = "Scheduler.TaskDisabled"
+	MetricCollected        = "Scheduler.MetricsCollected"
+	MetricCollectionFailed = "Scheduler.MetricCollectionFailed"
 )
 
 type TaskStartedEvent struct {
