@@ -300,7 +300,7 @@ func (s *scheduler) EnableTask(id string) (core.Task, error) {
 	if e != nil {
 		s.logger.WithFields(log.Fields{
 			"_block":  "enable-task",
-			"_error":  er.Error(),
+			"_error":  e.Error(),
 			"task-id": id,
 		}).Warning("error on enabling a task")
 		return nil, e
