@@ -110,7 +110,7 @@ func TestTask(t *testing.T) {
 			So(task.State(), ShouldEqual, core.TaskSpinning)
 		})
 
-		Convey("Enable a diabled task", func() {
+		Convey("Enable a disabled task", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
 			task := newTask(sch, wf, newWorkManager(), c, emitter)
 
