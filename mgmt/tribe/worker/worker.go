@@ -133,10 +133,8 @@ func (w worker) start() {
 				})
 				wLogger.Error("received task work")
 				if work.RequestType == TaskCreatedType {
-					task, _ := w.taskManager.GetTask(work.Task.ID)
-					if task != nil {
-						wLogger.Warn("we already have a task with this Id")
-					} else {
+					_, err := w.taskManager.GetTask(work.Task.ID)
+					if err != nil {
 						for {
 							members, err := w.memberManager.GetTaskAgreementMembers()
 							if err != nil {

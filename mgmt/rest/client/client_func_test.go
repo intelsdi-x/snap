@@ -548,7 +548,7 @@ func TestPulseClient(t *testing.T) {
 				uuid := uuid.New()
 				p4 := c.GetTask(uuid)
 				So(p4.Err, ShouldNotBeNil)
-				So(p4.Err.Error(), ShouldEqual, fmt.Sprintf("No task with Id '%s'", uuid))
+				So(p4.Err.Error(), ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
 				So(p4.ScheduledTaskReturned, ShouldBeNil)
 			})
 			Convey("do returns err!=nil", func() {

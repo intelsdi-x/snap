@@ -56,7 +56,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			So(err, ShouldBeNil)
 			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
 			So(err, ShouldBeNil)
-			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-processor-movingaverage"))
+			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
 
@@ -71,8 +71,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			pu := wmap.NewPublishNode("file", 1)
 			pu.AddConfigItem("file", "/tmp/pulse-TestCollectPublishWorkflow.out")
 
-			pr := wmap.NewProcessNode("movingaverage", 1)
-			pr.AddConfigItem("MovingAvgBufLength", 20)
+			pr := wmap.NewProcessNode("passthru", 1)
 			time.Sleep(100 * time.Millisecond)
 
 			pr.Add(pu)
