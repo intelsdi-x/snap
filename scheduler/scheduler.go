@@ -296,14 +296,14 @@ func (s *scheduler) StopTask(id string) []perror.PulseError {
 
 //EnableTask implements task interface defined in Server.go
 func (s *scheduler) EnableTask(id string) (core.Task, error) {
-	t, er := s.getTask(id)
-	if er != nil {
+	t, e := s.getTask(id)
+	if e != nil {
 		s.logger.WithFields(log.Fields{
 			"_block":  "enable-task",
 			"_error":  er.Error(),
 			"task-id": id,
 		}).Warning("error on enabling a task")
-		return nil, er
+		return nil, e
 	}
 
 	err := t.Enable()
