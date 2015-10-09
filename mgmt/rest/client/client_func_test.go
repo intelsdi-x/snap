@@ -647,6 +647,32 @@ func TestPulseClient(t *testing.T) {
 				So(ep.Err, ShouldNotBeNil)
 				So(ep.Err.Error(), ShouldEqual, "Task must be disabled")
 			})
+			Convey("enable a disabled task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1", true)
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "10ms"}
+				p := c.CreateTask(sch, wf, "diabled", true)
+
+				wait := make(chan struct{})
+				go func() {
+					for i := 0; i < 12; i++ {
+						time.Sleep(time.Millisecond * 1)
+					}
+					close(wait)
+				}()
+				<-wait
+				time.Sleep(time.Millisecond * 100)
+
+				r1 := c.EnableTask(p.ID)
+				So(r1.Err, ShouldBeNil)
+				So(r1.State, ShouldEqual, "Stopped")
+			})
 		})
 	})
 }

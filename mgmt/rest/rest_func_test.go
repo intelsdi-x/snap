@@ -1114,6 +1114,32 @@ func TestPluginRestCalls(t *testing.T) {
 				plr4 := r4.Body.(*rbody.Error)
 				So(plr4.ErrorMessage, ShouldEqual, "Task must be disabled")
 			})
+			Convey("Enable a disabled task", func(c C) {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(FILE_PLUGIN_PATH, port)
+
+				r1 := createTask("1.json", "helloworld", "10ms", false, port)
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+				id := plr1.ID
+
+				wait := make(chan struct{})
+				go func() {
+					for i := 0; i < 10; i++ {
+						time.Sleep(time.Millisecond * 2)
+					}
+					close(wait)
+				}()
+				<-wait
+				time.Sleep(time.Millisecond * 100)
+
+				r2 := enableTask(id, port)
+				plr2 := r2.Body.(*rbody.ScheduledTaskEnabled)
+				So(plr2.Name, ShouldEqual, "helloworld")
+				So(plr2.State, ShouldEqual, "Stopped")
+			})
 		})
 	})
 }
