@@ -313,7 +313,7 @@ func (s *scheduler) EnableTask(id string) (core.Task, error) {
 			"_error":  err.Error(),
 			"task-id": id,
 		}).Warning("error on enabling a task")
-		return t, err
+		return nil, err
 	}
 	s.logger.WithFields(log.Fields{
 		"_block":     "enable-task",
