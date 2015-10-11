@@ -29,6 +29,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
 var (
@@ -87,6 +88,36 @@ func TestLoadPlugin(t *testing.T) {
 				So(p.all(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 				So(len(p.all()), ShouldBeGreaterThan, 0)
+			})
+
+			Convey("with a plugin config a plugin loads successfully", func() {
+				cfg := newConfig()
+				cfg.plugins.collector["dummy1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+				p := newPluginManager(OptSetPluginConfig(cfg.plugins))
+				p.SetMetricCatalog(newMetricCatalog())
+				lp, err := p.LoadPlugin(PluginPath, nil)
+
+				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
+				So(p.all(), ShouldNotBeEmpty)
+				So(err, ShouldBeNil)
+				So(len(p.all()), ShouldBeGreaterThan, 0)
+				mts, err := p.metricCatalog.Fetch([]string{})
+				So(err, ShouldBeNil)
+				So(len(mts), ShouldBeGreaterThan, 2)
+			})
+
+			Convey("for a plugin requiring a config an incomplete config will result in a load failure", func() {
+				cfg := newConfig()
+				cfg.plugins.collector["dummy1"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
+				p := newPluginManager(OptSetPluginConfig(cfg.plugins))
+				p.SetMetricCatalog(newMetricCatalog())
+				lp, err := p.LoadPlugin(PluginPath, nil)
+
+				So(lp, ShouldBeNil)
+				So(p.all(), ShouldBeEmpty)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, "missing on-load plugin config entry 'test'")
+				So(len(p.all()), ShouldEqual, 0)
 			})
 
 			Convey("loads json-rpc plugin successfully", func() {

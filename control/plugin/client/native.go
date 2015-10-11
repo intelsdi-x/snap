@@ -195,9 +195,17 @@ func (p *PluginNativeClient) CollectMetrics(coreMetricTypes []core.Metric) ([]co
 	return fromCache, nil
 }
 
-func (p *PluginNativeClient) GetMetricTypes() ([]core.Metric, error) {
+func (p *PluginNativeClient) GetMetricTypes(config plugin.PluginConfigType) ([]core.Metric, error) {
 	var reply []byte
-	err := p.connection.Call("Collector.GetMetricTypes", []byte{}, &reply)
+
+	args := plugin.GetMetricTypesArgs{PluginConfig: config}
+
+	out, err := p.encoder.Encode(args)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.connection.Call("Collector.GetMetricTypes", out, &reply)
 	if err != nil {
 		return nil, err
 	}
@@ -272,6 +280,7 @@ func init() {
 	gob.Register(*(&ctypes.ConfigValueStr{}))
 	gob.Register(*(&ctypes.ConfigValueInt{}))
 	gob.Register(*(&ctypes.ConfigValueFloat{}))
+	gob.Register(*(&ctypes.ConfigValueBool{}))
 
 	gob.Register(cpolicy.NewPolicyNode())
 	gob.Register(&cpolicy.StringRule{})

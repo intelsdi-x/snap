@@ -26,5 +26,5 @@ package plugin
 type CollectorPlugin interface {
 	Plugin
 	CollectMetrics([]PluginMetricType) ([]PluginMetricType, error)
-	GetMetricTypes() ([]PluginMetricType, error)
+	GetMetricTypes(PluginConfigType) ([]PluginMetricType, error)
 }

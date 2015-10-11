@@ -45,6 +45,10 @@ const (
 	// PulseProtoBuff = "pulse.pb" // TO BE IMPLEMENTED
 )
 
+type PluginConfigType struct {
+	Data *cdata.ConfigDataNode `json:"config"`
+}
+
 // Represents a metric type. Only used within plugins and across plugin calls.
 // Converted to core.MetricType before being used within modules.
 type PluginMetricType struct {

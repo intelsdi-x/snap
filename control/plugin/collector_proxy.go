@@ -45,6 +45,7 @@ type CollectMetricsReply struct {
 
 // GetMetricTypesArgs args passed to GetMetricTypes
 type GetMetricTypesArgs struct {
+	PluginConfig PluginConfigType
 }
 
 // GetMetricTypesReply assigned by GetMetricTypes() implementation
@@ -64,7 +65,10 @@ func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error 
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()
 
-	mts, err := c.Plugin.GetMetricTypes()
+	dargs := &GetMetricTypesArgs{}
+	c.Session.Decode(args, dargs)
+
+	mts, err := c.Plugin.GetMetricTypes(dargs.PluginConfig)
 	if err != nil {
 		return errors.New(fmt.Sprintf("GetMetricTypes call error : %s", err.Error()))
 	}

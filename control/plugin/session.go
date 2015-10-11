@@ -294,6 +294,7 @@ func init() {
 	gob.Register(*(&ctypes.ConfigValueInt{}))
 	gob.Register(*(&ctypes.ConfigValueStr{}))
 	gob.Register(*(&ctypes.ConfigValueFloat{}))
+	gob.Register(*(&ctypes.ConfigValueBool{}))
 
 	gob.Register(cpolicy.NewPolicyNode())
 	gob.Register(&cpolicy.StringRule{})

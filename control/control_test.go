@@ -66,6 +66,7 @@ func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, p
 }
 func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error) { return nil, nil }
 func (m *MockPluginManagerBadSwap) teardown()                         {}
+func (m *MockPluginManagerBadSwap) setPluginConfig(*pluginConfig)     {}
 func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)  {}
 func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)          {}
 func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg    { return plugin.Arg{} }
@@ -686,8 +687,15 @@ func TestCollectMetrics(t *testing.T) {
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
+
+		// Add a global plugin config
+		c.config.plugins.collector["dummy1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+
 		// Load plugin
 		c.Load(PluginPath)
+		mts, err := c.MetricCatalog()
+		So(err, ShouldBeNil)
+		So(len(mts), ShouldEqual, 3)
 
 		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
@@ -701,6 +709,10 @@ func TestCollectMetrics(t *testing.T) {
 			namespace: []string{"intel", "dummy", "bar"},
 			cfg:       cd,
 		}
+		m3 := MockMetricType{
+			namespace: []string{"intel", "dummy", "test"},
+			cfg:       cd,
+		}
 
 		// retrieve loaded plugin
 		lp, err := c.pluginManager.get("collector:dummy1:1")
@@ -711,7 +723,7 @@ func TestCollectMetrics(t *testing.T) {
 		pool.subscribe("1", unboundSubscriptionType)
 		err = c.sendPluginSubscriptionEvent("1", lp)
 		So(err, ShouldBeNil)
-		m = append(m, m1, m2)
+		m = append(m, m1, m2, m3)
 
 		time.Sleep(time.Millisecond * 900)
 
@@ -720,6 +732,7 @@ func TestCollectMetrics(t *testing.T) {
 			So(err, ShouldBeNil)
 			for i := range cr {
 				So(cr[i].Data(), ShouldContainSubstring, "The dummy collected data!")
+				So(cr[i].Data(), ShouldContainSubstring, "test=true")
 			}
 			// fmt.Printf(" *  Collect Response: %+v\n", cr)
 		}
@@ -838,6 +851,7 @@ func TestProcessMetrics(t *testing.T) {
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		time.Sleep(1 * time.Second)
+		c.config.plugins.processor["passthru"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
 		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
@@ -873,8 +887,13 @@ func TestProcessMetrics(t *testing.T) {
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
 				contentType := plugin.PulseGOBContentType
-				cnt, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table())
-				fmt.Printf("%v %v", cnt, ct)
+				_, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table())
+				So(errs, ShouldBeEmpty)
+				mts := []plugin.PluginMetricType{}
+				dec := gob.NewDecoder(bytes.NewBuffer(ct))
+				err := dec.Decode(&mts)
+				So(err, ShouldBeNil)
+				So(mts[0].Data_, ShouldEqual, 2)
 				So(errs, ShouldBeNil)
 			})
 		})

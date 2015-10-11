@@ -58,6 +58,7 @@ type pluginControl struct {
 	// TODO, going to need coordination on changing of these
 	RunningPlugins executablePlugins
 	Started        bool
+	config         *config
 
 	autodiscoverPaths []string
 	eventManager      *gomit.EventController
@@ -129,6 +130,7 @@ func CacheExpiration(t time.Duration) controlOpt {
 func New(opts ...controlOpt) *pluginControl {
 
 	c := &pluginControl{}
+	c.config = newConfig()
 	// Initialize components
 	//
 	// Event Manager
@@ -145,7 +147,7 @@ func New(opts ...controlOpt) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager()
+	c.pluginManager = newPluginManager(OptSetPluginConfig(c.config.plugins))
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
@@ -680,6 +682,11 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 			wg.Add(1)
 
+			// merge global plugin config into the config for the metric
+			for _, mt := range pmt.metricTypes {
+				mt.Config().Merge(p.config.plugins.get(plugin.CollectorPluginType, ap.Name(), ap.Version()))
+			}
+
 			// get a metrics
 			go func(mt []core.Metric) {
 				mts, err := cli.CollectMetrics(mt)
@@ -747,7 +754,13 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 			return []error{errors.New("unable to cast client to PluginPublisherClient")}
 		}
 
-		errp := cli.Publish(contentType, content, config)
+		// merge global plugin config into the config for this request
+		cfg := p.config.plugins.get(plugin.PublisherPluginType, ap.Name(), ap.Version()).Table()
+		for k, v := range config {
+			cfg[k] = v
+		}
+
+		errp := cli.Publish(contentType, content, cfg)
 		if errp != nil {
 			return []error{errp}
 		}
@@ -783,7 +796,14 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 			return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
 		}
 
-		ct, c, errp := cli.Process(contentType, content, config)
+		// merge global plugin config into the config for this request
+		cfg := p.config.plugins.get(plugin.ProcessorPluginType, ap.Name(), ap.Version()).Table()
+
+		for k, v := range config {
+			cfg[k] = v
+		}
+
+		ct, c, errp := cli.Process(contentType, content, cfg)
 		if errp != nil {
 			return "", nil, []error{errp}
 		}

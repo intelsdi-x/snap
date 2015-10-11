@@ -195,7 +195,8 @@ func TestHTTPJSONRPC(t *testing.T) {
 		})
 
 		Convey("GetMetricTypes", func() {
-			mts, err := c.GetMetricTypes()
+			cfg := plugin.PluginConfigType{}
+			mts, err := c.GetMetricTypes(cfg)
 			So(err, ShouldBeNil)
 			So(mts, ShouldNotBeNil)
 			So(mts, ShouldHaveSameTypeAs, []core.Metric{})

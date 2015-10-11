@@ -206,14 +206,29 @@ type pluginManager struct {
 	metricCatalog catalogsMetrics
 	loadedPlugins *loadedPlugins
 	logPath       string
+	pluginConfig  *pluginConfig
 }
 
-func newPluginManager() *pluginManager {
+func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 	p := &pluginManager{
 		loadedPlugins: newLoadedPlugins(),
 		logPath:       "/tmp",
+		pluginConfig:  newPluginConfig(),
 	}
+
+	for _, opt := range opts {
+		opt(p)
+	}
+
 	return p
+}
+
+type pluginManagerOpt func(*pluginManager)
+
+func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.pluginConfig = cf
+	}
 }
 
 func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
@@ -306,7 +321,11 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		colClient := ap.client.(client.PluginCollectorClient)
 
 		// Get metric types
-		metricTypes, err := colClient.GetMetricTypes()
+		// TODO pass in the global config
+		cfg := plugin.PluginConfigType{
+			Data: p.pluginConfig.get(resp.Type, resp.Meta.Name, resp.Meta.Version),
+		}
+		metricTypes, err := colClient.GetMetricTypes(cfg)
 		if err != nil {
 			pmLogger.WithFields(log.Fields{
 				"_block":      "load-plugin",
