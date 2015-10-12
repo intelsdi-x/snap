@@ -55,7 +55,6 @@ var (
 	PULSE_PATH         = os.Getenv("PULSE_PATH")
 	DUMMY_PLUGIN_PATH1 = PULSE_PATH + "/plugin/pulse-collector-dummy1"
 	DUMMY_PLUGIN_PATH2 = PULSE_PATH + "/plugin/pulse-collector-dummy2"
-	PSUTIL_PLUGIN_PATH = PULSE_PATH + "/plugin/pulse-collector-psutil"
 	FILE_PLUGIN_PATH   = PULSE_PATH + "/plugin/pulse-publisher-file"
 
 	NextPort         = 40000
@@ -1046,7 +1045,6 @@ func TestPluginRestCalls(t *testing.T) {
 
 				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
 				uploadPlugin(FILE_PLUGIN_PATH, port)
-				uploadPlugin(PSUTIL_PLUGIN_PATH, port)
 
 				r1 := createTask("1.json", "xenu", "500ms", true, port)
 				So(r1.Meta.Code, ShouldEqual, 201)
