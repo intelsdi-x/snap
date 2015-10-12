@@ -119,6 +119,25 @@ func TestTask(t *testing.T) {
 			So(task.missedIntervals, ShouldBeGreaterThan, 2)
 			task.Stop()
 		})
+
+		Convey("Enable a running task", func() {
+			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
+			task := newTask(sch, wf, newWorkManager(), c, emitter)
+			task.Spin()
+			err := task.Enable()
+			So(err, ShouldNotBeNil)
+			So(task.State(), ShouldEqual, core.TaskSpinning)
+		})
+
+		Convey("Enable a disabled task", func() {
+			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
+			task := newTask(sch, wf, newWorkManager(), c, emitter)
+
+			task.state = core.TaskDisabled
+			err := task.Enable()
+			So(err, ShouldBeNil)
+			So(task.State(), ShouldEqual, core.TaskStopped)
+		})
 	})
 
 	Convey("Create task collection", t, func() {

@@ -266,6 +266,22 @@ func createTask(sample, name, interval string, noStart bool, port int) *rbody.AP
 	return getAPIResponse(resp)
 }
 
+func enableTask(id string, port int) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s/enable", port, id)
+	client := &http.Client{}
+	b := bytes.NewReader([]byte{})
+	req, err := http.NewRequest("PUT", uri, b)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
 func uploadPlugin(pluginPath string, port int) *rbody.APIResponse {
 	uri := fmt.Sprintf("http://localhost:%d/v1/plugins", port)
 
@@ -1090,6 +1106,32 @@ func TestPluginRestCalls(t *testing.T) {
 				for x := 1; x <= 9; x++ {
 					So(a.events[x], ShouldEqual, "metric-event")
 				}
+			})
+		})
+
+		Convey("Enable task - put - /v1/tasks/:id/enable", func() {
+			Convey("Enable a running task", func(c C) {
+				port := getPort()
+				startAPI(port)
+
+				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(FILE_PLUGIN_PATH, port)
+
+				r1 := createTask("1.json", "yeti", "1s", true, port)
+				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+				plr1 := r1.Body.(*rbody.AddScheduledTask)
+
+				id := plr1.ID
+
+				r2 := startTask(id, port)
+				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStarted))
+				plr2 := r2.Body.(*rbody.ScheduledTaskStarted)
+				So(plr2.ID, ShouldEqual, id)
+
+				r4 := enableTask(id, port)
+				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.Error))
+				plr4 := r4.Body.(*rbody.Error)
+				So(plr4.ErrorMessage, ShouldEqual, "Task must be disabled")
 			})
 		})
 	})
