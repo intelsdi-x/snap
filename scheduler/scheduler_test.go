@@ -277,10 +277,8 @@ func TestScheduler(t *testing.T) {
 			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
 			So(tsk, ShouldNotBeNil)
 
-			t, err := s.EnableTask(tsk.ID())
+			_, err := s.EnableTask(tsk.ID())
 			So(err, ShouldNotBeNil)
-			So(t.State(), ShouldEqual, core.TaskStopped)
-			So(t.State(), ShouldEqual, tsk.State())
 		})
 
 		Convey("Enable a disabled task", func() {
@@ -293,7 +291,6 @@ func TestScheduler(t *testing.T) {
 			etsk, err1 := s.EnableTask(tsk.ID())
 			So(err1, ShouldBeNil)
 			So(etsk.State(), ShouldEqual, core.TaskStopped)
-			So(etsk.State(), ShouldEqual, tsk.State())
 		})
 	})
 	Convey("Stop()", t, func() {
