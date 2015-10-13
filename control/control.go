@@ -402,7 +402,10 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 	}
 	m.config = cd
 
-	if m.policy != nil {
+	// When a metric is added to the MetricCatalog, the policy of rules defined by the plugin is added to the metric's policy.
+	// If no rules are defined for a metric, we set the metric's policy to an empty ConfigPolicyNode.
+	// Checking m.policy for nil will not work, we need to check if rules are nil.
+	if m.policy.HasRules() {
 		if m.Config() == nil {
 			perrs = append(perrs, perror.New(errors.New(fmt.Sprintf("Policy defined for metric, (%s) version (%d), but no config defined in manifest", mt.Namespace(), mt.Version()))))
 			return nil, perrs

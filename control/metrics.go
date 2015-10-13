@@ -73,6 +73,7 @@ type metricType struct {
 
 type processesConfigData interface {
 	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
+	HasRules() bool
 }
 
 func newMetricType(ns []string, last time.Time, plugin *loadedPlugin) *metricType {

@@ -146,6 +146,13 @@ func (p *ConfigPolicyNode) RulesAsTable() []RuleTable {
 	return rt
 }
 
+func (c *ConfigPolicyNode) HasRules() bool {
+	if len(c.rules) > 0 {
+		return true
+	}
+	return false
+}
+
 // Validates and returns a processed policy node or nil and error if validation has failed
 func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *ProcessingErrors) {
 	c.mutex.Lock()
