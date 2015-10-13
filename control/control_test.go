@@ -555,6 +555,10 @@ func (m *mockCDProc) Process(in map[string]ctypes.ConfigValue) (*map[string]ctyp
 	return &in, nil
 }
 
+func (m *mockCDProc) HasRules() bool {
+	return true
+}
+
 // TODO move to metricCatalog
 // func TestResolvePlugin(t *testing.T) {
 // 	Convey(".resolvePlugin()", t, func() {
