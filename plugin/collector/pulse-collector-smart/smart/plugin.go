@@ -22,7 +22,10 @@ package smart
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
@@ -85,12 +88,23 @@ func (sc *SmartCollector) CollectMetrics(mts []plugin.PluginMetricType) ([]plugi
 	buffered_results := map[string]smartResults{}
 
 	results := make([]plugin.PluginMetricType, len(mts))
+	errs := make([]string, 0)
+
+	collected := false
+
+	t := time.Now()
+	host, _ := os.Hostname()
 
 	for i, mt := range mts {
-		if !validateName(mt.Namespace()) {
-			return nil, errors.New(fmt.Sprintf("%v is not valid metric", mt.Namespace()))
+		namespace := mt.Namespace()
+		results[i] = plugin.PluginMetricType{Namespace_: namespace, Source_: host,
+			Timestamp_: t}
+
+		if !validateName(namespace) {
+			errs = append(errs, fmt.Sprintf("%v is not valid metric", namespace))
+			continue
 		}
-		disk, attribute_path := parseName(mt.Namespace())
+		disk, attribute_path := parseName(namespace)
 		buffered, ok := buffered_results[disk]
 		if !ok {
 			values, err := ReadSmartData(disk, sysUtilProvider)
@@ -104,16 +118,23 @@ func (sc *SmartCollector) CollectMetrics(mts []plugin.PluginMetricType) ([]plugi
 		attribute, ok := buffered[attribute_path]
 
 		if !ok {
-			return nil, errors.New("Unknown attribute " + attribute_path)
+			errs = append(errs, "Unknown attribute "+attribute_path)
+		} else {
+			collected = true
+			results[i].Data_ = attribute
 		}
 
-		results[i] = plugin.PluginMetricType{
-			Namespace_: mt.Namespace(),
-			Data_:      attribute,
-		}
 	}
 
-	return results, nil
+	errsStr := strings.Join(errs, "; ")
+	if collected {
+		if len(errs) > 0 {
+			log.Printf("Data collected but error(s) occured: %v", errsStr)
+		}
+		return results, nil
+	} else {
+		return nil, errors.New(errsStr)
+	}
 }
 
 // GetMetricTypes returns the metric types exposed by smart
