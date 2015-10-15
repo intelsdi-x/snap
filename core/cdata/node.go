@@ -81,7 +81,6 @@ func (c *ConfigDataNode) UnmarshalJSON(data []byte) error {
 				continue
 			}
 			if v, err := t.Float64(); err == nil {
-				fmt.Printf("%v is a float64\n", k)
 				c.table[k] = ctypes.ConfigValueFloat{Value: v}
 				continue
 			}
@@ -139,4 +138,12 @@ func (c ConfigDataNode) Merge(n ctree.Node) ctree.Node {
 	}
 	// Return modified version of ConfigDataNode(as ctree.Node)
 	return c
+}
+
+// Deletes a field in ConfigDataNode. If the field does not exist Delete is
+// considered a no-op
+func (c ConfigDataNode) DeleteItem(k string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	delete(c.table, k)
 }

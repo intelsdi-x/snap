@@ -92,7 +92,7 @@ func TestLoadPlugin(t *testing.T) {
 
 			Convey("with a plugin config a plugin loads successfully", func() {
 				cfg := NewConfig()
-				cfg.Plugins.Collector["dummy2"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+				cfg.Plugins.Collector.Plugins["dummy2"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
 				lp, err := p.LoadPlugin(PluginPath, nil)
@@ -108,7 +108,7 @@ func TestLoadPlugin(t *testing.T) {
 
 			Convey("for a plugin requiring a config an incomplete config will result in a load failure", func() {
 				cfg := NewConfig()
-				cfg.Plugins.Collector["dummy2"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
+				cfg.Plugins.Collector.Plugins["dummy2"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
 				lp, err := p.LoadPlugin(PluginPath, nil)

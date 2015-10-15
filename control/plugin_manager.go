@@ -321,7 +321,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 		colClient := ap.client.(client.PluginCollectorClient)
 
 		cfg := plugin.PluginConfigType{
-			ConfigDataNode: p.pluginConfig.get(resp.Type, resp.Meta.Name, resp.Meta.Version),
+			ConfigDataNode: p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version),
 		}
 
 		metricTypes, err := colClient.GetMetricTypes(cfg)

@@ -11,16 +11,28 @@
             "password": "p@ssw0rd"
         },
         "collector": {
+            "all": {
+                "user": "jane"
+            },
             "pcm": {
                 "all": {
                     "path": "/usr/local/pcm/bin"
                 },
                 "versions": {
                     "1": {
-                        "user": "john"
+                        "user": "john",
+                        "int": 1234,
+                        "float": 3.14,
+                        "flag": true
                     }
                 }
+            },
+            "psutil": {
+                "all": {
+                    "path": "/usr/local/bin/psutil"
+                }
             }
+
         },
         "publisher": {
             "influxdb": {

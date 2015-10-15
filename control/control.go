@@ -58,7 +58,7 @@ type pluginControl struct {
 	// TODO, going to need coordination on changing of these
 	RunningPlugins executablePlugins
 	Started        bool
-	config         *config
+	Config         *config
 
 	autodiscoverPaths []string
 	eventManager      *gomit.EventController
@@ -126,9 +126,9 @@ func CacheExpiration(t time.Duration) ControlOpt {
 	}
 }
 
-func OptSetConfig(c *config) ControlOpt {
-	return func(p *pluginControl) {
-		p.config = c
+func OptSetConfig(cfg *config) ControlOpt {
+	return func(c *pluginControl) {
+		c.Config = cfg
 	}
 }
 
@@ -136,7 +136,7 @@ func OptSetConfig(c *config) ControlOpt {
 func New(opts ...ControlOpt) *pluginControl {
 
 	c := &pluginControl{}
-	c.config = NewConfig()
+	c.Config = NewConfig()
 	// Initialize components
 	//
 	// Event Manager
@@ -153,7 +153,7 @@ func New(opts ...ControlOpt) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager(OptSetPluginConfig(c.config.Plugins))
+	c.pluginManager = newPluginManager(OptSetPluginConfig(c.Config.Plugins))
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
@@ -690,7 +690,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 			// merge global plugin config into the config for the metric
 			for _, mt := range pmt.metricTypes {
-				mt.Config().Merge(p.config.Plugins.get(plugin.CollectorPluginType, ap.Name(), ap.Version()))
+				mt.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, ap.Name(), ap.Version()))
 			}
 
 			// get a metrics
@@ -761,7 +761,7 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 		}
 
 		// merge global plugin config into the config for this request
-		cfg := p.config.Plugins.get(plugin.PublisherPluginType, ap.Name(), ap.Version()).Table()
+		cfg := p.Config.Plugins.getPluginConfigDataNode(core.PublisherPluginType, ap.Name(), ap.Version()).Table()
 		for k, v := range config {
 			cfg[k] = v
 		}
@@ -803,7 +803,7 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 		}
 
 		// merge global plugin config into the config for this request
-		cfg := p.config.Plugins.get(plugin.ProcessorPluginType, ap.Name(), ap.Version()).Table()
+		cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, ap.Name(), ap.Version()).Table()
 
 		for k, v := range config {
 			cfg[k] = v

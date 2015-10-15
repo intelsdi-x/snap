@@ -22,6 +22,8 @@ package rbody
 import (
 	"encoding/json"
 	"errors"
+
+	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
 type Body interface {
@@ -111,6 +113,12 @@ func UnmarshalBody(t string, b []byte) (Body, error) {
 		return unmarshalAndHandleError(b, &TribeJoinAgreement{})
 	case TribeGetAgreementType:
 		return unmarshalAndHandleError(b, &TribeGetAgreement{})
+	case PluginConfigItemType:
+		return unmarshalAndHandleError(b, &PluginConfigItem{*cdata.NewNode()})
+	case SetPluginConfigItemType:
+		return unmarshalAndHandleError(b, &SetPluginConfigItem{*cdata.NewNode()})
+	case DeletePluginConfigItemType:
+		return unmarshalAndHandleError(b, &DeletePluginConfigItem{*cdata.NewNode()})
 	case ErrorType:
 		return unmarshalAndHandleError(b, &Error{})
 	default:

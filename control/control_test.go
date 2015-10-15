@@ -697,7 +697,7 @@ func TestCollectMetrics(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		// Add a global plugin config
-		c.config.Plugins.Collector["dummy1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+		c.Config.Plugins.Collector.Plugins["dummy1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
 		c.Load(JSONRPC_PluginPath)
@@ -857,7 +857,7 @@ func TestProcessMetrics(t *testing.T) {
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		time.Sleep(1 * time.Second)
-		c.config.Plugins.Processor["passthru"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+		c.Config.Plugins.Processor.Plugins["passthru"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
 		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
