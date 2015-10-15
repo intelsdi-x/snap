@@ -252,6 +252,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
+
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -314,6 +315,8 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 			}).Error("error in getting metric types")
 			return nil, perror.New(err)
 		}
+
+		// The plugin cache client will be integrated here later
 
 		// Add metric types to metric catalog
 		for _, nmt := range metricTypes {

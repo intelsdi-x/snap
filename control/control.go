@@ -121,7 +121,7 @@ func MaxRunningPlugins(m int) controlOpt {
 
 func CacheExpiration(t time.Duration) controlOpt {
 	return func(c *pluginControl) {
-		client.CacheExpiration = t
+		client.GlobalCacheExpiration = t
 	}
 }
 
