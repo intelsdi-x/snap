@@ -104,7 +104,7 @@ func TestSwapPlugin(t *testing.T) {
 
 			So(e, ShouldBeNil)
 
-			dummy2Path := strings.Replace(PluginPath, "pulse-collector-dummy1", "pulse-collector-dummy2", 1)
+			dummy2Path := strings.Replace(PluginPath, "pulse-collector-dummy2", "pulse-collector-dummy1", 1)
 			pc := c.PluginCatalog()
 			dummy := pc[0]
 
@@ -113,18 +113,18 @@ func TestSwapPlugin(t *testing.T) {
 				So(err, ShouldBeNil)
 				time.Sleep(50 * time.Millisecond)
 				pc = c.PluginCatalog()
-				So(pc[0].Name(), ShouldEqual, "dummy2")
-				So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy2")
-				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 2)
-				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
-				So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 1)
+				So(pc[0].Name(), ShouldEqual, "dummy1")
+				So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy1")
+				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
+				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy2")
+				So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
 				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 			})
 
 			Convey("does not unload & returns an error if it cannot load a plugin", func() {
 				err := c.SwapPlugins("/fake/plugin/path", pc[0])
 				So(err, ShouldNotBeNil)
-				So(pc[0].Name(), ShouldEqual, "dummy1")
+				So(pc[0].Name(), ShouldEqual, "dummy2")
 			})
 
 			Convey("rollsback loaded plugin & returns an error if it cannot unload a plugin", func() {
@@ -223,8 +223,8 @@ func TestLoad(t *testing.T) {
 				time.Sleep(100)
 				So(err, ShouldBeNil)
 				So(c.pluginManager.all(), ShouldNotBeEmpty)
-				So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy1")
-				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
+				So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy2")
+				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 2)
 				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 			})
 
@@ -316,19 +316,22 @@ func TestUnload(t *testing.T) {
 				pc := c.PluginCatalog()
 
 				So(len(pc), ShouldEqual, 1)
-				So(pc[0].Name(), ShouldEqual, "dummy1")
+				So(pc[0].Name(), ShouldEqual, "dummy2")
 				_, err2 := c.Unload(pc[0])
 				<-lpe.done
 				So(err2, ShouldBeNil)
-				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
-				So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 1)
+				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy2")
+				So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
 				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 			})
 
 			Convey("returns error on unload for unknown plugin(or already unloaded)", func() {
 				c := New()
+				lpe := newListenToPluginEvent()
+				c.eventManager.RegisterHandler("TestUnload", lpe)
 				c.Start()
 				_, err := c.Load(PluginPath)
+				<-lpe.done
 
 				So(c.pluginManager.all(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
@@ -352,7 +355,7 @@ func TestUnload(t *testing.T) {
 				pc := c.PluginCatalog()
 				c.Unload(pc[0])
 				<-lpe.done
-				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy1")
+				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy2")
 			})
 
 		})
@@ -657,7 +660,10 @@ func (m MockMetricType) Data() interface{} {
 func TestMetricConfig(t *testing.T) {
 	c := New()
 	c.Start()
-	c.Load(PluginPath)
+	lpe := newListenToPluginEvent()
+	c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+	c.Load(JSONRPC_PluginPath)
+	<-lpe.done
 	cd := cdata.NewNode()
 	m1 := MockMetricType{
 		namespace: []string{"intel", "dummy", "foo"},
@@ -670,8 +676,8 @@ func TestMetricConfig(t *testing.T) {
 	cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 	metric, errs = c.validateMetricTypeSubscription(m1, cd)
 	Convey("So metric should be valid with config", t, func() {
-		So(metric, ShouldNotBeNil)
 		So(errs, ShouldBeNil)
+		So(metric, ShouldNotBeNil)
 	})
 }
 
@@ -686,13 +692,16 @@ func TestCollectMetrics(t *testing.T) {
 		c := New()
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 		time.Sleep(100 * time.Millisecond)
 
 		// Add a global plugin config
-		c.config.plugins.collector["dummy1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+		c.config.Plugins.Collector["dummy1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		c.Load(PluginPath)
+		c.Load(JSONRPC_PluginPath)
+		<-lpe.done
 		mts, err := c.MetricCatalog()
 		So(err, ShouldBeNil)
 		So(len(mts), ShouldEqual, 3)
@@ -724,8 +733,7 @@ func TestCollectMetrics(t *testing.T) {
 		err = c.sendPluginSubscriptionEvent("1", lp)
 		So(err, ShouldBeNil)
 		m = append(m, m1, m2, m3)
-
-		time.Sleep(time.Millisecond * 900)
+		time.Sleep(time.Millisecond * 1100)
 
 		for x := 0; x < 5; x++ {
 			cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*60))
@@ -734,9 +742,7 @@ func TestCollectMetrics(t *testing.T) {
 				So(cr[i].Data(), ShouldContainSubstring, "The dummy collected data!")
 				So(cr[i].Data(), ShouldContainSubstring, "test=true")
 			}
-			// fmt.Printf(" *  Collect Response: %+v\n", cr)
 		}
-		time.Sleep(time.Millisecond * 500)
 		ap := c.AvailablePlugins()
 		So(ap, ShouldNotBeEmpty)
 	})
@@ -819,7 +825,7 @@ func TestPublishMetrics(t *testing.T) {
 			errs := c.sendPluginSubscriptionEvent("1", p)
 			So(errs, ShouldBeNil)
 			<-lpe.done
-			time.Sleep(1500 * time.Millisecond)
+			time.Sleep(2500 * time.Millisecond)
 
 			Convey("Publish to file", func() {
 				metrics := []plugin.PluginMetricType{
@@ -851,7 +857,7 @@ func TestProcessMetrics(t *testing.T) {
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		time.Sleep(1 * time.Second)
-		c.config.plugins.processor["passthru"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+		c.config.Plugins.Processor["passthru"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
 		_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
@@ -877,7 +883,7 @@ func TestProcessMetrics(t *testing.T) {
 			errs := c.sendPluginSubscriptionEvent("1", p)
 			So(errs, ShouldBeNil)
 			<-lpe.done
-			time.Sleep(1500 * time.Millisecond)
+			time.Sleep(2500 * time.Millisecond)
 
 			Convey("process metrics", func() {
 				metrics := []plugin.PluginMetricType{

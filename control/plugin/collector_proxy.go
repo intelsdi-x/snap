@@ -22,21 +22,14 @@ package plugin
 import (
 	"errors"
 	"fmt"
+
+	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
 // Arguments passed to CollectMetrics() for a Collector implementation
 type CollectMetricsArgs struct {
 	PluginMetricTypes []PluginMetricType
 }
-
-//func (c *CollectMetricsArgs) UnmarshalJSON(data []byte) error {
-//	pmt := &[]PluginMetricType{}
-//	if err := json.Unmarshal(data, pmt); err != nil {
-//		return err
-//	}
-//	c.PluginMetricTypes = *pmt
-//	return nil
-//}
 
 // Reply assigned by a Collector implementation using CollectMetrics()
 type CollectMetricsReply struct {
@@ -65,7 +58,7 @@ func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error 
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()
 
-	dargs := &GetMetricTypesArgs{}
+	dargs := &GetMetricTypesArgs{PluginConfig: PluginConfigType{ConfigDataNode: cdata.NewNode()}}
 	c.Session.Decode(args, dargs)
 
 	mts, err := c.Plugin.GetMetricTypes(dargs.PluginConfig)

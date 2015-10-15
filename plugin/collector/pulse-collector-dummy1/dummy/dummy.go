@@ -68,10 +68,10 @@ func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMe
 //GetMetricTypes returns metric types for testing
 func (f *Dummy) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetricType, error) {
 	mts := []plugin.PluginMetricType{}
-	if _, ok := cfg.Data.Table()["test-fail"]; ok {
+	if _, ok := cfg.Table()["test-fail"]; ok {
 		return mts, fmt.Errorf("missing on-load plugin config entry 'test'")
 	}
-	if _, ok := cfg.Data.Table()["test"]; ok {
+	if _, ok := cfg.Table()["test"]; ok {
 		mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "test"}})
 	}
 	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}})

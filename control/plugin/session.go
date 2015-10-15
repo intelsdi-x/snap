@@ -34,6 +34,7 @@ import (
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/control/plugin/encoding"
 	"github.com/intelsdi-x/pulse/control/plugin/encrypter"
+	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
@@ -297,6 +298,7 @@ func init() {
 	gob.Register(*(&ctypes.ConfigValueBool{}))
 
 	gob.Register(cpolicy.NewPolicyNode())
+	gob.Register(&cdata.ConfigDataNode{})
 	gob.Register(&cpolicy.StringRule{})
 	gob.Register(&cpolicy.IntRule{})
 	gob.Register(&cpolicy.FloatRule{})

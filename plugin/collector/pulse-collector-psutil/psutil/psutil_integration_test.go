@@ -57,7 +57,7 @@ func TestPsutilCollectMetrics(t *testing.T) {
 			So(metrics, ShouldNotBeNil)
 		})
 		Convey("get metric types", func() {
-			mts, err := p.GetMetricTypes(plugin.PluginConfigType{Data: cdata.NewNode()})
+			mts, err := p.GetMetricTypes(plugin.PluginConfigType{cdata.NewNode()})
 			//prettyPrint(mts)
 			So(err, ShouldBeNil)
 			So(mts, ShouldNotBeNil)

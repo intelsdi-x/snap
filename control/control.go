@@ -112,25 +112,31 @@ type managesSigning interface {
 	ValidateSignature(keyringFile string, signedFile string, signatureFile string) perror.PulseError
 }
 
-type controlOpt func(*pluginControl)
+type ControlOpt func(*pluginControl)
 
-func MaxRunningPlugins(m int) controlOpt {
+func MaxRunningPlugins(m int) ControlOpt {
 	return func(c *pluginControl) {
 		maximumRunningPlugins = m
 	}
 }
 
-func CacheExpiration(t time.Duration) controlOpt {
+func CacheExpiration(t time.Duration) ControlOpt {
 	return func(c *pluginControl) {
 		client.GlobalCacheExpiration = t
 	}
 }
 
+func OptSetConfig(c *config) ControlOpt {
+	return func(p *pluginControl) {
+		p.config = c
+	}
+}
+
 // New returns a new pluginControl instance
-func New(opts ...controlOpt) *pluginControl {
+func New(opts ...ControlOpt) *pluginControl {
 
 	c := &pluginControl{}
-	c.config = newConfig()
+	c.config = NewConfig()
 	// Initialize components
 	//
 	// Event Manager
@@ -147,7 +153,7 @@ func New(opts ...controlOpt) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager(OptSetPluginConfig(c.config.plugins))
+	c.pluginManager = newPluginManager(OptSetPluginConfig(c.config.Plugins))
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
@@ -684,7 +690,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 			// merge global plugin config into the config for the metric
 			for _, mt := range pmt.metricTypes {
-				mt.Config().Merge(p.config.plugins.get(plugin.CollectorPluginType, ap.Name(), ap.Version()))
+				mt.Config().Merge(p.config.Plugins.get(plugin.CollectorPluginType, ap.Name(), ap.Version()))
 			}
 
 			// get a metrics
@@ -755,7 +761,7 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 		}
 
 		// merge global plugin config into the config for this request
-		cfg := p.config.plugins.get(plugin.PublisherPluginType, ap.Name(), ap.Version()).Table()
+		cfg := p.config.Plugins.get(plugin.PublisherPluginType, ap.Name(), ap.Version()).Table()
 		for k, v := range config {
 			cfg[k] = v
 		}
@@ -797,7 +803,7 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 		}
 
 		// merge global plugin config into the config for this request
-		cfg := p.config.plugins.get(plugin.ProcessorPluginType, ap.Name(), ap.Version()).Table()
+		cfg := p.config.Plugins.get(plugin.ProcessorPluginType, ap.Name(), ap.Version()).Table()
 
 		for k, v := range config {
 			cfg[k] = v

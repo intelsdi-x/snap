@@ -320,11 +320,10 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 	if resp.Type == plugin.CollectorPluginType {
 		colClient := ap.client.(client.PluginCollectorClient)
 
-		// Get metric types
-		// TODO pass in the global config
 		cfg := plugin.PluginConfigType{
-			Data: p.pluginConfig.get(resp.Type, resp.Meta.Name, resp.Meta.Version),
+			ConfigDataNode: p.pluginConfig.get(resp.Type, resp.Meta.Name, resp.Meta.Version),
 		}
+
 		metricTypes, err := colClient.GetMetricTypes(cfg)
 		if err != nil {
 			pmLogger.WithFields(log.Fields{

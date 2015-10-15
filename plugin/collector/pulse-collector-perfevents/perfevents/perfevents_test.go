@@ -52,7 +52,7 @@ func TestPluginLoads(t *testing.T) {
 			p := NewPerfevents()
 			Convey("invalid init", func() {
 				p.Init = func() error { return errors.New("error") }
-				_, err := p.GetMetricTypes(plugin.PluginConfigType{Data: cdata.NewNode()})
+				_, err := p.GetMetricTypes(plugin.PluginConfigType{cdata.NewNode()})
 				So(err, ShouldNotBeNil)
 			})
 			Convey("set_supported_metrics", func() {

@@ -1,0 +1,47 @@
+{
+    "control": {
+        "cache_ttl": "5s"
+    },
+    "scheduler": {
+        "default_deadline": "5s",
+        "worker_pool_size": 5
+    },
+    "plugins": {
+        "all": {
+            "password": "p@ssw0rd"
+        },
+        "collector": {
+            "pcm": {
+                "all": {
+                    "path": "/usr/local/pcm/bin"
+                },
+                "versions": {
+                    "1": {
+                        "user": "john"
+                    }
+                }
+            }
+        },
+        "publisher": {
+            "influxdb": {
+                "all": {
+                    "server": "xyz.local",
+                    "password": "$password"
+                }
+            }
+        },
+        "processor": {
+            "movingaverage" : {
+                "all": {
+                    "user": "jane"
+                },
+                "versions": {
+                    "1": {
+                        "user": "tiffany",
+                        "password": "new password"
+                    }
+                }
+            }
+        }
+    }
+}

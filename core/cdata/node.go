@@ -56,16 +56,12 @@ func (c *ConfigDataNode) GobDecode(buf []byte) error {
 
 // MarshalJSON marshals a ConfigDataNode into JSON
 func (c *ConfigDataNode) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Table map[string]ctypes.ConfigValue `json:"table"`
-	}{
-		Table: c.table,
-	})
+	return json.Marshal(c.table)
 }
 
 // UnmarshalJSON unmarshals JSON into a ConfigDataNode
 func (c *ConfigDataNode) UnmarshalJSON(data []byte) error {
-	t := map[string]map[string]interface{}{}
+	t := map[string]interface{}{}
 	c.table = map[string]ctypes.ConfigValue{}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
@@ -73,8 +69,8 @@ func (c *ConfigDataNode) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	for k, i := range t["table"] {
-		switch t := i.(map[string]interface{})["Value"].(type) {
+	for k, i := range t {
+		switch t := i.(type) {
 		case string:
 			c.table[k] = ctypes.ConfigValueStr{Value: t}
 		case bool:
@@ -90,7 +86,7 @@ func (c *ConfigDataNode) UnmarshalJSON(data []byte) error {
 				continue
 			}
 		default:
-			return fmt.Errorf("Error Unmarshalling ConfigDataNode into JSON.  Type %v is unsupported.", k)
+			return fmt.Errorf("Error Unmarshalling JSON ConfigDataNode. Key: %v Type: %v is unsupported.", k, t)
 		}
 	}
 	c.mutex = new(sync.Mutex)

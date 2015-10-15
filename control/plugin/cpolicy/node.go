@@ -214,24 +214,27 @@ func addRulesToConfigPolicyNode(rules map[string]interface{}, cpn *ConfigPolicyN
 			switch rule["type"] {
 			case "integer":
 				r, _ := NewIntegerRule(k, req)
-				if d, ok := rule["default"].(map[string]interface{}); ok {
+				if d, ok := rule["default"]; ok {
 					// json encoding an int results in a float when decoding
-					def_, _ := d["Value"].(float64)
+					def_, _ := d.(float64)
 					def := int(def_)
 					r.default_ = &def
 				}
 				cpn.Add(r)
 			case "string":
 				r, _ := NewStringRule(k, req)
-				if d, ok := rule["default"].(map[string]interface{}); ok {
-					def, _ := d["Value"].(string)
-					r.default_ = &def
+				if d, ok := rule["default"]; ok {
+					def, _ := d.(string)
+					if def != "" {
+						r.default_ = &def
+					}
 				}
+
 				cpn.Add(r)
 			case "float":
 				r, _ := NewFloatRule(k, req)
-				if d, ok := rule["default"].(map[string]interface{}); ok {
-					def, _ := d["Value"].(float64)
+				if d, ok := rule["default"]; ok {
+					def, _ := d.(float64)
 					r.default_ = &def
 				}
 				cpn.Add(r)
