@@ -28,7 +28,7 @@ import (
 )
 
 // the time limit for which a cache entry is valid.
-var CacheExpiration time.Duration
+var GlobalCacheExpiration time.Duration
 
 var (
 	metricCache = cache{
@@ -53,7 +53,8 @@ func (c *cache) get(key string) core.Metric {
 		cell *cachecell
 		ok   bool
 	)
-	if cell, ok = c.table[key]; ok && time.Since(cell.time) < CacheExpiration {
+
+	if cell, ok = c.table[key]; ok && time.Since(cell.time) < GlobalCacheExpiration {
 		cell.hits++
 		cacheLog.WithFields(log.Fields{
 			"namespace": key,
