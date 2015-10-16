@@ -14,7 +14,7 @@ before_install:
 - go get golang.org/x/tools/cmd/goimports
 - go get github.com/smartystreets/goconvey/convey
 - if [ ! -d $PULSE_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $PULSE_SOURCE; fi # CI for forks not from intelsdi-x
-- if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+- go get golang.org/x/tools/cmd/cover
 env:
   global:
     - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/pulse
@@ -22,7 +22,6 @@ env:
 install:
 - export TMPDIR=$HOME/tmp
 - mkdir -p $TMPDIR
-- gem install facter
 - cd $PULSE_SOURCE # change dir into source
 - make
 script:
