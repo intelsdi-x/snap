@@ -658,26 +658,47 @@ func (m MockMetricType) Data() interface{} {
 }
 
 func TestMetricConfig(t *testing.T) {
-	c := New()
-	c.Start()
-	lpe := newListenToPluginEvent()
-	c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-	c.Load(JSONRPC_PluginPath)
-	<-lpe.done
-	cd := cdata.NewNode()
-	m1 := MockMetricType{
-		namespace: []string{"intel", "dummy", "foo"},
-	}
-	metric, errs := c.validateMetricTypeSubscription(m1, cd)
-	Convey("So metric should not be valid without config", t, func() {
-		So(metric, ShouldBeNil)
-		So(errs, ShouldNotBeNil)
+	Convey("required config provided by task", t, func() {
+		c := New()
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+		c.Load(JSONRPC_PluginPath)
+		<-lpe.done
+		cd := cdata.NewNode()
+		m1 := MockMetricType{
+			namespace: []string{"intel", "dummy", "foo"},
+		}
+		metric, errs := c.validateMetricTypeSubscription(m1, cd)
+		Convey("So metric should not be valid without config", func() {
+			So(metric, ShouldBeNil)
+			So(errs, ShouldNotBeNil)
+		})
+		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		metric, errs = c.validateMetricTypeSubscription(m1, cd)
+		Convey("So metric should be valid with config", func() {
+			So(errs, ShouldBeNil)
+			So(metric, ShouldNotBeNil)
+		})
 	})
-	cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
-	metric, errs = c.validateMetricTypeSubscription(m1, cd)
-	Convey("So metric should be valid with config", t, func() {
-		So(errs, ShouldBeNil)
-		So(metric, ShouldNotBeNil)
+	Convey("required config provided by global plugin config", t, func() {
+		config := NewConfig()
+		c := New(OptSetConfig(config))
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+		c.Load(JSONRPC_PluginPath)
+		<-lpe.done
+		cd := cdata.NewNode()
+		m1 := MockMetricType{
+			namespace: []string{"intel", "dummy", "foo"},
+		}
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		metric, errs := c.validateMetricTypeSubscription(m1, cd)
+		Convey("So metric should be valid with config", func() {
+			So(errs, ShouldBeNil)
+			So(metric, ShouldNotBeNil)
+		})
 	})
 }
 
@@ -793,7 +814,8 @@ func TestPublishMetrics(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		c := New()
+		config := NewConfig()
+		c := New(OptSetConfig(config))
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestPublishMetrics", lpe)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
@@ -812,7 +834,7 @@ func TestPublishMetrics(t *testing.T) {
 
 		Convey("Subscribe to file publisher with good config", func() {
 			n := cdata.NewNode()
-			n.AddItem("file", ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"})
+			config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"}))
 			p := mockPlugin{
 				name:       "file",
 				pluginType: core.PublisherPluginType,

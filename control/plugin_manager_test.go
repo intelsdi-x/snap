@@ -134,7 +134,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin with cache TTL set", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := p.LoadPlugin(PluginPath, nil)
+				lp, err := p.LoadPlugin(JSONRPC_PluginPath, nil)
 
 				So(err, ShouldBeNil)
 				So(lp.Meta.CacheTTL, ShouldNotBeNil)
