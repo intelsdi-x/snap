@@ -473,6 +473,7 @@ func TestPulseClient(t *testing.T) {
 				uuid := uuid.New()
 				p := c.StopTask(uuid)
 				So(p.Err, ShouldNotBeNil)
+
 				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
 			})
 			Convey("existing task", func() {
@@ -646,6 +647,24 @@ func TestPulseClient(t *testing.T) {
 
 			Convey("Should generate an error", func() {
 				So(p.Err, ShouldNotBeNil)
+			})
+		})
+		Convey("EnableTask", func() {
+			Convey("enable a stopped task", func() {
+				port := getPort()
+				uri := startAPI(port)
+				c := New(uri, "v1", true)
+
+				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+				c.LoadPlugin(FILE_PLUGIN_PATH)
+
+				wf := getWMFromSample("1.json")
+				sch := &Schedule{Type: "simple", Interval: "1s"}
+				p := c.CreateTask(sch, wf, "disabled", true)
+
+				ep := c.EnableTask(p.ID)
+				So(ep.Err, ShouldNotBeNil)
+				So(ep.Err.Error(), ShouldEqual, "Task must be disabled")
 			})
 		})
 	})
