@@ -29,7 +29,7 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	CacheExpiration = time.Duration(500 * time.Millisecond)
+	GlobalCacheExpiration = time.Duration(300 * time.Millisecond)
 	Convey("puts and gets a metric", t, func() {
 		mc := &cache{
 			table: make(map[string]*cachecell),
@@ -37,6 +37,7 @@ func TestCache(t *testing.T) {
 		foo := &plugin.PluginMetricType{
 			Namespace_: []string{"foo", "bar"},
 		}
+
 		mc.put("/foo/bar", foo)
 		ret := mc.get("/foo/bar")
 		So(ret, ShouldNotBeNil)
@@ -57,7 +58,8 @@ func TestCache(t *testing.T) {
 			Namespace_: []string{"foo", "bar"},
 		}
 		mc.put("/foo/bar", foo)
-		time.Sleep(501 * time.Millisecond)
+		time.Sleep(301 * time.Millisecond)
+
 		ret := mc.get("/foo/bar")
 		So(ret, ShouldBeNil)
 	})
@@ -73,6 +75,18 @@ func TestCache(t *testing.T) {
 			mc.get("/foo/bar")
 			So(mc.table["/foo/bar"].hits, ShouldEqual, 1)
 		})
+		Convey("ticks miss count when a cache entry is still a hit", func() {
+			mc := &cache{
+				table: make(map[string]*cachecell),
+			}
+			foo := &plugin.PluginMetricType{
+				Namespace_: []string{"foo", "bar"},
+			}
+			mc.put("/foo/bar", foo)
+			time.Sleep(295 * time.Millisecond)
+			mc.get("/foo/bar")
+			So(mc.table["/foo/bar"].hits, ShouldEqual, 1)
+		})
 		Convey("ticks miss count when a cache entry is missed", func() {
 			mc := &cache{
 				table: make(map[string]*cachecell),
@@ -81,7 +95,7 @@ func TestCache(t *testing.T) {
 				Namespace_: []string{"foo", "bar"},
 			}
 			mc.put("/foo/bar", foo)
-			time.Sleep(501 * time.Millisecond)
+			time.Sleep(301 * time.Millisecond)
 			mc.get("/foo/bar")
 			So(mc.table["/foo/bar"].misses, ShouldEqual, 1)
 		})

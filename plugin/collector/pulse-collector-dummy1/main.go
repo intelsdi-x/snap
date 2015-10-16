@@ -21,6 +21,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	// Import the pulse plugin library
 	"github.com/intelsdi-x/pulse/control/plugin"
@@ -37,6 +38,7 @@ func main() {
 	// Define metadata about Plugin
 	meta := dummy.Meta()
 	meta.RPCType = plugin.JSONRPC
+	meta.CacheTTL = time.Duration(time.Millisecond * 100)
 
 	// Start a collector
 	plugin.Start(meta, new(dummy.Dummy), os.Args[1])

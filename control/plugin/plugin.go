@@ -106,6 +106,9 @@ type PluginMeta struct {
 	Exclusive bool
 	// do not encrypt communication with this plugin
 	Unsecure bool
+	// plugin cache TTL duration.
+	// It will be converted from the client
+	CacheTTL time.Duration
 }
 
 type metaOp func(m *PluginMeta)

@@ -91,4 +91,9 @@ func TestPlugin(t *testing.T) {
 			NewPluginMeta("test", 1, CollectorPluginType, a, b)
 		}, ShouldPanicWith, "Bad return content type [test] for [1] [wat]")
 	})
+	Convey("Plugin CacheTTL", t, func() {
+		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType, a, b)
+		mockPluginMeta.CacheTTL = time.Duration(100 * time.Millisecond)
+		So(mockPluginMeta.CacheTTL, ShouldEqual, time.Duration(100*time.Millisecond))
+	})
 }

@@ -100,6 +100,16 @@ func TestLoadPlugin(t *testing.T) {
 				So(len(p.loadedPlugins.table), ShouldBeGreaterThan, 0)
 			})
 
+			Convey("loads plugin with cache TTL set", func() {
+				p := newPluginManager()
+				p.SetMetricCatalog(newMetricCatalog())
+				lp, err := p.LoadPlugin(PluginPath, nil)
+
+				So(err, ShouldBeNil)
+				So(lp.Meta.CacheTTL, ShouldNotBeNil)
+				So(lp.Meta.CacheTTL, ShouldResemble, time.Duration(time.Millisecond*100))
+			})
+
 			// Convey("error is returned on a bad PluginPath", func() {
 			// 	p := newPluginManager()
 			// 	lp, err := p.LoadPlugin("", nil)

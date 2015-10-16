@@ -80,6 +80,11 @@ var (
 					Usage:  "watch <task_id>",
 					Action: watchTask,
 				},
+				{
+					Name:   "enable",
+					Usage:  "enable <task_id>",
+					Action: enableTask,
+				},
 			},
 		},
 		{
