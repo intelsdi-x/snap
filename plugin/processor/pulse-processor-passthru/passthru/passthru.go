@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ limitations under the License.
 package passthru
 
 import (
+	"bytes"
+	"encoding/gob"
+
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
@@ -52,6 +55,31 @@ func (p *passthruProcessor) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 func (p *passthruProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
 	logger := log.New()
 	logger.Println("Processor started")
+
+	// The following block is for testing config see.. control_test.go
+	if _, ok := config["test"]; ok {
+		logger.Print("test configuration found")
+		var metrics []plugin.PluginMetricType
+		//Decodes the content into pluginMetricType
+		dec := gob.NewDecoder(bytes.NewBuffer(content))
+		if err := dec.Decode(&metrics); err != nil {
+			logger.Printf("Error decoding: error=%v content=%v", err, content)
+			return "", nil, err
+		}
+
+		for idx, m := range metrics {
+			if m.Namespace()[0] == "foo" {
+				logger.Print("found foo metric")
+				metrics[idx].Data_ = 2
+			}
+		}
+
+		var buf bytes.Buffer
+		enc := gob.NewEncoder(&buf)
+		enc.Encode(metrics)
+		content = buf.Bytes()
+	}
+
 	//just passing through
 	return contentType, content, nil
 }

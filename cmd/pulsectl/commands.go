@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,6 +79,11 @@ var (
 					Name:   "watch",
 					Usage:  "watch <task_id>",
 					Action: watchTask,
+				},
+				{
+					Name:   "enable",
+					Usage:  "enable <task_id>",
+					Action: enableTask,
 				},
 			},
 		},

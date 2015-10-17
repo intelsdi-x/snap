@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -97,18 +98,21 @@ var (
 		EnvVar: "PULSE_CACHE_EXPIRATION",
 		Value:  "500ms",
 	}
-
+	flConfig = cli.StringFlag{
+		Name:  "config",
+		Usage: "A path to a config file",
+	}
 	flRestHttps = cli.BoolFlag{
 		Name:  "rest-https",
 		Usage: "start Pulse's API as https",
 	}
 	flRestCert = cli.StringFlag{
 		Name:  "rest-cert",
-		Usage: "a path to a certificate to use for HTTPS deployment of Pulse's REST API.",
+		Usage: "A path to a certificate to use for HTTPS deployment of Pulse's REST API",
 	}
 	flRestKey = cli.StringFlag{
 		Name:  "rest-key",
-		Usage: "a path to a key file to use for HTTPS deployment of Pulse's REST API.",
+		Usage: "A path to a key file to use for HTTPS deployment of Pulse's REST API",
 	}
 
 	gitversion string
@@ -158,6 +162,7 @@ func main() {
 		flPluginTrust,
 		flKeyringFile,
 		flRestCert,
+		flConfig,
 		flRestHttps,
 		flRestKey,
 	}
@@ -201,7 +206,7 @@ func action(ctx *cli.Context) {
 	if err != nil {
 		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
 	}
-
+	config := ctx.String("config")
 	restHttps := ctx.Bool("rest-https")
 	restKey := ctx.String("rest-key")
 	restCert := ctx.String("rest-cert")
@@ -259,12 +264,31 @@ func action(ctx *cli.Context) {
 	}
 	log.Info("setting log path to: stdout")
 
-	coreModules = []coreModule{}
-
-	c := control.New(
+	controlOpts := []control.ControlOpt{
 		control.MaxRunningPlugins(maxRunning),
 		control.CacheExpiration(cache),
+	}
+
+	if config != "" {
+		b, err := ioutil.ReadFile(config)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"block":   "main",
+				"_module": "pulsed",
+				"error":   err.Error(),
+				"path":    config,
+			}).Fatal("unable to read config")
+		}
+		cfg := control.NewConfig()
+		err = json.Unmarshal(b, &cfg)
+		controlOpts = append(controlOpts, control.OptSetConfig(cfg))
+	}
+
+	c := control.New(
+		controlOpts...,
 	)
+
+	coreModules = []coreModule{}
 
 	coreModules = append(coreModules, c)
 	s := scheduler.New(

@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -253,6 +253,19 @@ func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter
 		return
 	}
 	respond(200, &rbody.ScheduledTaskRemoved{ID: id}, w)
+}
+
+//enableTask changes the task state from Disabled to Stopped
+func (s *Server) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	tsk, err := s.mt.EnableTask(id)
+	if err != nil {
+		respond(404, rbody.FromError(err), w)
+		return
+	}
+	task := &rbody.ScheduledTaskEnabled{}
+	task.AddScheduledTask = *rbody.AddSchedulerTaskFromTask(tsk)
+	respond(200, task, w)
 }
 
 func marshalTask(body io.ReadCloser) (*request.TaskCreationRequest, error) {

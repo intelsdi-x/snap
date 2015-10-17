@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ limitations under the License.
 
 package ctypes
 
+import "encoding/json"
+
 // TODO constructors for each that have typing for value (and optionally validate)
 
 type ConfigValue interface {
@@ -33,12 +35,20 @@ func (c ConfigValueInt) Type() string {
 	return "integer"
 }
 
+func (c ConfigValueInt) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.Value)
+}
+
 type ConfigValueStr struct {
 	Value string
 }
 
 func (c ConfigValueStr) Type() string {
 	return "string"
+}
+
+func (c ConfigValueStr) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.Value)
 }
 
 type ConfigValueFloat struct {
@@ -49,12 +59,20 @@ func (c ConfigValueFloat) Type() string {
 	return "float"
 }
 
+func (c ConfigValueFloat) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.Value)
+}
+
 type ConfigValueBool struct {
 	Value bool
 }
 
 func (c ConfigValueBool) Type() string {
 	return "bool"
+}
+
+func (c ConfigValueBool) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.Value)
 }
 
 // Returns a slice of string keywords for the types supported by ConfigValue.

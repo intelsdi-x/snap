@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
@@ -89,6 +90,7 @@ type managesTasks interface {
 	StopTask(string) []perror.PulseError
 	RemoveTask(string) error
 	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
+	EnableTask(string) (core.Task, error)
 }
 
 type managesTribe interface {
@@ -100,10 +102,20 @@ type managesTribe interface {
 	GetMember(name string) *agreement.Member
 }
 
+type managesConfig interface {
+	GetPluginConfigDataNode(core.PluginType, string, int) cdata.ConfigDataNode
+	GetPluginConfigDataNodeAll() cdata.ConfigDataNode
+	MergePluginConfigDataNode(pluginType core.PluginType, name string, ver int, cdn *cdata.ConfigDataNode) cdata.ConfigDataNode
+	MergePluginConfigDataNodeAll(cdn *cdata.ConfigDataNode) cdata.ConfigDataNode
+	DeletePluginConfigDataNodeField(pluginType core.PluginType, name string, ver int, fields ...string) cdata.ConfigDataNode
+	DeletePluginConfigDataNodeFieldAll(fields ...string) cdata.ConfigDataNode
+}
+
 type Server struct {
 	mm  managesMetrics
 	mt  managesTasks
 	tr  managesTribe
+	mc  managesConfig
 	n   *negroni.Negroni
 	r   *httprouter.Router
 	tls *tls
@@ -158,6 +170,10 @@ func (s *Server) BindTribeManager(t managesTribe) {
 	s.tr = t
 }
 
+func (s *Server) BindConfigManager(c managesConfig) {
+	s.mc = c
+}
+
 func (s *Server) start(addrString string) {
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
@@ -166,6 +182,9 @@ func (s *Server) start(addrString string) {
 	s.r.GET("/v1/plugins/:type/:name/:version", s.getPlugin)
 	s.r.POST("/v1/plugins", s.loadPlugin)
 	s.r.DELETE("/v1/plugins/:type/:name/:version", s.unloadPlugin)
+	s.r.GET("/v1/plugins/:type/:name/:version/config", s.getPluginConfigItem)
+	s.r.PUT("/v1/plugins/:type/:name/:version/config", s.setPluginConfigItem)
+	s.r.DELETE("/v1/plugins/:type/:name/:version/config", s.deletePluginConfigItem)
 
 	// metric routes
 	s.r.GET("/v1/metrics", s.getMetrics)
@@ -179,6 +198,7 @@ func (s *Server) start(addrString string) {
 	s.r.PUT("/v1/tasks/:id/start", s.startTask)
 	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
 	s.r.DELETE("/v1/tasks/:id", s.removeTask)
+	s.r.PUT("/v1/tasks/:id/enable", s.enableTask)
 
 	if s.tr != nil {
 		s.r.GET("/v1/tribe/agreements", s.getAgreements)

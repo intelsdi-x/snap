@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -206,14 +206,29 @@ type pluginManager struct {
 	metricCatalog catalogsMetrics
 	loadedPlugins *loadedPlugins
 	logPath       string
+	pluginConfig  *pluginConfig
 }
 
-func newPluginManager() *pluginManager {
+func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 	p := &pluginManager{
 		loadedPlugins: newLoadedPlugins(),
 		logPath:       "/tmp",
+		pluginConfig:  newPluginConfig(),
 	}
+
+	for _, opt := range opts {
+		opt(p)
+	}
+
 	return p
+}
+
+type pluginManagerOpt func(*pluginManager)
+
+func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.pluginConfig = cf
+	}
 }
 
 func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
@@ -252,6 +267,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 
 	var resp *plugin.Response
 	resp, err = ePlugin.WaitForResponse(time.Second * 3)
+
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -304,8 +320,11 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 	if resp.Type == plugin.CollectorPluginType {
 		colClient := ap.client.(client.PluginCollectorClient)
 
-		// Get metric types
-		metricTypes, err := colClient.GetMetricTypes()
+		cfg := plugin.PluginConfigType{
+			ConfigDataNode: p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version),
+		}
+
+		metricTypes, err := colClient.GetMetricTypes(cfg)
 		if err != nil {
 			pmLogger.WithFields(log.Fields{
 				"_block":      "load-plugin",
@@ -314,6 +333,8 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 			}).Error("error in getting metric types")
 			return nil, perror.New(err)
 		}
+
+		// The plugin cache client will be integrated here later
 
 		// Add metric types to metric catalog
 		for _, nmt := range metricTypes {

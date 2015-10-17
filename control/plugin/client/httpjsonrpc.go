@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -200,8 +200,15 @@ func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, er
 }
 
 // GetMetricTypes returns metric types that can be collected
-func (h *httpJSONRPCClient) GetMetricTypes() ([]core.Metric, error) {
-	res, err := h.call("Collector.GetMetricTypes", []interface{}{})
+func (h *httpJSONRPCClient) GetMetricTypes(config plugin.PluginConfigType) ([]core.Metric, error) {
+	args := plugin.GetMetricTypesArgs{PluginConfig: config}
+
+	out, err := h.encoder.Encode(args)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := h.call("Collector.GetMetricTypes", []interface{}{out})
 	if err != nil {
 		return nil, err
 	}
@@ -322,5 +329,8 @@ func (h *httpJSONRPCClient) call(method string, args []interface{}) (*jsonRpcRes
 		return nil, err
 	}
 	atomic.AddUint64(&h.id, 1)
+	if result.Error != "" {
+		return result, errors.New(result.Error)
+	}
 	return result, nil
 }

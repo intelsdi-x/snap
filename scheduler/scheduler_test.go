@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -290,6 +290,26 @@ func TestScheduler(t *testing.T) {
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(1*time.Second))
 			tsk.(*task).Option(prev)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
+		})
+
+		Convey("Enable a stopped task", func() {
+			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
+			So(tsk, ShouldNotBeNil)
+
+			_, err := s.EnableTask(tsk.ID())
+			So(err, ShouldNotBeNil)
+		})
+
+		Convey("Enable a disabled task", func() {
+			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
+			So(tsk, ShouldNotBeNil)
+
+			t := s.tasks.Get(tsk.ID())
+			t.state = core.TaskDisabled
+
+			etsk, err1 := s.EnableTask(tsk.ID())
+			So(err1, ShouldBeNil)
+			So(etsk.State(), ShouldEqual, core.TaskStopped)
 		})
 	})
 	Convey("Stop()", t, func() {

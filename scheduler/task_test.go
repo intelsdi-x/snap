@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -118,6 +118,25 @@ func TestTask(t *testing.T) {
 			So(task.hitCount, ShouldBeGreaterThan, 2)
 			So(task.missedIntervals, ShouldBeGreaterThan, 2)
 			task.Stop()
+		})
+
+		Convey("Enable a running task", func() {
+			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
+			task := newTask(sch, wf, newWorkManager(), c, emitter)
+			task.Spin()
+			err := task.Enable()
+			So(err, ShouldNotBeNil)
+			So(task.State(), ShouldEqual, core.TaskSpinning)
+		})
+
+		Convey("Enable a disabled task", func() {
+			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
+			task := newTask(sch, wf, newWorkManager(), c, emitter)
+
+			task.state = core.TaskDisabled
+			err := task.Enable()
+			So(err, ShouldBeNil)
+			So(task.State(), ShouldEqual, core.TaskStopped)
 		})
 	})
 

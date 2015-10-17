@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ type pluginControl struct {
 	// TODO, going to need coordination on changing of these
 	RunningPlugins executablePlugins
 	Started        bool
+	Config         *config
 
 	autodiscoverPaths []string
 	eventManager      *gomit.EventController
@@ -112,24 +113,31 @@ type managesSigning interface {
 	ValidateSignature(keyringFile string, signedFile string, signatureFile string) perror.PulseError
 }
 
-type controlOpt func(*pluginControl)
+type ControlOpt func(*pluginControl)
 
-func MaxRunningPlugins(m int) controlOpt {
+func MaxRunningPlugins(m int) ControlOpt {
 	return func(c *pluginControl) {
 		maximumRunningPlugins = m
 	}
 }
 
-func CacheExpiration(t time.Duration) controlOpt {
+func CacheExpiration(t time.Duration) ControlOpt {
 	return func(c *pluginControl) {
-		client.CacheExpiration = t
+		client.GlobalCacheExpiration = t
+	}
+}
+
+func OptSetConfig(cfg *config) ControlOpt {
+	return func(c *pluginControl) {
+		c.Config = cfg
 	}
 }
 
 // New returns a new pluginControl instance
-func New(opts ...controlOpt) *pluginControl {
+func New(opts ...ControlOpt) *pluginControl {
 
 	c := &pluginControl{}
+	c.Config = NewConfig()
 	// Initialize components
 	//
 	// Event Manager
@@ -146,7 +154,7 @@ func New(opts ...controlOpt) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager()
+	c.pluginManager = newPluginManager(OptSetPluginConfig(c.Config.Plugins))
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
@@ -346,6 +354,11 @@ func (p *pluginControl) ValidateDeps(mts []core.Metric, plugins []core.Subscribe
 
 	//validate plugins
 	for _, plg := range plugins {
+		typ, err := core.ToPluginType(plg.TypeName())
+		if err != nil {
+			return []perror.PulseError{perror.New(err)}
+		}
+		plg.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(typ, plg.Name(), plg.Version()))
 		errs := p.validatePluginSubscription(plg)
 		if len(errs) > 0 {
 			perrs = append(perrs, errs...)
@@ -406,7 +419,15 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 		perrs = append(perrs, perror.New(errors.New(fmt.Sprintf("no metric found cannot subscribe: (%s) version(%d)", mt.Namespace(), mt.Version()))))
 		return nil, perrs
 	}
+
 	m.config = cd
+
+	// merge global plugin config
+	typ, perr := core.ToPluginType(m.Plugin.TypeName())
+	if perr != nil {
+		return nil, []perror.PulseError{perror.New(err)}
+	}
+	m.config.Merge(p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version()))
 
 	// When a metric is added to the MetricCatalog, the policy of rules defined by the plugin is added to the metric's policy.
 	// If no rules are defined for a metric, we set the metric's policy to an empty ConfigPolicyNode.
@@ -686,6 +707,11 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 			wg.Add(1)
 
+			// merge global plugin config into the config for the metric
+			for _, mt := range pmt.metricTypes {
+				mt.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, ap.Name(), ap.Version()))
+			}
+
 			// get a metrics
 			go func(mt []core.Metric) {
 				mts, err := cli.CollectMetrics(mt)
@@ -753,7 +779,13 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 			return []error{errors.New("unable to cast client to PluginPublisherClient")}
 		}
 
-		errp := cli.Publish(contentType, content, config)
+		// merge global plugin config into the config for this request
+		cfg := p.Config.Plugins.getPluginConfigDataNode(core.PublisherPluginType, ap.Name(), ap.Version()).Table()
+		for k, v := range config {
+			cfg[k] = v
+		}
+
+		errp := cli.Publish(contentType, content, cfg)
 		if errp != nil {
 			return []error{errp}
 		}
@@ -789,7 +821,14 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 			return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
 		}
 
-		ct, c, errp := cli.Process(contentType, content, config)
+		// merge global plugin config into the config for this request
+		cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, ap.Name(), ap.Version()).Table()
+
+		for k, v := range config {
+			cfg[k] = v
+		}
+
+		ct, c, errp := cli.Process(contentType, content, cfg)
 		if errp != nil {
 			return "", nil, []error{errp}
 		}

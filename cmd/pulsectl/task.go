@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -429,4 +429,21 @@ func exportTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	fmt.Println(string(tb))
+}
+
+func enableTask(ctx *cli.Context) {
+	if len(ctx.Args()) != 1 {
+		fmt.Print("Incorrect usage\n")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+
+	id := ctx.Args().First()
+	r := pClient.EnableTask(id)
+	if r.Err != nil {
+		fmt.Printf("Error enabling task:\n%v\n", r.Err)
+		os.Exit(1)
+	}
+	fmt.Println("Task enabled:")
+	fmt.Printf("ID: %s\n", r.ID)
 }

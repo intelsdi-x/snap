@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -213,6 +213,22 @@ func (c *Client) RemoveTask(id string) *RemoveTasksResult {
 	}
 }
 
+func (c *Client) EnableTask(id string) *EnableTaskResult {
+	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/enable", id), ContentTypeJSON)
+	if err != nil {
+		return &EnableTaskResult{Err: err}
+	}
+
+	switch resp.Meta.Type {
+	case rbody.ScheduledTaskEnabledType:
+		return &EnableTaskResult{resp.Body.(*rbody.ScheduledTaskEnabled), nil}
+	case rbody.ErrorType:
+		return &EnableTaskResult{Err: resp.Body.(*rbody.Error)}
+	default:
+		return &EnableTaskResult{Err: ErrAPIResponseMetaType}
+	}
+}
+
 type CreateTaskResult struct {
 	*rbody.AddScheduledTask
 	Err error
@@ -251,5 +267,10 @@ type StopTasksResult struct {
 
 type RemoveTasksResult struct {
 	*rbody.ScheduledTaskRemoved
+	Err error
+}
+
+type EnableTaskResult struct {
+	*rbody.ScheduledTaskEnabled
 	Err error
 }

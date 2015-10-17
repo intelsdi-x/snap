@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ limitations under the License.
 package client
 
 import (
+	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/ctypes"
@@ -37,7 +38,7 @@ type PluginClient interface {
 type PluginCollectorClient interface {
 	PluginClient
 	CollectMetrics([]core.Metric) ([]core.Metric, error)
-	GetMetricTypes() ([]core.Metric, error)
+	GetMetricTypes(plugin.PluginConfigType) ([]core.Metric, error)
 }
 
 // PluginProcessorClient A client providing processor specific plugin method calls.

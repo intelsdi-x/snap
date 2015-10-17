@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import (
 )
 
 // the time limit for which a cache entry is valid.
-var CacheExpiration time.Duration
+var GlobalCacheExpiration time.Duration
 
 var (
 	metricCache = cache{
@@ -53,7 +53,8 @@ func (c *cache) get(key string) core.Metric {
 		cell *cachecell
 		ok   bool
 	)
-	if cell, ok = c.table[key]; ok && time.Since(cell.time) < CacheExpiration {
+
+	if cell, ok = c.table[key]; ok && time.Since(cell.time) < GlobalCacheExpiration {
 		cell.hits++
 		cacheLog.WithFields(log.Fields{
 			"namespace": key,

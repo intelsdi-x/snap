@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -90,5 +90,10 @@ func TestPlugin(t *testing.T) {
 		So(func() {
 			NewPluginMeta("test", 1, CollectorPluginType, a, b)
 		}, ShouldPanicWith, "Bad return content type [test] for [1] [wat]")
+	})
+	Convey("Plugin CacheTTL", t, func() {
+		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType, a, b)
+		mockPluginMeta.CacheTTL = time.Duration(100 * time.Millisecond)
+		So(mockPluginMeta.CacheTTL, ShouldEqual, time.Duration(100*time.Millisecond))
 	})
 }

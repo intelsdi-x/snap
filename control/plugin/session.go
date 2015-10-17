@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import (
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/control/plugin/encoding"
 	"github.com/intelsdi-x/pulse/control/plugin/encrypter"
+	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
@@ -294,8 +295,10 @@ func init() {
 	gob.Register(*(&ctypes.ConfigValueInt{}))
 	gob.Register(*(&ctypes.ConfigValueStr{}))
 	gob.Register(*(&ctypes.ConfigValueFloat{}))
+	gob.Register(*(&ctypes.ConfigValueBool{}))
 
 	gob.Register(cpolicy.NewPolicyNode())
+	gob.Register(&cdata.ConfigDataNode{})
 	gob.Register(&cpolicy.StringRule{})
 	gob.Register(&cpolicy.IntRule{})
 	gob.Register(&cpolicy.FloatRule{})

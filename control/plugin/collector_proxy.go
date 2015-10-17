@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Coporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,21 +22,14 @@ package plugin
 import (
 	"errors"
 	"fmt"
+
+	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
 // Arguments passed to CollectMetrics() for a Collector implementation
 type CollectMetricsArgs struct {
 	PluginMetricTypes []PluginMetricType
 }
-
-//func (c *CollectMetricsArgs) UnmarshalJSON(data []byte) error {
-//	pmt := &[]PluginMetricType{}
-//	if err := json.Unmarshal(data, pmt); err != nil {
-//		return err
-//	}
-//	c.PluginMetricTypes = *pmt
-//	return nil
-//}
 
 // Reply assigned by a Collector implementation using CollectMetrics()
 type CollectMetricsReply struct {
@@ -45,6 +38,7 @@ type CollectMetricsReply struct {
 
 // GetMetricTypesArgs args passed to GetMetricTypes
 type GetMetricTypesArgs struct {
+	PluginConfig PluginConfigType
 }
 
 // GetMetricTypesReply assigned by GetMetricTypes() implementation
@@ -64,7 +58,10 @@ func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error 
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()
 
-	mts, err := c.Plugin.GetMetricTypes()
+	dargs := &GetMetricTypesArgs{PluginConfig: PluginConfigType{ConfigDataNode: cdata.NewNode()}}
+	c.Session.Decode(args, dargs)
+
+	mts, err := c.Plugin.GetMetricTypes(dargs.PluginConfig)
 	if err != nil {
 		return errors.New(fmt.Sprintf("GetMetricTypes call error : %s", err.Error()))
 	}
