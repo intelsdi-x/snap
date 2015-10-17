@@ -10,6 +10,7 @@ ADD . /go/src/github.com/intelsdi-x/pulse
 RUN go get github.com/tools/godep && \
     go get golang.org/x/tools/cmd/goimports && \
     go get golang.org/x/tools/cmd/vet && \
-    go get golang.org/x/tools/cmd/cover
+    go get golang.org/x/tools/cmd/cover && \
+    go get github.com/smartystreets/goconvey
 RUN scripts/deps.sh
 RUN make

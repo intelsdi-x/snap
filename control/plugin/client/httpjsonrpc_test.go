@@ -91,9 +91,13 @@ func (m *mockCollectorProxy) CollectMetrics(args []byte, reply *[]byte) error {
 }
 
 func (m *mockCollectorProxy) GetMetricTypes(args []byte, reply *[]byte) error {
+	dargs := &plugin.GetMetricTypesArgs{}
+	m.e.Decode(args, &dargs)
+
 	pmts := []plugin.PluginMetricType{}
 	pmts = append(pmts, plugin.PluginMetricType{
 		Namespace_: []string{"foo", "bar"},
+		Config_:    dargs.PluginConfig.ConfigDataNode,
 	})
 	*reply, _ = m.e.Encode(plugin.GetMetricTypesReply{PluginMetricTypes: pmts})
 	return nil
@@ -195,11 +199,15 @@ func TestHTTPJSONRPC(t *testing.T) {
 		})
 
 		Convey("GetMetricTypes", func() {
-			mts, err := c.GetMetricTypes()
+			cfg := plugin.NewPluginConfigType()
+			cfg.AddItem("test", ctypes.ConfigValueBool{Value: true})
+			mts, err := c.GetMetricTypes(cfg)
 			So(err, ShouldBeNil)
 			So(mts, ShouldNotBeNil)
 			So(mts, ShouldHaveSameTypeAs, []core.Metric{})
 			So(len(mts), ShouldBeGreaterThan, 0)
+			log.Errorf("!asdf %v", mts[0].Config())
+			So(len(mts[0].Config().Table()), ShouldBeGreaterThan, 0)
 		})
 
 		Convey("CollectMetrics provided a valid config", func() {

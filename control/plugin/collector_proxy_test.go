@@ -40,7 +40,7 @@ var mockPluginMetricType []PluginMetricType = []PluginMetricType{
 	*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", 2),
 }
 
-func (p *mockPlugin) GetMetricTypes() ([]PluginMetricType, error) {
+func (p *mockPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, error) {
 	return mockPluginMetricType, nil
 }
 
@@ -64,7 +64,7 @@ func (p *mockPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 type mockErrorPlugin struct {
 }
 
-func (p *mockErrorPlugin) GetMetricTypes() ([]PluginMetricType, error) {
+func (p *mockErrorPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, error) {
 	return nil, errors.New("Error in get Metric Type")
 }
 

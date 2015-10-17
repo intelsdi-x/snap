@@ -45,6 +45,47 @@ const (
 	// PulseProtoBuff = "pulse.pb" // TO BE IMPLEMENTED
 )
 
+type PluginConfigType struct {
+	*cdata.ConfigDataNode
+}
+
+func (p *PluginConfigType) UnmarshalJSON(data []byte) error {
+	cdn := cdata.NewNode()
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	if err := dec.Decode(cdn); err != nil {
+		return err
+	}
+	p.ConfigDataNode = cdn
+	return nil
+}
+
+func (p PluginConfigType) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+	if err := encoder.Encode(p.ConfigDataNode); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+func (p *PluginConfigType) GobDecode(data []byte) error {
+	cdn := cdata.NewNode()
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(cdn); err != nil {
+		return err
+	}
+	p.ConfigDataNode = cdn
+
+	return nil
+}
+
+func NewPluginConfigType() PluginConfigType {
+	return PluginConfigType{
+		ConfigDataNode: cdata.NewNode(),
+	}
+}
+
 // Represents a metric type. Only used within plugins and across plugin calls.
 // Converted to core.MetricType before being used within modules.
 type PluginMetricType struct {

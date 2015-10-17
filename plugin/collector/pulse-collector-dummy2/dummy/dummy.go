@@ -20,6 +20,7 @@ limitations under the License.
 package dummy
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -53,7 +54,7 @@ func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMe
 		log.Println("collecting", p)
 	}
 	rand.Seed(time.Now().UTC().UnixNano())
-	for i, _ := range mts {
+	for i := range mts {
 		data := randInt(65, 90)
 		mts[i].Data_ = data
 		mts[i].Source_, _ = os.Hostname()
@@ -63,10 +64,17 @@ func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMe
 }
 
 //GetMetricTypes returns metric types for testing
-func (f *Dummy) GetMetricTypes() ([]plugin.PluginMetricType, error) {
-	m1 := &plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}}
-	m2 := &plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "bar"}}
-	return []plugin.PluginMetricType{*m1, *m2}, nil
+func (f *Dummy) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetricType, error) {
+	mts := []plugin.PluginMetricType{}
+	if _, ok := cfg.Table()["test-fail"]; ok {
+		return mts, fmt.Errorf("testing")
+	}
+	if _, ok := cfg.Table()["test"]; ok {
+		mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "test"}})
+	}
+	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}})
+	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "bar"}})
+	return mts, nil
 }
 
 //GetConfigPolicy returns a ConfigPolicy for testing

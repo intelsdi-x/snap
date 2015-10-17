@@ -38,7 +38,7 @@ func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetricType, e
 	return []PluginMetricType{}, nil
 }
 
-func (c *MockPlugin) GetMetricTypes() ([]PluginMetricType, error) {
+func (c *MockPlugin) GetMetricTypes(_ PluginConfigType) ([]PluginMetricType, error) {
 	return []PluginMetricType{
 		PluginMetricType{Namespace_: []string{"foo", "bar"}},
 	}, nil

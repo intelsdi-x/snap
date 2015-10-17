@@ -26,6 +26,7 @@ import (
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
 const (
@@ -37,6 +38,9 @@ const (
 	Type = plugin.CollectorPluginType
 )
 
+// make sure that we actually satisify requierd interface
+var _ plugin.CollectorPlugin = (*Dummy)(nil)
+
 // Dummy collector implementation used for testing
 type Dummy struct {
 }
@@ -45,7 +49,12 @@ type Dummy struct {
 func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
 	metrics := make([]plugin.PluginMetricType, len(mts))
 	for i, p := range mts {
-		data := fmt.Sprintf("The dummy collected data! config data: user=%s password=%s", p.Config().Table()["name"], p.Config().Table()["name"])
+		var data string
+		if cv, ok := p.Config().Table()["test"]; ok {
+			data = fmt.Sprintf("The dummy collected data! config data: user=%s password=%s test=%v", p.Config().Table()["user"], p.Config().Table()["password"], cv.(ctypes.ConfigValueBool).Value)
+		} else {
+			data = fmt.Sprintf("The dummy collected data! config data: user=%s password=%s", p.Config().Table()["user"], p.Config().Table()["password"])
+		}
 		metrics[i] = plugin.PluginMetricType{
 			Namespace_: p.Namespace(),
 			Data_:      data,
@@ -57,10 +66,17 @@ func (f *Dummy) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMe
 }
 
 //GetMetricTypes returns metric types for testing
-func (f *Dummy) GetMetricTypes() ([]plugin.PluginMetricType, error) {
-	m1 := &plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}}
-	m2 := &plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "bar"}}
-	return []plugin.PluginMetricType{*m1, *m2}, nil
+func (f *Dummy) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetricType, error) {
+	mts := []plugin.PluginMetricType{}
+	if _, ok := cfg.Table()["test-fail"]; ok {
+		return mts, fmt.Errorf("missing on-load plugin config entry 'test'")
+	}
+	if _, ok := cfg.Table()["test"]; ok {
+		mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "test"}})
+	}
+	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "foo"}})
+	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "dummy", "bar"}})
+	return mts, nil
 }
 
 //GetConfigPolicy returns a ConfigPolicyTree for testing

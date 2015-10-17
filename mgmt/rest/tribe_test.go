@@ -488,7 +488,7 @@ func startTribes(count int) []int {
 	return mgtPorts
 }
 
-var nextPort uint64 = 51234
+var nextPort uint64 = 55234
 
 func getAvailablePort() int {
 	atomic.AddUint64(&nextPort, 1)

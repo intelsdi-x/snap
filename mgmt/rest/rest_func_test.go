@@ -33,14 +33,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/pborman/uuid"
 
 	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	"github.com/intelsdi-x/pulse/mgmt/rest/request"
 	"github.com/intelsdi-x/pulse/scheduler"
@@ -50,7 +51,7 @@ import (
 
 var (
 	// Switching this turns on logging for all the REST API calls
-	LOG_LEVEL = log.FatalLevel
+	LOG_LEVEL = log.WarnLevel
 
 	PULSE_PATH         = os.Getenv("PULSE_PATH")
 	DUMMY_PLUGIN_PATH1 = PULSE_PATH + "/plugin/pulse-collector-dummy1"
@@ -377,19 +378,93 @@ func fetchMetricsWithVersion(port int, ns string, ver int) *rbody.APIResponse {
 	return getAPIResponse(resp)
 }
 
+func getPluginConfigItem(port int, typ *core.PluginType, name, ver string) *rbody.APIResponse {
+	var uri string
+	if typ != nil {
+		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%d/%s/%s/config", port, *typ, name, ver)
+	} else {
+		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, "", name, ver)
+	}
+	resp, err := http.Get(uri)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return getAPIResponse(resp)
+}
+
+func setPluginConfigItem(port int, typ *core.PluginType, name, ver string, cdn *cdata.ConfigDataNode) *rbody.APIResponse {
+	var uri string
+	if typ != nil {
+		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%d/%s/%s/config", port, *typ, name, ver)
+	} else {
+		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, "", name, ver)
+	}
+
+	client := &http.Client{}
+	b, err := json.Marshal(cdn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req, err := http.NewRequest("PUT", uri, bytes.NewReader(b))
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return getAPIResponse(resp)
+}
+
+func deletePluginConfigItem(port int, typ *core.PluginType, name, ver string, fields []string) *rbody.APIResponse {
+	var uri string
+	if typ != nil {
+		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%d/%s/%s/config", port, *typ, name, ver)
+	} else {
+		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, "", name, ver)
+	}
+
+	client := &http.Client{}
+	b, err := json.Marshal(fields)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req, err := http.NewRequest("DELETE", uri, bytes.NewReader(b))
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
 // REST API instances that are started are killed when the tests end.
 // When we eventually have a REST API Stop command this can be killed.
-func startAPI(port int) *restAPIInstance {
+func startAPI(port int, opts ...interface{}) *restAPIInstance {
 	// Start a REST API to talk to
 	log.SetLevel(LOG_LEVEL)
 	r, _ := New(false, "", "")
-	c := control.New()
+	controlOpts := []control.ControlOpt{}
+	for _, opt := range opts {
+		switch t := opt.(type) {
+		case control.ControlOpt:
+			controlOpts = append(controlOpts, t)
+		}
+	}
+	c := control.New(controlOpts...)
 	c.Start()
 	s := scheduler.New()
 	s.SetMetricManager(c)
 	s.Start()
 	r.BindMetricManager(c)
 	r.BindTaskManager(s)
+	r.BindConfigManager(c.Config)
 	r.Start(":" + fmt.Sprint(port))
 	time.Sleep(time.Millisecond * 100)
 	return &restAPIInstance{
@@ -406,704 +481,107 @@ func TestPluginRestCalls(t *testing.T) {
 				// This test alone tests gzip. Saves on test time.
 				CompressedUpload = true
 				port := getPort()
-				startAPI(port) // Make this unique for each Convey hierarchy
-
-				// The second argument here is a string from the HTTP response body
-				// Useful to println if you want to see what the return looks like.
-				r := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
-				plr := r.Body.(*rbody.PluginsLoaded)
-
-				// We should have gotten out loaded plugin back
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginsLoadedType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugins loaded: dummy1(collector v1)")
-				So(len(plr.LoadedPlugins), ShouldEqual, 1)
-				So(plr.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(plr.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(plr.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-				// Should only be one in the list
-				r2 := getPluginList(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
-				plr2 := r2.Body.(*rbody.PluginList)
-
-				So(len(plr2.LoadedPlugins), ShouldEqual, 1)
-				So(plr2.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(plr2.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(plr2.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr2.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr2.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				CompressedUpload = false
-			})
-
-			Convey("load attempt to load same plugin", func() {
-				port := getPort()
 				startAPI(port)
+				pub := core.PublisherPluginType
+				col := core.CollectorPluginType
+				Convey("A global plugin config is added for all plugins", func() {
+					cdn := cdata.NewNode()
+					cdn.AddItem("password", ctypes.ConfigValueStr{"p@ssw0rd"})
+					r := setPluginConfigItem(port, nil, "", "", cdn)
+					So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
+					r1 := r.Body.(*rbody.SetPluginConfigItem)
+					So(r1.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
 
-				r := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
-				plr := r.Body.(*rbody.PluginsLoaded)
+					r2 := getPluginConfigItem(port, &col, "", "")
+					So(r2.Body, ShouldHaveSameTypeAs, &rbody.PluginConfigItem{})
+					r3 := r2.Body.(*rbody.PluginConfigItem)
+					So(len(r3.Table()), ShouldEqual, 1)
+					So(r3.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
 
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginsLoadedType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugins loaded: dummy1(collector v1)")
-				So(len(plr.LoadedPlugins), ShouldEqual, 1)
-				So(plr.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(plr.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(plr.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
+					Convey("A plugin config is added for all publishers", func() {
+						cdn := cdata.NewNode()
+						cdn.AddItem("user", ctypes.ConfigValueStr{"john"})
+						r := setPluginConfigItem(port, &pub, "", "", cdn)
+						So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
+						r1 := r.Body.(*rbody.SetPluginConfigItem)
+						So(r1.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
+						So(len(r1.Table()), ShouldEqual, 2)
 
-				r2 := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				So(r2.Meta.Code, ShouldEqual, 409)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.Error))
-				plr2 := r2.Body.(*rbody.Error)
+						Convey("A plugin config is added for all versions of a publisher", func() {
+							cdn := cdata.NewNode()
+							cdn.AddItem("path", ctypes.ConfigValueStr{"/usr/local/influxdb/bin"})
+							r := setPluginConfigItem(port, &pub, "influxdb", "", cdn)
+							So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
+							r1 := r.Body.(*rbody.SetPluginConfigItem)
+							So(r1.Table()["path"], ShouldResemble, ctypes.ConfigValueStr{Value: "/usr/local/influxdb/bin"})
+							So(len(r1.Table()), ShouldEqual, 3)
 
-				So(plr2.ResponseBodyType(), ShouldEqual, rbody.ErrorType)
-				So(plr2.ResponseBodyMessage(), ShouldEqual, "plugin is already loaded")
+							Convey("A plugin config is added for a specific version of a publisher", func() {
+								cdn := cdata.NewNode()
+								cdn.AddItem("rate", ctypes.ConfigValueFloat{.8})
+								r := setPluginConfigItem(port, &pub, "influxdb", "", cdn)
+								So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
+								r1 := r.Body.(*rbody.SetPluginConfigItem)
+								So(r1.Table()["rate"], ShouldResemble, ctypes.ConfigValueFloat{Value: .8})
+								So(len(r1.Table()), ShouldEqual, 4)
 
-				// Should only be one in the list
-				r3 := getPluginList(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
-				plr3 := r3.Body.(*rbody.PluginList)
+								Convey("A global plugin config field is deleted", func() {
+									r := deletePluginConfigItem(port, nil, "", "", []string{"password"})
+									So(r.Body, ShouldHaveSameTypeAs, &rbody.DeletePluginConfigItem{})
+									r1 := r.Body.(*rbody.DeletePluginConfigItem)
+									So(len(r1.Table()), ShouldEqual, 0)
 
-				So(len(plr3.LoadedPlugins), ShouldEqual, 1)
-				So(plr3.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(plr3.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(plr3.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr3.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr3.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-			})
-
-			Convey("load two plugins", func() {
-				port := getPort()
-				startAPI(port)
-
-				r := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
-				plr := r.Body.(*rbody.PluginsLoaded)
-
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginsLoadedType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugins loaded: dummy1(collector v1)")
-				So(len(plr.LoadedPlugins), ShouldEqual, 1)
-				So(plr.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(plr.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(plr.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-				r2 := uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
-				plr2 := r2.Body.(*rbody.PluginsLoaded)
-
-				So(plr2.ResponseBodyType(), ShouldEqual, rbody.PluginsLoadedType)
-				So(plr2.ResponseBodyMessage(), ShouldEqual, "Plugins loaded: dummy2(collector v2)")
-				So(len(plr2.LoadedPlugins), ShouldEqual, 1)
-				So(plr2.LoadedPlugins[0].Name, ShouldEqual, "dummy2")
-				So(plr2.LoadedPlugins[0].Version, ShouldEqual, 2)
-				So(plr2.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr2.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr2.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-				// Should be two in the list
-				r3 := getPluginList(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
-				plr3 := r3.Body.(*rbody.PluginList)
-
-				So(len(plr3.LoadedPlugins), ShouldEqual, 2)
-				So(plr3.LoadedPlugins[0].Name, ShouldContainSubstring, "dummy")
-				So(plr3.LoadedPlugins[0].Version, ShouldBeIn, []int{1, 2})
-				So(plr3.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr3.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr3.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				if plr3.LoadedPlugins[0].Name == "dummy1" {
-					So(plr3.LoadedPlugins[1].Name, ShouldEqual, "dummy2")
-					So(plr3.LoadedPlugins[1].Version, ShouldEqual, 2)
-				} else {
-					So(plr3.LoadedPlugins[1].Name, ShouldEqual, "dummy1")
-					So(plr3.LoadedPlugins[1].Version, ShouldEqual, 1)
-				}
-				So(plr3.LoadedPlugins[1].Status, ShouldEqual, "loaded")
-				So(plr3.LoadedPlugins[1].Type, ShouldEqual, "collector")
-				So(plr3.LoadedPlugins[1].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-			})
-		})
-
-		Convey("Unload Plugin - DELETE - /v1/plugins/:name/:version", func() {
-			Convey("error in unload of unknown plugin", func() {
-				port := getPort()
-				startAPI(port)
-
-				r := unloadPlugin(port, "collector", "dummy1", 1)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.Error))
-				plr := r.Body.(*rbody.Error)
-
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.ErrorType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "plugin not found")
-			})
-
-			Convey("unload single plugin", func() {
-				port := getPort()
-				startAPI(port)
-				// Load one
-				r1 := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
-
-				// Unload it now
-				r := unloadPlugin(port, "collector", "dummy1", 1)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
-				plr := r.Body.(*rbody.PluginUnloaded)
-
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginUnloadedType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin successfuly unloaded (dummy1v1)")
-				So(plr.Name, ShouldEqual, "dummy1")
-				So(plr.Version, ShouldEqual, 1)
-				So(plr.Type, ShouldEqual, "collector")
-
-				// Plugin should NOT be in the list
-				r2 := getPluginList(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
-				plr2 := r2.Body.(*rbody.PluginList)
-
-				So(len(plr2.LoadedPlugins), ShouldEqual, 0)
-			})
-
-			Convey("unload one of two plugins", func() {
-				port := getPort()
-				startAPI(port)
-				// Load first
-				r1 := uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
-				// Load second
-				r2 := uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.PluginsLoaded))
-
-				// Unload second
-				r := unloadPlugin(port, "collector", "dummy2", 2)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
-				plr := r.Body.(*rbody.PluginUnloaded)
-
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginUnloadedType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin successfuly unloaded (dummy2v2)")
-				So(plr.Name, ShouldEqual, "dummy2")
-				So(plr.Version, ShouldEqual, 2)
-				So(plr.Type, ShouldEqual, "collector")
-
-				r = getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
-				plr2 := r.Body.(*rbody.PluginList)
-
-				So(len(plr2.LoadedPlugins), ShouldEqual, 1)
-				So(plr2.LoadedPlugins[0].Name, ShouldNotEqual, "dummy2")
-				So(plr2.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(plr2.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr2.LoadedPlugins[0].Type, ShouldEqual, "collector")
-			})
-		})
-
-		Convey("Plugin List - GET - /v1/plugins", func() {
-			Convey("no plugins", func() {
-				port := getPort()
-				startAPI(port)
-
-				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
-				plr := r.Body.(*rbody.PluginList)
-
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
-				So(len(plr.LoadedPlugins), ShouldEqual, 0)
-				So(len(plr.AvailablePlugins), ShouldEqual, 0)
-			})
-
-			Convey("one plugin in list", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-
-				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
-				plr := r.Body.(*rbody.PluginList)
-
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
-				So(len(plr.LoadedPlugins), ShouldEqual, 1)
-				So(len(plr.AvailablePlugins), ShouldEqual, 0)
-				So(plr.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(plr.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(plr.LoadedPlugins[0].Status, ShouldEqual, "loaded")
-				So(plr.LoadedPlugins[0].Type, ShouldEqual, "collector")
-				So(plr.LoadedPlugins[0].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-			})
-
-			Convey("multiple plugins in list", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-
-				r := getPluginList(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.PluginList))
-				plr := r.Body.(*rbody.PluginList)
-
-				So(plr.ResponseBodyType(), ShouldEqual, rbody.PluginListType)
-				So(plr.ResponseBodyMessage(), ShouldEqual, "Plugin list returned")
-				So(len(plr.LoadedPlugins), ShouldEqual, 2)
-				So(len(plr.AvailablePlugins), ShouldEqual, 0)
-				var (
-					x, y int
-				)
-				if plr.LoadedPlugins[0].Name == "dummy1" {
-					y = 1
-				} else {
-					x = 1
-				}
-				So(plr.LoadedPlugins[x].Name, ShouldEqual, "dummy1")
-				So(plr.LoadedPlugins[x].Version, ShouldEqual, 1)
-				So(plr.LoadedPlugins[x].Status, ShouldEqual, "loaded")
-				So(plr.LoadedPlugins[x].Type, ShouldEqual, "collector")
-				So(plr.LoadedPlugins[x].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				//
-				So(plr.LoadedPlugins[y].Name, ShouldEqual, "dummy2")
-				So(plr.LoadedPlugins[y].Version, ShouldEqual, 2)
-				So(plr.LoadedPlugins[y].Status, ShouldEqual, "loaded")
-				So(plr.LoadedPlugins[y].Type, ShouldEqual, "collector")
-				So(plr.LoadedPlugins[y].LoadedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-			})
-		})
-
-		Convey("Metric Catalog - GET - /v1/metrics", func() {
-			Convey("empty catalog", func() {
-				port := getPort()
-				startAPI(port)
-
-				r := getMetricCatalog(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-				plr := r.Body.(*rbody.MetricsReturned)
-
-				So(len(*plr), ShouldEqual, 0)
-			})
-
-			Convey("plugin metrics show up in the catalog", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				r := getMetricCatalog(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-				plr := r.Body.(*rbody.MetricsReturned)
-
-				So(len(*plr), ShouldEqual, 2)
-				So((*plr)[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So((*plr)[0].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr)[1].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So((*plr)[1].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-			})
-
-			Convey("newer plugin upgrades the metrics", func() {
-				port := getPort()
-				startAPI(port)
-
-				// upload v1
-				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				r := getMetricCatalog(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-				plr := r.Body.(*rbody.MetricsReturned)
-
-				So(len(*plr), ShouldEqual, 2)
-				So((*plr)[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So((*plr)[0].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr)[1].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So((*plr)[1].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-				// upload v2
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				r2 := getMetricCatalog(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-				plr2 := r2.Body.(*rbody.MetricsReturned)
-
-				So(len(*plr2), ShouldEqual, 4)
-				So((*plr2)[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So((*plr2)[0].Version, ShouldEqual, 1)
-				So((*plr2)[0].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr2)[1].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So((*plr2)[1].Version, ShouldEqual, 2)
-				So((*plr2)[1].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr2)[2].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So((*plr2)[2].Version, ShouldEqual, 1)
-				So((*plr2)[2].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr2)[3].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So((*plr2)[3].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr2)[3].Version, ShouldEqual, 2)
+									r2 := setPluginConfigItem(port, &pub, "influxdb", "", cdn)
+									So(r2.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
+									r3 := r2.Body.(*rbody.SetPluginConfigItem)
+									So(len(r3.Table()), ShouldEqual, 3)
+								})
+							})
+						})
+					})
+				})
 
 			})
-
-			Convey("removing a newer plugin downgrades the metrics", func() {
+			Convey("Plugin config is set at startup", func() {
 				port := getPort()
-				startAPI(port)
+				cfg := control.NewConfig()
+				b, err := ioutil.ReadFile("../../examples/configs/pulse-config-sample.json")
+				So(err, ShouldBeNil)
+				json.Unmarshal(b, cfg)
+				startAPI(port, control.OptSetConfig(cfg))
+				col := core.CollectorPluginType
 
-				// upload v1
-				uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-				r := getMetricCatalog(port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-				plr := r.Body.(*rbody.MetricsReturned)
-
-				So(len(*plr), ShouldEqual, 2)
-				So((*plr)[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So((*plr)[0].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr)[1].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So((*plr)[1].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-				// upload v2
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				r2 := getMetricCatalog(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-				plr2 := r2.Body.(*rbody.MetricsReturned)
-
-				So(len(*plr2), ShouldEqual, 4)
-				So((*plr2)[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So((*plr2)[0].Version, ShouldEqual, 1)
-				So((*plr2)[0].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr2)[1].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So((*plr2)[1].Version, ShouldEqual, 2)
-				So((*plr2)[1].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr2)[2].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So((*plr2)[2].Version, ShouldEqual, 1)
-				So((*plr2)[2].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr2)[3].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So((*plr2)[3].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr2)[3].Version, ShouldEqual, 2)
-
-				// remove v2
-				unloadPlugin(port, "collector", "dummy2", 2)
-				r3 := getMetricCatalog(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-				plr3 := r3.Body.(*rbody.MetricsReturned)
-
-				So(len(*plr3), ShouldEqual, 2)
-				So((*plr3)[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So((*plr3)[0].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So((*plr3)[1].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So((*plr3)[1].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-			})
-		})
-		Convey("metrics accessible via tree-like lookup", func() {
-			port := getPort()
-			startAPI(port)
-
-			uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-			r := fetchMetrics(port, "/intel/dummy/*")
-			So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-			plr := r.Body.(*rbody.MetricsReturned)
-
-			So(len(*plr), ShouldEqual, 2)
-			So((*plr)[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-			So((*plr)[0].Version, ShouldEqual, 1)
-			So((*plr)[0].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-			So((*plr)[1].Namespace, ShouldEqual, "/intel/dummy/foo")
-			So((*plr)[1].Version, ShouldEqual, 1)
-			So((*plr)[1].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-		})
-
-		Convey("metrics with version accessible via tree-like lookup", func() {
-			port := getPort()
-			startAPI(port)
-
-			uploadPlugin(DUMMY_PLUGIN_PATH1, port)
-			uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-			r := fetchMetricsWithVersion(port, "/intel/dummy/*", 2)
-			So(r.Body, ShouldHaveSameTypeAs, new(rbody.MetricsReturned))
-			plr := r.Body.(*rbody.MetricsReturned)
-
-			So(len(*plr), ShouldEqual, 2)
-			So((*plr)[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-			So((*plr)[0].Version, ShouldEqual, 2)
-			So((*plr)[0].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-			So((*plr)[1].Namespace, ShouldEqual, "/intel/dummy/foo")
-			So((*plr)[1].Version, ShouldEqual, 2)
-			So((*plr)[1].LastAdvertisedTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-		})
-
-		Convey("Create Task - POST - /v1/tasks", func() {
-			Convey("creating task with missing metric errors", func() {
-				port := getPort()
-				startAPI(port)
-
-				r := createTask("1.json", "foo", "1s", true, port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.Error))
-				plr := r.Body.(*rbody.Error)
-				So(plr.ErrorMessage, ShouldContainSubstring, "Metric not found: /intel/dummy/foo")
-			})
-
-			Convey("create task works when plugins are loaded", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-				r := createTask("1.json", "foo", "1s", true, port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-				plr := r.Body.(*rbody.AddScheduledTask)
-				So(plr.CreationTimestamp, ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				So(plr.Name, ShouldEqual, "foo")
-				So(plr.HitCount, ShouldEqual, 0)
-				So(plr.FailedCount, ShouldEqual, 0)
-				So(plr.MissCount, ShouldEqual, 0)
-				So(plr.State, ShouldEqual, "Stopped")
-				So(plr.Deadline, ShouldEqual, "5s")
-			})
-
-		})
-
-		Convey("Get Tasks - GET - /v1/tasks", func() {
-			Convey("get tasks after single task added", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-				r := createTask("1.json", "bar", "1s", true, port)
-				So(r.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-
-				r2 := getTasks(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
-				plr2 := r2.Body.(*rbody.ScheduledTaskListReturned)
-				So(len(plr2.ScheduledTasks), ShouldEqual, 1)
-				So(plr2.ScheduledTasks[0].Name, ShouldEqual, "bar")
-			})
-
-			Convey("get tasks after multiple tasks added", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-
-				r1 := createTask("1.json", "alpha", "1s", true, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-
-				r2 := createTask("1.json", "beta", "1s", true, port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-
-				r3 := getTasks(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
-				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
-				So(len(plr3.ScheduledTasks), ShouldEqual, 2)
-				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "alpha")
-				So(plr3.ScheduledTasks[1].Name, ShouldEqual, "beta")
-			})
-		})
-
-		Convey("Get Task By ID - GET - /v1/tasks/:id", func() {
-			Convey("get task after task added", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-				r1 := createTask("1.json", "foo", "3s", true, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-				t1 := r1.Body.(*rbody.AddScheduledTask)
-				r2 := getTask(t1.ID, port)
-				t2 := r2.Body.(*rbody.ScheduledTaskReturned)
-				So(t2.AddScheduledTask.Name, ShouldEqual, "foo")
-			})
-		})
-
-		Convey("Start Task - PUT - /v1/tasks/:id/start", func() {
-			Convey("starts after being created", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-
-				r1 := createTask("1.json", "xenu", "1s", true, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-				plr1 := r1.Body.(*rbody.AddScheduledTask)
-
-				id := plr1.ID
-
-				r2 := startTask(id, port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStarted))
-				plr2 := r2.Body.(*rbody.ScheduledTaskStarted)
-				So(plr2.ID, ShouldEqual, id)
-
-				r3 := getTasks(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
-				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
-				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
-				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "xenu")
-				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Running")
-
-				// cleanup for test perf reasons
-				removeTask(id, port)
-			})
-			Convey("starts when created", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-
-				r1 := createTask("1.json", "xenu", "1s", false, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-				plr1 := r1.Body.(*rbody.AddScheduledTask)
-
-				id := plr1.ID
-
-				r3 := getTasks(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
-				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
-				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
-				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "xenu")
-				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Running")
-
-				// cleanup for test perf reasons
-				removeTask(id, port)
-			})
-		})
-
-		Convey("Stop Task - PUT - /v1/tasks/:id/stop", func() {
-			Convey("stops after being started", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-
-				r1 := createTask("1.json", "yeti", "1s", true, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-				plr1 := r1.Body.(*rbody.AddScheduledTask)
-
-				id := plr1.ID
-
-				r2 := startTask(id, port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStarted))
-				plr2 := r2.Body.(*rbody.ScheduledTaskStarted)
-				So(plr2.ID, ShouldEqual, id)
-
-				r3 := getTasks(port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
-				plr3 := r3.Body.(*rbody.ScheduledTaskListReturned)
-				So(len(plr3.ScheduledTasks), ShouldEqual, 1)
-				So(plr3.ScheduledTasks[0].Name, ShouldEqual, "yeti")
-				So(plr3.ScheduledTasks[0].State, ShouldEqual, "Running")
-
-				r4 := stopTask(id, port)
-				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStopped))
-				plr4 := r4.Body.(*rbody.ScheduledTaskStopped)
-				So(plr4.ID, ShouldEqual, id)
-
-				time.Sleep(1 * time.Second)
-
-				r5 := getTasks(port)
-				So(r5.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
-				plr5 := r5.Body.(*rbody.ScheduledTaskListReturned)
-				So(len(plr5.ScheduledTasks), ShouldEqual, 1)
-				So(plr5.ScheduledTasks[0].Name, ShouldEqual, "yeti")
-				So(plr5.ScheduledTasks[0].State, ShouldEqual, "Stopped")
-			})
-		})
-
-		Convey("Remove Task - DELETE - /v1/tasks/:id", func() {
-			Convey("error on trying to remove unknown task", func() {
-				port := getPort()
-				startAPI(port)
-
-				uuid := uuid.New()
-				r1 := removeTask(uuid, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.Error))
-				plr1 := r1.Body.(*rbody.Error)
-				So(plr1.ErrorMessage, ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
-			})
-			Convey("removes a task", func() {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-
-				r1 := createTask("1.json", "yeti", "1s", true, port)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-				plr1 := r1.Body.(*rbody.AddScheduledTask)
-
-				id := plr1.ID
-
-				r2 := getTasks(port)
-				So(r2.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
-				plr2 := r2.Body.(*rbody.ScheduledTaskListReturned)
-				So(len(plr2.ScheduledTasks), ShouldEqual, 1)
-				So(plr2.ScheduledTasks[0].Name, ShouldEqual, "yeti")
-				So(plr2.ScheduledTasks[0].State, ShouldEqual, "Stopped")
-
-				r3 := removeTask(id, port)
-				So(r3.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskRemoved))
-				plr3 := r3.Body.(*rbody.ScheduledTaskRemoved)
-				So(plr3.ID, ShouldEqual, id)
-
-				r4 := getTasks(port)
-				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskListReturned))
-				plr4 := r4.Body.(*rbody.ScheduledTaskListReturned)
-				So(len(plr4.ScheduledTasks), ShouldEqual, 0)
-			})
-		})
-		Convey("Watch task - get - /v1/tasks/:id/watch", func() {
-			Convey("---", func(c C) {
-				port := getPort()
-				startAPI(port)
-
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
-
-				r1 := createTask("1.json", "xenu", "500ms", true, port)
-				So(r1.Meta.Code, ShouldEqual, 201)
-				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-				plr1 := r1.Body.(*rbody.AddScheduledTask)
-				id := plr1.ID
-
-				// Change buffer window to 10ms (do not do this IRL)
-				StreamingBufferWindow = 0.01
-				r := watchTask(id, port)
-				time.Sleep(time.Millisecond * 100)
-				startTask(id, port)
-				type ea struct {
-					events []string
-					sync.Mutex
-				}
-				a := new(ea)
-				wait := make(chan struct{})
-				go func() {
-					for {
-						select {
-						case e := <-r.eventChan:
-							a.Lock()
-							a.events = append(a.events, e)
-							if len(a.events) == 10 {
-								r.close()
-							}
-							a.Unlock()
-						case <-r.doneChan:
-							close(wait)
-							return
-						}
-					}
-				}()
-				<-wait
-				stopTask(id, port)
-				a.Lock()
-				So(len(a.events), ShouldEqual, 10)
-				a.Unlock()
-				So(a.events[0], ShouldEqual, "task-started")
-				for x := 1; x <= 9; x++ {
-					So(a.events[x], ShouldEqual, "metric-event")
-				}
+				Convey("Gets the collector config by name and version", func() {
+					r := getPluginConfigItem(port, &col, "pcm", "1")
+					So(r.Body, ShouldHaveSameTypeAs, &rbody.PluginConfigItem{})
+					r1 := r.Body.(*rbody.PluginConfigItem)
+					So(r1.Table()["path"], ShouldResemble, ctypes.ConfigValueStr{Value: "/usr/local/pcm/bin"})
+					So(r1.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
+					So(len(r1.Table()), ShouldEqual, 6)
+				})
+				Convey("Gets the config for a collector by name", func() {
+					r := getPluginConfigItem(port, &col, "pcm", "")
+					So(r.Body, ShouldHaveSameTypeAs, &rbody.PluginConfigItem{})
+					r1 := r.Body.(*rbody.PluginConfigItem)
+					So(r1.Table()["path"], ShouldResemble, ctypes.ConfigValueStr{Value: "/usr/local/pcm/bin"})
+					So(r1.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
+					So(len(r1.Table()), ShouldEqual, 3)
+				})
+				Convey("Gets the config for all collectors", func() {
+					r := getPluginConfigItem(port, &col, "", "")
+					So(r.Body, ShouldHaveSameTypeAs, &rbody.PluginConfigItem{})
+					r1 := r.Body.(*rbody.PluginConfigItem)
+					So(r1.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
+					So(r1.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
+					So(len(r1.Table()), ShouldEqual, 2)
+				})
+				Convey("Gets the config for all plugins", func() {
+					r := getPluginConfigItem(port, nil, "", "")
+					So(r.Body, ShouldHaveSameTypeAs, &rbody.PluginConfigItem{})
+					r1 := r.Body.(*rbody.PluginConfigItem)
+					So(r1.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
+					So(len(r1.Table()), ShouldEqual, 1)
+				})
 			})
 		})
 

@@ -29,14 +29,15 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
 var (
-	PluginName = "pulse-collector-dummy1"
+	PluginName = "pulse-collector-dummy2"
 	PulsePath  = os.Getenv("PULSE_PATH")
 	PluginPath = path.Join(PulsePath, "plugin", PluginName)
 
-	JSONRPC_PluginName = "pulse-collector-dummy2"
+	JSONRPC_PluginName = "pulse-collector-dummy1"
 	JSONRPC_PluginPath = path.Join(PulsePath, "plugin", JSONRPC_PluginName)
 )
 
@@ -89,6 +90,36 @@ func TestLoadPlugin(t *testing.T) {
 				So(len(p.all()), ShouldBeGreaterThan, 0)
 			})
 
+			Convey("with a plugin config a plugin loads successfully", func() {
+				cfg := NewConfig()
+				cfg.Plugins.Collector.Plugins["dummy2"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
+				p.SetMetricCatalog(newMetricCatalog())
+				lp, err := p.LoadPlugin(PluginPath, nil)
+
+				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
+				So(p.all(), ShouldNotBeEmpty)
+				So(err, ShouldBeNil)
+				So(len(p.all()), ShouldBeGreaterThan, 0)
+				mts, err := p.metricCatalog.Fetch([]string{})
+				So(err, ShouldBeNil)
+				So(len(mts), ShouldBeGreaterThan, 2)
+			})
+
+			Convey("for a plugin requiring a config an incomplete config will result in a load failure", func() {
+				cfg := NewConfig()
+				cfg.Plugins.Collector.Plugins["dummy2"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
+				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
+				p.SetMetricCatalog(newMetricCatalog())
+				lp, err := p.LoadPlugin(PluginPath, nil)
+
+				So(lp, ShouldBeNil)
+				So(p.all(), ShouldBeEmpty)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, "testing")
+				So(len(p.all()), ShouldEqual, 0)
+			})
+
 			Convey("loads json-rpc plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
@@ -103,7 +134,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin with cache TTL set", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := p.LoadPlugin(PluginPath, nil)
+				lp, err := p.LoadPlugin(JSONRPC_PluginPath, nil)
 
 				So(err, ShouldBeNil)
 				So(lp.Meta.CacheTTL, ShouldNotBeNil)
@@ -136,7 +167,7 @@ func TestUnloadPlugin(t *testing.T) {
 
 					numPluginsLoaded := len(p.all())
 					So(numPluginsLoaded, ShouldEqual, 1)
-					lp, _ := p.get("collector:dummy1:1")
+					lp, _ := p.get("collector:dummy2:2")
 					_, err = p.UnloadPlugin(lp)
 
 					So(err, ShouldBeNil)
@@ -149,7 +180,7 @@ func TestUnloadPlugin(t *testing.T) {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
 					lp, err := p.LoadPlugin(PluginPath, nil)
-					glp, err2 := p.get("collector:dummy1:1")
+					glp, err2 := p.get("collector:dummy2:2")
 					So(err2, ShouldBeNil)
 					glp.State = DetectedState
 					_, err = p.UnloadPlugin(lp)
@@ -163,7 +194,7 @@ func TestUnloadPlugin(t *testing.T) {
 					p.SetMetricCatalog(newMetricCatalog())
 					_, err := p.LoadPlugin(PluginPath, nil)
 
-					lp, err2 := p.get("collector:dummy1:1")
+					lp, err2 := p.get("collector:dummy2:2")
 					So(err2, ShouldBeNil)
 					_, err = p.UnloadPlugin(lp)
 
