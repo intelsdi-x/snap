@@ -58,6 +58,6 @@ func TestValidateSignature(t *testing.T) {
 
 	Convey("Invalid signature file", t, func() {
 		err := s.ValidateSignature(keyringFile, signedFile, "")
-		So(err.Error(), ShouldResemble, "Signature file (.asc) not found")
+		So(err.Error(), ShouldResemble, "Signature file (.asc) not found. Did you use the -a flag?")
 	})
 }
