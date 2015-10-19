@@ -236,7 +236,7 @@ func action(ctx *cli.Context) {
 					"error":   err.Error(),
 					"logpath": logPath,
 				}).Fatal("bad log path (must be a dir)")
-			os.Exit(0)
+			os.Exit(1)
 		}
 		if !f.IsDir() {
 			log.WithFields(
@@ -245,7 +245,7 @@ func action(ctx *cli.Context) {
 					"_module": "pulsed",
 					"logpath": logPath,
 				}).Fatal("bad log path (this is not a directory)")
-			os.Exit(0)
+			os.Exit(1)
 		}
 
 		file, err2 := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -257,6 +257,7 @@ func action(ctx *cli.Context) {
 					"error":   err2.Error(),
 					"logpath": logPath,
 				}).Fatal("bad log path")
+			os.Exit(1)
 		}
 		defer file.Close()
 		log.Info("setting log path to: ", logPath)
@@ -278,6 +279,7 @@ func action(ctx *cli.Context) {
 				"error":   err.Error(),
 				"path":    config,
 			}).Fatal("unable to read config")
+			os.Exit(1)
 		}
 		cfg := control.NewConfig()
 		err = json.Unmarshal(b, &cfg)
@@ -354,7 +356,7 @@ func action(ctx *cli.Context) {
 					"_module":     "pulsed",
 					"keyringFile": keyringFile,
 				}).Fatal("need keyring file when trust is on (--keyring-file or -k)")
-			os.Exit(0)
+			os.Exit(1)
 		}
 		f, err := os.Stat(keyringFile)
 		if err != nil {
@@ -365,7 +367,7 @@ func action(ctx *cli.Context) {
 					"error":       err.Error(),
 					"keyringFile": keyringFile,
 				}).Fatal("bad keyring file")
-			os.Exit(0)
+			os.Exit(1)
 		}
 		if f.IsDir() {
 			log.WithFields(
@@ -374,7 +376,7 @@ func action(ctx *cli.Context) {
 					"_module": "pulsed",
 					"logpath": keyringFile,
 				}).Fatal("bad keyring file (this is not a file)")
-			os.Exit(0)
+			os.Exit(1)
 		}
 		file, err := os.Open(keyringFile)
 		if err != nil {
@@ -385,7 +387,7 @@ func action(ctx *cli.Context) {
 					"error":       err.Error(),
 					"keyringFile": keyringFile,
 				}).Fatal("can't open keyring path")
-			os.Exit(0)
+			os.Exit(1)
 			defer file.Close()
 		}
 		log.Info("setting keyring file to: ", keyringFile)
@@ -407,7 +409,7 @@ func action(ctx *cli.Context) {
 						"_module":          "pulsed",
 						"autodiscoverpath": path,
 					}).Fatal(err)
-				os.Exit(0)
+				os.Exit(1)
 			}
 			for _, file := range files {
 				if file.IsDir() {
