@@ -444,7 +444,6 @@ func action(ctx *cli.Context) {
 
 	//API
 	if !disableAPI {
-		log.Info("Rest API enabled on port ", apiPort)
 		r, err := rest.New(restHttps, restCert, restKey)
 		if err != nil {
 			log.Fatal(err)
@@ -457,6 +456,8 @@ func action(ctx *cli.Context) {
 			r.BindTribeManager(tr)
 		}
 		r.Start(fmt.Sprintf(":%d", apiPort))
+		go monitorErrors(r.Err())
+		log.Info("Rest API is enabled")
 	} else {
 		log.Info("Rest API is disabled")
 	}
@@ -472,6 +473,15 @@ func action(ctx *cli.Context) {
 	log.SetLevel(getLevel(logLevel))
 
 	select {} //run forever and ever
+}
+
+func monitorErrors(ch <-chan error) {
+	// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
+	_, ok := <-ch
+	if !ok {
+		return
+	}
+	os.Exit(1)
 }
 
 // setMaxProcs configures runtime.GOMAXPROCS for pulsed. GOMAXPROCS can be set by using
