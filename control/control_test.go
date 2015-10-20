@@ -713,6 +713,25 @@ func TestMetricConfig(t *testing.T) {
 			So(metric, ShouldNotBeNil)
 		})
 	})
+	Convey("nil config provided by task", t, func() {
+		config := NewConfig()
+		c := New(OptSetConfig(config))
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+		c.Load(JSONRPC_PluginPath)
+		<-lpe.done
+		var cd *cdata.ConfigDataNode
+		m1 := MockMetricType{
+			namespace: []string{"intel", "dummy", "foo"},
+		}
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		metric, errs := c.validateMetricTypeSubscription(m1, cd)
+		Convey("So metric should be valid with config", func() {
+			So(errs, ShouldBeNil)
+			So(metric, ShouldNotBeNil)
+		})
+	})
 	Convey("required config provided by global plugin config", t, func() {
 		config := NewConfig()
 		c := New(OptSetConfig(config))
