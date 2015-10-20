@@ -28,7 +28,7 @@
                     "publish": [
                         {
                             "plugin_name": "influx",
-                            "plugin_version": 4,
+                            "plugin_version": 5,
                             "config": {
                                 "host": "INFLUXDB_IP",
                                 "port": 8086,
