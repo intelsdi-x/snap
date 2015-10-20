@@ -23,12 +23,10 @@
             "process": [
                 {
                     "plugin_name": "passthru",
-                    "plugin_version": 1,
                     "process": null,
                     "publish": [
                         {
-                            "plugin_name": "influx",
-                            "plugin_version": 5,
+                            "plugin_name": "influx",                            
                             "config": {
                                 "host": "INFLUXDB_IP",
                                 "port": 8086,
