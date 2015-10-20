@@ -370,6 +370,11 @@ func startTask(ctx *cli.Context) {
 	id := ctx.Args().First()
 	r := pClient.StartTask(id)
 	if r.Err != nil {
+		if strings.Contains(r.Err.Error(), "Task is already running.") {
+			fmt.Println("Task is already running")
+			fmt.Printf("ID: %s\n", id)
+			os.Exit(0)
+		}
 		fmt.Printf("Error starting task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
@@ -387,6 +392,11 @@ func stopTask(ctx *cli.Context) {
 	id := ctx.Args().First()
 	r := pClient.StopTask(id)
 	if r.Err != nil {
+		if strings.Contains(r.Err.Error(), "Task is already stopped.") {
+			fmt.Println("Task is already stopped")
+			fmt.Printf("ID: %s\n", id)
+			os.Exit(0)
+		}
 		fmt.Printf("Error stopping task:\n%v\n", r.Err)
 		os.Exit(1)
 	}
