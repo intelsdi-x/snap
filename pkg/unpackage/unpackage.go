@@ -147,6 +147,7 @@ func Untar(path string, reader *bufio.Reader) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("%v: %v\n%v", ErrCreatingFile, file, err)
 			}
+			defer w.Close()
 			_, err = io.Copy(w, tr)
 			if err != nil {
 				return nil, fmt.Errorf("%v: %v\n%v", ErrCopyingFile, file, err)
@@ -162,7 +163,6 @@ func Untar(path string, reader *bufio.Reader) ([]byte, error) {
 					return nil, fmt.Errorf("%v: %v\n%v", ErrReadManifest, file, err)
 				}
 			}
-			w.Close()
 		case tar.TypeDir:
 			//Create directory
 			fmt.Println("x", hdr.Name)
@@ -200,6 +200,7 @@ func Unzip(path string, f *os.File) (*bufio.Reader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v\n%v", ErrUnzip, path, err)
 	}
+	defer reader.Close()
 	return bufio.NewReader(reader), nil
 }
 

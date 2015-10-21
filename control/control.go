@@ -110,7 +110,7 @@ type catalogsMetrics interface {
 }
 
 type managesSigning interface {
-	ValidateSignature(keyringFile string, signedFile string, signatureFile string) perror.PulseError
+	ValidateSignature(keyringFile string, signedFile string, signatureFile string) error
 }
 
 type ControlOpt func(*pluginControl)
@@ -254,7 +254,7 @@ func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseErr
 		err := p.signingManager.ValidateSignature(p.keyringFile, path, signatureFile)
 		if err != nil {
 			if p.pluginTrust == 1 {
-				return nil, err
+				return nil, perror.New(err)
 			}
 			controlLogger.WithFields(f).Error(err)
 		} else {
@@ -262,9 +262,9 @@ func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseErr
 		}
 	}
 
-	path, _, e := unpackage.Unpackager(path)
-	if e != nil {
-		return nil, perror.New(e)
+	path, _, err := unpackage.Unpackager(path)
+	if err != nil {
+		return nil, perror.New(err)
 	}
 
 	controlLogger.WithFields(f).Info("plugin load called")
@@ -275,9 +275,9 @@ func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseErr
 		return nil, pe
 	}
 
-	pl, err := p.pluginManager.LoadPlugin(path, p.eventManager)
-	if err != nil {
-		return nil, err
+	pl, pe := p.pluginManager.LoadPlugin(path, p.eventManager)
+	if pe != nil {
+		return nil, pe
 	}
 	pl.Signed = signed
 
