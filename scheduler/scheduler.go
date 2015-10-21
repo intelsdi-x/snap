@@ -41,6 +41,8 @@ var (
 
 	ErrMetricManagerNotSet = errors.New("MetricManager is not set.")
 	ErrSchedulerNotStarted = errors.New("Scheduler is not started.")
+	ErrTaskAlreadyRunning  = errors.New("Task is already running.")
+	ErrTaskAlreadyStopped  = errors.New("Task is already stopped.")
 )
 
 type schedulerState int
@@ -261,6 +263,17 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 		}
 	}
 
+	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
+		s.logger.WithFields(log.Fields{
+			"_block":     "start-task",
+			"task-id":    t.ID(),
+			"task-state": t.State(),
+		}).Info("task is already running")
+		return []perror.PulseError{
+			perror.New(ErrTaskAlreadyRunning),
+		}
+	}
+
 	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
 	cps := returnCorePlugin(plugins)
 	errs := s.metricManager.SubscribeDeps(t.ID(), mts, cps)
@@ -291,6 +304,17 @@ func (s *scheduler) StopTask(id string) []perror.PulseError {
 		}).Warning("error on stopping of task")
 		return []perror.PulseError{
 			perror.New(err),
+		}
+	}
+
+	if t.state == core.TaskStopped {
+		s.logger.WithFields(log.Fields{
+			"_block":     "stop-task",
+			"task-id":    t.ID(),
+			"task-state": t.State(),
+		}).Info("task is already stopped")
+		return []perror.PulseError{
+			perror.New(ErrTaskAlreadyStopped),
 		}
 	}
 

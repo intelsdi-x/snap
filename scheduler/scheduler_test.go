@@ -258,7 +258,6 @@ func TestScheduler(t *testing.T) {
 
 		// 		// TODO NICK
 		Convey("create a task", func() {
-
 			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*5), w, false)
 			So(len(err.Errors()), ShouldEqual, 0)
 			So(tsk, ShouldNotBeNil)
@@ -278,6 +277,11 @@ func TestScheduler(t *testing.T) {
 				t, err := s.GetTask("1234")
 				So(err, ShouldNotBeNil)
 				So(t, ShouldBeNil)
+			})
+			Convey("stop a stopped task", func() {
+				err := s.StopTask(tsk.ID())
+				So(len(err), ShouldEqual, 1)
+				So(err[0].Error(), ShouldEqual, "Task is already stopped.")
 			})
 		})
 
