@@ -22,6 +22,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -61,9 +62,16 @@ func listMetrics(ctx *cli.Context) {
 	for _, mt := range mts.Catalog {
 		metsByVer[mt.Namespace] = append(metsByVer[mt.Namespace], strconv.Itoa(mt.Version))
 	}
+	//make list in alphabetical order
+	var key []string
+	for k := range metsByVer {
+		key = append(key, k)
+	}
+	sort.Strings(key)
+
 	printFields(w, false, 0, "NAMESPACE", "VERSIONS")
-	for ns, vers := range metsByVer {
-		printFields(w, false, 0, ns, strings.Join(vers, ","))
+	for _, ns := range key {
+		printFields(w, false, 0, ns, strings.Join(metsByVer[ns], ","))
 	}
 	w.Flush()
 	return
