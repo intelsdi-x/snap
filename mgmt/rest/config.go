@@ -38,11 +38,13 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 		respond(200, item, w)
 		return
 	}
-	var ityp int
-	if ityp, err = strconv.Atoi(styp); err != nil {
+
+	typ, err := getPluginType(styp)
+	if err != nil {
 		respond(400, rbody.FromError(err), w)
 		return
 	}
+
 	name := p.ByName("name")
 	sver := p.ByName("version")
 	var iver int
@@ -55,21 +57,23 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 		iver = -2
 	}
 
-	cdn := s.mc.GetPluginConfigDataNode(core.PluginType(ityp), name, iver)
+	cdn := s.mc.GetPluginConfigDataNode(typ, name, iver)
 	item := &rbody.PluginConfigItem{cdn}
 	respond(200, item, w)
 }
 
 func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
+	var typ core.PluginType
 	styp := p.ByName("type")
-	var ityp int
 	if styp != "" {
-		if ityp, err = strconv.Atoi(styp); err != nil {
+		typ, err = getPluginType(styp)
+		if err != nil {
 			respond(400, rbody.FromError(err), w)
 			return
 		}
 	}
+
 	name := p.ByName("name")
 	sver := p.ByName("version")
 	var iver int
@@ -93,7 +97,7 @@ func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, 
 	if styp == "" {
 		res = s.mc.DeletePluginConfigDataNodeFieldAll(src...)
 	} else {
-		res = s.mc.DeletePluginConfigDataNodeField(core.PluginType(ityp), name, iver, src...)
+		res = s.mc.DeletePluginConfigDataNodeField(typ, name, iver, src...)
 	}
 
 	item := &rbody.DeletePluginConfigItem{res}
@@ -102,14 +106,16 @@ func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, 
 
 func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
+	var typ core.PluginType
 	styp := p.ByName("type")
-	var ityp int
 	if styp != "" {
-		if ityp, err = strconv.Atoi(styp); err != nil {
+		typ, err = getPluginType(styp)
+		if err != nil {
 			respond(400, rbody.FromError(err), w)
 			return
 		}
 	}
+
 	name := p.ByName("name")
 	sver := p.ByName("version")
 	var iver int
@@ -133,9 +139,20 @@ func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 	if styp == "" {
 		res = s.mc.MergePluginConfigDataNodeAll(src)
 	} else {
-		res = s.mc.MergePluginConfigDataNode(core.PluginType(ityp), name, iver, src)
+		res = s.mc.MergePluginConfigDataNode(typ, name, iver, src)
 	}
 
 	item := &rbody.SetPluginConfigItem{res}
 	respond(200, item, w)
+}
+
+func getPluginType(t string) (core.PluginType, error) {
+	if ityp, err := strconv.Atoi(t); err == nil {
+		return core.PluginType(ityp), nil
+	}
+	ityp, err := core.ToPluginType(t)
+	if err != nil {
+		return core.PluginType(-1), err
+	}
+	return ityp, nil
 }
