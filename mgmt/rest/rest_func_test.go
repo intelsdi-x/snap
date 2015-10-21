@@ -393,13 +393,8 @@ func getPluginConfigItem(port int, typ *core.PluginType, name, ver string) *rbod
 	return getAPIResponse(resp)
 }
 
-func setPluginConfigItem(port int, typ *core.PluginType, name, ver string, cdn *cdata.ConfigDataNode) *rbody.APIResponse {
-	var uri string
-	if typ != nil {
-		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%d/%s/%s/config", port, *typ, name, ver)
-	} else {
-		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, "", name, ver)
-	}
+func setPluginConfigItem(port int, typ string, name, ver string, cdn *cdata.ConfigDataNode) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, typ, name, ver)
 
 	client := &http.Client{}
 	b, err := json.Marshal(cdn)
@@ -419,13 +414,8 @@ func setPluginConfigItem(port int, typ *core.PluginType, name, ver string, cdn *
 	return getAPIResponse(resp)
 }
 
-func deletePluginConfigItem(port int, typ *core.PluginType, name, ver string, fields []string) *rbody.APIResponse {
-	var uri string
-	if typ != nil {
-		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%d/%s/%s/config", port, *typ, name, ver)
-	} else {
-		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, "", name, ver)
-	}
+func deletePluginConfigItem(port int, typ string, name, ver string, fields []string) *rbody.APIResponse {
+	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, typ, name, ver)
 
 	client := &http.Client{}
 	b, err := json.Marshal(fields)
@@ -482,12 +472,11 @@ func TestPluginRestCalls(t *testing.T) {
 				CompressedUpload = true
 				port := getPort()
 				startAPI(port)
-				pub := core.PublisherPluginType
 				col := core.CollectorPluginType
 				Convey("A global plugin config is added for all plugins", func() {
 					cdn := cdata.NewNode()
 					cdn.AddItem("password", ctypes.ConfigValueStr{"p@ssw0rd"})
-					r := setPluginConfigItem(port, nil, "", "", cdn)
+					r := setPluginConfigItem(port, "", "", "", cdn)
 					So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 					r1 := r.Body.(*rbody.SetPluginConfigItem)
 					So(r1.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
@@ -501,7 +490,7 @@ func TestPluginRestCalls(t *testing.T) {
 					Convey("A plugin config is added for all publishers", func() {
 						cdn := cdata.NewNode()
 						cdn.AddItem("user", ctypes.ConfigValueStr{"john"})
-						r := setPluginConfigItem(port, &pub, "", "", cdn)
+						r := setPluginConfigItem(port, core.PublisherPluginType.String(), "", "", cdn)
 						So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 						r1 := r.Body.(*rbody.SetPluginConfigItem)
 						So(r1.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
@@ -510,7 +499,7 @@ func TestPluginRestCalls(t *testing.T) {
 						Convey("A plugin config is added for all versions of a publisher", func() {
 							cdn := cdata.NewNode()
 							cdn.AddItem("path", ctypes.ConfigValueStr{"/usr/local/influxdb/bin"})
-							r := setPluginConfigItem(port, &pub, "influxdb", "", cdn)
+							r := setPluginConfigItem(port, "2", "influxdb", "", cdn)
 							So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 							r1 := r.Body.(*rbody.SetPluginConfigItem)
 							So(r1.Table()["path"], ShouldResemble, ctypes.ConfigValueStr{Value: "/usr/local/influxdb/bin"})
@@ -519,19 +508,19 @@ func TestPluginRestCalls(t *testing.T) {
 							Convey("A plugin config is added for a specific version of a publisher", func() {
 								cdn := cdata.NewNode()
 								cdn.AddItem("rate", ctypes.ConfigValueFloat{.8})
-								r := setPluginConfigItem(port, &pub, "influxdb", "", cdn)
+								r := setPluginConfigItem(port, core.PublisherPluginType.String(), "influxdb", "", cdn)
 								So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 								r1 := r.Body.(*rbody.SetPluginConfigItem)
 								So(r1.Table()["rate"], ShouldResemble, ctypes.ConfigValueFloat{Value: .8})
 								So(len(r1.Table()), ShouldEqual, 4)
 
 								Convey("A global plugin config field is deleted", func() {
-									r := deletePluginConfigItem(port, nil, "", "", []string{"password"})
+									r := deletePluginConfigItem(port, "", "", "", []string{"password"})
 									So(r.Body, ShouldHaveSameTypeAs, &rbody.DeletePluginConfigItem{})
 									r1 := r.Body.(*rbody.DeletePluginConfigItem)
 									So(len(r1.Table()), ShouldEqual, 0)
 
-									r2 := setPluginConfigItem(port, &pub, "influxdb", "", cdn)
+									r2 := setPluginConfigItem(port, core.PublisherPluginType.String(), "influxdb", "", cdn)
 									So(r2.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 									r3 := r2.Body.(*rbody.SetPluginConfigItem)
 									So(len(r3.Table()), ShouldEqual, 3)
