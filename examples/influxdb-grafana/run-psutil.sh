@@ -28,11 +28,13 @@ command -v docker-machine >/dev/null 2>&1 || die "Error: docker-machine is requi
 command -v docker-compose >/dev/null 2>&1 || die "Error: docker-compose is required."
 command -v docker >/dev/null 2>&1 || die "Error: docker is required."
 command -v netcat >/dev/null 2>&1 || die "Error: netcat is required."
+file $PULSE_PATH/plugin/pulse-plugin-collector-psutil >/dev/null 2>&1 || die "Error: missing $PULSE_PATH/build/plugin/pulse-plugin-collector-psutil"
+file $PULSE_PATH/plugin/pulse-plugin-publisher-influxdb >/dev/null 2>&1 || die "Error: missing $PULSE_PATH/build/plugin/pulse-plugin-publisher-influxdb"
 
 
 
 #docker machine ip
-dm_ip=$(docker-machine ip $1) || die 
+dm_ip=$(docker-machine ip $1) || die
 echo "docker machine ip: ${dm_ip}"
 
 #start containers
@@ -41,13 +43,13 @@ docker-compose up -d
 echo -n "waiting for influxdb and grafana to start"
 
 # wait for influxdb to start up
-while ! curl --silent -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=SHOW DATABASES" 2>&1 > /dev/null ; do   
-  sleep 1 
+while ! curl --silent -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=SHOW DATABASES" 2>&1 > /dev/null ; do
+  sleep 1
   echo -n "."
 done
 echo ""
 
-#influxdb IP 
+#influxdb IP
 influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' influxdbgrafana_influxdb_1)
 echo "influxdb ip: ${influx_ip}"
 
@@ -86,7 +88,7 @@ curl --cookie "$COOKIEJAR" \
 echo ""
 
 echo -n "starting pulsed"
-$PULSE_PATH/bin/pulsed --log-level 1 --auto-discover $PULSE_PATH/plugin > /tmp/pulse.out 2>&1  &
+$PULSE_PATH/bin/pulsed --log-level 1 -t 0 --auto-discover $PULSE_PATH/plugin > /tmp/pulse.out 2>&1  &
 echo ""
 
 sleep 3
@@ -94,17 +96,13 @@ sleep 3
 echo -n "adding task "
 TASK="${TMPDIR}/pulse-task-$$.json"
 echo "$TASK"
-cat $PULSE_PATH/../examples/tasks/psutil-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK 
+cat $PULSE_PATH/../examples/tasks/psutil-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK
 $PULSE_PATH/bin/pulsectl task create -t $TASK
-
-echo "start task"
-$PULSE_PATH/bin/pulsectl task start 1
 
 echo ""
 echo "Grafana Dashboard => http://${dm_ip}:3000/dashboard/db/pulse-dashboard"
 echo "Influxdb UI       => http://${dm_ip}:8083"
 echo ""
-echo "Press enter to start viewing the pulse.log" 
-read 
+echo "Press enter to start viewing the pulse.log"
+read
 tail -f /tmp/pulse.out
-

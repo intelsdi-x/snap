@@ -62,16 +62,16 @@
               "alias": "load1",
               "function": "mean",
               "groupByTags": [],
-              "measurement": "psutil/load/load1",
-              "query": "SELECT mean(value) FROM \"psutil/load/load1\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
+              "measurement": "intel/psutil/load/load1",
+              "query": "SELECT mean(value) FROM \"intel/psutil/load/load1\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
               "tags": []
             },
             {
               "alias": "load5",
               "function": "mean",
               "groupByTags": [],
-              "measurement": "psutil/load/load5",
-              "query": "SELECT mean(value) FROM \"psutil/load/load5\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
+              "measurement": "intel/psutil/load/load5",
+              "query": "SELECT mean(value) FROM \"intel/psutil/load/load5\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
               "tags": [],
               "target": ""
             },
@@ -79,8 +79,8 @@
               "alias": "load15",
               "function": "mean",
               "groupByTags": [],
-              "measurement": "psutil/load/load15",
-              "query": "SELECT mean(value) FROM \"psutil/load/load15\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
+              "measurement": "intel/psutil/load/load15",
+              "query": "SELECT mean(value) FROM \"intel/psutil/load/load15\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
               "tags": [],
               "target": ""
             }
@@ -155,8 +155,8 @@
               "alias": "available",
               "function": "mean",
               "groupByTags": [],
-              "measurement": "psutil/vm/available",
-              "query": "SELECT mean(value) FROM \"psutil/vm/available\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
+              "measurement": "intel/psutil/vm/available",
+              "query": "SELECT mean(value) FROM \"intel/psutil/vm/available\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
               "tags": []
             }
           ],
@@ -221,8 +221,8 @@
               "alias": "used",
               "function": "mean",
               "groupByTags": [],
-              "measurement": "psutil/vm/used",
-              "query": "SELECT mean(value) FROM \"psutil/vm/used\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
+              "measurement": "intel/psutil/vm/used",
+              "query": "SELECT mean(value) FROM \"intel/psutil/vm/used\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc",
               "tags": []
             }
           ],
@@ -312,8 +312,8 @@
                   "func": "mean"
                 }
               ],
-              "measurement": "psutil/vm/free",
-              "query": "SELECT mean(value) FROM \"psutil/vm/free\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc"
+              "measurement": "intel/psutil/vm/free",
+              "query": "SELECT mean(value) FROM \"intel/psutil/vm/free\" WHERE $timeFilter GROUP BY time($interval) ORDER BY asc"
             }
           ],
           "aliasColors": {},

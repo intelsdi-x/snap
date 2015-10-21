@@ -6,13 +6,13 @@
     },
     "workflow": {
         "collect": {
-            "metrics": {                
-                "/psutil/load/load1": {},
-                "/psutil/load/load5": {},
-                "/psutil/load/load15": {},
-                "/psutil/vm/available": {},
-                "/psutil/vm/free": {},
-                "/psutil/vm/used": {}
+            "metrics": {
+                "/intel/psutil/load/load1": {},
+                "/intel/psutil/load/load5": {},
+                "/intel/psutil/load/load15": {},
+                "/intel/psutil/vm/available": {},
+                "/intel/psutil/vm/free": {},
+                "/intel/psutil/vm/used": {}
             },
             "config": {
                 "/intel/dummy": {
@@ -23,18 +23,16 @@
             "process": [
                 {
                     "plugin_name": "passthru",
-                    "plugin_version": 1,
                     "process": null,
                     "publish": [
                         {
-                            "plugin_name": "influx",
-                            "plugin_version": 1,
+                            "plugin_name": "influx",                            
                             "config": {
                                 "host": "INFLUXDB_IP",
                                 "port": 8086,
                                 "database": "pulse",
                                 "user": "admin",
-                                "password": "admin"                            
+                                "password": "admin"
                             }
                         }
                     ],

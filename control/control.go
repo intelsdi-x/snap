@@ -422,12 +422,17 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 
 	m.config = cd
 
-	// merge global plugin config
 	typ, perr := core.ToPluginType(m.Plugin.TypeName())
 	if perr != nil {
 		return nil, []perror.PulseError{perror.New(err)}
 	}
-	m.config.Merge(p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version()))
+
+	// merge global plugin config
+	if m.config != nil {
+		m.config.Merge(p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version()))
+	} else {
+		m.config = p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version())
+	}
 
 	// When a metric is added to the MetricCatalog, the policy of rules defined by the plugin is added to the metric's policy.
 	// If no rules are defined for a metric, we set the metric's policy to an empty ConfigPolicyNode.
@@ -709,7 +714,9 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 			// merge global plugin config into the config for the metric
 			for _, mt := range pmt.metricTypes {
-				mt.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, ap.Name(), ap.Version()))
+				if mt.Config() != nil {
+					mt.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, ap.Name(), ap.Version()))
+				}
 			}
 
 			// get a metrics
@@ -823,7 +830,6 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 
 		// merge global plugin config into the config for this request
 		cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, ap.Name(), ap.Version()).Table()
-
 		for k, v := range config {
 			cfg[k] = v
 		}
