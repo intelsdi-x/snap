@@ -204,14 +204,10 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 			"task-id": task.ID(),
 		}).Info("starting task on creation")
 
-		cps := returnCorePlugin(plugins)
-		errs := s.metricManager.SubscribeDeps(task.ID(), mts, cps)
-		if len(errs) > 0 {
+		errs := s.StartTask(task.id)
+		if errs != nil {
 			te.errs = append(te.errs, errs...)
-			return nil, te
 		}
-
-		task.Spin()
 	}
 
 	return task, te
