@@ -314,20 +314,14 @@ func watchTask(ctx *cli.Context) {
 
 	// catch interrupt so we signal the server we are done before exiting
 	c := make(chan os.Signal, 1)
-	lineCountChan := make(chan int)
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, syscall.SIGTERM)
+	var lines int
 	go func() {
-		var lines int
-		for {
-			select {
-			case lines = <-lineCountChan:
-			case <-c:
-				fmt.Printf("%sStopping task watch\n", strings.Repeat("\n", lines))
-				r.Close()
-				return
-			}
-		}
+		<-c
+		fmt.Printf("%sStopping task watch\n", strings.Repeat("\n", lines))
+		r.Close()
+		return
 	}()
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
@@ -346,11 +340,11 @@ func watchTask(ctx *cli.Context) {
 						event.Source,
 					)
 				}
-				lineCountChan <- len(e.Event)
-				fmt.Fprintf(w, "\033[%dA\n", len(e.Event)+1)
+				lines = len(e.Event)
+				fmt.Fprintf(w, "\033[%dA\n", lines+1)
 				w.Flush()
 			default:
-				fmt.Printf("[%s]\n", e.EventType)
+				fmt.Printf("%s[%s]\n", strings.Repeat("\n", lines), e.EventType)
 			}
 
 		case <-r.DoneChan:
