@@ -451,6 +451,7 @@ func action(ctx *cli.Context) {
 			return
 		}
 		r.BindMetricManager(c)
+		r.BindConfigManager(c.Config)
 		r.BindTaskManager(s)
 		if tr != nil {
 			r.BindTribeManager(tr)
