@@ -68,12 +68,16 @@ func (i *IntRule) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Key      string             `json:"key"`
 		Required bool               `json:"required"`
-		Default  ctypes.ConfigValue `json:"default"`
+		Default  ctypes.ConfigValue `json:"default,omitempty"`
+		Minimum  ctypes.ConfigValue `json:"minimum,omitempty"`
+		Maximum  ctypes.ConfigValue `json:"maximum,omitempty"`
 		Type     string             `json:"type"`
 	}{
 		Key:      i.key,
 		Required: i.required,
 		Default:  i.Default(),
+		Minimum:  i.Minimum(),
+		Maximum:  i.Maximum(),
 		Type:     "integer",
 	})
 }
@@ -193,4 +197,18 @@ func (i *IntRule) SetMinimum(m int) {
 // SetMaximum sets the maximum allowed value
 func (i *IntRule) SetMaximum(m int) {
 	i.maximum = &m
+}
+
+func (i *IntRule) Minimum() ctypes.ConfigValue {
+	if i.minimum != nil {
+		return &ctypes.ConfigValueInt{Value: *i.minimum}
+	}
+	return nil
+}
+
+func (i *IntRule) Maximum() ctypes.ConfigValue {
+	if i.maximum != nil {
+		return &ctypes.ConfigValueInt{Value: *i.maximum}
+	}
+	return nil
 }

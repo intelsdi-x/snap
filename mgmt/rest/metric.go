@@ -88,6 +88,8 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			Type:     r.Type,
 			Default:  r.Default,
 			Required: r.Required,
+			Minimum:  r.Minimum,
+			Maximum:  r.Maximum,
 		})
 	}
 	mb.Policy = policies
@@ -107,6 +109,8 @@ func respondWithMetrics(mets []core.CatalogedMetric, w http.ResponseWriter) {
 				Type:     r.Type,
 				Default:  r.Default,
 				Required: r.Required,
+				Minimum:  r.Minimum,
+				Maximum:  r.Maximum,
 			})
 		}
 		b = append(b, rbody.Metric{

@@ -128,6 +128,8 @@ type RuleTable struct {
 	Type     string
 	Default  interface{}
 	Required bool
+	Minimum  interface{}
+	Maximum  interface{}
 }
 
 func (p *ConfigPolicyNode) RulesAsTable() []RuleTable {
@@ -141,6 +143,8 @@ func (p *ConfigPolicyNode) RulesAsTable() []RuleTable {
 			Type:     r.Type(),
 			Default:  r.Default(),
 			Required: r.Required(),
+			Minimum:  r.Minimum(),
+			Maximum:  r.Maximum(),
 		})
 	}
 	return rt
@@ -220,6 +224,16 @@ func addRulesToConfigPolicyNode(rules map[string]interface{}, cpn *ConfigPolicyN
 					def := int(def_)
 					r.default_ = &def
 				}
+				if m, ok := rule["minimum"]; ok {
+					min_, _ := m.(float64)
+					min := int(min_)
+					r.minimum = &min
+				}
+				if m, ok := rule["maximum"]; ok {
+					max_, _ := m.(float64)
+					max := int(max_)
+					r.maximum = &max
+				}
 				cpn.Add(r)
 			case "string":
 				r, _ := NewStringRule(k, req)
@@ -236,6 +250,14 @@ func addRulesToConfigPolicyNode(rules map[string]interface{}, cpn *ConfigPolicyN
 				if d, ok := rule["default"]; ok {
 					def, _ := d.(float64)
 					r.default_ = &def
+				}
+				if m, ok := rule["minimum"]; ok {
+					min, _ := m.(float64)
+					r.minimum = &min
+				}
+				if m, ok := rule["maximum"]; ok {
+					max, _ := m.(float64)
+					r.maximum = &max
 				}
 				cpn.Add(r)
 			default:

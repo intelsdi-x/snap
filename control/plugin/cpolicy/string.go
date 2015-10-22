@@ -139,3 +139,11 @@ func (s *StringRule) Default() ctypes.ConfigValue {
 func (s *StringRule) Required() bool {
 	return s.required
 }
+
+func (s *StringRule) Minimum() ctypes.ConfigValue {
+	return nil
+}
+
+func (s *StringRule) Maximum() ctypes.ConfigValue {
+	return nil
+}

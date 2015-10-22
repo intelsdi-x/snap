@@ -136,4 +136,103 @@ func TestConfigPolicyNode(t *testing.T) {
 		So(m2, ShouldBeNil)
 	})
 
+	Convey("Test integer value between minimum and maximum for rule succeeds", t, func() {
+		n := NewPolicyNode()
+
+		m := map[string]ctypes.ConfigValue{}
+		m["port"] = ctypes.ConfigValueInt{Value: 5}
+
+		r1, _ := NewIntegerRule("port", false)
+		r1.SetMinimum(0)
+		r1.SetMaximum(10)
+
+		n.Add(r1)
+
+		m2, pe := n.Process(m)
+
+		So(len(pe.Errors()), ShouldEqual, 0)
+		So((*m2)["port"].(ctypes.ConfigValueInt).Value, ShouldEqual, 5)
+	})
+	Convey("Test integer value outside of maximum for rule fails", t, func() {
+		n := NewPolicyNode()
+
+		m := map[string]ctypes.ConfigValue{}
+		m["port"] = ctypes.ConfigValueInt{Value: 5}
+
+		r1, _ := NewIntegerRule("port", false)
+		r1.SetMinimum(0)
+		r1.SetMaximum(4)
+
+		n.Add(r1)
+
+		_, pe := n.Process(m)
+
+		So(len(pe.Errors()), ShouldEqual, 1)
+	})
+	Convey("Test integer value outside of minimum for rule fails", t, func() {
+		n := NewPolicyNode()
+
+		m := map[string]ctypes.ConfigValue{}
+		m["port"] = ctypes.ConfigValueInt{Value: 5}
+
+		r1, _ := NewIntegerRule("port", false)
+		r1.SetMinimum(7)
+		r1.SetMaximum(100)
+
+		n.Add(r1)
+
+		_, pe := n.Process(m)
+
+		So(len(pe.Errors()), ShouldEqual, 1)
+	})
+	Convey("Test float value between minimum and maximum for rule succeeds", t, func() {
+		n := NewPolicyNode()
+
+		m := map[string]ctypes.ConfigValue{}
+		m["num"] = ctypes.ConfigValueFloat{Value: 5.06}
+
+		r1, _ := NewFloatRule("num", false)
+		r1.SetMinimum(3.14)
+		r1.SetMaximum(10.17)
+
+		n.Add(r1)
+
+		m2, pe := n.Process(m)
+
+		So(len(pe.Errors()), ShouldEqual, 0)
+		So((*m2)["num"].(ctypes.ConfigValueFloat).Value, ShouldEqual, 5.06)
+	})
+	Convey("Test float value outside of maximum for rule fails", t, func() {
+		n := NewPolicyNode()
+
+		m := map[string]ctypes.ConfigValue{}
+		m["num"] = ctypes.ConfigValueFloat{Value: 5.97}
+
+		r1, _ := NewFloatRule("num", false)
+		r1.SetMinimum(0)
+		r1.SetMaximum(3.14)
+
+		n.Add(r1)
+
+		_, pe := n.Process(m)
+
+		So(len(pe.Errors()), ShouldEqual, 1)
+	})
+	Convey("Test float value outside of minimum for rule fails", t, func() {
+		n := NewPolicyNode()
+
+		m := map[string]ctypes.ConfigValue{}
+		m["num"] = ctypes.ConfigValueFloat{Value: 2.26}
+
+		r1, _ := NewFloatRule("num", false)
+		r1.SetMinimum(3.14)
+		r1.SetMaximum(42)
+
+		n.Add(r1)
+
+		_, pe := n.Process(m)
+
+		So(len(pe.Errors()), ShouldEqual, 1)
+	})
+
 }
