@@ -475,7 +475,7 @@ func TestPluginRestCalls(t *testing.T) {
 				col := core.CollectorPluginType
 				Convey("A global plugin config is added for all plugins", func() {
 					cdn := cdata.NewNode()
-					cdn.AddItem("password", ctypes.ConfigValueStr{"p@ssw0rd"})
+					cdn.AddItem("password", ctypes.ConfigValueStr{Value: "p@ssw0rd"})
 					r := setPluginConfigItem(port, "", "", "", cdn)
 					So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 					r1 := r.Body.(*rbody.SetPluginConfigItem)
@@ -489,7 +489,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 					Convey("A plugin config is added for all publishers", func() {
 						cdn := cdata.NewNode()
-						cdn.AddItem("user", ctypes.ConfigValueStr{"john"})
+						cdn.AddItem("user", ctypes.ConfigValueStr{Value: "john"})
 						r := setPluginConfigItem(port, core.PublisherPluginType.String(), "", "", cdn)
 						So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 						r1 := r.Body.(*rbody.SetPluginConfigItem)
@@ -498,7 +498,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 						Convey("A plugin config is added for all versions of a publisher", func() {
 							cdn := cdata.NewNode()
-							cdn.AddItem("path", ctypes.ConfigValueStr{"/usr/local/influxdb/bin"})
+							cdn.AddItem("path", ctypes.ConfigValueStr{Value: "/usr/local/influxdb/bin"})
 							r := setPluginConfigItem(port, "2", "influxdb", "", cdn)
 							So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 							r1 := r.Body.(*rbody.SetPluginConfigItem)
@@ -507,7 +507,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 							Convey("A plugin config is added for a specific version of a publisher", func() {
 								cdn := cdata.NewNode()
-								cdn.AddItem("rate", ctypes.ConfigValueFloat{.8})
+								cdn.AddItem("rate", ctypes.ConfigValueFloat{Value: .8})
 								r := setPluginConfigItem(port, core.PublisherPluginType.String(), "influxdb", "", cdn)
 								So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 								r1 := r.Body.(*rbody.SetPluginConfigItem)

@@ -38,11 +38,11 @@ func TestPluginConfig(t *testing.T) {
 			cfg.Plugins.All.AddItem("gvar", ctypes.ConfigValueBool{Value: true})
 			So(len(cfg.Plugins.All.Table()), ShouldEqual, 1)
 			Convey("with an entry for ALL collector plugins", func() {
-				cfg.Plugins.Collector.All.AddItem("user", ctypes.ConfigValueStr{"jane"})
-				cfg.Plugins.Collector.All.AddItem("password", ctypes.ConfigValueStr{"P@ssw0rd"})
+				cfg.Plugins.Collector.All.AddItem("user", ctypes.ConfigValueStr{Value: "jane"})
+				cfg.Plugins.Collector.All.AddItem("password", ctypes.ConfigValueStr{Value: "P@ssw0rd"})
 				So(len(cfg.Plugins.Collector.All.Table()), ShouldEqual, 2)
 				Convey("an entry for a specific plugin of any version", func() {
-					cfg.Plugins.Collector.Plugins["test"] = newPluginConfigItem(optAddPluginConfigItem("user", ctypes.ConfigValueStr{"john"}))
+					cfg.Plugins.Collector.Plugins["test"] = newPluginConfigItem(optAddPluginConfigItem("user", ctypes.ConfigValueStr{Value: "john"}))
 					So(len(cfg.Plugins.Collector.Plugins["test"].Table()), ShouldEqual, 1)
 					Convey("and an entry for a specific plugin of a specific version", func() {
 						cfg.Plugins.Collector.Plugins["test"].Versions[1] = cdata.NewNode()
@@ -51,7 +51,7 @@ func TestPluginConfig(t *testing.T) {
 						Convey("we can get the merged conf for the given plugin", func() {
 							cd := cfg.Plugins.getPluginConfigDataNode(core.CollectorPluginType, "test", 1)
 							So(len(cd.Table()), ShouldEqual, 4)
-							So(cd.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{"john"})
+							So(cd.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
 						})
 					})
 				})
