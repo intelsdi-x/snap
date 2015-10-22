@@ -221,10 +221,10 @@ func (p *PluginNativeClient) GetMetricTypes(config plugin.PluginConfigType) ([]c
 	}
 
 	retMetricTypes := make([]core.Metric, len(r.PluginMetricTypes))
-	for i, _ := range r.PluginMetricTypes {
+	for i, mt := range r.PluginMetricTypes {
 		// Set the advertised time
-		r.PluginMetricTypes[i].LastAdvertisedTime_ = time.Now()
-		retMetricTypes[i] = r.PluginMetricTypes[i]
+		mt.LastAdvertisedTime_ = time.Now()
+		retMetricTypes[i] = mt
 	}
 	return retMetricTypes, nil
 }
