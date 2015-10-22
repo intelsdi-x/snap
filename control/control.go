@@ -101,6 +101,7 @@ type managesPlugins interface {
 	UnloadPlugin(core.Plugin) (*loadedPlugin, perror.PulseError)
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(pluginPath string) plugin.Arg
+	SetPluginConfig(*pluginConfig)
 }
 
 type catalogsMetrics interface {
@@ -137,6 +138,7 @@ func CacheExpiration(t time.Duration) ControlOpt {
 func OptSetConfig(cfg *config) ControlOpt {
 	return func(c *pluginControl) {
 		c.Config = cfg
+		c.pluginManager.SetPluginConfig(cfg.Plugins)
 	}
 }
 
@@ -161,7 +163,7 @@ func New(opts ...ControlOpt) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager(OptSetPluginConfig(c.Config.Plugins))
+	c.pluginManager = newPluginManager()
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
