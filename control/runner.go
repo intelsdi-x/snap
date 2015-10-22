@@ -257,22 +257,6 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		if pool != nil {
 			pool.kill(v.Id, "plugin dead")
 		}
-	case *control_event.PluginSubscriptionEvent:
-		runnerLog.WithFields(log.Fields{
-			"_block":         "subscribe-pool",
-			"event":          v.Namespace(),
-			"plugin-name":    v.PluginName,
-			"plugin-version": v.PluginVersion,
-			"plugin-type":    v.PluginType,
-		}).Debug("handling plugin subscription event")
-
-		r.handleSubscription(
-			core.PluginType(v.PluginType).String(),
-			v.PluginName,
-			v.PluginVersion,
-			v.TaskId,
-			subscriptionType(v.SubscriptionType),
-		)
 
 	case *control_event.PluginUnsubscriptionEvent:
 		runnerLog.WithFields(log.Fields{
@@ -377,7 +361,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 	}
 }
 
-func (r *runner) runPlugin(path string) {
+func (r *runner) runPlugin(path string) error {
 	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(path), path)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
@@ -385,6 +369,7 @@ func (r *runner) runPlugin(path string) {
 			"path":   path,
 			"error":  err,
 		}).Error("error creating executable plugin")
+		return err
 	}
 	_, err = r.startPlugin(ePlugin)
 	if err != nil {
@@ -393,62 +378,11 @@ func (r *runner) runPlugin(path string) {
 			"path":   path,
 			"error":  err,
 		}).Error("error starting new plugin")
+		return err
 	}
+	return nil
 }
 
-func (r *runner) handleSubscription(pType, pName string, pVersion int, taskId string, subType subscriptionType) {
-	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
-	if err != nil {
-		runnerLog.WithFields(log.Fields{
-			"_block":         "handle-subscription",
-			"plugin-name":    pName,
-			"plugin-version": pVersion,
-			"plugin-type":    pType,
-		}).Error("error retrieving pool")
-		return
-	}
-	if pool == nil {
-		runnerLog.WithFields(log.Fields{
-			"_block":         "handle-subscription",
-			"plugin-name":    pName,
-			"plugin-version": pVersion,
-			"plugin-type":    pType,
-		}).Error("pool not found")
-		return
-	}
-	runnerLog.WithFields(log.Fields{
-		"_block":         "handle-subscription",
-		"plugin-name":    pName,
-		"plugin-version": pVersion,
-		"plugin-type":    pType,
-	}).Debug(fmt.Sprintf("found pool: version %d", pool.version))
-	runnerLog.WithFields(log.Fields{
-		"_block":                  "handle-subscription",
-		"pool-count":              pool.count(),
-		"pool-subscription-count": pool.subscriptionCount(),
-		"pool-max":                pool.max,
-		"pool-eligibility":        pool.eligible(),
-	}).Debug("checking is pool is eligible to grow.")
-	if pool.eligible() {
-		runnerLog.WithFields(log.Fields{
-			"_block":         "handle-subscription",
-			"plugin-name":    pName,
-			"plugin-version": pVersion,
-			"plugin-type":    pType,
-		}).Debug("pool is eligible. starting a new available plugin")
-		plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
-		if err != nil {
-			runnerLog.WithFields(log.Fields{
-				"_block":         "handle-subscription",
-				"plugin-name":    pName,
-				"plugin-version": pVersion,
-				"plugin-type":    pType,
-			}).Error("plugin not found")
-			return
-		}
-		r.runPlugin(plugin.Path)
-	}
-}
 func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskId string) error {
 	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
 	if err != nil {

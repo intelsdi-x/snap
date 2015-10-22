@@ -802,7 +802,7 @@ func TestCollectMetrics(t *testing.T) {
 		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:dummy1:1")
 		So(errp, ShouldBeNil)
 		pool.subscribe("1", unboundSubscriptionType)
-		err = c.sendPluginSubscriptionEvent("1", lp)
+		err = c.pluginRunner.runPlugin(lp.Path)
 		So(err, ShouldBeNil)
 		m = append(m, m1, m2, m3)
 		time.Sleep(time.Millisecond * 1100)
@@ -886,18 +886,11 @@ func TestPublishMetrics(t *testing.T) {
 		Convey("Subscribe to file publisher with good config", func() {
 			n := cdata.NewNode()
 			config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"}))
-			p := mockPlugin{
-				name:       "file",
-				pluginType: core.PublisherPluginType,
-				ver:        1,
-				config:     n,
-			}
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:1")
 			So(errp, ShouldBeNil)
 			pool.subscribe("1", unboundSubscriptionType)
-			errs := c.sendPluginSubscriptionEvent("1", p)
-			So(errs, ShouldBeNil)
-			<-lpe.done
+			err := c.pluginRunner.runPlugin(lp.Path)
+			So(err, ShouldBeNil)
 			time.Sleep(2500 * time.Millisecond)
 
 			Convey("Publish to file", func() {
@@ -944,18 +937,11 @@ func TestProcessMetrics(t *testing.T) {
 
 		Convey("Subscribe to passthru processor with good config", func() {
 			n := cdata.NewNode()
-			p := mockPlugin{
-				name:       "passthru",
-				pluginType: core.ProcessorPluginType,
-				ver:        1,
-				config:     n,
-			}
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("processor:passthru:1")
 			So(errp, ShouldBeNil)
 			pool.subscribe("1", unboundSubscriptionType)
-			errs := c.sendPluginSubscriptionEvent("1", p)
-			So(errs, ShouldBeNil)
-			<-lpe.done
+			err := c.pluginRunner.runPlugin(lp.Path)
+			So(err, ShouldBeNil)
 			time.Sleep(2500 * time.Millisecond)
 
 			Convey("process metrics", func() {
