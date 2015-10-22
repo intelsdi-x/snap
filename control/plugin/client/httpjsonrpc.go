@@ -219,6 +219,7 @@ func (h *httpJSONRPCClient) GetMetricTypes(config plugin.PluginConfigType) ([]co
 	}
 	metrics := make([]core.Metric, len(mtr.PluginMetricTypes))
 	for i, mt := range mtr.PluginMetricTypes {
+		mt.LastAdvertisedTime_ = time.Now()
 		metrics[i] = mt
 	}
 	return metrics, nil
