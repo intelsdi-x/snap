@@ -84,6 +84,7 @@ type runsPlugins interface {
 	SetStrategy(RoutingStrategy)
 	Strategy() RoutingStrategy
 	Monitor() *monitor
+	runPlugin(string) error
 }
 
 type managesPlugins interface {
@@ -521,6 +522,13 @@ func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins 
 				return perrs
 			}
 			pool.subscribe(taskId, unboundSubscriptionType)
+			if pool.eligible() {
+				err = p.pluginRunner.runPlugin(latest.Path)
+				if err != nil {
+					perrs = append(perrs, perror.New(err))
+					return perrs
+				}
+			}
 		} else {
 			pool, err := p.pluginRunner.AvailablePlugins().getOrCreatePool(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
 			if err != nil {
@@ -528,6 +536,18 @@ func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins 
 				return perrs
 			}
 			pool.subscribe(taskId, boundSubscriptionType)
+			if pool.eligible() {
+				pl, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
+				if err != nil {
+					perrs = append(perrs, perror.New(err))
+					return perrs
+				}
+				err = p.pluginRunner.runPlugin(pl.Path)
+				if err != nil {
+					perrs = append(perrs, perror.New(err))
+					return perrs
+				}
+			}
 		}
 		perr := p.sendPluginSubscriptionEvent(taskId, sub)
 		if perr != nil {
