@@ -204,11 +204,11 @@ type mocksigningManager struct {
 	signed bool
 }
 
-func (ps *mocksigningManager) ValidateSignature(string, string, string) perror.PulseError {
+func (ps *mocksigningManager) ValidateSignature(string, string, string) error {
 	if ps.signed {
 		return nil
 	}
-	return perror.New(errors.New("fake"))
+	return errors.New("fake")
 }
 
 // Uses the dummy collector plugin to simulate Loading

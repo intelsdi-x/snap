@@ -43,21 +43,25 @@ func TestValidateSignature(t *testing.T) {
 
 	Convey("Valid files and bad signature", t, func() {
 		err := s.ValidateSignature(keyringFile, unsignedFile, signatureFile)
-		So(err.Error(), ShouldResemble, "Error checking signature")
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "Error checking signature")
 	})
 
 	Convey("Invalid keyring", t, func() {
 		err := s.ValidateSignature("", signedFile, signatureFile)
-		So(err.Error(), ShouldResemble, "Keyring file (.gpg) not found")
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "Keyring file (.gpg) not found")
 	})
 
 	Convey("Invalid signed file", t, func() {
 		err := s.ValidateSignature(keyringFile, "", signatureFile)
-		So(err.Error(), ShouldResemble, "Signed file not found")
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "Signed file not found")
 	})
 
 	Convey("Invalid signature file", t, func() {
 		err := s.ValidateSignature(keyringFile, signedFile, "")
-		So(err.Error(), ShouldResemble, "Signature file (.asc) not found. Did you use the -a flag?")
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "Signature file (.asc) not found. Did you use the -a flag?")
 	})
 }
