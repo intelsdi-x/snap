@@ -457,6 +457,9 @@ func TestPulseClient(t *testing.T) {
 				p3 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", true)
 				p4 := c.StartTask(p3.ID)
 				So(p4.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
+
+				p5 := c.StartTask(p3.ID)
+				So(p5.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
 			})
 			Convey("do returns err!=nil", func() {
 				port := -1
@@ -495,6 +498,9 @@ func TestPulseClient(t *testing.T) {
 				p4 := c.StopTask(p3.ID)
 				So(p3.Err, ShouldBeNil)
 				So(p4.ID, ShouldEqual, p3.ID)
+
+				p5 := c.StopTask(p3.ID)
+				So(p5.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
 
 				b := make([]byte, 5)
 				rsp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", p1.ID), ContentTypeJSON, b)
