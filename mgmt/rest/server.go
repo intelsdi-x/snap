@@ -119,10 +119,13 @@ type Server struct {
 	n   *negroni.Negroni
 	r   *httprouter.Router
 	tls *tls
+	err chan error
 }
 
 func New(https bool, cpath, kpath string) (*Server, error) {
-	s := &Server{}
+	s := &Server{
+		err: make(chan error),
+	}
 
 	if https {
 		var err error
@@ -132,29 +135,41 @@ func New(https bool, cpath, kpath string) (*Server, error) {
 		}
 	}
 
-	restLogger.Info(fmt.Sprintf("Loading REST API with HTTPS set to: %v", https))
+	restLogger.Info(fmt.Sprintf("Configuring REST API with HTTPS set to: %v", https))
 
 	s.n = negroni.New(
 		NewLogger(),
 		negroni.NewRecovery(),
 	)
 	s.r = httprouter.New()
+	// Use negroni to handle routes
+	s.n.UseHandler(s.r)
 	return s, nil
 }
 
 func (s *Server) Start(addrString string) {
-	go s.start(addrString)
+	s.addRoutes()
+	go s.run(addrString)
+}
+
+func (s *Server) Err() <-chan error {
+	return s.err
 }
 
 func (s *Server) run(addrString string) {
-	log.Printf("[pulse-rest] listening on %s\n", addrString)
+	restLogger.Info("Starting REST API on ", addrString)
+	var err error
 	if s.tls != nil {
-		err := http.ListenAndServeTLS(addrString, s.tls.cert, s.tls.key, s.n)
-		if err != nil {
-			panic(err)
-		}
+		err = http.ListenAndServeTLS(addrString, s.tls.cert, s.tls.key, s.n)
 	} else {
-		http.ListenAndServe(addrString, s.n)
+		err = http.ListenAndServe(addrString, s.n)
+	}
+	// ListenAndServe and ListenAndServeTLS are blocking methods. This function is started
+	// in a go routine. If these methods return, we check to see if an error needs to be
+	// returned through the error channel to be handled by the pulse daemon.
+	if err != nil {
+		restLogger.Error(err)
+		s.err <- err
 	}
 }
 
@@ -174,7 +189,7 @@ func (s *Server) BindConfigManager(c managesConfig) {
 	s.mc = c
 }
 
-func (s *Server) start(addrString string) {
+func (s *Server) addRoutes() {
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
 	s.r.GET("/v1/plugins/:type", s.getPluginsByType)
@@ -200,6 +215,7 @@ func (s *Server) start(addrString string) {
 	s.r.DELETE("/v1/tasks/:id", s.removeTask)
 	s.r.PUT("/v1/tasks/:id/enable", s.enableTask)
 
+	// tribe routes
 	if s.tr != nil {
 		s.r.GET("/v1/tribe/agreements", s.getAgreements)
 		s.r.POST("/v1/tribe/agreements", s.addAgreement)
@@ -208,11 +224,6 @@ func (s *Server) start(addrString string) {
 		s.r.GET("/v1/tribe/members", s.getMembers)
 		s.r.GET("/v1/tribe/member/:name", s.getMember)
 	}
-
-	// set negroni router to the server's router (httprouter)
-	s.n.UseHandler(s.r)
-	// start http handling
-	s.run(addrString)
 }
 
 func respond(code int, b rbody.Body, w http.ResponseWriter) {
