@@ -336,7 +336,7 @@ func action(ctx *cli.Context) {
 	}
 
 	//Plugin Trust
-	if pluginTrust < 0 || pluginTrust > 3 {
+	if pluginTrust < 0 || pluginTrust > 2 {
 		log.WithFields(
 			log.Fields{
 				"block":   "main",
