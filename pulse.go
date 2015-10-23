@@ -374,8 +374,18 @@ func action(ctx *cli.Context) {
 			os.Exit(1)
 		}
 		file.Close()
-		log.Info("setting keyring file to: ", keyringFile)
-		c.SetKeyringFile(keyringFile)
+		p, err := filepath.Abs(keyringFile)
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"block":   "main",
+					"_module": "pulsed",
+					"error":   err.Error(),
+				}).Fatal("Unable to determine absolute path to keyring file")
+			os.Exit(1)
+		}
+		log.Info("setting keyring file to: ", p)
+		c.SetKeyringFile(p)
 	}
 
 	//Autodiscover
