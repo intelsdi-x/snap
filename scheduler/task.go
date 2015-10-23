@@ -314,8 +314,10 @@ func (t *task) spin() {
 			}
 		case <-t.killChan:
 			// Only here can it truly be stopped
+			t.Lock()
 			t.state = core.TaskStopped
 			t.lastFireTime = time.Time{}
+			t.Unlock()
 			return
 		}
 	}
