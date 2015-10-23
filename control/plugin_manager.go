@@ -146,14 +146,15 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 
 // the struct representing a plugin that is loaded into Pulse
 type loadedPlugin struct {
-	Meta         plugin.PluginMeta
-	Path         string
-	Type         plugin.PluginType
-	Signed       bool
-	State        pluginState
-	Token        string
-	LoadedTime   time.Time
-	ConfigPolicy *cpolicy.ConfigPolicy
+	Meta          plugin.PluginMeta
+	Path          string
+	Type          plugin.PluginType
+	Signed        bool
+	SignatureFile string
+	State         pluginState
+	Token         string
+	LoadedTime    time.Time
+	ConfigPolicy  *cpolicy.ConfigPolicy
 }
 
 // returns plugin name

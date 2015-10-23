@@ -75,7 +75,7 @@ type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics([]string, int) ([]core.CatalogedMetric, error)
 	GetMetric([]string, int) (core.CatalogedMetric, error)
-	Load(string) (core.CatalogedPlugin, perror.PulseError)
+	Load(...string) (core.CatalogedPlugin, perror.PulseError)
 	Unload(core.Plugin) (core.CatalogedPlugin, perror.PulseError)
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin

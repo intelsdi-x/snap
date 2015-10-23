@@ -267,7 +267,7 @@ func TestLoad(t *testing.T) {
 				lpe := newListenToPluginEvent()
 				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 				c.Start()
-				_, err := c.Load(PluginPath)
+				_, err := c.Load(PluginPath, "dummy.asc")
 				time.Sleep(100)
 				So(err, ShouldBeNil)
 			})

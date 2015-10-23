@@ -67,7 +67,7 @@ type Task struct {
 }
 
 type ManagesPlugins interface {
-	Load(path string) (core.CatalogedPlugin, perror.PulseError)
+	Load(...string) (core.CatalogedPlugin, perror.PulseError)
 	Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.PulseError)
 	PluginCatalog() core.PluginCatalog
 }
