@@ -255,8 +255,9 @@ func action(ctx *cli.Context) {
 		defer file.Close()
 		log.Info("setting log path to: ", logPath)
 		log.SetOutput(file)
+	} else {
+		log.Info("setting log path to: stdout")
 	}
-	log.Info("setting log path to: stdout")
 
 	controlOpts := []control.ControlOpt{
 		control.MaxRunningPlugins(maxRunning),
