@@ -216,15 +216,8 @@ func action(ctx *cli.Context) {
 	// Set Max Processors for pulsed.
 	setMaxProcs(maxProcs)
 
-	if logLevel < 1 || logLevel > 5 {
-		log.WithFields(
-			log.Fields{
-				"block":   "main",
-				"_module": "pulsed",
-				"level":   logLevel,
-			}).Fatal("log level was invalid (needs: 1-5)")
-		os.Exit(1)
-	}
+	// Validate log level and trust level settings for pulsed
+	validateLevelSettings(logLevel, pluginTrust)
 
 	if logPath != "" {
 		f, err := os.Stat(logPath)
@@ -262,8 +255,9 @@ func action(ctx *cli.Context) {
 		defer file.Close()
 		log.Info("setting log path to: ", logPath)
 		log.SetOutput(file)
+	} else {
+		log.Info("setting log path to: stdout")
 	}
-	log.Info("setting log path to: stdout")
 
 	controlOpts := []control.ControlOpt{
 		control.MaxRunningPlugins(maxRunning),
@@ -336,15 +330,6 @@ func action(ctx *cli.Context) {
 	}
 
 	//Plugin Trust
-	if pluginTrust < 0 || pluginTrust > 3 {
-		log.WithFields(
-			log.Fields{
-				"block":   "main",
-				"_module": "pulsed",
-				"level":   pluginTrust,
-			}).Fatal("Plugin trust was invalid (needs: 0-2)")
-		os.Exit(1)
-	}
 	c.SetPluginTrustLevel(pluginTrust)
 	log.Info("setting plugin trust level to: ", t[pluginTrust])
 	//Keyring checking for trust levels 1 and 2
@@ -388,10 +373,20 @@ func action(ctx *cli.Context) {
 					"keyringFile": keyringFile,
 				}).Fatal("can't open keyring path")
 			os.Exit(1)
-			defer file.Close()
 		}
-		log.Info("setting keyring file to: ", keyringFile)
-		c.SetKeyringFile(keyringFile)
+		file.Close()
+		p, err := filepath.Abs(keyringFile)
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"block":   "main",
+					"_module": "pulsed",
+					"error":   err.Error(),
+				}).Fatal("Unable to determine absolute path to keyring file")
+			os.Exit(1)
+		}
+		log.Info("setting keyring file to: ", p)
+		c.SetKeyringFile(p)
 	}
 
 	//Autodiscover
@@ -611,5 +606,26 @@ func getLevel(i int) log.Level {
 		return log.FatalLevel
 	default:
 		panic("bad level")
+	}
+}
+
+func validateLevelSettings(logLevel, pluginTrust int) {
+	if logLevel < 1 || logLevel > 5 {
+		log.WithFields(
+			log.Fields{
+				"block":   "main",
+				"_module": "pulsed",
+				"level":   logLevel,
+			}).Fatal("log level was invalid (needs: 1-5)")
+		os.Exit(1)
+	}
+	if pluginTrust < 0 || pluginTrust > 2 {
+		log.WithFields(
+			log.Fields{
+				"block":   "main",
+				"_module": "pulsed",
+				"level":   pluginTrust,
+			}).Fatal("Plugin trust was invalid (needs: 0-2)")
+		os.Exit(1)
 	}
 }

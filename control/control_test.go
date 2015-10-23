@@ -262,7 +262,7 @@ func TestLoad(t *testing.T) {
 			//Plugin Signing
 			Convey("loads successfully with trust enabled", func() {
 				c := New()
-				c.pluginTrust = 1
+				c.pluginTrust = PluginTrustEnabled
 				c.signingManager = &mocksigningManager{signed: true}
 				lpe := newListenToPluginEvent()
 				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
@@ -274,7 +274,7 @@ func TestLoad(t *testing.T) {
 
 			Convey("loads successfully with trust warning and signing not validated", func() {
 				c := New()
-				c.pluginTrust = 2
+				c.pluginTrust = PluginTrustWarn
 				c.signingManager = &mocksigningManager{signed: false}
 				lpe := newListenToPluginEvent()
 				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
@@ -286,7 +286,7 @@ func TestLoad(t *testing.T) {
 
 			Convey("returns error with trust enabled and signing not validated", func() {
 				c := New()
-				c.pluginTrust = 1
+				c.pluginTrust = PluginTrustEnabled
 				c.signingManager = &mocksigningManager{signed: false}
 				lpe := newListenToPluginEvent()
 				c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
