@@ -29,8 +29,10 @@ const (
 type PolicyTable struct {
 	Name     string      `json:"name"`
 	Type     string      `json:"type"`
-	Default  interface{} `json:"default"`
+	Default  interface{} `json:"default,omitempty"`
 	Required bool        `json:"required"`
+	Minimum  interface{} `json:"minimum,omitempty"`
+	Maximum  interface{} `json:"maximum,omitempty"`
 }
 
 type Metric struct {

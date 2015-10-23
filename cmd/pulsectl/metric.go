@@ -101,9 +101,10 @@ func getMetric(ctx *cli.Context) {
 
 		  Rules for collecting /intel/dummy/foo:
 
-		     NAME        TYPE            DEFAULT         REQUIRED
+		     NAME        TYPE            DEFAULT         REQUIRED     MINIMUM   MAXIMUM
 		     name        string          bob             false
 		     password    string                          true
+		     portRange   int                             false        9000      10000
 	*/
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
@@ -111,15 +112,25 @@ func getMetric(ctx *cli.Context) {
 	printFields(w, false, 0, metric.Namespace, metric.Version, time.Unix(metric.LastAdvertisedTimestamp, 0).Format(time.RFC1123))
 	w.Flush()
 	fmt.Printf("\n  Rules for collecting %s:\n\n", metric.Namespace)
-	printFields(w, true, 4, "NAME", "TYPE", "DEFAULT", "REQUIRED")
+	printFields(w, true, 6, "NAME", "TYPE", "DEFAULT", "REQUIRED", "MINIMUM", "MAXIMUM")
 	for _, rule := range metric.Policy {
-		defMap, ok := rule.Default.(map[string]interface{})
-		if ok {
-			def := defMap["Value"]
-			printFields(w, true, 4, rule.Name, rule.Type, def, rule.Required)
+		var def_, min_, max_ interface{}
+		if rule.Default == nil {
+			def_ = ""
 		} else {
-			printFields(w, true, 4, rule.Name, rule.Type, "", rule.Required)
+			def_ = rule.Default
 		}
+		if rule.Minimum == nil {
+			min_ = ""
+		} else {
+			min_ = rule.Minimum
+		}
+		if rule.Maximum == nil {
+			max_ = ""
+		} else {
+			max_ = rule.Maximum
+		}
+		printFields(w, true, 6, rule.Name, rule.Type, def_, rule.Required, min_, max_)
 	}
 	w.Flush()
 }

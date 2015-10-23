@@ -39,6 +39,8 @@ type Rule interface {
 	Default() ctypes.ConfigValue
 	Required() bool
 	Type() string
+	Minimum() ctypes.ConfigValue
+	Maximum() ctypes.ConfigValue
 }
 
 type rule struct {

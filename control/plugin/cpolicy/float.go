@@ -45,12 +45,16 @@ func (f *FloatRule) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Key      string             `json:"key"`
 		Required bool               `json:"required"`
-		Default  ctypes.ConfigValue `json:"default"`
+		Default  ctypes.ConfigValue `json:"default,omitempty"`
+		Minimum  ctypes.ConfigValue `json:"minimum,omitempty"`
+		Maximum  ctypes.ConfigValue `json:"maximum,omitempty"`
 		Type     string             `json:"type"`
 	}{
 		Key:      f.key,
 		Required: f.required,
 		Default:  f.Default(),
+		Minimum:  f.Minimum(),
+		Maximum:  f.Maximum(),
 		Type:     "float",
 	})
 }
@@ -190,4 +194,18 @@ func (f *FloatRule) SetMinimum(m float64) {
 // SetMaximum sets the maximum allowable value for this rule
 func (f *FloatRule) SetMaximum(m float64) {
 	f.maximum = &m
+}
+
+func (i *FloatRule) Minimum() ctypes.ConfigValue {
+	if i.minimum != nil {
+		return &ctypes.ConfigValueFloat{Value: *i.minimum}
+	}
+	return nil
+}
+
+func (i *FloatRule) Maximum() ctypes.ConfigValue {
+	if i.maximum != nil {
+		return &ctypes.ConfigValueFloat{Value: *i.maximum}
+	}
+	return nil
 }
