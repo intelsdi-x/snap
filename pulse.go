@@ -372,8 +372,8 @@ func action(ctx *cli.Context) {
 					"keyringFile": keyringFile,
 				}).Fatal("can't open keyring path")
 			os.Exit(1)
-			defer file.Close()
 		}
+		file.Close()
 		log.Info("setting keyring file to: ", keyringFile)
 		c.SetKeyringFile(keyringFile)
 	}
