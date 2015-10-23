@@ -216,15 +216,8 @@ func action(ctx *cli.Context) {
 	// Set Max Processors for pulsed.
 	setMaxProcs(maxProcs)
 
-	if logLevel < 1 || logLevel > 5 {
-		log.WithFields(
-			log.Fields{
-				"block":   "main",
-				"_module": "pulsed",
-				"level":   logLevel,
-			}).Fatal("log level was invalid (needs: 1-5)")
-		os.Exit(1)
-	}
+	// Validate log level and trust level settings for pulsed
+	validateLevelSettings(logLevel, pluginTrust)
 
 	if logPath != "" {
 		f, err := os.Stat(logPath)
@@ -336,15 +329,6 @@ func action(ctx *cli.Context) {
 	}
 
 	//Plugin Trust
-	if pluginTrust < 0 || pluginTrust > 2 {
-		log.WithFields(
-			log.Fields{
-				"block":   "main",
-				"_module": "pulsed",
-				"level":   pluginTrust,
-			}).Fatal("Plugin trust was invalid (needs: 0-2)")
-		os.Exit(1)
-	}
 	c.SetPluginTrustLevel(pluginTrust)
 	log.Info("setting plugin trust level to: ", t[pluginTrust])
 	//Keyring checking for trust levels 1 and 2
@@ -611,5 +595,26 @@ func getLevel(i int) log.Level {
 		return log.FatalLevel
 	default:
 		panic("bad level")
+	}
+}
+
+func validateLevelSettings(logLevel, pluginTrust int) {
+	if logLevel < 1 || logLevel > 5 {
+		log.WithFields(
+			log.Fields{
+				"block":   "main",
+				"_module": "pulsed",
+				"level":   logLevel,
+			}).Fatal("log level was invalid (needs: 1-5)")
+		os.Exit(1)
+	}
+	if pluginTrust < 0 || pluginTrust > 2 {
+		log.WithFields(
+			log.Fields{
+				"block":   "main",
+				"_module": "pulsed",
+				"level":   pluginTrust,
+			}).Fatal("Plugin trust was invalid (needs: 0-2)")
+		os.Exit(1)
 	}
 }
