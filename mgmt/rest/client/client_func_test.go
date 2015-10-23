@@ -495,8 +495,8 @@ func TestPulseClient(t *testing.T) {
 				So(p2.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
 
 				p3 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", true)
-				p4 := c.StopTask(p3.ID)
 				So(p3.Err, ShouldBeNil)
+				p4 := c.StopTask(p3.ID)
 				So(p4.ID, ShouldEqual, p3.ID)
 
 				p5 := c.StopTask(p3.ID)
