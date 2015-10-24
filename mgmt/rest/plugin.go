@@ -75,12 +75,15 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 		lp := &rbody.PluginsLoaded{}
 		lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
 		mr := multipart.NewReader(r.Body, params["boundary"])
-		p, err := mr.NextPart()
-		var fname, fname2 string
+		var files []string
+		var i int
 		for {
+			var b []byte
+			files = append(files, "")
+			p, err := mr.NextPart()
 			if err == io.EOF {
-				respond(201, lp, w)
-				return
+				files = files[:len(files)-1]
+				break
 			}
 			if err != nil {
 				respond(500, rbody.FromError(err), w)
@@ -88,58 +91,58 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			}
 			if r.Header.Get("Plugin-Compression") == "gzip" {
 				g, err := gzip.NewReader(p)
+				defer g.Close()
 				if err != nil {
 					respond(500, rbody.FromError(err), w)
 					return
 				}
-				b, err := ioutil.ReadAll(g)
+				b, err = ioutil.ReadAll(g)
 				if err != nil {
 					respond(500, rbody.FromError(err), w)
 					return
-				}
-				fname, err = writePlugin(s.mm.GetAutodiscoverPaths(), p.FileName(), b, fname)
-				if err != nil {
 				}
 			} else {
-				b, err := ioutil.ReadAll(p)
+				b, err = ioutil.ReadAll(p)
 				if err != nil {
 					respond(500, rbody.FromError(err), w)
 					return
 				}
-				fname, err = writePlugin(s.mm.GetAutodiscoverPaths(), p.FileName(), b, fname)
 			}
+			files[i], err = writeFile(s.mm.GetAutodiscoverPaths(), p.FileName(), b, files[0])
 			if err != nil {
 				respond(500, rbody.FromError(err), w)
 				return
 			}
-			p, err = mr.NextPart()
-			if err != nil {
-				if fname2 == "" {
-					fname2 = fname
-				}
-				pl, err := s.mm.Load(fname2)
-				if err != nil {
-					var ec int
-					restLogger.Error(err)
-					rb := rbody.FromPulseError(err)
-					switch rb.ResponseBodyMessage() {
-					case PluginAlreadyLoaded:
-						ec = 409
-					default:
-						ec = 500
-					}
-					respond(ec, rb, w)
-					return
-				}
-				lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(pl))
-			} else {
-				fname2 = fname
-			}
+			i++
 		}
+		restLogger.Info("Loading plugin: ", files[0])
+		pl, err := s.mm.Load(files[0])
+		if err != nil {
+			var ec int
+			restLogger.Error(err)
+			for _, f := range files {
+				restLogger.Debugf("Removing file (%s) after failure to load plugin (%s)", f, files[0])
+				err := os.Remove(f)
+				if err != nil {
+					restLogger.Error(err)
+				}
+			}
+			rb := rbody.FromPulseError(err)
+			switch rb.ResponseBodyMessage() {
+			case PluginAlreadyLoaded:
+				ec = 409
+			default:
+				ec = 500
+			}
+			respond(ec, rb, w)
+			return
+		}
+		lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(pl))
+		respond(201, lp, w)
 	}
 }
 
-func writePlugin(autoPaths []string, filename string, b []byte, fqfile string) (string, error) {
+func writeFile(autoPaths []string, filename string, b []byte, fqfile string) (string, error) {
 	var f *os.File
 	var err error
 	if len(autoPaths) > 0 {
@@ -155,18 +158,15 @@ func writePlugin(autoPaths []string, filename string, b []byte, fqfile string) (
 		}
 	}
 	if err != nil {
-		// respond(500, rbody.FromError(err), w)
 		return "", err
 	}
 	n, err := f.Write(b)
 	log.Debugf("wrote %v to %v", n, f.Name())
 	if err != nil {
-		// respond(500, rbody.FromError(err), w)
 		return "", err
 	}
 	err = f.Chmod(0700)
 	if err != nil {
-		// respond(500, rbody.FromError(err), w)
 		return "", err
 	}
 	// Close before load
