@@ -231,6 +231,10 @@ func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
 	}
 }
 
+func (p *pluginManager) SetPluginConfig(cf *pluginConfig) {
+	p.pluginConfig = cf
+}
+
 func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
 	p.metricCatalog = mc
 }

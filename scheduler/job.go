@@ -145,10 +145,14 @@ func (c *collectorJob) Run() {
 	}).Debug("starting collector job")
 	metrics := make([]core.Metric, len(c.metricTypes))
 	for i, rmt := range c.metricTypes {
+		config := c.configDataTree.Get(rmt.Namespace())
+		if config == nil {
+			config = cdata.NewNode()
+		}
 		metrics[i] = &metric{
 			namespace: rmt.Namespace(),
 			version:   rmt.Version(),
-			config:    c.configDataTree.Get(rmt.Namespace()),
+			config:    config,
 		}
 	}
 	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline())

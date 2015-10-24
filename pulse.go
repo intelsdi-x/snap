@@ -277,6 +277,15 @@ func action(ctx *cli.Context) {
 		}
 		cfg := control.NewConfig()
 		err = json.Unmarshal(b, &cfg)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"block":   "main",
+				"_module": "pulsed",
+				"error":   err.Error(),
+				"path":    config,
+			}).Fatal("invalid config")
+			os.Exit(1)
+		}
 		controlOpts = append(controlOpts, control.OptSetConfig(cfg))
 	}
 

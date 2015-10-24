@@ -66,7 +66,7 @@ func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, p
 }
 func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error) { return nil, nil }
 func (m *MockPluginManagerBadSwap) teardown()                         {}
-func (m *MockPluginManagerBadSwap) setPluginConfig(*pluginConfig)     {}
+func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)     {}
 func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)  {}
 func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)          {}
 func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg    { return plugin.Arg{} }
@@ -715,6 +715,7 @@ func TestMetricConfig(t *testing.T) {
 	})
 	Convey("nil config provided by task", t, func() {
 		config := NewConfig()
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(OptSetConfig(config))
 		c.Start()
 		lpe := newListenToPluginEvent()
@@ -725,7 +726,6 @@ func TestMetricConfig(t *testing.T) {
 		m1 := MockMetricType{
 			namespace: []string{"intel", "dummy", "foo"},
 		}
-		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		metric, errs := c.validateMetricTypeSubscription(m1, cd)
 		Convey("So metric should be valid with config", func() {
 			So(errs, ShouldBeNil)
@@ -734,6 +734,7 @@ func TestMetricConfig(t *testing.T) {
 	})
 	Convey("required config provided by global plugin config", t, func() {
 		config := NewConfig()
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(OptSetConfig(config))
 		c.Start()
 		lpe := newListenToPluginEvent()
@@ -744,7 +745,6 @@ func TestMetricConfig(t *testing.T) {
 		m1 := MockMetricType{
 			namespace: []string{"intel", "dummy", "foo"},
 		}
-		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		metric, errs := c.validateMetricTypeSubscription(m1, cd)
 		Convey("So metric should be valid with config", func() {
 			So(errs, ShouldBeNil)
@@ -761,7 +761,9 @@ func TestCollectMetrics(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		c := New()
+		config := NewConfig()
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		c := New(OptSetConfig(config))
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		lpe := newListenToPluginEvent()
