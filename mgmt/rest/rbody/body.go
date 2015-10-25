@@ -111,6 +111,8 @@ func UnmarshalBody(t string, b []byte) (Body, error) {
 		return unmarshalAndHandleError(b, &TribeMemberShow{})
 	case TribeJoinAgreementType:
 		return unmarshalAndHandleError(b, &TribeJoinAgreement{})
+	case TribeLeaveAgreementType:
+		return unmarshalAndHandleError(b, &TribeLeaveAgreement{})
 	case TribeGetAgreementType:
 		return unmarshalAndHandleError(b, &TribeGetAgreement{})
 	case PluginConfigItemType:

@@ -110,8 +110,53 @@ func (s *Server) joinAgreement(w http.ResponseWriter, r *http.Request, p httprou
 		respond(400, rbody.FromPulseError(perr), w)
 		return
 	}
-	respond(200, &rbody.TribeJoinAgreement{}, w)
+	agreement, _ := s.tr.GetAgreement(name)
+	respond(200, &rbody.TribeJoinAgreement{Agreement: agreement}, w)
 
+}
+
+func (s *Server) leaveAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	tribeLogger = tribeLogger.WithField("_block", "leaveAgreement")
+	name := p.ByName("name")
+	if _, ok := s.tr.GetAgreements()[name]; !ok {
+		fields := map[string]interface{}{
+			"agreement_name": name,
+		}
+		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
+		respond(400, rbody.FromPulseError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		return
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		tribeLogger.Error(err)
+		respond(500, rbody.FromError(err), w)
+		return
+	}
+
+	m := struct {
+		MemberName string `json:"member_name"`
+	}{}
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		fields := map[string]interface{}{
+			"error": err,
+			"hint":  `The body of the request should be of the form '{"member_name": "some_value"}'`,
+		}
+		pe := perror.New(ErrInvalidJSON, fields)
+		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
+		respond(400, rbody.FromPulseError(pe), w)
+		return
+	}
+
+	perr := s.tr.LeaveAgreement(name, m.MemberName)
+	if perr != nil {
+		tribeLogger.Error(perr)
+		respond(400, rbody.FromPulseError(perr), w)
+		return
+	}
+	agreement, _ := s.tr.GetAgreement(name)
+	respond(200, &rbody.TribeLeaveAgreement{Agreement: agreement}, w)
 }
 
 func (s *Server) getMembers(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

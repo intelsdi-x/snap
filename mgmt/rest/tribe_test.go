@@ -95,6 +95,27 @@ func joinAgreement(port int, memberName, agreementName string) *rbody.APIRespons
 	return getAPIResponse(resp)
 }
 
+func leaveAgreement(port int, memberName, agreementName string) *rbody.APIResponse {
+	ja, err := json.Marshal(struct {
+		MemberName string `json:"member_name"`
+	}{
+		MemberName: memberName,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	b := bytes.NewReader(ja)
+	client := &http.Client{}
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/tribe/agreements/%s/leave", port, agreementName)
+	req, err := http.NewRequest("DELETE", uri, b)
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return getAPIResponse(resp)
+}
+
 func addAgreement(port int, name string) *rbody.APIResponse {
 	a, err := json.Marshal(struct {
 		Name string
@@ -419,6 +440,37 @@ func TestTribePluginAgreements(t *testing.T) {
 										}
 										wg.Wait()
 										So(timedOut, ShouldEqual, false)
+
+										Convey("A node leaves the agreement", func() {
+											leaveAgreement(mgtPorts[0], fmt.Sprintf("member-%d", mgtPorts[0]), aName)
+											var wg sync.WaitGroup
+											timedOut := false
+											for _, i := range mgtPorts {
+												timer := time.After(15 * time.Second)
+												wg.Add(1)
+												go func(port int, name string) {
+													defer wg.Done()
+													for {
+														select {
+														case <-timer:
+															timedOut = true
+															return
+														default:
+															resp := getAgreement(port, aName)
+															if resp.Meta.Code == 200 {
+																c.So(resp.Body.(*rbody.TribeGetAgreement), ShouldHaveSameTypeAs, new(rbody.TribeGetAgreement))
+																if len(resp.Body.(*rbody.TribeGetAgreement).Agreement.Members) == numOfNodes-1 {
+																	return
+																}
+															}
+															time.Sleep(200 * time.Millisecond)
+														}
+													}
+												}(i, fmt.Sprintf("member-%d", i))
+											}
+											wg.Wait()
+											So(timedOut, ShouldEqual, false)
+										})
 									})
 								})
 							})
