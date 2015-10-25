@@ -86,7 +86,7 @@ func joinAgreement(port int, memberName, agreementName string) *rbody.APIRespons
 	b := bytes.NewReader(ja)
 	client := &http.Client{}
 	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/tribe/agreements/%s/join", port, agreementName)
-	req, err := http.NewRequest("POST", uri, b)
+	req, err := http.NewRequest("PUT", uri, b)
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
