@@ -49,7 +49,7 @@ func (s *Server) getAgreements(w http.ResponseWriter, r *http.Request, _ httprou
 }
 
 func (s *Server) getAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	tribeLogger = tribeLogger.WithField("_block", "joinAgreement")
+	tribeLogger = tribeLogger.WithField("_block", "getAgreement")
 	name := p.ByName("name")
 	if _, ok := s.tr.GetAgreements()[name]; !ok {
 		fields := map[string]interface{}{
@@ -67,6 +67,29 @@ func (s *Server) getAgreement(w http.ResponseWriter, r *http.Request, p httprout
 		respond(400, rbody.FromPulseError(perr), w)
 		return
 	}
+	respond(200, a, w)
+}
+
+func (s *Server) deleteAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	tribeLogger = tribeLogger.WithField("_block", "deleteAgreement")
+	name := p.ByName("name")
+	if _, ok := s.tr.GetAgreements()[name]; !ok {
+		fields := map[string]interface{}{
+			"agreement_name": name,
+		}
+		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
+		respond(400, rbody.FromPulseError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		return
+	}
+	a := &rbody.TribeDeleteAgreement{}
+	var perr perror.PulseError
+	perr = s.tr.RemoveAgreement(name)
+	if perr != nil {
+		tribeLogger.Error(perr)
+		respond(400, rbody.FromPulseError(perr), w)
+		return
+	}
+	a.Agreements = s.tr.GetAgreements()
 	respond(200, a, w)
 }
 

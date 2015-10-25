@@ -97,6 +97,7 @@ type managesTribe interface {
 	GetAgreement(name string) (*agreement.Agreement, perror.PulseError)
 	GetAgreements() map[string]*agreement.Agreement
 	AddAgreement(name string) perror.PulseError
+	RemoveAgreement(name string) perror.PulseError
 	JoinAgreement(agreementName, memberName string) perror.PulseError
 	LeaveAgreement(agreementName, memberName string) perror.PulseError
 	GetMembers() []string
@@ -221,6 +222,7 @@ func (s *Server) addRoutes() {
 		s.r.GET("/v1/tribe/agreements", s.getAgreements)
 		s.r.POST("/v1/tribe/agreements", s.addAgreement)
 		s.r.GET("/v1/tribe/agreements/:name", s.getAgreement)
+		s.r.DELETE("/v1/tribe/agreements/:name", s.deleteAgreement)
 		s.r.PUT("/v1/tribe/agreements/:name/join", s.joinAgreement)
 		s.r.DELETE("/v1/tribe/agreements/:name/leave", s.leaveAgreement)
 		s.r.GET("/v1/tribe/members", s.getMembers)

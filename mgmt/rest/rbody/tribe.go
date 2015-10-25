@@ -22,14 +22,15 @@ package rbody
 import "github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 
 const (
-	TribeAgreementListType  = "tribe_agreement_list_returned"
-	TribeGetAgreementType   = "tribe_agreement_returned"
-	TribeAddAgreementType   = "tribe_agreement_created"
-	TribeAddMemberType      = "tribe_member_added"
-	TribeJoinAgreementType  = "tribe_agreement_joined"
-	TribeLeaveAgreementType = "tribe_agreement_left"
-	TribeMemberListType     = "tribe_member_list_returned"
-	TribeMemberShowType     = "tribe_member_details_returned"
+	TribeAgreementListType   = "tribe_agreement_list_returned"
+	TribeGetAgreementType    = "tribe_agreement_returned"
+	TribeAddAgreementType    = "tribe_agreement_created"
+	TribeDeleteAgreementType = "tribe_agreement_deleted"
+	TribeAddMemberType       = "tribe_member_added"
+	TribeJoinAgreementType   = "tribe_agreement_joined"
+	TribeLeaveAgreementType  = "tribe_agreement_left"
+	TribeMemberListType      = "tribe_member_list_returned"
+	TribeMemberShowType      = "tribe_member_details_returned"
 )
 
 type TribeAddAgreement struct {
@@ -54,6 +55,18 @@ func (t *TribeGetAgreement) ResponseBodyMessage() string {
 
 func (t *TribeGetAgreement) ResponseBodyType() string {
 	return TribeGetAgreementType
+}
+
+type TribeDeleteAgreement struct {
+	Agreements map[string]*agreement.Agreement `json:"agreements"`
+}
+
+func (t *TribeDeleteAgreement) ResponseBodyMessage() string {
+	return "Tribe agreement deleted"
+}
+
+func (t *TribeDeleteAgreement) ResponseBodyType() string {
+	return TribeDeleteAgreementType
 }
 
 type TribeAgreementList struct {
