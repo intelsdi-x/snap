@@ -108,7 +108,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 					return
 				}
 			}
-			files[i], err = writeFile(s.mm.GetAutodiscoverPaths(), p.FileName(), b, files[0])
+			files[i], err = writeFile(s.mm.GetAutodiscoverPaths(), p.FileName(), b)
 			if err != nil {
 				respond(500, rbody.FromError(err), w)
 				return
@@ -116,7 +116,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			i++
 		}
 		restLogger.Info("Loading plugin: ", files[0])
-		pl, err := s.mm.Load(files[0])
+		pl, err := s.mm.Load(files...)
 		if err != nil {
 			var ec int
 			restLogger.Error(err)
@@ -142,21 +142,17 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 }
 
-func writeFile(autoPaths []string, filename string, b []byte, fqfile string) (string, error) {
-	var f *os.File
-	var err error
+func writeFile(autoPaths []string, filename string, b []byte) (string, error) {
+	// Create temporary directory
+	dir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", err
+	}
 	if len(autoPaths) > 0 {
 		// write to first autoPath
-		f, err = os.Create(path.Join(autoPaths[0], filename))
-	} else {
-		// write to temp location for binary
-		if fqfile == "" {
-			f, err = ioutil.TempFile("", filename)
-		} else {
-			// write asc to same location as binary
-			f, err = os.Create(fqfile + ".asc")
-		}
+		dir = autoPaths[0]
 	}
+	f, err := os.Create(path.Join(dir, filename))
 	if err != nil {
 		return "", err
 	}
