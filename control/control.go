@@ -259,31 +259,25 @@ func (p *pluginControl) Load(files ...string) (core.CatalogedPlugin, perror.Puls
 	var signed bool
 	var pluginPath, signatureFile string
 
+	pluginPath = files[0]
+	signatureFile = ""
+	if len(files) == 2 {
+		signatureFile = files[1]
+	}
 	switch p.pluginTrust {
 	case PluginTrustDisabled:
-		pluginPath = files[0]
-		signatureFile = ""
 		signed = false
 	case PluginTrustEnabled:
-		if len(files) != 2 {
-			return nil, perror.New(fmt.Errorf("Plugin file and signature file required when plugin trust is enabled"))
-		}
-		pluginPath = files[0]
-		signatureFile = files[1]
 		err := p.signingManager.ValidateSignature(p.keyringFile, pluginPath, signatureFile)
 		if err != nil {
 			return nil, perror.New(err)
 		}
 		signed = true
 	case PluginTrustWarn:
-		if len(files) == 1 {
-			pluginPath = files[0]
-			signatureFile = ""
+		if signatureFile == "" {
 			signed = false
 			controlLogger.WithFields(f).Warn("Loading unsigned plugin ", pluginPath)
 		} else {
-			pluginPath = files[0]
-			signatureFile = files[1]
 			err := p.signingManager.ValidateSignature(p.keyringFile, pluginPath, signatureFile)
 			if err != nil {
 				return nil, perror.New(err)
