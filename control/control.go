@@ -254,6 +254,9 @@ func (p *pluginControl) Load(files ...string) (core.CatalogedPlugin, perror.Puls
 	f := map[string]interface{}{
 		"_block": "load",
 	}
+	if len(files) > 2 {
+		return nil, perror.New(errors.New("Load plugin limited to a single plugin plus signature file if plugin is signed"))
+	}
 
 	//Check plugin signing
 	var signed bool
