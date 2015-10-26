@@ -22,6 +22,7 @@ package control
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -277,7 +278,7 @@ func (p *pluginControl) Load(files ...string) (core.CatalogedPlugin, perror.Puls
 		}
 		signed = true
 	case PluginTrustWarn:
-		if signatureFile == "" {
+		if _, err := os.Stat(signatureFile); err != nil {
 			signed = false
 			controlLogger.WithFields(f).Warn("Loading unsigned plugin ", pluginPath)
 		} else {
