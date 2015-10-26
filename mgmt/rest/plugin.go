@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -122,7 +123,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			restLogger.Error(err)
 			for _, f := range files {
 				restLogger.Debugf("Removing file (%s) after failure to load plugin (%s)", f, files[0])
-				err := os.Remove(f)
+				err := os.RemoveAll(filepath.Dir(f))
 				if err != nil {
 					restLogger.Error(err)
 				}
