@@ -108,7 +108,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 					return
 				}
 			}
-			files[i], err = writeFile(s.mm.GetAutodiscoverPaths(), p.FileName(), b)
+			files[i], err = writeFile(p.FileName(), b)
 			if err != nil {
 				respond(500, rbody.FromError(err), w)
 				return
@@ -142,15 +142,11 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 }
 
-func writeFile(autoPaths []string, filename string, b []byte) (string, error) {
+func writeFile(filename string, b []byte) (string, error) {
 	// Create temporary directory
 	dir, err := ioutil.TempDir("", "")
 	if err != nil {
 		return "", err
-	}
-	if len(autoPaths) > 0 {
-		// write to first autoPath
-		dir = autoPaths[0]
 	}
 	f, err := os.Create(path.Join(dir, filename))
 	if err != nil {
