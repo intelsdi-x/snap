@@ -103,8 +103,8 @@ func UnmarshalBody(t string, b []byte) (Body, error) {
 		return unmarshalAndHandleError(b, &ScheduledTaskWatchingEnded{})
 	case TribeMemberListType:
 		return unmarshalAndHandleError(b, &TribeMemberList{})
-	case TribeAgreementListType:
-		return unmarshalAndHandleError(b, &TribeAgreementList{})
+	case TribeListAgreementType:
+		return unmarshalAndHandleError(b, &TribeListAgreement{})
 	case TribeAddAgreementType:
 		return unmarshalAndHandleError(b, &TribeAddAgreement{})
 	case TribeDeleteAgreementType:

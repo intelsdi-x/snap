@@ -22,7 +22,7 @@ package rbody
 import "github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 
 const (
-	TribeAgreementListType   = "tribe_agreement_list_returned"
+	TribeListAgreementType   = "tribe_agreement_list_returned"
 	TribeGetAgreementType    = "tribe_agreement_returned"
 	TribeAddAgreementType    = "tribe_agreement_created"
 	TribeDeleteAgreementType = "tribe_agreement_deleted"
@@ -34,7 +34,7 @@ const (
 )
 
 type TribeAddAgreement struct {
-	Name string
+	Agreements map[string]*agreement.Agreement `json:"agreements"`
 }
 
 func (t *TribeAddAgreement) ResponseBodyMessage() string {
@@ -69,16 +69,16 @@ func (t *TribeDeleteAgreement) ResponseBodyType() string {
 	return TribeDeleteAgreementType
 }
 
-type TribeAgreementList struct {
+type TribeListAgreement struct {
 	Agreements map[string]*agreement.Agreement `json:"agreements"`
 }
 
-func (t *TribeAgreementList) ResponseBodyMessage() string {
+func (t *TribeListAgreement) ResponseBodyMessage() string {
 	return "Tribe agreements retrieved"
 }
 
-func (t *TribeAgreementList) ResponseBodyType() string {
-	return TribeAgreementListType
+func (t *TribeListAgreement) ResponseBodyType() string {
+	return TribeListAgreementType
 }
 
 type TribeJoinAgreement struct {

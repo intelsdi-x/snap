@@ -43,7 +43,7 @@ var (
 )
 
 func (s *Server) getAgreements(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	res := &rbody.TribeAgreementList{}
+	res := &rbody.TribeListAgreement{}
 	res.Agreements = s.tr.GetAgreements()
 	respond(200, res, w)
 }
@@ -81,7 +81,7 @@ func (s *Server) deleteAgreement(w http.ResponseWriter, r *http.Request, p httpr
 		respond(400, rbody.FromPulseError(perror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
-	a := &rbody.TribeDeleteAgreement{}
+
 	var perr perror.PulseError
 	perr = s.tr.RemoveAgreement(name)
 	if perr != nil {
@@ -89,6 +89,8 @@ func (s *Server) deleteAgreement(w http.ResponseWriter, r *http.Request, p httpr
 		respond(400, rbody.FromPulseError(perr), w)
 		return
 	}
+
+	a := &rbody.TribeDeleteAgreement{}
 	a.Agreements = s.tr.GetAgreements()
 	respond(200, a, w)
 }
@@ -206,8 +208,10 @@ func (s *Server) getMember(w http.ResponseWriter, r *http.Request, p httprouter.
 	if member.PluginAgreement != nil {
 		resp.PluginAgreement = member.PluginAgreement.Name
 	}
-	for k, _ := range member.TaskAgreements {
-		resp.TaskAgreements = append(resp.TaskAgreements, k)
+	for k, t := range member.TaskAgreements {
+		if len(t.Tasks) > 0 {
+			resp.TaskAgreements = append(resp.TaskAgreements, k)
+		}
 	}
 	respond(200, resp, w)
 }
@@ -226,7 +230,7 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 	if err != nil {
 		fields := map[string]interface{}{
 			"error": err,
-			"hint":  `The body of the request should be of the form '{"name": "some_value"}'`,
+			"hint":  `The body of the request should be of the form '{"name": "agreement_name"}'`,
 		}
 		pe := perror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
@@ -236,7 +240,7 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 
 	if a.Name == "" {
 		fields := map[string]interface{}{
-			"hint": `The body of the request should be of the form '{"name": "some_value"}'`,
+			"hint": `The body of the request should be of the form '{"name": "agreement_name"}'`,
 		}
 		pe := perror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
@@ -251,5 +255,8 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 		return
 	}
 
-	respond(200, &rbody.TribeAddAgreement{Name: a.Name}, w)
+	res := &rbody.TribeAddAgreement{}
+	res.Agreements = s.tr.GetAgreements()
+
+	respond(200, res, w)
 }

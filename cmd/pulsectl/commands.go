@@ -142,6 +142,60 @@ var (
 			},
 		},
 	}
+
+	tribeCommands = []cli.Command{
+		{
+			Name: "member",
+			Subcommands: []cli.Command{
+				{
+					Name:   "list",
+					Usage:  "list",
+					Action: listMembers,
+				},
+				{
+					Name:   "show",
+					Usage:  "show <member_name>",
+					Action: showMember,
+					Flags:  []cli.Flag{flVerbose},
+				},
+			},
+		},
+		{
+			Name: "agreement",
+			Subcommands: []cli.Command{
+				{
+					Name:   "list",
+					Usage:  "list",
+					Action: listAgreements,
+				},
+				{
+					Name:   "create",
+					Usage:  "create <agreement_name>",
+					Action: createAgreement,
+				},
+				{
+					Name:   "delete",
+					Usage:  "delete <agreement_name>",
+					Action: deleteAgreement,
+				},
+				{
+					Name:   "join",
+					Usage:  "join <agreement_name> <member_name>",
+					Action: joinAgreement,
+				},
+				{
+					Name:   "leave",
+					Usage:  "leave <agreement_name> <member_name>",
+					Action: leaveAgreement,
+				},
+				{
+					Name:   "members",
+					Usage:  "members <agreement_name>",
+					Action: agreementMembers,
+				},
+			},
+		},
+	}
 )
 
 func printFields(tw *tabwriter.Writer, indent bool, width int, fields ...interface{}) {
@@ -156,4 +210,22 @@ func printFields(tw *tabwriter.Writer, indent bool, width int, fields ...interfa
 		}
 	}
 	fmt.Fprintln(tw, argArray...)
+}
+
+type ByCommand []cli.Command
+
+func (s ByCommand) Len() int {
+	return len(s)
+}
+func (s ByCommand) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByCommand) Less(i, j int) bool {
+	if s[i].Name == "help" {
+		return false
+	}
+	if s[j].Name == "help" {
+		return true
+	}
+	return s[i].Name < s[j].Name
 }

@@ -504,8 +504,8 @@ func TestTribePluginAgreements(t *testing.T) {
 																default:
 																	resp := getAgreements(port)
 																	if resp.Meta.Code == 200 {
-																		c.So(resp.Body.(*rbody.TribeAgreementList), ShouldHaveSameTypeAs, new(rbody.TribeAgreementList))
-																		if len(resp.Body.(*rbody.TribeAgreementList).Agreements) == 0 {
+																		c.So(resp.Body.(*rbody.TribeListAgreement), ShouldHaveSameTypeAs, new(rbody.TribeListAgreement))
+																		if len(resp.Body.(*rbody.TribeListAgreement).Agreements) == 0 {
 																			return
 																		}
 																	}

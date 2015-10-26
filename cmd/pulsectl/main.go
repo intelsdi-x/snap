@@ -21,6 +21,7 @@ package main
 
 import (
 	"os"
+	"sort"
 	"time"
 
 	"github.com/codegangsta/cli"
@@ -46,6 +47,11 @@ func main() {
 		if pClient == nil {
 			pClient = client.New(c.GlobalString("url"), c.GlobalString("api-version"), c.GlobalBool("insecure"))
 		}
+		resp := pClient.ListAgreements()
+		if resp.Err == nil {
+			app.Commands = append(app.Commands, tribeCommands...)
+		}
+		sort.Sort(ByCommand(app.Commands))
 		return nil
 	}
 
