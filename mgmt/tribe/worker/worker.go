@@ -27,6 +27,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -246,7 +247,12 @@ func (w worker) start() {
 							if resp.Header.Get("Content-Type") != "application/x-gzip" {
 								wLogger.WithField("content-type", resp.Header.Get("Content-Type")).Error("Expected application/x-gzip")
 							}
-							f, err := ioutil.TempFile("", fmt.Sprintf("%s-%s-%d", work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version()))
+							dir, err := ioutil.TempDir("", "")
+							if err != nil {
+								wLogger.Error(err)
+								continue
+							}
+							f, err := os.Create(path.Join(dir, fmt.Sprintf("%s-%s-%d", work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version())))
 							if err != nil {
 								wLogger.Error(err)
 								f.Close()
