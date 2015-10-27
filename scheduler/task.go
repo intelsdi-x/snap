@@ -211,6 +211,7 @@ func (t *task) Stop() {
 	t.Lock()
 	defer t.Unlock()
 	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
+		t.state = core.TaskStopping
 		close(t.killChan)
 	}
 }
