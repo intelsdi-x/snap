@@ -146,14 +146,15 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 
 // the struct representing a plugin that is loaded into Pulse
 type loadedPlugin struct {
-	Meta         plugin.PluginMeta
-	Path         string
-	Type         plugin.PluginType
-	Signed       bool
-	State        pluginState
-	Token        string
-	LoadedTime   time.Time
-	ConfigPolicy *cpolicy.ConfigPolicy
+	Meta          plugin.PluginMeta
+	Path          string
+	Type          plugin.PluginType
+	Signed        bool
+	SignatureFile string
+	State         pluginState
+	Token         string
+	LoadedTime    time.Time
+	ConfigPolicy  *cpolicy.ConfigPolicy
 }
 
 // returns plugin name
@@ -442,8 +443,8 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 			"plugin-version": plugin.Version(),
 			"plugin-path":    plugin.Path,
 		}).Debugf("Removing plugin")
-		if err := os.Remove(plugin.Path); err != nil {
-			runnerLog.WithFields(log.Fields{
+		if err := os.RemoveAll(filepath.Dir(plugin.Path)); err != nil {
+			pmLogger.WithFields(log.Fields{
 				"plugin-type":    plugin.TypeName(),
 				"plugin-name":    plugin.Name(),
 				"plugin-version": plugin.Version(),
@@ -457,6 +458,31 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 				"plugin-path":    plugin.Path,
 			})
 			return nil, pe
+		}
+		if plugin.SignatureFile != "" {
+			pmLogger.WithFields(log.Fields{
+				"plugin-type":           plugin.TypeName(),
+				"plugin-name":           plugin.Name(),
+				"plugin-version":        plugin.Version(),
+				"plugin-signature-file": plugin.SignatureFile,
+			}).Debugf("Removing plugin signature file")
+
+			if err := os.RemoveAll(filepath.Dir(plugin.SignatureFile)); err != nil {
+				pmLogger.WithFields(log.Fields{
+					"plugin-type":           plugin.TypeName(),
+					"plugin-name":           plugin.Name(),
+					"plugin-version":        plugin.Version(),
+					"plugin-signature-file": plugin.SignatureFile,
+				}).Error(err)
+				pe := perror.New(err)
+				pe.SetFields(map[string]interface{}{
+					"plugin-type":           plugin.TypeName(),
+					"plugin-name":           plugin.Name(),
+					"plugin-version":        plugin.Version(),
+					"plugin-signature-file": plugin.SignatureFile,
+				})
+				return nil, pe
+			}
 		}
 	}
 

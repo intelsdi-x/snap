@@ -22,6 +22,7 @@ package control
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -250,28 +251,46 @@ func (p *pluginControl) Stop() {
 // Load is the public method to load a plugin into
 // the LoadedPlugins array and issue an event when
 // successful.
-func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseError) {
+func (p *pluginControl) Load(files ...string) (core.CatalogedPlugin, perror.PulseError) {
 	f := map[string]interface{}{
 		"_block": "load",
-		"path":   path,
+	}
+	if len(files) > 2 {
+		return nil, perror.New(errors.New("Load plugin limited to a single plugin plus signature file if plugin is signed"))
 	}
 
 	//Check plugin signing
-	signatureFile := path + ".asc"
 	var signed bool
-	if p.pluginTrust == PluginTrustEnabled || p.pluginTrust == PluginTrustWarn {
-		err := p.signingManager.ValidateSignature(p.keyringFile, path, signatureFile)
+	var pluginPath, signatureFile string
+
+	pluginPath = files[0]
+	signatureFile = ""
+	if len(files) == 2 {
+		signatureFile = files[1]
+	}
+	switch p.pluginTrust {
+	case PluginTrustDisabled:
+		signed = false
+	case PluginTrustEnabled:
+		err := p.signingManager.ValidateSignature(p.keyringFile, pluginPath, signatureFile)
 		if err != nil {
-			if p.pluginTrust == PluginTrustEnabled {
+			return nil, perror.New(err)
+		}
+		signed = true
+	case PluginTrustWarn:
+		if _, err := os.Stat(signatureFile); err != nil {
+			signed = false
+			controlLogger.WithFields(f).Warn("Loading unsigned plugin ", pluginPath)
+		} else {
+			err := p.signingManager.ValidateSignature(p.keyringFile, pluginPath, signatureFile)
+			if err != nil {
 				return nil, perror.New(err)
 			}
-			controlLogger.WithFields(f).Error(err)
-		} else {
 			signed = true
 		}
 	}
 
-	path, _, err := unpackage.Unpackager(path)
+	path, _, err := unpackage.Unpackager(pluginPath)
 	if err != nil {
 		return nil, perror.New(err)
 	}
@@ -289,6 +308,7 @@ func (p *pluginControl) Load(path string) (core.CatalogedPlugin, perror.PulseErr
 		return nil, pe
 	}
 	pl.Signed = signed
+	pl.SignatureFile = signatureFile
 
 	// defer sending event
 	event := &control_event.LoadPluginEvent{

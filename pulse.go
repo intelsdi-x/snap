@@ -401,11 +401,10 @@ func action(ctx *cli.Context) {
 	//Autodiscover
 	if autodiscoverPath != "" {
 		log.Info("auto discover path is enabled")
-		log.Info("autoloading plugins from: ", autodiscoverPath)
 		paths := filepath.SplitList(autodiscoverPath)
 		c.SetAutodiscoverPaths(paths)
 		for _, path := range paths {
-			files, err := ioutil.ReadDir(path)
+			fullPath, err := filepath.Abs(path)
 			if err != nil {
 				log.WithFields(
 					log.Fields{
@@ -415,12 +414,23 @@ func action(ctx *cli.Context) {
 					}).Fatal(err)
 				os.Exit(1)
 			}
+			log.Info("autoloading plugins from: ", fullPath)
+			files, err := ioutil.ReadDir(fullPath)
+			if err != nil {
+				log.WithFields(
+					log.Fields{
+						"_block":           "main",
+						"_module":          "pulsed",
+						"autodiscoverpath": fullPath,
+					}).Fatal(err)
+				os.Exit(1)
+			}
 			for _, file := range files {
 				if file.IsDir() {
 					continue
 				}
 				if strings.HasSuffix(file.Name(), ".aci") || !(strings.HasSuffix(file.Name(), ".asc")) {
-					pl, err := c.Load(fmt.Sprintf("%s/%s", path, file.Name()))
+					pl, err := c.Load(fullPath+"/"+file.Name(), fullPath+"/"+file.Name()+".asc")
 					if err != nil {
 						log.WithFields(log.Fields{
 							"_block":           "main",
