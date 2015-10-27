@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 	"text/tabwriter"
@@ -332,6 +333,7 @@ func watchTask(ctx *cli.Context) {
 		case e := <-r.EventChan:
 			switch e.EventType {
 			case "metric-event":
+				sort.Sort(e.Event)
 				for _, event := range e.Event {
 					printFields(w, false, 0,
 						event.Namespace,
