@@ -30,6 +30,7 @@ import (
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/pulse/core/perror"
 )
 
 var (
@@ -70,6 +71,25 @@ func TestLoadedPlugins(t *testing.T) {
 	})
 }
 
+func loadPlugin(p *pluginManager, path string) (*loadedPlugin, perror.PulseError) {
+	// This is a Travis optimized loading of plugins. From time to time, tests will error in Travis
+	// due to a timeout when waiting for a response from a plugin. We are going to attempt loading a plugin
+	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
+	var e perror.PulseError
+	var lp *loadedPlugin
+	for i := 0; i < 3; i++ {
+		lp, e = p.LoadPlugin(path, nil)
+		if e == nil {
+			break
+		}
+		if e != nil && i == 2 {
+			return nil, e
+
+		}
+	}
+	return lp, nil
+}
+
 // Uses the dummy collector plugin to simulate loading
 func TestLoadPlugin(t *testing.T) {
 	// These tests only work if PULSE_PATH is known
@@ -82,7 +102,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := p.LoadPlugin(PluginPath, nil)
+				lp, err := loadPlugin(p, PluginPath)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.all(), ShouldNotBeEmpty)
@@ -95,7 +115,7 @@ func TestLoadPlugin(t *testing.T) {
 				cfg.Plugins.Collector.Plugins["dummy2"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := p.LoadPlugin(PluginPath, nil)
+				lp, err := loadPlugin(p, PluginPath)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.all(), ShouldNotBeEmpty)
@@ -111,7 +131,7 @@ func TestLoadPlugin(t *testing.T) {
 				cfg.Plugins.Collector.Plugins["dummy2"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := p.LoadPlugin(PluginPath, nil)
+				lp, err := loadPlugin(p, PluginPath)
 
 				So(lp, ShouldBeNil)
 				So(p.all(), ShouldBeEmpty)
@@ -123,7 +143,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads json-rpc plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := p.LoadPlugin(JSONRPC_PluginPath, nil)
+				lp, err := loadPlugin(p, JSONRPC_PluginPath)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.loadedPlugins, ShouldNotBeEmpty)
@@ -134,20 +154,12 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin with cache TTL set", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := p.LoadPlugin(JSONRPC_PluginPath, nil)
+				lp, err := loadPlugin(p, JSONRPC_PluginPath)
 
 				So(err, ShouldBeNil)
 				So(lp.Meta.CacheTTL, ShouldNotBeNil)
 				So(lp.Meta.CacheTTL, ShouldResemble, time.Duration(time.Millisecond*100))
 			})
-
-			// Convey("error is returned on a bad PluginPath", func() {
-			// 	p := newPluginManager()
-			// 	lp, err := p.LoadPlugin("", nil)
-
-			// 	So(lp, ShouldBeNil)
-			// 	So(err, ShouldNotBeNil)
-			// })
 
 		})
 
@@ -162,7 +174,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then it is removed from the loadedPlugins", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := p.LoadPlugin(PluginPath, nil)
+					_, err := loadPlugin(p, PluginPath)
 					So(err, ShouldBeNil)
 
 					numPluginsLoaded := len(p.all())
@@ -179,7 +191,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					lp, err := p.LoadPlugin(PluginPath, nil)
+					lp, err := loadPlugin(p, PluginPath)
 					glp, err2 := p.get("collector:dummy2:2")
 					So(err2, ShouldBeNil)
 					glp.State = DetectedState
@@ -192,7 +204,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := p.LoadPlugin(PluginPath, nil)
+					_, err := loadPlugin(p, PluginPath)
 
 					lp, err2 := p.get("collector:dummy2:2")
 					So(err2, ShouldBeNil)
