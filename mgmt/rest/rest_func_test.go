@@ -473,6 +473,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 				col := core.CollectorPluginType
+				pub := core.PublisherPluginType
 				Convey("A global plugin config is added for all plugins", func() {
 					cdn := cdata.NewNode()
 					cdn.AddItem("password", ctypes.ConfigValueStr{Value: "p@ssw0rd"})
@@ -508,11 +509,21 @@ func TestPluginRestCalls(t *testing.T) {
 							Convey("A plugin config is added for a specific version of a publisher", func() {
 								cdn := cdata.NewNode()
 								cdn.AddItem("rate", ctypes.ConfigValueFloat{Value: .8})
-								r := setPluginConfigItem(port, core.PublisherPluginType.String(), "influxdb", "", cdn)
+								r := setPluginConfigItem(port, core.PublisherPluginType.String(), "influxdb", "1", cdn)
 								So(r.Body, ShouldHaveSameTypeAs, &rbody.SetPluginConfigItem{})
 								r1 := r.Body.(*rbody.SetPluginConfigItem)
 								So(r1.Table()["rate"], ShouldResemble, ctypes.ConfigValueFloat{Value: .8})
 								So(len(r1.Table()), ShouldEqual, 4)
+
+								r2 := getPluginConfigItem(port, &pub, "", "")
+								So(r2.Body, ShouldHaveSameTypeAs, &rbody.PluginConfigItem{})
+								r3 := r2.Body.(*rbody.PluginConfigItem)
+								So(len(r3.Table()), ShouldEqual, 2)
+
+								r4 := getPluginConfigItem(port, &pub, "influxdb", "1")
+								So(r4.Body, ShouldHaveSameTypeAs, &rbody.PluginConfigItem{})
+								r5 := r4.Body.(*rbody.PluginConfigItem)
+								So(len(r5.Table()), ShouldEqual, 4)
 
 								Convey("A global plugin config field is deleted", func() {
 									r := deletePluginConfigItem(port, "", "", "", []string{"password"})
