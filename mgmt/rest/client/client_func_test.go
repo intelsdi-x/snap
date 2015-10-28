@@ -85,6 +85,7 @@ func startAPI(port int) string {
 	s := scheduler.New()
 	s.SetMetricManager(c)
 	s.Start()
+	r.BindConfigManager(c.Config)
 	r.BindMetricManager(c)
 	r.BindTaskManager(s)
 	r.Start(":" + fmt.Sprint(port))
