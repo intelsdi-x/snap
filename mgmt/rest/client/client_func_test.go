@@ -248,7 +248,7 @@ func TestPulseClient(t *testing.T) {
 			So(p3.Err, ShouldBeNil)
 			So(p3.LoadedPlugins, ShouldNotBeEmpty)
 			So(p3.LoadedPlugins[0].Name, ShouldEqual, "file")
-			So(p3.LoadedPlugins[0].Version, ShouldEqual, 1)
+			So(p3.LoadedPlugins[0].Version, ShouldEqual, 2)
 			So(p3.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
 		Convey("there should be three loaded plugins", func() {
@@ -451,10 +451,10 @@ func TestPulseClient(t *testing.T) {
 			So(p2.Version, ShouldEqual, 2)
 			So(p2.Type, ShouldEqual, "collector")
 
-			p3 := c.UnloadPlugin("publisher", "file", 1)
+			p3 := c.UnloadPlugin("publisher", "file", 2)
 			So(p3.Err, ShouldBeNil)
 			So(p3.Name, ShouldEqual, "file")
-			So(p3.Version, ShouldEqual, 1)
+			So(p3.Version, ShouldEqual, 2)
 			So(p3.Type, ShouldEqual, "publisher")
 		})
 		Convey("unload when only one plugin loaded", func() {
