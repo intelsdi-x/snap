@@ -196,6 +196,18 @@ func (p *pluginConfig) mergePluginConfigDataNode(pluginType core.PluginType, nam
 			}
 			res.Merge(cdn)
 			return
+		} else {
+			if name != "" {
+				cn := cdata.NewNode()
+				cn.Merge(cdn)
+				p.Collector.Plugins[name] = newPluginConfigItem()
+				if ver > 0 {
+					p.Collector.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
+					return
+				}
+				p.Collector.Plugins[name].ConfigDataNode = cn
+				return
+			}
 		}
 		p.Collector.All.Merge(cdn)
 	case core.ProcessorPluginType:
@@ -206,6 +218,18 @@ func (p *pluginConfig) mergePluginConfigDataNode(pluginType core.PluginType, nam
 			}
 			res.Merge(cdn)
 			return
+		} else {
+			if name != "" {
+				cn := cdata.NewNode()
+				cn.Merge(cdn)
+				p.Processor.Plugins[name] = newPluginConfigItem()
+				if ver > 0 {
+					p.Processor.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
+					return
+				}
+				p.Processor.Plugins[name].ConfigDataNode = cn
+				return
+			}
 		}
 		p.Processor.All.Merge(cdn)
 	case core.PublisherPluginType:
@@ -216,6 +240,18 @@ func (p *pluginConfig) mergePluginConfigDataNode(pluginType core.PluginType, nam
 			}
 			res.Merge(cdn)
 			return
+		} else {
+			if name != "" {
+				cn := cdata.NewNode()
+				cn.Merge(cdn)
+				p.Publisher.Plugins[name] = newPluginConfigItem()
+				if ver > 0 {
+					p.Publisher.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
+					return
+				}
+				p.Publisher.Plugins[name].ConfigDataNode = cn
+				return
+			}
 		}
 		p.Publisher.All.Merge(cdn)
 	}

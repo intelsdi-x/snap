@@ -195,6 +195,21 @@ var (
 				},
 			},
 		},
+		{
+			Name: "plugin-config",
+			Subcommands: []cli.Command{
+				{
+					Name:   "get",
+					Usage:  "get",
+					Action: getConfig,
+					Flags: []cli.Flag{
+						flPluginName,
+						flPluginType,
+						flPluginVersion,
+					},
+				},
+			},
+		},
 	}
 )
 
