@@ -307,8 +307,7 @@ func watchTask(ctx *cli.Context) {
 	id := ctx.Args().First()
 	r := pClient.WatchTask(id)
 	if r.Err != nil {
-		fmt.Printf("Error starting task:\n%v\n", r.Err)
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		fmt.Println(r.Err)
 		os.Exit(1)
 	}
 	fmt.Printf("Watching Task (%s):\n", id)
