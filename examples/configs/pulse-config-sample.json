@@ -21,9 +21,9 @@
                 "versions": {
                     "1": {
                         "user": "john",
-                        "int": 1234,
-                        "float": 3.14,
-                        "flag": true
+                        "someint": 1234,
+                        "somefloat": 3.14,
+                        "somebool": true
                     }
                 }
             },

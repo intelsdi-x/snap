@@ -82,9 +82,9 @@ func TestPluginConfig(t *testing.T) {
 					So(c, ShouldNotBeNil)
 					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
 					So(c.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
-					So(c.Table()["float"], ShouldResemble, ctypes.ConfigValueFloat{Value: 3.14})
-					So(c.Table()["int"], ShouldResemble, ctypes.ConfigValueInt{Value: 1234})
-					So(c.Table()["flag"], ShouldResemble, ctypes.ConfigValueBool{Value: true})
+					So(c.Table()["somefloat"], ShouldResemble, ctypes.ConfigValueFloat{Value: 3.14})
+					So(c.Table()["someint"], ShouldResemble, ctypes.ConfigValueInt{Value: 1234})
+					So(c.Table()["somebool"], ShouldResemble, ctypes.ConfigValueBool{Value: true})
 				})
 				Convey("Getting the common config for collectors", func() {
 					c := cfg.Plugins.getPluginConfigDataNode(core.CollectorPluginType, "", -2)
