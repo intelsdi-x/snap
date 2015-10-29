@@ -470,7 +470,7 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 func (s *scheduler) getTask(id string) (*task, error) {
 	task := s.tasks.Get(id)
 	if task == nil {
-		return nil, fmt.Errorf("No task found with id '%v'", id)
+		return nil, fmt.Errorf("No task found with ID '%v'", id)
 	}
 	return task, nil
 }

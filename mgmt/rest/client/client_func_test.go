@@ -143,12 +143,12 @@ func TestPulseClient(t *testing.T) {
 			Convey("StopTask", func() {
 				t1 := c.StopTask(uuid)
 				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with ID '%s' ", uuid))
 			})
 			Convey("RemoveTask", func() {
 				t1 := c.RemoveTask(uuid)
 				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("No task found with ID '%s'", uuid))
 			})
 			Convey("invalid task (missing metric)", func() {
 				tt := c.CreateTask(sch, wf, "baron", true)
@@ -360,6 +360,37 @@ func TestPulseClient(t *testing.T) {
 				So(et.Err.Error(), ShouldEqual, "Task must be disabled")
 			})
 			Convey("WatchTasks", func() {
+				Convey("invalid task ID", func() {
+					rest.StreamingBufferWindow = 0.01
+
+					type ea struct {
+						events []string
+						sync.Mutex
+					}
+
+					a := new(ea)
+					r := c.WatchTask("1")
+
+					wait := make(chan struct{})
+					go func() {
+						for {
+							select {
+							case e := <-r.EventChan:
+								a.Lock()
+								a.events = append(a.events, e.EventType)
+								if len(a.events) == 5 {
+									r.Close()
+								}
+								a.Unlock()
+							case <-r.DoneChan:
+								close(wait)
+								return
+							}
+						}
+					}()
+					<-wait
+					So(r.Err.Error(), ShouldEqual, "No task found with ID '1'")
+				})
 				Convey("event stream", func() {
 					rest.StreamingBufferWindow = 0.01
 					sch := &Schedule{Type: "simple", Interval: "500ms"}

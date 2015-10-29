@@ -22,6 +22,7 @@ package client
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -90,9 +91,20 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 
 	url := fmt.Sprintf("%s/tasks/%v/watch", c.prefix, id)
 	resp, err := http.Get(url)
-
 	if err != nil {
 		r.Err = err
+		r.Close()
+		return r
+	}
+	if resp.StatusCode != 200 {
+		ar, err := httpRespToAPIResp(resp)
+		if err != nil {
+			r.Err = err
+		} else {
+			r.Err = errors.New(ar.Meta.Message)
+		}
+		r.Close()
+		return r
 	}
 
 	// Start watching
