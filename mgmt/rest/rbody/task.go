@@ -238,9 +238,9 @@ func (s *ScheduledTaskWatchingEnded) ResponseBodyType() string {
 
 type StreamedTaskEvent struct {
 	// Used to describe the event
-	EventType string           `json:"type"`
-	Message   string           `json:"message"`
-	Event     []StreamedMetric `json:"event,omitempty"`
+	EventType string          `json:"type"`
+	Message   string          `json:"message"`
+	Event     StreamedMetrics `json:"event,omitempty"`
 }
 
 func (s *StreamedTaskEvent) ToJSON() string {
@@ -253,4 +253,18 @@ type StreamedMetric struct {
 	Data      interface{} `json:"data"`
 	Source    string      `json:"source"`
 	Timestamp time.Time   `json:"timestamp"`
+}
+
+type StreamedMetrics []StreamedMetric
+
+func (s StreamedMetrics) Len() int {
+	return len(s)
+}
+
+func (s StreamedMetrics) Less(i, j int) bool {
+	return fmt.Sprintf("%s:%s", s[i].Source, s[i].Namespace) < fmt.Sprintf("%s:%s", s[j].Source, s[j].Namespace)
+}
+
+func (s StreamedMetrics) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
