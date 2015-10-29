@@ -94,590 +94,403 @@ func startAPI(port int) string {
 
 func TestPulseClient(t *testing.T) {
 	CompressUpload = false
-	Convey("REST API functional V1", t, func() {
-		Convey("GetPlugins", func() {
-			Convey("empty version", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "", true)
-				So(c.Version, ShouldEqual, "v1")
+	port := getPort()
+	uri := startAPI(port)
+	c := New(uri, "v1", true)
+	wf := getWMFromSample("1.json")
+	sch := &Schedule{Type: "simple", Interval: "1s"}
+	uuid := uuid.New()
+
+	Convey("Testing API after startup", t, func() {
+		Convey("empty version", func() {
+			c := New(uri, "", true)
+			So(c.Version, ShouldEqual, "v1")
+		})
+		Convey("no loaded plugins", func() {
+			p := c.GetPlugins(false)
+			p2 := c.GetPlugins(true)
+
+			So(p.Err, ShouldBeNil)
+			So(p2.Err, ShouldBeNil)
+			So(len(p.LoadedPlugins), ShouldEqual, 0)
+			So(p.AvailablePlugins, ShouldBeEmpty)
+			So(len(p2.LoadedPlugins), ShouldEqual, 0)
+			So(p2.AvailablePlugins, ShouldBeEmpty)
+
+			_, err := c.pluginUploadRequest([]string{""})
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "stat : no such file or directory")
+		})
+		Convey("empty catalog", func() {
+			m := c.GetMetricCatalog()
+			So(m.Err, ShouldBeNil)
+			So(m.Len(), ShouldEqual, 0)
+		})
+		Convey("load directory error", func() {
+			p := c.LoadPlugin(DIRECTORY_PATH)
+			So(p.Err, ShouldNotBeNil)
+			So(p.LoadedPlugins, ShouldBeEmpty)
+			So(p.Err.Error(), ShouldEqual, "Provided plugin path is a directory not file")
+		})
+		Convey("unknown task", func() {
+			Convey("GetTask/GetTasks", func() {
+				t1 := c.GetTask(uuid)
+				t2 := c.GetTasks()
+				So(t1.Err, ShouldNotBeNil)
+				So(t2.Err, ShouldBeNil)
 			})
-			Convey("empty list", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-				p := c.GetPlugins(false)
-				p2 := c.GetPlugins(true)
-
-				So(p.Err, ShouldBeNil)
-				So(p2.Err, ShouldBeNil)
-				So(len(p.LoadedPlugins), ShouldEqual, 0)
-				So(p.AvailablePlugins, ShouldBeEmpty)
-				So(len(p2.LoadedPlugins), ShouldEqual, 0)
-				So(p2.AvailablePlugins, ShouldBeEmpty)
-
-				_, err := c.pluginUploadRequest([]string{""})
-				So(err.Error(), ShouldEqual, "stat : no such file or directory")
+			Convey("StopTask", func() {
+				t1 := c.StopTask(uuid)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
 			})
-			Convey("single item", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				p := c.GetPlugins(false)
-
-				So(p.Err, ShouldBeNil)
-				So(len(p.LoadedPlugins), ShouldEqual, 1)
-				So(p.AvailablePlugins, ShouldBeEmpty)
+			Convey("RemoveTask", func() {
+				t1 := c.RemoveTask(uuid)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
 			})
-			Convey("multiple items", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				p := c.GetPlugins(false)
-
-				So(p.Err, ShouldBeNil)
-				So(len(p.LoadedPlugins), ShouldEqual, 2)
-				So(p.AvailablePlugins, ShouldBeEmpty)
-			})
-			Convey("empty list, err!=nil", func() {
-				port := -1
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				p := c.GetPlugins(false)
-				p2 := c.GetPlugins(true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-
-				So(p.Err, ShouldNotBeNil)
-				So(p2.Err, ShouldNotBeNil)
-				So(len(p.LoadedPlugins), ShouldEqual, 0)
-				So(p.AvailablePlugins, ShouldBeEmpty)
-				So(len(p2.LoadedPlugins), ShouldEqual, 0)
-				So(p2.AvailablePlugins, ShouldBeEmpty)
+			Convey("invalid task (missing metric)", func() {
+				tt := c.CreateTask(sch, wf, "baron", true)
+				So(tt.Err, ShouldNotBeNil)
+				So(tt.Err.Error(), ShouldContainSubstring, "Metric not found: /intel/dummy/foo")
 			})
 		})
-		Convey("LoadPlugin", func() {
-			Convey("single load", func() {
-				CompressUpload = true
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
+	})
 
-				p := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				So(p.Err, ShouldBeNil)
-				So(p.LoadedPlugins, ShouldNotBeEmpty)
-				So(p.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(p.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(p.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
-				CompressUpload = false
-			})
-			Convey("multiple load", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
+	CompressUpload = true
+	p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+	CompressUpload = false
+	Convey("single plugin loaded", t, func() {
+		Convey("an error should not be received loading a plugin", func() {
+			So(c.Version, ShouldEqual, "v1")
 
-				p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				So(p1.Err, ShouldBeNil)
-				So(p1.LoadedPlugins, ShouldNotBeEmpty)
-				So(p1.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(p1.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(p1.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-				p2 := c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				So(p2.Err, ShouldBeNil)
-				So(p2.LoadedPlugins, ShouldNotBeEmpty)
-				So(p2.LoadedPlugins[0].Name, ShouldEqual, "dummy2")
-				So(p2.LoadedPlugins[0].Version, ShouldEqual, 2)
-				So(p2.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
-			})
-
-			Convey("already loaded", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				So(p1.Err, ShouldBeNil)
-				So(p1.LoadedPlugins, ShouldNotBeEmpty)
-				So(p1.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-				So(p1.LoadedPlugins[0].Version, ShouldEqual, 1)
-				So(p1.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
-
-				p2 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				So(p2.Err, ShouldNotBeNil)
-				So(p2.Err.Error(), ShouldEqual, "plugin is already loaded")
-			})
-
-			Convey("directory error", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				p1 := c.LoadPlugin(DIRECTORY_PATH)
-				So(p1.Err, ShouldNotBeNil)
-				So(p1.LoadedPlugins, ShouldBeEmpty)
-				So(p1.Err.Error(), ShouldEqual, "Provided plugin path is a directory not file")
-			})
+			So(p1.Err, ShouldBeNil)
+			So(p1.LoadedPlugins, ShouldNotBeEmpty)
+			So(p1.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
+			So(p1.LoadedPlugins[0].Version, ShouldEqual, 1)
+			So(p1.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
-		Convey("UnloadPlugin", func() {
-			Convey("unload unknown plugin", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				p := c.UnloadPlugin("not a type", "foo", 3)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "plugin not found")
-			})
-
-			Convey("unload only one there is", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				p := c.UnloadPlugin("collector", "dummy1", 1)
-				So(p.Err, ShouldBeNil)
-				So(p.Name, ShouldEqual, "dummy1")
-				So(p.Version, ShouldEqual, 1)
-				So(p.Type, ShouldEqual, "collector")
-			})
-
-			Convey("unload one of multiple", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				p1 := c.UnloadPlugin("collector", "dummy2", 2)
-				So(p1.Err, ShouldBeNil)
-				So(p1.Name, ShouldEqual, "dummy2")
-				So(p1.Version, ShouldEqual, 2)
-				So(p1.Type, ShouldEqual, "collector")
-
-				p2 := c.GetPlugins(false)
-				So(p2.Err, ShouldBeNil)
-				So(len(p2.LoadedPlugins), ShouldEqual, 1)
-				So(p2.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
-			})
+		Convey("there should be one loaded plugin", func() {
+			p := c.GetPlugins(false)
+			So(p.Err, ShouldBeNil)
+			So(len(p.LoadedPlugins), ShouldEqual, 1)
+			So(p.AvailablePlugins, ShouldBeEmpty)
 		})
-		Convey("GetMetricCatalog", func() {
-			Convey("empty catalog", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
+		Convey("invalid task (missing publisher)", func() {
+			tf := c.CreateTask(sch, wf, "baron", false)
+			So(tf.Err, ShouldNotBeNil)
+			So(tf.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file) version(1)")
+		})
+		Convey("plugin already loaded", func() {
+			p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+			So(p1.Err, ShouldNotBeNil)
+			So(p1.Err.Error(), ShouldEqual, "plugin is already loaded")
+		})
+	})
 
-				p := c.GetMetricCatalog()
-				So(p.Err, ShouldBeNil)
-				So(p.Len(), ShouldEqual, 0)
-			})
-			Convey("items in catalog", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				p := c.GetMetricCatalog()
-				So(p.Err, ShouldBeNil)
-				So(p.Len(), ShouldEqual, 4)
-				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(p.Catalog[0].Version, ShouldEqual, 1)
-				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(p.Catalog[1].Version, ShouldEqual, 2)
-				So(p.Catalog[2].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So(p.Catalog[2].Version, ShouldEqual, 1)
-				So(p.Catalog[3].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So(p.Catalog[3].Version, ShouldEqual, 2)
-			})
+	p2 := c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+	Convey("loading second plugin", t, func() {
+		Convey("an error should not be received loading second plugin", func() {
+			So(p2.Err, ShouldBeNil)
+			So(p2.LoadedPlugins, ShouldNotBeEmpty)
+			So(p2.LoadedPlugins[0].Name, ShouldEqual, "dummy2")
+			So(p2.LoadedPlugins[0].Version, ShouldEqual, 2)
+			So(p2.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
+		})
+		Convey("there should be two loaded plugins", func() {
+			p := c.GetPlugins(false)
+			So(p.Err, ShouldBeNil)
+			So(len(p.LoadedPlugins), ShouldEqual, 2)
+			So(p.AvailablePlugins, ShouldBeEmpty)
+		})
+	})
+	Convey("Metrics", t, func() {
+		Convey("MetricCatalog", func() {
+			m := c.GetMetricCatalog()
+			So(m.Err, ShouldBeNil)
+			So(m.Len(), ShouldEqual, 4)
+			So(m.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+			So(m.Catalog[0].Version, ShouldEqual, 1)
+			So(m.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
+			So(m.Catalog[1].Version, ShouldEqual, 2)
+			So(m.Catalog[2].Namespace, ShouldEqual, "/intel/dummy/foo")
+			So(m.Catalog[2].Version, ShouldEqual, 1)
+			So(m.Catalog[3].Namespace, ShouldEqual, "/intel/dummy/foo")
+			So(m.Catalog[3].Version, ShouldEqual, 2)
 		})
 		Convey("FetchMetrics", func() {
 			Convey("leaf metric all versions", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				p := c.FetchMetrics("/intel/dummy/bar/*", 0)
-				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(p.Catalog[0].Version, ShouldEqual, 1)
-				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(p.Catalog[1].Version, ShouldEqual, 2)
+				m := c.FetchMetrics("/intel/dummy/bar/*", 0)
+				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(m.Catalog[0].Version, ShouldEqual, 1)
+				So(m.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(m.Catalog[1].Version, ShouldEqual, 2)
 			})
 			Convey("version 2 leaf metric", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				p := c.FetchMetrics("/intel/dummy/bar/*", 2)
-
-				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(p.Catalog[0].Version, ShouldEqual, 2)
-
+				m := c.FetchMetrics("/intel/dummy/bar/*", 2)
+				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(m.Catalog[0].Version, ShouldEqual, 2)
 			})
 			Convey("version 2 non-leaf metrics", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				p := c.FetchMetrics("/intel/dummy/*", 2)
-
-				So(p.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
-				So(p.Catalog[0].Version, ShouldEqual, 2)
-				So(p.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
-				So(p.Catalog[1].Version, ShouldEqual, 2)
-
+				m := c.FetchMetrics("/intel/dummy/*", 2)
+				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(m.Catalog[0].Version, ShouldEqual, 2)
+				So(m.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
+				So(m.Catalog[1].Version, ShouldEqual, 2)
 			})
 		})
-		Convey("CreateTask", func() {
-			Convey("invalid task (missing metric)", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
+	})
 
-				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "1s"}
-
-				p := c.CreateTask(sch, wf, "baron", true)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldContainSubstring, "Metric not found: /intel/dummy/foo")
-			})
-			Convey("invalid task (missing publisher)", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-
-				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "1s"}
-
-				p := c.CreateTask(sch, wf, "baron", false)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file) version(1)")
-			})
-			Convey("valid task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(FILE_PLUGIN_PATH)
-
-				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "1s"}
-
-				p := c.CreateTask(sch, wf, "baron", false)
-				So(p.Err, ShouldBeNil)
-				So(p.Name, ShouldEqual, "baron")
-				So(p.State, ShouldEqual, "Stopped")
-
-				// method not allowed
-				rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON) //case len(body) == 0
-				So(rsp, ShouldBeNil)
-				So(err, ShouldNotBeNil)
-				b := make([]byte, 5)
-				rsp2, err2 := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON, b) //case len(body) != 0
-				So(rsp2, ShouldBeNil)
-				So(err2, ShouldNotBeNil)
-			})
-			Convey("valid task started on creation", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(FILE_PLUGIN_PATH)
-
-				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "1s"}
-
-				p := c.CreateTask(sch, wf, "baron", true)
-				So(p.Err, ShouldBeNil)
-				So(p.Name, ShouldEqual, "baron")
-				So(p.State, ShouldEqual, "Running")
-
-				// method not allowed
-				rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON) //case len(body) == 0
-				So(rsp, ShouldBeNil)
-				So(err, ShouldNotBeNil)
-				b := make([]byte, 5)
-				rsp2, err2 := c.do("POST", fmt.Sprintf("/tasks/%v", p.ID), ContentTypeJSON, b) //case len(body) != 0
-				So(rsp2, ShouldBeNil)
-				So(err2, ShouldNotBeNil)
-			})
-			Convey("do returns err!=nil", func() {
-				port := -1
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "1s"}
-
-				p := c.CreateTask(sch, wf, "baron", false)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "Post http://localhost:-1/v1/tasks: dial tcp: unknown port tcp/-1")
-			})
+	p3 := c.LoadPlugin(FILE_PLUGIN_PATH)
+	Convey("publisher plugin loaded", t, func() {
+		Convey("an error should not be received loading publisher plugin", func() {
+			So(p3.Err, ShouldBeNil)
+			So(p3.LoadedPlugins, ShouldNotBeEmpty)
+			So(p3.LoadedPlugins[0].Name, ShouldEqual, "file")
+			So(p3.LoadedPlugins[0].Version, ShouldEqual, 1)
+			So(p3.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
-		Convey("StartTask", func() {
-			Convey("unknown task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-				uuid := uuid.New()
-				p := c.StartTask(uuid)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
-			})
-			Convey("existing task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(FILE_PLUGIN_PATH)
-
-				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
-				p2 := c.StartTask(p1.ID)
-				So(p2.Err, ShouldBeNil)
-				So(p2.ID, ShouldEqual, p1.ID)
-
-				p3 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", true)
-				p4 := c.StartTask(p3.ID)
-				So(p4.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
-
-				p5 := c.StartTask(p3.ID)
-				So(p5.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
-			})
-			Convey("do returns err!=nil", func() {
-				port := -1
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-				uuid := uuid.New()
-				p := c.StartTask(uuid)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/start: dial tcp: unknown port tcp/-1", uuid))
-			})
+		Convey("there should be three loaded plugins", func() {
+			p := c.GetPlugins(false)
+			So(p.Err, ShouldBeNil)
+			So(len(p.LoadedPlugins), ShouldEqual, 3)
+			So(p.AvailablePlugins, ShouldBeEmpty)
 		})
-		Convey("StopTask", func() {
-			Convey("unknown task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-				uuid := uuid.New()
-				p := c.StopTask(uuid)
-				So(p.Err, ShouldNotBeNil)
+	})
 
-				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with id '%s' ", uuid))
-			})
-			Convey("existing task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(FILE_PLUGIN_PATH)
-
-				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
-				p2 := c.StopTask(p1.ID)
-				So(p2.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
-
-				p3 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", true)
-				p4 := c.StopTask(p3.ID)
-				So(p3.Err, ShouldBeNil)
-				So(p4.ID, ShouldEqual, p3.ID)
-
-				p5 := c.StopTask(p3.ID)
-				So(p5.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
-
-				b := make([]byte, 5)
-				rsp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", p1.ID), ContentTypeJSON, b)
-				So(rsp, ShouldNotBeNil)
-				So(err, ShouldBeNil)
-			})
-			Convey("do returns err!=nil", func() {
-				port := -1
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-				uuid := uuid.New()
-				p := c.StopTask(uuid)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/stop: dial tcp: unknown port tcp/-1", uuid))
-			})
-		})
-		Convey("RemoveTask", func() {
-			Convey("unknown task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-				uuid := uuid.New()
-				p := c.RemoveTask(uuid)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
-			})
-			Convey("existing task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(FILE_PLUGIN_PATH)
-
-				p1 := c.CreateTask(&Schedule{Type: "simple", Interval: "1s"}, getWMFromSample("1.json"), "baron", false)
-
-				p2 := c.RemoveTask(p1.ID)
-				So(p2.Err, ShouldBeNil)
-				So(p2.ID, ShouldEqual, p1.ID)
-
-				b := make([]byte, 5)
-				rsp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", p1.ID), ContentTypeJSON, b) //case len(body) != 0
-				So(rsp, ShouldNotBeNil)
-				So(err, ShouldBeNil)
-			})
-			Convey("do returns err!=nil", func() {
-				port := -1
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-				uuid := uuid.New()
-				p := c.RemoveTask(uuid)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "dial tcp: unknown port tcp/-1")
-			})
-		})
-
-		Convey("GetTasks", func() {
-			Convey("valid task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH1)
-				c.LoadPlugin(FILE_PLUGIN_PATH)
-
-				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "1s"}
-				p := c.CreateTask(sch, wf, "baron", false)
-				So(p.Err, ShouldBeNil)
-				So(p.Name, ShouldEqual, "baron")
-				So(p.State, ShouldEqual, "Stopped")
-
-				p2 := c.GetTasks()
-				So(p2.Err, ShouldBeNil)
-				p3 := c.GetTask(p.ID)
-				So(p3.Err, ShouldBeNil)
-				uuid := uuid.New()
-				p4 := c.GetTask(uuid)
-				So(p4.Err, ShouldNotBeNil)
-				So(p4.Err.Error(), ShouldEqual, fmt.Sprintf("No task found with id '%s'", uuid))
-				So(p4.ScheduledTaskReturned, ShouldBeNil)
-			})
-			Convey("do returns err!=nil", func() {
-				port := -1
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				p := c.GetTask(uuid.New())
-				p2 := c.GetTasks()
-
-				So(p.Err, ShouldNotBeNil)
-				So(p2.Err, ShouldNotBeNil)
-			})
-
-		})
-		Convey("WatchTasks", func() {
-			Convey("event stream", func() {
-				rest.StreamingBufferWindow = 0.01
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
-
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				c.LoadPlugin(FILE_PLUGIN_PATH)
-
-				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "500ms"}
-				p := c.CreateTask(sch, wf, "baron", false)
-
-				type ea struct {
-					events []string
-					sync.Mutex
-				}
-
-				a := new(ea)
-				r := c.WatchTask(p.ID)
-				wait := make(chan struct{})
-				go func() {
-					for {
-						select {
-						case e := <-r.EventChan:
-							a.Lock()
-							a.events = append(a.events, e.EventType)
-							if len(a.events) == 10 {
-								r.Close()
-							}
-							a.Unlock()
-						case <-r.DoneChan:
-							close(wait)
-							return
-						}
-					}
-				}()
-				startResp := c.StartTask(p.ID)
-				So(startResp.Err, ShouldBeNil)
-				<-wait
-				a.Lock()
-				So(len(a.events), ShouldEqual, 10)
-				a.Unlock()
-				So(a.events[0], ShouldEqual, "task-started")
-				for x := 2; x <= 9; x++ {
-					So(a.events[x], ShouldEqual, "metric-event")
-				}
-			})
-		})
+	Convey("Tasks", t, func() {
 		Convey("Passing a bad task manifest", func() {
-			port := getPort()
-			uri := startAPI(port)
-			c := New(uri, "v1", true)
+			wfb := getWMFromSample("bad.json")
+			ttb := c.CreateTask(sch, wfb, "bad", true)
+			So(ttb.Err, ShouldNotBeNil)
+		})
 
-			c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-			c.LoadPlugin(FILE_PLUGIN_PATH)
+		tf := c.CreateTask(sch, wf, "baron", false)
+		Convey("valid task not started on creation", func() {
+			So(tf.Err, ShouldBeNil)
+			So(tf.Name, ShouldEqual, "baron")
+			So(tf.State, ShouldEqual, "Stopped")
 
-			wf := getWMFromSample("bad.json")
-			sch := &Schedule{Type: "simple", Interval: "1s"}
-			p := c.CreateTask(sch, wf, "bad", true)
+			// method not allowed
+			rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", tf.ID), ContentTypeJSON) //case len(body) == 0
+			So(rsp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			b := make([]byte, 5)
+			rsp2, err2 := c.do("POST", fmt.Sprintf("/tasks/%v", tf.ID), ContentTypeJSON, b) //case len(body) != 0
+			So(rsp2, ShouldBeNil)
+			So(err2, ShouldNotBeNil)
 
-			Convey("Should generate an error", func() {
-				So(p.Err, ShouldNotBeNil)
+			Convey("GetTasks", func() {
+				t1 := c.GetTasks()
+				So(t1.Err, ShouldBeNil)
+				t2 := c.GetTask(tf.ID)
+				So(t2.Err, ShouldBeNil)
+			})
+			Convey("StopTask", func() {
+				t1 := c.StopTask(tf.ID)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
+			})
+			Convey("StartTask", func() {
+				t1 := c.StartTask(tf.ID)
+				So(t1.Err, ShouldBeNil)
+				So(t1.ID, ShouldEqual, tf.ID)
+			})
+			Convey("RemoveTask", func() {
+				t1 := c.RemoveTask(tf.ID)
+				So(t1.Err, ShouldBeNil)
+				So(t1.ID, ShouldEqual, tf.ID)
+
+				b := make([]byte, 5)
+				rsp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", tf.ID), ContentTypeJSON, b) //case len(body) != 0
+				So(rsp, ShouldNotBeNil)
+				So(err, ShouldBeNil)
 			})
 		})
-		Convey("EnableTask", func() {
+
+		tt := c.CreateTask(sch, wf, "baron", true)
+		Convey("valid task started on creation", func() {
+			So(tt.Err, ShouldBeNil)
+			So(tt.Name, ShouldEqual, "baron")
+			So(tt.State, ShouldEqual, "Running")
+
+			// method not allowed
+			rsp, err := c.do("POST", fmt.Sprintf("/tasks/%v", tt.ID), ContentTypeJSON) //case len(body) == 0
+			So(rsp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			b := make([]byte, 5)
+			rsp2, err2 := c.do("POST", fmt.Sprintf("/tasks/%v", tt.ID), ContentTypeJSON, b) //case len(body) != 0
+			So(rsp2, ShouldBeNil)
+			So(err2, ShouldNotBeNil)
+
+			Convey("GetTasks", func() {
+				t1 := c.GetTasks()
+				So(t1.Err, ShouldBeNil)
+				t2 := c.GetTask(tt.ID)
+				So(t2.Err, ShouldBeNil)
+			})
+			Convey("StartTask", func() {
+				t1 := c.StartTask(tt.ID)
+				So(t1.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
+				t2 := c.StartTask(tt.ID)
+				So(t2.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
+			})
+			Convey("RemoveTask", func() {
+				t1 := c.RemoveTask(tt.ID)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, "Task must be stopped")
+			})
+			Convey("StopTask", func() {
+				t1 := c.StopTask(tt.ID)
+				So(t1.Err, ShouldBeNil)
+				So(t1.ID, ShouldEqual, tt.ID)
+				//try stopping again to make sure channel is closed
+				t2 := c.StopTask(tt.ID)
+				So(t2.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
+
+				b := make([]byte, 5)
+				rsp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", tt.ID), ContentTypeJSON, b)
+				So(rsp, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
 			Convey("enable a stopped task", func() {
-				port := getPort()
-				uri := startAPI(port)
-				c := New(uri, "v1", true)
+				et := c.EnableTask(tt.ID)
+				So(et.Err, ShouldNotBeNil)
+				So(et.Err.Error(), ShouldEqual, "Task must be disabled")
+			})
+			Convey("WatchTasks", func() {
+				Convey("event stream", func() {
+					rest.StreamingBufferWindow = 0.01
+					sch := &Schedule{Type: "simple", Interval: "500ms"}
+					tf := c.CreateTask(sch, wf, "baron", false)
 
-				c.LoadPlugin(DUMMY_PLUGIN_PATH2)
-				c.LoadPlugin(FILE_PLUGIN_PATH)
+					type ea struct {
+						events []string
+						sync.Mutex
+					}
 
-				wf := getWMFromSample("1.json")
-				sch := &Schedule{Type: "simple", Interval: "1s"}
-				p := c.CreateTask(sch, wf, "disabled", true)
+					a := new(ea)
+					r := c.WatchTask(tf.ID)
+					wait := make(chan struct{})
+					go func() {
+						for {
+							select {
+							case e := <-r.EventChan:
+								a.Lock()
+								a.events = append(a.events, e.EventType)
+								if len(a.events) == 5 {
+									r.Close()
+								}
+								a.Unlock()
+							case <-r.DoneChan:
+								close(wait)
+								return
+							}
+						}
+					}()
+					startResp := c.StartTask(tf.ID)
+					So(startResp.Err, ShouldBeNil)
+					<-wait
+					a.Lock()
+					So(len(a.events), ShouldEqual, 5)
+					a.Unlock()
+					So(a.events[0], ShouldEqual, "task-started")
+					for x := 2; x <= 4; x++ {
+						So(a.events[x], ShouldEqual, "metric-event")
+					}
+				})
+			})
+		})
+	})
+	Convey("UnloadPlugin", t, func() {
+		Convey("unload unknown plugin", func() {
+			p := c.UnloadPlugin("not a type", "foo", 3)
+			So(p.Err, ShouldNotBeNil)
+			So(p.Err.Error(), ShouldEqual, "plugin not found")
+		})
+		Convey("unload one of multiple", func() {
+			p1 := c.GetPlugins(false)
+			So(p1.Err, ShouldBeNil)
+			So(len(p1.LoadedPlugins), ShouldEqual, 3)
 
-				ep := c.EnableTask(p.ID)
-				So(ep.Err, ShouldNotBeNil)
-				So(ep.Err.Error(), ShouldEqual, "Task must be disabled")
+			p2 := c.UnloadPlugin("collector", "dummy2", 2)
+			So(p2.Err, ShouldBeNil)
+			So(p2.Name, ShouldEqual, "dummy2")
+			So(p2.Version, ShouldEqual, 2)
+			So(p2.Type, ShouldEqual, "collector")
+
+			p3 := c.UnloadPlugin("publisher", "file", 1)
+			So(p3.Err, ShouldBeNil)
+			So(p3.Name, ShouldEqual, "file")
+			So(p3.Version, ShouldEqual, 1)
+			So(p3.Type, ShouldEqual, "publisher")
+		})
+		Convey("unload when only one plugin loaded", func() {
+			p1 := c.GetPlugins(false)
+			So(p1.Err, ShouldBeNil)
+			So(len(p1.LoadedPlugins), ShouldEqual, 1)
+			So(p1.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
+
+			p2 := c.UnloadPlugin("collector", "dummy1", 1)
+			So(p2.Err, ShouldBeNil)
+			So(p2.Name, ShouldEqual, "dummy1")
+			So(p2.Version, ShouldEqual, 1)
+			So(p2.Type, ShouldEqual, "collector")
+
+			p3 := c.GetPlugins(false)
+			So(p3.Err, ShouldBeNil)
+			So(len(p3.LoadedPlugins), ShouldEqual, 0)
+		})
+	})
+
+	port = -1
+	uri = startAPI(port)
+	c = New(uri, "v1", true)
+
+	Convey("API with invalid port", t, func() {
+		Convey("Plugins", func() {
+			p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+			So(p1.Err, ShouldNotBeNil)
+			So(p1.LoadedPlugins, ShouldBeEmpty)
+
+			p2 := c.GetPlugins(false)
+			p3 := c.GetPlugins(true)
+			So(p2.Err, ShouldNotBeNil)
+			So(p3.Err, ShouldNotBeNil)
+		})
+		Convey("Tasks", func() {
+			Convey("CreateTask", func() {
+				t1 := c.CreateTask(sch, wf, "baron", false)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, "Post http://localhost:-1/v1/tasks: dial tcp: unknown port tcp/-1")
+			})
+			Convey("GetTask/GetTasks", func() {
+				t1 := c.GetTask(uuid)
+				t2 := c.GetTasks()
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Get http://localhost:-1/v1/tasks/%s: dial tcp: unknown port tcp/-1", uuid))
+				So(t2.Err, ShouldNotBeNil)
+				So(t2.Err.Error(), ShouldEqual, fmt.Sprint("Get http://localhost:-1/v1/tasks: dial tcp: unknown port tcp/-1"))
+			})
+			Convey("StartTask", func() {
+				t1 := c.StartTask(uuid)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/start: dial tcp: unknown port tcp/-1", uuid))
+			})
+			Convey("RemoveTask", func() {
+				t1 := c.RemoveTask(uuid)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, "dial tcp: unknown port tcp/-1")
+			})
+			Convey("StopTask", func() {
+				t1 := c.StopTask(uuid)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/stop: dial tcp: unknown port tcp/-1", uuid))
+			})
+			Convey("EnableTask", func() {
+				t1 := c.EnableTask(uuid)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/enable: dial tcp: unknown port tcp/-1", uuid))
 			})
 		})
 	})
