@@ -240,8 +240,9 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 		},
 		Body: b,
 	}
-
-	w.WriteHeader(code)
+	if !w.(negroni.ResponseWriter).Written() {
+		w.WriteHeader(code)
+	}
 
 	j, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
