@@ -180,7 +180,7 @@ func TestPulseClient(t *testing.T) {
 		Convey("invalid task (missing publisher)", func() {
 			tf := c.CreateTask(sch, wf, "baron", false)
 			So(tf.Err, ShouldNotBeNil)
-			So(tf.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file) version(1)")
+			So(tf.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file)")
 		})
 		Convey("plugin already loaded", func() {
 			p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
