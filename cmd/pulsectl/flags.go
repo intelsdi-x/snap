@@ -118,4 +118,10 @@ var (
 		Name:  "metric-namespace, m",
 		Usage: "A metric namespace",
 	}
+
+	// general
+	flVerbose = cli.BoolFlag{
+		Name:  "verbose, v",
+		Usage: "Verbose output",
+	}
 )

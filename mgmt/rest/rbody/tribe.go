@@ -22,17 +22,19 @@ package rbody
 import "github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 
 const (
-	TribeAgreementListType = "tribe_agreement_list_returned"
-	TribeGetAgreementType  = "tribe_agreement_returned"
-	TribeAddAgreementType  = "tribe_agreement_created"
-	TribeAddMemberType     = "tribe_member_added"
-	TribeJoinAgreementType = "tribe_agreement_joined"
-	TribeMemberListType    = "tribe_member_list_returned"
-	TribeMemberShowType    = "tribe_member_details_returned"
+	TribeListAgreementType   = "tribe_agreement_list_returned"
+	TribeGetAgreementType    = "tribe_agreement_returned"
+	TribeAddAgreementType    = "tribe_agreement_created"
+	TribeDeleteAgreementType = "tribe_agreement_deleted"
+	TribeAddMemberType       = "tribe_member_added"
+	TribeJoinAgreementType   = "tribe_agreement_joined"
+	TribeLeaveAgreementType  = "tribe_agreement_left"
+	TribeMemberListType      = "tribe_member_list_returned"
+	TribeMemberShowType      = "tribe_member_details_returned"
 )
 
 type TribeAddAgreement struct {
-	Name string
+	Agreements map[string]*agreement.Agreement `json:"agreements"`
 }
 
 func (t *TribeAddAgreement) ResponseBodyMessage() string {
@@ -55,16 +57,28 @@ func (t *TribeGetAgreement) ResponseBodyType() string {
 	return TribeGetAgreementType
 }
 
-type TribeAgreementList struct {
+type TribeDeleteAgreement struct {
 	Agreements map[string]*agreement.Agreement `json:"agreements"`
 }
 
-func (t *TribeAgreementList) ResponseBodyMessage() string {
+func (t *TribeDeleteAgreement) ResponseBodyMessage() string {
+	return "Tribe agreement deleted"
+}
+
+func (t *TribeDeleteAgreement) ResponseBodyType() string {
+	return TribeDeleteAgreementType
+}
+
+type TribeListAgreement struct {
+	Agreements map[string]*agreement.Agreement `json:"agreements"`
+}
+
+func (t *TribeListAgreement) ResponseBodyMessage() string {
 	return "Tribe agreements retrieved"
 }
 
-func (t *TribeAgreementList) ResponseBodyType() string {
-	return TribeAgreementListType
+func (t *TribeListAgreement) ResponseBodyType() string {
+	return TribeListAgreementType
 }
 
 type TribeJoinAgreement struct {
@@ -77,6 +91,18 @@ func (t *TribeJoinAgreement) ResponseBodyMessage() string {
 
 func (t *TribeJoinAgreement) ResponseBodyType() string {
 	return TribeJoinAgreementType
+}
+
+type TribeLeaveAgreement struct {
+	Agreement *agreement.Agreement `json:"agreement"`
+}
+
+func (t *TribeLeaveAgreement) ResponseBodyMessage() string {
+	return "Tribe agreement left"
+}
+
+func (t *TribeLeaveAgreement) ResponseBodyType() string {
+	return TribeLeaveAgreementType
 }
 
 type TribeMemberList struct {
