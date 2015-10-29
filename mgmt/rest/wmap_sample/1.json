@@ -12,7 +12,6 @@
         "publish": [
             {
                 "plugin_name": "file",
-                "plugin_version": 1,
                 "config": {
                     "file": "/tmp/rest.test"
                 }
