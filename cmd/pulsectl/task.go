@@ -27,6 +27,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"text/tabwriter"
@@ -46,6 +47,39 @@ var (
 	dateParseFormat  = "1-02-2006"
 	unionParseFormat = timeParseFormat + " " + dateParseFormat
 )
+
+const (
+	K = 1000
+	M = 1000 * K
+	G = 1000 * M
+	T = 1000 * G
+	P = 1000 * T
+)
+
+func trunc(n int) string {
+	var u string
+
+	switch {
+	case n >= P:
+		u = "P"
+		n /= P
+	case n >= T:
+		u = "T"
+		n /= T
+	case n >= G:
+		u = "G"
+		n /= G
+	case n >= M:
+		u = "M"
+		n /= M
+	case n >= K:
+		u = "K"
+		n /= K
+	default:
+		return strconv.Itoa(n)
+	}
+	return strconv.Itoa(n) + u
+}
 
 type task struct {
 	Version  int
@@ -287,9 +321,9 @@ func listTask(ctx *cli.Context) {
 			task.ID,
 			task.Name,
 			task.State,
-			task.HitCount,
-			task.MissCount,
-			task.FailedCount,
+			trunc(task.HitCount),
+			trunc(task.MissCount),
+			trunc(task.FailedCount),
 			task.CreationTime().Format(unionParseFormat),
 			task.LastFailureMessage,
 		)
