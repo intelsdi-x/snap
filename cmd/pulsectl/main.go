@@ -20,6 +20,7 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"os"
 	"sort"
 	"time"
@@ -35,25 +36,56 @@ var (
 )
 
 func main() {
-
 	app := cli.NewApp()
 	app.Name = "pulsectl"
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry agent framework"
 	app.Flags = []cli.Flag{flURL, flSecure, flAPIVer}
 	app.Commands = commands
+	sort.Sort(ByCommand(app.Commands))
+	app.Run(os.Args)
+}
 
-	app.Before = func(c *cli.Context) error {
-		if pClient == nil {
-			pClient = client.New(c.GlobalString("url"), c.GlobalString("api-version"), c.GlobalBool("insecure"))
+func init() {
+	f1 := flag.NewFlagSet("f1", flag.ContinueOnError)
+	prtURL := f1.String("url", flURL.Value, flURL.Usage)
+	prtU := f1.String("u", flURL.Value, flURL.Usage)
+	prtAv := f1.String("api-version", flAPIVer.Value, flAPIVer.Usage)
+	prtA := f1.String("a", flAPIVer.Value, flAPIVer.Usage)
+	prti := f1.Bool("insecure", false, flSecure.Usage)
+
+	url := flURL.Value
+	ver := flAPIVer.Value
+	secure := false
+
+	for idx, a := range os.Args {
+		switch a {
+		case "--url":
+			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
+				url = *prtURL
+			}
+		case "--u":
+			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
+				url = *prtU
+			}
+		case "--api-version":
+			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
+				ver = *prtAv
+			}
+		case "--a":
+			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
+				ver = *prtA
+			}
+		case "--insecure":
+			if err := f1.Parse(os.Args[idx:]); err == nil {
+				secure = *prti
+			}
 		}
-		resp := pClient.ListAgreements()
-		if resp.Err == nil {
-			app.Commands = append(app.Commands, tribeCommands...)
-		}
-		sort.Sort(ByCommand(app.Commands))
-		return nil
+	}
+	pClient = client.New(url, ver, secure)
+	resp := pClient.ListAgreements()
+	if resp.Err == nil {
+		commands = append(commands, tribeCommands...)
 	}
 
-	app.Run(os.Args)
 }
