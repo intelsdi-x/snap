@@ -37,6 +37,7 @@ import (
 	"github.com/intelsdi-x/pulse/mgmt/rest/client"
 	"github.com/intelsdi-x/pulse/mgmt/rest/request"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
@@ -46,6 +47,7 @@ const (
 
 const (
 	TaskCreatedType = iota
+	TaskStoppedType
 )
 
 var workerLogger = log.WithFields(log.Fields{
@@ -76,6 +78,7 @@ type ManagesPlugins interface {
 type ManagesTasks interface {
 	GetTask(id string) (core.Task, error)
 	CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
+	StopTask(id string) []perror.PulseError
 }
 
 type getsMembers interface {
@@ -149,9 +152,26 @@ func (w worker) start() {
 				wLogger := workerLogger.WithFields(log.Fields{
 					"task":   work.Task.ID,
 					"worker": w.id,
-					"_block": "start",
 				})
 				wLogger.Debug("received task work")
+				if work.RequestType == TaskStoppedType {
+					t, err := w.taskManager.GetTask(work.Task.ID)
+					if err != nil {
+						wLogger.Error(err)
+						continue
+					}
+					errs := w.taskManager.StopTask(t.ID())
+					if errs != nil {
+						for _, err := range errs {
+							if err.Error() == scheduler.ErrTaskAlreadyStopped.Error() {
+								wLogger.WithFields(err.Fields()).Info(err)
+							} else {
+								wLogger.WithFields(err.Fields()).Error(err)
+							}
+						}
+						continue
+					}
+				}
 				if work.RequestType == TaskCreatedType {
 					_, err := w.taskManager.GetTask(work.Task.ID)
 					if err != nil {

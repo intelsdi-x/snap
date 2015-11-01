@@ -90,6 +90,12 @@ func (t *delegate) NotifyMsg(buf []byte) {
 			panic(err)
 		}
 		rebroadcast = t.tribe.handleRemoveTask(msg)
+	case stopTaskMsgType:
+		msg := &taskMsg{}
+		if err := decodeMessage(buf[1:], msg); err != nil {
+			panic(err)
+		}
+		rebroadcast = t.tribe.handleStopTask(msg)
 	default:
 		logger.WithField("_block", "NotifyMsg").Errorln("NodeMeta called")
 		return
@@ -110,9 +116,6 @@ func (t *delegate) GetBroadcasts(overhead, limit int) [][]byte {
 }
 
 func (t *delegate) LocalState(join bool) []byte {
-	// t.tribe.mutex.RLock()
-	// defer t.tribe.mutex.RUnlock()
-
 	// TODO the sizes here need to be set with a flag that is also ref in tribe.go
 	pluginMsgs := make([]*pluginMsg, 512)
 	agreementMsgs := make([]*agreementMsg, 512)
@@ -142,6 +145,8 @@ func (t *delegate) LocalState(join bool) []byte {
 			taskMsgs[idx] = msg.(*taskMsg)
 		case removeTaskMsgType:
 			taskMsgs[idx] = msg.(*taskMsg)
+		case stopTaskMsgType:
+			taskMsgs[idx] = msg.(*taskMsg)
 		}
 	}
 
@@ -165,6 +170,8 @@ func (t *delegate) LocalState(join bool) []byte {
 		case addTaskMsgType:
 			taskIntentMsgs[idx] = msg.(*taskMsg)
 		case removeTaskMsgType:
+			taskIntentMsgs[idx] = msg.(*taskMsg)
+		case stopTaskMsgType:
 			taskIntentMsgs[idx] = msg.(*taskMsg)
 		}
 	}
@@ -214,7 +221,6 @@ func (t *delegate) MergeRemoteState(buf []byte, join bool) {
 		for k, v := range fs.Members {
 			t.tribe.members[k] = v
 		}
-		// t.tribe.members = fs.Members
 		for idx, pluginMsg := range fs.PluginMsgs {
 			if pluginMsg == nil {
 				continue
@@ -289,6 +295,9 @@ func (t *delegate) MergeRemoteState(buf []byte, join bool) {
 			}
 			if m.GetType() == removeTaskMsgType {
 				t.tribe.handleRemoveTask(m)
+			}
+			if m.GetType() == stopTaskMsgType {
+				t.tribe.handleStopTask(m)
 			}
 		}
 	}

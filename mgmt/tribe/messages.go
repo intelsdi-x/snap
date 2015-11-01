@@ -39,6 +39,7 @@ const (
 	leaveAgreementMsgType
 	addTaskMsgType
 	removeTaskMsgType
+	stopTaskMsgType
 )
 
 var msgTypes = []string{
@@ -51,6 +52,7 @@ var msgTypes = []string{
 	"Leave agreement",
 	"Add task",
 	"Remove task",
+	"Stop task",
 }
 
 func (m msgType) String() string {

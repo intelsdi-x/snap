@@ -35,6 +35,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 	"github.com/intelsdi-x/pulse/mgmt/tribe"
 	"github.com/intelsdi-x/pulse/scheduler"
@@ -213,10 +214,11 @@ func TestTribeTaskAgreements(t *testing.T) {
 						resp = getAgreement(mgtPorts[0], aName)
 						So(resp.Meta.Code, ShouldEqual, 200)
 						So(len(resp.Body.(*rbody.TribeGetAgreement).Agreement.PluginAgreement.Plugins), ShouldEqual, 2)
-						resp = createTask("1.json", "task1", "1s", true, mgtPorts[0])
+						resp = createTask("1.json", "task1", "1s", false, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.AddScheduledTaskType)
 						So(resp.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+						taskId := resp.Body.(*rbody.AddScheduledTask).ID
 
 						Convey("The cluster agrees on tasks", func(c C) {
 							var wg sync.WaitGroup
@@ -261,13 +263,12 @@ func TestTribeTaskAgreements(t *testing.T) {
 												timedOut = true
 												return
 											default:
-												resp := getTasks(port)
+												resp := getTask(taskId, port)
 												if resp.Meta.Code == 200 {
-													if len(resp.Body.(*rbody.ScheduledTaskListReturned).ScheduledTasks) == 1 {
-														log.Debugf("node %v has %d tasks", port, len(resp.Body.(*rbody.ScheduledTaskListReturned).ScheduledTasks))
+													if resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskSpinning.String() || resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskFiring.String() {
 														return
 													}
-													log.Debugf("node %v has %d tasks", port, len(resp.Body.(*rbody.ScheduledTaskListReturned).ScheduledTasks))
+													log.Debugf("port %v has task in state %v", port, resp.Body.(*rbody.ScheduledTaskReturned).State)
 												} else {
 													log.Debugf("node %v error getting task", port)
 												}
@@ -278,6 +279,41 @@ func TestTribeTaskAgreements(t *testing.T) {
 								}
 								wg.Wait()
 								So(timedOut, ShouldEqual, false)
+								Convey("The task is stopped", func() {
+									resp := stopTask(taskId, mgtPorts[0])
+									So(resp.Meta.Code, ShouldEqual, 200)
+									So(resp.Meta.Type, ShouldEqual, rbody.ScheduledTaskStoppedType)
+									So(resp.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStopped))
+									var wg sync.WaitGroup
+									timedOut := false
+									for i := 0; i < numOfNodes; i++ {
+										timer := time.After(15 * time.Second)
+										wg.Add(1)
+										go func(port int) {
+											defer wg.Done()
+											for {
+												select {
+												case <-timer:
+													timedOut = true
+													return
+												default:
+													resp := getTask(taskId, port)
+													if resp.Meta.Code == 200 {
+														log.Debugf("node %v task is %v", port, resp.Body.(*rbody.ScheduledTaskReturned).State)
+														if resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskStopped.String() {
+															return
+														}
+													} else {
+														log.Debugf("node %v error getting task", port)
+													}
+													time.Sleep(400 * time.Millisecond)
+												}
+											}
+										}(mgtPorts[i])
+									}
+									wg.Wait()
+									So(timedOut, ShouldEqual, false)
+								})
 							})
 						})
 					})
