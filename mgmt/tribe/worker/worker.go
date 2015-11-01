@@ -151,7 +151,7 @@ func (w worker) start() {
 					"worker": w.id,
 					"_block": "start",
 				})
-				wLogger.Error("received task work")
+				wLogger.Debug("received task work")
 				if work.RequestType == TaskCreatedType {
 					_, err := w.taskManager.GetTask(work.Task.ID)
 					if err != nil {
@@ -301,15 +301,15 @@ func shuffle(m []Member) []Member {
 func (w worker) isPluginLoaded(n, t string, v int) bool {
 	catalog := w.pluginManager.PluginCatalog()
 	for _, item := range catalog {
-		workerLogger.WithFields(log.Fields{
-			"name":    n,
-			"version": v,
-			"type":    t,
-		}).Errorf("loaded plugin.. looking for %v %v %v", item.Name(), item.Version(), item.TypeName())
 		if item.TypeName() == t &&
 			item.Name() == n &&
 			item.Version() == v {
-			workerLogger.WithField("_block", "isPluginLoaded").Error("Plugin already loaded")
+			workerLogger.WithFields(log.Fields{
+				"name":    n,
+				"version": v,
+				"type":    t,
+				"_block":  "isPluginLoaded",
+			}).Debugf("Plugin already loaded")
 			return true
 		}
 	}

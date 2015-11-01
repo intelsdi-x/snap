@@ -285,7 +285,7 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 			"plugin_name":    v.Name,
 			"plugin_version": v.Version,
 			"plugin_type":    core.PluginType(v.Type).String(),
-		}).Errorf("Handling load plugin event")
+		}).Debugf("Handling load plugin event")
 		plugin := agreement.Plugin{
 			Name_:    v.Name,
 			Version_: v.Version,
@@ -324,7 +324,7 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 			"event":                e.Namespace(),
 			"task_id":              v.TaskID,
 			"task_start_on_create": v.StartOnCreate,
-		}).Errorf("Handling task create event")
+		}).Debugf("Handling task create event")
 		task := agreement.Task{
 			ID:            v.TaskID,
 			StartOnCreate: v.StartOnCreate,
