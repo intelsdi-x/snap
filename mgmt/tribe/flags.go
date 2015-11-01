@@ -42,9 +42,8 @@ var (
 	}
 
 	flTribeSeed = cli.StringFlag{
-		Name: "tribe-seed",
-		Usage: `IP or resolvable hostname of a seed node to join.
-	The default empty value assumes this is the first node in a cluster.`,
+		Name:   "tribe-seed",
+		Usage:  "IP (or hostname) and port of a node to join (e.g. 127.0.0.1:6000)",
 		EnvVar: "PULSE_TRIBE_SEED",
 		Value:  "",
 	}
