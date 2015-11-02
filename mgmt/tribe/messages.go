@@ -40,6 +40,7 @@ const (
 	addTaskMsgType
 	removeTaskMsgType
 	stopTaskMsgType
+	startTaskMsgType
 )
 
 var msgTypes = []string{
@@ -53,6 +54,7 @@ var msgTypes = []string{
 	"Add task",
 	"Remove task",
 	"Stop task",
+	"Start task",
 }
 
 func (m msgType) String() string {

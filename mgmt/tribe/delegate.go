@@ -96,6 +96,12 @@ func (t *delegate) NotifyMsg(buf []byte) {
 			panic(err)
 		}
 		rebroadcast = t.tribe.handleStopTask(msg)
+	case startTaskMsgType:
+		msg := &taskMsg{}
+		if err := decodeMessage(buf[1:], msg); err != nil {
+			panic(err)
+		}
+		rebroadcast = t.tribe.handleStartTask(msg)
 	default:
 		logger.WithField("_block", "NotifyMsg").Errorln("NodeMeta called")
 		return
@@ -147,6 +153,8 @@ func (t *delegate) LocalState(join bool) []byte {
 			taskMsgs[idx] = msg.(*taskMsg)
 		case stopTaskMsgType:
 			taskMsgs[idx] = msg.(*taskMsg)
+		case startTaskMsgType:
+			taskMsgs[idx] = msg.(*taskMsg)
 		}
 	}
 
@@ -172,6 +180,8 @@ func (t *delegate) LocalState(join bool) []byte {
 		case removeTaskMsgType:
 			taskIntentMsgs[idx] = msg.(*taskMsg)
 		case stopTaskMsgType:
+			taskIntentMsgs[idx] = msg.(*taskMsg)
+		case startTaskMsgType:
 			taskIntentMsgs[idx] = msg.(*taskMsg)
 		}
 	}
@@ -298,6 +308,9 @@ func (t *delegate) MergeRemoteState(buf []byte, join bool) {
 			}
 			if m.GetType() == stopTaskMsgType {
 				t.tribe.handleStopTask(m)
+			}
+			if m.GetType() == startTaskMsgType {
+				t.tribe.handleStartTask(m)
 			}
 		}
 	}

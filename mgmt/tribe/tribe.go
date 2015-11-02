@@ -356,6 +356,24 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 				}
 			}
 		}
+	case *scheduler_event.TaskStartedEvent:
+		logger.WithFields(log.Fields{
+			"_block":  "HandleGomitEvent",
+			"event":   e.Namespace(),
+			"task_id": v.TaskID,
+		}).Debugf("Handling task start event")
+		task := agreement.Task{
+			ID: v.TaskID,
+		}
+		if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+			if m.TaskAgreements != nil {
+				for n, a := range m.TaskAgreements {
+					if ok, _ := a.Tasks.Contains(task); ok {
+						t.StartTask(n, task)
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -508,7 +526,7 @@ func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.Pul
 }
 
 func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.PulseError {
-	if err := t.canStopTask(task, agreementName); err != nil {
+	if err := t.canStartOrStopTask(task, agreementName); err != nil {
 		return err
 	}
 	msg := &taskMsg{
@@ -520,6 +538,23 @@ func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.Pulse
 	}
 	if t.handleStopTask(msg) {
 		t.broadcast(stopTaskMsgType, msg, nil)
+	}
+	return nil
+}
+
+func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.PulseError {
+	if err := t.canStartOrStopTask(task, agreementName); err != nil {
+		return err
+	}
+	msg := &taskMsg{
+		LTime:         t.clock.Increment(),
+		TaskID:        task.ID,
+		AgreementName: agreementName,
+		UUID:          uuid.New(),
+		Type:          startTaskMsgType,
+	}
+	if t.handleStartTask(msg) {
+		t.broadcast(startTaskMsgType, msg, nil)
 	}
 	return nil
 }
@@ -858,6 +893,35 @@ func (t *tribe) handleRemoveTask(msg *taskMsg) bool {
 	return true
 }
 
+func (t *tribe) handleStartTask(msg *taskMsg) bool {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	// update the clock if newer
+	t.clock.Update(msg.LTime)
+
+	if t.isDuplicate(msg) {
+		return false
+	}
+
+	t.msgBuffer[msg.LTime%LTime(len(t.msgBuffer))] = msg
+
+	if _, ok := t.agreements[msg.Agreement()]; ok {
+		work := worker.TaskRequest{
+			Task: worker.Task{
+				ID: msg.TaskID,
+			},
+			RequestType: worker.TaskStartedType,
+		}
+		t.taskWorkQueue <- work
+		t.processIntents()
+		return true
+	}
+
+	t.addTaskIntent(msg)
+	return true
+}
+
 func (t *tribe) handleStopTask(msg *taskMsg) bool {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
@@ -1107,7 +1171,7 @@ func (t *tribe) canAddTask(task agreement.Task, agreementName string) perror.Pul
 	return nil
 }
 
-func (t *tribe) canStopTask(task agreement.Task, agreementName string) perror.PulseError {
+func (t *tribe) canStartOrStopTask(task agreement.Task, agreementName string) perror.PulseError {
 	fields := log.Fields{
 		"Agreement": agreementName,
 	}

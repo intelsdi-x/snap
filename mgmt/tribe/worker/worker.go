@@ -48,6 +48,7 @@ const (
 const (
 	TaskCreatedType = iota
 	TaskStoppedType
+	TaskStartedType
 )
 
 var workerLogger = log.WithFields(log.Fields{
@@ -79,6 +80,7 @@ type ManagesTasks interface {
 	GetTask(id string) (core.Task, error)
 	CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
 	StopTask(id string) []perror.PulseError
+	StartTask(id string) []perror.PulseError
 }
 
 type getsMembers interface {
@@ -154,6 +156,45 @@ func (w worker) start() {
 					"worker": w.id,
 				})
 				wLogger.Debug("received task work")
+				if work.RequestType == TaskStartedType {
+					var taskID string
+					duration := 20 * time.Second
+					timer := time.After(duration)
+					timedOut := false
+					// If we don't initially find the task we will
+					// retry for 20 seconds
+				outer:
+					for {
+						select {
+						case <-timer:
+							timedOut = true
+							break
+						default:
+							t, err := w.taskManager.GetTask(work.Task.ID)
+							if err == nil {
+								taskID = t.ID()
+								break outer
+							}
+							wLogger.Warn(err)
+							time.Sleep(1 * time.Second)
+						}
+					}
+					if timedOut {
+						workerLogger.Error("Failed to start %v after %v", work.Task.ID, duration.String())
+						continue
+					}
+					errs := w.taskManager.StartTask(taskID)
+					if errs != nil {
+						for _, err := range errs {
+							if err.Error() == scheduler.ErrTaskAlreadyRunning.Error() {
+								wLogger.WithFields(err.Fields()).Info(err)
+							} else {
+								wLogger.WithFields(err.Fields()).Error(err)
+							}
+						}
+						continue
+					}
+				}
 				if work.RequestType == TaskStoppedType {
 					t, err := w.taskManager.GetTask(work.Task.ID)
 					if err != nil {
