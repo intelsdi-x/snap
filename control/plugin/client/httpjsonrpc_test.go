@@ -206,7 +206,6 @@ func TestHTTPJSONRPC(t *testing.T) {
 			So(mts, ShouldNotBeNil)
 			So(mts, ShouldHaveSameTypeAs, []core.Metric{})
 			So(len(mts), ShouldBeGreaterThan, 0)
-			log.Errorf("!asdf %v", mts[0].Config())
 			So(len(mts[0].Config().Table()), ShouldBeGreaterThan, 0)
 		})
 
