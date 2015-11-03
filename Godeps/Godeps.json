@@ -44,6 +44,10 @@
 		{	
 			"ImportPath": "golang.org/x/crypto/openpgp",
 			"Rev": "aedad9a179ec1ea11b7064c57cbc6dc30d7724ec"
+		},
+		{
+			"ImportPath": "github.com/appc/spec/aci",
+			"Rev": "818ac4d0073424f4e0a46f45abaa147ccc1b5a24"
 		}
 	]
 }

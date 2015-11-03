@@ -80,7 +80,7 @@ func (e *ExecutablePlugin) Start() error {
 			"cmd path": e.cmd.Path,
 			"cmd args": e.cmd.Args,
 			"error":    err.Error(),
-		}).Error("error in getting metric types")
+		}).Error("error in starting executable plugin")
 	}
 	return err
 }

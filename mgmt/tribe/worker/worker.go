@@ -103,7 +103,7 @@ type Task struct {
 }
 
 type ManagesPlugins interface {
-	Load(...string) (core.CatalogedPlugin, perror.PulseError)
+	Load(*core.RequestedPlugin) (core.CatalogedPlugin, perror.PulseError)
 	Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.PulseError)
 	PluginCatalog() core.PluginCatalog
 }
@@ -346,7 +346,12 @@ func (w worker) loadPlugin(plugin core.Plugin) error {
 				logger.Error(err)
 				return err
 			}
-			_, err = w.pluginManager.Load(f.Name())
+			rp, err := core.NewRequestedPlugin(f.Name())
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			_, err = w.pluginManager.Load(rp)
 			if err != nil {
 				logger.Error(err)
 				return err

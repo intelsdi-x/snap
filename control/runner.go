@@ -22,6 +22,8 @@ package control
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -31,6 +33,7 @@ import (
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/control_event"
+	"github.com/intelsdi-x/pulse/pkg/aci"
 )
 
 var (
@@ -360,24 +363,41 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 	}
 }
 
-func (r *runner) runPlugin(path string) error {
-	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(path), path)
+func (r *runner) runPlugin(details *pluginDetails) error {
+	if details.IsPackage {
+		f, err := os.Open(details.Path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		tempPath, err := aci.Extract(f)
+		if err != nil {
+			return err
+		}
+		details.ExecPath = path.Join(tempPath, "rootfs")
+	}
+	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(details.Exec), path.Join(details.ExecPath, details.Exec))
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block": "run-plugin",
-			"path":   path,
+			"path":   path.Join(details.ExecPath, details.Exec),
 			"error":  err,
 		}).Error("error creating executable plugin")
 		return err
 	}
-	_, err = r.startPlugin(ePlugin)
+	ap, err := r.startPlugin(ePlugin)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block": "run-plugin",
-			"path":   path,
+			"path":   path.Join(details.ExecPath, details.Exec),
 			"error":  err,
 		}).Error("error starting new plugin")
 		return err
+	}
+	ap.exec = details.Exec
+	ap.execPath = details.ExecPath
+	if details.IsPackage {
+		ap.fromPackage = true
 	}
 	return nil
 }

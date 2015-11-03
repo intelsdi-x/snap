@@ -20,6 +20,7 @@ limitations under the License.
 package psigning
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -31,16 +32,15 @@ import (
 type SigningManager struct{}
 
 var (
-	ErrPluginNotFound        = errors.New("Plugin not found")
-	ErrKeyringFileNotFound   = errors.New("Keyring file (.gpg) not found")
-	ErrUnableToReadKeyring   = errors.New("Unable to read keyring")
-	ErrSignedFileNotFound    = errors.New("Signed file not found")
-	ErrSignatureFileNotFound = errors.New("Signature file (.asc) not found")
-	ErrCheckSignature        = errors.New("Error checking signature")
+	ErrPluginNotFound      = errors.New("Plugin not found")
+	ErrKeyringFileNotFound = errors.New("Keyring file (.gpg) not found")
+	ErrUnableToReadKeyring = errors.New("Unable to read keyring")
+	ErrSignedFileNotFound  = errors.New("Signed file not found")
+	ErrCheckSignature      = errors.New("Error checking signature")
 )
 
 //ValidateSignature is exported for plugin authoring
-func (s *SigningManager) ValidateSignature(keyringFiles []string, signedFile string, signatureFile string) error {
+func (s *SigningManager) ValidateSignature(keyringFiles []string, signedFile string, signature []byte) error {
 	var signedby string
 	var e error
 	var checked *openpgp.Entity
@@ -50,12 +50,6 @@ func (s *SigningManager) ValidateSignature(keyringFiles []string, signedFile str
 		return fmt.Errorf("%v: %v\n%v", ErrSignedFileNotFound, signedFile, err)
 	}
 	defer signed.Close()
-
-	signature, err := os.Open(signatureFile)
-	if err != nil {
-		return fmt.Errorf("%v: %v\n%v", ErrSignatureFileNotFound, signatureFile, err)
-	}
-	defer signature.Close()
 
 	//Go through all the keyrings til either signature is valid or end of keyrings
 	for _, keyringFile := range keyringFiles {
@@ -76,7 +70,7 @@ func (s *SigningManager) ValidateSignature(keyringFiles []string, signedFile str
 		}
 
 		//Check the armored detached signature
-		checked, e = openpgp.CheckArmoredDetachedSignature(keyring, signed, signature)
+		checked, e = openpgp.CheckArmoredDetachedSignature(keyring, signed, bytes.NewReader(signature))
 		if e == nil {
 			for k := range checked.Identities {
 				signedby = signedby + k
@@ -84,9 +78,7 @@ func (s *SigningManager) ValidateSignature(keyringFiles []string, signedFile str
 			fmt.Printf("Signature made %v using RSA key ID %v\nGood signature from %v\n", time.Now().Format(time.RFC1123), checked.PrimaryKey.KeyIdShortString(), signedby)
 			return nil
 		}
-		//Move pointer back to start of file
 		signed.Seek(0, 0)
-		signature.Seek(0, 0)
 	}
 	return fmt.Errorf("%v\n%v", ErrCheckSignature, e)
 }
