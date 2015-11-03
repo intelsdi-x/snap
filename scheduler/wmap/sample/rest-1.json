@@ -1,13 +1,13 @@
 {
     "collect": {
         "metrics": {
-            "/intel/dummy/foo": {
+            "/intel/mock/foo": {
                 "version": 1
             },
-            "/intel/dummy/bar": {}
+            "/intel/mock/bar": {}
         },
         "config": {
-            "/intel/dummy": {
+            "/intel/mock": {
                 "password": "secret",
                 "user": "root"
             }

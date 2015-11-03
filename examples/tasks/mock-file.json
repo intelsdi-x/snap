@@ -1,0 +1,37 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {
+                "/intel/mock/foo": {},
+                "/intel/mock/bar": {}
+            },
+            "config": {
+                "/intel/mock": {
+                    "user": "root",
+                    "password": "secret"
+                }
+            },
+            "process": [
+                {
+                    "plugin_name": "passthru",
+                    "plugin_version": 1,
+                    "process": null,
+                    "publish": [
+                        {
+                            "plugin_name": "file",
+                            "plugin_version": 1,
+                            "config": {
+                                "file": "/tmp/published"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

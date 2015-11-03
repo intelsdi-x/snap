@@ -43,11 +43,11 @@ var (
 	// Change to set the REST API logging to debug
 	LOG_LEVEL = log.FatalLevel
 
-	PULSE_PATH         = os.Getenv("PULSE_PATH")
-	DUMMY_PLUGIN_PATH1 = []string{PULSE_PATH + "/plugin/pulse-collector-dummy1"}
-	DUMMY_PLUGIN_PATH2 = []string{PULSE_PATH + "/plugin/pulse-collector-dummy2"}
-	FILE_PLUGIN_PATH   = []string{PULSE_PATH + "/plugin/pulse-publisher-file"}
-	DIRECTORY_PATH     = []string{PULSE_PATH + "/plugin/"}
+	PULSE_PATH        = os.Getenv("PULSE_PATH")
+	MOCK_PLUGIN_PATH1 = []string{PULSE_PATH + "/plugin/pulse-collector-mock1"}
+	MOCK_PLUGIN_PATH2 = []string{PULSE_PATH + "/plugin/pulse-collector-mock2"}
+	FILE_PLUGIN_PATH  = []string{PULSE_PATH + "/plugin/pulse-publisher-file"}
+	DIRECTORY_PATH    = []string{PULSE_PATH + "/plugin/"}
 
 	NextPort = 45000
 )
@@ -153,13 +153,13 @@ func TestPulseClient(t *testing.T) {
 			Convey("invalid task (missing metric)", func() {
 				tt := c.CreateTask(sch, wf, "baron", true)
 				So(tt.Err, ShouldNotBeNil)
-				So(tt.Err.Error(), ShouldContainSubstring, "Metric not found: /intel/dummy/foo")
+				So(tt.Err.Error(), ShouldContainSubstring, "Metric not found: /intel/mock/foo")
 			})
 		})
 	})
 
 	CompressUpload = true
-	p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+	p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
 	CompressUpload = false
 	Convey("single plugin loaded", t, func() {
 		Convey("an error should not be received loading a plugin", func() {
@@ -167,7 +167,7 @@ func TestPulseClient(t *testing.T) {
 
 			So(p1.Err, ShouldBeNil)
 			So(p1.LoadedPlugins, ShouldNotBeEmpty)
-			So(p1.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
+			So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock1")
 			So(p1.LoadedPlugins[0].Version, ShouldEqual, 1)
 			So(p1.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
@@ -183,18 +183,18 @@ func TestPulseClient(t *testing.T) {
 			So(tf.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file)")
 		})
 		Convey("plugin already loaded", func() {
-			p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+			p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
 			So(p1.Err, ShouldNotBeNil)
 			So(p1.Err.Error(), ShouldEqual, "plugin is already loaded")
 		})
 	})
 
-	p2 := c.LoadPlugin(DUMMY_PLUGIN_PATH2)
+	p2 := c.LoadPlugin(MOCK_PLUGIN_PATH2)
 	Convey("loading second plugin", t, func() {
 		Convey("an error should not be received loading second plugin", func() {
 			So(p2.Err, ShouldBeNil)
 			So(p2.LoadedPlugins, ShouldNotBeEmpty)
-			So(p2.LoadedPlugins[0].Name, ShouldEqual, "dummy2")
+			So(p2.LoadedPlugins[0].Name, ShouldEqual, "mock2")
 			So(p2.LoadedPlugins[0].Version, ShouldEqual, 2)
 			So(p2.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
@@ -210,33 +210,33 @@ func TestPulseClient(t *testing.T) {
 			m := c.GetMetricCatalog()
 			So(m.Err, ShouldBeNil)
 			So(m.Len(), ShouldEqual, 4)
-			So(m.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+			So(m.Catalog[0].Namespace, ShouldEqual, "/intel/mock/bar")
 			So(m.Catalog[0].Version, ShouldEqual, 1)
-			So(m.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
+			So(m.Catalog[1].Namespace, ShouldEqual, "/intel/mock/bar")
 			So(m.Catalog[1].Version, ShouldEqual, 2)
-			So(m.Catalog[2].Namespace, ShouldEqual, "/intel/dummy/foo")
+			So(m.Catalog[2].Namespace, ShouldEqual, "/intel/mock/foo")
 			So(m.Catalog[2].Version, ShouldEqual, 1)
-			So(m.Catalog[3].Namespace, ShouldEqual, "/intel/dummy/foo")
+			So(m.Catalog[3].Namespace, ShouldEqual, "/intel/mock/foo")
 			So(m.Catalog[3].Version, ShouldEqual, 2)
 		})
 		Convey("FetchMetrics", func() {
 			Convey("leaf metric all versions", func() {
-				m := c.FetchMetrics("/intel/dummy/bar/*", 0)
-				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				m := c.FetchMetrics("/intel/mock/bar/*", 0)
+				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/mock/bar")
 				So(m.Catalog[0].Version, ShouldEqual, 1)
-				So(m.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/bar")
+				So(m.Catalog[1].Namespace, ShouldEqual, "/intel/mock/bar")
 				So(m.Catalog[1].Version, ShouldEqual, 2)
 			})
 			Convey("version 2 leaf metric", func() {
-				m := c.FetchMetrics("/intel/dummy/bar/*", 2)
-				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				m := c.FetchMetrics("/intel/mock/bar/*", 2)
+				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/mock/bar")
 				So(m.Catalog[0].Version, ShouldEqual, 2)
 			})
 			Convey("version 2 non-leaf metrics", func() {
-				m := c.FetchMetrics("/intel/dummy/*", 2)
-				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/dummy/bar")
+				m := c.FetchMetrics("/intel/mock/*", 2)
+				So(m.Catalog[0].Namespace, ShouldEqual, "/intel/mock/bar")
 				So(m.Catalog[0].Version, ShouldEqual, 2)
-				So(m.Catalog[1].Namespace, ShouldEqual, "/intel/dummy/foo")
+				So(m.Catalog[1].Namespace, ShouldEqual, "/intel/mock/foo")
 				So(m.Catalog[1].Version, ShouldEqual, 2)
 			})
 		})
@@ -445,9 +445,9 @@ func TestPulseClient(t *testing.T) {
 			So(p1.Err, ShouldBeNil)
 			So(len(p1.LoadedPlugins), ShouldEqual, 3)
 
-			p2 := c.UnloadPlugin("collector", "dummy2", 2)
+			p2 := c.UnloadPlugin("collector", "mock2", 2)
 			So(p2.Err, ShouldBeNil)
-			So(p2.Name, ShouldEqual, "dummy2")
+			So(p2.Name, ShouldEqual, "mock2")
 			So(p2.Version, ShouldEqual, 2)
 			So(p2.Type, ShouldEqual, "collector")
 
@@ -461,11 +461,11 @@ func TestPulseClient(t *testing.T) {
 			p1 := c.GetPlugins(false)
 			So(p1.Err, ShouldBeNil)
 			So(len(p1.LoadedPlugins), ShouldEqual, 1)
-			So(p1.LoadedPlugins[0].Name, ShouldEqual, "dummy1")
+			So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock1")
 
-			p2 := c.UnloadPlugin("collector", "dummy1", 1)
+			p2 := c.UnloadPlugin("collector", "mock1", 1)
 			So(p2.Err, ShouldBeNil)
-			So(p2.Name, ShouldEqual, "dummy1")
+			So(p2.Name, ShouldEqual, "mock1")
 			So(p2.Version, ShouldEqual, 1)
 			So(p2.Type, ShouldEqual, "collector")
 
@@ -481,7 +481,7 @@ func TestPulseClient(t *testing.T) {
 
 	Convey("API with invalid port", t, func() {
 		Convey("Plugins", func() {
-			p1 := c.LoadPlugin(DUMMY_PLUGIN_PATH1)
+			p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
 			So(p1.Err, ShouldNotBeNil)
 			So(p1.LoadedPlugins, ShouldBeEmpty)
 

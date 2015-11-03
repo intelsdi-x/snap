@@ -201,7 +201,7 @@ func TestTribeTaskAgreements(t *testing.T) {
 					So(timedOut, ShouldEqual, false)
 
 					Convey("Plugins and a task are uploaded", func() {
-						resp := uploadPlugin(DUMMY_PLUGIN_PATH1, mgtPorts[0])
+						resp := uploadPlugin(MOCK_PLUGIN_PATH1, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.PluginsLoadedType)
 						resp = uploadPlugin(FILE_PLUGIN_PATH, mgtPorts[0])
@@ -344,7 +344,7 @@ func TestTribePluginAgreements(t *testing.T) {
 					So(timedOut, ShouldEqual, false)
 
 					Convey("A plugin is uploaded", func() {
-						resp := uploadPlugin(DUMMY_PLUGIN_PATH1, mgtPorts[0])
+						resp := uploadPlugin(MOCK_PLUGIN_PATH1, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.PluginsLoadedType)
 						lpName = resp.Body.(*rbody.PluginsLoaded).LoadedPlugins[0].Name

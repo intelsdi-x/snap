@@ -29,10 +29,10 @@ import (
 
 func TestValidateSignature(t *testing.T) {
 	keyringFile := "pubring.gpg"
-	signedFile := "pulse-collector-dummy1"
+	signedFile := "pulse-collector-mock1"
 	signatureFile := signedFile + ".asc"
 	pulsePath := os.Getenv("PULSE_PATH")
-	unsignedFile := path.Join(pulsePath, "plugin", "pulse-collector-dummy2")
+	unsignedFile := path.Join(pulsePath, "plugin", "pulse-collector-mock2")
 
 	s := SigningManager{}
 
@@ -62,6 +62,6 @@ func TestValidateSignature(t *testing.T) {
 	Convey("Invalid signature file", t, func() {
 		err := s.ValidateSignature(keyringFile, signedFile, "")
 		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "Signature file (.asc) not found. Did you use the -a flag?")
+		So(err.Error(), ShouldContainSubstring, "Signature file (.asc) not found")
 	})
 }

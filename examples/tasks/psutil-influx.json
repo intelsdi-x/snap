@@ -15,7 +15,7 @@
                 "/intel/psutil/vm/used": {}
             },
             "config": {
-                "/intel/dummy": {
+                "/intel/mock": {
                     "password": "secret",
                     "user": "root"
                 }

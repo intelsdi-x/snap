@@ -297,7 +297,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 		Convey("Runner", func() {
 			Convey("startPlugin", func() {
 
-				// These tests only work if Pulse Path is known to discover dummy plugin used for testing
+				// These tests only work if Pulse Path is known to discover mock plugin used for testing
 				if PulsePath != "" {
 					Convey("should return an AvailablePlugin", func() {
 						r := newRunner(&routing.RoundRobinStrategy{})

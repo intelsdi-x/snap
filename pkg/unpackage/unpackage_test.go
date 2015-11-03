@@ -28,16 +28,16 @@ import (
 
 func TestUnpackage(t *testing.T) {
 	Convey("Valid gzipped tar", t, func() {
-		infile := "pulse-collector-plugin-dummy1.darwin-x86_64_gz.aci"
+		infile := "pulse-collector-plugin-mock1.darwin-x86_64_gz.aci"
 
 		path, m, err := Unpackager(infile)
 		So(err, ShouldBeNil)
-		So(path, ShouldContainSubstring, "pulse-collector-dummy1")
+		So(path, ShouldContainSubstring, "pulse-collector-mock1")
 		So(m, ShouldNotBeNil)
-		So(m.App.Exec[0], ShouldContainSubstring, "pulse-collector-dummy1")
+		So(m.App.Exec[0], ShouldContainSubstring, "pulse-collector-mock1")
 	})
 	Convey("Valid tar and manifest", t, func() {
-		infile := "pulse-collector-plugin-dummy1.darwin-x86_64.aci"
+		infile := "pulse-collector-plugin-mock1.darwin-x86_64.aci"
 
 		f, err := os.Open(infile)
 		defer f.Close()
@@ -50,17 +50,17 @@ func TestUnpackage(t *testing.T) {
 		path, m, err := Unpackager(infile)
 		So(err, ShouldBeNil)
 		So(m, ShouldNotBeNil)
-		So(path, ShouldContainSubstring, "pulse-collector-dummy1")
-		So(m.App.Exec[0], ShouldContainSubstring, "pulse-collector-dummy1")
+		So(path, ShouldContainSubstring, "pulse-collector-mock1")
+		So(m.App.Exec[0], ShouldContainSubstring, "pulse-collector-mock1")
 	})
 
 	Convey("Plugin not .aci", t, func() {
-		infile := "pulse-collector-plugin-dummy1.darwin-x86_64/rootfs/pulse-collector-dummy1"
+		infile := "pulse-collector-plugin-mock1.darwin-x86_64/rootfs/pulse-collector-mock1"
 
 		path, m, err := Unpackager(infile)
 		So(err, ShouldBeNil)
 		So(m, ShouldBeNil)
-		So(path, ShouldContainSubstring, "pulse-collector-dummy1")
+		So(path, ShouldContainSubstring, "pulse-collector-mock1")
 	})
 
 	Convey("Invalid tar (non existent file) and no data", t, func() {

@@ -53,10 +53,10 @@ var (
 	// Switching this turns on logging for all the REST API calls
 	LOG_LEVEL = log.WarnLevel
 
-	PULSE_PATH         = os.Getenv("PULSE_PATH")
-	DUMMY_PLUGIN_PATH1 = PULSE_PATH + "/plugin/pulse-collector-dummy1"
-	DUMMY_PLUGIN_PATH2 = PULSE_PATH + "/plugin/pulse-collector-dummy2"
-	FILE_PLUGIN_PATH   = PULSE_PATH + "/plugin/pulse-publisher-file"
+	PULSE_PATH        = os.Getenv("PULSE_PATH")
+	MOCK_PLUGIN_PATH1 = PULSE_PATH + "/plugin/pulse-collector-mock1"
+	MOCK_PLUGIN_PATH2 = PULSE_PATH + "/plugin/pulse-collector-mock2"
+	FILE_PLUGIN_PATH  = PULSE_PATH + "/plugin/pulse-publisher-file"
 
 	NextPort         = 40000
 	CompressedUpload = true
@@ -590,7 +590,7 @@ func TestPluginRestCalls(t *testing.T) {
 				port := getPort()
 				startAPI(port)
 
-				uploadPlugin(DUMMY_PLUGIN_PATH2, port)
+				uploadPlugin(MOCK_PLUGIN_PATH2, port)
 				uploadPlugin(FILE_PLUGIN_PATH, port)
 
 				r1 := createTask("1.json", "yeti", "1s", true, port)

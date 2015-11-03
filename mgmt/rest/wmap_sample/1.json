@@ -1,10 +1,10 @@
 {
     "collect": {
         "metrics": {
-            "/intel/dummy/foo": {}
+            "/intel/mock/foo": {}
         },
         "config": {
-	    "/intel/dummy/foo": {
+	    "/intel/mock/foo": {
 		"password": "testval"
             }
 	},

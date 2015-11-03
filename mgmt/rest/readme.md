@@ -34,14 +34,14 @@ task:
     interval: 5s
   deadline: 5s
   config:
-    /intel/dummy:
+    /intel/mock:
     - key: password
       value: j3rr
   workflow:
     collect:
       metric_types:
-      - namespace: /intel/dummy/foo
-      - namespace: /intel/dummy/bar
+      - namespace: /intel/mock/foo
+      - namespace: /intel/mock/bar
       publish:
       - plugin:
           name: "influx"
@@ -65,7 +65,7 @@ task:
     },
     "deadline": "5s",
     "config": {
-      "/intel/dummy": [
+      "/intel/mock": [
         {
           "key": "password",
           "value": "j3rr"
@@ -76,10 +76,10 @@ task:
       "collect": {
         "metric_types": [
           {
-            "namespace": "/intel/dummy/foo"
+            "namespace": "/intel/mock/foo"
           },
           {
-            "namespace": "/intel/dummy/bar"
+            "namespace": "/intel/mock/bar"
           }
         ],
         "publish": [
