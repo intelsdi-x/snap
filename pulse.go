@@ -446,9 +446,9 @@ func action(ctx *cli.Context) {
 							"_module":          "pulsed",
 							"autodiscoverpath": path,
 							"plugin":           file,
-							"plugin-name":      pl.Name,
-							"plugin-version":   pl.Version,
-							"plugin-type":      pl.TypeName,
+							"plugin-name":      pl.Name(),
+							"plugin-version":   pl.Version(),
+							"plugin-type":      pl.TypeName(),
 						}).Info("Loading plugin")
 					}
 				}
