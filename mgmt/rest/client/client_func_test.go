@@ -143,12 +143,12 @@ func TestPulseClient(t *testing.T) {
 			Convey("StopTask", func() {
 				t1 := c.StopTask(uuid)
 				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: No task found with ID '%s' ", uuid))
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("error 0: Task not found: ID(%s) ", uuid))
 			})
 			Convey("RemoveTask", func() {
 				t1 := c.RemoveTask(uuid)
 				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("No task found with ID '%s'", uuid))
+				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Task not found: ID(%s)", uuid))
 			})
 			Convey("invalid task (missing metric)", func() {
 				tt := c.CreateTask(sch, wf, "baron", true)
@@ -389,7 +389,7 @@ func TestPulseClient(t *testing.T) {
 						}
 					}()
 					<-wait
-					So(r.Err.Error(), ShouldEqual, "No task found with ID '1'")
+					So(r.Err.Error(), ShouldEqual, "Task not found: ID(1)")
 				})
 				Convey("event stream", func() {
 					rest.StreamingBufferWindow = 0.01
