@@ -135,7 +135,18 @@ func (s *scheduler) RegisterEventHandler(name string, h gomit.Handler) error {
 
 // CreateTask creates and returns task
 func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
-	logger := s.logger.WithField("_block", "create-task")
+	return s.createTask(sch, wfMap, startOnCreate, "user", opts...)
+}
+
+func (s *scheduler) CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+	return s.createTask(sch, wfMap, startOnCreate, "tribe", opts...)
+}
+
+func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, source string, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+	logger := s.logger.WithFields(log.Fields{
+		"_block": "create-task",
+		"source": source,
+	})
 	// Create a container for task errors
 	te := &taskErrors{
 		errs: make([]perror.PulseError, 0),
@@ -196,12 +207,14 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	event := &scheduler_event.TaskCreatedEvent{
 		TaskID:        task.id,
 		StartOnCreate: startOnCreate,
+		Source:        source,
 	}
 	defer s.eventManager.Emit(event)
 
 	if startOnCreate {
 		logger.WithFields(log.Fields{
 			"task-id": task.ID(),
+			"source":  source,
 		}).Info("starting task on creation")
 
 		errs := s.StartTask(task.id)
@@ -216,17 +229,28 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 // RemoveTask given a tasks id.  The task must be stopped.
 // Can return errors ErrTaskNotFound and ErrTaskNotStopped.
 func (s *scheduler) RemoveTask(id string) error {
+	return s.removeTask(id, "user")
+}
+
+func (s *scheduler) RemoveTaskTribe(id string) error {
+	return s.removeTask(id, "tribe")
+}
+
+func (s *scheduler) removeTask(id, source string) error {
+	logger := s.logger.WithFields(log.Fields{
+		"_block": "remove-task",
+		"source": source,
+	})
 	t, err := s.getTask(id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
-			"_block":  "remove-task",
-			"_error":  ErrTaskNotFound,
-			"task-id": id,
-		}).Error("error removing task")
+		logger.WithFields(log.Fields{
+			"task id": id,
+		}).Error(ErrTaskNotFound)
 		return err
 	}
 	event := &scheduler_event.TaskDeletedEvent{
 		TaskID: t.id,
+		Source: source,
 	}
 	defer s.eventManager.Emit(event)
 	return s.tasks.remove(t)
@@ -257,6 +281,18 @@ func (s *scheduler) GetTask(id string) (core.Task, error) {
 
 // StartTask provided a task id a task is started
 func (s *scheduler) StartTask(id string) []perror.PulseError {
+	return s.startTask(id, "user")
+}
+
+func (s *scheduler) StartTaskTribe(id string) []perror.PulseError {
+	return s.startTask(id, "tribe")
+}
+
+func (s *scheduler) startTask(id, source string) []perror.PulseError {
+	logger := s.logger.WithFields(log.Fields{
+		"_block": "start-task",
+		"source": source,
+	})
 	t, err := s.getTask(id)
 	if err != nil {
 		s.logger.WithFields(log.Fields{
@@ -270,8 +306,7 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 	}
 
 	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
-		s.logger.WithFields(log.Fields{
-			"_block":     "start-task",
+		logger.WithFields(log.Fields{
 			"task-id":    t.ID(),
 			"task-state": t.State(),
 		}).Info("task is already running")
@@ -287,12 +322,13 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 		return errs
 	}
 
-	event := new(scheduler_event.TaskStartedEvent)
-	event.TaskID = t.ID()
+	event := &scheduler_event.TaskStartedEvent{
+		TaskID: t.ID(),
+		Source: source,
+	}
 	defer s.eventManager.Emit(event)
 	t.Spin()
-	s.logger.WithFields(log.Fields{
-		"_block":     "start-task",
+	logger.WithFields(log.Fields{
 		"task-id":    t.ID(),
 		"task-state": t.State(),
 	}).Info("task started")
@@ -301,11 +337,22 @@ func (s *scheduler) StartTask(id string) []perror.PulseError {
 
 // StopTask provided a task id a task is stopped
 func (s *scheduler) StopTask(id string) []perror.PulseError {
+	return s.stopTask(id, "user")
+}
+
+func (s *scheduler) StopTaskTribe(id string) []perror.PulseError {
+	return s.stopTask(id, "tribe")
+}
+
+func (s *scheduler) stopTask(id, source string) []perror.PulseError {
+	logger := s.logger.WithFields(log.Fields{
+		"_block": "stop-task",
+		"source": source,
+	})
 	t, err := s.getTask(id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
-			"_block":  "stop-task",
-			"_error":  ErrTaskNotFound,
+		logger.WithFields(log.Fields{
+			"_error":  err.Error(),
 			"task-id": id,
 		}).Error("error stopping task")
 		return []perror.PulseError{
@@ -314,8 +361,7 @@ func (s *scheduler) StopTask(id string) []perror.PulseError {
 	}
 
 	if t.state == core.TaskStopped {
-		s.logger.WithFields(log.Fields{
-			"_block":     "stop-task",
+		logger.WithFields(log.Fields{
 			"task-id":    t.ID(),
 			"task-state": t.State(),
 		}).Info("task is already stopped")
@@ -331,12 +377,13 @@ func (s *scheduler) StopTask(id string) []perror.PulseError {
 		return errs
 	}
 
-	event := new(scheduler_event.TaskStoppedEvent)
-	event.TaskID = t.ID()
+	event := &scheduler_event.TaskStoppedEvent{
+		TaskID: t.ID(),
+		Source: source,
+	}
 	defer s.eventManager.Emit(event)
 	t.Stop()
-	s.logger.WithFields(log.Fields{
-		"_block":     "stop-task",
+	logger.WithFields(log.Fields{
 		"task-id":    t.ID(),
 		"task-state": t.State(),
 	}).Info("task stopped")

@@ -319,57 +319,83 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 			}
 		}
 	case *scheduler_event.TaskCreatedEvent:
-		logger.WithFields(log.Fields{
-			"_block":               "HandleGomitEvent",
-			"event":                e.Namespace(),
-			"task_id":              v.TaskID,
-			"task_start_on_create": v.StartOnCreate,
-		}).Debugf("Handling task create event")
-		task := agreement.Task{
-			ID:            v.TaskID,
-			StartOnCreate: v.StartOnCreate,
-		}
-		if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
-			if m.TaskAgreements != nil {
-				for n, a := range m.TaskAgreements {
-					if ok, _ := a.Tasks.Contains(task); !ok {
-						t.AddTask(n, task)
+		if v.Source != "tribe" {
+			logger.WithFields(log.Fields{
+				"_block":               "HandleGomitEvent",
+				"event":                e.Namespace(),
+				"task_id":              v.TaskID,
+				"task_start_on_create": v.StartOnCreate,
+			}).Debugf("Handling task create event")
+			task := agreement.Task{
+				ID:            v.TaskID,
+				StartOnCreate: v.StartOnCreate,
+			}
+			if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+				if m.TaskAgreements != nil {
+					for n, a := range m.TaskAgreements {
+						if ok, _ := a.Tasks.Contains(task); !ok {
+							t.AddTask(n, task)
+						}
 					}
 				}
 			}
 		}
 	case *scheduler_event.TaskStoppedEvent:
-		logger.WithFields(log.Fields{
-			"_block":  "HandleGomitEvent",
-			"event":   e.Namespace(),
-			"task_id": v.TaskID,
-		}).Debugf("Handling task stop event")
-		task := agreement.Task{
-			ID: v.TaskID,
-		}
-		if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
-			if m.TaskAgreements != nil {
-				for n, a := range m.TaskAgreements {
-					if ok, _ := a.Tasks.Contains(task); ok {
-						t.StopTask(n, task)
+		if v.Source != "tribe" {
+			logger.WithFields(log.Fields{
+				"_block":  "HandleGomitEvent",
+				"event":   e.Namespace(),
+				"task_id": v.TaskID,
+			}).Debugf("Handling task stop event")
+			task := agreement.Task{
+				ID: v.TaskID,
+			}
+			if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+				if m.TaskAgreements != nil {
+					for n, a := range m.TaskAgreements {
+						if ok, _ := a.Tasks.Contains(task); ok {
+							t.StopTask(n, task)
+						}
 					}
 				}
 			}
 		}
 	case *scheduler_event.TaskStartedEvent:
-		logger.WithFields(log.Fields{
-			"_block":  "HandleGomitEvent",
-			"event":   e.Namespace(),
-			"task_id": v.TaskID,
-		}).Debugf("Handling task start event")
-		task := agreement.Task{
-			ID: v.TaskID,
+		if v.Source != "tribe" {
+			logger.WithFields(log.Fields{
+				"_block":  "HandleGomitEvent",
+				"event":   e.Namespace(),
+				"task_id": v.TaskID,
+			}).Debugf("Handling task start event")
+			task := agreement.Task{
+				ID: v.TaskID,
+			}
+			if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+				if m.TaskAgreements != nil {
+					for n, a := range m.TaskAgreements {
+						if ok, _ := a.Tasks.Contains(task); ok {
+							t.StartTask(n, task)
+						}
+					}
+				}
+			}
 		}
-		if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
-			if m.TaskAgreements != nil {
-				for n, a := range m.TaskAgreements {
-					if ok, _ := a.Tasks.Contains(task); ok {
-						t.StartTask(n, task)
+	case *scheduler_event.TaskDeletedEvent:
+		if v.Source != "tribe" {
+			logger.WithFields(log.Fields{
+				"_block":  "HandleGomitEvent",
+				"event":   e.Namespace(),
+				"task_id": v.TaskID,
+			}).Debugf("Handling task start event")
+			task := agreement.Task{
+				ID: v.TaskID,
+			}
+			if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+				if m.TaskAgreements != nil {
+					for n, a := range m.TaskAgreements {
+						if ok, _ := a.Tasks.Contains(task); ok {
+							t.RemoveTask(n, task)
+						}
 					}
 				}
 			}
@@ -509,7 +535,7 @@ func (t *tribe) AddTask(agreementName string, task agreement.Task) perror.PulseE
 }
 
 func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.PulseError {
-	if err := t.canRemoveTask(agreementName, task); err != nil {
+	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
 	msg := &taskMsg{
@@ -526,7 +552,7 @@ func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.Pul
 }
 
 func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.PulseError {
-	if err := t.canStartOrStopTask(task, agreementName); err != nil {
+	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
 	msg := &taskMsg{
@@ -543,7 +569,7 @@ func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.Pulse
 }
 
 func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.PulseError {
-	if err := t.canStartOrStopTask(task, agreementName); err != nil {
+	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
 	msg := &taskMsg{
@@ -884,6 +910,15 @@ func (t *tribe) handleRemoveTask(msg *taskMsg) bool {
 
 	if _, ok := t.agreements[msg.Agreement()]; ok {
 		if t.agreements[msg.AgreementName].TaskAgreement.Remove(agreement.Task{ID: msg.TaskID}) {
+
+			work := worker.TaskRequest{
+				Task: worker.Task{
+					ID: msg.TaskID,
+				},
+				RequestType: worker.TaskRemovedType,
+			}
+			t.taskWorkQueue <- work
+
 			t.processIntents()
 			return true
 		}
@@ -907,6 +942,7 @@ func (t *tribe) handleStartTask(msg *taskMsg) bool {
 	t.msgBuffer[msg.LTime%LTime(len(t.msgBuffer))] = msg
 
 	if _, ok := t.agreements[msg.Agreement()]; ok {
+
 		work := worker.TaskRequest{
 			Task: worker.Task{
 				ID: msg.TaskID,
@@ -914,11 +950,10 @@ func (t *tribe) handleStartTask(msg *taskMsg) bool {
 			RequestType: worker.TaskStartedType,
 		}
 		t.taskWorkQueue <- work
-		t.processIntents()
+
 		return true
 	}
 
-	t.addTaskIntent(msg)
 	return true
 }
 
@@ -936,6 +971,7 @@ func (t *tribe) handleStopTask(msg *taskMsg) bool {
 	t.msgBuffer[msg.LTime%LTime(len(t.msgBuffer))] = msg
 
 	if _, ok := t.agreements[msg.Agreement()]; ok {
+
 		work := worker.TaskRequest{
 			Task: worker.Task{
 				ID: msg.TaskID,
@@ -943,11 +979,10 @@ func (t *tribe) handleStopTask(msg *taskMsg) bool {
 			RequestType: worker.TaskStoppedType,
 		}
 		t.taskWorkQueue <- work
-		t.processIntents()
+
 		return true
 	}
 
-	t.addTaskIntent(msg)
 	return true
 }
 
@@ -1171,23 +1206,7 @@ func (t *tribe) canAddTask(task agreement.Task, agreementName string) perror.Pul
 	return nil
 }
 
-func (t *tribe) canStartOrStopTask(task agreement.Task, agreementName string) perror.PulseError {
-	fields := log.Fields{
-		"Agreement": agreementName,
-	}
-	a, ok := t.agreements[agreementName]
-	if !ok {
-		logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
-		return perror.New(errAgreementDoesNotExist, fields)
-	}
-	if ok, _ := a.TaskAgreement.Tasks.Contains(task); !ok {
-		logger.WithFields(fields).Debugln(errTaskDoesNotExist)
-		return perror.New(errTaskDoesNotExist, fields)
-	}
-	return nil
-}
-
-func (t *tribe) canRemoveTask(agreementName string, task agreement.Task) perror.PulseError {
+func (t *tribe) canStartStopRemoveTask(task agreement.Task, agreementName string) perror.PulseError {
 	fields := log.Fields{
 		"Agreement": agreementName,
 	}

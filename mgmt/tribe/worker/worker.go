@@ -20,6 +20,7 @@ limitations under the License.
 package worker
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -49,6 +50,12 @@ const (
 	TaskCreatedType = iota
 	TaskStoppedType
 	TaskStartedType
+	TaskRemovedType
+)
+
+const (
+	retryDelay = 500 * time.Millisecond
+	retryLimit = 20
 )
 
 var workerLogger = log.WithFields(log.Fields{
@@ -58,11 +65,13 @@ var workerLogger = log.WithFields(log.Fields{
 type PluginRequest struct {
 	Plugin      core.Plugin
 	RequestType int
+	retryCount  int
 }
 
 type TaskRequest struct {
 	Task        Task
 	RequestType int
+	retryCount  int
 }
 
 type Task struct {
@@ -78,9 +87,10 @@ type ManagesPlugins interface {
 
 type ManagesTasks interface {
 	GetTask(id string) (core.Task, error)
-	CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
-	StopTask(id string) []perror.PulseError
-	StartTask(id string) []perror.PulseError
+	CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
+	StopTaskTribe(id string) []perror.PulseError
+	StartTaskTribe(id string) []perror.PulseError
+	RemoveTaskTribe(id string) error
 }
 
 type getsMembers interface {
@@ -149,115 +159,43 @@ func (w worker) start() {
 		for {
 			select {
 			case work := <-w.taskWork:
-				done := false
 				// Receive a work request.
 				wLogger := workerLogger.WithFields(log.Fields{
-					"task":   work.Task.ID,
-					"worker": w.id,
+					"task":        work.Task.ID,
+					"worker":      w.id,
+					"requestType": work.RequestType,
 				})
 				wLogger.Debug("received task work")
 				if work.RequestType == TaskStartedType {
-					var taskID string
-					duration := 20 * time.Second
-					timer := time.After(duration)
-					timedOut := false
-					// If we don't initially find the task we will
-					// retry for 20 seconds
-				outer:
-					for {
-						select {
-						case <-timer:
-							timedOut = true
-							break
-						default:
-							t, err := w.taskManager.GetTask(work.Task.ID)
-							if err == nil {
-								taskID = t.ID()
-								break outer
-							}
-							wLogger.Warn(err)
-							time.Sleep(1 * time.Second)
+					if err := w.startTask(work.Task.ID); err != nil {
+						if work.retryCount < retryLimit {
+							workerLogger.WithField("retryCount", work.retryCount).Debug("requeueing start request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.taskWork <- work
 						}
-					}
-					if timedOut {
-						workerLogger.Error("Failed to start %v after %v", work.Task.ID, duration.String())
-						continue
-					}
-					errs := w.taskManager.StartTask(taskID)
-					if errs != nil {
-						for _, err := range errs {
-							if err.Error() == scheduler.ErrTaskAlreadyRunning.Error() {
-								wLogger.WithFields(err.Fields()).Info(err)
-							} else {
-								wLogger.WithFields(err.Fields()).Error(err)
-							}
-						}
-						continue
 					}
 				}
 				if work.RequestType == TaskStoppedType {
-					t, err := w.taskManager.GetTask(work.Task.ID)
-					if err != nil {
-						wLogger.Error(err)
-						continue
-					}
-					errs := w.taskManager.StopTask(t.ID())
-					if errs != nil {
-						for _, err := range errs {
-							if err.Error() == scheduler.ErrTaskAlreadyStopped.Error() {
-								wLogger.WithFields(err.Fields()).Info(err)
-							} else {
-								wLogger.WithFields(err.Fields()).Error(err)
-							}
+					if err := w.stopTask(work.Task.ID); err != nil {
+						if work.retryCount < retryLimit {
+							workerLogger.WithField("retryCount", work.retryCount).Debug("requeueing stop request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.taskWork <- work
 						}
-						continue
 					}
 				}
 				if work.RequestType == TaskCreatedType {
-					_, err := w.taskManager.GetTask(work.Task.ID)
-					if err != nil {
-						for {
-							members, err := w.memberManager.GetTaskAgreementMembers()
-							if err != nil {
-								wLogger.Error(err)
-								continue
-							}
-							for _, member := range shuffle(members) {
-								uri := fmt.Sprintf("%s://%s:%s", member.GetRestProto(), member.GetAddr(), member.GetRestPort())
-								wLogger.Debugf("getting task %v from %v", work.Task.ID, uri)
-								c := client.New(uri, "v1", member.GetRestInsecureSkipVerify())
-								taskResult := c.GetTask(work.Task.ID)
-								if taskResult.Err != nil {
-									wLogger.WithField("err", taskResult.Err.Error()).Debug("error getting task")
-									continue
-								}
-								wLogger.Debug("creating task")
-								opt := core.SetTaskID(work.Task.ID)
-								t, errs := w.taskManager.CreateTask(
-									getSchedule(taskResult.ScheduledTaskReturned.Schedule),
-									taskResult.Workflow,
-									work.Task.StartOnCreate,
-									opt)
-								if errs != nil && len(errs.Errors()) > 0 {
-									fields := log.Fields{
-										"task":   work.Task.ID,
-										"worker": w.id,
-										"_block": "start",
-									}
-									for idx, e := range errs.Errors() {
-										fields[fmt.Sprintf("err-%d", idx)] = e
-									}
-									wLogger.WithFields(fields).Debug("error creating task")
-									continue
-								}
-								wLogger.WithField("id", t.ID()).Debugf("task created")
-								done = true
-								break
-							}
-							if done {
-								break
-							}
-							time.Sleep(500 * time.Millisecond)
+					w.createTask(work.Task.ID, work.Task.StartOnCreate)
+				}
+				if work.RequestType == TaskRemovedType {
+					if err := w.removeTask(work.Task.ID); err != nil {
+						if work.retryCount < retryLimit {
+							workerLogger.WithField("retryCount", work.retryCount).Debug("requeueing remove request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.taskWork <- work
 						}
 					}
 				}
@@ -348,6 +286,117 @@ func (w worker) start() {
 			}
 		}
 	}()
+}
+
+func (w worker) createTask(taskID string, startOnCreate bool) {
+	workerLogger = workerLogger.WithFields(log.Fields{
+		"task":   taskID,
+		"_block": "worker-createTask",
+	})
+	done := false
+	_, err := w.taskManager.GetTask(taskID)
+	if err == nil {
+		return
+	}
+	for {
+		members, err := w.memberManager.GetTaskAgreementMembers()
+		if err != nil {
+			workerLogger.Error(err)
+			continue
+		}
+		for _, member := range shuffle(members) {
+			uri := fmt.Sprintf("%s://%s:%s", member.GetRestProto(), member.GetAddr(), member.GetRestPort())
+			workerLogger.Debugf("getting task %v from %v", taskID, uri)
+			c := client.New(uri, "v1", member.GetRestInsecureSkipVerify())
+			taskResult := c.GetTask(taskID)
+			if taskResult.Err != nil {
+				workerLogger.WithField("err", taskResult.Err.Error()).Debug("error getting task")
+				continue
+			}
+			workerLogger.Debug("creating task")
+			opt := core.SetTaskID(taskID)
+			t, errs := w.taskManager.CreateTaskTribe(
+				getSchedule(taskResult.ScheduledTaskReturned.Schedule),
+				taskResult.Workflow,
+				startOnCreate,
+				opt)
+			if errs != nil && len(errs.Errors()) > 0 {
+				fields := log.Fields{
+					"task":   taskID,
+					"worker": w.id,
+					"_block": "start",
+				}
+				for idx, e := range errs.Errors() {
+					fields[fmt.Sprintf("err-%d", idx)] = e
+				}
+				workerLogger.WithFields(fields).Debug("error creating task")
+				continue
+			}
+			workerLogger.WithField("id", t.ID()).Debugf("task created")
+			done = true
+			break
+		}
+		if done {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func (w worker) startTask(taskID string) error {
+	workerLogger = workerLogger.WithFields(log.Fields{
+		"task":   taskID,
+		"_block": "worker-startTask",
+	})
+	workerLogger.Debug("starting task")
+	errs := w.taskManager.StartTaskTribe(taskID)
+	if errs == nil || len(errs) == 0 {
+		return nil
+	}
+	if errs != nil {
+		for _, err := range errs {
+			if err.Error() == scheduler.ErrTaskAlreadyRunning.Error() {
+				workerLogger.WithFields(err.Fields()).Info(err)
+				return nil
+			} else {
+				workerLogger.WithFields(err.Fields()).Error(err)
+			}
+		}
+	}
+	return errors.New("error starting task")
+}
+
+func (w worker) stopTask(taskID string) error {
+	workerLogger = workerLogger.WithFields(log.Fields{
+		"task":   taskID,
+		"_block": "worker-stopTask",
+	})
+	errs := w.taskManager.StopTaskTribe(taskID)
+	if errs == nil || len(errs) == 0 {
+		return nil
+	}
+	for _, err := range errs {
+		if err.Error() == scheduler.ErrTaskAlreadyStopped.Error() {
+			workerLogger.WithFields(err.Fields()).Info(err)
+			return nil
+		} else {
+			workerLogger.WithFields(err.Fields()).Error(err)
+		}
+	}
+	return errors.New("error stopping task")
+}
+
+func (w worker) removeTask(taskID string) error {
+	workerLogger = workerLogger.WithFields(log.Fields{
+		"task":   taskID,
+		"_block": "worker-removeTask",
+	})
+	err := w.taskManager.RemoveTaskTribe(taskID)
+	if err == nil {
+		return nil
+	}
+	workerLogger.WithField("task", taskID).Error(err)
+	return err
 }
 
 func shuffle(m []Member) []Member {
