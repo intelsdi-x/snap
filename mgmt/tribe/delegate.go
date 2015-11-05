@@ -19,14 +19,18 @@ limitations under the License.
 
 package tribe
 
-import "fmt"
+import (
+	"fmt"
+
+	log "github.com/Sirupsen/logrus"
+)
 
 type delegate struct {
 	tribe *tribe
 }
 
 func (t *delegate) NodeMeta(limit int) []byte {
-	logger.WithField("_block", "NodeMeta").Debugln("NodeMeta called")
+	logger.WithField("_block", "delegate-node-meta").Debugln("getting node meta data")
 	tags := t.tribe.encodeTags(t.tribe.tags)
 	if len(tags) > limit {
 		panic(fmt.Errorf("Node tags '%v' exceeds length limit of %d bytes", t.tribe.tags, limit))
@@ -103,7 +107,10 @@ func (t *delegate) NotifyMsg(buf []byte) {
 		}
 		rebroadcast = t.tribe.handleStartTask(msg)
 	default:
-		logger.WithField("_block", "NotifyMsg").Errorln("NodeMeta called")
+		logger.WithFields(log.Fields{
+			"_block": "delegate-notify-msg",
+			"value":  buf[0],
+		}).Errorln("unknown message type")
 		return
 	}
 
@@ -207,11 +214,12 @@ func (t *delegate) LocalState(join bool) []byte {
 }
 
 func (t *delegate) MergeRemoteState(buf []byte, join bool) {
-	logger.WithField("_block", "MergeRemoteState").Debugln("calling merge")
-	logger.Debugln("Updating full state")
+	logger := logger.WithFields(log.Fields{
+		"_block": "delegate-merge-remote-state"})
+	logger.Debugln("updating full state")
 
 	if msgType(buf[0]) != fullStateMsgType {
-		logger.Errorln("Unknown message type")
+		logger.WithField("value", buf[0]).Errorln("unknown message type")
 		return
 	}
 
