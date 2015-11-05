@@ -257,14 +257,13 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		if pool != nil {
 			pool.kill(v.Id, "plugin dead")
 		}
-
 	case *control_event.PluginUnsubscriptionEvent:
 		runnerLog.WithFields(log.Fields{
 			"_block":         "subscribe-pool",
 			"event":          v.Namespace(),
 			"plugin-name":    v.PluginName,
 			"plugin-version": v.PluginVersion,
-			"plugin-type":    v.PluginType,
+			"plugin-type":    core.PluginType(v.PluginType).String(),
 		}).Debug("handling plugin unsubscription event")
 
 		err := r.handleUnsubscription(core.PluginType(v.PluginType).String(), v.PluginName, v.PluginVersion, v.TaskId)
@@ -285,7 +284,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 					"event":          v.Namespace(),
 					"plugin-name":    v.Name,
 					"plugin-version": v.Version,
-					"plugin-type":    v.Type,
+					"plugin-type":    core.PluginType(v.Type).String(),
 					"plugin-signed":  v.Signed,
 				}).Info("pool has bad key ", key)
 				continue
@@ -308,7 +307,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				"event":          v.Namespace(),
 				"plugin-name":    v.Name,
 				"plugin-version": v.Version,
-				"plugin-type":    v.Type,
+				"plugin-type":    core.PluginType(v.Type).String(),
 			}).Info("No previous pool found for loaded plugin")
 			return
 		}
@@ -328,7 +327,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				"event":          v.Namespace(),
 				"plugin-name":    v.Name,
 				"plugin-version": v.Version,
-				"plugin-type":    v.Type,
+				"plugin-type":    core.PluginType(v.Type).String(),
 			}).Info("pool with subscriptions to move found")
 			for _, sub := range subs {
 				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
