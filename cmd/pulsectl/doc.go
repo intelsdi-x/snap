@@ -17,15 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control
+/*
+Package cmd.pulsectl provides the CLI(pulsectl). It interacts with local or remote
+running Pulse daemon (pulsed) instances through the pulsed rest api.
 
-import "github.com/intelsdi-x/pulse/control/routing"
+For further information refer to cmd.pulsectl readme:
+https://github.com/intelsdi-x/pulse/blob/master/cmd/pulsectl/README.md
 
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}
+*/
+package main

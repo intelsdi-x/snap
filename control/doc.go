@@ -17,15 +17,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Package control provides plugin control components and managements for Pulse.
+PluginManger manages loading, unloading, and swapping of plugins.
+Router is the entry point for execution commands and routing to plugins.
+
+For futher information refer to Pulse wiki:
+https://github.com/intelsdi-x/pulse/wiki/Plugin-Control
+
+*/
 package control
-
-import "github.com/intelsdi-x/pulse/control/routing"
-
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}

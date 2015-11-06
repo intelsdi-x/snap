@@ -17,15 +17,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control
+/*
+Package mgmt.rest.client implements Restful API clients for Pulse.
 
-import "github.com/intelsdi-x/pulse/control/routing"
-
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}
+For futher information refer to mgmt.rest.client readme:
+https://github.com/intelsdi-x/pulse/tree/master/mgmt/rest/client
+*/
+package client
