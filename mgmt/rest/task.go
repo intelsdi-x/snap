@@ -25,6 +25,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -42,6 +43,7 @@ var (
 	StreamingBufferWindow = 0.1
 
 	ErrStreamingUnsupported = errors.New("Streaming unsupported")
+	ErrTaskNotFound         = errors.New("Task not found")
 )
 
 type configItem struct {
@@ -153,7 +155,11 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	}
 	tc, err1 := s.mt.WatchTask(id, tw)
 	if err1 != nil {
-		respond(404, rbody.FromError(err1), w)
+		if strings.Contains(err1.Error(), ErrTaskNotFound.Error()) {
+			respond(404, rbody.FromError(err1), w)
+			return
+		}
+		respond(500, rbody.FromError(err1), w)
 		return
 	}
 
@@ -220,7 +226,6 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 			// exit since this client is no longer listening
 			respond(200, &rbody.ScheduledTaskWatchingEnded{}, w)
 		}
-
 	}
 }
 
@@ -228,7 +233,11 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	id := p.ByName("id")
 	errs := s.mt.StartTask(id)
 	if errs != nil {
-		respond(404, rbody.FromPulseErrors(errs), w)
+		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
+			respond(404, rbody.FromPulseErrors(errs), w)
+			return
+		}
+		respond(500, rbody.FromPulseErrors(errs), w)
 		return
 	}
 	// TODO should return resource
@@ -239,7 +248,11 @@ func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 	id := p.ByName("id")
 	errs := s.mt.StopTask(id)
 	if errs != nil {
-		respond(404, rbody.FromPulseErrors(errs), w)
+		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
+			respond(404, rbody.FromPulseErrors(errs), w)
+			return
+		}
+		respond(500, rbody.FromPulseErrors(errs), w)
 		return
 	}
 	respond(200, &rbody.ScheduledTaskStopped{ID: id}, w)
@@ -249,7 +262,11 @@ func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter
 	id := p.ByName("id")
 	err := s.mt.RemoveTask(id)
 	if err != nil {
-		respond(404, rbody.FromError(err), w)
+		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
+			respond(404, rbody.FromError(err), w)
+			return
+		}
+		respond(500, rbody.FromError(err), w)
 		return
 	}
 	respond(200, &rbody.ScheduledTaskRemoved{ID: id}, w)
@@ -260,7 +277,11 @@ func (s *Server) enableTask(w http.ResponseWriter, r *http.Request, p httprouter
 	id := p.ByName("id")
 	tsk, err := s.mt.EnableTask(id)
 	if err != nil {
-		respond(404, rbody.FromError(err), w)
+		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
+			respond(404, rbody.FromError(err), w)
+			return
+		}
+		respond(500, rbody.FromError(err), w)
 		return
 	}
 	task := &rbody.ScheduledTaskEnabled{}

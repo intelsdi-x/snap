@@ -218,11 +218,11 @@ func (s *scheduler) CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 func (s *scheduler) RemoveTask(id string) error {
 	t, err := s.getTask(id)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"_module": "scheduler",
-			"block":   "RemoveTask",
-			"task id": id,
-		}).Error(ErrTaskNotFound)
+		s.logger.WithFields(log.Fields{
+			"_block":  "remove-task",
+			"_error":  ErrTaskNotFound,
+			"task-id": id,
+		}).Error("error removing task")
 		return err
 	}
 	event := &scheduler_event.TaskDeletedEvent{
@@ -245,6 +245,11 @@ func (s *scheduler) GetTasks() map[string]core.Task {
 func (s *scheduler) GetTask(id string) (core.Task, error) {
 	t, err := s.getTask(id)
 	if err != nil {
+		s.logger.WithFields(log.Fields{
+			"_block":  "get-task",
+			"_error":  ErrTaskNotFound,
+			"task-id": id,
+		}).Error("error getting task")
 		return nil, err // We do this to send back an explicit nil on the interface
 	}
 	return t, nil
@@ -254,6 +259,11 @@ func (s *scheduler) GetTask(id string) (core.Task, error) {
 func (s *scheduler) StartTask(id string) []perror.PulseError {
 	t, err := s.getTask(id)
 	if err != nil {
+		s.logger.WithFields(log.Fields{
+			"_block":  "start-task",
+			"_error":  ErrTaskNotFound,
+			"task-id": id,
+		}).Error("error starting task")
 		return []perror.PulseError{
 			perror.New(err),
 		}
@@ -295,9 +305,9 @@ func (s *scheduler) StopTask(id string) []perror.PulseError {
 	if err != nil {
 		s.logger.WithFields(log.Fields{
 			"_block":  "stop-task",
-			"_error":  err.Error(),
+			"_error":  ErrTaskNotFound,
 			"task-id": id,
-		}).Warning("error on stopping of task")
+		}).Error("error stopping task")
 		return []perror.PulseError{
 			perror.New(err),
 		}
@@ -339,9 +349,9 @@ func (s *scheduler) EnableTask(id string) (core.Task, error) {
 	if e != nil {
 		s.logger.WithFields(log.Fields{
 			"_block":  "enable-task",
-			"_error":  e.Error(),
+			"_error":  ErrTaskNotFound,
 			"task-id": id,
-		}).Warning("error on enabling a task")
+		}).Error("error enabling task")
 		return nil, e
 	}
 
@@ -351,7 +361,7 @@ func (s *scheduler) EnableTask(id string) (core.Task, error) {
 			"_block":  "enable-task",
 			"_error":  err.Error(),
 			"task-id": id,
-		}).Warning("error on enabling a task")
+		}).Error("error enabling task")
 		return nil, err
 	}
 	s.logger.WithFields(log.Fields{
@@ -402,6 +412,11 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 func (s *scheduler) WatchTask(id string, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
 	task, err := s.getTask(id)
 	if err != nil {
+		s.logger.WithFields(log.Fields{
+			"_block":  "watch-task",
+			"_error":  ErrTaskNotFound,
+			"task-id": id,
+		}).Error("error watching task")
 		return nil, err
 	}
 	return s.taskWatcherColl.add(task.ID(), tw)
@@ -470,7 +485,7 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 func (s *scheduler) getTask(id string) (*task, error) {
 	task := s.tasks.Get(id)
 	if task == nil {
-		return nil, fmt.Errorf("No task found with ID '%v'", id)
+		return nil, fmt.Errorf("%v: ID(%v)", ErrTaskNotFound, id)
 	}
 	return task, nil
 }
