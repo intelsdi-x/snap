@@ -940,7 +940,7 @@ func TestPublishMetrics(t *testing.T) {
 		<-lpe.done
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.get("publisher:file:2")
+		lp, err2 := c.pluginManager.get("publisher:file:3")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "file")
 		So(lp.ConfigPolicy, ShouldNotBeNil)
@@ -948,7 +948,7 @@ func TestPublishMetrics(t *testing.T) {
 		Convey("Subscribe to file publisher with good config", func() {
 			n := cdata.NewNode()
 			config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"}))
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:2")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:3")
 			So(errp, ShouldBeNil)
 			pool.subscribe("1", unboundSubscriptionType)
 			err := c.pluginRunner.runPlugin(lp.Path)
@@ -963,7 +963,7 @@ func TestPublishMetrics(t *testing.T) {
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
 				contentType := plugin.PulseGOBContentType
-				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 2, n.Table())
+				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 3, n.Table())
 				So(errs, ShouldBeNil)
 				ap := c.AvailablePlugins()
 				So(ap, ShouldNotBeEmpty)

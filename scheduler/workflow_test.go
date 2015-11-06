@@ -87,7 +87,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			w.CollectNode.AddMetric("/intel/dummy/foo", 2)
 			w.CollectNode.AddConfigItem("/intel/dummy/foo", "password", "secret")
 
-			pu := wmap.NewPublishNode("file", 2)
+			pu := wmap.NewPublishNode("file", 3)
 			pu.AddConfigItem("file", "/tmp/pulse-TestCollectPublishWorkflow.out")
 
 			pr := wmap.NewProcessNode("passthru", 1)

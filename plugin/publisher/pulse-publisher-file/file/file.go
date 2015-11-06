@@ -25,11 +25,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"time"
-	// "fmt"
 	"os"
-	// "strings"
-	// "time"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -40,7 +36,7 @@ import (
 
 const (
 	name       = "file"
-	version    = 2
+	version    = 3
 	pluginType = plugin.PublisherPluginType
 )
 
@@ -81,7 +77,7 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 		if source == "" {
 			source = "unknown"
 		}
-		w.WriteString(fmt.Sprintf("%v|%v|%v|%v\n", time.Now().Local(), m.Namespace(), m.Data(), source))
+		w.WriteString(fmt.Sprintf("%v|%v|%v|%v\n", m.Timestamp(), m.Namespace(), m.Data(), source))
 	}
 	w.Flush()
 
