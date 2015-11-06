@@ -204,6 +204,7 @@ func TestTribeTaskAgreements(t *testing.T) {
 						resp = getPluginList(mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 200)
 						So(len(resp.Body.(*rbody.PluginList).LoadedPlugins), ShouldEqual, 1)
+						pluginToUnload := resp.Body.(*rbody.PluginList).LoadedPlugins[0]
 						resp = getAgreement(mgtPorts[0], aName)
 						So(resp.Meta.Code, ShouldEqual, 200)
 						So(len(resp.Body.(*rbody.TribeGetAgreement).Agreement.PluginAgreement.Plugins), ShouldEqual, 1)
@@ -340,6 +341,37 @@ func TestTribeTaskAgreements(t *testing.T) {
 											}
 											wg.Wait()
 											So(timedOut, ShouldEqual, false)
+											Convey("The plugins are unloaded", func(c C) {
+												resp := unloadPlugin(mgtPorts[0], pluginToUnload.Type, pluginToUnload.Name, pluginToUnload.Version)
+												So(resp.Meta.Code, ShouldEqual, 200)
+												So(resp.Meta.Type, ShouldEqual, rbody.PluginUnloadedType)
+												So(resp.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
+												var wg sync.WaitGroup
+												timedOut := false
+												for i := 0; i < numOfNodes; i++ {
+													timer := time.After(15 * time.Second)
+													wg.Add(1)
+													go func(port int) {
+														defer wg.Done()
+														for {
+															select {
+															case <-timer:
+																timedOut = true
+																return
+															default:
+																resp = getPluginList(port)
+																c.So(resp.Meta.Code, ShouldEqual, 200)
+																if len(resp.Body.(*rbody.PluginList).LoadedPlugins) == 0 {
+																	return
+																}
+																time.Sleep(400 * time.Millisecond)
+															}
+														}
+													}(mgtPorts[i])
+												}
+												wg.Wait()
+												So(timedOut, ShouldEqual, false)
+											})
 										})
 									})
 								})

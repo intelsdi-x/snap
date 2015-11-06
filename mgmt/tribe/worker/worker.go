@@ -49,6 +49,7 @@ const (
 
 const (
 	PluginLoadedType = iota
+	PluginUnloadedType
 )
 
 const (
@@ -60,7 +61,8 @@ const (
 
 var (
 	PluginRequestTypeLookup = map[PluginRequestType]string{
-		PluginLoadedType: "Loaded",
+		PluginLoadedType:   "Loaded",
+		PluginUnloadedType: "Unloaded",
 	}
 
 	TaskRequestTypeLookup = map[TaskRequestType]string{
@@ -229,11 +231,9 @@ func (w worker) start() {
 						}
 					}
 				}
-
 			case <-w.quitChan:
 				logger.Infof("stopping tribe worker")
 				return
-
 			}
 		}
 	}()
@@ -247,74 +247,117 @@ func (w worker) start() {
 			select {
 			case work := <-w.pluginWork:
 				// Receive a work request.
-				logger := logger.WithFields(log.Fields{
+				logger := w.logger.WithFields(log.Fields{
 					"plugin-name":    work.Plugin.Name(),
 					"plugin-version": work.Plugin.Version(),
 					"plugin-type":    work.Plugin.TypeName(),
 					"request-type":   work.RequestType.String(),
 				})
 				logger.Debug("received plugin work")
-				done := false
-				for {
-					if w.isPluginLoaded(work.Plugin.Name(), work.Plugin.TypeName(), work.Plugin.Version()) {
-						break
-					}
-					members, err := w.memberManager.GetPluginAgreementMembers()
-					if err != nil {
-						logger.Error(err)
-						continue
-					}
-					for _, member := range shuffle(members) {
-						url := fmt.Sprintf("%s://%s:%s/v1/plugins/%s/%s/%d?download=true", member.GetRestProto(), member.GetAddr(), member.GetRestPort(), work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version())
-						resp, err := http.Get(url)
-						if err != nil {
-							logger.Error(err)
-							continue
-						}
-						if resp.StatusCode == 200 {
-							if resp.Header.Get("Content-Type") != "application/x-gzip" {
-								logger.WithField("content-type", resp.Header.Get("Content-Type")).Error("Expected application/x-gzip")
-							}
-							dir, err := ioutil.TempDir("", "")
-							if err != nil {
-								logger.Error(err)
-								continue
-							}
-							f, err := os.Create(path.Join(dir, fmt.Sprintf("%s-%s-%d", work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version())))
-							if err != nil {
-								logger.Error(err)
-								f.Close()
-								continue
-							}
-							io.Copy(f, resp.Body)
-							f.Close()
-							err = os.Chmod(f.Name(), 0700)
-							if err != nil {
-								logger.Error(err)
-								continue
-							}
-							_, err = w.pluginManager.Load(f.Name())
-							if err != nil {
-								logger.Error(err)
-								continue
-							}
-							if w.isPluginLoaded(work.Plugin.Name(), work.Plugin.TypeName(), work.Plugin.Version()) {
-								done = true
-								break
-							}
+				if work.RequestType == PluginLoadedType {
+					if err := w.loadPlugin(work.Plugin); err != nil {
+						if work.retryCount < retryLimit {
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.pluginWork <- work
 						}
 					}
-					if done {
-						break
+				}
+				if work.RequestType == PluginUnloadedType {
+					if err := w.unloadPlugin(work.Plugin); err != nil {
+						if work.retryCount < retryLimit {
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.pluginWork <- work
+						}
 					}
-					time.Sleep(500 * time.Millisecond)
 				}
 			case <-w.quitChan:
-				logger.Debug("stop tribe plugin worker")
+				w.logger.Debug("stop tribe plugin worker")
 				return
 			}
 		}
 	}()
+}
+
+func (w worker) unloadPlugin(plugin core.Plugin) error {
+	logger := w.logger.WithFields(log.Fields{
+		"plugin-name":    plugin.Name(),
+		"plugin-version": plugin.Version(),
+		"plugin-type":    plugin.TypeName(),
+		"_block":         "unload-plugin",
+	})
+	if !w.isPluginLoaded(plugin.Name(), plugin.TypeName(), plugin.Version()) {
+		return nil
+	}
+	if _, err := w.pluginManager.Unload(plugin); err != nil {
+		logger.WithField("err", err).Info("failed to unload plugin")
+		return err
+	}
+	return nil
+}
+
+func (w worker) loadPlugin(plugin core.Plugin) error {
+	logger := w.logger.WithFields(log.Fields{
+		"plugin-name":    plugin.Name(),
+		"plugin-version": plugin.Version(),
+		"plugin-type":    plugin.TypeName(),
+		"_block":         "load-plugin",
+	})
+	if w.isPluginLoaded(plugin.Name(), plugin.TypeName(), plugin.Version()) {
+		return nil
+	}
+	members, err := w.memberManager.GetPluginAgreementMembers()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	for _, member := range shuffle(members) {
+		url := fmt.Sprintf("%s://%s:%s/v1/plugins/%s/%s/%d?download=true", member.GetRestProto(), member.GetAddr(), member.GetRestPort(), plugin.TypeName(), plugin.Name(), plugin.Version())
+		resp, err := http.Get(url)
+		if err != nil {
+			logger.WithFields(log.Fields{
+				"err": err,
+				"url": url,
+			}).Info("plugin not found")
+			continue
+		}
+		if resp.StatusCode == 200 {
+			if resp.Header.Get("Content-Type") != "application/x-gzip" {
+				logger.WithField("content-type", resp.Header.Get("Content-Type")).Error("Expected application/x-gzip")
+			}
+			dir, err := ioutil.TempDir("", "")
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			f, err := os.Create(path.Join(dir, fmt.Sprintf("%s-%s-%d", plugin.TypeName(), plugin.Name(), plugin.Version())))
+			if err != nil {
+				logger.Error(err)
+				f.Close()
+				return err
+			}
+			io.Copy(f, resp.Body)
+			f.Close()
+			err = os.Chmod(f.Name(), 0700)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			_, err = w.pluginManager.Load(f.Name())
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			if w.isPluginLoaded(plugin.Name(), plugin.TypeName(), plugin.Version()) {
+				return nil
+			}
+			return errors.New("failed to load plugin")
+		}
+	}
+	return errors.New("failed to find a member with the plugin")
 }
 
 func (w worker) createTask(taskID string, startOnCreate bool) {
