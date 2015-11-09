@@ -87,10 +87,10 @@ var (
 		EnvVar: "PULSE_TRUST_LEVEL",
 		Value:  1,
 	}
-	flKeyringFile = cli.StringFlag{
-		Name:   "keyring-file, k",
-		Usage:  "Keyring file for signing verification",
-		EnvVar: "PULSE_KEYRING_FILE",
+	flkeyringPaths = cli.StringFlag{
+		Name:   "keyring-files, k",
+		Usage:  "Keyring files for signing verification separated by colons",
+		EnvVar: "PULSE_KEYRING_FILES",
 	}
 	flCache = cli.StringFlag{
 		Name:   "cache-expiration",
@@ -162,7 +162,7 @@ func main() {
 		flNumberOfPLs,
 		flCache,
 		flPluginTrust,
-		flKeyringFile,
+		flkeyringPaths,
 		flRestCert,
 		flConfig,
 		flRestHttps,
@@ -197,7 +197,7 @@ func action(ctx *cli.Context) {
 	autodiscoverPath := ctx.String("auto-discover")
 	maxRunning := ctx.Int("max-running-plugins")
 	pluginTrust := ctx.Int("plugin-trust")
-	keyringFile := ctx.String("keyring-file")
+	keyringPaths := ctx.String("keyring-files")
 	cachestr := ctx.String("cache-expiration")
 	isTribeEnabled := ctx.Bool("tribe")
 	tribeSeed := ctx.String("tribe-seed")
@@ -344,60 +344,90 @@ func action(ctx *cli.Context) {
 	c.SetPluginTrustLevel(pluginTrust)
 	log.Info("setting plugin trust level to: ", t[pluginTrust])
 	//Keyring checking for trust levels 1 and 2
+
 	if pluginTrust > 0 {
-		if keyringFile == "" {
+		keyrings := filepath.SplitList(keyringPaths)
+		if len(keyrings) == 0 {
 			log.WithFields(
 				log.Fields{
-					"block":       "main",
-					"_module":     "pulsed",
-					"keyringFile": keyringFile,
+					"block":   "main",
+					"_module": "pulsed",
 				}).Fatal("need keyring file when trust is on (--keyring-file or -k)")
 			os.Exit(1)
 		}
-		f, err := os.Stat(keyringFile)
-		if err != nil {
-			log.WithFields(
-				log.Fields{
-					"block":       "main",
-					"_module":     "pulsed",
-					"error":       err.Error(),
-					"keyringFile": keyringFile,
-				}).Fatal("bad keyring file")
-			os.Exit(1)
+		for _, k := range keyrings {
+			keyringPath, err := filepath.Abs(k)
+			if err != nil {
+				log.WithFields(
+					log.Fields{
+						"block":       "main",
+						"_module":     "pulsed",
+						"error":       err.Error(),
+						"keyringPath": keyringPath,
+					}).Fatal("Unable to determine absolute path to keyring file")
+				os.Exit(1)
+			}
+			f, err := os.Stat(keyringPath)
+			if err != nil {
+				log.WithFields(
+					log.Fields{
+						"block":       "main",
+						"_module":     "pulsed",
+						"error":       err.Error(),
+						"keyringPath": keyringPath,
+					}).Fatal("bad keyring file")
+				os.Exit(1)
+			}
+			if f.IsDir() {
+				log.Info("Adding keyrings from: ", keyringPath)
+				files, err := ioutil.ReadDir(keyringPath)
+				if err != nil {
+					log.WithFields(
+						log.Fields{
+							"_block":      "main",
+							"_module":     "pulsed",
+							"error":       err.Error(),
+							"keyringPath": keyringPath,
+						}).Fatal(err)
+					os.Exit(1)
+				}
+				for _, keyringFile := range files {
+					if keyringFile.IsDir() {
+						continue
+					}
+					if strings.HasSuffix(keyringFile.Name(), ".gpg") || (strings.HasSuffix(keyringFile.Name(), ".pub")) || (strings.HasSuffix(keyringFile.Name(), ".pubring")) {
+						_, err := os.Open(keyringPath)
+						if err != nil {
+							log.WithFields(
+								log.Fields{
+									"block":       "main",
+									"_module":     "pulsed",
+									"error":       err.Error(),
+									"keyringPath": keyringPath,
+								}).Warning("can't open keyring file. not adding to keyring path")
+						} else {
+							log.Info("adding keyring file: ", keyringPath+"/"+keyringFile.Name())
+							c.SetKeyringFile(keyringPath + "/" + keyringFile.Name())
+						}
+					}
+				}
+			} else {
+				_, err := os.Open(keyringPath)
+				if err != nil {
+					log.WithFields(
+						log.Fields{
+							"block":       "main",
+							"_module":     "pulsed",
+							"error":       err.Error(),
+							"keyringPath": keyringPath,
+						}).Warning("can't open keyring file. not adding to keyring path")
+					os.Exit(1)
+				} else {
+					log.Info("adding keyring file ", keyringPath)
+					c.SetKeyringFile(keyringPath)
+				}
+			}
 		}
-		if f.IsDir() {
-			log.WithFields(
-				log.Fields{
-					"block":   "main",
-					"_module": "pulsed",
-					"logpath": keyringFile,
-				}).Fatal("bad keyring file (this is not a file)")
-			os.Exit(1)
-		}
-		file, err := os.Open(keyringFile)
-		if err != nil {
-			log.WithFields(
-				log.Fields{
-					"block":       "main",
-					"_module":     "pulsed",
-					"error":       err.Error(),
-					"keyringFile": keyringFile,
-				}).Fatal("can't open keyring path")
-			os.Exit(1)
-		}
-		file.Close()
-		p, err := filepath.Abs(keyringFile)
-		if err != nil {
-			log.WithFields(
-				log.Fields{
-					"block":   "main",
-					"_module": "pulsed",
-					"error":   err.Error(),
-				}).Fatal("Unable to determine absolute path to keyring file")
-			os.Exit(1)
-		}
-		log.Info("setting keyring file to: ", p)
-		c.SetKeyringFile(p)
 	}
 
 	//Autodiscover

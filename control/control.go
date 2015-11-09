@@ -76,8 +76,8 @@ type pluginControl struct {
 	pluginRunner   runsPlugins
 	signingManager managesSigning
 
-	pluginTrust int
-	keyringFile string
+	pluginTrust  int
+	keyringFiles []string
 }
 
 type runsPlugins interface {
@@ -119,7 +119,7 @@ type catalogsMetrics interface {
 }
 
 type managesSigning interface {
-	ValidateSignature(keyringFile string, signedFile string, signatureFile string) error
+	ValidateSignature(keyringFiles []string, signedFile string, signatureFile string) error
 }
 
 type ControlOpt func(*pluginControl)
@@ -272,7 +272,7 @@ func (p *pluginControl) Load(files ...string) (core.CatalogedPlugin, perror.Puls
 	case PluginTrustDisabled:
 		signed = false
 	case PluginTrustEnabled:
-		err := p.signingManager.ValidateSignature(p.keyringFile, pluginPath, signatureFile)
+		err := p.signingManager.ValidateSignature(p.keyringFiles, pluginPath, signatureFile)
 		if err != nil {
 			return nil, perror.New(err)
 		}
@@ -282,7 +282,7 @@ func (p *pluginControl) Load(files ...string) (core.CatalogedPlugin, perror.Puls
 			signed = false
 			controlLogger.WithFields(f).Warn("Loading unsigned plugin ", pluginPath)
 		} else {
-			err := p.signingManager.ValidateSignature(p.keyringFile, pluginPath, signatureFile)
+			err := p.signingManager.ValidateSignature(p.keyringFiles, pluginPath, signatureFile)
 			if err != nil {
 				return nil, perror.New(err)
 			}
@@ -918,7 +918,7 @@ func (p *pluginControl) SetPluginTrustLevel(trust int) {
 }
 
 func (p *pluginControl) SetKeyringFile(keyring string) {
-	p.keyringFile = keyring
+	p.keyringFiles = append(p.keyringFiles, keyring)
 }
 
 type requestedPlugin struct {
