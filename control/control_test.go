@@ -126,12 +126,12 @@ func TestSwapPlugin(t *testing.T) {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
 			})
-			Convey("First plugin in catalog should have name dummy2", func() {
-				So(c.PluginCatalog()[0].Name(), ShouldEqual, "dummy2")
+			Convey("First plugin in catalog should have name mock2", func() {
+				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock2")
 			})
 		})
-		dummy1Path := strings.Replace(PluginPath, "pulse-collector-dummy2", "pulse-collector-dummy1", 1)
-		err := c.SwapPlugins(dummy1Path, c.PluginCatalog()[0])
+		mock1Path := strings.Replace(PluginPath, "pulse-collector-mock2", "pulse-collector-mock1", 1)
+		err := c.SwapPlugins(mock1Path, c.PluginCatalog()[0])
 		<-lpe.done
 
 		// Swap plugin that was loaded with a different plugin
@@ -140,17 +140,17 @@ func TestSwapPlugin(t *testing.T) {
 				So(err, ShouldBeNil)
 			})
 			Convey("Should generate a swapped plugins event", func() {
-				Convey("So first plugin in catalog after swap should have name dummy1", func() {
-					So(c.PluginCatalog()[0].Name(), ShouldEqual, "dummy1")
+				Convey("So first plugin in catalog after swap should have name mock1", func() {
+					So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock1")
 				})
-				Convey("So swapped plugins event should show loaded plugin name as dummy1", func() {
-					So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy1")
+				Convey("So swapped plugins event should show loaded plugin name as mock1", func() {
+					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock1")
 				})
 				Convey("So swapped plugins event should show loaded plugin version as 1", func() {
 					So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
 				})
-				Convey("So swapped plugins event should show unloaded plugin name as dummy2", func() {
-					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy2")
+				Convey("So swapped plugins event should show unloaded plugin name as mock2", func() {
+					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock2")
 				})
 				Convey("So swapped plugins event should show unloaded plugin version as 2", func() {
 					So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
@@ -167,8 +167,8 @@ func TestSwapPlugin(t *testing.T) {
 			Convey("Should throw an error", func() {
 				So(err, ShouldNotBeNil)
 			})
-			Convey("Plugin in catalog should still be dummy1", func() {
-				So(c.PluginCatalog()[0].Name(), ShouldEqual, "dummy1")
+			Convey("Plugin in catalog should still be mock1", func() {
+				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock1")
 			})
 		})
 
@@ -184,7 +184,7 @@ func TestSwapPlugin(t *testing.T) {
 			pm.ExistingPlugin = lp
 			c.pluginManager = pm
 
-			err := c.SwapPlugins(dummy1Path, lp)
+			err := c.SwapPlugins(mock1Path, lp)
 			Convey("So err should be received if rollback fails", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -242,7 +242,7 @@ func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 
 var (
 	AciPath = path.Join(strings.TrimRight(PulsePath, "build"), "pkg/unpackage/")
-	AciFile = "pulse-collector-plugin-dummy1.darwin-x86_64.aci"
+	AciFile = "pulse-collector-plugin-mock1.darwin-x86_64.aci"
 )
 
 type mocksigningManager struct {
@@ -256,7 +256,7 @@ func (ps *mocksigningManager) ValidateSignature(string, string, string) error {
 	return errors.New("fake")
 }
 
-// Uses the dummy collector plugin to simulate Loading
+// Uses the mock collector plugin to simulate Loading
 func TestLoad(t *testing.T) {
 	// These tests only work if PULSE_PATH is known.
 	// It is the responsibility of the testing framework to
@@ -275,7 +275,7 @@ func TestLoad(t *testing.T) {
 			})
 		})
 
-		// Start pluginControl and load our dummy plugin
+		// Start pluginControl and load our mock plugin
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
 		lpe := newListenToPluginEvent()
@@ -288,8 +288,8 @@ func TestLoad(t *testing.T) {
 				So(err, ShouldBeNil)
 			})
 			Convey("should emit a plugin event message", func() {
-				Convey("with loaded plugin name is dummy2", func() {
-					So(lpe.plugin.LoadedPluginName, ShouldEqual, "dummy2")
+				Convey("with loaded plugin name is mock2", func() {
+					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock2")
 				})
 
 				Convey("with loaded plugin version as 2", func() {
@@ -311,7 +311,7 @@ func TestLoad(t *testing.T) {
 
 		//Unpackaging
 		Convey("pluginControl.Load on untar error with package", t, func() {
-			PackagePath := path.Join(AciPath, "dummy.aci")
+			PackagePath := path.Join(AciPath, "mock.aci")
 			_, err := c.Load(PackagePath)
 			Convey("should return an error", func() {
 				So(err, ShouldNotBeNil)
@@ -349,7 +349,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, PluginPath, "dummy.asc")
+			_, err := load(c, PluginPath, "mock.asc")
 			<-lpe.done
 			Convey("so error on loading a signed plugin should be nil", func() {
 				So(err, ShouldBeNil)
@@ -417,8 +417,8 @@ func TestUnload(t *testing.T) {
 				So(err, ShouldBeNil)
 			})
 			Convey("should generate an unloaded plugin event", func() {
-				Convey("where unloaded plugin name is dummy2", func() {
-					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "dummy2")
+				Convey("where unloaded plugin name is mock2", func() {
+					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock2")
 				})
 				Convey("where unloaded plugin version should equal 2", func() {
 					So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
@@ -748,7 +748,7 @@ func TestMetricConfig(t *testing.T) {
 		<-lpe.done
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
-			namespace: []string{"intel", "dummy", "foo"},
+			namespace: []string{"intel", "mock", "foo"},
 		}
 		metric, errs := c.validateMetricTypeSubscription(m1, cd)
 		Convey("So metric should not be valid without config", func() {
@@ -775,7 +775,7 @@ func TestMetricConfig(t *testing.T) {
 		<-lpe.done
 		var cd *cdata.ConfigDataNode
 		m1 := MockMetricType{
-			namespace: []string{"intel", "dummy", "foo"},
+			namespace: []string{"intel", "mock", "foo"},
 		}
 		metric, errs := c.validateMetricTypeSubscription(m1, cd)
 		Convey("So metric should be valid with config", func() {
@@ -796,7 +796,7 @@ func TestMetricConfig(t *testing.T) {
 		<-lpe.done
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
-			namespace: []string{"intel", "dummy", "foo"},
+			namespace: []string{"intel", "mock", "foo"},
 		}
 		metric, errs := c.validateMetricTypeSubscription(m1, cd)
 		Convey("So metric should be valid with config", func() {
@@ -826,7 +826,7 @@ func TestCollectMetrics(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		// Add a global plugin config
-		c.Config.Plugins.Collector.Plugins["dummy1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+		c.Config.Plugins.Collector.Plugins["mock1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
 		load(c, JSONRPC_PluginPath)
@@ -840,23 +840,23 @@ func TestCollectMetrics(t *testing.T) {
 
 		m := []core.Metric{}
 		m1 := MockMetricType{
-			namespace: []string{"intel", "dummy", "foo"},
+			namespace: []string{"intel", "mock", "foo"},
 			cfg:       cd,
 		}
 		m2 := MockMetricType{
-			namespace: []string{"intel", "dummy", "bar"},
+			namespace: []string{"intel", "mock", "bar"},
 			cfg:       cd,
 		}
 		m3 := MockMetricType{
-			namespace: []string{"intel", "dummy", "test"},
+			namespace: []string{"intel", "mock", "test"},
 			cfg:       cd,
 		}
 
 		// retrieve loaded plugin
-		lp, err := c.pluginManager.get("collector:dummy1:1")
+		lp, err := c.pluginManager.get("collector:mock1:1")
 		So(err, ShouldBeNil)
 		So(lp, ShouldNotBeNil)
-		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:dummy1:1")
+		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock1:1")
 		So(errp, ShouldBeNil)
 		pool.subscribe("1", unboundSubscriptionType)
 		err = c.pluginRunner.runPlugin(lp.Path)
@@ -868,7 +868,7 @@ func TestCollectMetrics(t *testing.T) {
 			cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*60))
 			So(err, ShouldBeNil)
 			for i := range cr {
-				So(cr[i].Data(), ShouldContainSubstring, "The dummy collected data!")
+				So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
 				So(cr[i].Data(), ShouldContainSubstring, "test=true")
 			}
 		}

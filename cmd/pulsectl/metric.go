@@ -54,8 +54,8 @@ func listMetrics(ctx *cli.Context) {
 
 	/*
 		NAMESPACE               VERSION
-		/intel/dummy/foo        1,2
-		/intel/dummy/bar        1
+		/intel/mock/foo        1,2
+		/intel/mock/bar        1
 	*/
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	metsByVer := make(map[string][]string)
@@ -97,9 +97,9 @@ func getMetric(ctx *cli.Context) {
 
 	/*
 		NAMESPACE                VERSION         LAST ADVERTISED TIME
-		/intel/dummy/foo         2               Wed, 09 Sep 2015 10:01:04 PDT
+		/intel/mock/foo         2               Wed, 09 Sep 2015 10:01:04 PDT
 
-		  Rules for collecting /intel/dummy/foo:
+		  Rules for collecting /intel/mock/foo:
 
 		     NAME        TYPE            DEFAULT         REQUIRED     MINIMUM   MAXIMUM
 		     name        string          bob             false

@@ -32,26 +32,26 @@ var (
 	sum int
 )
 
-type dummyCatcher struct {
+type mockCatcher struct {
 	count int
 }
 
-func (d *dummyCatcher) CatchCollection(m []core.Metric) {
+func (d *mockCatcher) CatchCollection(m []core.Metric) {
 	d.count++
 	sum++
 }
 
-func (d *dummyCatcher) CatchTaskDisabled(why string) {
+func (d *mockCatcher) CatchTaskDisabled(why string) {
 	d.count++
 	sum++
 }
 
-func (d *dummyCatcher) CatchTaskStopped() {
+func (d *mockCatcher) CatchTaskStopped() {
 	d.count++
 	sum++
 }
 
-func (d *dummyCatcher) CatchTaskStarted() {
+func (d *mockCatcher) CatchTaskStarted() {
 	d.count++
 	sum++
 }
@@ -61,9 +61,9 @@ func TestTaskWatching(t *testing.T) {
 	Convey("", t, func() {
 		twc := newTaskWatcherCollection()
 		So(twc, ShouldHaveSameTypeAs, new(taskWatcherCollection))
-		d1 := &dummyCatcher{}
-		d2 := &dummyCatcher{}
-		d3 := &dummyCatcher{}
+		d1 := &mockCatcher{}
+		d2 := &mockCatcher{}
+		d3 := &mockCatcher{}
 
 		twc.add("1", d1)
 		x, _ := twc.add("1", d2)

@@ -71,7 +71,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 		s := New()
 		s.SetMetricManager(c)
 		Convey("create a workflow", func() {
-			_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-collector-dummy2"))
+			_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-collector-mock2"))
 			So(err, ShouldBeNil)
 			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
 			So(err, ShouldBeNil)
@@ -84,8 +84,8 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			So(metrics, ShouldNotBeEmpty)
 
 			w := wmap.NewWorkflowMap()
-			w.CollectNode.AddMetric("/intel/dummy/foo", 2)
-			w.CollectNode.AddConfigItem("/intel/dummy/foo", "password", "secret")
+			w.CollectNode.AddMetric("/intel/mock/foo", 2)
+			w.CollectNode.AddConfigItem("/intel/mock/foo", "password", "secret")
 
 			pu := wmap.NewPublishNode("file", 3)
 			pu.AddConfigItem("file", "/tmp/pulse-TestCollectPublishWorkflow.out")

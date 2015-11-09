@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	PluginName = "pulse-collector-dummy2"
+	PluginName = "pulse-collector-mock2"
 	PulsePath  = os.Getenv("PULSE_PATH")
 	PluginPath = path.Join(PulsePath, "plugin", PluginName)
 )
@@ -176,14 +176,14 @@ func TestWaitForPluginResponse(t *testing.T) {
 			So(err.Error(), ShouldEqual, "timeout waiting for response")
 		})
 
-		// These tests don't mock and directly use dummy collector plugin
+		// These tests don't mock and directly use mock collector plugin
 		// They require pulse path being set and a recent build of the plugin
 		// WIP
 		if PluginPath != "" {
-			Convey("dummy", func() {
+			Convey("mock", func() {
 				m := new(MockController)
 				a := m.GenerateArgs()
-				a.PluginLogPath = "/tmp/pulse-dummy.log"
+				a.PluginLogPath = "/tmp/pulse-mock.log"
 				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)
@@ -200,10 +200,10 @@ func TestWaitForPluginResponse(t *testing.T) {
 
 			})
 
-			Convey("dummy2", func() {
+			Convey("mock2", func() {
 				m := new(MockController)
 				a := m.GenerateArgs()
-				a.PluginLogPath = "/tmp/pulse-dummy.log"
+				a.PluginLogPath = "/tmp/pulse-mock.log"
 				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)

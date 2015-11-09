@@ -28,16 +28,16 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type dummyNode struct {
+type mockNode struct {
 	data string
 }
 
-func (d dummyNode) Merge(dn Node) Node {
-	d.data = fmt.Sprintf("%s/%s", d.data, dn.(*dummyNode).data)
+func (d mockNode) Merge(dn Node) Node {
+	d.data = fmt.Sprintf("%s/%s", d.data, dn.(*mockNode).data)
 	return d
 }
 
-func (n *dummyNode) GobEncode() ([]byte, error) {
+func (n *mockNode) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
 
@@ -48,7 +48,7 @@ func (n *dummyNode) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
-func (n *dummyNode) GobDecode(buf []byte) error {
+func (n *mockNode) GobDecode(buf []byte) error {
 	if len(buf) == 0 {
 		//there is nothing to do
 		return nil
@@ -58,8 +58,8 @@ func (n *dummyNode) GobDecode(buf []byte) error {
 	return decoder.Decode(&n.data)
 }
 
-func newDummyNode() *dummyNode {
-	return new(dummyNode)
+func newMockNode() *mockNode {
+	return new(mockNode)
 }
 
 func TestConfigTree(t *testing.T) {
@@ -72,20 +72,20 @@ func TestConfigTree(t *testing.T) {
 
 	Convey("Add()", t, func() {
 		c := New()
-		c.Add([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, newDummyNode())
-		c.Add([]string{"intel", "sdilabs", "joel", "dan"}, newDummyNode())
-		c.Add([]string{"intel", "manhole", "joel", "dan"}, newDummyNode())
+		c.Add([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, newMockNode())
+		c.Add([]string{"intel", "sdilabs", "joel", "dan"}, newMockNode())
+		c.Add([]string{"intel", "manhole", "joel", "dan"}, newMockNode())
 	})
 
 	Convey("Get()", t, func() {
 		Convey("order preserved", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
-			d2 := newDummyNode()
+			d2 := newMockNode()
 			d2.data = "b"
-			d3 := newDummyNode()
+			d3 := newMockNode()
 			d3.data = "c"
-			d4 := newDummyNode()
+			d4 := newMockNode()
 			d4.data = "d"
 			c := New()
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
@@ -96,10 +96,10 @@ func TestConfigTree(t *testing.T) {
 			c.Print()
 			g := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 			So(g, ShouldNotBeNil)
-			So(g.(dummyNode).data, ShouldResemble, "b/a")
+			So(g.(mockNode).data, ShouldResemble, "b/a")
 
 			Convey("GobEncode/GobDecode", func() {
-				gob.Register(&dummyNode{})
+				gob.Register(&mockNode{})
 				buf, err := c.GobEncode()
 				So(err, ShouldBeNil)
 				So(buf, ShouldNotBeNil)
@@ -110,25 +110,25 @@ func TestConfigTree(t *testing.T) {
 				So(c2.root.keys, ShouldNotBeEmpty)
 				g2 := c2.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 				So(g2, ShouldNotBeNil)
-				So(g2.(dummyNode).data, ShouldResemble, "b/a")
+				So(g2.(mockNode).data, ShouldResemble, "b/a")
 			})
 		})
 
 		Convey("single item ns", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
 			c := New()
 			c.Add([]string{"1"}, d1)
 			c.Freeze()
 			g := c.Get([]string{"1"})
 			So(g, ShouldNotBeNil)
-			So(g.(*dummyNode).data, ShouldResemble, "a")
+			So(g.(*mockNode).data, ShouldResemble, "a")
 		})
 
 		Convey("add 2 nodes that will not change on compression", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
-			d2 := newDummyNode()
+			d2 := newMockNode()
 			d2.data = "b"
 			c := New()
 			c.Debug = true
@@ -137,7 +137,7 @@ func TestConfigTree(t *testing.T) {
 			c.Freeze()
 			g := c.Get([]string{"1", "2"})
 			So(g, ShouldNotBeNil)
-			So(g.(dummyNode).data, ShouldResemble, "a/b")
+			So(g.(mockNode).data, ShouldResemble, "a/b")
 		})
 
 		Convey("blank tree return nil", func() {
@@ -148,7 +148,7 @@ func TestConfigTree(t *testing.T) {
 		})
 
 		Convey("wrong root", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
 			c := New()
 			c.Freeze()
@@ -160,7 +160,7 @@ func TestConfigTree(t *testing.T) {
 		Convey("long ns short tree", func() {
 			c := New()
 			c.Debug = true
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
 			c.Add([]string{"intel"}, d1)
 			c.Freeze()
@@ -170,7 +170,7 @@ func TestConfigTree(t *testing.T) {
 
 		Convey("long tree short ns", func() {
 			c := New()
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
 			c.Freeze()
@@ -179,9 +179,9 @@ func TestConfigTree(t *testing.T) {
 		})
 
 		Convey("basic get", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
-			d2 := newDummyNode()
+			d2 := newMockNode()
 			d2.data = "b"
 			c := New()
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
@@ -192,9 +192,9 @@ func TestConfigTree(t *testing.T) {
 		})
 
 		Convey("get is inbetween two nodes in tree", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
-			d2 := newDummyNode()
+			d2 := newMockNode()
 			d2.data = "b"
 			c := New()
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
@@ -205,9 +205,9 @@ func TestConfigTree(t *testing.T) {
 		})
 
 		Convey("adding a new root panics", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
-			d2 := newDummyNode()
+			d2 := newMockNode()
 			d2.data = "b"
 			c := New()
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
@@ -218,7 +218,7 @@ func TestConfigTree(t *testing.T) {
 		})
 
 		Convey("doesn't panic on empty ns", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
 			c := New()
 			So(func() {
@@ -230,7 +230,7 @@ func TestConfigTree(t *testing.T) {
 		})
 
 		Convey("should panic on non frozen get", func() {
-			d1 := newDummyNode()
+			d1 := newMockNode()
 			d1.data = "a"
 			c := New()
 			So(func() {

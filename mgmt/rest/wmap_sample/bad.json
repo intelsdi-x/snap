@@ -1,7 +1,7 @@
 {
     "collect": {
         "metrics": {
-            "/intel/dummy/foo": {}
+            "/intel/mock/foo": {}
         },
         "config": {},
         "process": [],

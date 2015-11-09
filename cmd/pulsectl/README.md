@@ -83,7 +83,7 @@ $PULSE_PATH/bin/pulsed
 
 ```
 $PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-collector-psutil
-$PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-collector-dummy1
+$PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-collector-mock1
 $PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-processor-passthru
 $PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-publisher-influxdb
 $PULSE_PATH/bin/pulsectl plugin load $PULSE_PATH/plugin/pulse-publisher-file
