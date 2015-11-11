@@ -55,7 +55,6 @@ limitations under the License.
 
 **Pulse** architecture
 
-* Written in Go
 * Decoupled internal structure with a focus on event-driven handling
 
 ## License
