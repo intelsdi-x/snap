@@ -88,6 +88,8 @@ func SupportedTypes() []string {
 		ConfigValueInt{}.Type(),
 		// Float
 		ConfigValueFloat{}.Type(),
+		// Bool
+		ConfigValueBool{}.Type(),
 	}
 	return t
 }
