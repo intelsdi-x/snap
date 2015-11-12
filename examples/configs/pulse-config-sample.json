@@ -31,8 +31,15 @@
                 "all": {
                     "path": "/usr/local/bin/psutil"
                 }
+            },
+            "ceph": {
+                "all": {
+                    "path": "/usr/bin/ceph",
+                    "socket_path": "/var/run/ceph",
+                    "socket_prefix": "ceph-",
+                    "socket_ext": "asok"
+                }
             }
-
         },
         "publisher": {
             "influxdb": {
@@ -43,7 +50,7 @@
             }
         },
         "processor": {
-            "movingaverage" : {
+            "movingaverage": {
                 "all": {
                     "user": "jane"
                 },
