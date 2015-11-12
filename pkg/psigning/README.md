@@ -12,7 +12,7 @@ The Pulse Daemon uses the Golang OpenPGP library's `CheckArmoredDetachedSignatur
 openpgp.CheckArmoredDetachedSignature(keyring, signed, signature)
 ```
 
-###Usage
+##Usage
 ```
 pulsed 
   --plugin-trust, -t '1'		0-2 (Disabled, Enabled, Warning) [$PULSE_TRUST_LEVEL]
@@ -25,7 +25,7 @@ pulsed -t <trustLevel> -k <keyringFileOrDirectory>
 pulsed -t <trustLevel> -k someDirectory/someFile.gpg
 pulsed -t <trustLevel> -k someDirectory/
 ```
-Multiple keyrings
+Multiple keyrings (may need full path, not ~)
 ```
 pulsed -t <trustLevel> -k <keyringFile1>:<keyringFile2> 
 ```  
@@ -39,6 +39,126 @@ pulsed -t <trustLevel>
 Loading a single plugin in pulsectl
 ```
 pulsectl plugin load <pluginFile> -a <pluginFile>.asc
+```
+
+####Examples
+#####No keyring, trust enabled/warning
+```
+> pulsed -l 1
+
+INFO[0000] setting plugin trust level to: enabled
+FATA[0000] need keyring file when trust is on (--keyring-file or -k)  _module=pulsed block=main
+```
+#####Invalid Keyring
+Keyring doesn't exist
+```    
+> pulsed -l 1 -k /Users/tiffany/.gnupg/pubring.gpg:/Users/tiffany/.gnupg/stuff.gpg
+INFO[0000] adding keyring file /Users/tiffany/.gnupg/pubring.gpg
+FATA[0000] bad keyring file                              _module=pulsed block=main error=stat /Users/tiffany/.gnupg/stuff.gpg: no such file or directory keyringPath=/Users/tiffany/.gnupg/stuff.gpg
+```
+#####Correct Keyring, trust enabled
+Valid signature
+```
+> pulsed -l 1 -k /Users/tiffany/.gnupg/
+
+INFO[0000] setting plugin trust level to: enabled
+INFO[0000] Adding keyrings from: /Users/tiffany/.gnupg
+INFO[0000] adding keyring file: /Users/tiffany/.gnupg/pubkeys.gpg
+INFO[0000] adding keyring file: /Users/tiffany/.gnupg/pubkeys2.gpg
+INFO[0000] adding keyring file: /Users/tiffany/.gnupg/pubring.gpg
+INFO[0000] adding keyring file: /Users/tiffany/.gnupg/pulse.pubring
+INFO[0000] adding keyring file: /Users/tiffany/.gnupg/secring.gpg
+INFO[0000] adding keyring file: /Users/tiffany/.gnupg/trustdb.gpg
+```
+```
+> pulsectl plugin load build/plugin/pulse-collector-mock1 -a build/plugin/pulse-collector-mock1.asc
+Plugin loaded
+Name: mock1
+Version: 1
+Type: collector
+Signed: true
+Loaded Time: Thu, 12 Nov 2015 13:53:58 PST
+```
+```
+INFO[0036] API request                                   _module=_mgmt-rest index=3 method=POST url=/v1/plugins
+DEBU[0037] wrote 7332032 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/485061199/pulse-collector-mock1
+DEBU[0037] wrote 473 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/784063842/pulse-collector-mock1.asc
+INFO[0037] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/485061199/pulse-collector-mock1  _module=_mgmt-rest
+Signature made Thu, 12 Nov 2015 13:53:58 PST using RSA key ID 43F744A0
+Good signature from Tiffany Jernigan (Main signing key) <my.email@intel.com>
+```
+No signature
+```
+> pulsectl plugin load build/plugin/pulse-collector-mock2
+Error loading plugin:
+Signature file (.asc) not found:
+open : no such file or directory
+```
+```
+DEBU[0033] wrote 7327840 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/pulse-collector-mock2
+INFO[0033] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/pulse-collector-mock2  _module=_mgmt-rest
+ERRO[0033] Signature file (.asc) not found:
+open : no such file or directory  _module=_mgmt-rest
+DEBU[0033] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/pulse-collector-mock2) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/pulse-collector-mock2)  _module=_mgmt-rest
+```
+Invalid signature
+```
+pulsectl plugin load build/plugin/pulse-collector-mock2 -a build/plugin/pulse-collector-mock1.asc
+Error loading plugin:
+Error checking signature
+openpgp: invalid signature: hash tag doesn't match
+```
+```
+DEBU[0003] wrote 7327840 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/pulse-collector-mock2
+DEBU[0003] wrote 473 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/700509798/pulse-collector-mock1.asc
+INFO[0003] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/pulse-collector-mock2  _module=_mgmt-rest
+ERRO[0003] Error checking signature
+openpgp: invalid signature: hash tag doesn't match  _module=_mgmt-rest
+DEBU[0003] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/pulse-collector-mock2) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/pulse-collector-mock2)  _module=_mgmt-rest
+DEBU[0003] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/700509798/pulse-collector-mock1.asc) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/pulse-collector-mock2)  _module=_mgmt-rest
+```
+Wrong keyring
+```
+> pulsectl plugin load build/plugin/pulse-collector-mock1 -a build/plugin/pulse-collector-mock1.asc
+Error loading plugin:
+Error checking signature
+openpgp: signature made by unknown entity
+```
+```
+INFO[0002] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/057449871/pulse-collector-mock1  _module=_mgmt-rest
+ERRO[0002] Error checking signature
+openpgp: signature made by unknown entity  _module=_mgmt-rest
+```
+#####Correct keyring, trust warning
+```
+> pulsed -l 1 -k ~/.gnupg/pubring.gpg -t 2
+INFO[0000] setting plugin trust level to: warning
+INFO[0000] adding keyring file /Users/tiffany/.gnupg/pubring.gpg
+```
+```
+> pulsectl plugin load build/plugin/pulse-collector-mock1 -a build/plugin/pulse-collector-mock1.asc
+
+Plugin loaded
+Name: mock1
+Version: 1
+Type: collector
+Signed: true
+Loaded Time: Thu, 12 Nov 2015 14:08:32 PST
+
+> pulsectl plugin load build/plugin/pulse-collector-mock2
+
+Plugin loaded
+Name: mock2
+Version: 2
+Type: collector
+Signed: false
+Loaded Time: Thu, 12 Nov 2015 14:08:49 PST
+```
+```
+INFO[0338] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/276797457/pulse-collector-mock1  _module=_mgmt-rest
+Signature made Thu, 12 Nov 2015 14:08:32 PST using RSA key ID 43F744A0
+Good signature from Tiffany Jernigan (ACI signing key) <my.email@intel.com>
+WARN[0355] Loading unsigned plugin /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/205904491/pulse-collector-mock2  _block=load _module=control
 ```
 
 ##Creating Signing Files and Validating Signature
@@ -55,7 +175,7 @@ Subkey-Type: RSA
 Subkey-Length: 2048
 Name-Real: Tiffany Jernigan
 Name-Comment: Plugin signing key
-Name-Email: tiffany.jernigan@intel.com
+Name-Email: my.email@intel.com
 Expire-Date: 0
 Passphrase: pulse
 %pubring pulse.pubring
@@ -77,7 +197,7 @@ Passphrase: pulse
 ./pulse.pubring
 -----------
 pub   2048R/FE9B5E28 2015-11-04
-uid                  Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+uid                  Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 sub   2048R/0BC6D4D7 2015-11-04
 ```
 
@@ -96,12 +216,12 @@ Secret key is available.
 pub  2048R/FE9B5E28  created: 2015-11-04  expires: never       usage: SCEA
                      trust: unknown       validity: unknown
 sub  2048R/0BC6D4D7  created: 2015-11-04  expires: never       usage: SEA
-[ unknown] (1). Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+[ unknown] (1). Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 
 pub  2048R/FE9B5E28  created: 2015-11-04  expires: never       usage: SCEA
                      trust: unknown       validity: unknown
 sub  2048R/0BC6D4D7  created: 2015-11-04  expires: never       usage: SEA
-[ unknown] (1). Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+[ unknown] (1). Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 
 Please decide how far you trust this user to correctly verify other users' keys
 (by looking at passports, checking fingerprints from different sources, etc.)
@@ -119,7 +239,7 @@ Do you really want to set this key to ultimate trust? (y/N) y
 pub  2048R/FE9B5E28  created: 2015-11-04  expires: never       usage: SCEA
                      trust: ultimate      validity: unknown
 sub  2048R/0BC6D4D7  created: 2015-11-04  expires: never       usage: SEA
-[ unknown] (1). Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+[ unknown] (1). Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 Please note that the shown key validity is not necessarily correct
 unless you restart the program.
 
@@ -129,7 +249,7 @@ gpg> quit
 ```
 > gpg --no-default-keyring --armor \
 --secret-keyring ./pulse.secring --keyring ./pulse.pubring \
---export tiffany.jernigan@intel.com > pubkeys.gpg
+--export my.email@intel.com > pubkeys.gpg
 ```
 
 ###Signing the plugin/plugin package using generated keyrings
@@ -148,7 +268,7 @@ gpg> quit
 ```
 ```
 gpg: Signature made Wed Nov  4 14:24:18 2015 PST using RSA key ID 0BC6D4D7
-gpg: Good signature from "Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+gpg: Good signature from "Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 ```
 
 ###Signing file using key in your default keyring
@@ -162,7 +282,7 @@ Subkey-Type: RSA
 Subkey-Length: 2048
 Name-Real: Tiffany Jernigan
 Name-Comment: Main signing key
-Name-Email: tiffany.jernigan@intel.com
+Name-Email: my.email@intel.com
 Expire-Date: 0
 Passphrase: pulse
 %commit
@@ -176,10 +296,10 @@ Passphrase: pulse
 > gpg --list-keys
 ```
 ```
-/Users/tjerniga/.gnupg/pubring.gpg
+/Users/tiffany/.gnupg/pubring.gpg
 ----------------------------------
 pub   2048R/43F744A0 2015-08-22
-uid                  Tiffany Jernigan (Main signing key) <tiffany.jernigan@intel.com>
+uid                  Tiffany Jernigan (Main signing key) <my.email@intel.com>
 sub   2048R/2ED40FB2 2015-08-22
 ```
 
@@ -211,14 +331,14 @@ Add --no-default-keyring --keyring <keyringFile> to all commands below if you ar
 > gpg --list-keys
 ```
 ```
-/Users/tjerniga/.gnupg/pubring.gpg
+/Users/tiffany/.gnupg/pubring.gpg
 ----------------------------------
 pub   2048R/43F744A0 2015-08-22
-uid                  Tiffany Jernigan (Main signing key) <tiffany.jernigan@intel.com>
+uid                  Tiffany Jernigan (Main signing key) <my.email@intel.com>
 sub   2048R/2ED40FB2 2015-08-22
 
 pub   2048R/FE9B5E28 2015-11-04
-uid                  Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+uid                  Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 sub   2048R/0BC6D4D7 2015-11-04
 ```
 ```
@@ -233,7 +353,7 @@ There is NO WARRANTY, to the extent permitted by law.
 pub  2048R/FE9B5E28  created: 2015-11-04  expires: never       usage: SCEA
                      trust: unknown       validity: ultimate
 sub  2048R/0BC6D4D7  created: 2015-11-04  expires: never       usage: SEA
-[ultimate] (1). Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+[ultimate] (1). Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 
 gpg> sign
 
@@ -241,21 +361,21 @@ pub  2048R/FE9B5E28  created: 2015-11-04  expires: never       usage: SCEA
                      trust: unknown       validity: ultimate
  Primary key fingerprint: 60BF B0AD 3CDB 5188 CE27  EBD5 F7D3 7AF8 FE9B 5E28
 
-     Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+     Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 
 Are you sure that you want to sign this key with your
-key "Tiffany Jernigan (Main signing key) <tiffany.jernigan@intel.com>" (43F744A0)
+key "Tiffany Jernigan (Main signing key) <my.email@intel.com>" (43F744A0)
 
 Really sign? (y/N) y
 
 You need a passphrase to unlock the secret key for
-user: "Tiffany Jernigan (Main signing key) <tiffany.jernigan@intel.com>"
+user: "Tiffany Jernigan (Main signing key) <my.email@intel.com>"
 2048-bit RSA key, ID 43F744A0, created 2015-08-22
 
 gpg> check
-uid  Tiffany Jernigan (Plugin signing key) <tiffany.jernigan@intel.com>
+uid  Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 sig!3        FE9B5E28 2015-11-04  [self-signature]
-sig!         43F744A0 2015-11-05  Tiffany Jernigan (Main signing key) <tiffany.je
+sig!         43F744A0 2015-11-05  Tiffany Jernigan (Main signing key) <my.email@intel.com>
 
 gpg> quit
 Save changes? (y/N) y
