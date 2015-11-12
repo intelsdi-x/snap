@@ -249,7 +249,7 @@ type mocksigningManager struct {
 	signed bool
 }
 
-func (ps *mocksigningManager) ValidateSignature(string, string, string) error {
+func (ps *mocksigningManager) ValidateSignature([]string, string, string) error {
 	if ps.signed {
 		return nil
 	}

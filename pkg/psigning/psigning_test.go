@@ -28,16 +28,21 @@ import (
 )
 
 func TestValidateSignature(t *testing.T) {
-	keyringFile := "pubring.gpg"
+	keyringFile := []string{"pubring.gpg"}
 	signedFile := "pulse-collector-mock1"
 	signatureFile := signedFile + ".asc"
 	pulsePath := os.Getenv("PULSE_PATH")
 	unsignedFile := path.Join(pulsePath, "plugin", "pulse-collector-mock2")
-
 	s := SigningManager{}
 
 	Convey("Valid files and good signature", t, func() {
 		err := s.ValidateSignature(keyringFile, signedFile, signatureFile)
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Valid files and good signature. Multiple keyrings", t, func() {
+		keyringFiles := []string{"pubkeys.gpg", "pubring.gpg"}
+		err := s.ValidateSignature(keyringFiles, signedFile, signatureFile)
 		So(err, ShouldBeNil)
 	})
 
@@ -48,7 +53,7 @@ func TestValidateSignature(t *testing.T) {
 	})
 
 	Convey("Invalid keyring", t, func() {
-		err := s.ValidateSignature("", signedFile, signatureFile)
+		err := s.ValidateSignature([]string{""}, signedFile, signatureFile)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "Keyring file (.gpg) not found")
 	})
