@@ -43,7 +43,6 @@ func (mj *mockJob) ReplChan() chan struct{} { return mj.replchan }
 
 func (mj *mockJob) Run() {
 	mj.worked = true
-	time.Sleep(time.Second * 1)
 	mj.replchan <- struct{}{}
 }
 
@@ -68,17 +67,20 @@ func TestWorkerManager(t *testing.T) {
 			log.SetLevel(log.DebugLevel)
 			manager := newWorkManager(CollectQSizeOption(1), CollectWkrSizeOption(1))
 			manager.Start()
+
+			asyncReplyChan := make(chan struct{})
+
 			j1 := &mockJob{
 				errors:    []error{},
 				worked:    false,
-				replchan:  make(chan struct{}),
+				replchan:  asyncReplyChan,
 				deadline:  time.Now().Add(1100 * time.Millisecond),
 				starttime: time.Now(),
 			}
 			j2 := &mockJob{
 				errors:    []error{},
 				worked:    false,
-				replchan:  make(chan struct{}),
+				replchan:  asyncReplyChan,
 				deadline:  time.Now().Add(1100 * time.Millisecond),
 				starttime: time.Now(),
 			}
@@ -89,19 +91,21 @@ func TestWorkerManager(t *testing.T) {
 				deadline:  time.Now().Add(1100 * time.Millisecond),
 				starttime: time.Now(),
 			}
+
 			go manager.Work(j1)
 			go manager.Work(j2)
 			manager.Work(j3)
-			time.Sleep(time.Millisecond * 100)
 
-			worked := 0
-			for _, j := range []*mockJob{j1, j2, j3} {
+			So(j3.worked, ShouldEqual, true)
 
-				if j.worked == true {
-					worked++
-				}
-			}
-			So(worked, ShouldEqual, 2)
+			// Block on the first async job completion.
+			<-asyncReplyChan
+
+			// Rationale: the second job should have been dropped.
+			So(len(manager.collectq.items), ShouldEqual, 0)
+
+			// Rationale: a xor b <=> a != b.
+			So(j1.worked != j2.worked, ShouldEqual, true)
 		})
 
 		// The below convey is WIP
