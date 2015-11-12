@@ -34,8 +34,12 @@ echo
 echo "****  Pulse Build ($GITVERSION)  ****"
 echo
 
-# Disable CGO for builds
+# Disable CGO for builds...unless Linux...because appc
 export CGO_ENABLED=0
+platform=$(uname)
+if [[ $platform == "Linux" ]]; then
+	export CGO_ENABLED=1
+fi
 
 # Clean build bin dir
 rm -rf $BINDIR/*
