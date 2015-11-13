@@ -29,6 +29,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
@@ -86,6 +87,11 @@ func NewPluginConfigType() PluginConfigType {
 	}
 }
 
+type Label struct {
+	Index int    `json:"index"`
+	Name  string `json:"name"`
+}
+
 // Represents a metric type. Only used within plugins and across plugin calls.
 // Converted to core.MetricType before being used within modules.
 type PluginMetricType struct {
@@ -104,6 +110,11 @@ type PluginMetricType struct {
 
 	Data_ interface{} `json:"data"`
 
+	// labels are pulled from dynamic metrics to provide context for the metric
+	Labels_ []core.Label `json:"labels"`
+
+	Tags_ map[string]string `json:"tags"`
+
 	// The source of the metric (host, IP, etc).
 	Source_ string `json:"source"`
 
@@ -112,9 +123,11 @@ type PluginMetricType struct {
 }
 
 // // PluginMetricType Constructor
-func NewPluginMetricType(namespace []string, timestamp time.Time, source string, data interface{}) *PluginMetricType {
+func NewPluginMetricType(namespace []string, timestamp time.Time, source string, tags map[string]string, labels []core.Label, data interface{}) *PluginMetricType {
 	return &PluginMetricType{
 		Namespace_: namespace,
+		Tags_:      tags,
+		Labels_:    labels,
 		Data_:      data,
 		Timestamp_: timestamp,
 		Source_:    source,
@@ -139,6 +152,16 @@ func (p PluginMetricType) Version() int {
 // Config returns the map of config data for this metric
 func (p PluginMetricType) Config() *cdata.ConfigDataNode {
 	return p.Config_
+}
+
+// Tags returns the map of  tags for this metric
+func (p PluginMetricType) Tags() map[string]string {
+	return p.Tags_
+}
+
+// Labels returns the array of labels for this metric
+func (p PluginMetricType) Labels() []core.Label {
+	return p.Labels_
 }
 
 // returns the timestamp of when the metric was collected

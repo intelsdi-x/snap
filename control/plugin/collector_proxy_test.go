@@ -28,6 +28,7 @@ import (
 
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
 	"github.com/intelsdi-x/pulse/control/plugin/encoding"
+	"github.com/intelsdi-x/pulse/core"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -36,16 +37,20 @@ type mockPlugin struct {
 }
 
 var mockPluginMetricType []PluginMetricType = []PluginMetricType{
-	*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-	*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", 2),
+	*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+	*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, 2),
 }
 
 func (p *mockPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, error) {
 	return mockPluginMetricType, nil
 }
 
-func (p *mockPlugin) CollectMetrics(mockPluginMetricType []PluginMetricType) ([]PluginMetricType, error) {
-	return mockPluginMetricType, nil
+func (p *mockPlugin) CollectMetrics(mockPluginMetricTypes []PluginMetricType) ([]PluginMetricType, error) {
+	for i := range mockPluginMetricTypes {
+		mockPluginMetricTypes[i].Labels_ = []core.Label{core.Label{Index: 0, Name: "test"}}
+		mockPluginMetricTypes[i].Tags_ = map[string]string{"key": "value"}
+	}
+	return mockPluginMetricTypes, nil
 }
 
 func (p *mockPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
@@ -126,6 +131,10 @@ func TestCollectorProxy(t *testing.T) {
 			var mtr CollectMetricsReply
 			err = c.Session.Decode(reply, &mtr)
 			So(mtr.PluginMetrics[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+			So(mtr.PluginMetrics[0].Labels(), ShouldNotBeNil)
+			So(mtr.PluginMetrics[0].Labels()[0].Name, ShouldEqual, "test")
+			So(mtr.PluginMetrics[0].Tags(), ShouldNotBeNil)
+			So(mtr.PluginMetrics[0].Tags()["key"], ShouldEqual, "value")
 
 			Convey("Get error in Collect Metric ", func() {
 				args := CollectMetricsArgs{

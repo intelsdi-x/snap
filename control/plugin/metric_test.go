@@ -32,8 +32,8 @@ import (
 func TestMetric(t *testing.T) {
 	Convey("error on invalid pulse content type", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", 2),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, 2),
 		}
 		a, c, e := MarshalPluginMetricTypes("foo", m)
 		m[0].Version_ = 1
@@ -61,8 +61,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("marshall using pulse.* default to pulse.gob", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", "2"),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("pulse.*", m)
 		So(e, ShouldBeNil)
@@ -83,8 +83,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("marshall using pulse.gob", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", "2"),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("pulse.gob", m)
 		So(e, ShouldBeNil)
@@ -111,8 +111,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("marshall using pulse.json", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", "2"),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
@@ -139,8 +139,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("error on unmarshall using bad content type", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", "2"),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
@@ -156,8 +156,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("swap from pulse.gob to pulse.json", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", "2"),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("pulse.gob", m)
 		So(e, ShouldBeNil)
@@ -180,8 +180,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("swap from pulse.json to pulse.*", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", "2"),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
@@ -204,8 +204,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("swap from pulse.json to pulse.gob", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", "2"),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)
@@ -228,8 +228,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("error on bad content type to swap", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", "2"),
+			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
+			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("pulse.json", m)
 		So(e, ShouldBeNil)

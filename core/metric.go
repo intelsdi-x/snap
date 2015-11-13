@@ -27,6 +27,11 @@ import (
 	"github.com/intelsdi-x/pulse/core/cdata"
 )
 
+type Label struct {
+	Index int    `json:"index"`
+	Name  string `json:"name"`
+}
+
 // Metric represents a Pulse metric collected or to be collected
 type Metric interface {
 	RequestedMetric
@@ -34,6 +39,8 @@ type Metric interface {
 	LastAdvertisedTime() time.Time
 	Data() interface{}
 	Source() string
+	Labels() []Label
+	Tags() map[string]string
 	Timestamp() time.Time
 }
 

@@ -354,6 +354,8 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 					lastAdvertisedTime: nmt.LastAdvertisedTime(),
 					config:             nmt.Config(),
 					data:               nmt.Data(),
+					tags:               nmt.Tags(),
+					labels:             nmt.Labels(),
 				}
 			}
 			// We quit and throw an error on bad metric versions (<1)

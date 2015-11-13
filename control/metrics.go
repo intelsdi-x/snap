@@ -68,6 +68,8 @@ type metricType struct {
 	config             *cdata.ConfigDataNode
 	data               interface{}
 	source             string
+	labels             []core.Label
+	tags               map[string]string
 	timestamp          time.Time
 }
 
@@ -143,6 +145,14 @@ func (m *metricType) Source() string {
 	return m.source
 }
 
+func (m *metricType) Tags() map[string]string {
+	return m.tags
+}
+
+func (m *metricType) Labels() []core.Label {
+	return m.labels
+}
+
 func (m *metricType) Timestamp() time.Time {
 	return m.timestamp
 }
@@ -174,6 +184,8 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
 		namespace:          mt.Namespace(),
 		version:            mt.Version(),
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
+		tags:               mt.Tags(),
+		labels:             mt.Labels(),
 		policy:             lp.ConfigPolicy.Get(mt.Namespace()),
 	}
 	mc.Add(&newMt)

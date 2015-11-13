@@ -38,8 +38,8 @@ func TestCache(t *testing.T) {
 			Namespace_: []string{"foo", "bar"},
 		}
 
-		mc.put("/foo/bar", foo)
-		ret := mc.get("/foo/bar")
+		mc.put("/foo/bar", 1, foo)
+		ret := mc.get("/foo/bar", 1)
 		So(ret, ShouldNotBeNil)
 		So(ret, ShouldEqual, foo)
 	})
@@ -47,7 +47,7 @@ func TestCache(t *testing.T) {
 		mc := &cache{
 			table: make(map[string]*cachecell),
 		}
-		ret := mc.get("/foo/bar")
+		ret := mc.get("/foo/bar", 1)
 		So(ret, ShouldBeNil)
 	})
 	Convey("returns nil if the cache cell has expired", t, func() {
@@ -57,10 +57,10 @@ func TestCache(t *testing.T) {
 		foo := &plugin.PluginMetricType{
 			Namespace_: []string{"foo", "bar"},
 		}
-		mc.put("/foo/bar", foo)
+		mc.put("/foo/bar", 1, foo)
 		time.Sleep(301 * time.Millisecond)
 
-		ret := mc.get("/foo/bar")
+		ret := mc.get("/foo/bar", 1)
 		So(ret, ShouldBeNil)
 	})
 	Convey("hit and miss counts", t, func() {
@@ -71,9 +71,9 @@ func TestCache(t *testing.T) {
 			foo := &plugin.PluginMetricType{
 				Namespace_: []string{"foo", "bar"},
 			}
-			mc.put("/foo/bar", foo)
-			mc.get("/foo/bar")
-			So(mc.table["/foo/bar"].hits, ShouldEqual, 1)
+			mc.put("/foo/bar", 1, foo)
+			mc.get("/foo/bar", 1)
+			So(mc.table["/foo/bar:1"].hits, ShouldEqual, 1)
 		})
 		Convey("ticks miss count when a cache entry is still a hit", func() {
 			mc := &cache{
@@ -82,10 +82,10 @@ func TestCache(t *testing.T) {
 			foo := &plugin.PluginMetricType{
 				Namespace_: []string{"foo", "bar"},
 			}
-			mc.put("/foo/bar", foo)
-			time.Sleep(295 * time.Millisecond)
-			mc.get("/foo/bar")
-			So(mc.table["/foo/bar"].hits, ShouldEqual, 1)
+			mc.put("/foo/bar", 1, foo)
+			time.Sleep(250 * time.Millisecond)
+			mc.get("/foo/bar", 1)
+			So(mc.table["/foo/bar:1"].hits, ShouldEqual, 1)
 		})
 		Convey("ticks miss count when a cache entry is missed", func() {
 			mc := &cache{
@@ -94,10 +94,10 @@ func TestCache(t *testing.T) {
 			foo := &plugin.PluginMetricType{
 				Namespace_: []string{"foo", "bar"},
 			}
-			mc.put("/foo/bar", foo)
+			mc.put("/foo/bar", 1, foo)
 			time.Sleep(301 * time.Millisecond)
-			mc.get("/foo/bar")
-			So(mc.table["/foo/bar"].misses, ShouldEqual, 1)
+			mc.get("/foo/bar", 1)
+			So(mc.table["/foo/bar:1"].misses, ShouldEqual, 1)
 		})
 	})
 

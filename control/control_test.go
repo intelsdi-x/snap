@@ -698,6 +698,7 @@ func TestMetricExists(t *testing.T) {
 type MockMetricType struct {
 	namespace []string
 	cfg       *cdata.ConfigDataNode
+	ver       int
 }
 
 func (m MockMetricType) MarshalJSON() ([]byte, error) {
@@ -727,7 +728,7 @@ func (m MockMetricType) Timestamp() time.Time {
 }
 
 func (m MockMetricType) Version() int {
-	return 1
+	return m.ver
 }
 
 func (m MockMetricType) Config() *cdata.ConfigDataNode {
@@ -737,6 +738,9 @@ func (m MockMetricType) Config() *cdata.ConfigDataNode {
 func (m MockMetricType) Data() interface{} {
 	return nil
 }
+
+func (m MockMetricType) Labels() []core.Label    { return nil }
+func (m MockMetricType) Tags() map[string]string { return nil }
 
 func TestMetricConfig(t *testing.T) {
 	Convey("required config provided by task", t, func() {
@@ -797,6 +801,7 @@ func TestMetricConfig(t *testing.T) {
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
 			namespace: []string{"intel", "mock", "foo"},
+			ver:       1,
 		}
 		metric, errs := c.validateMetricTypeSubscription(m1, cd)
 		Convey("So metric should be valid with config", func() {
@@ -805,6 +810,88 @@ func TestMetricConfig(t *testing.T) {
 		})
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
+	})
+}
+
+func TestCollectDynamicMetrics(t *testing.T) {
+	Convey("given a plugin using the native client", t, func() {
+		config := NewConfig()
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		c := New(OptSetConfig(config), CacheExpiration(time.Second*1))
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+		load(c, PluginPath)
+		<-lpe.done
+		load(c, JSONRPC_PluginPath)
+		<-lpe.done
+		cd := cdata.NewNode()
+		metrics, err := c.metricCatalog.Fetch([]string{})
+		So(err, ShouldBeNil)
+		So(len(metrics), ShouldEqual, 6)
+		m, err := c.metricCatalog.Get([]string{"intel", "mock", "*", "baz"}, 2)
+		So(err, ShouldBeNil)
+		So(m, ShouldNotBeNil)
+		jsonm, err := c.metricCatalog.Get([]string{"intel", "mock", "*", "baz"}, 1)
+		So(err, ShouldBeNil)
+		So(jsonm, ShouldNotBeNil)
+		metric, errs := c.validateMetricTypeSubscription(m, cd)
+		So(errs, ShouldBeNil)
+		So(metric, ShouldNotBeNil)
+		Convey("collects metrics from plugin using native client", func() {
+			lp, err := c.pluginManager.get("collector:mock2:2")
+			So(err, ShouldBeNil)
+			So(lp, ShouldNotBeNil)
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock2:2")
+			So(errp, ShouldBeNil)
+			So(pool, ShouldNotBeNil)
+			pool.subscribe("1", unboundSubscriptionType)
+			err = c.pluginRunner.runPlugin(lp.Path)
+			So(err, ShouldBeNil)
+			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1))
+			hits, err := pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 2)
+			So(err, ShouldBeNil)
+			So(hits, ShouldEqual, 0)
+			So(errs, ShouldBeNil)
+			So(len(mts), ShouldEqual, 10)
+			mts, errs = c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1))
+			hits, err = pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 2)
+			So(err, ShouldBeNil)
+			So(hits, ShouldEqual, 1)
+			So(errs, ShouldBeNil)
+			So(len(mts), ShouldEqual, 10)
+			pool.unsubscribe("1")
+			Convey("collects metrics from plugin using httpjson client", func() {
+				lp, err := c.pluginManager.get("collector:mock1:1")
+				So(err, ShouldBeNil)
+				So(lp, ShouldNotBeNil)
+				pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock1:1")
+				So(errp, ShouldBeNil)
+				So(pool, ShouldNotBeNil)
+				pool.subscribe("1", unboundSubscriptionType)
+				err = c.pluginRunner.runPlugin(lp.Path)
+				So(err, ShouldBeNil)
+				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1))
+				hits, err := pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 1)
+				So(err, ShouldBeNil)
+				So(hits, ShouldEqual, 0)
+				So(errs, ShouldBeNil)
+				So(len(mts), ShouldEqual, 10)
+				mts, errs = c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1))
+				hits, err = pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 1)
+				So(err, ShouldBeNil)
+				So(hits, ShouldEqual, 1)
+				So(errs, ShouldBeNil)
+				So(len(mts), ShouldEqual, 10)
+				hits = pool.plugins[1].client.AllCacheHits()
+				So(hits, ShouldEqual, 2)
+				misses := pool.plugins[1].client.AllCacheMisses()
+				So(misses, ShouldEqual, 2)
+				pool.unsubscribe("1")
+				c.Stop()
+				time.Sleep(100 * time.Millisecond)
+			})
+		})
 	})
 }
 
@@ -833,7 +920,7 @@ func TestCollectMetrics(t *testing.T) {
 		<-lpe.done
 		mts, err := c.MetricCatalog()
 		So(err, ShouldBeNil)
-		So(len(mts), ShouldEqual, 3)
+		So(len(mts), ShouldEqual, 4)
 
 		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
@@ -865,7 +952,7 @@ func TestCollectMetrics(t *testing.T) {
 		time.Sleep(time.Millisecond * 1100)
 
 		for x := 0; x < 5; x++ {
-			cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*60))
+			cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1))
 			So(err, ShouldBeNil)
 			for i := range cr {
 				So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
@@ -957,7 +1044,7 @@ func TestPublishMetrics(t *testing.T) {
 
 			Convey("Publish to file", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType([]string{"foo"}, time.Now(), "", 1),
+					*plugin.NewPluginMetricType([]string{"foo"}, time.Now(), "", nil, nil, 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1010,7 +1097,7 @@ func TestProcessMetrics(t *testing.T) {
 
 			Convey("process metrics", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType([]string{"foo"}, time.Now(), "", 1),
+					*plugin.NewPluginMetricType([]string{"foo"}, time.Now(), "", nil, nil, 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)

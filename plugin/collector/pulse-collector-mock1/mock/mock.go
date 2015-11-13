@@ -21,11 +21,13 @@ package mock
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
 	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/ctypes"
 )
 
@@ -47,20 +49,38 @@ type Mock struct {
 
 // CollectMetrics collects metrics for testing
 func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
-	metrics := make([]plugin.PluginMetricType, len(mts))
+	metrics := []plugin.PluginMetricType{}
+	rand.Seed(time.Now().UTC().UnixNano())
+	hostname, _ := os.Hostname()
 	for i, p := range mts {
-		var data string
-		if cv, ok := p.Config().Table()["test"]; ok {
-			data = fmt.Sprintf("The mock collected data! config data: user=%s password=%s test=%v", p.Config().Table()["user"], p.Config().Table()["password"], cv.(ctypes.ConfigValueBool).Value)
+		if mts[i].Namespace()[2] == "*" {
+			for j := 0; j < 10; j++ {
+				v := fmt.Sprintf("host%d", j)
+				data := randInt(65, 90)
+				mt := plugin.PluginMetricType{
+					Data_:      data,
+					Namespace_: []string{"intel", "mock", v, "baz"},
+					Source_:    hostname,
+					Timestamp_: time.Now(),
+					Labels_:    mts[i].Labels(),
+					Version_:   mts[i].Version(),
+				}
+				metrics = append(metrics, mt)
+			}
 		} else {
-			data = fmt.Sprintf("The mock collected data! config data: user=%s password=%s", p.Config().Table()["user"], p.Config().Table()["password"])
+			var data string
+			if cv, ok := p.Config().Table()["test"]; ok {
+				data = fmt.Sprintf("The mock collected data! config data: user=%s password=%s test=%v", p.Config().Table()["user"], p.Config().Table()["password"], cv.(ctypes.ConfigValueBool).Value)
+			} else {
+				data = fmt.Sprintf("The mock collected data! config data: user=%s password=%s", p.Config().Table()["user"], p.Config().Table()["password"])
+			}
+			mt := plugin.PluginMetricType{
+				Data_:      data,
+				Timestamp_: time.Now(),
+				Source_:    hostname,
+			}
+			metrics = append(metrics, mt)
 		}
-		metrics[i] = plugin.PluginMetricType{
-			Namespace_: p.Namespace(),
-			Data_:      data,
-			Timestamp_: time.Now(),
-		}
-		metrics[i].Source_, _ = os.Hostname()
 	}
 	return metrics, nil
 }
@@ -76,6 +96,10 @@ func (f *Mock) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetri
 	}
 	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "foo"}})
 	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "bar"}})
+	mts = append(mts, plugin.PluginMetricType{
+		Namespace_: []string{"intel", "mock", "*", "baz"},
+		Labels_:    []core.Label{core.Label{Index: 2, Name: "host"}},
+	})
 	return mts, nil
 }
 
@@ -94,4 +118,9 @@ func (f *Mock) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 //Meta returns meta data for testing
 func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(Name, Version, Type, []string{plugin.PulseGOBContentType}, []string{plugin.PulseGOBContentType}, plugin.Unsecure(true))
+}
+
+//Random number generator
+func randInt(min int, max int) int {
+	return min + rand.Intn(max-min)
 }

@@ -20,6 +20,7 @@ limitations under the License.
 package client
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -35,25 +36,28 @@ var (
 		table: make(map[string]*cachecell),
 	}
 	cacheLog = log.WithField("_module", "client-cache")
+
+	ErrCacheEntryDoesNotExist = errors.New("cache entry does not exist")
 )
 
 type cachecell struct {
-	time   time.Time
-	metric core.Metric
-	hits   uint64
-	misses uint64
+	time    time.Time
+	metric  core.Metric
+	metrics []core.Metric
+	hits    uint64
+	misses  uint64
 }
 
 type cache struct {
 	table map[string]*cachecell
 }
 
-func (c *cache) get(key string) core.Metric {
+func (c *cache) get(ns string, version int) interface{} {
 	var (
 		cell *cachecell
 		ok   bool
 	)
-
+	key := fmt.Sprintf("%v:%v", ns, version)
 	if cell, ok = c.table[key]; ok && time.Since(cell.time) < GlobalCacheExpiration {
 		cell.hits++
 		cacheLog.WithFields(log.Fields{
@@ -61,27 +65,54 @@ func (c *cache) get(key string) core.Metric {
 			"hits":      cell.hits,
 			"misses":    cell.misses,
 		}).Debug(fmt.Sprintf("cache hit [%s]", key))
-		return cell.metric
-	}
-	if ok {
-		cell.misses++
+		if cell.metric != nil {
+			return cell.metric
+		}
+		return cell.metrics
+	} else {
+		if !ok {
+			c.table[key] = &cachecell{
+				time:    time.Time{},
+				metrics: nil,
+			}
+		}
+		c.table[key].misses++
 		cacheLog.WithFields(log.Fields{
 			"namespace": key,
-			"hits":      cell.hits,
-			"misses":    cell.misses,
+			"hits":      c.table[key].hits,
+			"misses":    c.table[key].misses,
 		}).Debug(fmt.Sprintf("cache miss [%s]", key))
 	}
 	return nil
 }
 
-func (c *cache) put(key string, metric core.Metric) {
-	if _, ok := c.table[key]; ok {
-		c.table[key].time = time.Now()
-		c.table[key].metric = metric
-	} else {
-		c.table[key] = &cachecell{
-			time:   time.Now(),
-			metric: metric,
+func (c *cache) put(ns string, version int, m interface{}) {
+	key := fmt.Sprintf("%v:%v", ns, version)
+	switch metric := m.(type) {
+	case core.Metric:
+		if _, ok := c.table[key]; ok {
+			c.table[key].time = time.Now()
+			c.table[key].metric = metric
+		} else {
+			c.table[key] = &cachecell{
+				time:   time.Now(),
+				metric: metric,
+			}
 		}
+	case []core.Metric:
+		if _, ok := c.table[key]; ok {
+			c.table[key].time = time.Now()
+			c.table[key].metrics = metric
+		} else {
+			c.table[key] = &cachecell{
+				time:    time.Now(),
+				metrics: metric,
+			}
+		}
+	default:
+		cacheLog.WithFields(log.Fields{
+			"namespace": key,
+			"_block":    "put",
+		}).Error("unsupported type")
 	}
 }
