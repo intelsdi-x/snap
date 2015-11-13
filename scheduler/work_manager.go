@@ -200,7 +200,7 @@ func (w *workManager) Stop() {
 
 // Work dispatches jobs to worker pools for processing.
 // a job is queued, a worker receives it, and then replies
-// on the job's  reply channel.
+// on the job's reply channel.
 func (w *workManager) Work(j job) job {
 	switch j.Type() {
 	case collectJobType:

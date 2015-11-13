@@ -28,11 +28,12 @@ import (
 )
 
 type mockJob struct {
-	errors    []error
-	worked    bool
-	replchan  chan struct{}
-	deadline  time.Time
-	starttime time.Time
+	errors         []error
+	worked         bool
+	replchan       chan struct{}
+	rendezvouschan chan struct{}
+	deadline       time.Time
+	starttime      time.Time
 }
 
 func (mj *mockJob) Errors() []error         { return mj.errors }
@@ -40,11 +41,28 @@ func (mj *mockJob) StartTime() time.Time    { return mj.starttime }
 func (mj *mockJob) Deadline() time.Time     { return mj.deadline }
 func (mj *mockJob) Type() jobType           { return collectJobType }
 func (mj *mockJob) ReplChan() chan struct{} { return mj.replchan }
+func (mj *mockJob) RendezVousStart() {
+	<-mj.rendezvouschan
+}
+func (mj *mockJob) RendezVousEnd() {
+	mj.rendezvouschan <- struct{}{}
+}
 
 func (mj *mockJob) Run() {
-	mj.worked = true
-	time.Sleep(time.Second * 1)
-	mj.replchan <- struct{}{}
+	// Signal for rendez-vous.
+	mj.rendezvouschan <- struct{}{}
+
+	// Busy-wait for rendez-vous response.
+	for {
+		select {
+		case <-mj.rendezvouschan:
+			mj.worked = true
+			mj.replchan <- struct{}{}
+			return
+		default:
+			continue
+		}
+	}
 }
 
 func TestWorkerManager(t *testing.T) {
@@ -52,56 +70,95 @@ func TestWorkerManager(t *testing.T) {
 	Convey(".Work()", t, func() {
 		Convey("Sends / receives work to / from worker", func() {
 			manager := newWorkManager()
-			var j job
-			j = &mockJob{
-				worked:    false,
-				replchan:  make(chan struct{}),
-				deadline:  time.Now().Add(1 * time.Second),
-				starttime: time.Now(),
+			j := &mockJob{
+				worked:         false,
+				replchan:       make(chan struct{}),
+				rendezvouschan: make(chan struct{}),
+				deadline:       time.Now().Add(1 * time.Second),
+				starttime:      time.Now(),
 			}
-			j = manager.Work(j)
-
-			So(j.(*mockJob).worked, ShouldEqual, true)
+			go manager.Work(j)
+			j.RendezVousStart()
+			j.RendezVousEnd()
+			So(j.worked, ShouldEqual, true)
 		})
 
 		Convey("does not work job if queuing error occurs", func() {
 			log.SetLevel(log.DebugLevel)
 			manager := newWorkManager(CollectQSizeOption(1), CollectWkrSizeOption(1))
 			manager.Start()
-			j1 := &mockJob{
-				errors:    []error{},
-				worked:    false,
-				replchan:  make(chan struct{}),
-				deadline:  time.Now().Add(1100 * time.Millisecond),
-				starttime: time.Now(),
-			}
-			j2 := &mockJob{
-				errors:    []error{},
-				worked:    false,
-				replchan:  make(chan struct{}),
-				deadline:  time.Now().Add(1100 * time.Millisecond),
-				starttime: time.Now(),
-			}
-			j3 := &mockJob{
-				errors:    []error{},
-				worked:    false,
-				replchan:  make(chan struct{}),
-				deadline:  time.Now().Add(1100 * time.Millisecond),
-				starttime: time.Now(),
-			}
-			go manager.Work(j1)
-			go manager.Work(j2)
-			manager.Work(j3)
-			time.Sleep(time.Millisecond * 100)
 
-			worked := 0
-			for _, j := range []*mockJob{j1, j2, j3} {
-
-				if j.worked == true {
-					worked++
+			var jobs [3]mockJob
+			for i := range jobs {
+				jobs[i] = mockJob{
+					errors:         []error{},
+					worked:         false,
+					replchan:       make(chan struct{}),
+					rendezvouschan: make(chan struct{}),
+					deadline:       time.Now().Add(1 * time.Second),
+					starttime:      time.Now(),
 				}
 			}
-			So(worked, ShouldEqual, 2)
+			j1 := &jobs[0]
+			j2 := &jobs[1]
+			j3 := &jobs[2]
+
+			completechan := make(chan struct{})
+
+			releaseAsync := func(j *mockJob) {
+				manager.Work(j)
+				for {
+					select {
+					case completechan <- struct{}{}: // Signal completion.
+						return
+					default:
+						continue
+					}
+				}
+			}
+
+			// Release one async job and wait for it to be scheduled.
+			go releaseAsync(j1)
+			j1.RendezVousStart()
+
+			// Release two more async jobs.
+			go releaseAsync(j2)
+			go releaseAsync(j3)
+
+			// We don't know which of j2 or j3 will hit the queue first.
+			// However, because all three jobs share the same rendez-vous channel
+			// as soon as one is scheduled this goroutine will unblock.
+			go func() {
+				// Wait for one of j2 or j3 to be scheduled.
+				select {
+				case <-j2.rendezvouschan:
+				case <-j3.rendezvouschan:
+				}
+
+				// Allow the one that got scheduled to continue.
+				select {
+				case j2.rendezvouschan <- struct{}{}:
+				case j3.rendezvouschan <- struct{}{}:
+				}
+			}()
+
+			// Let j1 continue.
+			j1.RendezVousEnd()
+
+			// Await two receives on `completechan`:
+			// - one for j1 to complete.
+			// - one for the second job, j2 or j3, to complete or drop.
+			<-completechan
+			<-completechan
+
+			// Rationale: we know j1 was enqueued before j2 and j3 were released.
+			So(j1.worked, ShouldEqual, true)
+
+			// Rationale: at least one of j2 or j3 was dropped.
+			So(len(manager.collectq.items), ShouldEqual, 0)
+
+			// Rationale: zero or one of j2 or j3 was worked.
+			So((!j2.worked || !j3.worked), ShouldEqual, true)
 		})
 
 		// The below convey is WIP
