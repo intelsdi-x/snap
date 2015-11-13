@@ -35,6 +35,7 @@ const (
 
 type TaskStartedEvent struct {
 	TaskID string
+	Source string
 }
 
 func (e TaskStartedEvent) Namespace() string {
@@ -44,6 +45,7 @@ func (e TaskStartedEvent) Namespace() string {
 type TaskCreatedEvent struct {
 	TaskID        string
 	StartOnCreate bool
+	Source        string
 }
 
 func (e TaskCreatedEvent) Namespace() string {
@@ -52,6 +54,7 @@ func (e TaskCreatedEvent) Namespace() string {
 
 type TaskDeletedEvent struct {
 	TaskID string
+	Source string
 }
 
 func (e TaskDeletedEvent) Namespace() string {
@@ -60,6 +63,7 @@ func (e TaskDeletedEvent) Namespace() string {
 
 type TaskStoppedEvent struct {
 	TaskID string
+	Source string
 }
 
 func (e TaskStoppedEvent) Namespace() string {

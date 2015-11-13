@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -40,14 +41,15 @@ import (
 	"github.com/intelsdi-x/pulse/scheduler"
 )
 
-var NextPort = 46000
+var NextPort int32 = 46000
 
 func getPort() int {
 	defer incrPort()
-	return NextPort
+	return int(atomic.LoadInt32(&NextPort))
 }
 
 func incrPort() {
+	atomic.AddInt32(&NextPort, 10)
 	NextPort += 10
 }
 

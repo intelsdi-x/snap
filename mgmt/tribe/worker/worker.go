@@ -20,6 +20,7 @@ limitations under the License.
 package worker
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -37,29 +38,63 @@ import (
 	"github.com/intelsdi-x/pulse/mgmt/rest/client"
 	"github.com/intelsdi-x/pulse/mgmt/rest/request"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
 const (
+	retryDelay = 500 * time.Millisecond
+	retryLimit = 20
+)
+
+const (
 	PluginLoadedType = iota
+	PluginUnloadedType
 )
 
 const (
 	TaskCreatedType = iota
+	TaskStoppedType
+	TaskStartedType
+	TaskRemovedType
 )
 
-var workerLogger = log.WithFields(log.Fields{
-	"_module": "worker",
-})
+var (
+	PluginRequestTypeLookup = map[PluginRequestType]string{
+		PluginLoadedType:   "Loaded",
+		PluginUnloadedType: "Unloaded",
+	}
+
+	TaskRequestTypeLookup = map[TaskRequestType]string{
+		TaskCreatedType: "Created",
+		TaskStoppedType: "Stopped",
+		TaskStartedType: "Started",
+		TaskRemovedType: "Removed",
+	}
+)
+
+type PluginRequestType int
+
+func (p PluginRequestType) String() string {
+	return PluginRequestTypeLookup[p]
+}
+
+type TaskRequestType int
+
+func (t TaskRequestType) String() string {
+	return TaskRequestTypeLookup[t]
+}
 
 type PluginRequest struct {
 	Plugin      core.Plugin
-	RequestType int
+	RequestType TaskRequestType
+	retryCount  int
 }
 
 type TaskRequest struct {
 	Task        Task
-	RequestType int
+	RequestType PluginRequestType
+	retryCount  int
 }
 
 type Task struct {
@@ -75,7 +110,10 @@ type ManagesPlugins interface {
 
 type ManagesTasks interface {
 	GetTask(id string) (core.Task, error)
-	CreateTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
+	CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
+	StopTaskTribe(id string) []perror.PulseError
+	StartTaskTribe(id string) []perror.PulseError
+	RemoveTaskTribe(id string) error
 }
 
 type getsMembers interface {
@@ -100,6 +138,10 @@ func newWorker(id int,
 	pm ManagesPlugins,
 	tm ManagesTasks,
 	mm getsMembers) worker {
+	logger := log.WithFields(log.Fields{
+		"_module":   "worker",
+		"worker-id": id,
+	})
 	worker := worker{
 		pluginManager: pm,
 		taskManager:   tm,
@@ -109,6 +151,7 @@ func newWorker(id int,
 		taskWork:      taskQueue,
 		waitGroup:     wg,
 		quitChan:      quitChan,
+		logger:        logger,
 	}
 
 	return worker
@@ -123,12 +166,16 @@ type worker struct {
 	taskWork      chan TaskRequest
 	quitChan      chan struct{}
 	waitGroup     *sync.WaitGroup
+	logger        *log.Entry
 }
 
 func DispatchWorkers(nworkers int, pluginQueue chan PluginRequest, taskQueue chan TaskRequest, quitChan chan struct{}, workerWaitGroup *sync.WaitGroup, cp ManagesPlugins, tm ManagesTasks, mm getsMembers) {
 
 	for i := 0; i < nworkers; i++ {
-		workerLogger.Infof("Starting tribe worker-%d", i+1)
+		log.WithFields(log.Fields{
+			"_module": "worker",
+			"_block":  "dispatch-workers",
+		}).Infof("dispatching tribe worker-%d", i+1)
 		worker := newWorker(i+1, pluginQueue, taskQueue, quitChan, workerWaitGroup, cp, tm, mm)
 		worker.start()
 	}
@@ -136,75 +183,57 @@ func DispatchWorkers(nworkers int, pluginQueue chan PluginRequest, taskQueue cha
 
 // Start "starts" the workers
 func (w worker) start() {
+	logger := w.logger.WithFields(log.Fields{"_block": "start"})
 	// task worker
 	w.waitGroup.Add(1)
 	go func() {
 		defer w.waitGroup.Done()
-		workerLogger.Debugf("Starting task worker-%d", w.id)
+		logger.Debug("starting task worker")
 		for {
 			select {
 			case work := <-w.taskWork:
-				done := false
 				// Receive a work request.
-				wLogger := workerLogger.WithFields(log.Fields{
-					"task":   work.Task.ID,
-					"worker": w.id,
-					"_block": "start",
+				logger := w.logger.WithFields(log.Fields{
+					"task":         work.Task.ID,
+					"request-type": work.RequestType.String(),
 				})
-				wLogger.Error("received task work")
-				if work.RequestType == TaskCreatedType {
-					_, err := w.taskManager.GetTask(work.Task.ID)
-					if err != nil {
-						for {
-							members, err := w.memberManager.GetTaskAgreementMembers()
-							if err != nil {
-								wLogger.Error(err)
-								continue
-							}
-							for _, member := range shuffle(members) {
-								uri := fmt.Sprintf("%s://%s:%s", member.GetRestProto(), member.GetAddr(), member.GetRestPort())
-								wLogger.Debugf("getting task %v from %v", work.Task.ID, uri)
-								c := client.New(uri, "v1", member.GetRestInsecureSkipVerify())
-								taskResult := c.GetTask(work.Task.ID)
-								if taskResult.Err != nil {
-									wLogger.WithField("err", taskResult.Err.Error()).Debug("error getting task")
-									continue
-								}
-								wLogger.Debug("creating task")
-								opt := core.SetTaskID(work.Task.ID)
-								t, errs := w.taskManager.CreateTask(
-									getSchedule(taskResult.ScheduledTaskReturned.Schedule),
-									taskResult.Workflow,
-									work.Task.StartOnCreate,
-									opt)
-								if errs != nil && len(errs.Errors()) > 0 {
-									fields := log.Fields{
-										"task":   work.Task.ID,
-										"worker": w.id,
-										"_block": "start",
-									}
-									for idx, e := range errs.Errors() {
-										fields[fmt.Sprintf("err-%d", idx)] = e
-									}
-									wLogger.WithFields(fields).Debug("error creating task")
-									continue
-								}
-								wLogger.WithField("id", t.ID()).Debugf("task created")
-								done = true
-								break
-							}
-							if done {
-								break
-							}
-							time.Sleep(500 * time.Millisecond)
+				logger.Debug("received task work")
+				if work.RequestType == TaskStartedType {
+					if err := w.startTask(work.Task.ID); err != nil {
+						if work.retryCount < retryLimit {
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.taskWork <- work
 						}
 					}
 				}
-
+				if work.RequestType == TaskStoppedType {
+					if err := w.stopTask(work.Task.ID); err != nil {
+						if work.retryCount < retryLimit {
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.taskWork <- work
+						}
+					}
+				}
+				if work.RequestType == TaskCreatedType {
+					w.createTask(work.Task.ID, work.Task.StartOnCreate)
+				}
+				if work.RequestType == TaskRemovedType {
+					if err := w.removeTask(work.Task.ID); err != nil {
+						if work.retryCount < retryLimit {
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.taskWork <- work
+						}
+					}
+				}
 			case <-w.quitChan:
-				workerLogger.Infof("Tribe plugin worker-%d is stopping\n", w.id)
+				logger.Infof("stopping tribe worker")
 				return
-
 			}
 		}
 	}()
@@ -213,80 +242,229 @@ func (w worker) start() {
 	w.waitGroup.Add(1)
 	go func() {
 		defer w.waitGroup.Done()
-		workerLogger.Debugf("Starting plugin worker-%d", w.id)
+		logger.Debug("starting plugin worker")
 		for {
 			select {
 			case work := <-w.pluginWork:
 				// Receive a work request.
-				wLogger := workerLogger.WithFields(log.Fields{
-					"plugin_name":    work.Plugin.Name(),
-					"plugin_version": work.Plugin.Version(),
-					"plugin_type":    work.Plugin.TypeName(),
-					"worker":         w.id,
-					"_block":         "start",
+				logger := w.logger.WithFields(log.Fields{
+					"plugin-name":    work.Plugin.Name(),
+					"plugin-version": work.Plugin.Version(),
+					"plugin-type":    work.Plugin.TypeName(),
+					"request-type":   work.RequestType.String(),
 				})
-				wLogger.Debug("received plugin work")
-				done := false
-				for {
-					if w.isPluginLoaded(work.Plugin.Name(), work.Plugin.TypeName(), work.Plugin.Version()) {
-						break
-					}
-					members, err := w.memberManager.GetPluginAgreementMembers()
-					if err != nil {
-						wLogger.Error(err)
-						continue
-					}
-					for _, member := range shuffle(members) {
-						url := fmt.Sprintf("%s://%s:%s/v1/plugins/%s/%s/%d?download=true", member.GetRestProto(), member.GetAddr(), member.GetRestPort(), work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version())
-						resp, err := http.Get(url)
-						if err != nil {
-							wLogger.Error(err)
-							continue
-						}
-						if resp.StatusCode == 200 {
-							if resp.Header.Get("Content-Type") != "application/x-gzip" {
-								wLogger.WithField("content-type", resp.Header.Get("Content-Type")).Error("Expected application/x-gzip")
-							}
-							dir, err := ioutil.TempDir("", "")
-							if err != nil {
-								wLogger.Error(err)
-								continue
-							}
-							f, err := os.Create(path.Join(dir, fmt.Sprintf("%s-%s-%d", work.Plugin.TypeName(), work.Plugin.Name(), work.Plugin.Version())))
-							if err != nil {
-								wLogger.Error(err)
-								f.Close()
-								continue
-							}
-							io.Copy(f, resp.Body)
-							f.Close()
-							err = os.Chmod(f.Name(), 0700)
-							if err != nil {
-								wLogger.Error(err)
-								continue
-							}
-							_, err = w.pluginManager.Load(f.Name())
-							if err != nil {
-								wLogger.Error(err)
-								continue
-							}
-							if w.isPluginLoaded(work.Plugin.Name(), work.Plugin.TypeName(), work.Plugin.Version()) {
-								done = true
-								break
-							}
+				logger.Debug("received plugin work")
+				if work.RequestType == PluginLoadedType {
+					if err := w.loadPlugin(work.Plugin); err != nil {
+						if work.retryCount < retryLimit {
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.pluginWork <- work
 						}
 					}
-					if done {
-						break
+				}
+				if work.RequestType == PluginUnloadedType {
+					if err := w.unloadPlugin(work.Plugin); err != nil {
+						if work.retryCount < retryLimit {
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							work.retryCount++
+							time.Sleep(retryDelay)
+							w.pluginWork <- work
+						}
 					}
-					time.Sleep(500 * time.Millisecond)
 				}
 			case <-w.quitChan:
-				workerLogger.Debugf("Tribe plugin worker-%d is stopping\n", w.id)
+				w.logger.Debug("stop tribe plugin worker")
 				return
 			}
 		}
 	}()
+}
+
+func (w worker) unloadPlugin(plugin core.Plugin) error {
+	logger := w.logger.WithFields(log.Fields{
+		"plugin-name":    plugin.Name(),
+		"plugin-version": plugin.Version(),
+		"plugin-type":    plugin.TypeName(),
+		"_block":         "unload-plugin",
+	})
+	if !w.isPluginLoaded(plugin.Name(), plugin.TypeName(), plugin.Version()) {
+		return nil
+	}
+	if _, err := w.pluginManager.Unload(plugin); err != nil {
+		logger.WithField("err", err).Info("failed to unload plugin")
+		return err
+	}
+	return nil
+}
+
+func (w worker) loadPlugin(plugin core.Plugin) error {
+	logger := w.logger.WithFields(log.Fields{
+		"plugin-name":    plugin.Name(),
+		"plugin-version": plugin.Version(),
+		"plugin-type":    plugin.TypeName(),
+		"_block":         "load-plugin",
+	})
+	if w.isPluginLoaded(plugin.Name(), plugin.TypeName(), plugin.Version()) {
+		return nil
+	}
+	members, err := w.memberManager.GetPluginAgreementMembers()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	for _, member := range shuffle(members) {
+		url := fmt.Sprintf("%s://%s:%s/v1/plugins/%s/%s/%d?download=true", member.GetRestProto(), member.GetAddr(), member.GetRestPort(), plugin.TypeName(), plugin.Name(), plugin.Version())
+		resp, err := http.Get(url)
+		if err != nil {
+			logger.WithFields(log.Fields{
+				"err": err,
+				"url": url,
+			}).Info("plugin not found")
+			continue
+		}
+		if resp.StatusCode == 200 {
+			if resp.Header.Get("Content-Type") != "application/x-gzip" {
+				logger.WithField("content-type", resp.Header.Get("Content-Type")).Error("Expected application/x-gzip")
+			}
+			dir, err := ioutil.TempDir("", "")
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			f, err := os.Create(path.Join(dir, fmt.Sprintf("%s-%s-%d", plugin.TypeName(), plugin.Name(), plugin.Version())))
+			if err != nil {
+				logger.Error(err)
+				f.Close()
+				return err
+			}
+			io.Copy(f, resp.Body)
+			f.Close()
+			err = os.Chmod(f.Name(), 0700)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			_, err = w.pluginManager.Load(f.Name())
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			if w.isPluginLoaded(plugin.Name(), plugin.TypeName(), plugin.Version()) {
+				return nil
+			}
+			return errors.New("failed to load plugin")
+		}
+	}
+	return errors.New("failed to find a member with the plugin")
+}
+
+func (w worker) createTask(taskID string, startOnCreate bool) {
+	logger := w.logger.WithFields(log.Fields{
+		"task-id": taskID,
+		"_block":  "create-task",
+	})
+	done := false
+	_, err := w.taskManager.GetTask(taskID)
+	if err == nil {
+		return
+	}
+	for {
+		members, err := w.memberManager.GetTaskAgreementMembers()
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		for _, member := range shuffle(members) {
+			uri := fmt.Sprintf("%s://%s:%s", member.GetRestProto(), member.GetAddr(), member.GetRestPort())
+			logger.Debugf("getting task %v from %v", taskID, uri)
+			c := client.New(uri, "v1", member.GetRestInsecureSkipVerify())
+			taskResult := c.GetTask(taskID)
+			if taskResult.Err != nil {
+				logger.WithField("err", taskResult.Err.Error()).Debug("error getting task")
+				continue
+			}
+			logger.Debug("creating task")
+			opt := core.SetTaskID(taskID)
+			_, errs := w.taskManager.CreateTaskTribe(
+				getSchedule(taskResult.ScheduledTaskReturned.Schedule),
+				taskResult.Workflow,
+				startOnCreate,
+				opt)
+			if errs != nil && len(errs.Errors()) > 0 {
+				fields := log.Fields{}
+				for idx, e := range errs.Errors() {
+					fields[fmt.Sprintf("err-%d", idx)] = e
+				}
+				logger.WithFields(fields).Debug("error creating task")
+				continue
+			}
+			logger.Debugf("task created")
+			done = true
+			break
+		}
+		if done {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func (w worker) startTask(taskID string) error {
+	logger := w.logger.WithFields(log.Fields{
+		"task-id": taskID,
+		"_block":  "start-task",
+	})
+	logger.Debug("starting task")
+	errs := w.taskManager.StartTaskTribe(taskID)
+	if errs == nil || len(errs) == 0 {
+		return nil
+	}
+	if errs != nil {
+		for _, err := range errs {
+			if err.Error() == scheduler.ErrTaskAlreadyRunning.Error() {
+				logger.WithFields(err.Fields()).Info(err)
+				return nil
+			} else {
+				logger.WithFields(err.Fields()).Info(err)
+			}
+		}
+	}
+	return errors.New("error starting task")
+}
+
+func (w worker) stopTask(taskID string) error {
+	logger := w.logger.WithFields(log.Fields{
+		"task-id": taskID,
+		"_block":  "stop-task",
+	})
+	errs := w.taskManager.StopTaskTribe(taskID)
+	if errs == nil || len(errs) == 0 {
+		return nil
+	}
+	for _, err := range errs {
+		if err.Error() == scheduler.ErrTaskAlreadyStopped.Error() {
+			logger.WithFields(err.Fields()).Info(err)
+			return nil
+		} else {
+			logger.WithFields(err.Fields()).Info(err)
+		}
+	}
+	return errors.New("error stopping task")
+}
+
+func (w worker) removeTask(taskID string) error {
+	logger := w.logger.WithFields(log.Fields{
+		"task-id": taskID,
+		"_block":  "remove-task",
+	})
+	err := w.taskManager.RemoveTaskTribe(taskID)
+	if err == nil {
+		return nil
+	}
+	logger.Info(err)
+	return err
 }
 
 func shuffle(m []Member) []Member {
@@ -301,15 +479,15 @@ func shuffle(m []Member) []Member {
 func (w worker) isPluginLoaded(n, t string, v int) bool {
 	catalog := w.pluginManager.PluginCatalog()
 	for _, item := range catalog {
-		workerLogger.WithFields(log.Fields{
-			"name":    n,
-			"version": v,
-			"type":    t,
-		}).Errorf("loaded plugin.. looking for %v %v %v", item.Name(), item.Version(), item.TypeName())
 		if item.TypeName() == t &&
 			item.Name() == n &&
 			item.Version() == v {
-			workerLogger.WithField("_block", "isPluginLoaded").Error("Plugin already loaded")
+			w.logger.WithFields(log.Fields{
+				"name":    n,
+				"version": v,
+				"type":    t,
+				"_block":  "is-plugin-loaded",
+			}).Debugf("plugin already loaded")
 			return true
 		}
 	}
@@ -321,7 +499,7 @@ func getSchedule(s *request.Schedule) schedule.Schedule {
 	case "simple":
 		d, e := time.ParseDuration(s.Interval)
 		if e != nil {
-			workerLogger.WithField("_block", "getSchedule").Error(e)
+			log.WithField("_block", "get-schedule").Error(e)
 			return nil
 		}
 		return schedule.NewSimpleSchedule(d)

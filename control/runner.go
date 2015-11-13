@@ -168,7 +168,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// Wait for plugin response
-	resp, err := p.WaitForResponse(time.Second * 3)
+	resp, err := p.WaitForResponse(time.Second * 5)
 	if err != nil {
 		e := errors.New("error while waiting for response: " + err.Error())
 		runnerLog.WithFields(log.Fields{

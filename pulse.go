@@ -314,13 +314,13 @@ func action(ctx *cli.Context) {
 		log.Info("Tribe is enabled")
 		tc := tribe.DefaultConfig(tribeNodeName, tribeAddr, tribePort, tribeSeed, apiPort)
 		t, err := tribe.New(tc)
+		if err != nil {
+			printErrorAndExit(t.Name(), err)
+		}
 		c.RegisterEventHandler("tribe", t)
 		t.SetPluginCatalog(c)
 		s.RegisterEventHandler("tribe", t)
 		t.SetTaskManager(s)
-		if err != nil {
-			printErrorAndExit(t.Name(), err)
-		}
 		coreModules = append(coreModules, t)
 		tr = t
 	}

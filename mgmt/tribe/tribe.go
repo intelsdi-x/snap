@@ -109,10 +109,9 @@ func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string, r
 
 func New(c *config) (*tribe, error) {
 	logger := logger.WithFields(log.Fields{
-		"_block": "New",
-		"port":   c.MemberlistConfig.BindPort,
-		"addr":   c.MemberlistConfig.BindAddr,
-		"name":   c.MemberlistConfig.Name,
+		"port": c.MemberlistConfig.BindPort,
+		"addr": c.MemberlistConfig.BindAddr,
+		"name": c.MemberlistConfig.Name,
 	})
 
 	tribe := &tribe{
@@ -145,9 +144,7 @@ func New(c *config) (*tribe, error) {
 
 	ml, err := memberlist.Create(c.MemberlistConfig)
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"_block": "New",
-		}).Error(err)
+		logger.Error(err)
 		return nil, err
 	}
 	tribe.memberlist = ml
@@ -167,7 +164,7 @@ func New(c *config) (*tribe, error) {
 	}
 	logger.WithFields(log.Fields{
 		"seed": "none",
-	}).Infoln("Tribe started")
+	}).Infoln("tribe started")
 	return tribe, nil
 }
 
@@ -203,17 +200,16 @@ func (t *tribe) Start() error {
 }
 
 func (t *tribe) Stop() {
+	logger := t.logger.WithFields(log.Fields{
+		"_block": "stop",
+	})
 	err := t.memberlist.Leave(1 * time.Second)
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"_block": "Stop",
-		}).Error(err)
+		logger.Error(err)
 	}
 	err = t.memberlist.Shutdown()
 	if err != nil {
-		logger.WithFields(log.Fields{
-			"_block": "Stop",
-		}).Error(err)
+		logger.Error(err)
 	}
 	close(t.workerQuitChan)
 	t.workerWaitGroup.Wait()
@@ -243,7 +239,6 @@ func (t *tribe) GetPluginAgreementMembers() ([]worker.Member, error) {
 	if !ok || m.PluginAgreement == nil {
 		return nil, errNotAMember
 	}
-	logger.Debugf("agreement %s has %d members", m.PluginAgreement.Name, len(t.agreements[m.PluginAgreement.Name].Members))
 	members := make([]worker.Member, 0, len(t.agreements[m.PluginAgreement.Name].Members))
 	for _, v := range t.agreements[m.PluginAgreement.Name].Members {
 		members = append(members, v)
@@ -267,8 +262,8 @@ func (t *tribe) decodeTags(buf []byte) map[string]string {
 	r := bytes.NewReader(buf)
 	dec := codec.NewDecoder(r, &codec.MsgpackHandle{})
 	if err := dec.Decode(&tags); err != nil {
-		logger.WithFields(log.Fields{
-			"_block": "decodeTags",
+		t.logger.WithFields(log.Fields{
+			"_block": "decode-tags",
 			"error":  err,
 		}).Error("Failed to decode tags")
 	}
@@ -277,15 +272,17 @@ func (t *tribe) decodeTags(buf []byte) map[string]string {
 
 // HandleGomitEvent handles events emitted from control
 func (t *tribe) HandleGomitEvent(e gomit.Event) {
+	logger := t.logger.WithFields(log.Fields{
+		"_block": "handle-gomit-event",
+	})
 	switch v := e.Body.(type) {
 	case *control_event.LoadPluginEvent:
 		logger.WithFields(log.Fields{
-			"_block":         "HandleGomitEvent",
 			"event":          e.Namespace(),
-			"plugin_name":    v.Name,
-			"plugin_version": v.Version,
-			"plugin_type":    core.PluginType(v.Type).String(),
-		}).Errorf("Handling load plugin event")
+			"plugin-name":    v.Name,
+			"plugin-version": v.Version,
+			"plugin-type":    core.PluginType(v.Type).String(),
+		}).Debugf("handling load plugin event")
 		plugin := agreement.Plugin{
 			Name_:    v.Name,
 			Version_: v.Version,
@@ -300,12 +297,11 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 		}
 	case *control_event.UnloadPluginEvent:
 		logger.WithFields(log.Fields{
-			"_block":         "HandleGomitEvent",
 			"event":          e.Namespace(),
-			"plugin_name":    v.Name,
-			"plugin_version": v.Version,
-			"plugin_type":    core.PluginType(v.Type).String(),
-		}).Debugf("Handling unload plugin event")
+			"plugin-name":    v.Name,
+			"plugin-version": v.Version,
+			"plugin-type":    core.PluginType(v.Type).String(),
+		}).Debugf("handling unload plugin event")
 		plugin := agreement.Plugin{
 			Name_:    v.Name,
 			Version_: v.Version,
@@ -319,26 +315,83 @@ func (t *tribe) HandleGomitEvent(e gomit.Event) {
 			}
 		}
 	case *scheduler_event.TaskCreatedEvent:
-		logger.WithFields(log.Fields{
-			"_block":               "HandleGomitEvent",
-			"event":                e.Namespace(),
-			"task_id":              v.TaskID,
-			"task_start_on_create": v.StartOnCreate,
-		}).Errorf("Handling task create event")
-		task := agreement.Task{
-			ID:            v.TaskID,
-			StartOnCreate: v.StartOnCreate,
-		}
-		if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
-			if m.TaskAgreements != nil {
-				for n, a := range m.TaskAgreements {
-					if ok, _ := a.Tasks.Contains(task); !ok {
-						t.AddTask(n, task)
+		if v.Source != "tribe" {
+			logger.WithFields(log.Fields{
+				"event":                e.Namespace(),
+				"task-id":              v.TaskID,
+				"task-start-on-create": v.StartOnCreate,
+			}).Debugf("handling task create event")
+			task := agreement.Task{
+				ID:            v.TaskID,
+				StartOnCreate: v.StartOnCreate,
+			}
+			if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+				if m.TaskAgreements != nil {
+					for n, a := range m.TaskAgreements {
+						if ok, _ := a.Tasks.Contains(task); !ok {
+							t.AddTask(n, task)
+						}
 					}
 				}
 			}
 		}
-
+	case *scheduler_event.TaskStoppedEvent:
+		if v.Source != "tribe" {
+			logger.WithFields(log.Fields{
+				"event":   e.Namespace(),
+				"task-id": v.TaskID,
+			}).Debugf("handling task stop event")
+			task := agreement.Task{
+				ID: v.TaskID,
+			}
+			if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+				if m.TaskAgreements != nil {
+					for n, a := range m.TaskAgreements {
+						if ok, _ := a.Tasks.Contains(task); ok {
+							t.StopTask(n, task)
+						}
+					}
+				}
+			}
+		}
+	case *scheduler_event.TaskStartedEvent:
+		if v.Source != "tribe" {
+			logger.WithFields(log.Fields{
+				"event":   e.Namespace(),
+				"task-id": v.TaskID,
+			}).Debugf("handling task start event")
+			task := agreement.Task{
+				ID: v.TaskID,
+			}
+			if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+				if m.TaskAgreements != nil {
+					for n, a := range m.TaskAgreements {
+						if ok, _ := a.Tasks.Contains(task); ok {
+							t.StartTask(n, task)
+						}
+					}
+				}
+			}
+		}
+	case *scheduler_event.TaskDeletedEvent:
+		if v.Source != "tribe" {
+			logger.WithFields(log.Fields{
+				"event":   e.Namespace(),
+				"task-id": v.TaskID,
+			}).Debugf("handling task start event")
+			task := agreement.Task{
+				ID: v.TaskID,
+			}
+			if m, ok := t.members[t.memberlist.LocalNode().Name]; ok {
+				if m.TaskAgreements != nil {
+					for n, a := range m.TaskAgreements {
+						if ok, _ := a.Tasks.Contains(task); ok {
+							t.RemoveTask(n, task)
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -474,7 +527,7 @@ func (t *tribe) AddTask(agreementName string, task agreement.Task) perror.PulseE
 }
 
 func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.PulseError {
-	if err := t.canRemoveTask(agreementName, task); err != nil {
+	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
 	msg := &taskMsg{
@@ -486,6 +539,40 @@ func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.Pul
 	}
 	if t.handleRemoveTask(msg) {
 		t.broadcast(removeTaskMsgType, msg, nil)
+	}
+	return nil
+}
+
+func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.PulseError {
+	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
+		return err
+	}
+	msg := &taskMsg{
+		LTime:         t.clock.Increment(),
+		TaskID:        task.ID,
+		AgreementName: agreementName,
+		UUID:          uuid.New(),
+		Type:          stopTaskMsgType,
+	}
+	if t.handleStopTask(msg) {
+		t.broadcast(stopTaskMsgType, msg, nil)
+	}
+	return nil
+}
+
+func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.PulseError {
+	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
+		return err
+	}
+	msg := &taskMsg{
+		LTime:         t.clock.Increment(),
+		TaskID:        task.ID,
+		AgreementName: agreementName,
+		UUID:          uuid.New(),
+		Type:          startTaskMsgType,
+	}
+	if t.handleStartTask(msg) {
+		t.broadcast(startTaskMsgType, msg, nil)
 	}
 	return nil
 }
@@ -714,11 +801,11 @@ func (t *tribe) handleRemovePlugin(msg *pluginMsg) bool {
 			if t.pluginCatalog != nil {
 				_, err := t.pluginCatalog.Unload(msg.Plugin)
 				if err != nil {
-					logger.WithFields(log.Fields{
-						"_block":         "handleRemovePlugin",
-						"plugin_name":    msg.Plugin.Name(),
-						"plugin_type":    msg.Plugin.TypeName(),
-						"plugin_version": msg.Plugin.Version(),
+					t.logger.WithFields(log.Fields{
+						"_block":         "handle-remove-plugin",
+						"plugin-name":    msg.Plugin.Name(),
+						"plugin-type":    msg.Plugin.TypeName(),
+						"plugin-version": msg.Plugin.Version(),
 					}).Error(err)
 				}
 			}
@@ -815,12 +902,79 @@ func (t *tribe) handleRemoveTask(msg *taskMsg) bool {
 
 	if _, ok := t.agreements[msg.Agreement()]; ok {
 		if t.agreements[msg.AgreementName].TaskAgreement.Remove(agreement.Task{ID: msg.TaskID}) {
+
+			work := worker.TaskRequest{
+				Task: worker.Task{
+					ID: msg.TaskID,
+				},
+				RequestType: worker.TaskRemovedType,
+			}
+			t.taskWorkQueue <- work
+
 			t.processIntents()
 			return true
 		}
 	}
 
 	t.addTaskIntent(msg)
+	return true
+}
+
+func (t *tribe) handleStartTask(msg *taskMsg) bool {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	// update the clock if newer
+	t.clock.Update(msg.LTime)
+
+	if t.isDuplicate(msg) {
+		return false
+	}
+
+	t.msgBuffer[msg.LTime%LTime(len(t.msgBuffer))] = msg
+
+	if _, ok := t.agreements[msg.Agreement()]; ok {
+
+		work := worker.TaskRequest{
+			Task: worker.Task{
+				ID: msg.TaskID,
+			},
+			RequestType: worker.TaskStartedType,
+		}
+		t.taskWorkQueue <- work
+
+		return true
+	}
+
+	return true
+}
+
+func (t *tribe) handleStopTask(msg *taskMsg) bool {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	// update the clock if newer
+	t.clock.Update(msg.LTime)
+
+	if t.isDuplicate(msg) {
+		return false
+	}
+
+	t.msgBuffer[msg.LTime%LTime(len(t.msgBuffer))] = msg
+
+	if _, ok := t.agreements[msg.Agreement()]; ok {
+
+		work := worker.TaskRequest{
+			Task: worker.Task{
+				ID: msg.TaskID,
+			},
+			RequestType: worker.TaskStoppedType,
+		}
+		t.taskWorkQueue <- work
+
+		return true
+	}
+
 	return true
 }
 
@@ -973,27 +1127,20 @@ func (t *tribe) leaveAgreement(msg *agreementMsg) perror.PulseError {
 }
 
 func (t *tribe) canLeaveAgreement(agreementName, memberName string) perror.PulseError {
+	fields := log.Fields{
+		"member-name": memberName,
+		"agreement":   agreementName,
+	}
 	if _, ok := t.agreements[agreementName]; !ok {
-		fields := log.Fields{
-			"Agreement": agreementName,
-		}
-		logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
+		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
 		return perror.New(errAgreementDoesNotExist, fields)
 	}
-
 	m, ok := t.members[memberName]
 	if !ok {
-		fields := log.Fields{
-			"MemberName": memberName,
-		}
 		t.logger.WithFields(fields).Debugln(errUnknownMember)
 		return perror.New(errUnknownMember, fields)
 	}
 	if m.PluginAgreement == nil {
-		fields := log.Fields{
-			"MemberName": t.memberlist.LocalNode().Name,
-			"Agreement":  agreementName,
-		}
 		t.logger.WithFields(fields).Debugln(errNotAMember)
 		return perror.New(errNotAMember, fields)
 	}
@@ -1001,27 +1148,21 @@ func (t *tribe) canLeaveAgreement(agreementName, memberName string) perror.Pulse
 }
 
 func (t *tribe) canJoinAgreement(agreementName, memberName string) perror.PulseError {
+	fields := log.Fields{
+		"member-name": memberName,
+		"agreement":   agreementName,
+	}
 	if _, ok := t.agreements[agreementName]; !ok {
-		fields := log.Fields{
-			"Agreement": agreementName,
-		}
-		logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
+		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
 		return perror.New(errAgreementDoesNotExist, fields)
 	}
 	m, ok := t.members[memberName]
 	if !ok {
-		fields := log.Fields{
-			"MemberName": memberName,
-		}
 		t.logger.WithFields(fields).Debugln(errUnknownMember)
 		return perror.New(errUnknownMember, fields)
 
 	}
 	if m.PluginAgreement != nil && len(m.PluginAgreement.Plugins) > 0 {
-		fields := log.Fields{
-			"MemberName": t.memberlist.LocalNode().Name,
-			"Agreement":  agreementName,
-		}
 		t.logger.WithFields(fields).Debugln(errAlreadyMemberOfPluginAgreement)
 		return perror.New(errAlreadyMemberOfPluginAgreement, fields)
 	}
@@ -1030,48 +1171,50 @@ func (t *tribe) canJoinAgreement(agreementName, memberName string) perror.PulseE
 
 func (t *tribe) canAddTask(task agreement.Task, agreementName string) perror.PulseError {
 	fields := log.Fields{
-		"Agreement": agreementName,
+		"agreement": agreementName,
+		"task-id":   task.ID,
 	}
 	a, ok := t.agreements[agreementName]
 	if !ok {
-		logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
+		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
 		return perror.New(errAgreementDoesNotExist, fields)
 	}
 	if ok, _ := a.TaskAgreement.Tasks.Contains(task); ok {
-		logger.WithFields(fields).Debugln(errTaskAlreadyExists)
+		t.logger.WithFields(fields).Debugln(errTaskAlreadyExists)
 		return perror.New(errTaskAlreadyExists, fields)
 	}
 	return nil
 }
 
-func (t *tribe) canRemoveTask(agreementName string, task agreement.Task) perror.PulseError {
+func (t *tribe) canStartStopRemoveTask(task agreement.Task, agreementName string) perror.PulseError {
 	fields := log.Fields{
-		"Agreement": agreementName,
+		"agreement": agreementName,
+		"task-id":   task.ID,
 	}
 	a, ok := t.agreements[agreementName]
 	if !ok {
-		logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
+		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
 		return perror.New(errAgreementDoesNotExist, fields)
 	}
 	if ok, _ := a.TaskAgreement.Tasks.Contains(task); !ok {
-		logger.WithFields(fields).Debugln(errTaskDoesNotExist)
+		t.logger.WithFields(fields).Debugln(errTaskDoesNotExist)
 		return perror.New(errTaskDoesNotExist, fields)
 	}
 	return nil
 }
 
 func (t *tribe) isDuplicate(msg msg) bool {
+	logger := t.logger.WithFields(log.Fields{
+		"event-clock": msg.Time(),
+		"event":       msg.GetType().String(),
+		"event-uuid":  msg.ID(),
+		"clock":       t.clock.Time(),
+		"agreement":   msg.Agreement(),
+	})
 	// is the message old
 	if t.clock.Time() > LTime(len(t.msgBuffer)) &&
 		msg.Time() < t.clock.Time()-LTime(len(t.msgBuffer)) {
-		t.logger.WithFields(log.Fields{
-			"event_clock": msg.Time(),
-			"event":       msg.GetType().String(),
-			"event_uuid":  msg.ID(),
-			"clock":       t.clock.Time(),
-			"agreement":   msg.Agreement(),
-			// "plugin":      msg.Plugin,
-		}).Debugln("This message is old")
+		logger.Debugln("old message")
 		return true
 	}
 
@@ -1079,15 +1222,7 @@ func (t *tribe) isDuplicate(msg msg) bool {
 	idx := msg.Time() % LTime(len(t.msgBuffer))
 	seen := t.msgBuffer[idx]
 	if seen != nil && seen.ID() == msg.ID() {
-		t.logger.WithFields(log.Fields{
-			"event_clock": msg.Time(),
-			"event":       msg.GetType().String(),
-			"event_uuid":  msg.ID(),
-			"clock":       t.clock.Time(),
-			"agreement":   msg.Agreement(),
-			// "plugin":      msg.Plugin,
-		}).Debugln("duplicate message")
-
+		logger.Debugln("duplicate message")
 		return true
 	}
 	return false
@@ -1095,31 +1230,34 @@ func (t *tribe) isDuplicate(msg msg) bool {
 
 func (t *tribe) addPluginIntent(msg *pluginMsg) bool {
 	t.logger.WithFields(log.Fields{
-		"event_clock": msg.LTime,
+		"event-clock": msg.LTime,
 		"agreement":   msg.AgreementName,
-		"plugin":      msg.Plugin,
 		"type":        msg.Type.String(),
-	}).Debugln("Out of order msg")
+		"plugin": fmt.Sprintf("%v:%v:%v",
+			msg.Plugin.TypeName(),
+			msg.Plugin.Name(),
+			msg.Plugin.Version()),
+	}).Debugln("out of order message")
 	t.intentBuffer = append(t.intentBuffer, msg)
 	return true
 }
 
 func (t *tribe) addAgreementIntent(m msg) bool {
 	t.logger.WithFields(log.Fields{
-		"event_clock": m.Time(),
+		"event-clock": m.Time(),
 		"agreement":   m.Agreement(),
 		"type":        m.GetType().String(),
-	}).Debugln("Out of order msg")
+	}).Debugln("out of order message")
 	t.intentBuffer = append(t.intentBuffer, m)
 	return true
 }
 
 func (t *tribe) addTaskIntent(m *taskMsg) bool {
 	t.logger.WithFields(log.Fields{
-		"event_clock": m.Time(),
+		"event-clock": m.Time(),
 		"agreement":   m.Agreement(),
 		"type":        m.GetType().String(),
-		"task_id":     m.TaskID,
+		"task-id":     m.TaskID,
 	}).Debugln("Out of order msg")
 	t.intentBuffer = append(t.intentBuffer, m)
 	return true
