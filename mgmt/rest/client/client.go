@@ -61,10 +61,14 @@ var (
 )
 
 type Client struct {
-	URL     string
+	// URL specifies HTTP API request uniform resource locator.
+	URL string
+	// Version specifies the version of a HTTP client.
 	Version string
-
-	http   *http.Client
+	// http is a pointer to a net/http client.
+	http *http.Client
+	// prefix is the string concatenation of a request URL, forward slash
+	// and the request client version.
 	prefix string
 }
 
@@ -91,6 +95,7 @@ func New(url, ver string, insecure bool) *Client {
 	return c
 }
 
+// String returns the string representation of the content type given a content number.
 func (t contentType) String() string {
 	return contentTypes[t]
 }

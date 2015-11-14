@@ -27,9 +27,12 @@ import (
 )
 
 var (
+	// The default response error.
 	ErrAPIResponseMetaType = errors.New("Received an invalid API response (META/TYPE)")
 )
 
+// GetMetricCatalog retrieves the metric catalog from a pulse/client by issuing an HTTP GET request.
+// A slice of metric catalogs returns if succeeded. Otherwise an error is returned.
 func (c *Client) GetMetricCatalog() *GetMetricsResult {
 	r := &GetMetricsResult{}
 	resp, err := c.do("GET", "/metrics", ContentTypeJSON)
@@ -49,6 +52,8 @@ func (c *Client) GetMetricCatalog() *GetMetricsResult {
 	return r
 }
 
+// FetchMetrics retrieves the metric catalog given metric namespace and version through an HTTP GET request.
+// It returns the corresponding metric catalog if succeeded. Otherwise, an error is returned.
 func (c *Client) FetchMetrics(ns string, ver int) *GetMetricsResult {
 	r := &GetMetricsResult{}
 	q := fmt.Sprintf("/metrics%s?ver=%d", ns, ver)
@@ -72,16 +77,13 @@ func (c *Client) FetchMetrics(ns string, ver int) *GetMetricsResult {
 	return r
 }
 
+// GetMetricsResult is the response from pulse/client on a GetMetricCatalog call.
 type GetMetricsResult struct {
 	Catalog []*rbody.Metric
 	Err     error
 }
 
-type GetMetricResult struct {
-	Metric *rbody.Metric
-	Err    error
-}
-
+// Len returns the slice's length of GetMetricsResult.Catalog.
 func (g *GetMetricsResult) Len() int {
 	return len(g.Catalog)
 }
