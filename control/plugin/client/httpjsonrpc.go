@@ -43,6 +43,7 @@ import (
 var logger = log.WithField("_module", "client-httpjsonrpc")
 
 type httpJSONRPCClient struct {
+	PluginCacheClient
 	url        string
 	id         uint64
 	timeout    time.Duration
@@ -54,10 +55,11 @@ type httpJSONRPCClient struct {
 // NewCollectorHttpJSONRPCClient returns CollectorHttpJSONRPCClient
 func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginCollectorClient, error) {
 	hjr := &httpJSONRPCClient{
-		url:        u,
-		timeout:    timeout,
-		pluginType: plugin.CollectorPluginType,
-		encoder:    encoding.NewJsonEncoder(),
+		PluginCacheClient: &pluginCacheClient{},
+		url:               u,
+		timeout:           timeout,
+		pluginType:        plugin.CollectorPluginType,
+		encoder:           encoding.NewJsonEncoder(),
 	}
 	if secure {
 		key, err := encrypter.GenerateKey()
@@ -74,10 +76,11 @@ func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.Pub
 
 func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginProcessorClient, error) {
 	hjr := &httpJSONRPCClient{
-		url:        u,
-		timeout:    timeout,
-		pluginType: plugin.ProcessorPluginType,
-		encoder:    encoding.NewJsonEncoder(),
+		PluginCacheClient: &pluginCacheClient{},
+		url:               u,
+		timeout:           timeout,
+		pluginType:        plugin.ProcessorPluginType,
+		encoder:           encoding.NewJsonEncoder(),
 	}
 	if secure {
 		key, err := encrypter.GenerateKey()
@@ -94,10 +97,11 @@ func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.Pub
 
 func NewPublisherHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginPublisherClient, error) {
 	hjr := &httpJSONRPCClient{
-		url:        u,
-		timeout:    timeout,
-		pluginType: plugin.PublisherPluginType,
-		encoder:    encoding.NewJsonEncoder(),
+		PluginCacheClient: &pluginCacheClient{},
+		url:               u,
+		timeout:           timeout,
+		pluginType:        plugin.PublisherPluginType,
+		encoder:           encoding.NewJsonEncoder(),
 	}
 	if secure {
 		key, err := encrypter.GenerateKey()
@@ -142,38 +146,22 @@ func (h *httpJSONRPCClient) Kill(reason string) error {
 
 // CollectMetrics returns collected metrics
 func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {
-	// Here we create two slices from the requested metric collection. One which
-	// contains the metrics we retreived from the cache, and one from which we had
-	// to use the plugin.
 
-	// This is managed by walking through the complete list and hitting the cache for each item.
-	// If the metric is found in the cache, we nil out that entry in the complete collection.
-	// Then, we walk through the collection once more and create a new slice of metrics which
-	// were not found in the cache.
-	var fromCache []core.Metric
-	for i, m := range mts {
-		var metric core.Metric
-		if metric = metricCache.get(core.JoinNamespace(m.Namespace())); metric != nil {
-			fromCache = append(fromCache, metric)
-			mts[i] = nil
-		}
+	var results []core.Metric
+	if len(mts) == 0 {
+		return nil, errors.New("no metrics to collect")
 	}
-	var fromPlugin []plugin.PluginMetricType
-	for _, mt := range mts {
-		if mt != nil {
-			fromPlugin = append(fromPlugin, plugin.PluginMetricType{
-				Namespace_: mt.Namespace(),
-				Config_:    mt.Config(),
-			})
-		}
-	}
-	// We only need to send a request to the plugin if there are metrics which were not available in the cache.
-	if len(fromPlugin) > 0 {
-		args := &plugin.CollectMetricsArgs{PluginMetricTypes: fromPlugin}
+
+	metricsToCollect, metricsFromCache := checkCache(mts)
+
+	if len(metricsToCollect) > 0 {
+		args := &plugin.CollectMetricsArgs{PluginMetricTypes: metricsToCollect}
+
 		out, err := h.encoder.Encode(args)
 		if err != nil {
 			return nil, err
 		}
+
 		res, err := h.call("Collector.CollectMetrics", []interface{}{out})
 		if err != nil {
 			return nil, err
@@ -186,17 +174,28 @@ func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, er
 			}).Error(err)
 			return nil, err
 		}
-		var mtr plugin.CollectMetricsReply
-		err = h.encoder.Decode(res.Result, &mtr)
+		r := &plugin.CollectMetricsReply{}
+		err = h.encoder.Decode(res.Result, r)
 		if err != nil {
 			return nil, err
 		}
-		for _, m := range mtr.PluginMetrics {
-			metricCache.put(core.JoinNamespace(m.Namespace()), m)
-			fromCache = append(fromCache, m)
+
+		updateCache(r.PluginMetrics)
+
+		results = make([]core.Metric, len(metricsFromCache)+len(r.PluginMetrics))
+		idx := 0
+		for _, m := range r.PluginMetrics {
+			results[idx] = m
+			idx++
 		}
+		for _, m := range metricsFromCache {
+			results[idx] = m
+			idx++
+		}
+		return results, nil
+	} else {
+		return metricsFromCache, nil
 	}
-	return fromCache, nil
 }
 
 // GetMetricTypes returns metric types that can be collected

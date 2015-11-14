@@ -435,6 +435,7 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 	controlLogger.WithFields(log.Fields{
 		"_block":    "validate-metric-subscription",
 		"namespace": mt.Namespace(),
+		"version":   mt.Version(),
 	}).Info("subscription called on metric")
 
 	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
@@ -499,7 +500,7 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []pe
 	for _, mt := range mts {
 		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 		if err != nil {
-			perrs = append(perrs, perror.New(err))
+			perrs = append(perrs, err)
 			continue
 		}
 		// if the metric subscription is to version -1, we need to carry

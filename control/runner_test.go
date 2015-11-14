@@ -138,6 +138,22 @@ func (mucc *MockHealthyPluginCollectorClient) SetKey() error {
 	return nil
 }
 
+func (c *MockHealthyPluginCollectorClient) AllCacheHits() uint64 {
+	return 0
+}
+
+func (c *MockHealthyPluginCollectorClient) AllCacheMisses() uint64 {
+	return 0
+}
+
+func (c *MockHealthyPluginCollectorClient) CacheHits(key string, version int) (uint64, error) {
+	return 0, nil
+}
+
+func (c *MockHealthyPluginCollectorClient) CacheMisses(key string, version int) (uint64, error) {
+	return 0, nil
+}
+
 type MockUnhealthyPluginCollectorClient struct{}
 
 func (mucc *MockUnhealthyPluginCollectorClient) Ping() error {
@@ -154,6 +170,22 @@ func (mucc *MockUnhealthyPluginCollectorClient) GetConfigPolicy() (*cpolicy.Conf
 
 func (mucc *MockUnhealthyPluginCollectorClient) SetKey() error {
 	return nil
+}
+
+func (c *MockUnhealthyPluginCollectorClient) AllCacheHits() uint64 {
+	return 0
+}
+
+func (c *MockUnhealthyPluginCollectorClient) AllCacheMisses() uint64 {
+	return 0
+}
+
+func (c *MockUnhealthyPluginCollectorClient) CacheHits(key string, version int) (uint64, error) {
+	return 0, nil
+}
+
+func (c *MockUnhealthyPluginCollectorClient) CacheMisses(key string, version int) (uint64, error) {
+	return 0, nil
 }
 
 type MockEmitter struct{}
