@@ -57,8 +57,9 @@ func (c *cache) get(ns string, version int) interface{} {
 		cell *cachecell
 		ok   bool
 	)
+
 	key := fmt.Sprintf("%v:%v", ns, version)
-	if cell, ok = c.table[key]; ok && time.Since(cell.time) < GlobalCacheExpiration {
+	if cell, ok = c.table[key]; ok && core.Chrono.Now().Sub(cell.time) < GlobalCacheExpiration {
 		cell.hits++
 		cacheLog.WithFields(log.Fields{
 			"namespace": key,
@@ -91,11 +92,11 @@ func (c *cache) put(ns string, version int, m interface{}) {
 	switch metric := m.(type) {
 	case core.Metric:
 		if _, ok := c.table[key]; ok {
-			c.table[key].time = time.Now()
+			c.table[key].time = core.Chrono.Now()
 			c.table[key].metric = metric
 		} else {
 			c.table[key] = &cachecell{
-				time:   time.Now(),
+				time:   core.Chrono.Now(),
 				metric: metric,
 			}
 		}
@@ -105,7 +106,7 @@ func (c *cache) put(ns string, version int, m interface{}) {
 			c.table[key].metrics = metric
 		} else {
 			c.table[key] = &cachecell{
-				time:    time.Now(),
+				time:    core.Chrono.Now(),
 				metrics: metric,
 			}
 		}

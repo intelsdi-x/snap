@@ -26,6 +26,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/pulse/control/plugin"
+	"github.com/intelsdi-x/pulse/core"
 )
 
 func TestCache(t *testing.T) {
@@ -76,18 +77,31 @@ func TestCache(t *testing.T) {
 			So(mc.table["/foo/bar:1"].hits, ShouldEqual, 1)
 		})
 		Convey("ticks miss count when a cache entry is still a hit", func() {
+			// Make sure global clock is restored after test.
+			defer core.Chrono.Reset()
+			defer core.Chrono.Continue()
+
+			// Use artificial time: pause to get base time.
+			core.Chrono.Pause()
+
 			mc := &cache{
 				table: make(map[string]*cachecell),
 			}
 			foo := &plugin.PluginMetricType{
 				Namespace_: []string{"foo", "bar"},
 			}
+
 			mc.put("/foo/bar", 1, foo)
-			time.Sleep(250 * time.Millisecond)
+			core.Chrono.Forward(250 * time.Millisecond)
 			mc.get("/foo/bar", 1)
 			So(mc.table["/foo/bar:1"].hits, ShouldEqual, 1)
 		})
 		Convey("ticks miss count when a cache entry is missed", func() {
+			defer core.Chrono.Reset()
+			defer core.Chrono.Continue()
+
+			core.Chrono.Pause()
+
 			mc := &cache{
 				table: make(map[string]*cachecell),
 			}
@@ -95,7 +109,7 @@ func TestCache(t *testing.T) {
 				Namespace_: []string{"foo", "bar"},
 			}
 			mc.put("/foo/bar", 1, foo)
-			time.Sleep(301 * time.Millisecond)
+			core.Chrono.Forward(301 * time.Millisecond)
 			mc.get("/foo/bar", 1)
 			So(mc.table["/foo/bar:1"].misses, ShouldEqual, 1)
 		})
