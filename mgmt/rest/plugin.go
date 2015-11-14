@@ -335,5 +335,15 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 			return
 		}
 		return
+	} else {
+		pluginRet := &rbody.PluginReturned{
+			Name:            plugin.Name(),
+			Version:         plugin.Version(),
+			Type:            plugin.TypeName(),
+			Signed:          plugin.IsSigned(),
+			Status:          plugin.Status(),
+			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
+		}
+		respond(200, pluginRet, w)
 	}
 }
