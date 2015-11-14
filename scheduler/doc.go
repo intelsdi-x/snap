@@ -17,15 +17,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control
-
-import "github.com/intelsdi-x/pulse/control/routing"
-
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}
+/*
+Package scheduler is the entrypoint for creating Pulse Tasks.
+It maintains the schedules, workflows, and workers of said workflows
+for executing Pulse Tasks.
+*/
+package scheduler

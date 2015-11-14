@@ -17,15 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control
+/*
+Package control.client provides plugin cache and plugin clients for Pulse.
+Pulse has two type of clients - JSON RPC and native. GO based plugins use JSON RPC mode.
 
-import "github.com/intelsdi-x/pulse/control/routing"
+For manually testing a collector plugin refer to readme:
+https://github.com/intelsdi-x/pulse/blob/master/plugin/collector/pulse-collector-dummy2/README.md
 
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}
+*/
+package client

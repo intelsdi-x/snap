@@ -17,8 +17,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// PluginManger manages loading, unloading, and swapping
-// of plugins
 package control
 
 import (

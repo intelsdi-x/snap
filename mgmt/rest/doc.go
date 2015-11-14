@@ -17,15 +17,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control
+/*
+Package mgmt.rest provides pulse restful APIs for pulse metric, plugin, task and tribe.
 
-import "github.com/intelsdi-x/pulse/control/routing"
-
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}
+For futher information refer to mgmt.rest readme:
+https://github.com/intelsdi-x/pulse/blob/master/mgmt/rest/readme.md
+*/
+package rest

@@ -17,15 +17,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control
+/*
+Package tribe provides clustered management of nodes to run telemetry workflows. It allows the masterless
+clustering of Pulse agents. Nodes in the same tribe bind to the same agreements, plugins and tasks. Newly added
+nodes will automatically inherit tribe agreements.
 
-import "github.com/intelsdi-x/pulse/control/routing"
+For futher information refer to example video:
+https://github.com/intelsdi-x/pulse/blob/master/examples/videos.md
 
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}
+*/
+package tribe

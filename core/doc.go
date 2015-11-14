@@ -17,15 +17,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control
-
-import "github.com/intelsdi-x/pulse/control/routing"
-
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}
+/*
+Package core defines pulse plugin namespaces, data types,
+and interfaces for events, entities, and workflow.
+*/
+package core

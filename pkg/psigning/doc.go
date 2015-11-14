@@ -17,15 +17,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control
+/*
+Package pkg.psigning provides signing capability for Pulse plugins.
 
-import "github.com/intelsdi-x/pulse/control/routing"
+For futher information refer to pkg.psigning readme:
+https://github.com/intelsdi-x/pulse/blob/master/pkg/psigning/README.md
 
-type RouterResponse interface {
-}
-
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
-	String() string
-}
+*/
+package psigning
