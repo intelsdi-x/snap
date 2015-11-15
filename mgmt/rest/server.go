@@ -68,7 +68,8 @@ const (
 var (
 	ErrBadCert = errors.New("Invalid certificate given")
 
-	restLogger = log.WithField("_module", "_mgmt-rest")
+	restLogger     = log.WithField("_module", "_mgmt-rest")
+	protocolPrefix = "http"
 )
 
 type managesMetrics interface {
@@ -135,6 +136,7 @@ func New(https bool, cpath, kpath string) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
+		protocolPrefix = "https"
 	}
 
 	restLogger.Info(fmt.Sprintf("Configuring REST API with HTTPS set to: %v", https))

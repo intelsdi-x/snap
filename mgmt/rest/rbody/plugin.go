@@ -95,6 +95,7 @@ type LoadedPlugin struct {
 	Signed          bool   `json:"signed"`
 	Status          string `json:"status"`
 	LoadedTimestamp int64  `json:"loaded_timestamp"`
+	Href            string `json:"href"`
 }
 
 type AvailablePlugin struct {
@@ -104,4 +105,5 @@ type AvailablePlugin struct {
 	HitCount         int    `json:"hitcount"`
 	LastHitTimestamp int64  `json:"last_hit_timestamp"`
 	ID               uint32 `json:"id"`
+	Href             string `json:"href"`
 }
