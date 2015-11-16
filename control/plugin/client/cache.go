@@ -5,8 +5,6 @@ http://www.apache.org/licenses/LICENSE-2.0.txt
 Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
@@ -26,6 +24,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/pkg/chrono"
 )
 
 // the time limit for which a cache entry is valid.
@@ -59,7 +58,7 @@ func (c *cache) get(ns string, version int) interface{} {
 	)
 
 	key := fmt.Sprintf("%v:%v", ns, version)
-	if cell, ok = c.table[key]; ok && core.Chrono.Now().Sub(cell.time) < GlobalCacheExpiration {
+	if cell, ok = c.table[key]; ok && chrono.Chrono.Now().Sub(cell.time) < GlobalCacheExpiration {
 		cell.hits++
 		cacheLog.WithFields(log.Fields{
 			"namespace": key,
@@ -92,11 +91,11 @@ func (c *cache) put(ns string, version int, m interface{}) {
 	switch metric := m.(type) {
 	case core.Metric:
 		if _, ok := c.table[key]; ok {
-			c.table[key].time = core.Chrono.Now()
+			c.table[key].time = chrono.Chrono.Now()
 			c.table[key].metric = metric
 		} else {
 			c.table[key] = &cachecell{
-				time:   core.Chrono.Now(),
+				time:   chrono.Chrono.Now(),
 				metric: metric,
 			}
 		}
@@ -106,7 +105,7 @@ func (c *cache) put(ns string, version int, m interface{}) {
 			c.table[key].metrics = metric
 		} else {
 			c.table[key] = &cachecell{
-				time:    core.Chrono.Now(),
+				time:    chrono.Chrono.Now(),
 				metrics: metric,
 			}
 		}
