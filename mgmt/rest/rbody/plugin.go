@@ -28,6 +28,7 @@ const (
 	PluginsLoadedType  = "plugins_loaded"
 	PluginUnloadedType = "plugin_unloaded"
 	PluginListType     = "plugin_list_returned"
+	PluginReturnedType = "plugin_returned"
 )
 
 // Successful response to the loading of a plugins
@@ -75,6 +76,16 @@ func (p *PluginList) ResponseBodyMessage() string {
 
 func (p *PluginList) ResponseBodyType() string {
 	return PluginListType
+}
+
+type PluginReturned LoadedPlugin
+
+func (p *PluginReturned) ResponseBodyMessage() string {
+	return "Plugin returned"
+}
+
+func (p *PluginReturned) ResponseBodyType() string {
+	return PluginReturnedType
 }
 
 type LoadedPlugin struct {
