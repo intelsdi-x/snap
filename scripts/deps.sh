@@ -25,27 +25,6 @@ ctrl_c()
 } 
 trap ctrl_c SIGINT
 
-declare -a TYPES=(collector publisher)
-
-function loadDeps() {
-	cd $z
-	echo "Restoring deps for $z"
-	godep restore
-    cd ..
-}
-
-function checkPluginType() {	
-	cd plugin/$1
-	for z in *;
-	do		
-		echo "Checking $z for deps"
-		if [ -d "$z/Godeps" ]; then			 	
-			loadDeps $z
-		fi
-	done
-	cd ../..
-}
-
 # First load pulse deps
 echo "Checking pulse root for deps"
 godep restore
@@ -59,10 +38,4 @@ cd ../../mgmt/rest
 godep restore
 cd ../../
 
-
-# Next loop over all plugin types looking for a Godeps dir and loading
-for type in ${TYPES[*]}
-do	
-	checkPluginType $type
-done
 
