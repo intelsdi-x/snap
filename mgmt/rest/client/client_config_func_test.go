@@ -232,6 +232,7 @@ func TestPulseClientConfig(t *testing.T) {
 	Convey("A plugin config item for a specific type of a plugin is removed", t, func() {
 		res := c.DeletePluginConfig(core.CollectorPluginType.String(), "", "", "user")
 		So(res.Err, ShouldBeNil)
+		So(res.DeletePluginConfigItem, ShouldNotBeNil)
 		So(len(res.DeletePluginConfigItem.Table()), ShouldEqual, 0)
 		Convey("Get config for the version 1 'test' collector plugin", func() {
 			res := c.GetPluginConfig(core.CollectorPluginType.String(), "test", "1")
@@ -244,6 +245,8 @@ func TestPulseClientConfig(t *testing.T) {
 	})
 	Convey("A plugin config item for a specific type and version of a plugin is removed", t, func() {
 		res := c.DeletePluginConfig(core.CollectorPluginType.String(), "test", "1", "go")
+		So(res.Err, ShouldBeNil)
+		So(res.DeletePluginConfigItem, ShouldNotBeNil)
 		So(len(res.DeletePluginConfigItem.Table()), ShouldEqual, 1)
 		So(res.DeletePluginConfigItem.Table()["foo"], ShouldResemble, ctypes.ConfigValueStr{Value: "bar"})
 		Convey("Get config for the version 1 'test' collector plugin", func() {
