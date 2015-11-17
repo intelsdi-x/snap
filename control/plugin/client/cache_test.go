@@ -52,6 +52,13 @@ func TestCache(t *testing.T) {
 		So(ret, ShouldBeNil)
 	})
 	Convey("returns nil if the cache cell has expired", t, func() {
+		// Make sure global clock is restored after test.
+		defer chrono.Chrono.Reset()
+		defer chrono.Chrono.Continue()
+
+		// Use artificial time: pause to get base time.
+		chrono.Chrono.Pause()
+
 		mc := &cache{
 			table: make(map[string]*cachecell),
 		}
@@ -59,7 +66,7 @@ func TestCache(t *testing.T) {
 			Namespace_: []string{"foo", "bar"},
 		}
 		mc.put("/foo/bar", 1, foo)
-		time.Sleep(301 * time.Millisecond)
+		chrono.Chrono.Forward(301 * time.Millisecond)
 
 		ret := mc.get("/foo/bar", 1)
 		So(ret, ShouldBeNil)
@@ -77,11 +84,9 @@ func TestCache(t *testing.T) {
 			So(mc.table["/foo/bar:1"].hits, ShouldEqual, 1)
 		})
 		Convey("ticks miss count when a cache entry is still a hit", func() {
-			// Make sure global clock is restored after test.
 			defer chrono.Chrono.Reset()
 			defer chrono.Chrono.Continue()
 
-			// Use artificial time: pause to get base time.
 			chrono.Chrono.Pause()
 
 			mc := &cache{
