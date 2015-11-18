@@ -87,11 +87,6 @@ func NewPluginConfigType() PluginConfigType {
 	}
 }
 
-type Label struct {
-	Index int    `json:"index"`
-	Name  string `json:"name"`
-}
-
 // Represents a metric type. Only used within plugins and across plugin calls.
 // Converted to core.MetricType before being used within modules.
 type PluginMetricType struct {
