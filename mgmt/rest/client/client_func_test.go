@@ -486,50 +486,13 @@ func TestPulseClient(t *testing.T) {
 	c = New(uri, "v1", true)
 
 	Convey("API with invalid port", t, func() {
-		Convey("Plugins", func() {
-			p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
-			So(p1.Err, ShouldNotBeNil)
-			So(p1.LoadedPlugins, ShouldBeEmpty)
+		p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
+		So(p1.Err, ShouldNotBeNil)
+		So(p1.LoadedPlugins, ShouldBeEmpty)
 
-			p2 := c.GetPlugins(false)
-			p3 := c.GetPlugins(true)
-			So(p2.Err, ShouldNotBeNil)
-			So(p3.Err, ShouldNotBeNil)
-		})
-		Convey("Tasks", func() {
-			Convey("CreateTask", func() {
-				t1 := c.CreateTask(sch, wf, "baron", false)
-				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, "Post http://localhost:-1/v1/tasks: dial tcp: unknown port tcp/-1")
-			})
-			Convey("GetTask/GetTasks", func() {
-				t1 := c.GetTask(uuid)
-				t2 := c.GetTasks()
-				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Get http://localhost:-1/v1/tasks/%s: dial tcp: unknown port tcp/-1", uuid))
-				So(t2.Err, ShouldNotBeNil)
-				So(t2.Err.Error(), ShouldEqual, fmt.Sprint("Get http://localhost:-1/v1/tasks: dial tcp: unknown port tcp/-1"))
-			})
-			Convey("StartTask", func() {
-				t1 := c.StartTask(uuid)
-				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/start: dial tcp: unknown port tcp/-1", uuid))
-			})
-			Convey("RemoveTask", func() {
-				t1 := c.RemoveTask(uuid)
-				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, "dial tcp: unknown port tcp/-1")
-			})
-			Convey("StopTask", func() {
-				t1 := c.StopTask(uuid)
-				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/stop: dial tcp: unknown port tcp/-1", uuid))
-			})
-			Convey("EnableTask", func() {
-				t1 := c.EnableTask(uuid)
-				So(t1.Err, ShouldNotBeNil)
-				So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Put http://localhost:-1/v1/tasks/%s/enable: dial tcp: unknown port tcp/-1", uuid))
-			})
-		})
+		p2 := c.GetPlugins(false)
+		p3 := c.GetPlugins(true)
+		So(p2.Err, ShouldNotBeNil)
+		So(p3.Err, ShouldNotBeNil)
 	})
 }
