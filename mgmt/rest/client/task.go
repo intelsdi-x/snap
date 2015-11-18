@@ -33,12 +33,20 @@ import (
 )
 
 type Schedule struct {
-	Type      string
-	Interval  string
+	// Type specifies the type of the schedule. Currently,the type of "simple" and "windowed" are supported.
+	Type string
+	// Interval specifies the time duration.
+	Interval string
+	// StartTime specifies the beginning time.
 	StartTime *time.Time
-	StopTime  *time.Time
+	// StopTime specifies the end time.
+	StopTime *time.Time
 }
 
+// CreateTask creates a task given the schedule, workflow, task name, and task state.
+// If the startTask flag is true, the newly created task is started after the creation.
+// Otherwise, it's in the Stopped state. CreateTask is accomplished through a POST HTTP JSON request.
+// A ScheduledTask is returned if it succeeds, otherwise an error is returned.
 func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, startTask bool) *CreateTaskResult {
 	t := request.TaskCreationRequest{
 		Schedule: request.Schedule{
@@ -83,6 +91,9 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, star
 	}
 }
 
+// WatchTask retrieves running tasks by running a goroutine to
+// interactive with Event and Done channels. An HTTP GET request retrieves tasks.
+// StreamedTaskEvent returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) WatchTask(id string) *WatchTasksResult {
 	r := &WatchTasksResult{
 		EventChan: make(chan *rbody.StreamedTaskEvent),
@@ -137,6 +148,9 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 	return r
 }
 
+// GetTasks retrieves a slice of tasks through an HTTP GET call.
+// A list of scheduled tasks returns if it succeeds.
+// Otherwise. an error is returned.
 func (c *Client) GetTasks() *GetTasksResult {
 	resp, err := c.do("GET", "/tasks", ContentTypeJSON, nil)
 	if err != nil {
@@ -154,6 +168,8 @@ func (c *Client) GetTasks() *GetTasksResult {
 	}
 }
 
+// GetTask retrieves the task given a task id through an HTTP GET call.
+// A scheduled task returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) GetTask(id string) *GetTaskResult {
 	resp, err := c.do("GET", fmt.Sprintf("/tasks/%v", id), ContentTypeJSON, nil)
 	if err != nil {
@@ -170,6 +186,8 @@ func (c *Client) GetTask(id string) *GetTaskResult {
 	}
 }
 
+// StartTask starts a task given a task id. The scheduled task will be in
+// the started state if it succeeds. Otherwise, an error is returned.
 func (c *Client) StartTask(id string) *StartTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/start", id), ContentTypeJSON)
 
@@ -188,6 +206,8 @@ func (c *Client) StartTask(id string) *StartTasksResult {
 	}
 }
 
+// StopTask stops a running task given a task id. It uses an HTTP PUT call.
+// The stopped task id returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) StopTask(id string) *StopTasksResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", id), ContentTypeJSON)
 	if err != nil {
@@ -208,6 +228,8 @@ func (c *Client) StopTask(id string) *StopTasksResult {
 	}
 }
 
+// RemoveTask removes a task from the schedule tasks given a task id. It's through an HTTP DELETE call.
+// The removed task id returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) RemoveTask(id string) *RemoveTasksResult {
 	resp, err := c.do("DELETE", fmt.Sprintf("/tasks/%v", id), ContentTypeJSON)
 	if err != nil {
@@ -225,6 +247,8 @@ func (c *Client) RemoveTask(id string) *RemoveTasksResult {
 	}
 }
 
+// EnableTask enables a disabled task given a task id. The request is an HTTP PUT call.
+// The enabled task id returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) EnableTask(id string) *EnableTaskResult {
 	resp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/enable", id), ContentTypeJSON)
 	if err != nil {
@@ -241,11 +265,13 @@ func (c *Client) EnableTask(id string) *EnableTaskResult {
 	}
 }
 
+// CreateTaskResult is the response from pulse/client on a CreateTask call.
 type CreateTaskResult struct {
 	*rbody.AddScheduledTask
 	Err error
 }
 
+// WatchTaskResult is the response from pulse/client on a WatchTask call.
 type WatchTasksResult struct {
 	count     int
 	Err       error
@@ -257,31 +283,37 @@ func (w *WatchTasksResult) Close() {
 	close(w.DoneChan)
 }
 
+// GetTasksResult is the response from pulse/client on a GetTasks call.
 type GetTasksResult struct {
 	*rbody.ScheduledTaskListReturned
 	Err error
 }
 
+// GetTaskResult is the response from pulse/client on a GetTask call.
 type GetTaskResult struct {
 	*rbody.ScheduledTaskReturned
 	Err error
 }
 
+// StartTasksResult is the response from pulse/client on a StartTask call.
 type StartTasksResult struct {
 	*rbody.ScheduledTaskStarted
 	Err error
 }
 
+// StopTasksResult is the response from pulse/client on a StopTask call.
 type StopTasksResult struct {
 	*rbody.ScheduledTaskStopped
 	Err error
 }
 
+// RemoveTasksResult is the response from pulse/client on a RemoveTask call.
 type RemoveTasksResult struct {
 	*rbody.ScheduledTaskRemoved
 	Err error
 }
 
+// EnableTasksResult is the response from pulse/client on a EnableTask call.
 type EnableTaskResult struct {
 	*rbody.ScheduledTaskEnabled
 	Err error

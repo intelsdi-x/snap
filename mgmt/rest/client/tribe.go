@@ -26,6 +26,8 @@ import (
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
+// ListMembers retrieves a list of tribe members through an HTTP GET call.
+// A list of tribe member returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) ListMembers() *ListMembersResult {
 	resp, err := c.do("GET", "/tribe/members", ContentTypeJSON, nil)
 	if err != nil {
@@ -42,6 +44,9 @@ func (c *Client) ListMembers() *ListMembersResult {
 	}
 }
 
+// GetMember retrieves the tribe member given a member name.
+// The request is an HTTP GET call.  The corresponding tribe member object returns
+// if it succeeds. Otherwise, an error is returned.
 func (c *Client) GetMember(name string) *GetMemberResult {
 	resp, err := c.do("GET", fmt.Sprintf("/tribe/member/%s", name), ContentTypeJSON, nil)
 	if err != nil {
@@ -58,6 +63,8 @@ func (c *Client) GetMember(name string) *GetMemberResult {
 	}
 }
 
+// ListAgreements retrieves a list of a tribe agreements through an HTTP GET call.
+// A list of tribe agreement map returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) ListAgreements() *ListAgreementResult {
 	resp, err := c.do("GET", "/tribe/agreements", ContentTypeJSON, nil)
 	if err != nil {
@@ -73,6 +80,10 @@ func (c *Client) ListAgreements() *ListAgreementResult {
 	}
 }
 
+// AddAgreement adds a tribe agreement giving an agreement name into tribe agreement list
+// through an HTTP POST call. A map of tribe agreements with the newly added named agreement
+// returns if it succeeds. Otherwise, an error is returned. Note that the newly added agreement
+// has no effect unless members join the agreement.
 func (c *Client) AddAgreement(name string) *AddAgreementResult {
 	b, err := json.Marshal(struct {
 		Name string `json:"name"`
@@ -94,6 +105,10 @@ func (c *Client) AddAgreement(name string) *AddAgreementResult {
 	}
 }
 
+// DeleteAgreement removes a tribe agreement giving an agreement name from the tribe agreement list
+// through an HTTP DELETE call. A map of tribe agreements with the specified agreement removed returns
+// if it succeeds. Otherwise, an error is returned. Note deleting an agreement removes the agreement
+// from the tribe entirely for all the members of the agreement.
 func (c *Client) DeleteAgreement(name string) *DeleteAgreementResult {
 	resp, err := c.do("DELETE", fmt.Sprintf("/tribe/agreements/%s", name), ContentTypeJSON, nil)
 	if err != nil {
@@ -109,6 +124,8 @@ func (c *Client) DeleteAgreement(name string) *DeleteAgreementResult {
 	}
 }
 
+// GetAgreement retrieves a tribe agreement given an agreement name through an HTTP GET call.
+// A tribe agreement returns if it succeeded. Otherwise, an error is returned.
 func (c *Client) GetAgreement(name string) *GetAgreementResult {
 	resp, err := c.do("GET", fmt.Sprintf("/tribe/agreements/%s", name), ContentTypeJSON, nil)
 	if err != nil {
@@ -124,6 +141,10 @@ func (c *Client) GetAgreement(name string) *GetAgreementResult {
 	}
 }
 
+// JoinAgreement adds a tribe member into the agreement given the agreement name and the member name.
+// It is an HTTP PUT request. The agreement with the newly added member returns if it succeeds.
+// Otherwise, an error is returned. Note that dual directional agreement replication happens automatically
+// through the gossip protocol between a newly joined member and existing members within the same agreement.
 func (c *Client) JoinAgreement(agreementName, memberName string) *JoinAgreementResult {
 	b, err := json.Marshal(struct {
 		MemberName string `json:"member_name"`
@@ -145,6 +166,9 @@ func (c *Client) JoinAgreement(agreementName, memberName string) *JoinAgreementR
 	}
 }
 
+// LeaveAgreement removes a member from the agreement given the agreement and member names through
+// an HTTP DELETE call. The agreement with the removed member returns if it succeeds.
+// Otherwise, an error is returned. For example, it is useful to leave an agreement for a member node repair.
 func (c *Client) LeaveAgreement(agreementName, memberName string) *LeaveAgreementResult {
 	b, err := json.Marshal(struct {
 		MemberName string `json:"member_name"`
@@ -166,41 +190,49 @@ func (c *Client) LeaveAgreement(agreementName, memberName string) *LeaveAgreemen
 	}
 }
 
+// ListMembersResult is the response from pulse/client on a ListMembers call.
 type ListMembersResult struct {
 	*rbody.TribeMemberList
 	Err error
 }
 
+// GetMemberResult is the response from pulse/client on a GetMember call.
 type GetMemberResult struct {
 	*rbody.TribeMemberShow
 	Err error
 }
 
+// AddAgreementResult is the response from pulse/client on a AddAgreement call.
 type AddAgreementResult struct {
 	*rbody.TribeAddAgreement
 	Err error
 }
 
+// ListAgreementResult is the response from pulse/client on a ListAgreements call.
 type ListAgreementResult struct {
 	*rbody.TribeListAgreement
 	Err error
 }
 
+// DeleteAgreementResult is the response from pulse/client on a DeleteAgreement call.
 type DeleteAgreementResult struct {
 	*rbody.TribeDeleteAgreement
 	Err error
 }
 
+// GetAgreementResult is the response from pulse/client on a GetAgreement call.
 type GetAgreementResult struct {
 	*rbody.TribeGetAgreement
 	Err error
 }
 
+// JoinAgreementResult is the response from pulse/client on a JoinAgreement call.
 type JoinAgreementResult struct {
 	*rbody.TribeJoinAgreement
 	Err error
 }
 
+// LeaveAgreementResult is the response from pulse/client on a LeaveAgreement call.
 type LeaveAgreementResult struct {
 	*rbody.TribeLeaveAgreement
 	Err error

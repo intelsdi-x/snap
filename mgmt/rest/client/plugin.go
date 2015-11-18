@@ -28,6 +28,8 @@ import (
 	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
 )
 
+// LoadPlugin loads plugins for the given plugin names.
+// A slide of loaded plugins returns if succeeded. Otherwise, an error is returned.
 func (c *Client) LoadPlugin(p []string) *LoadPluginResult {
 	r := new(LoadPluginResult)
 	resp, err := c.pluginUploadRequest(p)
@@ -53,6 +55,8 @@ func (c *Client) LoadPlugin(p []string) *LoadPluginResult {
 	return r
 }
 
+// UnloadPlugin unloads a plugin given plugin type, name, and version through an HTTP DELETE request.
+// The unloaded plugin returns if succeeded. Otherwise, an error is returned.
 func (c *Client) UnloadPlugin(pluginType, name string, version int) *UnloadPluginResult {
 	r := &UnloadPluginResult{}
 	resp, err := c.do("DELETE", fmt.Sprintf("/plugins/%s/%s/%d", pluginType, url.QueryEscape(name), version), ContentTypeJSON)
@@ -74,6 +78,8 @@ func (c *Client) UnloadPlugin(pluginType, name string, version int) *UnloadPlugi
 	return r
 }
 
+// GetPlugins returns the loaded and available plugins through an HTTP GET request.
+// By specifying the details flag to tweak output info. An error returns if it failed.
 func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 	r := &GetPluginsResult{}
 
@@ -106,12 +112,14 @@ func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 	return r
 }
 
+// GetPluginsResult is the response from pulse/client on a GetPlugins call.
 type GetPluginsResult struct {
 	LoadedPlugins    []LoadedPlugin
 	AvailablePlugins []AvailablePlugin
 	Err              error
 }
 
+// LoadPluginResult is the response from pulse/client on a LoadPlugin call.
 type LoadPluginResult struct {
 	LoadedPlugins []LoadedPlugin
 	Err           perror.PulseError
@@ -128,10 +136,12 @@ type LoadedPlugin struct {
 	*rbody.LoadedPlugin
 }
 
+// LoadedTime returns a unix time.
 func (l *LoadedPlugin) LoadedTime() time.Time {
 	return time.Unix(l.LoadedTimestamp, 0)
 }
 
+// The wrapper for AvailablePlugin struct defined inside rbody package.
 type AvailablePlugin struct {
 	*rbody.AvailablePlugin
 }
