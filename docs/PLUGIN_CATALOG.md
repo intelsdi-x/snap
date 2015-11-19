@@ -30,13 +30,13 @@ These plugins are in planned/active development. This list is useful if you want
 
 | Name  | Type  | Description | Link | Authors |
 | :---- | :---- | :---------- | :--- | :------ |
-| Ceph | Collector | Collect from Ceph | [pulse-plugin-collector-ceph](https://github.com/intelsdi-x/pulse-plugin-collector-ceph) | izabella.raulin@intel.com |
-| IPMI | Collector | Collects NM data using IPMI | [pulse-plugin-collector-ipmi](https://github.com/intelsdi-x/pulse-plugin-collector-ipmi) | lukasz.mroz@intel.com <br/> matyjasek.patryk@intel.com |
-| Libvirt | Collector | Collect from libvirt | [pulse-plugin-collector-libvirt](https://github.com/intelsdi-x/pulse-plugin-collector-libvirt)| marcin.spoczynski@intel.com |
-| Nova | Collector | Collect from Nova/Libvirt | -| marcin.spoczynski@intel.com |
-| Open vSwitch | Collector | Collect Open vSwitch performance data | -| marcin.spoczynski@intel.com |
-| OSv | Collector | Collect from OSv | -| marcin.spoczynski@intel.com |
-| SMART SSD | Collector | Collect SMART SSDs | [pulse-plugin-collector-smart](https://github.com/intelsdi-x/pulse-plugin-collector-smart) | lukasz.mroz@intel.com |
+| Ceph | Collector | Collect from Ceph | [pulse-plugin-collector-ceph](https://github.com/intelsdi-x/pulse-plugin-collector-ceph) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
+| IPMI | Collector | Collects NM data using IPMI | [pulse-plugin-collector-ipmi](https://github.com/intelsdi-x/pulse-plugin-collector-ipmi) | [@lmroz](https://github.com/lmroz) <br/> [@PatrykMatyjasek](https://github.com/PatrykMatyjasek) |
+| Libvirt | Collector | Collect from libvirt | [pulse-plugin-collector-libvirt](https://github.com/intelsdi-x/pulse-plugin-collector-libvirt)| [@sandlbn](https://github.com/sandlbn) |
+| Nova | Collector | Collect from Nova/Libvirt | -| [@sandlbn](https://github.com/sandlbn) |
+| Open vSwitch | Collector | Collect Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
+| OSv | Collector | Collect from OSv | -| [@sandlbn](https://github.com/sandlbn) |
+| SMART SSD | Collector | Collect SMART SSDs | [pulse-plugin-collector-smart](https://github.com/intelsdi-x/pulse-plugin-collector-smart) | [@lmroz](https://github.com/lmroz) |
 
 ## Wish List
 This is a wish list of plugins for Pulse. If you see one here and want to start on it please let us know.
