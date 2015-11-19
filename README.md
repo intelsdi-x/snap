@@ -20,42 +20,44 @@ limitations under the License.
 # **Pulse** <sup><sub>_A powerful telemetry agent framework_</sub></sup>
 [![Build Status](https://magnum.travis-ci.com/intelsdi-x/pulse.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://magnum.travis-ci.com/intelsdi-x/pulse)
 
-## Description
+**Pulse** is a framework for enabling the gathering of telemetry from systems. The goals of this project are to:
 
-**Pulse** is a framework for enabling the gathering of telemetry from systems. The goal of this project is:
+* Empower all servers to expose a consistent set of telemetry data
+* Simplify dissemination of data to telemetry ingesting systems
+* Improve the deployment model, packaging and flexibility of telemetry toolkits
+* Provide dynamic control of collection for small or large clusters of systems
+* Allow flexible processing of telemetry data on agent (e.g. machine learning)
 
-* Improve the deployment model and flexibility of a telemetry tools.
-* Allow dynamic control of collection for one system or many at once.
-* Make it easy to inject processing on telemetry at the agent for use cases like machine learning.
-* Reduce the friction of pointing Pulse to any telemetry ingesting system.
-* Provide operational improvements that make collecting on a very large cluster of systems easier.
+The key features of Pulse are:
 
-**Pulse** provides several specific features:
+* **Plugin Architecture**: The three types of plugins (collectors, processors, and publishers) allow Pulse to mix and match functionality based on user need. All plugins are designed with versioning, signing and deployment at scale in mind. The open plugin model allows for loading built-in, community, or proprietary plugins into Pulse.
+  * **Collectors** - Consume telemetry data through plugins. Collectors are built-in plugins for leveraging existing telemetry solutions (Facter, CollectD, Ohai) as well as specific plugins for consuming Intel telemetry (Node, DCM, NIC, Disk) and can reach into new architectures through additional plugins. Telemetry data is organized into a dynamically generated catalog of available data points.
+  * **Processors** - Extensible workflow injection. Convert telemetry into another data model for consumption by existing telemetry consumption systems (like OpenStack Ceilometer). Allows encryption of all or part of the telemetry payload before publishing. Inject remote queries into workflow for tokens, filtering, or other external calls. Implement filtering at an agent level reducing injection load on telemetry consumer.
+  * **Publishers** - Storage telemetry into a wide array of systems. Decouple the collection of telemetry from the implementation of where to send it. A large library of publisher plugins allow exposure to telemetry analytics systems both custom and common. Makes Pulse valuable in the way it enables and cooperates with existing systems. Make Pulse valuable to open source and commercial ecosystems by allow them to build a publisher into their architectures.
 
-* Three types of plugins: collectors, processors, and publishers.
-* Open plugin model allows for loading built-in, community, or proprietary plugins into **Pulse**.
-* Dynamic loading, unloading, and swapping of plugins.
-* Adding a newer version of a plugin automatically upgrades the next scheduled actions _(when not pinned to a version)_.
-* Powerful control using viral clustering of **Pulse** instances into a Tribe.
-* Ability to run **Pulse** in distributed role deployment models.
-* Extensible source allowing addition of extended scheduling, plugins, routing, and more.
-* Multiple management modules including: CLI, REST API, and Web Console. Each of which can be turned on or off.
-* CLI control from OSX, Windows, or Linux.
+
+* **Dynamic Updates**: Pulse is designed to evolve. Loading a new plugin automatically upgrades running workflows in tasks, unless the collection is pinned to a version (ex: get /intel/server/cpu/load/v1). Each scheduled workflow automatically uses the most mature plugin for that step. This behavior, coupled with dynamic plugin loading, results in instantaneous updates to existing workflows. Helpful for bug fixes, security patching, improving accuracy. Load plugins dynamically, without a restart to the service or server. Dynamically extends the metric catalog when loaded. Swaps a newer version plugin for an old one in a safe transaction.
+
+* **Tribe**: With Pulse Tribes, you have a scalable gossip-based node-to-node communication that allows administrators to control all Pulse nodes by speaking to just one of them. It is cluster configuration management made simple. Tribes are organized by through agreement- or task-based node groups. There is auto-discovery of new nodes and import of tasks & plugins from nodes within a given group (aka tribe).
+
+Some additionally important notes about how Pulse works:
+
+* Adding a newer version of a plugin automatically upgrades the next scheduled actions _(when not pinned to a version)_
+* You have the ability to run Pulse in a distributed role deployment model
+* Extensible source allows for the addition of customization or improvement of scheduling, plugins, routing, and more
+* Multiple management modules including: CLI, REST API, and Web Console (each of which can be turned on or off)
+* Secure validation via plugin signing, SSL encryption for APIs and payload encryption for communication between components
+* CLI control from Linux or OS X
 
 **Pulse** is not intended to:
 
-* Operate as an analytics platform. The intention is to allow plugins for feeding those platforms.
-* Compete with existing metric/monitoring/telemetry agents. It is simply a new option to use or reference.
+* Operate as an analytics platform: the intention is to allow plugins for feeding those platforms
+* Compete with existing metric/monitoring/telemetry agents: Pulse is simply a new option to use or reference
 
-**Pulse** needs:
-
-* _Feedback_: try it and tell us about it.
-* _Contributors_: We need plugins, schedules, testing, and more.
-* _Integrations_: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), and more.
-
-**Pulse** architecture
+Some additional architectural principles:
 
 * Decoupled internal structure with a focus on event-driven handling
+* Make consuming telemetry declarative
 
 ## Getting Started
 
@@ -163,6 +165,12 @@ make install
 
 * [Please read our development guidelines](https://github.com/intelsdilabs/pulse/wiki/Development-guidelines)
 * [ ] TODO - CLA
+
+**Pulse** needs:
+
+* _Feedback_: try it and tell us about it.
+* _Contributors_: We need plugins, schedules, testing, and more.
+* _Integrations_: **Pulse** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), and more.
 
 ## Releases
 
