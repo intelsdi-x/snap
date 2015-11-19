@@ -323,6 +323,23 @@ func TestRunnerState(t *testing.T) {
 	})
 }
 
+func newExecutablePlugin(a plugin.Arg, path string) (*plugin.ExecutablePlugin, error) {
+	// Travis optimization: Try starting the plugin three times before finally
+	// returning an error
+	var e error
+	var ep *plugin.ExecutablePlugin
+	for i := 0; i < 3; i++ {
+		ep, e = plugin.NewExecutablePlugin(a, path)
+		if e == nil {
+			break
+		}
+		if e != nil && i == 2 {
+			return nil, e
+		}
+	}
+	return ep, nil
+}
+
 func TestRunnerPluginRunning(t *testing.T) {
 	// log.SetLevel(log.DebugLevel)
 	Convey("pulse/control", t, func() {
@@ -338,7 +355,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 							// Daemon:        true,
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -362,7 +379,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -382,7 +399,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -401,7 +418,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -420,7 +437,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin-foo.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -443,7 +460,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/pulse-test-plugin.log",
 						}
-						exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -510,7 +527,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					a := plugin.Arg{
 						PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
 					}
-					exPlugin, err := plugin.NewExecutablePlugin(a, PluginPath)
+					exPlugin, err := newExecutablePlugin(a, PluginPath)
 					if err != nil {
 						panic(err)
 					}

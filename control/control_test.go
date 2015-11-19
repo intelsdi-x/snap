@@ -120,13 +120,22 @@ func TestSwapPlugin(t *testing.T) {
 		c.eventManager.RegisterHandler("Control.PluginsSwapped", lpe)
 
 		_, e := load(c, PluginPath)
-		<-lpe.done
-		// Load first plugin as a plugin is needed to be loaded in order to swap plugins
 		Convey("Loading first plugin", t, func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
 			})
-			Convey("First plugin in catalog should have name mock2", func() {
+		})
+		// Travis optimization: If for some reason we can not load
+		// the plugin three times, we will fail the test immediately
+		// as we wait on a channel to be closed before proceeding with
+		// additional tests. If the plugin never loads, the channel will not
+		// close and just hang the test indefinitely.
+		if e != nil {
+			t.FailNow()
+		}
+		<-lpe.done
+		Convey("First plugin in catalog", t, func() {
+			Convey("Should have name mock2", func() {
 				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock2")
 			})
 		})
@@ -281,17 +290,21 @@ func TestLoad(t *testing.T) {
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 		_, err := load(c, PluginPath)
+		Convey("pluginControl.Load on successful load", t, func() {
+			Convey("Should not return an error", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+		if err != nil {
+			t.FailNow()
+		}
 		<-lpe.done
 
 		Convey("pluginControl.Load on successful load", t, func() {
-			Convey("should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
 			Convey("should emit a plugin event message", func() {
 				Convey("with loaded plugin name is mock2", func() {
 					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock2")
 				})
-
 				Convey("with loaded plugin version as 2", func() {
 					So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 2)
 				})
@@ -350,7 +363,6 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
 			_, err := load(c, PluginPath, "mock.asc")
-			<-lpe.done
 			Convey("so error on loading a signed plugin should be nil", func() {
 				So(err, ShouldBeNil)
 			})
@@ -367,7 +379,6 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
 			_, err := load(c, PluginPath)
-			<-lpe.done
 			Convey("so error on loading an unsigned plugin should be nil", func() {
 				So(err, ShouldBeNil)
 			})
@@ -400,10 +411,18 @@ func TestUnload(t *testing.T) {
 		c.eventManager.RegisterHandler("TestUnload", lpe)
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
-		load(c, PluginPath)
+		_, e := load(c, PluginPath)
+		Convey("Loading a plugin to test unload", t, func() {
+			Convey("Should not error", func() {
+				So(e, ShouldBeNil)
+			})
+		})
+		if e != nil {
+			t.FailNow()
+		}
 		<-lpe.done
-		Convey("Before calling unload, a plugin is loaded", t, func() {
-			Convey("So pluginCatalog should not be empty before unload is called", func() {
+		Convey("And our plugin catalog", t, func() {
+			Convey("Should not be empty", func() {
 				So(len(c.pluginManager.all()), ShouldEqual, 1)
 			})
 		})
@@ -821,9 +840,25 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		load(c, PluginPath)
+		_, e := load(c, PluginPath)
+		Convey("Loading native client plugin", func() {
+			Convey("Should not error", func() {
+				So(e, ShouldBeNil)
+			})
+		})
+		if e != nil {
+			t.FailNow()
+		}
 		<-lpe.done
-		load(c, JSONRPC_PluginPath)
+		_, e = load(c, JSONRPC_PluginPath)
+		Convey("Loading JSONRPC client plugin", func() {
+			Convey("Should not error", func() {
+				So(e, ShouldBeNil)
+			})
+		})
+		if e != nil {
+			t.FailNow()
+		}
 		<-lpe.done
 		cd := cdata.NewNode()
 		metrics, err := c.metricCatalog.Fetch([]string{})
