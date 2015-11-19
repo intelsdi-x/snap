@@ -2,10 +2,10 @@ This is the master catalog of plugins for Pulse. The plugins in this list may be
 
 ## Maintained plugins
 
-### Intel
+### Intel®
 
 | Name  | Type  | Description | Link |
-| :------------ |:---------------:| :-----:| :--:|
+| :---- | :---- | :---------- | :--- |
 | Facter | Collector | Collects from Facter | [pulse-plugin-collector-facter](https://github.com/intelsdi-x/pulse-plugin-collector-facter) |
 | PCM | Collector | Collects from PCM.x | [pulse-plugin-collector-pcm](https://github.com/intelsdi-x/pulse-plugin-collector-pcm)|
 | Perfevents | Collector | Collects perfevents from Linux | [pulse-plugin-collector-perfevents](https://github.com/intelsdi-x/pulse-plugin-collector-perfevents)|
@@ -29,18 +29,14 @@ TBD
 These plugins are in planned/active development. This list is useful if you want to reach out and contribute to the development.
 
 | Name  | Type  | Description | Link | Authors |
-| :------------ |:---------------:| :-----:| :--: | :--:|
-| EMON | Collector | Collect data from EMON | -| lukasz.mroz@intel.com |
-| IPMI | Collector | Collects NM data using IPMI | [pulse-plugin-collector-ipmi](https://github.com/intelsdi-x/pulse-plugin-collector-ipmi) | lukasz.mroz@intel.com <br/> matyjasek.patryk@intel.com |
+| :---- | :---- | :---------- | :--- | :------ |
 | Ceph | Collector | Collect from Ceph | [pulse-plugin-collector-ceph](https://github.com/intelsdi-x/pulse-plugin-collector-ceph) | izabella.raulin@intel.com |
-| SMART SSD | Collector | Collect SMART SSDs | [pulse-plugin-collector-smart](https://github.com/intelsdi-x/pulse-plugin-collector-smart) | lukasz.mroz@intel.com |
-| Perf events| Collector | HW perf events | -| andrzej.kuriata@intel.com |
-| Libvirt | Collector | Collect from libvirt | -| marcin.spoczynski@intel.com |
-| PostgreSQL | Publisher | Publish to PostgreSQL | -| marcin.spoczynski@intel.com |
+| IPMI | Collector | Collects NM data using IPMI | [pulse-plugin-collector-ipmi](https://github.com/intelsdi-x/pulse-plugin-collector-ipmi) | lukasz.mroz@intel.com <br/> matyjasek.patryk@intel.com |
+| Libvirt | Collector | Collect from libvirt | [pulse-plugin-collector-libvirt](https://github.com/intelsdi-x/pulse-plugin-collector-libvirt)| marcin.spoczynski@intel.com |
 | Nova | Collector | Collect from Nova/Libvirt | -| marcin.spoczynski@intel.com |
 | Open vSwitch | Collector | Collect Open vSwitch performance data | -| marcin.spoczynski@intel.com |
 | OSv | Collector | Collect from OSv | -| marcin.spoczynski@intel.com |
-
+| SMART SSD | Collector | Collect SMART SSDs | [pulse-plugin-collector-smart](https://github.com/intelsdi-x/pulse-plugin-collector-smart) | lukasz.mroz@intel.com |
 
 ## Wish List
 This is a wish list of plugins for Pulse. If you see one here and want to start on it please let us know.
