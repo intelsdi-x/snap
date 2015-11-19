@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -35,6 +36,7 @@ import (
 	"github.com/codegangsta/cli"
 
 	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/rest"
 	"github.com/intelsdi-x/pulse/mgmt/tribe"
@@ -435,14 +437,14 @@ func action(ctx *cli.Context) {
 		log.Info("auto discover path is enabled")
 		paths := filepath.SplitList(autodiscoverPath)
 		c.SetAutodiscoverPaths(paths)
-		for _, path := range paths {
-			fullPath, err := filepath.Abs(path)
+		for _, p := range paths {
+			fullPath, err := filepath.Abs(p)
 			if err != nil {
 				log.WithFields(
 					log.Fields{
 						"_block":           "main",
 						"_module":          "pulsed",
-						"autodiscoverpath": path,
+						"autodiscoverpath": p,
 					}).Fatal(err)
 				os.Exit(1)
 			}
@@ -462,19 +464,40 @@ func action(ctx *cli.Context) {
 					continue
 				}
 				if strings.HasSuffix(file.Name(), ".aci") || !(strings.HasSuffix(file.Name(), ".asc")) {
-					pl, err := c.Load(fullPath+"/"+file.Name(), fullPath+"/"+file.Name()+".asc")
+					rp, err := core.NewRequestedPlugin(path.Join(fullPath, file.Name()))
 					if err != nil {
 						log.WithFields(log.Fields{
 							"_block":           "main",
 							"_module":          "pulsed",
-							"autodiscoverpath": path,
+							"autodiscoverpath": fullPath,
+							"plugin":           file,
+						}).Error(err)
+					}
+					signatureFile := file.Name() + ".asc"
+					if _, err := os.Stat(path.Join(fullPath, signatureFile)); err == nil {
+						err = rp.ReadSignatureFile(path.Join(fullPath, signatureFile))
+						if err != nil {
+							log.WithFields(log.Fields{
+								"_block":           "main",
+								"_module":          "pulsed",
+								"autodiscoverpath": fullPath,
+								"plugin":           file.Name() + ".asc",
+							}).Error(err)
+						}
+					}
+					pl, err := c.Load(rp)
+					if err != nil {
+						log.WithFields(log.Fields{
+							"_block":           "main",
+							"_module":          "pulsed",
+							"autodiscoverpath": fullPath,
 							"plugin":           file,
 						}).Error(err)
 					} else {
 						log.WithFields(log.Fields{
 							"_block":           "main",
 							"_module":          "pulsed",
-							"autodiscoverpath": path,
+							"autodiscoverpath": fullPath,
 							"plugin":           file,
 							"plugin-name":      pl.Name(),
 							"plugin-version":   pl.Version(),

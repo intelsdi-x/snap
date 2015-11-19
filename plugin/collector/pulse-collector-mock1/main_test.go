@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/plugin/helper"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -48,7 +49,8 @@ func TestMockPluginLoad(t *testing.T) {
 		Convey("ensure plugin loads and responds", t, func() {
 			c := control.New()
 			c.Start()
-			_, err := c.Load(PluginPath)
+			rp, _ := core.NewRequestedPlugin(PluginPath)
+			_, err := c.Load(rp)
 
 			So(err, ShouldBeNil)
 		})

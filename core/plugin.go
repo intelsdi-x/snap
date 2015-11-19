@@ -20,7 +20,9 @@ limitations under the License.
 package core
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/intelsdi-x/pulse/core/cdata"
@@ -87,4 +89,62 @@ type PluginCatalog []CatalogedPlugin
 type SubscribedPlugin interface {
 	Plugin
 	Config() *cdata.ConfigDataNode
+}
+
+type RequestedPlugin struct {
+	path      string
+	checkSum  [sha256.Size]byte
+	signature []byte
+}
+
+func NewRequestedPlugin(path string) (*RequestedPlugin, error) {
+	rp := &RequestedPlugin{
+		path:      path,
+		signature: nil,
+	}
+	err := rp.generateCheckSum()
+	if err != nil {
+		return nil, err
+	}
+	return rp, nil
+}
+
+func (p *RequestedPlugin) Path() string {
+	return p.path
+}
+
+func (p *RequestedPlugin) CheckSum() [sha256.Size]byte {
+	return p.checkSum
+}
+
+func (p *RequestedPlugin) Signature() []byte {
+	return p.signature
+}
+
+func (p *RequestedPlugin) SetPath(path string) {
+	p.path = path
+}
+
+func (p *RequestedPlugin) SetSignature(data []byte) {
+	p.signature = data
+}
+
+func (p *RequestedPlugin) generateCheckSum() error {
+	var b []byte
+	var err error
+	if b, err = ioutil.ReadFile(p.path); err != nil {
+		return err
+	}
+	p.checkSum = sha256.Sum256(b)
+	return nil
+}
+
+func (p *RequestedPlugin) ReadSignatureFile(file string) error {
+	var b []byte
+	var err error
+	if b, err = ioutil.ReadFile(file); err != nil {
+		return err
+	}
+	p.SetSignature(b)
+	return nil
 }

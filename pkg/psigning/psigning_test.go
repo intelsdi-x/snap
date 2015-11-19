@@ -20,6 +20,7 @@ limitations under the License.
 package psigning
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -35,38 +36,39 @@ func TestValidateSignature(t *testing.T) {
 	unsignedFile := path.Join(pulsePath, "plugin", "pulse-collector-mock2")
 	s := SigningManager{}
 
+	signature, _ := ioutil.ReadFile(signatureFile)
 	Convey("Valid files and good signature", t, func() {
-		err := s.ValidateSignature(keyringFile, signedFile, signatureFile)
+		err := s.ValidateSignature(keyringFile, signedFile, signature)
 		So(err, ShouldBeNil)
 	})
 
 	Convey("Valid files and good signature. Multiple keyrings", t, func() {
 		keyringFiles := []string{"pubkeys.gpg", "pubring.gpg"}
-		err := s.ValidateSignature(keyringFiles, signedFile, signatureFile)
+		err := s.ValidateSignature(keyringFiles, signedFile, signature)
 		So(err, ShouldBeNil)
 	})
 
-	Convey("Valid files and bad signature", t, func() {
-		err := s.ValidateSignature(keyringFile, unsignedFile, signatureFile)
+	Convey("Validate unsigned file with signature", t, func() {
+		err := s.ValidateSignature(keyringFile, unsignedFile, signature)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "Error checking signature")
 	})
 
 	Convey("Invalid keyring", t, func() {
-		err := s.ValidateSignature([]string{""}, signedFile, signatureFile)
+		err := s.ValidateSignature([]string{""}, signedFile, signature)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "Keyring file (.gpg) not found")
 	})
 
 	Convey("Invalid signed file", t, func() {
-		err := s.ValidateSignature(keyringFile, "", signatureFile)
+		err := s.ValidateSignature(keyringFile, "", signature)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "Signed file not found")
 	})
 
 	Convey("Invalid signature file", t, func() {
-		err := s.ValidateSignature(keyringFile, signedFile, "")
+		err := s.ValidateSignature(keyringFile, signedFile, nil)
 		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "Signature file (.asc) not found")
+		So(err.Error(), ShouldContainSubstring, "Error checking signature")
 	})
 }

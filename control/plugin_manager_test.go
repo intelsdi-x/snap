@@ -23,6 +23,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -77,8 +78,13 @@ func loadPlugin(p *pluginManager, path string) (*loadedPlugin, perror.PulseError
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
 	var e perror.PulseError
 	var lp *loadedPlugin
+	details := &pluginDetails{
+		Path:     path,
+		ExecPath: filepath.Dir(path),
+		Exec:     filepath.Base(path),
+	}
 	for i := 0; i < 3; i++ {
-		lp, e = p.LoadPlugin(path, nil)
+		lp, e = p.LoadPlugin(details, nil)
 		if e == nil {
 			break
 		}
