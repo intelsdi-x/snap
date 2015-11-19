@@ -59,7 +59,7 @@ limitations under the License.
 
 ## License
 
-<DO NOT PUT SOMETHING HERE YET>
+Pulse is open sourced under the Apache 2.0 [License](https://github.com/intelsdi-x/pulse/blob/master/LICENSE).
 
 ## System Requirements
 
