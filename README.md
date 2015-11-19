@@ -57,6 +57,70 @@ limitations under the License.
 
 * Decoupled internal structure with a focus on event-driven handling
 
+## Getting Started
+
+### Getting Pulse
+
+You can get the pre-built binaries for your OS and architecture at Pulse's [Github Releases](https://github.com/intelsdi-x/pulse/releases) page.  Right now, Pulse only supports Linux and OSX.
+
+If you're looking for the bleeding edge of Pulse, you can build it by cloning down the `master` branch.  To build Pulse from source, you will need [Golang >= 1.4](https://golang.org) and [GNU Make](https://www.gnu.org/software/make/).  More on building Pulse [here](./CONTRIBUTING.md).
+
+### Running Pulse
+
+Start a standalone Pulse agent:
+
+```sh
+$ ./bin/pulsed --plugin-trust 0 --log-level 1
+```
+
+This will bring up a Pulse agent without requiring plugin signing and set the logging level to debug.  Pulse's REST API will be listening on port 8181.
+
+Next, lets load a few of the demo plugins.  You can do this via Curl, or `pulsectl`, Pulse's CLI:
+
+```sh
+curl -X POST -F plugin=@build/plugin/pulse-collector-mock1 http://localhost:8181/v1/plugins
+```
+
+And:
+
+```sh
+$ ./bin/pulsectl plugin load build/plugin/pulse-processor-passthru
+$ ./bin/pulsectl plugin load build/plugin/pulse-publisher-file
+```
+
+Let's look at what plugins we have loaded now:
+
+```sh
+$ ./bin/pulsectl plugin list
+NAME             VERSION         TYPE            SIGNED          STATUS          LOADED TIME
+mock1            1               collector       false           loaded          Tue, 17 Nov 2015 14:08:17 PST
+passthru         1               processor       false           loaded          Tue, 17 Nov 2015 14:16:12 PST
+file             3               publisher       false           loaded          Tue, 17 Nov 2015 14:16:19 PST
+```
+
+Next, let's start one of the [example tasks](./examples/tasks/mock-file.json) from the `examples/` directory:
+
+```
+$ ./bin/pulsectl task create -t examples/tasks/mock-file.json
+Using task manifest to create task
+Task created
+ID: 8b9babad-b3bc-4a16-9e06-1f35664a7679
+Name: Task-8b9babad-b3bc-4a16-9e06-1f35664a7679
+State: Running
+```
+
+From here, you should be able to do 2 things:
+
+See the data that is being published to the file:
+```
+$ tail -f /tmp/published
+```
+
+Or actually tap into the data that Pulse is collecting:
+```
+$ ./bin/pulsectl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
+```
+
 ## License
 
 Pulse is open sourced under the Apache 2.0 [License](https://github.com/intelsdi-x/pulse/blob/master/LICENSE).
