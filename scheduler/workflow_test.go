@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/pulse/control"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/core/cdata"
 	"github.com/intelsdi-x/pulse/pkg/schedule"
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
@@ -71,11 +72,14 @@ func TestCollectPublishWorkflow(t *testing.T) {
 		s := New()
 		s.SetMetricManager(c)
 		Convey("create a workflow", func() {
-			_, err := c.Load(path.Join(PulsePath, "plugin", "pulse-collector-mock2"))
+			rp, _ := core.NewRequestedPlugin(path.Join(PulsePath, "plugin", "pulse-collector-mock2"))
+			_, err := c.Load(rp)
 			So(err, ShouldBeNil)
-			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
+			rp2, _ := core.NewRequestedPlugin(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
+			_, err = c.Load(rp2)
 			So(err, ShouldBeNil)
-			_, err = c.Load(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
+			rp3, _ := core.NewRequestedPlugin(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
+			_, err = c.Load(rp3)
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
 

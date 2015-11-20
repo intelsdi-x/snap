@@ -22,9 +22,11 @@ limitations under the License.
 package control
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -32,6 +34,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/appc/spec/schema"
 
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/pulse/control/plugin"
@@ -145,16 +148,25 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 }
 
 // the struct representing a plugin that is loaded into Pulse
+type pluginDetails struct {
+	CheckSum  [sha256.Size]byte
+	Exec      string
+	ExecPath  string
+	IsPackage bool
+	Manifest  *schema.ImageManifest
+	Path      string
+	Signed    bool
+	Signature []byte
+}
+
 type loadedPlugin struct {
-	Meta          plugin.PluginMeta
-	Path          string
-	Type          plugin.PluginType
-	Signed        bool
-	SignatureFile string
-	State         pluginState
-	Token         string
-	LoadedTime    time.Time
-	ConfigPolicy  *cpolicy.ConfigPolicy
+	Meta         plugin.PluginMeta
+	Details      *pluginDetails
+	Type         plugin.PluginType
+	State        pluginState
+	Token        string
+	LoadedTime   time.Time
+	ConfigPolicy *cpolicy.ConfigPolicy
 }
 
 // returns plugin name
@@ -164,7 +176,7 @@ func (lp *loadedPlugin) Name() string {
 }
 
 func (lp *loadedPlugin) PluginPath() string {
-	return lp.Path
+	return lp.Details.Path
 }
 
 func (l *loadedPlugin) Key() string {
@@ -192,7 +204,7 @@ func (lp *loadedPlugin) Status() string {
 // returns plugin signing as a bool
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) IsSigned() bool {
-	return lp.Signed
+	return lp.Details.Signed
 }
 
 // returns a unix timestamp of the LoadTime of a plugin
@@ -242,16 +254,16 @@ func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
 
 // Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
-func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedPlugin, perror.PulseError) {
+func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter) (*loadedPlugin, perror.PulseError) {
 	lPlugin := new(loadedPlugin)
-	lPlugin.Path = path
+	lPlugin.Details = details
 	lPlugin.State = DetectedState
 
 	pmLogger.WithFields(log.Fields{
 		"_block": "load-plugin",
-		"path":   filepath.Base(lPlugin.Path),
+		"path":   filepath.Base(lPlugin.Details.Exec),
 	}).Info("plugin load called")
-	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Path), lPlugin.Path)
+	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Details.Exec), path.Join(lPlugin.Details.ExecPath, lPlugin.Details.Exec))
 
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
@@ -367,7 +379,7 @@ func (p *pluginManager) LoadPlugin(path string, emitter gomit.Emitter) (*loadedP
 					"plugin-name":      resp.Meta.Name,
 					"plugin-version":   resp.Meta.Version,
 					"plugin-type":      resp.Meta.Type.String(),
-					"plugin-path":      filepath.Base(lPlugin.Path),
+					"plugin-path":      filepath.Base(lPlugin.Details.ExecPath),
 					"metric-namespace": nmt.Namespace(),
 					"metric-version":   nmt.Version(),
 					"error":            err.Error(),
@@ -438,53 +450,28 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Puls
 	}
 
 	// If the plugin was loaded from os.TempDir() clean up
-	if strings.Contains(plugin.Path, os.TempDir()) {
+	if strings.Contains(plugin.Details.Path, os.TempDir()) {
 		pmLogger.WithFields(log.Fields{
 			"plugin-type":    plugin.TypeName(),
 			"plugin-name":    plugin.Name(),
 			"plugin-version": plugin.Version(),
-			"plugin-path":    plugin.Path,
+			"plugin-path":    plugin.Details.Path,
 		}).Debugf("Removing plugin")
-		if err := os.RemoveAll(filepath.Dir(plugin.Path)); err != nil {
+		if err := os.RemoveAll(filepath.Dir(plugin.Details.Path)); err != nil {
 			pmLogger.WithFields(log.Fields{
 				"plugin-type":    plugin.TypeName(),
 				"plugin-name":    plugin.Name(),
 				"plugin-version": plugin.Version(),
-				"plugin-path":    plugin.Path,
+				"plugin-path":    plugin.Details.Path,
 			}).Error(err)
 			pe := perror.New(err)
 			pe.SetFields(map[string]interface{}{
 				"plugin-type":    plugin.TypeName(),
 				"plugin-name":    plugin.Name(),
 				"plugin-version": plugin.Version(),
-				"plugin-path":    plugin.Path,
+				"plugin-path":    plugin.Details.Path,
 			})
 			return nil, pe
-		}
-		if plugin.SignatureFile != "" {
-			pmLogger.WithFields(log.Fields{
-				"plugin-type":           plugin.TypeName(),
-				"plugin-name":           plugin.Name(),
-				"plugin-version":        plugin.Version(),
-				"plugin-signature-file": plugin.SignatureFile,
-			}).Debugf("Removing plugin signature file")
-
-			if err := os.RemoveAll(filepath.Dir(plugin.SignatureFile)); err != nil {
-				pmLogger.WithFields(log.Fields{
-					"plugin-type":           plugin.TypeName(),
-					"plugin-name":           plugin.Name(),
-					"plugin-version":        plugin.Version(),
-					"plugin-signature-file": plugin.SignatureFile,
-				}).Error(err)
-				pe := perror.New(err)
-				pe.SetFields(map[string]interface{}{
-					"plugin-type":           plugin.TypeName(),
-					"plugin-name":           plugin.Name(),
-					"plugin-version":        plugin.Version(),
-					"plugin-signature-file": plugin.SignatureFile,
-				})
-				return nil, pe
-			}
 		}
 	}
 
@@ -511,7 +498,7 @@ func (p *pluginManager) teardown() {
 				"plugin-type":    lp.TypeName(),
 				"plugin-name":    lp.Name(),
 				"plugin-version": lp.Version(),
-				"plugin-path":    lp.Path,
+				"plugin-path":    lp.Details.Path,
 			}).Warn("error removing plugin in teardown:", err)
 		}
 	}

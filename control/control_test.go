@@ -58,7 +58,7 @@ type MockPluginManagerBadSwap struct {
 	loadedPlugins  *loadedPlugins
 }
 
-func (m *MockPluginManagerBadSwap) LoadPlugin(string, gomit.Emitter) (*loadedPlugin, perror.PulseError) {
+func (m *MockPluginManagerBadSwap) LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, perror.PulseError) {
 	return new(loadedPlugin), nil
 }
 func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, perror.PulseError) {
@@ -81,8 +81,12 @@ func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, perror.Pulse
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
 	var e perror.PulseError
 	var p core.CatalogedPlugin
+	rp, _ := core.NewRequestedPlugin(paths[0])
+	if len(paths) > 1 {
+		rp.SetSignature([]byte{00, 00, 00})
+	}
 	for i := 0; i < 3; i++ {
-		p, e = c.Load(paths...)
+		p, e = c.Load(rp)
 		if e == nil {
 			break
 		}
@@ -140,7 +144,8 @@ func TestSwapPlugin(t *testing.T) {
 			})
 		})
 		mock1Path := strings.Replace(PluginPath, "pulse-collector-mock2", "pulse-collector-mock1", 1)
-		err := c.SwapPlugins(mock1Path, c.PluginCatalog()[0])
+		mockRP, _ := core.NewRequestedPlugin(mock1Path)
+		err := c.SwapPlugins(mockRP, c.PluginCatalog()[0])
 		<-lpe.done
 
 		// Swap plugin that was loaded with a different plugin
@@ -170,17 +175,6 @@ func TestSwapPlugin(t *testing.T) {
 			})
 		})
 
-		// Let's try swapping in a plugin that does not exist
-		err = c.SwapPlugins("/fake/plugin/path", c.PluginCatalog()[0])
-		Convey("Swapping in a plugin that does not exist", t, func() {
-			Convey("Should throw an error", func() {
-				So(err, ShouldNotBeNil)
-			})
-			Convey("Plugin in catalog should still be mock1", func() {
-				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock1")
-			})
-		})
-
 		//
 		// TODO: Write a proper rollback test as previous test was not testing rollback
 		//
@@ -193,7 +187,8 @@ func TestSwapPlugin(t *testing.T) {
 			pm.ExistingPlugin = lp
 			c.pluginManager = pm
 
-			err := c.SwapPlugins(mock1Path, lp)
+			mockRP, _ := core.NewRequestedPlugin(mock1Path)
+			err := c.SwapPlugins(mockRP, lp)
 			Convey("So err should be received if rollback fails", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -258,7 +253,7 @@ type mocksigningManager struct {
 	signed bool
 }
 
-func (ps *mocksigningManager) ValidateSignature([]string, string, string) error {
+func (ps *mocksigningManager) ValidateSignature([]string, string, []byte) error {
 	if ps.signed {
 		return nil
 	}
@@ -314,36 +309,6 @@ func TestLoad(t *testing.T) {
 			})
 		})
 
-		// Test trying to load a non-existant plugin
-		_, err = c.Load(PluginPath + "foo")
-		Convey("pluginControl.Load on bad plugin path", t, func() {
-			Convey("should return an error", func() {
-				So(err, ShouldNotBeNil)
-			})
-		})
-
-		//Unpackaging
-		Convey("pluginControl.Load on untar error with package", t, func() {
-			PackagePath := path.Join(AciPath, "mock.aci")
-			_, err := c.Load(PackagePath)
-			Convey("should return an error", func() {
-				So(err, ShouldNotBeNil)
-			})
-		})
-
-		PackagePath := path.Join(AciPath, "noExec.aci")
-		_, err = c.Load(PackagePath)
-		Convey("pluginControl.Load on package with no executable file", t, func() {
-			Convey("Should return error", func() {
-				So(err, ShouldNotBeNil)
-				Convey("And error should say 'Error no executable files found'", func() {
-					So(err.Error(), ShouldContainSubstring, "Error no executable files found")
-				})
-			})
-			Convey("And no plugin should be added to the pluginCatalog", func() {
-				So(len(c.pluginManager.all()), ShouldNotEqual, 2)
-			})
-		})
 		// Stop our controller so the plugins are unloaded and cleaned up from the system
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
@@ -881,7 +846,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(errp, ShouldBeNil)
 			So(pool, ShouldNotBeNil)
 			pool.subscribe("1", unboundSubscriptionType)
-			err = c.pluginRunner.runPlugin(lp.Path)
+			err = c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
 			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1))
 			hits, err := pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 2)
@@ -904,7 +869,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				So(errp, ShouldBeNil)
 				So(pool, ShouldNotBeNil)
 				pool.subscribe("1", unboundSubscriptionType)
-				err = c.pluginRunner.runPlugin(lp.Path)
+				err = c.pluginRunner.runPlugin(lp.Details)
 				So(err, ShouldBeNil)
 				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1))
 				hits, err := pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 1)
@@ -981,7 +946,7 @@ func TestCollectMetrics(t *testing.T) {
 		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock1:1")
 		So(errp, ShouldBeNil)
 		pool.subscribe("1", unboundSubscriptionType)
-		err = c.pluginRunner.runPlugin(lp.Path)
+		err = c.pluginRunner.runPlugin(lp.Details)
 		So(err, ShouldBeNil)
 		m = append(m, m1, m2, m3)
 		time.Sleep(time.Millisecond * 1100)
@@ -1073,7 +1038,7 @@ func TestPublishMetrics(t *testing.T) {
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:3")
 			So(errp, ShouldBeNil)
 			pool.subscribe("1", unboundSubscriptionType)
-			err := c.pluginRunner.runPlugin(lp.Path)
+			err := c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
 			time.Sleep(2500 * time.Millisecond)
 
@@ -1126,7 +1091,7 @@ func TestProcessMetrics(t *testing.T) {
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("processor:passthru:1")
 			So(errp, ShouldBeNil)
 			pool.subscribe("1", unboundSubscriptionType)
-			err := c.pluginRunner.runPlugin(lp.Path)
+			err := c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
 			time.Sleep(2500 * time.Millisecond)
 

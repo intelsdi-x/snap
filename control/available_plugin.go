@@ -22,6 +22,9 @@ package control
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -82,6 +85,9 @@ type availablePlugin struct {
 	failedHealthChecks int
 	healthChan         chan error
 	ePlugin            executablePlugin
+	exec               string
+	execPath           string
+	fromPackage        bool
 }
 
 // newAvailablePlugin returns an availablePlugin with information from a
@@ -202,6 +208,15 @@ func (a *availablePlugin) Kill(r string) error {
 		"block":   "kill",
 		"aplugin": a,
 	}).Info("hard killing available plugin")
+	if a.fromPackage {
+		log.WithFields(log.Fields{
+			"_module":    "control-aplugin",
+			"block":      "kill",
+			"aplugin":    a,
+			"pluginPath": path.Join(a.execPath, a.exec),
+		}).Debug("deleting available plugin path")
+		os.RemoveAll(filepath.Dir(a.execPath))
+	}
 	return a.ePlugin.Kill()
 }
 
