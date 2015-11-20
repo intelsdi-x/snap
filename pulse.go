@@ -177,6 +177,26 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
+	// If logPath is set, we verify the logPath and set it so that all logging
+	// goes to the log file instead of stdout.
+	logPath := ctx.String("log-path")
+	if logPath != "" {
+		f, err := os.Stat(logPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if !f.IsDir() {
+			log.Fatal("log path provided must be a directory")
+		}
+
+		file, err := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer file.Close()
+		log.SetOutput(file)
+	}
+
 	var l = map[int]string{
 		1: "debug",
 		2: "info",
@@ -192,7 +212,6 @@ func action(ctx *cli.Context) {
 	}
 
 	logLevel := ctx.Int("log-level")
-	logPath := ctx.String("log-path")
 	maxProcs := ctx.Int("max-procs")
 	disableAPI := ctx.Bool("disable-api")
 	apiPort := ctx.Int("api-port")
@@ -222,46 +241,6 @@ func action(ctx *cli.Context) {
 
 	// Validate log level and trust level settings for pulsed
 	validateLevelSettings(logLevel, pluginTrust)
-
-	if logPath != "" {
-		f, err := os.Stat(logPath)
-		if err != nil {
-			log.WithFields(
-				log.Fields{
-					"block":   "main",
-					"_module": "pulsed",
-					"error":   err.Error(),
-					"logpath": logPath,
-				}).Fatal("bad log path (must be a dir)")
-			os.Exit(1)
-		}
-		if !f.IsDir() {
-			log.WithFields(
-				log.Fields{
-					"block":   "main",
-					"_module": "pulsed",
-					"logpath": logPath,
-				}).Fatal("bad log path (this is not a directory)")
-			os.Exit(1)
-		}
-
-		file, err2 := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err2 != nil {
-			log.WithFields(
-				log.Fields{
-					"block":   "main",
-					"_module": "pulsed",
-					"error":   err2.Error(),
-					"logpath": logPath,
-				}).Fatal("bad log path")
-			os.Exit(1)
-		}
-		defer file.Close()
-		log.Info("setting log path to: ", logPath)
-		log.SetOutput(file)
-	} else {
-		log.Info("setting log path to: stdout")
-	}
 
 	controlOpts := []control.ControlOpt{
 		control.MaxRunningPlugins(maxRunning),
