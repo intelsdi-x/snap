@@ -377,7 +377,7 @@ func action(ctx *cli.Context) {
 						continue
 					}
 					if strings.HasSuffix(keyringFile.Name(), ".gpg") || (strings.HasSuffix(keyringFile.Name(), ".pub")) || (strings.HasSuffix(keyringFile.Name(), ".pubring")) {
-						_, err := os.Open(keyringPath)
+						f, err := os.Open(keyringPath)
 						if err != nil {
 							log.WithFields(
 								log.Fields{
@@ -385,15 +385,16 @@ func action(ctx *cli.Context) {
 									"_module":     "pulsed",
 									"error":       err.Error(),
 									"keyringPath": keyringPath,
-								}).Warning("can't open keyring file. not adding to keyring path")
-						} else {
-							log.Info("adding keyring file: ", keyringPath+"/"+keyringFile.Name())
-							c.SetKeyringFile(keyringPath + "/" + keyringFile.Name())
+								}).Warning("unable to open keyring file. not adding to keyring path")
+							continue
 						}
+						f.Close()
+						log.Info("adding keyring file: ", keyringPath+"/"+keyringFile.Name())
+						c.SetKeyringFile(keyringPath + "/" + keyringFile.Name())
 					}
 				}
 			} else {
-				_, err := os.Open(keyringPath)
+				f, err := os.Open(keyringPath)
 				if err != nil {
 					log.WithFields(
 						log.Fields{
@@ -401,12 +402,11 @@ func action(ctx *cli.Context) {
 							"_module":     "pulsed",
 							"error":       err.Error(),
 							"keyringPath": keyringPath,
-						}).Warning("can't open keyring file. not adding to keyring path")
-					os.Exit(1)
-				} else {
-					log.Info("adding keyring file ", keyringPath)
-					c.SetKeyringFile(keyringPath)
+						}).Fatal("unable to open keyring file.")
 				}
+				f.Close()
+				log.Info("adding keyring file ", keyringPath)
+				c.SetKeyringFile(keyringPath)
 			}
 		}
 	}
