@@ -11,7 +11,9 @@ This is the master catalog of plugins for Pulse. The plugins in this list may be
 | Perfevents | Collector | Collects perfevents from Linux | [pulse-plugin-collector-perfevents](https://github.com/intelsdi-x/pulse-plugin-collector-perfevents)|
 | PSUtil | Collector | Collects from psutil | [pulse-plugin-collector-psutil](https://github.com/intelsdi-x/pulse-plugin-collector-psutil) |
 | SMART | Collector | Collects SMART metrics from Intel SSDs | [pulse-plugin-collector-smart](https://github.com/intelsdi-x/pulse-plugin-collector-smart) |
+ | 
 | Movingaverage | Processor | Processes data and outputs movingaverage | [pulse-plugin-processor-movingaverage](https://github.com/intelsdi-x/pulse-plugin-processor-movingaverage) |
+ | 
 | HANA | Publisher | Writes to SAP HANA Database | [pulse-plugin-publisher-hana](https://github.com/intelsdi-x/pulse-plugin-publisher-hana) | 
 | InfluxDB | Publisher | Writes to Influx Database | [pulse-plugin-publisher-influxdb](https://github.com/intelsdi-x/pulse-plugin-publisher-influxdb) |
 | Kafka | Publisher | Writs to Kafka messaging system | [pulse-plugin-publisher-kafka](https://github.com/intelsdi-x/pulse-plugin-publisher-kafka) |
