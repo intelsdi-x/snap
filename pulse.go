@@ -256,7 +256,6 @@ func action(ctx *cli.Context) {
 				"error":   err.Error(),
 				"path":    config,
 			}).Fatal("unable to read config")
-			os.Exit(1)
 		}
 		cfg := control.NewConfig()
 		err = json.Unmarshal(b, &cfg)
@@ -267,7 +266,6 @@ func action(ctx *cli.Context) {
 				"error":   err.Error(),
 				"path":    config,
 			}).Fatal("invalid config")
-			os.Exit(1)
 		}
 		controlOpts = append(controlOpts, control.OptSetConfig(cfg))
 	}
@@ -334,7 +332,6 @@ func action(ctx *cli.Context) {
 					"block":   "main",
 					"_module": "pulsed",
 				}).Fatal("need keyring file when trust is on (--keyring-file or -k)")
-			os.Exit(1)
 		}
 		for _, k := range keyrings {
 			keyringPath, err := filepath.Abs(k)
@@ -346,7 +343,6 @@ func action(ctx *cli.Context) {
 						"error":       err.Error(),
 						"keyringPath": keyringPath,
 					}).Fatal("Unable to determine absolute path to keyring file")
-				os.Exit(1)
 			}
 			f, err := os.Stat(keyringPath)
 			if err != nil {
@@ -357,7 +353,6 @@ func action(ctx *cli.Context) {
 						"error":       err.Error(),
 						"keyringPath": keyringPath,
 					}).Fatal("bad keyring file")
-				os.Exit(1)
 			}
 			if f.IsDir() {
 				log.Info("Adding keyrings from: ", keyringPath)
@@ -370,7 +365,6 @@ func action(ctx *cli.Context) {
 							"error":       err.Error(),
 							"keyringPath": keyringPath,
 						}).Fatal(err)
-					os.Exit(1)
 				}
 				for _, keyringFile := range files {
 					if keyringFile.IsDir() {
@@ -425,7 +419,6 @@ func action(ctx *cli.Context) {
 						"_module":          "pulsed",
 						"autodiscoverpath": p,
 					}).Fatal(err)
-				os.Exit(1)
 			}
 			log.Info("autoloading plugins from: ", fullPath)
 			files, err := ioutil.ReadDir(fullPath)
@@ -436,7 +429,6 @@ func action(ctx *cli.Context) {
 						"_module":          "pulsed",
 						"autodiscoverpath": fullPath,
 					}).Fatal(err)
-				os.Exit(1)
 			}
 			for _, file := range files {
 				if file.IsDir() {
@@ -610,7 +602,6 @@ func printErrorAndExit(name string, err error) {
 			"error":        err.Error(),
 			"pulse-module": name,
 		}).Fatal("error starting module")
-	os.Exit(1)
 }
 
 func startInterruptHandling(modules ...coreModule) {
@@ -670,7 +661,6 @@ func validateLevelSettings(logLevel, pluginTrust int) {
 				"_module": "pulsed",
 				"level":   logLevel,
 			}).Fatal("log level was invalid (needs: 1-5)")
-		os.Exit(1)
 	}
 	if pluginTrust < 0 || pluginTrust > 2 {
 		log.WithFields(
@@ -679,6 +669,5 @@ func validateLevelSettings(logLevel, pluginTrust int) {
 				"_module": "pulsed",
 				"level":   pluginTrust,
 			}).Fatal("Plugin trust was invalid (needs: 0-2)")
-		os.Exit(1)
 	}
 }
