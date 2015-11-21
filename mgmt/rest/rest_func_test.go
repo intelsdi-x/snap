@@ -58,7 +58,6 @@ var (
 	MOCK_PLUGIN_PATH2 = PULSE_PATH + "/plugin/pulse-collector-mock2"
 	FILE_PLUGIN_PATH  = PULSE_PATH + "/plugin/pulse-publisher-file"
 
-	NextPort         = 40000
 	CompressedUpload = true
 	TotalUploadSize  = 0
 	UploadCount      = 0
@@ -67,15 +66,6 @@ var (
 type restAPIInstance struct {
 	port   int
 	server *Server
-}
-
-func getPort() int {
-	defer incrPort()
-	return NextPort
-}
-
-func incrPort() {
-	NextPort += 10
 }
 
 func command() string {
@@ -436,7 +426,7 @@ func deletePluginConfigItem(port int, typ string, name, ver string, fields []str
 
 // REST API instances that are started are killed when the tests end.
 // When we eventually have a REST API Stop command this can be killed.
-func startAPI(port int, opts ...interface{}) *restAPIInstance {
+func startAPI(opts ...interface{}) *restAPIInstance {
 	// Start a REST API to talk to
 	log.SetLevel(LOG_LEVEL)
 	r, _ := New(false, "", "")
@@ -455,10 +445,14 @@ func startAPI(port int, opts ...interface{}) *restAPIInstance {
 	r.BindMetricManager(c)
 	r.BindTaskManager(s)
 	r.BindConfigManager(c.Config)
-	r.Start(":" + fmt.Sprint(port))
+	err := r.Start("127.0.0.1:0")
+	if err != nil {
+		// Panic on an error
+		panic(err)
+	}
 	time.Sleep(time.Millisecond * 100)
 	return &restAPIInstance{
-		port:   port,
+		port:   r.Port(),
 		server: r,
 	}
 }
@@ -470,8 +464,8 @@ func TestPluginRestCalls(t *testing.T) {
 			Convey("a single plugin loads", func() {
 				// This test alone tests gzip. Saves on test time.
 				CompressedUpload = true
-				port := getPort()
-				startAPI(port)
+				r := startAPI()
+				port := r.port
 				col := core.CollectorPluginType
 				pub := core.PublisherPluginType
 				Convey("A global plugin config is added for all plugins", func() {
@@ -543,12 +537,12 @@ func TestPluginRestCalls(t *testing.T) {
 
 			})
 			Convey("Plugin config is set at startup", func() {
-				port := getPort()
 				cfg := control.NewConfig()
 				b, err := ioutil.ReadFile("../../examples/configs/pulse-config-sample.json")
 				So(err, ShouldBeNil)
 				json.Unmarshal(b, cfg)
-				startAPI(port, control.OptSetConfig(cfg))
+				r := startAPI(control.OptSetConfig(cfg))
+				port := r.port
 				col := core.CollectorPluginType
 
 				Convey("Gets the collector config by name and version", func() {
@@ -587,8 +581,8 @@ func TestPluginRestCalls(t *testing.T) {
 
 		Convey("Enable task - put - /v1/tasks/:id/enable", func() {
 			Convey("Enable a running task", func(c C) {
-				port := getPort()
-				startAPI(port)
+				r := startAPI()
+				port := r.port
 
 				uploadPlugin(MOCK_PLUGIN_PATH2, port)
 				uploadPlugin(FILE_PLUGIN_PATH, port)

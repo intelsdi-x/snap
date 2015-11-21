@@ -52,15 +52,6 @@ var (
 	NextPort = 45000
 )
 
-func getPort() int {
-	defer incrPort()
-	return NextPort
-}
-
-func incrPort() {
-	NextPort += 10
-}
-
 func getWMFromSample(sample string) *wmap.WorkflowMap {
 	jsonP, err := ioutil.ReadFile("../wmap_sample/" + sample)
 	if err != nil {
@@ -75,7 +66,7 @@ func getWMFromSample(sample string) *wmap.WorkflowMap {
 
 // REST API instances that are started are killed when the tests end.
 // When we eventually have a REST API Stop command this can be killed.
-func startAPI(port int) string {
+func startAPI() string {
 	// Start a REST API to talk to
 	rest.StreamingBufferWindow = 0.01
 	log.SetLevel(LOG_LEVEL)
@@ -88,15 +79,19 @@ func startAPI(port int) string {
 	r.BindConfigManager(c.Config)
 	r.BindMetricManager(c)
 	r.BindTaskManager(s)
-	r.Start(":" + fmt.Sprint(port))
+	err := r.Start("127.0.0.1:0")
+	if err != nil {
+		// Panic on an error
+		panic(err)
+	}
 	time.Sleep(100 * time.Millisecond)
-	return fmt.Sprintf("http://localhost:%d", port)
+	return fmt.Sprintf("http://localhost:%d", r.Port())
 }
 
 func TestPulseClient(t *testing.T) {
 	CompressUpload = false
-	port := getPort()
-	uri := startAPI(port)
+
+	uri := startAPI()
 	c := New(uri, "v1", true)
 	wf := getWMFromSample("1.json")
 	sch := &Schedule{Type: "simple", Interval: "1s"}
@@ -481,9 +476,7 @@ func TestPulseClient(t *testing.T) {
 		})
 	})
 
-	port = -1
-	uri = startAPI(port)
-	c = New(uri, "v1", true)
+	c = New("http://localhost:127.0.0.1:-1", "v1", true)
 
 	Convey("API with invalid port", t, func() {
 		p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
