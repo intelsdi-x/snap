@@ -129,6 +129,7 @@ type ScheduledTask struct {
 	FailedCount        int               `json:"failed_count,omitempty"`
 	LastFailureMessage string            `json:"last_failure_message,omitempty"`
 	State              string            `json:"task_state"`
+	Href               string            `json:"href"`
 }
 
 func (s *ScheduledTask) CreationTime() time.Time {
