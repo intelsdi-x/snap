@@ -40,6 +40,7 @@ type Metric struct {
 	Namespace               string        `json:"namespace,omitempty"`
 	Version                 int           `json:"version,omitempty"`
 	Policy                  []PolicyTable `json:"policy,omitempty"`
+	Href                    string        `json:"href"`
 }
 
 type MetricReturned struct {
