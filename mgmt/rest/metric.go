@@ -128,5 +128,5 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 }
 
 func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics%s", protocolPrefix, host, core.JoinNamespace(mt.Namespace()))
+	return fmt.Sprintf("%s://%s/v1/metrics%s?version=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace()), mt.Version())
 }
