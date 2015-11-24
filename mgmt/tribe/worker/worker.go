@@ -87,13 +87,13 @@ func (t TaskRequestType) String() string {
 
 type PluginRequest struct {
 	Plugin      core.Plugin
-	RequestType TaskRequestType
+	RequestType PluginRequestType
 	retryCount  int
 }
 
 type TaskRequest struct {
 	Task        Task
-	RequestType PluginRequestType
+	RequestType TaskRequestType
 	retryCount  int
 }
 
@@ -196,12 +196,13 @@ func (w worker) start() {
 				logger := w.logger.WithFields(log.Fields{
 					"task":         work.Task.ID,
 					"request-type": work.RequestType.String(),
+					"retries":      work.retryCount,
 				})
 				logger.Debug("received task work")
 				if work.RequestType == TaskStartedType {
 					if err := w.startTask(work.Task.ID); err != nil {
 						if work.retryCount < retryLimit {
-							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing task start request")
 							work.retryCount++
 							time.Sleep(retryDelay)
 							w.taskWork <- work
@@ -211,7 +212,7 @@ func (w worker) start() {
 				if work.RequestType == TaskStoppedType {
 					if err := w.stopTask(work.Task.ID); err != nil {
 						if work.retryCount < retryLimit {
-							logger.WithField("retry-count", work.retryCount).Debug("requeueing request")
+							logger.WithField("retry-count", work.retryCount).Debug("requeueing task stop request")
 							work.retryCount++
 							time.Sleep(retryDelay)
 							w.taskWork <- work
