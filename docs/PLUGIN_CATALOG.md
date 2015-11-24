@@ -36,7 +36,7 @@ These plugins are in planned/active development. This list is useful if you want
 
 | Name  | Type  | Description | Link | Authors |
 | :---- | :---- | :---------- | :--- | :------ |
-| Ethtool | Collector | Collect from ethtool stats & registry dump | [@lmroz](https://github.com/lmroz)|
+| Ethtool | Collector | Collect from ethtool stats & registry dump |[pulse-plugin-collector-ethtool](https://github.com/intelsdi-x/pulse-plugin-collector-ethtool)| [@lmroz](https://github.com/lmroz)|
 | IOstat | Collector | Collect from IOstat | [pulse-plugin-collector-iostat](https://github.com/intelsdi-x/pulse-plugin-collector-iostat) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
 | Nova | Collector | Collect from Nova/Libvirt | -| [@sandlbn](https://github.com/sandlbn) |
 | Open vSwitch | Collector | Collect Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
