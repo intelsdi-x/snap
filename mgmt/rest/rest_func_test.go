@@ -38,14 +38,14 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/pulse/control"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
-	"github.com/intelsdi-x/pulse/mgmt/rest/request"
-	"github.com/intelsdi-x/pulse/scheduler"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/control"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/request"
+	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -53,10 +53,10 @@ var (
 	// Switching this turns on logging for all the REST API calls
 	LOG_LEVEL = log.WarnLevel
 
-	PULSE_PATH        = os.Getenv("PULSE_PATH")
-	MOCK_PLUGIN_PATH1 = PULSE_PATH + "/plugin/pulse-collector-mock1"
-	MOCK_PLUGIN_PATH2 = PULSE_PATH + "/plugin/pulse-collector-mock2"
-	FILE_PLUGIN_PATH  = PULSE_PATH + "/plugin/pulse-publisher-file"
+	SNAP_PATH         = os.Getenv("SNAP_PATH")
+	MOCK_PLUGIN_PATH1 = SNAP_PATH + "/plugin/snap-collector-mock1"
+	MOCK_PLUGIN_PATH2 = SNAP_PATH + "/plugin/snap-collector-mock2"
+	FILE_PLUGIN_PATH  = SNAP_PATH + "/plugin/snap-publisher-file"
 
 	CompressedUpload = true
 	TotalUploadSize  = 0
@@ -284,7 +284,7 @@ func uploadPlugin(pluginPath string, port int) *rbody.APIResponse {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	var part io.Writer
-	part, err = writer.CreateFormFile("pulse-plugins", filepath.Base(pluginPath))
+	part, err = writer.CreateFormFile("snap-plugins", filepath.Base(pluginPath))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -538,7 +538,7 @@ func TestPluginRestCalls(t *testing.T) {
 			})
 			Convey("Plugin config is set at startup", func() {
 				cfg := control.NewConfig()
-				b, err := ioutil.ReadFile("../../examples/configs/pulse-config-sample.json")
+				b, err := ioutil.ReadFile("../../examples/configs/snap-config-sample.json")
 				So(err, ShouldBeNil)
 				json.Unmarshal(b, cfg)
 				r := startAPI(control.OptSetConfig(cfg))

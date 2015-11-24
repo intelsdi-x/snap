@@ -23,7 +23,7 @@ import (
 	"bytes"
 	"encoding/gob"
 
-	"github.com/intelsdi-x/pulse/control/plugin/encrypter"
+	"github.com/intelsdi-x/snap/control/plugin/encrypter"
 )
 
 type gobEncoder struct {

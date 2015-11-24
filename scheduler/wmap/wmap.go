@@ -26,8 +26,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/ctypes"
 	"gopkg.in/yaml.v2"
 )
 

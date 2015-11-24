@@ -25,11 +25,11 @@ import (
 
 	"github.com/intelsdi-x/gomit"
 
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/scheduler_event"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 type WorkflowState int
@@ -224,7 +224,7 @@ type wfContentTypes map[string]map[string][]string
 
 // BindPluginContentTypes
 func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes) error {
-	bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.PulseGOBContentType})
+	bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.SnapGOBContentType})
 	return nil
 }
 
@@ -245,22 +245,22 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPl
 				}
 			}
 		}
-		// if the inbound content type isn't set yet pulse may be able to do
+		// if the inbound content type isn't set yet snap may be able to do
 		// the conversion
 		if pr.InboundContentType == "" {
 			for _, ac := range act {
 				switch ac {
-				case plugin.PulseGOBContentType:
-					pr.InboundContentType = plugin.PulseGOBContentType
-				case plugin.PulseJSONContentType:
-					pr.InboundContentType = plugin.PulseJSONContentType
-				case plugin.PulseAllContentType:
-					pr.InboundContentType = plugin.PulseGOBContentType
+				case plugin.SnapGOBContentType:
+					pr.InboundContentType = plugin.SnapGOBContentType
+				case plugin.SnapJSONContentType:
+					pr.InboundContentType = plugin.SnapJSONContentType
+				case plugin.SnapAllContentType:
+					pr.InboundContentType = plugin.SnapGOBContentType
 				}
 			}
 			// else we return an error
 			if pr.InboundContentType == "" {
-				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the pulse content types or the types '%v' returned from the previous node.", pr.Name(), lct)
+				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the snap content types or the types '%v' returned from the previous node.", pr.Name(), lct)
 			}
 		}
 		//continue the walk down the nodes
@@ -271,22 +271,22 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPl
 		if err != nil {
 			return err
 		}
-		// if the inbound content type isn't set yet pulse may be able to do
+		// if the inbound content type isn't set yet snap may be able to do
 		// the conversion
 		if pu.InboundContentType == "" {
 			for _, ac := range act {
 				switch ac {
-				case plugin.PulseGOBContentType:
-					pu.InboundContentType = plugin.PulseGOBContentType
-				case plugin.PulseJSONContentType:
-					pu.InboundContentType = plugin.PulseJSONContentType
-				case plugin.PulseAllContentType:
-					pu.InboundContentType = plugin.PulseGOBContentType
+				case plugin.SnapGOBContentType:
+					pu.InboundContentType = plugin.SnapGOBContentType
+				case plugin.SnapJSONContentType:
+					pu.InboundContentType = plugin.SnapJSONContentType
+				case plugin.SnapAllContentType:
+					pu.InboundContentType = plugin.SnapGOBContentType
 				}
 			}
 			// else we return an error
 			if pu.InboundContentType == "" {
-				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the pulse content types or the types '%v' returned from the previous node.", pu.Name(), lct)
+				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the snap content types or the types '%v' returned from the previous node.", pu.Name(), lct)
 			}
 		}
 	}

@@ -23,13 +23,13 @@ die () {
 }
 
 [ "$#" -eq 1 ] || die "Error: Expected to get one or more machine names as arguments."
-[ "${PULSE_PATH}x" != "x" ] || die "Error: PULSE_PATH must be set"
+[ "${SNAP_PATH}x" != "x" ] || die "Error: SNAP_PATH must be set"
 command -v docker-machine >/dev/null 2>&1 || die "Error: docker-machine is required."
 command -v docker-compose >/dev/null 2>&1 || die "Error: docker-compose is required."
 command -v docker >/dev/null 2>&1 || die "Error: docker is required."
 command -v netcat >/dev/null 2>&1 || die "Error: netcat is required."
-file $PULSE_PATH/plugin/pulse-plugin-collector-psutil >/dev/null 2>&1 || die "Error: missing $PULSE_PATH/build/plugin/pulse-plugin-collector-psutil"
-file $PULSE_PATH/plugin/pulse-plugin-publisher-influxdb >/dev/null 2>&1 || die "Error: missing $PULSE_PATH/build/plugin/pulse-plugin-publisher-influxdb"
+file $SNAP_PATH/plugin/snap-plugin-collector-psutil >/dev/null 2>&1 || die "Error: missing $SNAP_PATH/build/plugin/snap-plugin-collector-psutil"
+file $SNAP_PATH/plugin/snap-plugin-publisher-influxdb >/dev/null 2>&1 || die "Error: missing $SNAP_PATH/build/plugin/snap-plugin-publisher-influxdb"
 
 
 
@@ -53,18 +53,18 @@ echo ""
 influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' influxdbgrafana_influxdb_1)
 echo "influxdb ip: ${influx_ip}"
 
-# create pulse database in influxdb
+# create snap database in influxdb
 curl -G "http://${dm_ip}:8086/ping"
-echo -n ">>deleting pulse influx db (if it exists) => "
-curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=DROP DATABASE pulse"
+echo -n ">>deleting snap influx db (if it exists) => "
+curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=DROP DATABASE snap"
 echo ""
-echo -n "creating pulse influx db => "
-curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=CREATE DATABASE pulse"
+echo -n "creating snap influx db => "
+curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=CREATE DATABASE snap"
 echo ""
 
 # create influxdb datasource in grafana
 echo -n "adding influxdb datasource to grafana => "
-COOKIEJAR=$(mktemp -t 'pulse-tmp')
+COOKIEJAR=$(mktemp -t 'snap-tmp')
 curl -H 'Content-Type: application/json;charset=UTF-8' \
 	--data-binary '{"user":"admin","email":"","password":"admin"}' \
     --cookie-jar "$COOKIEJAR" \
@@ -74,11 +74,11 @@ curl --cookie "$COOKIEJAR" \
 	-X POST \
 	--silent \
 	-H 'Content-Type: application/json;charset=UTF-8' \
-	--data-binary "{\"name\":\"influx\",\"type\":\"influxdb\",\"url\":\"http://${influx_ip}:8086\",\"access\":\"proxy\",\"database\":\"pulse\",\"user\":\"admin\",\"password\":\"admin\"}" \
+	--data-binary "{\"name\":\"influx\",\"type\":\"influxdb\",\"url\":\"http://${influx_ip}:8086\",\"access\":\"proxy\",\"database\":\"snap\",\"user\":\"admin\",\"password\":\"admin\"}" \
 	"http://${dm_ip}:3000/api/datasources"
 echo ""
 
-dashboard=$(cat $PULSE_PATH/../examples/influxdb-grafana/grafana/psutil.json)
+dashboard=$(cat $SNAP_PATH/../examples/influxdb-grafana/grafana/psutil.json)
 curl --cookie "$COOKIEJAR" \
 	-X POST \
 	--silent \
@@ -87,22 +87,22 @@ curl --cookie "$COOKIEJAR" \
 	"http://${dm_ip}:3000/api/dashboards/db"
 echo ""
 
-echo -n "starting pulsed"
-$PULSE_PATH/bin/pulsed --log-level 1 -t 0 --auto-discover $PULSE_PATH/plugin > /tmp/pulse.out 2>&1  &
+echo -n "starting snapd"
+$SNAP_PATH/bin/snapd --log-level 1 -t 0 --auto-discover $SNAP_PATH/plugin > /tmp/snap.out 2>&1  &
 echo ""
 
 sleep 3
 
 echo -n "adding task "
-TASK="${TMPDIR}/pulse-task-$$.json"
+TASK="${TMPDIR}/snap-task-$$.json"
 echo "$TASK"
-cat $PULSE_PATH/../examples/tasks/psutil-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK
-$PULSE_PATH/bin/pulsectl task create -t $TASK
+cat $SNAP_PATH/../examples/tasks/psutil-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK
+$SNAP_PATH/bin/snapctl task create -t $TASK
 
 echo ""
-echo "Grafana Dashboard => http://${dm_ip}:3000/dashboard/db/pulse-dashboard"
+echo "Grafana Dashboard => http://${dm_ip}:3000/dashboard/db/snap-dashboard"
 echo "Influxdb UI       => http://${dm_ip}:8083"
 echo ""
-echo "Press enter to start viewing the pulse.log"
+echo "Press enter to start viewing the snap.log"
 read
-tail -f /tmp/pulse.out
+tail -f /tmp/snap.out

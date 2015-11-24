@@ -17,9 +17,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# Pulse Examples
+# snap Examples
 
-This folder contains examples of using Pulse. Each folder contains a README.md which explains the examples.
+This folder contains examples of using snap. Each folder contains a README.md which explains the examples.
 
 ### Example list
 

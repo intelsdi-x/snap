@@ -25,8 +25,8 @@ import (
 
 	"github.com/intelsdi-x/gomit"
 
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/control/routing"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/routing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

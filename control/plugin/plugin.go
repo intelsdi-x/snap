@@ -35,7 +35,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 )
 
 // Plugin type
@@ -94,7 +94,7 @@ type PluginMeta struct {
 	Type    PluginType
 	RPCType RPCType
 	// Content types accepted by this plugin in priority order
-	// pulse.* means any pulse type
+	// snap.* means any snap type
 	AcceptedContentTypes []string
 	// Return content types in priority order
 	// This is only really valid on processors
@@ -133,9 +133,9 @@ func Unsecure(e bool) metaOp {
 
 // NewPluginMeta constructs and returns a PluginMeta struct
 func NewPluginMeta(name string, version int, pluginType PluginType, acceptContentTypes, returnContentTypes []string, opts ...metaOp) *PluginMeta {
-	// An empty accepted content type default to "pulse.*"
+	// An empty accepted content type default to "snap.*"
 	if len(acceptContentTypes) == 0 {
-		acceptContentTypes = append(acceptContentTypes, "pulse.*")
+		acceptContentTypes = append(acceptContentTypes, "snap.*")
 	}
 	// Validate content type formats
 	for _, s := range acceptContentTypes {

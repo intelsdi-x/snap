@@ -19,7 +19,7 @@ limitations under the License.
 
 package encoding
 
-import "github.com/intelsdi-x/pulse/control/plugin/encrypter"
+import "github.com/intelsdi-x/snap/control/plugin/encrypter"
 
 type Encoder interface {
 	Encode(interface{}) ([]byte, error)

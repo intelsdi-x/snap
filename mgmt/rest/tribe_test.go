@@ -34,11 +34,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/intelsdi-x/pulse/control"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
-	"github.com/intelsdi-x/pulse/mgmt/tribe"
-	"github.com/intelsdi-x/pulse/scheduler"
+	"github.com/intelsdi-x/snap/control"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/tribe"
+	"github.com/intelsdi-x/snap/scheduler"
 )
 
 func getMembers(port int) *rbody.APIResponse {

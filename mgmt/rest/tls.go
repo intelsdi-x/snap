@@ -92,7 +92,7 @@ func generateCert(t *tls) error {
 	temp := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Local Pulse Agent"},
+			Organization: []string{"Local snap Agent"},
 		},
 		DNSNames:              []string{"localhost"},
 		NotBefore:             notBefore,

@@ -19,7 +19,7 @@ limitations under the License.
 
 package plugin
 
-import "github.com/intelsdi-x/pulse/core/ctypes"
+import "github.com/intelsdi-x/snap/core/ctypes"
 
 // Processor plugin
 type ProcessorPlugin interface {

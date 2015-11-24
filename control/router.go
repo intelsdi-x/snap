@@ -20,7 +20,7 @@ limitations under the License.
 // Router is the entry point for execution commands and routing to plugins
 package control
 
-import "github.com/intelsdi-x/pulse/control/routing"
+import "github.com/intelsdi-x/snap/control/routing"
 
 type RouterResponse interface {
 }

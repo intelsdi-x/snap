@@ -32,10 +32,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
 
-	"github.com/intelsdi-x/pulse/control"
-	"github.com/intelsdi-x/pulse/mgmt/rest"
-	"github.com/intelsdi-x/pulse/scheduler"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/control"
+	"github.com/intelsdi-x/snap/mgmt/rest"
+	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -43,11 +43,11 @@ var (
 	// Change to set the REST API logging to debug
 	LOG_LEVEL = log.FatalLevel
 
-	PULSE_PATH        = os.Getenv("PULSE_PATH")
-	MOCK_PLUGIN_PATH1 = []string{PULSE_PATH + "/plugin/pulse-collector-mock1"}
-	MOCK_PLUGIN_PATH2 = []string{PULSE_PATH + "/plugin/pulse-collector-mock2"}
-	FILE_PLUGIN_PATH  = []string{PULSE_PATH + "/plugin/pulse-publisher-file"}
-	DIRECTORY_PATH    = []string{PULSE_PATH + "/plugin/"}
+	SNAP_PATH         = os.Getenv("SNAP_PATH")
+	MOCK_PLUGIN_PATH1 = []string{SNAP_PATH + "/plugin/snap-collector-mock1"}
+	MOCK_PLUGIN_PATH2 = []string{SNAP_PATH + "/plugin/snap-collector-mock2"}
+	FILE_PLUGIN_PATH  = []string{SNAP_PATH + "/plugin/snap-publisher-file"}
+	DIRECTORY_PATH    = []string{SNAP_PATH + "/plugin/"}
 
 	NextPort = 45000
 )
@@ -88,7 +88,7 @@ func startAPI() string {
 	return fmt.Sprintf("http://localhost:%d", r.Port())
 }
 
-func TestPulseClient(t *testing.T) {
+func TestSnapClient(t *testing.T) {
 	CompressUpload = false
 
 	uri := startAPI()

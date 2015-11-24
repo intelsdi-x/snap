@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
 type ProcessorArgs struct {

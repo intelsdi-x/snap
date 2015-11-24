@@ -24,9 +24,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 type TaskState int
@@ -140,5 +140,5 @@ func SetTaskID(id string) TaskOption {
 }
 
 type TaskErrors interface {
-	Errors() []perror.PulseError
+	Errors() []perror.SnapError
 }

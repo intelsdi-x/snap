@@ -27,17 +27,17 @@ package worker
 // 	log "github.com/Sirupsen/logrus"
 // 	. "github.com/smartystreets/goconvey/convey"
 //
-// 	"github.com/intelsdi-x/pulse/core"
-// 	"github.com/intelsdi-x/pulse/core/perror"
+// 	"github.com/intelsdi-x/snap/core"
+// 	"github.com/intelsdi-x/snap/core/perror"
 // )
 //
 // type mockPluginManager struct{}
 //
-// func (m *mockPluginManager) Load(path string) (core.CatalogedPlugin, perror.PulseError) {
+// func (m *mockPluginManager) Load(path string) (core.CatalogedPlugin, perror.SnapError) {
 // 	return nil, nil
 // }
 //
-// func (m *mockPluginManager) Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.PulseError) {
+// func (m *mockPluginManager) Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.SnapError) {
 // 	return nil, nil
 // }
 //

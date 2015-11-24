@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 )
 
 type msgType uint8

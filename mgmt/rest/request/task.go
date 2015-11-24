@@ -20,7 +20,7 @@ limitations under the License.
 package request
 
 import (
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 type TaskCreationRequest struct {

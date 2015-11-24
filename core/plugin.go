@@ -25,7 +25,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/snap/core/cdata"
 )
 
 type Plugin interface {

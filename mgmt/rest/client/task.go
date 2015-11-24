@@ -27,9 +27,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
-	"github.com/intelsdi-x/pulse/mgmt/rest/request"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/request"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 type Schedule struct {
@@ -265,13 +265,13 @@ func (c *Client) EnableTask(id string) *EnableTaskResult {
 	}
 }
 
-// CreateTaskResult is the response from pulse/client on a CreateTask call.
+// CreateTaskResult is the response from snap/client on a CreateTask call.
 type CreateTaskResult struct {
 	*rbody.AddScheduledTask
 	Err error
 }
 
-// WatchTaskResult is the response from pulse/client on a WatchTask call.
+// WatchTaskResult is the response from snap/client on a WatchTask call.
 type WatchTasksResult struct {
 	count     int
 	Err       error
@@ -283,37 +283,37 @@ func (w *WatchTasksResult) Close() {
 	close(w.DoneChan)
 }
 
-// GetTasksResult is the response from pulse/client on a GetTasks call.
+// GetTasksResult is the response from snap/client on a GetTasks call.
 type GetTasksResult struct {
 	*rbody.ScheduledTaskListReturned
 	Err error
 }
 
-// GetTaskResult is the response from pulse/client on a GetTask call.
+// GetTaskResult is the response from snap/client on a GetTask call.
 type GetTaskResult struct {
 	*rbody.ScheduledTaskReturned
 	Err error
 }
 
-// StartTasksResult is the response from pulse/client on a StartTask call.
+// StartTasksResult is the response from snap/client on a StartTask call.
 type StartTasksResult struct {
 	*rbody.ScheduledTaskStarted
 	Err error
 }
 
-// StopTasksResult is the response from pulse/client on a StopTask call.
+// StopTasksResult is the response from snap/client on a StopTask call.
 type StopTasksResult struct {
 	*rbody.ScheduledTaskStopped
 	Err error
 }
 
-// RemoveTasksResult is the response from pulse/client on a RemoveTask call.
+// RemoveTasksResult is the response from snap/client on a RemoveTask call.
 type RemoveTasksResult struct {
 	*rbody.ScheduledTaskRemoved
 	Err error
 }
 
-// EnableTasksResult is the response from pulse/client on a EnableTask call.
+// EnableTasksResult is the response from snap/client on a EnableTask call.
 type EnableTaskResult struct {
 	*rbody.ScheduledTaskEnabled
 	Err error

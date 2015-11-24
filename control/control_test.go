@@ -33,13 +33,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/gomit"
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/control_event"
-	"github.com/intelsdi-x/pulse/core/ctypes"
-	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/control_event"
+	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/core/perror"
 )
 
 // Mock Executor used to test
@@ -58,10 +58,10 @@ type MockPluginManagerBadSwap struct {
 	loadedPlugins  *loadedPlugins
 }
 
-func (m *MockPluginManagerBadSwap) LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, perror.PulseError) {
+func (m *MockPluginManagerBadSwap) LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, perror.SnapError) {
 	return new(loadedPlugin), nil
 }
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, perror.PulseError) {
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, perror.SnapError) {
 	return nil, perror.New(errors.New("fake"))
 }
 func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error) { return nil, nil }
@@ -75,11 +75,11 @@ func (m *MockPluginManagerBadSwap) all() map[string]*loadedPlugin {
 	return m.loadedPlugins.table
 }
 
-func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, perror.PulseError) {
+func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, perror.SnapError) {
 	// This is a Travis optimized loading of plugins. From time to time, tests will error in Travis
 	// due to a timeout when waiting for a response from a plugin. We are going to attempt loading a plugin
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
-	var e perror.PulseError
+	var e perror.SnapError
 	var p core.CatalogedPlugin
 	rp, _ := core.NewRequestedPlugin(paths[0])
 	if len(paths) > 1 {
@@ -116,7 +116,7 @@ func TestPluginControlGenerateArgs(t *testing.T) {
 }
 
 func TestSwapPlugin(t *testing.T) {
-	if PulsePath != "" {
+	if SnapPath != "" {
 		c := New()
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
@@ -143,7 +143,7 @@ func TestSwapPlugin(t *testing.T) {
 				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock2")
 			})
 		})
-		mock1Path := strings.Replace(PluginPath, "pulse-collector-mock2", "pulse-collector-mock1", 1)
+		mock1Path := strings.Replace(PluginPath, "snap-collector-mock2", "snap-collector-mock1", 1)
 		mockRP, _ := core.NewRequestedPlugin(mock1Path)
 		err := c.SwapPlugins(mockRP, c.PluginCatalog()[0])
 		<-lpe.done
@@ -245,8 +245,8 @@ func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 }
 
 var (
-	AciPath = path.Join(strings.TrimRight(PulsePath, "build"), "pkg/unpackage/")
-	AciFile = "pulse-collector-plugin-mock1.darwin-x86_64.aci"
+	AciPath = path.Join(strings.TrimRight(SnapPath, "build"), "pkg/unpackage/")
+	AciFile = "snap-collector-plugin-mock1.darwin-x86_64.aci"
 )
 
 type mocksigningManager struct {
@@ -262,10 +262,10 @@ func (ps *mocksigningManager) ValidateSignature([]string, string, []byte) error 
 
 // Uses the mock collector plugin to simulate Loading
 func TestLoad(t *testing.T) {
-	// These tests only work if PULSE_PATH is known.
+	// These tests only work if SNAP_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
-	if PulsePath != "" {
+	if SnapPath != "" {
 		c := New()
 
 		// Testing trying to load before starting pluginControl
@@ -313,12 +313,12 @@ func TestLoad(t *testing.T) {
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	} else {
-		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
 	}
 }
 
 func TestLoadWithSignedPlugins(t *testing.T) {
-	if PulsePath != "" {
+	if SnapPath != "" {
 		Convey("pluginControl.Load should successufully load a signed plugin with trust enabled", t, func() {
 			c := New()
 			c.pluginTrust = PluginTrustEnabled
@@ -362,15 +362,15 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			})
 		})
 	} else {
-		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
 	}
 }
 
 func TestUnload(t *testing.T) {
-	// These tests only work if PULSE_PATH is known.
+	// These tests only work if SNAP_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
-	if PulsePath != "" {
+	if SnapPath != "" {
 		c := New()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestUnload", lpe)
@@ -428,7 +428,7 @@ func TestUnload(t *testing.T) {
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	} else {
-		fmt.Printf("PULSE_PATH not set. Cannot test %s plugin.\n", PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
 	}
 }
 
@@ -556,7 +556,7 @@ type mc struct {
 	e int
 }
 
-func (m *mc) Fetch(ns []string) ([]*metricType, perror.PulseError) {
+func (m *mc) Fetch(ns []string) ([]*metricType, perror.SnapError) {
 	if m.e == 2 {
 		return nil, perror.New(errors.New("test"))
 	}
@@ -567,11 +567,11 @@ func (m *mc) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
 	return nil, nil
 }
 
-func (m *mc) GetPlugin([]string, int) (*loadedPlugin, perror.PulseError) {
+func (m *mc) GetPlugin([]string, int) (*loadedPlugin, perror.SnapError) {
 	return nil, nil
 }
 
-func (m *mc) Get(ns []string, ver int) (*metricType, perror.PulseError) {
+func (m *mc) Get(ns []string, ver int) (*metricType, perror.SnapError) {
 	if m.e == 1 {
 		return &metricType{
 			policy: &mockCDProc{},
@@ -580,14 +580,14 @@ func (m *mc) Get(ns []string, ver int) (*metricType, perror.PulseError) {
 	return nil, perror.New(errorMetricNotFound(ns))
 }
 
-func (m *mc) Subscribe(ns []string, ver int) perror.PulseError {
+func (m *mc) Subscribe(ns []string, ver int) perror.SnapError {
 	if ns[0] == "nf" {
 		return perror.New(errorMetricNotFound(ns))
 	}
 	return nil
 }
 
-func (m *mc) Unsubscribe(ns []string, ver int) perror.PulseError {
+func (m *mc) Unsubscribe(ns []string, ver int) perror.SnapError {
 	if ns[0] == "nf" {
 		return perror.New(errorMetricNotFound(ns))
 	}
@@ -1023,7 +1023,7 @@ func TestPublishMetrics(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		// Load plugin
-		_, err := load(c, path.Join(PulsePath, "plugin", "pulse-publisher-file"))
+		_, err := load(c, path.Join(SnapPath, "plugin", "snap-publisher-file"))
 		<-lpe.done
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
@@ -1034,7 +1034,7 @@ func TestPublishMetrics(t *testing.T) {
 
 		Convey("Subscribe to file publisher with good config", func() {
 			n := cdata.NewNode()
-			config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/pulse-TestPublishMetrics.out"}))
+			config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/snap-TestPublishMetrics.out"}))
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:3")
 			So(errp, ShouldBeNil)
 			pool.subscribe("1", unboundSubscriptionType)
@@ -1049,7 +1049,7 @@ func TestPublishMetrics(t *testing.T) {
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
-				contentType := plugin.PulseGOBContentType
+				contentType := plugin.SnapGOBContentType
 				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 3, n.Table())
 				So(errs, ShouldBeNil)
 				ap := c.AvailablePlugins()
@@ -1077,7 +1077,7 @@ func TestProcessMetrics(t *testing.T) {
 		c.Config.Plugins.Processor.Plugins["passthru"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		_, err := load(c, path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
+		_, err := load(c, path.Join(SnapPath, "plugin", "snap-processor-passthru"))
 		<-lpe.done
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
@@ -1102,7 +1102,7 @@ func TestProcessMetrics(t *testing.T) {
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
-				contentType := plugin.PulseGOBContentType
+				contentType := plugin.SnapGOBContentType
 				_, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table())
 				So(errs, ShouldBeEmpty)
 				mts := []plugin.PluginMetricType{}

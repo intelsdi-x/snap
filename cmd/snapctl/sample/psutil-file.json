@@ -1,0 +1,59 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {                
+                "/psutil/load/load1": {},
+                "/psutil/load/load5": {},
+                "/psutil/load/load15": {},
+                "/psutil/net/all/bytes_recv": {},
+                "/psutil/net/all/bytes_sent": {},
+                "/psutil/net/all/dropin": {},
+                "/psutil/net/all/dropout": {},
+                "/psutil/net/all/errin": {},
+                "/psutil/net/all/errout": {},
+                "/psutil/net/all/packets_recv": {},
+                "/psutil/net/all/packets_sent": {},
+                "/psutil/vm/active": {},
+                "/psutil/vm/available": {},
+                "/psutil/vm/buffers": {},
+                "/psutil/vm/cached": {},
+                "/psutil/vm/free": {},
+                "/psutil/vm/inactive": {},
+                "/psutil/vm/shared": {},
+                "/psutil/vm/total": {},
+                "/psutil/vm/used": {},
+                "/psutil/vm/used_percent": {},
+                "/psutil/vm/wired": {}
+            },
+            "config": {
+                "/intel/mock": {
+                    "password": "secret",
+                    "user": "root"
+                }
+            },
+            "process": [
+                {
+                    "plugin_name": "passthru",
+                    "plugin_version": 1,
+                    "process": null,
+                    "publish": [
+                        {
+                            "plugin_name": "file",
+                            "plugin_version": 1,
+                            "config": {
+                                "file": "/tmp/snap-file.out"                                                
+                            }
+                        }
+                    ],
+                    "config": null
+                }
+            ],
+            "publish": null
+        }
+    }
+}

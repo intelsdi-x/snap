@@ -26,11 +26,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
-	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/core/perror"
 )
 
 var (
@@ -111,7 +111,7 @@ func (m *metricType) Subscribe() {
 	m.subscriptions++
 }
 
-func (m *metricType) Unsubscribe() perror.PulseError {
+func (m *metricType) Unsubscribe() perror.SnapError {
 	if m.subscriptions == 0 {
 		return errNegativeSubCount
 	}
@@ -210,14 +210,14 @@ func (mc *metricCatalog) Add(m *metricType) {
 
 // Get retrieves a loadedPlugin given a namespace and version.
 // If provided a version of -1 the latest plugin will be returned.
-func (mc *metricCatalog) Get(ns []string, version int) (*metricType, perror.PulseError) {
+func (mc *metricCatalog) Get(ns []string, version int) (*metricType, perror.SnapError) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 	return mc.get(ns, version)
 }
 
 // Fetch transactionally retrieves all metrics which fall under namespace ns
-func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, perror.PulseError) {
+func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, perror.SnapError) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
@@ -260,7 +260,7 @@ func (mc *metricCatalog) Next() bool {
 }
 
 // Subscribe atomically increments a metric's subscription count in the table.
-func (mc *metricCatalog) Subscribe(ns []string, version int) perror.PulseError {
+func (mc *metricCatalog) Subscribe(ns []string, version int) perror.SnapError {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
@@ -274,7 +274,7 @@ func (mc *metricCatalog) Subscribe(ns []string, version int) perror.PulseError {
 }
 
 // Unsubscribe atomically decrements a metric's count in the table
-func (mc *metricCatalog) Unsubscribe(ns []string, version int) perror.PulseError {
+func (mc *metricCatalog) Unsubscribe(ns []string, version int) perror.SnapError {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
@@ -286,7 +286,7 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) perror.PulseError
 	return m.Unsubscribe()
 }
 
-func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, perror.PulseError) {
+func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, perror.SnapError) {
 	m, err := mc.Get(mns, ver)
 	if err != nil {
 		return nil, err
@@ -294,7 +294,7 @@ func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, perror
 	return m.Plugin, nil
 }
 
-func (mc *metricCatalog) get(ns []string, ver int) (*metricType, perror.PulseError) {
+func (mc *metricCatalog) get(ns []string, ver int) (*metricType, perror.SnapError) {
 	mts, err := mc.tree.Get(ns)
 	if err != nil {
 		return nil, err
@@ -343,7 +343,7 @@ func appendIfMissing(keys []string, ns string) []string {
 	return append(keys, ns)
 }
 
-func getVersion(c []*metricType, ver int) (*metricType, perror.PulseError) {
+func getVersion(c []*metricType, ver int) (*metricType, perror.SnapError) {
 	for _, m := range c {
 		if m.Plugin.Version() == ver {
 			return m, nil

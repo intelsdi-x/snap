@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/snap/core"
 )
 
 const (

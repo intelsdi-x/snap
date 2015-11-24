@@ -23,7 +23,7 @@ die () {
 }
 
 [ "$#" -eq 1 ] || die "Error: Expected to get one or more machine names as arguments."
-[ "${PULSE_PATH}x" != "x" ] || die "Error: PULSE_PATH must be set"
+[ "${SNAP_PATH}x" != "x" ] || die "Error: SNAP_PATH must be set"
 command -v docker-machine >/dev/null 2>&1 || die "Error: docker-machine is required."
 command -v docker-compose >/dev/null 2>&1 || die "Error: docker-compose is required."
 command -v docker >/dev/null 2>&1 || die "Error: docker is required."
@@ -50,19 +50,19 @@ echo ""
 influx_ip=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' influxdbgrafana_influxdb_1)
 echo ">>influxdb ip: ${influx_ip}"
 
-# create pulse database in influxdb
+# create snap database in influxdb
 curl -G "http://${dm_ip}:8086/ping"
-echo -n ">>deleting pulse influx db (if it exists) => "
-curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=DROP DATABASE pulse"
+echo -n ">>deleting snap influx db (if it exists) => "
+curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=DROP DATABASE snap"
 echo ""
-echo -n ">>creating pulse influx db => "
+echo -n ">>creating snap influx db => "
 sleep 1
-curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=CREATE DATABASE pulse"
+curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=CREATE DATABASE snap"
 echo ""
 
 # create influxdb datasource in grafana
 echo -n ">>adding influxdb datasource to grafana => "
-COOKIEJAR=$(mktemp -t 'pulse-tmp')
+COOKIEJAR=$(mktemp -t 'snap-tmp')
 curl -H 'Content-Type: application/json;charset=UTF-8' \
 	--data-binary '{"user":"admin","email":"","password":"admin"}' \
     --cookie-jar "$COOKIEJAR" \
@@ -72,11 +72,11 @@ curl --cookie "$COOKIEJAR" \
 	-X POST \
 	--silent \
 	-H 'Content-Type: application/json;charset=UTF-8' \
-	--data-binary "{\"name\":\"influx\",\"type\":\"influxdb\",\"url\":\"http://${influx_ip}:8086\",\"access\":\"proxy\",\"database\":\"pulse\",\"user\":\"admin\",\"password\":\"admin\"}" \
+	--data-binary "{\"name\":\"influx\",\"type\":\"influxdb\",\"url\":\"http://${influx_ip}:8086\",\"access\":\"proxy\",\"database\":\"snap\",\"user\":\"admin\",\"password\":\"admin\"}" \
 	"http://${dm_ip}:3000/api/datasources"
 echo ""
 
-dashboard=$(cat $PULSE_PATH/../examples/influxdb-grafana/grafana/pcm-psutil.json)
+dashboard=$(cat $SNAP_PATH/../examples/influxdb-grafana/grafana/pcm-psutil.json)
 curl --cookie "$COOKIEJAR" \
 	-X POST \
 	--silent \

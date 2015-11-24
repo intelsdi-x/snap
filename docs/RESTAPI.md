@@ -1,5 +1,5 @@
-# Pulse API
-Pulse exposes a list of Restful APIs to perform various actions. All of Pulse APIs return `JSON` as the reponses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation has the endpoint:
+# snap API
+snap exposes a list of Restful APIs to perform various actions. All of snap APIs return `JSON` as the reponses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation has the endpoint:
 > http://localhost:8181
 
 ## API Response Meta
@@ -123,7 +123,7 @@ Load a plugin
 
 _**Example Request**_
 ```
-curl -X POST -F plugin=@build/plugin/pulse-collector-mock1 http://localhost:8181/v1/plugins
+curl -X POST -F plugin=@build/plugin/snap-collector-mock1 http://localhost:8181/v1/plugins
 ```
 _**Example Response**_
 ```
@@ -191,7 +191,7 @@ _**Example Response**_
 }                    
 ```
 ## Metric API
-Pulse metric APIs allow you to retrieve all or particular running metric information by invoking different APIs.  
+snap metric APIs allow you to retrieve all or particular running metric information by invoking different APIs.  
 
 ## Metric Response Parameters
 | Parameter  | Description | 
@@ -306,7 +306,7 @@ _**Example Response**_
 }
 ```
 ## Task API
-Pulse task APIs provide the functionality to create, start, stop, remove, enable, retrieve and watch scheduled tasks. 
+snap task APIs provide the functionality to create, start, stop, remove, enable, retrieve and watch scheduled tasks. 
 
 ### Task API Response Parameters
 | Parameter  | Description | 
@@ -587,7 +587,7 @@ _**Example Response**_
 }                      
 ```
 ## Tribe API
-Pulse tribe APIs provide the functionality for managing tribe agreements and for tribe members to join or leave tribe contracts.
+snap tribe APIs provide the functionality for managing tribe agreements and for tribe members to join or leave tribe contracts.
 
 ### Tribe API Response Parameters
 | Parameter  | Description | 

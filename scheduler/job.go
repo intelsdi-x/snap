@@ -27,10 +27,10 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
 const (
@@ -223,7 +223,7 @@ func (p *processJob) Run() {
 	switch p.parentJob.Type() {
 	case collectJobType:
 		switch p.contentType {
-		case plugin.PulseGOBContentType:
+		case plugin.SnapGOBContentType:
 			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
 			for i, m := range p.parentJob.(*collectorJob).metrics {
 				switch mt := m.(type) {
@@ -318,7 +318,7 @@ func (p *publisherJob) Run() {
 	switch p.parentJob.Type() {
 	case collectJobType:
 		switch p.contentType {
-		case plugin.PulseGOBContentType:
+		case plugin.SnapGOBContentType:
 			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
 			for i, m := range p.parentJob.(*collectorJob).metrics {
 				switch mt := m.(type) {
@@ -359,7 +359,7 @@ func (p *publisherJob) Run() {
 		}
 	case processJobType:
 		switch p.contentType {
-		case plugin.PulseGOBContentType:
+		case plugin.SnapGOBContentType:
 			errs := p.publisher.PublishMetrics(p.contentType, p.parentJob.(*processJob).content, p.pluginName, p.pluginVersion, p.config)
 			if errs != nil {
 				for _, e := range errs {

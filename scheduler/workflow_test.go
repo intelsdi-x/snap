@@ -25,18 +25,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdi-x/pulse/control"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/control"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	PulsePath = os.Getenv("PULSE_PATH")
+	SnapPath = os.Getenv("SNAP_PATH")
 )
 
 type MockMetricType struct {
@@ -72,13 +72,13 @@ func TestCollectPublishWorkflow(t *testing.T) {
 		s := New()
 		s.SetMetricManager(c)
 		Convey("create a workflow", func() {
-			rp, _ := core.NewRequestedPlugin(path.Join(PulsePath, "plugin", "pulse-collector-mock2"))
+			rp, _ := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-collector-mock2"))
 			_, err := c.Load(rp)
 			So(err, ShouldBeNil)
-			rp2, _ := core.NewRequestedPlugin(path.Join(PulsePath, "plugin", "pulse-publisher-file"))
+			rp2, _ := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-publisher-file"))
 			_, err = c.Load(rp2)
 			So(err, ShouldBeNil)
-			rp3, _ := core.NewRequestedPlugin(path.Join(PulsePath, "plugin", "pulse-processor-passthru"))
+			rp3, _ := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-processor-passthru"))
 			_, err = c.Load(rp3)
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
@@ -92,7 +92,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			w.CollectNode.AddConfigItem("/intel/mock/foo", "password", "secret")
 
 			pu := wmap.NewPublishNode("file", 3)
-			pu.AddConfigItem("file", "/tmp/pulse-TestCollectPublishWorkflow.out")
+			pu.AddConfigItem("file", "/tmp/snap-TestCollectPublishWorkflow.out")
 
 			pr := wmap.NewProcessNode("passthru", 1)
 			time.Sleep(100 * time.Millisecond)

@@ -24,7 +24,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 
-	"github.com/intelsdi-x/pulse/pkg/ctree"
+	"github.com/intelsdi-x/snap/pkg/ctree"
 )
 
 // Allows adding of config policy by namespace and retrieving of policy from a tree

@@ -19,7 +19,7 @@ limitations under the License.
 
 package rbody
 
-import "github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
+import "github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 
 const (
 	TribeListAgreementType   = "tribe_agreement_list_returned"

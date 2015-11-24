@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/snap/core/cdata"
 )
 
 // Arguments passed to CollectMetrics() for a Collector implementation

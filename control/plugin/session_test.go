@@ -27,8 +27,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-	"github.com/intelsdi-x/pulse/control/plugin/encoding"
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/control/plugin/encoding"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -163,7 +163,7 @@ func TestSessionState(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 		Convey("InitSessionState with a custom log path", func() {
-			var mockPluginArgs string = "{\"RunAsDaemon\": false, \"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
+			var mockPluginArgs string = "{\"RunAsDaemon\": false, \"PluginLogPath\": \"/var/tmp/snap_plugin.log\"}"
 			m := PluginMeta{
 				RPCType: JSONRPC,
 				Type:    CollectorPluginType,

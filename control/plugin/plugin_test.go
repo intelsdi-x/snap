@@ -57,17 +57,17 @@ func TestMetricType(t *testing.T) {
 
 func TestArg(t *testing.T) {
 	Convey("NewArg", t, func() {
-		arg := NewArg("/tmp/pulse/plugin.log")
+		arg := NewArg("/tmp/snap/plugin.log")
 		So(arg, ShouldNotBeNil)
 	})
 }
 
 func TestPlugin(t *testing.T) {
-	a := []string{PulseAllContentType}
-	b := []string{PulseGOBContentType}
+	a := []string{SnapAllContentType}
+	b := []string{SnapGOBContentType}
 	Convey("Start", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType, a, b)
-		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/pulse_plugin.log\"}"
+		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/snap_plugin.log\"}"
 		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldBeNil)
 		So(rc, ShouldEqual, 0)

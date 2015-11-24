@@ -29,21 +29,21 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
 )
 
 const (
 	// These are our built-in content types for plugins
 
-	// PulseAll the wildcard for accepting all pulse content types
-	PulseAllContentType = "pulse.*"
-	// PulseGOB pulse metrics serialized into go binary format
-	PulseGOBContentType = "pulse.gob"
-	// PulseJSON pulse metrics serialized into json
-	PulseJSONContentType = "pulse.json"
-	// PulseProtoBuff pulse metrics serialized into protocol buffers
-	// PulseProtoBuff = "pulse.pb" // TO BE IMPLEMENTED
+	// SnapAll the wildcard for accepting all snap content types
+	SnapAllContentType = "snap.*"
+	// SnapGOB snap metrics serialized into go binary format
+	SnapGOBContentType = "snap.gob"
+	// SnapJSON snap metrics serialized into json
+	SnapJSONContentType = "snap.json"
+	// SnapProtoBuff snap metrics serialized into protocol buffers
+	// SnapProtoBuff = "snap.pb" // TO BE IMPLEMENTED
 )
 
 type PluginConfigType struct {
@@ -93,7 +93,7 @@ type PluginMetricType struct {
 	// Namespace is the identifier for a metric.
 	Namespace_ []string `json:"namespace"`
 
-	// Last advertised time is the last time the Pulse agent was told about
+	// Last advertised time is the last time the snap agent was told about
 	// a metric.
 	LastAdvertisedTime_ time.Time `json:"last_advertised_time"`
 
@@ -191,8 +191,8 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 	}
 	// Switch on content type
 	switch contentType {
-	case PulseAllContentType, PulseGOBContentType:
-		// NOTE: A Pulse All wildcard will result in GOB
+	case SnapAllContentType, SnapGOBContentType:
+		// NOTE: A snap All wildcard will result in GOB
 		var buf bytes.Buffer
 		enc := gob.NewEncoder(&buf)
 		err := enc.Encode(metrics)
@@ -204,9 +204,9 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 			}).Error("error while marshalling")
 			return nil, "", err
 		}
-		// contentType := PulseGOBContentType
-		return buf.Bytes(), PulseGOBContentType, nil
-	case PulseJSONContentType:
+		// contentType := SnapGOBContentType
+		return buf.Bytes(), SnapGOBContentType, nil
+	case SnapJSONContentType:
 		// Serialize into JSON
 		b, err := json.Marshal(metrics)
 		if err != nil {
@@ -217,10 +217,10 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 			}).Error("error while marshalling")
 			return nil, "", err
 		}
-		return b, PulseJSONContentType, nil
+		return b, SnapJSONContentType, nil
 	default:
 		// We don't recognize this content type. Log and return error.
-		es := fmt.Sprintf("invalid pulse content type: %s", contentType)
+		es := fmt.Sprintf("invalid snap content type: %s", contentType)
 		log.WithFields(log.Fields{
 			"_module": "control-plugin",
 			"block":   "marshal-content-type",
@@ -233,7 +233,7 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 // UnmarshallPluginMetricTypes takes a content type and []byte payload and returns a []PluginMetricType
 func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMetricType, error) {
 	switch contentType {
-	case PulseGOBContentType:
+	case SnapGOBContentType:
 		var metrics []PluginMetricType
 		r := bytes.NewBuffer(payload)
 		err := gob.NewDecoder(r).Decode(&metrics)
@@ -246,7 +246,7 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 			return nil, err
 		}
 		return metrics, nil
-	case PulseJSONContentType:
+	case SnapJSONContentType:
 		var metrics []PluginMetricType
 		err := json.Unmarshal(payload, &metrics)
 		if err != nil {
@@ -260,7 +260,7 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 		return metrics, nil
 	default:
 		// We don't recognize this content type as one we can unmarshal. Log and return error.
-		es := fmt.Sprintf("invalid pulse content type for unmarshalling: %s", contentType)
+		es := fmt.Sprintf("invalid snap content type for unmarshalling: %s", contentType)
 		log.WithFields(log.Fields{
 			"_module": "control-plugin",
 			"block":   "unmarshal-content-type",

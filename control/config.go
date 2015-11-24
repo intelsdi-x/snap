@@ -28,9 +28,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
 type pluginConfig struct {
@@ -111,7 +111,7 @@ func (p *config) GetPluginConfigDataNodeAll() cdata.ConfigDataNode {
 }
 
 // UnmarshalJSON unmarshals valid json into pluginConfig.  An example Config
-// github.com/intelsdi-x/pulse/examples/configs/pulse-config-sample.
+// github.com/intelsdi-x/snap/examples/configs/snap-config-sample.
 func (p *pluginConfig) UnmarshalJSON(data []byte) error {
 	t := map[string]interface{}{}
 	dec := json.NewDecoder(bytes.NewReader(data))

@@ -22,7 +22,7 @@ package scheduler
 import (
 	"testing"
 
-	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/snap/core"
 
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"

@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-Go Pulse Client
+Go snap Client
 ===============
 
-Go bindings for Pulse's REST API
+Go bindings for snap's REST API

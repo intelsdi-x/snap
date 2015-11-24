@@ -24,9 +24,9 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/ctypes"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -61,7 +61,7 @@ func TestPluginConfig(t *testing.T) {
 
 	Convey("Provided a config in json", t, func() {
 		cfg := NewConfig()
-		b, err := ioutil.ReadFile("../examples/configs/pulse-config-sample.json")
+		b, err := ioutil.ReadFile("../examples/configs/snap-config-sample.json")
 		So(b, ShouldNotBeEmpty)
 		So(b, ShouldNotBeNil)
 		So(err, ShouldBeNil)

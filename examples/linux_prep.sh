@@ -18,9 +18,9 @@
 #limitations under the License.
 
 HOST_PUBLIC_KEY_FILE="/root/.ssh/id_rsa.pub"
-DOCKER_IMAGE_NAME="pulse_image_ssh_container"
-DOCKER_CONTAINER_NAME="pulse_ssh_container"
-DOCKER_MACHINE_NAME="pulsecontainer"
+DOCKER_IMAGE_NAME="snap_image_ssh_container"
+DOCKER_CONTAINER_NAME="snap_ssh_container"
+DOCKER_MACHINE_NAME="snapcontainer"
 
 # Copy host's public key file here. It will be used as authorized_key in docker container (see Dockerfile).
 if [[ -f $HOST_PUBLIC_KEY_FILE ]]

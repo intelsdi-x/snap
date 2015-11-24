@@ -19,7 +19,7 @@ limitations under the License.
 
 package perror
 
-type PulseError interface {
+type SnapError interface {
 	error
 	Fields() map[string]interface{}
 	SetFields(map[string]interface{})
@@ -27,27 +27,27 @@ type PulseError interface {
 
 type Fields map[string]interface{}
 
-type pulseError struct {
+type snapError struct {
 	err    error
 	fields Fields
 }
 
-// New returns an initialized PulseError.
+// New returns an initialized SnapError.
 // The variadic signature allows fields to optionally
 // be added at construction.
-func New(e error, fields ...map[string]interface{}) *pulseError {
+func New(e error, fields ...map[string]interface{}) *snapError {
 	// Catch someone trying to wrap a pe around a pe.
 	// We throw a panic to make them fix this.
-	if _, ok := e.(PulseError); ok {
-		panic("You are trying to wrap a pulseError around a PulseError. Don't do this.")
+	if _, ok := e.(SnapError); ok {
+		panic("You are trying to wrap a snapError around a SnapError. Don't do this.")
 	}
 
-	p := &pulseError{
+	p := &snapError{
 		err:    e,
 		fields: make(map[string]interface{}),
 	}
 
-	// insert fields into new PulseError
+	// insert fields into new SnapError
 	for _, f := range fields {
 		for k, v := range f {
 			p.fields[k] = v
@@ -57,18 +57,18 @@ func New(e error, fields ...map[string]interface{}) *pulseError {
 	return p
 }
 
-func (p *pulseError) SetFields(f map[string]interface{}) {
+func (p *snapError) SetFields(f map[string]interface{}) {
 	p.fields = f
 }
 
-func (p *pulseError) Fields() map[string]interface{} {
+func (p *snapError) Fields() map[string]interface{} {
 	return p.fields
 }
 
-func (p *pulseError) Error() string {
+func (p *snapError) Error() string {
 	return p.err.Error()
 }
 
-func (p *pulseError) String() string {
+func (p *snapError) String() string {
 	return p.Error()
 }

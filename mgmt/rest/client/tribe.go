@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 // ListMembers retrieves a list of tribe members through an HTTP GET call.
@@ -190,49 +190,49 @@ func (c *Client) LeaveAgreement(agreementName, memberName string) *LeaveAgreemen
 	}
 }
 
-// ListMembersResult is the response from pulse/client on a ListMembers call.
+// ListMembersResult is the response from snap/client on a ListMembers call.
 type ListMembersResult struct {
 	*rbody.TribeMemberList
 	Err error
 }
 
-// GetMemberResult is the response from pulse/client on a GetMember call.
+// GetMemberResult is the response from snap/client on a GetMember call.
 type GetMemberResult struct {
 	*rbody.TribeMemberShow
 	Err error
 }
 
-// AddAgreementResult is the response from pulse/client on a AddAgreement call.
+// AddAgreementResult is the response from snap/client on a AddAgreement call.
 type AddAgreementResult struct {
 	*rbody.TribeAddAgreement
 	Err error
 }
 
-// ListAgreementResult is the response from pulse/client on a ListAgreements call.
+// ListAgreementResult is the response from snap/client on a ListAgreements call.
 type ListAgreementResult struct {
 	*rbody.TribeListAgreement
 	Err error
 }
 
-// DeleteAgreementResult is the response from pulse/client on a DeleteAgreement call.
+// DeleteAgreementResult is the response from snap/client on a DeleteAgreement call.
 type DeleteAgreementResult struct {
 	*rbody.TribeDeleteAgreement
 	Err error
 }
 
-// GetAgreementResult is the response from pulse/client on a GetAgreement call.
+// GetAgreementResult is the response from snap/client on a GetAgreement call.
 type GetAgreementResult struct {
 	*rbody.TribeGetAgreement
 	Err error
 }
 
-// JoinAgreementResult is the response from pulse/client on a JoinAgreement call.
+// JoinAgreementResult is the response from snap/client on a JoinAgreement call.
 type JoinAgreementResult struct {
 	*rbody.TribeJoinAgreement
 	Err error
 }
 
-// LeaveAgreementResult is the response from pulse/client on a LeaveAgreement call.
+// LeaveAgreementResult is the response from snap/client on a LeaveAgreement call.
 type LeaveAgreementResult struct {
 	*rbody.TribeLeaveAgreement
 	Err error

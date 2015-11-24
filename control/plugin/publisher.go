@@ -19,7 +19,7 @@ limitations under the License.
 
 package plugin
 
-import "github.com/intelsdi-x/pulse/core/ctypes"
+import "github.com/intelsdi-x/snap/core/ctypes"
 
 // Publisher plugin
 type PublisherPlugin interface {
