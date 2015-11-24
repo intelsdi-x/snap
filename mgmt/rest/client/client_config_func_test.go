@@ -20,7 +20,6 @@ limitations under the License.
 package client
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -30,10 +29,9 @@ import (
 )
 
 func TestPulseClientConfig(t *testing.T) {
-	port := getPort()
-	startAPI(port)
+	uri := startAPI()
 	CompressUpload = false
-	c := New(fmt.Sprintf("http://localhost:%d", port), "v1", true)
+	c := New(uri, "v1", true)
 	Convey("When no config is set", t, func() {
 		Convey("Get global config", func() {
 			res := c.GetPluginConfig("", "", "")
