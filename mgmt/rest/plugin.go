@@ -23,6 +23,7 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -179,7 +180,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			respond(ec, rb, w)
 			return
 		}
-		lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(pl))
+		lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(r.Host, pl))
 		respond(201, lp, w)
 	}
 }
@@ -270,7 +271,7 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 	plCatalog := s.mm.PluginCatalog()
 	plugins.LoadedPlugins = make([]rbody.LoadedPlugin, len(plCatalog))
 	for i, p := range s.mm.PluginCatalog() {
-		plugins.LoadedPlugins[i] = *catalogedPluginToLoaded(p)
+		plugins.LoadedPlugins[i] = *catalogedPluginToLoaded(r.Host, p)
 	}
 
 	if detail {
@@ -291,7 +292,7 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 	respond(200, plugins, w)
 }
 
-func catalogedPluginToLoaded(c core.CatalogedPlugin) *rbody.LoadedPlugin {
+func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) *rbody.LoadedPlugin {
 	return &rbody.LoadedPlugin{
 		Name:            c.Name(),
 		Version:         c.Version(),
@@ -299,6 +300,7 @@ func catalogedPluginToLoaded(c core.CatalogedPlugin) *rbody.LoadedPlugin {
 		Signed:          c.IsSigned(),
 		Status:          c.Status(),
 		LoadedTimestamp: c.LoadedTimestamp().Unix(),
+		Href:            catalogedPluginURI(host, c),
 	}
 }
 
@@ -384,7 +386,12 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 			Signed:          plugin.IsSigned(),
 			Status:          plugin.Status(),
 			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
+			Href:            catalogedPluginURI(r.Host, plugin),
 		}
 		respond(200, pluginRet, w)
 	}
+}
+
+func catalogedPluginURI(host string, c core.CatalogedPlugin) string {
+	return fmt.Sprintf("%s://%s/v1/plugins/%s/%s/%d", protocolPrefix, host, c.TypeName(), c.Name(), c.Version())
 }

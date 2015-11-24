@@ -22,8 +22,10 @@ package tribe
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/intelsdi-x/pulse/core"
 	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
 )
 
@@ -41,6 +43,8 @@ const (
 	removeTaskMsgType
 	stopTaskMsgType
 	startTaskMsgType
+	getTaskStateMsgType
+	taskStateQueryResponseMsgType
 )
 
 var msgTypes = []string{
@@ -55,6 +59,8 @@ var msgTypes = []string{
 	"Remove task",
 	"Stop task",
 	"Start task",
+	"Get task state",
+	"Get task state response",
 }
 
 func (m msgType) String() string {
@@ -156,6 +162,45 @@ func (t *taskMsg) Agreement() string {
 func (t *taskMsg) String() string {
 	return fmt.Sprintf("msg type='%v' agreementName='%v' uuid='%v' task='%v'",
 		t.GetType(), t.Agreement(), t.ID(), t.TaskID)
+}
+
+type taskStateQueryMsg struct {
+	LTime         LTime
+	UUID          string
+	Deadline      time.Time
+	AgreementName string
+	TaskID        string
+	Addr          []byte
+	Port          uint16
+	Type          msgType
+}
+
+func (t *taskStateQueryMsg) Agreement() string {
+	return t.AgreementName
+}
+
+func (t *taskStateQueryMsg) GetType() msgType {
+	return t.Type
+}
+
+func (t *taskStateQueryMsg) ID() string {
+	return t.UUID
+}
+
+func (t *taskStateQueryMsg) Time() LTime {
+	return t.LTime
+}
+
+func (t *taskStateQueryMsg) String() string {
+	return fmt.Sprintf("msg type='%v' agreementName='%v' uuid='%v' task='%v'",
+		t.GetType(), t.Agreement(), t.ID(), t.TaskID)
+}
+
+type taskStateQueryResponseMsg struct {
+	LTime LTime
+	UUID  string
+	From  string
+	State core.TaskState
 }
 
 type fullStateMsg struct {

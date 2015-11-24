@@ -23,6 +23,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
+	"net"
 	"strconv"
 	"sync"
 	"time"
@@ -64,16 +66,19 @@ var logger = log.WithFields(log.Fields{
 })
 
 type tribe struct {
-	clock        LClock
-	agreements   map[string]*agreement.Agreement
-	mutex        sync.RWMutex
-	msgBuffer    []msg
-	intentBuffer []msg
-	broadcasts   *memberlist.TransmitLimitedQueue
-	memberlist   *memberlist.Memberlist
-	logger       *log.Entry
-	members      map[string]*agreement.Member
-	tags         map[string]string
+	clock              LClock
+	agreements         map[string]*agreement.Agreement
+	mutex              sync.RWMutex
+	msgBuffer          []msg
+	intentBuffer       []msg
+	broadcasts         *memberlist.TransmitLimitedQueue
+	memberlist         *memberlist.Memberlist
+	logger             *log.Entry
+	taskStartStopCache *cache
+	taskStateResponses map[string]*taskStateQueryResponse
+	members            map[string]*agreement.Member
+	tags               map[string]string
+	config             *config
 
 	pluginCatalog   worker.ManagesPlugins
 	taskManager     worker.ManagesTasks
@@ -115,11 +120,13 @@ func New(c *config) (*tribe, error) {
 	})
 
 	tribe := &tribe{
-		agreements:   map[string]*agreement.Agreement{},
-		members:      map[string]*agreement.Member{},
-		msgBuffer:    make([]msg, 512),
-		intentBuffer: []msg{},
-		logger:       logger.WithField("_name", c.MemberlistConfig.Name),
+		agreements:         map[string]*agreement.Agreement{},
+		members:            map[string]*agreement.Member{},
+		taskStateResponses: map[string]*taskStateQueryResponse{},
+		taskStartStopCache: newCache(),
+		msgBuffer:          make([]msg, 512),
+		intentBuffer:       []msg{},
+		logger:             logger.WithField("_name", c.MemberlistConfig.Name),
 		tags: map[string]string{
 			agreement.RestPort:               strconv.Itoa(c.restAPIPort),
 			agreement.RestProtocol:           c.restAPIProto,
@@ -129,6 +136,7 @@ func New(c *config) (*tribe, error) {
 		taskWorkQueue:   make(chan worker.TaskRequest, 999),
 		workerQuitChan:  make(chan struct{}),
 		workerWaitGroup: &sync.WaitGroup{},
+		config:          c,
 	}
 
 	tribe.broadcasts = &memberlist.TransmitLimitedQueue{
@@ -166,6 +174,49 @@ func New(c *config) (*tribe, error) {
 		"seed": "none",
 	}).Infoln("tribe started")
 	return tribe, nil
+}
+
+type cache struct {
+	sync.RWMutex
+	table map[string]time.Time
+}
+
+func newCache() *cache {
+	return &cache{
+		table: make(map[string]time.Time),
+	}
+}
+
+func (c *cache) get(m msg) (time.Time, bool) {
+	c.RLock()
+	defer c.RUnlock()
+	key := fmt.Sprintf("%v:%v", m.GetType(), m.ID())
+	v, ok := c.table[key]
+	return v, ok
+}
+
+func (c *cache) put(m msg, duration time.Duration) bool {
+	c.Lock()
+	defer c.Unlock()
+	key := fmt.Sprintf("%v:%v", m.GetType(), m.ID())
+	if ti, ok := c.table[key]; ok {
+		logger.WithFields(log.Fields{
+			"task-id":      m.ID(),
+			"time-started": ti,
+			"_block":       "task-cache-put",
+			"key":          key,
+			"cache-size":   len(c.table),
+			"ltime":        m.Time(),
+		}).Debugln("task cache entry exists")
+		return false
+	}
+	c.table[key] = time.Now()
+	time.AfterFunc(duration, func() {
+		c.Lock()
+		delete(c.table, key)
+		c.Unlock()
+	})
+	return true
 }
 
 func (t *tribe) SetPluginCatalog(p worker.ManagesPlugins) {
@@ -564,6 +615,7 @@ func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.Puls
 	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
+
 	msg := &taskMsg{
 		LTime:         t.clock.Increment(),
 		TaskID:        task.ID,
@@ -613,6 +665,37 @@ func (t *tribe) RemoveAgreement(name string) perror.PulseError {
 		t.broadcast(removeAgreementMsgType, msg, nil)
 	}
 	return nil
+}
+
+func (t *tribe) TaskStateQuery(agreementName string, taskId string) core.TaskState {
+	resp := t.taskStateQuery(agreementName, taskId)
+
+	responses := taskStateResponses{}
+	for r := range resp.resp {
+		responses = append(responses, r)
+	}
+
+	return responses.State()
+}
+
+func (t *tribe) taskStateQuery(agreementName string, taskId string) *taskStateQueryResponse {
+	timeout := t.getTimeout()
+	msg := &taskStateQueryMsg{
+		LTime:         t.clock.Increment(),
+		AgreementName: agreementName,
+		UUID:          uuid.New(),
+		Type:          getTaskStateMsgType,
+		Addr:          t.memberlist.LocalNode().Addr,
+		Port:          t.memberlist.LocalNode().Port,
+		TaskID:        taskId,
+		Deadline:      time.Now().Add(timeout),
+	}
+
+	resp := newStateQueryResponse(len(t.memberlist.Members()), msg)
+	t.registerQueryResponse(timeout, resp)
+	t.broadcast(msg.Type, msg, nil)
+
+	return resp
 }
 
 func (t *tribe) processIntents() {
@@ -935,6 +1018,11 @@ func (t *tribe) handleStartTask(msg *taskMsg) bool {
 
 	if _, ok := t.agreements[msg.Agreement()]; ok {
 
+		if ok := t.taskStartStopCache.put(msg, t.getTimeout()); !ok {
+			// A cache entry exists; return and do not broadcast event again
+			return false
+		}
+
 		work := worker.TaskRequest{
 			Task: worker.Task{
 				ID: msg.TaskID,
@@ -964,6 +1052,11 @@ func (t *tribe) handleStopTask(msg *taskMsg) bool {
 
 	if _, ok := t.agreements[msg.Agreement()]; ok {
 
+		if ok := t.taskStartStopCache.put(msg, t.getTimeout()); !ok {
+			// A cache entry exists; return and do not broadcast event again
+			return false
+		}
+
 		work := worker.TaskRequest{
 			Task: worker.Task{
 				ID: msg.TaskID,
@@ -991,7 +1084,13 @@ func (t *tribe) handleMemberJoin(n *memberlist.Node) {
 func (t *tribe) handleMemberLeave(n *memberlist.Node) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	if _, ok := t.members[n.Name]; ok {
+	if m, ok := t.members[n.Name]; ok {
+		if m.PluginAgreement != nil {
+			delete(t.agreements[m.PluginAgreement.Name].Members, n.Name)
+		}
+		for k, _ := range m.TaskAgreements {
+			delete(t.agreements[k].Members, n.Name)
+		}
 		delete(t.members, n.Name)
 	}
 }
@@ -1097,6 +1196,104 @@ func (t *tribe) handleLeaveAgreement(msg *agreementMsg) bool {
 	return true
 }
 
+func (t *tribe) handleTaskStateQuery(msg *taskStateQueryMsg) bool {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	// update the clock if newer
+	t.clock.Update(msg.LTime)
+
+	if t.isDuplicate(msg) {
+		return false
+	}
+
+	t.msgBuffer[msg.LTime%LTime(len(t.msgBuffer))] = msg
+
+	if time.Now().After(msg.Deadline) {
+		t.logger.WithFields(log.Fields{
+			"_block":   "handleStateQuery",
+			"deadline": msg.Deadline,
+			"ltime":    msg.LTime,
+		}).Warn("deadline passed for task state query")
+		return false
+	}
+
+	if !t.isMemberOfAgreement(msg.Agreement()) {
+		// we are not a member of the agreement
+		return true
+	}
+
+	resp := taskStateQueryResponseMsg{
+		LTime: msg.LTime,
+		UUID:  msg.UUID,
+		From:  t.memberlist.LocalNode().Name,
+	}
+
+	tsk, err := t.taskManager.GetTask(msg.TaskID)
+	if err != nil {
+		t.logger.WithFields(log.Fields{
+			"_block":  "handleStateQuery",
+			"err":     err,
+			"task-id": msg.TaskID,
+			"msg-id":  msg.UUID,
+		}).Error("failed to get task state")
+		return true
+	}
+
+	resp.State = tsk.State()
+
+	// Format the response
+	raw, err := encodeMessage(taskStateQueryResponseMsgType, &resp)
+	if err != nil {
+		t.logger.WithFields(log.Fields{
+			"_block": "handleStateQuery",
+			"err":    err,
+		}).Error("failed to encode message")
+		return true
+	}
+
+	// Check the size limit
+	if len(raw) > TaskStateQueryResponseSizeLimit {
+		t.logger.WithFields(log.Fields{
+			"_block":     "handleStateQuery",
+			"err":        err,
+			"size-limit": TaskStateQueryResponseSizeLimit,
+			"msg-size":   len(raw),
+		}).Error("msg exceeds size limit", TaskStateQueryResponseSizeLimit)
+		return true
+	}
+
+	// Send the response
+	addr := net.UDPAddr{IP: msg.Addr, Port: int(msg.Port)}
+	if err := t.memberlist.SendTo(&addr, raw); err != nil {
+		t.logger.WithFields(log.Fields{
+			"_block":      "handleStateQuery",
+			"remote-addr": msg.Addr,
+			"remote-port": msg.Port,
+			"err":         err,
+		}).Error("failed to send task state reply")
+	}
+
+	return true
+}
+
+func (t *tribe) registerQueryResponse(timeout time.Duration, resp *taskStateQueryResponse) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	if _, ok := t.taskStateResponses[resp.uuid]; ok {
+		panic("not ok")
+	}
+	t.taskStateResponses[resp.uuid] = resp
+
+	time.AfterFunc(timeout, func() {
+		t.mutex.Lock()
+		delete(t.taskStateResponses, resp.uuid)
+		resp.Close()
+		t.mutex.Unlock()
+	})
+}
+
 func (t *tribe) joinAgreement(msg *agreementMsg) perror.PulseError {
 	if err := t.canJoinAgreement(msg.Agreement(), msg.MemberName); err != nil {
 		return err
@@ -1109,6 +1306,40 @@ func (t *tribe) joinAgreement(msg *agreementMsg) perror.PulseError {
 
 	// update the agreements membership
 	t.agreements[msg.Agreement()].Members[msg.MemberName] = t.members[msg.MemberName]
+
+	// get plugins and tasks if this is the node joining
+	if msg.MemberName == t.memberlist.LocalNode().Name {
+		go func(a *agreement.Agreement) {
+			for _, p := range a.PluginAgreement.Plugins {
+				ptype, _ := core.ToPluginType(p.TypeName())
+				work := worker.PluginRequest{
+					Plugin: agreement.Plugin{
+						Name_:    p.Name(),
+						Version_: p.Version(),
+						Type_:    ptype,
+					},
+					RequestType: worker.PluginLoadedType,
+				}
+				t.pluginWorkQueue <- work
+			}
+
+			for _, tsk := range a.TaskAgreement.Tasks {
+				state := t.TaskStateQuery(msg.Agreement(), tsk.ID)
+				startOnCreate := false
+				if state == core.TaskSpinning || state == core.TaskFiring {
+					startOnCreate = true
+				}
+				work := worker.TaskRequest{
+					Task: worker.Task{
+						ID:            tsk.ID,
+						StartOnCreate: startOnCreate,
+					},
+					RequestType: worker.TaskCreatedType,
+				}
+				t.taskWorkQueue <- work
+			}
+		}(t.agreements[msg.Agreement()])
+	}
 	return nil
 }
 
@@ -1203,6 +1434,23 @@ func (t *tribe) canStartStopRemoveTask(task agreement.Task, agreementName string
 	return nil
 }
 
+func (t *tribe) isMemberOfAgreement(name string) bool {
+	fields := log.Fields{
+		"agreement": name,
+		"_block":    "isMemberOfAgreement",
+	}
+	a, ok := t.agreements[name]
+	if !ok {
+		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
+		return false
+	}
+	if _, ok := a.Members[t.memberlist.LocalNode().Name]; !ok {
+		t.logger.WithFields(fields).Debugln(errNotAMember)
+		return false
+	}
+	return true
+}
+
 func (t *tribe) isDuplicate(msg msg) bool {
 	logger := t.logger.WithFields(log.Fields{
 		"event-clock": msg.Time(),
@@ -1261,4 +1509,9 @@ func (t *tribe) addTaskIntent(m *taskMsg) bool {
 	}).Debugln("Out of order msg")
 	t.intentBuffer = append(t.intentBuffer, m)
 	return true
+}
+
+func (t *tribe) getTimeout() time.Duration {
+	// query duration - gossip interval * timeout mult * log(n+1)
+	return time.Duration(t.config.MemberlistConfig.GossipInterval * 5 * time.Duration(math.Ceil(math.Log10(float64(len(t.memberlist.Members())+1)))))
 }

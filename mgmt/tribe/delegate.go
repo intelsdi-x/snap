@@ -30,7 +30,7 @@ type delegate struct {
 }
 
 func (t *delegate) NodeMeta(limit int) []byte {
-	logger.WithField("_block", "delegate-node-meta").Debugln("getting node meta data")
+	t.tribe.logger.WithField("_block", "delegate-node-meta").Debugln("getting node meta data")
 	tags := t.tribe.encodeTags(t.tribe.tags)
 	if len(tags) > limit {
 		panic(fmt.Errorf("Node tags '%v' exceeds length limit of %d bytes", t.tribe.tags, limit))
@@ -106,6 +106,36 @@ func (t *delegate) NotifyMsg(buf []byte) {
 			panic(err)
 		}
 		rebroadcast = t.tribe.handleStartTask(msg)
+	case getTaskStateMsgType:
+		msg := &taskStateQueryMsg{}
+		if err := decodeMessage(buf[1:], msg); err != nil {
+			panic(err)
+		}
+		rebroadcast = t.tribe.handleTaskStateQuery(msg)
+	case taskStateQueryResponseMsgType:
+		msg := &taskStateQueryResponseMsg{}
+		if err := decodeMessage(buf[1:], msg); err != nil {
+			panic(err)
+		}
+		queryResp, ok := t.tribe.taskStateResponses[msg.UUID]
+		if !ok {
+			logger.WithFields(log.Fields{
+				"_block":    "delegate-notify-msg",
+				"ltime":     msg.LTime,
+				"responses": t.tribe.taskStateResponses,
+				"from":      msg.From,
+			}).Debug("task state response does not exist - nothing to do")
+			return
+		}
+		queryResp.lock.Lock()
+		if !queryResp.isClosed {
+			if _, ok := queryResp.from[msg.From]; !ok {
+				queryResp.from[msg.From] = msg.State
+				queryResp.resp <- taskStateResponse{From: msg.From, State: msg.State}
+			}
+		}
+		queryResp.lock.Unlock()
+
 	default:
 		logger.WithFields(log.Fields{
 			"_block": "delegate-notify-msg",

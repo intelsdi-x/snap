@@ -20,6 +20,7 @@ limitations under the License.
 package rest
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -36,7 +37,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	respondWithMetrics(mets, w)
+	respondWithMetrics(r.Host, mets, w)
 }
 
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -64,7 +65,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(mets, w)
+		respondWithMetrics(r.Host, mets, w)
 		return
 	}
 
@@ -79,6 +80,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		Namespace:               core.JoinNamespace(mt.Namespace()),
 		Version:                 mt.Version(),
 		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
+		Href: catalogedMetricURI(r.Host, mt),
 	}
 	rt := mt.Policy().RulesAsTable()
 	policies := make([]rbody.PolicyTable, 0, len(rt))
@@ -97,7 +99,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	respond(200, b, w)
 }
 
-func respondWithMetrics(mets []core.CatalogedMetric, w http.ResponseWriter) {
+func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.ResponseWriter) {
 	b := rbody.NewMetricsReturned()
 
 	for _, met := range mets {
@@ -118,8 +120,13 @@ func respondWithMetrics(mets []core.CatalogedMetric, w http.ResponseWriter) {
 			Version:                 met.Version(),
 			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
 			Policy:                  policies,
+			Href:                    catalogedMetricURI(host, met),
 		})
 	}
 	sort.Sort(b)
 	respond(200, b, w)
+}
+
+func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
+	return fmt.Sprintf("%s://%s/v1/metrics%s?version=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace()), mt.Version())
 }

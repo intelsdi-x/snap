@@ -177,6 +177,26 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
+	// If logPath is set, we verify the logPath and set it so that all logging
+	// goes to the log file instead of stdout.
+	logPath := ctx.String("log-path")
+	if logPath != "" {
+		f, err := os.Stat(logPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if !f.IsDir() {
+			log.Fatal("log path provided must be a directory")
+		}
+
+		file, err := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer file.Close()
+		log.SetOutput(file)
+	}
+
 	var l = map[int]string{
 		1: "debug",
 		2: "info",
@@ -192,7 +212,6 @@ func action(ctx *cli.Context) {
 	}
 
 	logLevel := ctx.Int("log-level")
-	logPath := ctx.String("log-path")
 	maxProcs := ctx.Int("max-procs")
 	disableAPI := ctx.Bool("disable-api")
 	apiPort := ctx.Int("api-port")
@@ -223,46 +242,6 @@ func action(ctx *cli.Context) {
 	// Validate log level and trust level settings for pulsed
 	validateLevelSettings(logLevel, pluginTrust)
 
-	if logPath != "" {
-		f, err := os.Stat(logPath)
-		if err != nil {
-			log.WithFields(
-				log.Fields{
-					"block":   "main",
-					"_module": "pulsed",
-					"error":   err.Error(),
-					"logpath": logPath,
-				}).Fatal("bad log path (must be a dir)")
-			os.Exit(1)
-		}
-		if !f.IsDir() {
-			log.WithFields(
-				log.Fields{
-					"block":   "main",
-					"_module": "pulsed",
-					"logpath": logPath,
-				}).Fatal("bad log path (this is not a directory)")
-			os.Exit(1)
-		}
-
-		file, err2 := os.OpenFile(fmt.Sprintf("%s/pulse.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err2 != nil {
-			log.WithFields(
-				log.Fields{
-					"block":   "main",
-					"_module": "pulsed",
-					"error":   err2.Error(),
-					"logpath": logPath,
-				}).Fatal("bad log path")
-			os.Exit(1)
-		}
-		defer file.Close()
-		log.Info("setting log path to: ", logPath)
-		log.SetOutput(file)
-	} else {
-		log.Info("setting log path to: stdout")
-	}
-
 	controlOpts := []control.ControlOpt{
 		control.MaxRunningPlugins(maxRunning),
 		control.CacheExpiration(cache),
@@ -277,7 +256,6 @@ func action(ctx *cli.Context) {
 				"error":   err.Error(),
 				"path":    config,
 			}).Fatal("unable to read config")
-			os.Exit(1)
 		}
 		cfg := control.NewConfig()
 		err = json.Unmarshal(b, &cfg)
@@ -288,7 +266,6 @@ func action(ctx *cli.Context) {
 				"error":   err.Error(),
 				"path":    config,
 			}).Fatal("invalid config")
-			os.Exit(1)
 		}
 		controlOpts = append(controlOpts, control.OptSetConfig(cfg))
 	}
@@ -355,7 +332,6 @@ func action(ctx *cli.Context) {
 					"block":   "main",
 					"_module": "pulsed",
 				}).Fatal("need keyring file when trust is on (--keyring-file or -k)")
-			os.Exit(1)
 		}
 		for _, k := range keyrings {
 			keyringPath, err := filepath.Abs(k)
@@ -367,7 +343,6 @@ func action(ctx *cli.Context) {
 						"error":       err.Error(),
 						"keyringPath": keyringPath,
 					}).Fatal("Unable to determine absolute path to keyring file")
-				os.Exit(1)
 			}
 			f, err := os.Stat(keyringPath)
 			if err != nil {
@@ -378,7 +353,6 @@ func action(ctx *cli.Context) {
 						"error":       err.Error(),
 						"keyringPath": keyringPath,
 					}).Fatal("bad keyring file")
-				os.Exit(1)
 			}
 			if f.IsDir() {
 				log.Info("Adding keyrings from: ", keyringPath)
@@ -391,14 +365,13 @@ func action(ctx *cli.Context) {
 							"error":       err.Error(),
 							"keyringPath": keyringPath,
 						}).Fatal(err)
-					os.Exit(1)
 				}
 				for _, keyringFile := range files {
 					if keyringFile.IsDir() {
 						continue
 					}
 					if strings.HasSuffix(keyringFile.Name(), ".gpg") || (strings.HasSuffix(keyringFile.Name(), ".pub")) || (strings.HasSuffix(keyringFile.Name(), ".pubring")) {
-						_, err := os.Open(keyringPath)
+						f, err := os.Open(keyringPath)
 						if err != nil {
 							log.WithFields(
 								log.Fields{
@@ -406,15 +379,16 @@ func action(ctx *cli.Context) {
 									"_module":     "pulsed",
 									"error":       err.Error(),
 									"keyringPath": keyringPath,
-								}).Warning("can't open keyring file. not adding to keyring path")
-						} else {
-							log.Info("adding keyring file: ", keyringPath+"/"+keyringFile.Name())
-							c.SetKeyringFile(keyringPath + "/" + keyringFile.Name())
+								}).Warning("unable to open keyring file. not adding to keyring path")
+							continue
 						}
+						f.Close()
+						log.Info("adding keyring file: ", keyringPath+"/"+keyringFile.Name())
+						c.SetKeyringFile(keyringPath + "/" + keyringFile.Name())
 					}
 				}
 			} else {
-				_, err := os.Open(keyringPath)
+				f, err := os.Open(keyringPath)
 				if err != nil {
 					log.WithFields(
 						log.Fields{
@@ -422,12 +396,11 @@ func action(ctx *cli.Context) {
 							"_module":     "pulsed",
 							"error":       err.Error(),
 							"keyringPath": keyringPath,
-						}).Warning("can't open keyring file. not adding to keyring path")
-					os.Exit(1)
-				} else {
-					log.Info("adding keyring file ", keyringPath)
-					c.SetKeyringFile(keyringPath)
+						}).Fatal("unable to open keyring file.")
 				}
+				f.Close()
+				log.Info("adding keyring file ", keyringPath)
+				c.SetKeyringFile(keyringPath)
 			}
 		}
 	}
@@ -446,7 +419,6 @@ func action(ctx *cli.Context) {
 						"_module":          "pulsed",
 						"autodiscoverpath": p,
 					}).Fatal(err)
-				os.Exit(1)
 			}
 			log.Info("autoloading plugins from: ", fullPath)
 			files, err := ioutil.ReadDir(fullPath)
@@ -457,7 +429,6 @@ func action(ctx *cli.Context) {
 						"_module":          "pulsed",
 						"autodiscoverpath": fullPath,
 					}).Fatal(err)
-				os.Exit(1)
 			}
 			for _, file := range files {
 				if file.IsDir() {
@@ -631,7 +602,6 @@ func printErrorAndExit(name string, err error) {
 			"error":        err.Error(),
 			"pulse-module": name,
 		}).Fatal("error starting module")
-	os.Exit(1)
 }
 
 func startInterruptHandling(modules ...coreModule) {
@@ -691,7 +661,6 @@ func validateLevelSettings(logLevel, pluginTrust int) {
 				"_module": "pulsed",
 				"level":   logLevel,
 			}).Fatal("log level was invalid (needs: 1-5)")
-		os.Exit(1)
 	}
 	if pluginTrust < 0 || pluginTrust > 2 {
 		log.WithFields(
@@ -700,6 +669,5 @@ func validateLevelSettings(logLevel, pluginTrust int) {
 				"_module": "pulsed",
 				"level":   pluginTrust,
 			}).Fatal("Plugin trust was invalid (needs: 0-2)")
-		os.Exit(1)
 	}
 }

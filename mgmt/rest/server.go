@@ -25,8 +25,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/negroni"
@@ -41,26 +43,6 @@ import (
 	"github.com/intelsdi-x/pulse/scheduler/wmap"
 )
 
-/*
-REST API (ALPHA, It may CHANGE!)
-
-module specific date or error <= internal call
-
-REST API response
-
-Response (JSON encoded)
-	meta <Response Meta (common across all responses)>
-		code <HTTP response code duplciated from header>
-		body_type <keyword for structure type in body>
-		version <API version for future version switching>
-	body <Response Body>
-		<Happy Path>
-		Action specific version of struct matching type in Meta.Type. Should include URI if returning a resource or collection of rsources.
-		Type should be exposed off rest package for use by clients.
-		<Unhappy Path>
-		Generic error type with optional fields. Normally converted from perror.PulseError interface types
-*/
-
 const (
 	APIVersion = 1
 )
@@ -68,7 +50,8 @@ const (
 var (
 	ErrBadCert = errors.New("Invalid certificate given")
 
-	restLogger = log.WithField("_module", "_mgmt-rest")
+	restLogger     = log.WithField("_module", "_mgmt-rest")
+	protocolPrefix = "http"
 )
 
 type managesMetrics interface {
@@ -114,14 +97,15 @@ type managesConfig interface {
 }
 
 type Server struct {
-	mm  managesMetrics
-	mt  managesTasks
-	tr  managesTribe
-	mc  managesConfig
-	n   *negroni.Negroni
-	r   *httprouter.Router
-	tls *tls
-	err chan error
+	mm   managesMetrics
+	mt   managesTasks
+	tr   managesTribe
+	mc   managesConfig
+	n    *negroni.Negroni
+	r    *httprouter.Router
+	tls  *tls
+	addr net.Addr
+	err  chan error
 }
 
 func New(https bool, cpath, kpath string) (*Server, error) {
@@ -135,6 +119,7 @@ func New(https bool, cpath, kpath string) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
+		protocolPrefix = "https"
 	}
 
 	restLogger.Info(fmt.Sprintf("Configuring REST API with HTTPS set to: %v", https))
@@ -149,30 +134,67 @@ func New(https bool, cpath, kpath string) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) Start(addrString string) {
+func (s *Server) Start(addrString string) error {
 	s.addRoutes()
-	go s.run(addrString)
+	return s.run(addrString)
 }
 
 func (s *Server) Err() <-chan error {
 	return s.err
 }
 
-func (s *Server) run(addrString string) {
+func (s *Server) Port() int {
+	return s.addr.(*net.TCPAddr).Port
+}
+
+func (s *Server) run(addrString string) error {
 	restLogger.Info("Starting REST API on ", addrString)
-	var err error
 	if s.tls != nil {
-		err = http.ListenAndServeTLS(addrString, s.tls.cert, s.tls.key, s.n)
+		go s.serveTLS(addrString)
 	} else {
-		err = http.ListenAndServe(addrString, s.n)
+		ln, err := net.Listen("tcp", addrString)
+		if err != nil {
+			return err
+		}
+		s.addr = ln.Addr()
+		go s.serve(ln)
+
 	}
-	// ListenAndServe and ListenAndServeTLS are blocking methods. This function is started
-	// in a go routine. If these methods return, we check to see if an error needs to be
-	// returned through the error channel to be handled by the pulse daemon.
+	return nil
+}
+
+func (s *Server) serveTLS(addrString string) {
+	err := http.ListenAndServeTLS(addrString, s.tls.cert, s.tls.key, s.n)
 	if err != nil {
 		restLogger.Error(err)
 		s.err <- err
 	}
+}
+
+func (s *Server) serve(ln net.Listener) {
+	err := http.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)}, s.n)
+	if err != nil {
+		restLogger.Error(err)
+		s.err <- err
+	}
+}
+
+// Monkey patch ListenAndServe and TCP alive code from https://golang.org/src/net/http/server.go
+// The built in ListenAndServe and ListenAndServeTLS include TCP keepalive
+// At this point the Go team is not wanting to provide separate listen and serve methods
+// that also provide an exported TCP keepalive per: https://github.com/golang/go/issues/12731
+type tcpKeepAliveListener struct {
+	*net.TCPListener
+}
+
+func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
+	tc, err := ln.AcceptTCP()
+	if err != nil {
+		return
+	}
+	tc.SetKeepAlive(true)
+	tc.SetKeepAlivePeriod(3 * time.Minute)
+	return tc, nil
 }
 
 func (s *Server) BindMetricManager(m managesMetrics) {

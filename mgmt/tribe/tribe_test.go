@@ -30,13 +30,49 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/pulse/core/perror"
 	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
+	"github.com/intelsdi-x/pulse/pkg/schedule"
+	"github.com/intelsdi-x/pulse/scheduler/wmap"
 	"github.com/pborman/uuid"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestFullStateSync(t *testing.T) {
+type mockTaskManager struct{}
+
+func (m *mockTaskManager) GetTask(id string) (core.Task, error) { return &mockTask{}, nil }
+func (m *mockTaskManager) CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+	return nil, nil
+}
+func (m *mockTaskManager) StopTaskTribe(id string) []perror.PulseError  { return nil }
+func (m *mockTaskManager) StartTaskTribe(id string) []perror.PulseError { return nil }
+func (m *mockTaskManager) RemoveTaskTribe(id string) error              { return nil }
+
+type mockTask struct{}
+
+func (t *mockTask) ID() string                                { return "" }
+func (t *mockTask) State() core.TaskState                     { return core.TaskSpinning }
+func (t *mockTask) HitCount() uint                            { return 0 }
+func (t *mockTask) GetName() string                           { return "" }
+func (t *mockTask) SetName(string)                            { return }
+func (t *mockTask) SetID(string)                              { return }
+func (t *mockTask) MissedCount() uint                         { return 0 }
+func (t *mockTask) FailedCount() uint                         { return 0 }
+func (t *mockTask) LastFailureMessage() string                { return "" }
+func (t *mockTask) LastRunTime() *time.Time                   { return nil }
+func (t *mockTask) CreationTime() *time.Time                  { return nil }
+func (t *mockTask) DeadlineDuration() time.Duration           { return 0 }
+func (t *mockTask) SetDeadlineDuration(time.Duration)         { return }
+func (t *mockTask) SetTaskID(id string)                       { return }
+func (t *mockTask) SetStopOnFailure(uint)                     { return }
+func (t *mockTask) GetStopOnFailure() uint                    { return 0 }
+func (t *mockTask) Option(...core.TaskOption) core.TaskOption { return core.TaskDeadlineDuration(0) }
+func (t *mockTask) WMap() *wmap.WorkflowMap                   { return nil }
+func (t *mockTask) Schedule() schedule.Schedule               { return nil }
+
+func TestTribeFullStateSync(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
 	tribes := []*tribe{}
 	numOfTribes := 5
 	agreement1 := "agreement1"
@@ -45,21 +81,28 @@ func TestFullStateSync(t *testing.T) {
 	Convey("Tribe members are started", t, func() {
 		conf := DefaultConfig("seed", "127.0.0.1", getAvailablePort(), "", getAvailablePort())
 		conf.MemberlistConfig.PushPullInterval = 200 * time.Millisecond
-		// conf.memberlistConfig.GossipInterval = 300 * time.Second
-		conf.MemberlistConfig.GossipNodes = numOfTribes / 2
+		conf.MemberlistConfig.GossipInterval = 300 * time.Second
+		conf.MemberlistConfig.GossipNodes = 0
 		seed, err := New(conf)
-		tribes = append(tribes, seed)
+		So(seed, ShouldNotBeNil)
 		So(err, ShouldBeNil)
-		var wg sync.WaitGroup
-		timer := time.After(4 * time.Second)
+		taskManager := &mockTaskManager{}
+		seed.SetTaskManager(taskManager)
+		tribes = append(tribes, seed)
 		for i := 1; i < numOfTribes; i++ {
 			conf = DefaultConfig(fmt.Sprintf("member-%v", i), "127.0.0.1", getAvailablePort(), fmt.Sprintf("%v:%v", "127.0.0.1", seed.memberlist.LocalNode().Port), getAvailablePort())
 			conf.MemberlistConfig.GossipInterval = 300 * time.Second
-			conf.MemberlistConfig.GossipNodes = numOfTribes / 2
+			conf.MemberlistConfig.GossipNodes = 0
 			tr, err := New(conf)
+			taskManager := &mockTaskManager{}
+			tr.SetTaskManager(taskManager)
 			So(err, ShouldBeNil)
 			So(tr, ShouldNotBeNil)
 			tribes = append(tribes, tr)
+		}
+		var wg sync.WaitGroup
+		for _, tr := range tribes {
+			timer := time.After(4 * time.Second)
 			wg.Add(1)
 			go func(tr *tribe) {
 				defer wg.Done()
@@ -68,7 +111,7 @@ func TestFullStateSync(t *testing.T) {
 					case <-timer:
 						panic("timed out establishing membership")
 					default:
-						if len(tr.members) == numOfTribes && len(tr.memberlist.Members()) == numOfTribes {
+						if len(tr.members) == len(tribes) {
 							return
 						}
 						logger.Debugf("%v has %v members", tr.memberlist.LocalNode().Name, len(tr.memberlist.Members()))
@@ -79,7 +122,7 @@ func TestFullStateSync(t *testing.T) {
 		}
 		wg.Wait()
 		Convey("agreements are added", func() {
-			t := tribes[rand.Intn(numOfTribes)]
+			t := tribes[rand.Intn(len(tribes))]
 			perr := t.AddAgreement(agreement1)
 			So(perr, ShouldBeNil)
 			err := t.AddPlugin(agreement1, plugin1)
@@ -88,16 +131,18 @@ func TestFullStateSync(t *testing.T) {
 			So(perr, ShouldBeNil)
 			So(len(t.agreements), ShouldEqual, 1)
 			Convey("the state is consistent across the tribe", func() {
-				timer = time.After(10 * time.Second)
 				wg = sync.WaitGroup{}
+				timedOut := false
 				for _, tr := range tribes {
+					timer := time.After(10 * time.Second)
 					wg.Add(1)
 					go func(tr *tribe) {
 						defer wg.Done()
 						for {
 							select {
 							case <-timer:
-								panic("timed out")
+								timedOut = true
+								return
 							default:
 								if a, ok := tr.agreements[agreement1]; ok {
 									if a.PluginAgreement != nil {
@@ -113,6 +158,7 @@ func TestFullStateSync(t *testing.T) {
 					}(tr)
 				}
 				wg.Wait()
+				So(timedOut, ShouldBeFalse)
 
 				Convey("all members are added to the agreements", func() {
 					for _, tr := range tribes {
@@ -126,8 +172,9 @@ func TestFullStateSync(t *testing.T) {
 	})
 }
 
-func TestFullStateSyncOnJoin(t *testing.T) {
+func TestTribeFullStateSyncOnJoin(t *testing.T) {
 	numOfTribes := 5
+	tribes := []*tribe{}
 	agreement1 := "agreement1"
 	plugin1 := agreement.Plugin{Name_: "plugin1", Version_: 1}
 	plugin2 := agreement.Plugin{Name_: "plugin2", Version_: 1}
@@ -135,21 +182,61 @@ func TestFullStateSyncOnJoin(t *testing.T) {
 	task2 := agreement.Task{ID: uuid.New()}
 	Convey("A seed is started", t, func() {
 		conf := DefaultConfig("seed", "127.0.0.1", getAvailablePort(), "", getAvailablePort())
+		conf.MemberlistConfig.PushPullInterval = 200 * time.Millisecond
+		conf.MemberlistConfig.GossipInterval = 300 * time.Second
+		conf.MemberlistConfig.GossipNodes = 0
 		seed, err := New(conf)
-		So(err, ShouldBeNil)
 		So(seed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+		taskManager := &mockTaskManager{}
+		seed.SetTaskManager(taskManager)
+		tribes = append(tribes, seed)
 		Convey("agreements are added", func() {
 			seed.AddAgreement(agreement1)
-			seed.JoinAgreement(agreement1, "seed")
+			seed.JoinAgreement(agreement1, seed.memberlist.LocalNode().Name)
 			seed.AddPlugin(agreement1, plugin1)
 			seed.AddPlugin(agreement1, plugin2)
 			seed.AddTask(agreement1, task1)
 			seed.AddTask(agreement1, task2)
 			So(seed.intentBuffer, ShouldBeEmpty)
-			So(len(seed.members["seed"].PluginAgreement.Plugins), ShouldEqual, 2)
-			So(len(seed.members["seed"].TaskAgreements[agreement1].Tasks), ShouldEqual, 2)
+			So(len(seed.members), ShouldEqual, 1)
+			So(len(seed.members[seed.memberlist.LocalNode().Name].PluginAgreement.Plugins), ShouldEqual, 2)
+			So(len(seed.members[seed.memberlist.LocalNode().Name].TaskAgreements[agreement1].Tasks), ShouldEqual, 2)
 			Convey("members are added", func() {
-				tribes := getTribes(numOfTribes, seed)
+				for i := 1; i < numOfTribes; i++ {
+					conf := DefaultConfig(fmt.Sprintf("member-%v", i), "127.0.0.1", getAvailablePort(), fmt.Sprintf("%v:%v", "127.0.0.1", seed.memberlist.LocalNode().Port), getAvailablePort())
+					conf.MemberlistConfig.GossipInterval = 300 * time.Second
+					conf.MemberlistConfig.PushPullInterval = 200 * time.Millisecond
+					conf.MemberlistConfig.GossipNodes = 0
+					tr, err := New(conf)
+					taskManager := &mockTaskManager{}
+					tr.SetTaskManager(taskManager)
+					So(err, ShouldBeNil)
+					So(tr, ShouldNotBeNil)
+					tribes = append(tribes, tr)
+				}
+				var wg sync.WaitGroup
+				timedOut := false
+				for _, tr := range tribes {
+					timer := time.After(5 * time.Second)
+					wg.Add(1)
+					go func(tr *tribe) {
+						defer wg.Done()
+						for {
+							select {
+							case <-timer:
+								timedOut = false
+								return
+							default:
+								if len(tr.memberlist.Members()) == len(tribes) {
+									return
+								}
+							}
+						}
+					}(tr)
+				}
+				wg.Wait()
+				So(timedOut, ShouldBeFalse)
 				for i := 0; i < numOfTribes; i++ {
 					log.Debugf("%v is reporting %v members", i, len(tribes[i].memberlist.Members()))
 					So(len(tribes[i].memberlist.Members()), ShouldEqual, numOfTribes)
@@ -171,18 +258,29 @@ func TestFullStateSyncOnJoin(t *testing.T) {
 						}
 						Convey("members agree on tasks, plugins and membership", func() {
 							var wg sync.WaitGroup
+							timedOut := false
 							for _, tr := range tribes {
 								wg.Add(1)
+								timer := time.After(5 * time.Second)
 								go func(tr *tribe) {
 									defer wg.Done()
-									if _, ok := tr.members[tr.memberlist.LocalNode().Name]; ok {
-										if tr.members[tr.memberlist.LocalNode().Name].PluginAgreement != nil {
+									for {
+										select {
+										case <-timer:
+											timedOut = true
 											return
+										default:
+											if _, ok := tr.members[tr.memberlist.LocalNode().Name]; ok {
+												if tr.members[tr.memberlist.LocalNode().Name].PluginAgreement != nil {
+													return
+												}
+											}
 										}
 									}
 								}(tr)
 							}
 							wg.Wait()
+							So(timedOut, ShouldBeFalse)
 							for _, tr := range tribes {
 								So(len(tr.agreements), ShouldEqual, 1)
 								So(len(tr.agreements[agreement1].PluginAgreement.Plugins), ShouldEqual, 2)
@@ -198,7 +296,7 @@ func TestFullStateSyncOnJoin(t *testing.T) {
 	})
 }
 
-func TestTaskAgreements(t *testing.T) {
+func TestTribeTaskAgreements(t *testing.T) {
 	numOfTribes := 5
 	tribes := getTribes(numOfTribes, nil)
 	Convey(fmt.Sprintf("%d tribes are started", numOfTribes), t, func() {
@@ -221,7 +319,8 @@ func TestTaskAgreements(t *testing.T) {
 			task1 := agreement.Task{ID: uuid.New()}
 			task2 := agreement.Task{ID: uuid.New()}
 			Convey("a member handles", func() {
-				t := tribes[rand.Intn(numOfTribes)]
+				t := tribes[0]
+				t2 := tribes[1]
 				Convey("an out of order 'add task' message", func() {
 					msg := &taskMsg{
 						LTime:         t.clock.Increment(),
@@ -257,6 +356,8 @@ func TestTaskAgreements(t *testing.T) {
 								So(err, ShouldBeNil)
 								err = t.JoinAgreement(agreementName, t.memberlist.LocalNode().Name)
 								So(err, ShouldBeNil)
+								err = t.JoinAgreement(agreementName, t2.memberlist.LocalNode().Name)
+								So(err, ShouldBeNil)
 								err = t.JoinAgreement(agreementName2, t.memberlist.LocalNode().Name)
 								So(err, ShouldBeNil)
 								So(len(t.members[t.memberlist.LocalNode().Name].TaskAgreements), ShouldEqual, 2)
@@ -281,31 +382,42 @@ func TestTaskAgreements(t *testing.T) {
 										}(t)
 									}
 									wg.Wait()
-									Convey("a member handles removing a task", func() {
+									Convey("the agreement is queried for the state of a given task", func() {
 										t := tribes[rand.Intn(numOfTribes)]
-										ok, _ := t.agreements[agreementName].TaskAgreement.Tasks.Contains(task1)
-										So(ok, ShouldBeTrue)
-										err := t.RemoveTask(agreementName, task1)
-										ok, _ = t.agreements[agreementName].TaskAgreement.Tasks.Contains(task1)
-										So(ok, ShouldBeFalse)
-										So(err, ShouldBeNil)
-										So(t.intentBuffer, ShouldBeEmpty)
-										var wg sync.WaitGroup
-										for _, t := range tribes {
-											wg.Add(1)
-											go func(t *tribe) {
-												defer wg.Done()
-												for {
-													if a, ok := t.agreements[agreementName]; ok {
-														if len(a.TaskAgreement.Tasks) == 0 {
-															return
-														}
-													}
-													time.Sleep(50 * time.Millisecond)
-												}
-											}(t)
+										resp := t.taskStateQuery(agreementName, task1.ID)
+										So(resp, ShouldNotBeNil)
+										responses := taskStateResponses{}
+										for r := range resp.resp {
+											responses = append(responses, r)
 										}
-										wg.Wait()
+										So(len(responses), ShouldEqual, 2)
+										So(responses.State(), ShouldEqual, core.TaskSpinning)
+										Convey("a member handles removing a task", func() {
+											t := tribes[rand.Intn(numOfTribes)]
+											ok, _ := t.agreements[agreementName].TaskAgreement.Tasks.Contains(task1)
+											So(ok, ShouldBeTrue)
+											err := t.RemoveTask(agreementName, task1)
+											ok, _ = t.agreements[agreementName].TaskAgreement.Tasks.Contains(task1)
+											So(ok, ShouldBeFalse)
+											So(err, ShouldBeNil)
+											So(t.intentBuffer, ShouldBeEmpty)
+											var wg sync.WaitGroup
+											for _, t := range tribes {
+												wg.Add(1)
+												go func(t *tribe) {
+													defer wg.Done()
+													for {
+														if a, ok := t.agreements[agreementName]; ok {
+															if len(a.TaskAgreement.Tasks) == 0 {
+																return
+															}
+														}
+														time.Sleep(50 * time.Millisecond)
+													}
+												}(t)
+											}
+											wg.Wait()
+										})
 									})
 								})
 							})
@@ -338,7 +450,8 @@ func TestTribeAgreements(t *testing.T) {
 
 			Convey("A member handles", func() {
 				agreementName := "agreement1"
-				t := tribes[1]
+				t := tribes[0]
+				t2 := tribes[1]
 				Convey("an out-of-order join agreement message", func() {
 					msg := &agreementMsg{
 						LTime:         t.clock.Increment(),
@@ -347,11 +460,50 @@ func TestTribeAgreements(t *testing.T) {
 						MemberName:    t.memberlist.LocalNode().Name,
 						Type:          joinAgreementMsgType,
 					}
+					msg2 := &agreementMsg{
+						LTime:         t.clock.Increment(),
+						UUID:          uuid.New(),
+						AgreementName: agreementName,
+						MemberName:    t2.memberlist.LocalNode().Name,
+						Type:          joinAgreementMsgType,
+					}
 
 					b := t.handleJoinAgreement(msg)
 					So(b, ShouldEqual, true)
 					So(len(t.intentBuffer), ShouldEqual, 1)
 					t.broadcast(joinAgreementMsgType, msg, nil)
+					timer := time.After(2 * time.Second)
+				loop1:
+					for {
+						select {
+						case <-timer:
+							So("Timed out", ShouldEqual, "")
+						default:
+							if len(t2.intentBuffer) > 0 {
+								break loop1
+							}
+						}
+					}
+					So(len(t2.intentBuffer), ShouldEqual, 1)
+
+					b = t.handleJoinAgreement(msg2)
+					So(b, ShouldEqual, true)
+					So(len(t.intentBuffer), ShouldEqual, 2)
+					t.broadcast(joinAgreementMsgType, msg2, nil)
+
+					timer = time.After(2 * time.Second)
+				loop2:
+					for {
+						select {
+						case <-timer:
+							So("Timed out", ShouldEqual, "")
+						default:
+							if len(t2.intentBuffer) == 2 {
+								break loop2
+							}
+						}
+					}
+					So(len(t2.intentBuffer), ShouldEqual, 2)
 
 					Convey("an out-of-order add plugin message", func() {
 						plugin := agreement.Plugin{Name_: "plugin1", Version_: 1}
@@ -364,7 +516,7 @@ func TestTribeAgreements(t *testing.T) {
 						}
 						b := t.handleAddPlugin(msg)
 						So(b, ShouldEqual, true)
-						So(len(t.intentBuffer), ShouldEqual, 2)
+						So(len(t.intentBuffer), ShouldEqual, 3)
 						t.broadcast(addPluginMsgType, msg, nil)
 
 						Convey("an add agreement", func() {
@@ -423,20 +575,36 @@ func TestTribeAgreements(t *testing.T) {
 												So(err.Error(), ShouldResemble, errUnknownMember.Error())
 
 												Convey("leaving an agreement", func() {
-													So(len(t.agreements[agreementName].Members), ShouldEqual, 1)
+													So(len(t.agreements[agreementName].Members), ShouldEqual, 2)
 													So(t.members[t.memberlist.LocalNode().Name].PluginAgreement, ShouldNotBeNil)
 													err := t.LeaveAgreement(agreementName, t.memberlist.LocalNode().Name)
 													So(err, ShouldBeNil)
-													So(len(t.agreements[agreementName].Members), ShouldEqual, 0)
+													So(len(t.agreements[agreementName].Members), ShouldEqual, 1)
 													So(t.members[t.memberlist.LocalNode().Name].PluginAgreement, ShouldBeNil)
-													Convey("removes an agreement", func() {
-														err := t.RemoveAgreement(agreementName)
-														So(err, ShouldBeNil)
-														So(len(t.agreements), ShouldEqual, 0)
-														Convey("removes an agreement that no longer exists", func() {
+													Convey("leaving a tribe results in the member leaving the agreement", func() {
+														t2.memberlist.Leave(500 * time.Millisecond)
+														timer := time.After(2 * time.Second)
+													loop3:
+														for {
+															select {
+															case <-timer:
+																So("Timed out", ShouldEqual, "")
+															default:
+																if len(t.agreements[agreementName].Members) == 0 {
+																	break loop3
+																}
+															}
+														}
+														So(len(t.agreements[agreementName].Members), ShouldEqual, 0)
+														Convey("removes an agreement", func() {
 															err := t.RemoveAgreement(agreementName)
-															So(err.Error(), ShouldResemble, errAgreementDoesNotExist.Error())
+															So(err, ShouldBeNil)
 															So(len(t.agreements), ShouldEqual, 0)
+															Convey("removes an agreement that no longer exists", func() {
+																err := t.RemoveAgreement(agreementName)
+																So(err.Error(), ShouldResemble, errAgreementDoesNotExist.Error())
+																So(len(t.agreements), ShouldEqual, 0)
+															})
 														})
 													})
 												})
@@ -903,6 +1071,8 @@ func getTribes(numOfTribes int, seedTribe *tribe) []*tribe {
 		conf := DefaultConfig(fmt.Sprintf("member-%v", i), "127.0.0.1", port, seed, getAvailablePort())
 		conf.MemberlistConfig.RetransmitMult = conf.MemberlistConfig.RetransmitMult * 2
 		tr, err := New(conf)
+		taskManager := &mockTaskManager{}
+		tr.SetTaskManager(taskManager)
 		if err != nil {
 			panic(err)
 		}
