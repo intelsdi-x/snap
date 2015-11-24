@@ -23,10 +23,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -41,16 +41,24 @@ import (
 	"github.com/intelsdi-x/pulse/scheduler"
 )
 
-var NextPort int32 = 46000
-
 func getPort() int {
-	defer incrPort()
-	return int(atomic.LoadInt32(&NextPort))
-}
-
-func incrPort() {
-	atomic.AddInt32(&NextPort, 10)
-	NextPort += 10
+	// This attempts to use net.Listen to find an open port since
+	// the tribe config has to know of one BEFORE the REST API starts...
+	count := 0
+	// This will loop 1000 times before panicing
+	// If it finds a port it will return out of the function
+	for count < 1000 {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err == nil {
+			// Grab port from listener
+			p := ln.Addr().(*net.TCPAddr).Port
+			ln.Close()
+			return p
+		}
+		count++
+	}
+	// We tried 1000 times and just give up
+	panic("Could not get a port")
 }
 
 func readBody(r *http.Response) []byte {
