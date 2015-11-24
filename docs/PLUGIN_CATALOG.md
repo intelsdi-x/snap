@@ -6,7 +6,11 @@ This is the master catalog of plugins for Pulse. The plugins in this list may be
 
 | Name  | Type  | Description | Link |
 | :---- | :---- | :---------- | :--- |
+| CEPH | Collector | Collects from CEPH cluster | [pulse-plugin-collector-ceph](https://github.com/intelsdi-x/pulse-plugin-collector-ceph)
+| Docker | Collector | Collects from Docker engine | [pulse-plugin-collector-docker](https://github.com/intelsdi-x/pulse-plugin-collector-docker)
 | Facter | Collector | Collects from Facter | [pulse-plugin-collector-facter](https://github.com/intelsdi-x/pulse-plugin-collector-facter) |
+| Libvirt | Collector | Collects from libvirt | [pulse-plugin-collector-libvirt](https://github.com/intelsdi-x/pulse-plugin-collector-libvirt)
+| NodeManager | Collector | Collects from Intel Node Manager | [pulse-plugin-collector-node-manager](https://github.com/intelsdi-x/pulse-plugin-collector-node-manager)
 | PCM | Collector | Collects from PCM.x | [pulse-plugin-collector-pcm](https://github.com/intelsdi-x/pulse-plugin-collector-pcm)|
 | Perfevents | Collector | Collects perfevents from Linux | [pulse-plugin-collector-perfevents](https://github.com/intelsdi-x/pulse-plugin-collector-perfevents)|
 | PSUtil | Collector | Collects from psutil | [pulse-plugin-collector-psutil](https://github.com/intelsdi-x/pulse-plugin-collector-psutil) |
@@ -32,13 +36,11 @@ These plugins are in planned/active development. This list is useful if you want
 
 | Name  | Type  | Description | Link | Authors |
 | :---- | :---- | :---------- | :--- | :------ |
-| Ceph | Collector | Collect from Ceph | [pulse-plugin-collector-ceph](https://github.com/intelsdi-x/pulse-plugin-collector-ceph) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
-| IPMI | Collector | Collects NM data using IPMI | [pulse-plugin-collector-ipmi](https://github.com/intelsdi-x/pulse-plugin-collector-ipmi) | [@lmroz](https://github.com/lmroz) <br/> [@PatrykMatyjasek](https://github.com/PatrykMatyjasek) |
-| Libvirt | Collector | Collect from libvirt | [pulse-plugin-collector-libvirt](https://github.com/intelsdi-x/pulse-plugin-collector-libvirt)| [@sandlbn](https://github.com/sandlbn) |
+| Ethtool | Collector | Collect from ethtool stats & registry dump |[pulse-plugin-collector-ethtool](https://github.com/intelsdi-x/pulse-plugin-collector-ethtool)| [@lmroz](https://github.com/lmroz)|
+| IOstat | Collector | Collect from IOstat | [pulse-plugin-collector-iostat](https://github.com/intelsdi-x/pulse-plugin-collector-iostat) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
 | Nova | Collector | Collect from Nova/Libvirt | -| [@sandlbn](https://github.com/sandlbn) |
 | Open vSwitch | Collector | Collect Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
-| OSv | Collector | Collect from OSv | -| [@sandlbn](https://github.com/sandlbn) |
-| SMART SSD | Collector | Collect SMART SSDs | [pulse-plugin-collector-smart](https://github.com/intelsdi-x/pulse-plugin-collector-smart) | [@lmroz](https://github.com/lmroz) |
+| OSv | Collector | Collect from OSv | [pulse-plugin-collector-osv](https://github.com/intelsdi-x/pulse-plugin-collector-osv) | [@sandlbn](https://github.com/sandlbn) |
 
 ## Wish List
 This is a wish list of plugins for Pulse. If you see one here and want to start on it please let us know.
@@ -46,11 +48,8 @@ This is a wish list of plugins for Pulse. If you see one here and want to start 
 
 - CollectD native
 - Prometheus
-- PCM (native)
 - Pulse App Endpoint (needs event spec)
 - Intel NIC
-- Intel SSD
-- Ceph
 - Kubernetes Minion
 - Mesos Slave
 - Mesos Master
