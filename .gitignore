@@ -30,9 +30,6 @@ build/
 profile.cov
 gin-bin
 tags
-pkg/unpackage/noExec/
-pkg/unpackage/pulse-collector-plugin-dummy1.darwin-x86_64/
-pkg/unpackage/pulse-collector-plugin-dummy1.darwin-x86_64_gz/
 
 # we don't vendor godep _workspace
 **/Godeps/_workspace/**
