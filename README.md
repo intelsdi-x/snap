@@ -61,7 +61,7 @@ The key features of snap are:
 
 * **Dynamic Updates**: snap is designed to evolve. Each scheduled workflow automatically uses the most mature plugin for that step, unless the collection is pinned to a specific version (ex: get /intel/server/cpu/load/v1). Loading a new plugin automatically upgrades running workflows in tasks. Load plugins dynamically, without a restart to the service or server. This dynamically extends the metric catalog when loaded, giving access to new measurements immediately. Swapping a newer version plugin for an old one in a safe transaction. All of these behaviors allow for simple and secure bug fixes, security patching, and improving accuracy in production.
 
-* **snap Tribe**: snap is designed for ease of administration. With snap Tribe, nodes work in groups (aka tribes). Requests are made through agreement- or task-based node groups, designed as a scalable gossip-based node-to-node communication process. Administrators can control all snap nodes in a tribe agreement by messaging just one of them. There is auto-discovery of new nodes and import of tasks & plugins from nodes within a given tribe. It is cluster configuration management made simple.
+* **snap tribe**: snap is designed for ease of administration. With snap Tribe, nodes work in groups (aka tribes). Requests are made through agreement- or task-based node groups, designed as a scalable gossip-based node-to-node communication process. Administrators can control all snap nodes in a tribe agreement by messaging just one of them. There is auto-discovery of new nodes and import of tasks & plugins from nodes within a given tribe. It is cluster configuration management made simple.
 
 Some additionally important notes about how snap works:
 
