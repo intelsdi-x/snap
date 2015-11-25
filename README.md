@@ -183,7 +183,7 @@ We encourage contribution from the community. **snap** needs:
 
 * _Feedback_: try it and tell us about it through issues, blog posts or Twitter
 * _Contributors_: We need plugins, schedules, testing, and more
-* _Integrations_: **snap** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vCOPs](http://www.vmware.com/products/vrealize-operations), and more. See [the Plugin Catalog](./docs/PLUGIN_CATALOG.md#wish-list) for the full list
+* _Integrations_: **snap** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vROPs](http://www.vmware.com/products/vrealize-operations), and more. See [the Plugin Catalog](./docs/PLUGIN_CATALOG.md#wish-list) for the full list
 
 To contribute to the snap framework, see [our CONTRIBUTING file](CONTRIBUTING.md). To give back to a specific plugin, open an issue on its repository.
 
