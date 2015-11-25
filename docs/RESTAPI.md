@@ -1,5 +1,5 @@
 # snap API
-snap exposes a list of Restful APIs to perform various actions. All of snap APIs return `JSON` as the reponses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation has the endpoint:
+snap exposes a list of RESTful APIs to perform various actions. All of snap APIs return `JSON` as the reponses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation has the endpoint:
 > http://localhost:8181
 
 ## API Response Meta
@@ -25,7 +25,7 @@ Parameter  | Description |
  * [Tribe APIs and Examples](#tribe-apis-and-examples)
 
 ## Plugin API
-Plugin restful APIs provide the functionality to load, unload and retrieve plugin information. You may see plugin APIs along with their request and response attributes as following:
+Plugin RESTful APIs provide the functionality to load, unload and retrieve plugin information. You may see plugin APIs along with their request and response attributes as following:
 
 ### Plugin Response Parameters
 | Parameter  | Description | 
