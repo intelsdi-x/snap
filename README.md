@@ -188,7 +188,7 @@ We encourage contribution from the community. **snap** needs:
 To contribute to the snap framework, see [our CONTRIBUTING file](CONTRIBUTING.md). To give back to a specific plugin, open an issue on its repository.
 
 ## License
-snap is an Open Source software released under the Apache 2.0 [License](LICENSE).
+snap is Open Source software released under the Apache 2.0 [License](LICENSE).
 
 ## Maintainers
 
