@@ -26,7 +26,7 @@
 # 6. test coverage (http://blog.golang.org/cover)
 
 COVERALLS_TOKEN=t47LG6BQsfLwb9WxB56hXUezvwpED6D11
-TEST_DIRS="cmd/ control/ core/ mgmt/ pkg/ pulse.go scheduler/"
+TEST_DIRS="cmd/ control/ core/ mgmt/ pkg/ snapd.go scheduler/"
 VET_DIRS="./cmd/... ./control/... ./core/... ./mgmt/... ./pkg/... ./scheduler/... ."
 
 set -e

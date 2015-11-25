@@ -24,11 +24,11 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
-func TestPulseClientConfig(t *testing.T) {
+func TestSnapClientConfig(t *testing.T) {
 	uri := startAPI()
 	CompressUpload = false
 	c := New(uri, "v1", true)

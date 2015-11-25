@@ -34,13 +34,13 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
-	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
-	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
+	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 const (
@@ -58,8 +58,8 @@ type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics([]string, int) ([]core.CatalogedMetric, error)
 	GetMetric([]string, int) (core.CatalogedMetric, error)
-	Load(*core.RequestedPlugin) (core.CatalogedPlugin, perror.PulseError)
-	Unload(core.Plugin) (core.CatalogedPlugin, perror.PulseError)
+	Load(*core.RequestedPlugin) (core.CatalogedPlugin, perror.SnapError)
+	Unload(core.Plugin) (core.CatalogedPlugin, perror.SnapError)
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin
 	GetAutodiscoverPaths() []string
@@ -69,20 +69,20 @@ type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, bool, ...core.TaskOption) (core.Task, core.TaskErrors)
 	GetTasks() map[string]core.Task
 	GetTask(string) (core.Task, error)
-	StartTask(string) []perror.PulseError
-	StopTask(string) []perror.PulseError
+	StartTask(string) []perror.SnapError
+	StopTask(string) []perror.SnapError
 	RemoveTask(string) error
 	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
 	EnableTask(string) (core.Task, error)
 }
 
 type managesTribe interface {
-	GetAgreement(name string) (*agreement.Agreement, perror.PulseError)
+	GetAgreement(name string) (*agreement.Agreement, perror.SnapError)
 	GetAgreements() map[string]*agreement.Agreement
-	AddAgreement(name string) perror.PulseError
-	RemoveAgreement(name string) perror.PulseError
-	JoinAgreement(agreementName, memberName string) perror.PulseError
-	LeaveAgreement(agreementName, memberName string) perror.PulseError
+	AddAgreement(name string) perror.SnapError
+	RemoveAgreement(name string) perror.SnapError
+	JoinAgreement(agreementName, memberName string) perror.SnapError
+	LeaveAgreement(agreementName, memberName string) perror.SnapError
 	GetMembers() []string
 	GetMember(name string) *agreement.Member
 }

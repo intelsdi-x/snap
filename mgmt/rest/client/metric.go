@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 	ErrAPIResponseMetaType = errors.New("Received an invalid API response (META/TYPE)")
 )
 
-// GetMetricCatalog retrieves the metric catalog from a pulse/client by issuing an HTTP GET request.
+// GetMetricCatalog retrieves the metric catalog from a snap/client by issuing an HTTP GET request.
 // A slice of metric catalogs returns if succeeded. Otherwise an error is returned.
 func (c *Client) GetMetricCatalog() *GetMetricsResult {
 	r := &GetMetricsResult{}
@@ -77,7 +77,7 @@ func (c *Client) FetchMetrics(ns string, ver int) *GetMetricsResult {
 	return r
 }
 
-// GetMetricsResult is the response from pulse/client on a GetMetricCatalog call.
+// GetMetricsResult is the response from snap/client on a GetMetricCatalog call.
 type GetMetricsResult struct {
 	Catalog []*rbody.Metric
 	Err     error

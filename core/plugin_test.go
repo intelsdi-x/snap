@@ -30,10 +30,10 @@ import (
 )
 
 var (
-	PluginName    = "pulse-collector-mock1"
-	PulsePath     = os.Getenv("PULSE_PATH")
-	PluginPath    = path.Join(PulsePath, "plugin", PluginName)
-	SignatureFile = path.Join(PulsePath, "../pkg/psigning", "pulse-collector-mock1.asc")
+	PluginName    = "snap-collector-mock1"
+	SnapPath      = os.Getenv("SNAP_PATH")
+	PluginPath    = path.Join(SnapPath, "plugin", PluginName)
+	SignatureFile = path.Join(SnapPath, "../pkg/psigning", "snap-collector-mock1.asc")
 )
 
 func TestRequestedPlugin(t *testing.T) {

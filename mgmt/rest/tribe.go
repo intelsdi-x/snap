@@ -27,8 +27,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -56,15 +56,15 @@ func (s *Server) getAgreement(w http.ResponseWriter, r *http.Request, p httprout
 			"agreement_name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
-		respond(400, rbody.FromPulseError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		respond(400, rbody.FromSnapError(perror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
 	a := &rbody.TribeGetAgreement{}
-	var perr perror.PulseError
+	var perr perror.SnapError
 	a.Agreement, perr = s.tr.GetAgreement(name)
 	if perr != nil {
 		tribeLogger.Error(perr)
-		respond(400, rbody.FromPulseError(perr), w)
+		respond(400, rbody.FromSnapError(perr), w)
 		return
 	}
 	respond(200, a, w)
@@ -78,15 +78,15 @@ func (s *Server) deleteAgreement(w http.ResponseWriter, r *http.Request, p httpr
 			"agreement_name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
-		respond(400, rbody.FromPulseError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		respond(400, rbody.FromSnapError(perror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
 
-	var perr perror.PulseError
+	var perr perror.SnapError
 	perr = s.tr.RemoveAgreement(name)
 	if perr != nil {
 		tribeLogger.Error(perr)
-		respond(400, rbody.FromPulseError(perr), w)
+		respond(400, rbody.FromSnapError(perr), w)
 		return
 	}
 
@@ -103,7 +103,7 @@ func (s *Server) joinAgreement(w http.ResponseWriter, r *http.Request, p httprou
 			"agreement_name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
-		respond(400, rbody.FromPulseError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		respond(400, rbody.FromSnapError(perror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
 
@@ -125,14 +125,14 @@ func (s *Server) joinAgreement(w http.ResponseWriter, r *http.Request, p httprou
 		}
 		pe := perror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
-		respond(400, rbody.FromPulseError(pe), w)
+		respond(400, rbody.FromSnapError(pe), w)
 		return
 	}
 
 	perr := s.tr.JoinAgreement(name, m.MemberName)
 	if perr != nil {
 		tribeLogger.Error(perr)
-		respond(400, rbody.FromPulseError(perr), w)
+		respond(400, rbody.FromSnapError(perr), w)
 		return
 	}
 	agreement, _ := s.tr.GetAgreement(name)
@@ -148,7 +148,7 @@ func (s *Server) leaveAgreement(w http.ResponseWriter, r *http.Request, p httpro
 			"agreement_name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
-		respond(400, rbody.FromPulseError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		respond(400, rbody.FromSnapError(perror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
 
@@ -170,14 +170,14 @@ func (s *Server) leaveAgreement(w http.ResponseWriter, r *http.Request, p httpro
 		}
 		pe := perror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
-		respond(400, rbody.FromPulseError(pe), w)
+		respond(400, rbody.FromSnapError(pe), w)
 		return
 	}
 
 	perr := s.tr.LeaveAgreement(name, m.MemberName)
 	if perr != nil {
 		tribeLogger.Error(perr)
-		respond(400, rbody.FromPulseError(perr), w)
+		respond(400, rbody.FromSnapError(perr), w)
 		return
 	}
 	agreement, _ := s.tr.GetAgreement(name)
@@ -198,7 +198,7 @@ func (s *Server) getMember(w http.ResponseWriter, r *http.Request, p httprouter.
 			"name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrMemberNotFound)
-		respond(404, rbody.FromPulseError(perror.New(ErrMemberNotFound, fields)), w)
+		respond(404, rbody.FromSnapError(perror.New(ErrMemberNotFound, fields)), w)
 		return
 	}
 	resp := &rbody.TribeMemberShow{
@@ -234,7 +234,7 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 		}
 		pe := perror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
-		respond(400, rbody.FromPulseError(pe), w)
+		respond(400, rbody.FromSnapError(pe), w)
 		return
 	}
 
@@ -244,7 +244,7 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 		}
 		pe := perror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
-		respond(400, rbody.FromPulseError(pe), w)
+		respond(400, rbody.FromSnapError(pe), w)
 		return
 	}
 

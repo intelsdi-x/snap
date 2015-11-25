@@ -35,7 +35,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 var (
@@ -72,7 +72,7 @@ type Client struct {
 	prefix string
 }
 
-// New returns a pointer to a pulse api client
+// New returns a pointer to a snap api client
 // if ver is an empty string, v1 is used by default
 func New(url, ver string, insecure bool) *Client {
 	if ver == "" {
@@ -101,7 +101,7 @@ func (t contentType) String() string {
 }
 
 /*
-   do handles all interactions with Pulse's REST API.
+   do handles all interactions with snap's REST API.
    we use the variadic function signature so that all actions can use the same
    function, including ones which do not include a request body.
 */
@@ -251,7 +251,7 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 
 func writePluginToWriter(pw io.WriteCloser, bufin []*bufio.Reader, writer *multipart.Writer, pluginPaths []string, errChan chan error) {
 	for i, pluginPath := range pluginPaths {
-		part, err := writer.CreateFormFile("pulse-plugins", pluginPath)
+		part, err := writer.CreateFormFile("snap-plugins", pluginPath)
 		if err != nil {
 			errChan <- err
 			return

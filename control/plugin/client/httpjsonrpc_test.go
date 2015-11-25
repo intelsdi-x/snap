@@ -34,13 +34,13 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-	"github.com/intelsdi-x/pulse/control/plugin/encoding"
-	"github.com/intelsdi-x/pulse/control/plugin/encrypter"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/control/plugin/encoding"
+	"github.com/intelsdi-x/snap/control/plugin/encrypter"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/ctypes"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -304,8 +304,8 @@ func TestHTTPJSONRPC(t *testing.T) {
 		Convey("Process metrics", func() {
 			pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1)
 			b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
-			contentType, content, err := p.Process(plugin.PulseJSONContentType, b, nil)
-			So(contentType, ShouldResemble, plugin.PulseJSONContentType)
+			contentType, content, err := p.Process(plugin.SnapJSONContentType, b, nil)
+			So(contentType, ShouldResemble, plugin.SnapJSONContentType)
 			So(content, ShouldNotBeNil)
 			So(err, ShouldEqual, nil)
 			var pmts []plugin.PluginMetricType
@@ -344,7 +344,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 		Convey("Publish metrics", func() {
 			pmt := plugin.NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1)
 			b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
-			err := p.Publish(plugin.PulseJSONContentType, b, nil)
+			err := p.Publish(plugin.SnapJSONContentType, b, nil)
 			So(err, ShouldBeNil)
 		})
 

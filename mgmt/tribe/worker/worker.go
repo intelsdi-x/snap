@@ -33,13 +33,13 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/mgmt/rest/client"
-	"github.com/intelsdi-x/pulse/mgmt/rest/request"
-	"github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/mgmt/rest/client"
+	"github.com/intelsdi-x/snap/mgmt/rest/request"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 const (
@@ -103,16 +103,16 @@ type Task struct {
 }
 
 type ManagesPlugins interface {
-	Load(*core.RequestedPlugin) (core.CatalogedPlugin, perror.PulseError)
-	Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.PulseError)
+	Load(*core.RequestedPlugin) (core.CatalogedPlugin, perror.SnapError)
+	Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.SnapError)
 	PluginCatalog() core.PluginCatalog
 }
 
 type ManagesTasks interface {
 	GetTask(id string) (core.Task, error)
 	CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
-	StopTaskTribe(id string) []perror.PulseError
-	StartTaskTribe(id string) []perror.PulseError
+	StopTaskTribe(id string) []perror.SnapError
+	StartTaskTribe(id string) []perror.SnapError
 	RemoveTaskTribe(id string) error
 }
 

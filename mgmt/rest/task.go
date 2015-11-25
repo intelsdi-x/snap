@@ -31,11 +31,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
-	"github.com/intelsdi-x/pulse/mgmt/rest/request"
-	cschedule "github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/request"
+	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 var (
@@ -237,10 +237,10 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	errs := s.mt.StartTask(id)
 	if errs != nil {
 		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromPulseErrors(errs), w)
+			respond(404, rbody.FromSnapErrors(errs), w)
 			return
 		}
-		respond(500, rbody.FromPulseErrors(errs), w)
+		respond(500, rbody.FromSnapErrors(errs), w)
 		return
 	}
 	// TODO should return resource
@@ -252,10 +252,10 @@ func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 	errs := s.mt.StopTask(id)
 	if errs != nil {
 		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromPulseErrors(errs), w)
+			respond(404, rbody.FromSnapErrors(errs), w)
 			return
 		}
-		respond(500, rbody.FromPulseErrors(errs), w)
+		respond(500, rbody.FromSnapErrors(errs), w)
 		return
 	}
 	respond(200, &rbody.ScheduledTaskStopped{ID: id}, w)

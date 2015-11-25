@@ -20,7 +20,7 @@ limitations under the License.
 package scheduler_event
 
 import (
-	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/snap/core"
 )
 
 const (

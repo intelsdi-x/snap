@@ -23,9 +23,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/julienschmidt/httprouter"
 )
 

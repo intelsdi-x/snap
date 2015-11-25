@@ -28,12 +28,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/cdata"
-	"github.com/intelsdi-x/pulse/core/ctypes"
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 type mockMetricManager struct {
@@ -91,21 +91,21 @@ func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, p
 	return "", nil, nil
 }
 
-func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin) []perror.PulseError {
+func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin) []perror.SnapError {
 	if m.failValidatingMetrics {
-		return []perror.PulseError{
+		return []perror.SnapError{
 			perror.New(errors.New("metric validation error")),
 		}
 	}
 	return nil
 }
-func (m *mockMetricManager) SubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []perror.PulseError {
-	return []perror.PulseError{
+func (m *mockMetricManager) SubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []perror.SnapError {
+	return []perror.SnapError{
 		perror.New(errors.New("metric validation error")),
 	}
 }
 
-func (m *mockMetricManager) UnsubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []perror.PulseError {
+func (m *mockMetricManager) UnsubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []perror.SnapError {
 	return nil
 }
 
@@ -159,10 +159,10 @@ func TestScheduler(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	Convey("NewTask", t, func() {
 		c := new(mockMetricManager)
-		c.setAcceptedContentType("machine", core.ProcessorPluginType, 1, []string{"pulse.*", "pulse.gob", "foo.bar"})
-		c.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"pulse.gob"})
-		c.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"pulse.json", "pulse.gob"})
-		c.setAcceptedContentType("file", core.PublisherPluginType, -1, []string{"pulse.json"})
+		c.setAcceptedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.*", "snap.gob", "foo.bar"})
+		c.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.gob"})
+		c.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"snap.json", "snap.gob"})
+		c.setAcceptedContentType("file", core.PublisherPluginType, -1, []string{"snap.json"})
 		s := New()
 		s.SetMetricManager(c)
 		w := wmap.NewWorkflowMap()
@@ -210,7 +210,7 @@ func TestScheduler(t *testing.T) {
 		for _, i := range t.(*task).workflow.publishNodes {
 			testInboundContentType(i)
 		}
-		So(t.(*task).workflow.processNodes[0].ProcessNodes[0].PublishNodes[0].InboundContentType, ShouldEqual, "pulse.json")
+		So(t.(*task).workflow.processNodes[0].ProcessNodes[0].PublishNodes[0].InboundContentType, ShouldEqual, "snap.json")
 
 		Convey("returns errors when metrics do not validate", func() {
 			c.failValidatingMetrics = true

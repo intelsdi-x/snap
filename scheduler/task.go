@@ -29,10 +29,10 @@ import (
 	"github.com/intelsdi-x/gomit"
 	"github.com/pborman/uuid"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/scheduler_event"
-	"github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 const (

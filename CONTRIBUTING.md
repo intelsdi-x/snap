@@ -2,8 +2,8 @@
 
 ##Build and Test
 ###Build
-In the /pulse directory there's a `Makefile` that builds all dependencies and Pulse.
-To get dependencies and build Pulse just run:  
+In the /snap directory there's a `Makefile` that builds all dependencies and snap.
+To get dependencies and build snap just run:  
 ```
 make
 ```
@@ -20,23 +20,23 @@ deps:
 	#gets all dependencies using godeps
 	bash -c "./scripts/deps.sh"
 test:
-	#exports Pulse build path to env var PULSE_PATH and runs test files
-	export PULSE_PATH=`pwd`/build; bash -c "./scripts/test.sh"
+	#exports snap build path to env var SNAP_PATH and runs test files
+	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh"
 check:
 	#runs make test
 	$(MAKE) test
 all:
-	#builds Pulse daemon, CLI, and plugin binaries
+	#builds snap daemon, CLI, and plugin binaries
 	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))) true"
-pulse:
-	#builds Pulse daemon and CLI binaries, but not plugin binaries
+snap:
+	#builds snap daemon and CLI binaries, but not plugin binaries
 	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))"
 install:
-	#copies pulsed and pulsectl binaries into /usr/local/bin
-	cp build/bin/pulsed /usr/local/bin/
-	cp build/bin/pulsectl /usr/local/bin/
+	#copies snapd and snapctl binaries into /usr/local/bin
+	cp build/bin/snapd /usr/local/bin/
+	cp build/bin/snapctl /usr/local/bin/
 release:
-	#creates a Pulse release
+	#creates a snap release
 	bash -c "./scripts/release.sh $(TAG) $(COMMIT)"
 ```
 
@@ -81,13 +81,13 @@ There's a `Dockerfile` located at `./scripts/Dockerfile`:
 ```
 FROM golang:latest
 ENV GOPATH=$GOPATH:/app
-ENV PULSE_PATH=/go/src/github.com/intelsdi-x/pulse/build
+ENV SNAP_PATH=/go/src/github.com/intelsdi-x/snap/build
 RUN apt-get update && \
     apt-get -y install facter
 WORKDIR /go/src/github.com/intelsdi-x/
 RUN git clone https://<GIT_TOKEN>@github.com/intelsdi-x/gomit.git
-WORKDIR /go/src/github.com/intelsdi-x/pulse
-ADD . /go/src/github.com/intelsdi-x/pulse
+WORKDIR /go/src/github.com/intelsdi-x/snap
+ADD . /go/src/github.com/intelsdi-x/snap
 RUN go get github.com/tools/godep && \
     go get golang.org/x/tools/cmd/goimports && \
     go get golang.org/x/tools/cmd/vet && \
@@ -96,7 +96,7 @@ RUN go get github.com/tools/godep && \
 RUN scripts/deps.sh
 RUN make
 ```
-This is run in the pulse directory using `./scripts/run_tests_with_docker.sh`  
+This is run in the snap directory using `./scripts/run_tests_with_docker.sh`  
 First you need a [github personal access token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/)  
 Then export the token using `export GIT_TOKEN=<tokenID>`.
 
@@ -117,7 +117,7 @@ if [ -z "${GIT_TOKEN}" ]; then
 fi
 
 sed s/\<GIT_TOKEN\>/${GIT_TOKEN}/ scripts/Dockerfile > scripts/Dockerfile.tmp
-docker build -t intelsdi-x/pulse-test -f scripts/Dockerfile.tmp .
+docker build -t intelsdi-x/snap-test -f scripts/Dockerfile.tmp .
 rm scripts/Dockerfile.tmp
-docker run -it intelsdi-x/pulse-test scripts/test.sh
+docker run -it intelsdi-x/snap-test scripts/test.sh
 ```

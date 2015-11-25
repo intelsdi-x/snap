@@ -34,11 +34,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/gomit"
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/control/plugin/client"
-	"github.com/intelsdi-x/pulse/control/routing"
-	"github.com/intelsdi-x/pulse/core/control_event"
-	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/client"
+	"github.com/intelsdi-x/snap/control/routing"
+	"github.com/intelsdi-x/snap/core/control_event"
+	"github.com/intelsdi-x/snap/core/perror"
 )
 
 const (
@@ -295,7 +295,7 @@ type apPool struct {
 
 	// The plugins in the pool.
 	// the primary key is an increasing --> uint from
-	// pulsed epoch (`service pulsed start`).
+	// snapd epoch (`service snapd start`).
 	plugins    map[uint32]*availablePlugin
 	pidCounter uint32
 
@@ -481,7 +481,7 @@ func (p *apPool) subscriptionCount() int {
 	return len(p.subs)
 }
 
-func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, perror.PulseError) {
+func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, perror.SnapError) {
 	p.RLock()
 	defer p.RUnlock()
 
@@ -574,7 +574,7 @@ func (ap *availablePlugins) insert(pl *availablePlugin) error {
 	return nil
 }
 
-func (ap *availablePlugins) getPool(key string) (*apPool, perror.PulseError) {
+func (ap *availablePlugins) getPool(key string) (*apPool, perror.SnapError) {
 	ap.RLock()
 	defer ap.RUnlock()
 	pool, ok := ap.table[key]
@@ -603,7 +603,7 @@ func (ap *availablePlugins) getPool(key string) (*apPool, perror.PulseError) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) holdPool(key string) (*apPool, perror.PulseError) {
+func (ap *availablePlugins) holdPool(key string) (*apPool, perror.SnapError) {
 	pool, err := ap.getPool(key)
 	if err != nil {
 		return nil, err
@@ -615,7 +615,7 @@ func (ap *availablePlugins) holdPool(key string) (*apPool, perror.PulseError) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) findLatestPool(pType, name string) (*apPool, perror.PulseError) {
+func (ap *availablePlugins) findLatestPool(pType, name string) (*apPool, perror.SnapError) {
 	// see if there exists a pool at all which matches name version.
 	var latest *apPool
 	for key, pool := range ap.table {
@@ -652,7 +652,7 @@ func (ap *availablePlugins) getOrCreatePool(key string) (*apPool, error) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) selectAP(key string) (*availablePlugin, perror.PulseError) {
+func (ap *availablePlugins) selectAP(key string) (*availablePlugin, perror.SnapError) {
 	ap.RLock()
 	defer ap.RUnlock()
 

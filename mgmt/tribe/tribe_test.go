@@ -29,11 +29,11 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
-	"github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 	"github.com/pborman/uuid"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -45,9 +45,9 @@ func (m *mockTaskManager) GetTask(id string) (core.Task, error) { return &mockTa
 func (m *mockTaskManager) CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	return nil, nil
 }
-func (m *mockTaskManager) StopTaskTribe(id string) []perror.PulseError  { return nil }
-func (m *mockTaskManager) StartTaskTribe(id string) []perror.PulseError { return nil }
-func (m *mockTaskManager) RemoveTaskTribe(id string) error              { return nil }
+func (m *mockTaskManager) StopTaskTribe(id string) []perror.SnapError  { return nil }
+func (m *mockTaskManager) StartTaskTribe(id string) []perror.SnapError { return nil }
+func (m *mockTaskManager) RemoveTaskTribe(id string) error             { return nil }
 
 type mockTask struct{}
 

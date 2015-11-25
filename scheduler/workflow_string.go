@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/snap/core"
 )
 
 func (s *schedulerWorkflow) String() string {

@@ -49,9 +49,9 @@ export GOBIN=/vagrant/go/bin
 export PATH=$PATH:$GOBIN
 go get github.com/tools/godep
 
-cd $GOPATH/src/github.com/intelsdi-x/pulse
+cd $GOPATH/src/github.com/intelsdi-x/snap
 scripts/deps.sh
 make
 
-echo "PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/pulse/build/bin" >> /home/vagrant/.bash_profile
-export PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/pulse/build/bin
+echo "PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/snap/build/bin" >> /home/vagrant/.bash_profile
+export PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/snap/build/bin

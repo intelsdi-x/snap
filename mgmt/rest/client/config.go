@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/intelsdi-x/pulse/core/ctypes"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 // GetPluginConfig retrieves the merged plugin config given the type of plugin,
@@ -112,19 +112,19 @@ func (c *Client) DeletePluginConfig(pluginType, name, version string, key string
 	return r
 }
 
-// GetPluginConfigResult is the response from pulse/client on a GetPluginConfig call.
+// GetPluginConfigResult is the response from snap/client on a GetPluginConfig call.
 type GetPluginConfigResult struct {
 	*rbody.PluginConfigItem
 	Err error
 }
 
-// SetPluginConfigResult is the response from pulse/client on a SetPluginConfig call.
+// SetPluginConfigResult is the response from snap/client on a SetPluginConfig call.
 type SetPluginConfigResult struct {
 	*rbody.SetPluginConfigItem
 	Err error
 }
 
-// DeletePluginConfigResult is the response from pulse/client on a DeletePluginConfig call.
+// DeletePluginConfigResult is the response from snap/client on a DeletePluginConfig call.
 type DeletePluginConfigResult struct {
 	*rbody.DeletePluginConfigItem
 	Err error

@@ -22,7 +22,7 @@ package scheduler
 import (
 	"testing"
 
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"

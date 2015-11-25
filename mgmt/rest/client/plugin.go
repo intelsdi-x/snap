@@ -24,8 +24,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 // LoadPlugin loads plugins for the given plugin names.
@@ -112,20 +112,20 @@ func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 	return r
 }
 
-// GetPluginsResult is the response from pulse/client on a GetPlugins call.
+// GetPluginsResult is the response from snap/client on a GetPlugins call.
 type GetPluginsResult struct {
 	LoadedPlugins    []LoadedPlugin
 	AvailablePlugins []AvailablePlugin
 	Err              error
 }
 
-// LoadPluginResult is the response from pulse/client on a LoadPlugin call.
+// LoadPluginResult is the response from snap/client on a LoadPlugin call.
 type LoadPluginResult struct {
 	LoadedPlugins []LoadedPlugin
-	Err           perror.PulseError
+	Err           perror.SnapError
 }
 
-// UnloadPluginResponse is the response from pulse/client on an UnloadPlugin call.
+// UnloadPluginResponse is the response from snap/client on an UnloadPlugin call.
 type UnloadPluginResult struct {
 	*rbody.PluginUnloaded
 	Err error

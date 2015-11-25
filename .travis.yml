@@ -13,16 +13,16 @@ before_install:
 - go get golang.org/x/tools/cmd/vet
 - go get golang.org/x/tools/cmd/goimports
 - go get github.com/smartystreets/goconvey/convey
-- if [ ! -d $PULSE_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $PULSE_SOURCE; fi # CI for forks not from intelsdi-x
+- if [ ! -d $SNAP_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $SNAP_SOURCE; fi # CI for forks not from intelsdi-x
 - go get golang.org/x/tools/cmd/cover
 env:
   global:
-    - PULSE_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/pulse
-    - PULSE_PATH=/home/travis/gopath/src/github.com/intelsdi-x/pulse/build
+    - SNAP_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/snap
+    - SNAP_PATH=/home/travis/gopath/src/github.com/intelsdi-x/snap/build
 install:
 - export TMPDIR=$HOME/tmp
 - mkdir -p $TMPDIR
-- cd $PULSE_SOURCE # change dir into source
+- cd $SNAP_SOURCE # change dir into source
 - make
 script:
 - make check 2>&1 # Run test suite

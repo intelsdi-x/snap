@@ -33,12 +33,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/intelsdi-x/pulse/control"
-	"github.com/intelsdi-x/pulse/mgmt/rest"
-	"github.com/intelsdi-x/pulse/mgmt/rest/client"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
-	"github.com/intelsdi-x/pulse/mgmt/tribe"
-	"github.com/intelsdi-x/pulse/scheduler"
+	"github.com/intelsdi-x/snap/control"
+	"github.com/intelsdi-x/snap/mgmt/rest"
+	"github.com/intelsdi-x/snap/mgmt/rest/client"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/tribe"
+	"github.com/intelsdi-x/snap/scheduler"
 )
 
 func getPort() int {
@@ -89,7 +89,7 @@ func getMembers(port int) *rbody.APIResponse {
 	return getAPIResponse(resp)
 }
 
-func TestPulseClientTribe(t *testing.T) {
+func TestSnapClientTribe(t *testing.T) {
 	Convey("REST API functional V1 - TRIBE", t, func() {
 		numOfTribes := 4
 		ports := startTribes(numOfTribes)

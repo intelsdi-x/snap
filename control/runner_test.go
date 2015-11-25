@@ -27,9 +27,9 @@ import (
 
 	"github.com/intelsdi-x/gomit"
 
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-	"github.com/intelsdi-x/pulse/control/routing"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/control/routing"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -38,7 +38,7 @@ type MockController struct {
 
 func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
 	a := plugin.Arg{
-		PluginLogPath: "/tmp/pulse-test-plugin.log",
+		PluginLogPath: "/tmp/snap-test-plugin.log",
 		NoDaemon:      daemon,
 	}
 	return a
@@ -198,7 +198,7 @@ func TestRunnerState(t *testing.T) {
 	// log.SetLevel(log.DebugLevel)
 	// log.SetOutput(os.Stdout)
 
-	Convey("pulse/control", t, func() {
+	Convey("snap/control", t, func() {
 
 		Convey("Runner", func() {
 
@@ -342,17 +342,17 @@ func newExecutablePlugin(a plugin.Arg, path string) (*plugin.ExecutablePlugin, e
 
 func TestRunnerPluginRunning(t *testing.T) {
 	// log.SetLevel(log.DebugLevel)
-	Convey("pulse/control", t, func() {
+	Convey("snap/control", t, func() {
 		Convey("Runner", func() {
 			Convey("startPlugin", func() {
 
-				// These tests only work if Pulse Path is known to discover mock plugin used for testing
-				if PulsePath != "" {
+				// These tests only work if snap Path is known to discover mock plugin used for testing
+				if SnapPath != "" {
 					Convey("should return an AvailablePlugin", func() {
 						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin.log",
+							PluginLogPath: "/tmp/snap-test-plugin.log",
 							// Daemon:        true,
 						}
 						exPlugin, err := newExecutablePlugin(a, PluginPath)
@@ -377,7 +377,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin.log",
+							PluginLogPath: "/tmp/snap-test-plugin.log",
 						}
 						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
@@ -397,7 +397,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin.log",
+							PluginLogPath: "/tmp/snap-test-plugin.log",
 						}
 						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
@@ -416,7 +416,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin.log",
+							PluginLogPath: "/tmp/snap-test-plugin.log",
 						}
 						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
@@ -435,7 +435,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin-foo.log",
+							PluginLogPath: "/tmp/snap-test-plugin-foo.log",
 						}
 						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
@@ -458,7 +458,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner(&routing.RoundRobinStrategy{})
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{
-							PluginLogPath: "/tmp/pulse-test-plugin.log",
+							PluginLogPath: "/tmp/snap-test-plugin.log",
 						}
 						exPlugin, err := newExecutablePlugin(a, PluginPath)
 						if err != nil {
@@ -525,7 +525,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 				Convey("should return an AvailablePlugin in a Running state", func() {
 					r := newRunner(&routing.RoundRobinStrategy{})
 					a := plugin.Arg{
-						PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
+						PluginLogPath: "/tmp/snap-test-plugin-stop.log",
 					}
 					exPlugin, err := newExecutablePlugin(a, PluginPath)
 					if err != nil {

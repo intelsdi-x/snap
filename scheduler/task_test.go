@@ -23,10 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
@@ -44,7 +44,7 @@ func TestTask(t *testing.T) {
 		wf, errs := wmapToWorkflow(sampleWFMap)
 		So(errs, ShouldBeEmpty)
 		c := &mockMetricManager{}
-		c.setAcceptedContentType("rabbitmq", core.PublisherPluginType, 5, []string{plugin.PulseGOBContentType})
+		c.setAcceptedContentType("rabbitmq", core.PublisherPluginType, 5, []string{plugin.SnapGOBContentType})
 		err := wf.BindPluginContentTypes(c)
 		So(err, ShouldBeNil)
 		Convey("task + simple schedule", func() {

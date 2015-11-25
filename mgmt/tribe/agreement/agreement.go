@@ -25,7 +25,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/hashicorp/memberlist"
-	"github.com/intelsdi-x/pulse/core"
+	"github.com/intelsdi-x/snap/core"
 )
 
 const (

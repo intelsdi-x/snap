@@ -26,7 +26,7 @@ import (
 	"github.com/codegangsta/negroni"
 )
 
-// Logger is a Pulse middleware that logs to a logrus facility
+// Logger is a snap middleware that logs to a logrus facility
 type Logger struct {
 	counter uint
 }

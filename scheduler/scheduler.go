@@ -28,12 +28,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/ctypes"
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/core/scheduler_event"
-	"github.com/intelsdi-x/pulse/pkg/schedule"
-	"github.com/intelsdi-x/pulse/scheduler/wmap"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
 var (
@@ -59,9 +59,9 @@ type managesMetrics interface {
 	publishesMetrics
 	processesMetrics
 	managesPluginContentTypes
-	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []perror.PulseError
-	SubscribeDeps(string, []core.Metric, []core.Plugin) []perror.PulseError
-	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []perror.PulseError
+	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []perror.SnapError
+	SubscribeDeps(string, []core.Metric, []core.Plugin) []perror.SnapError
+	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []perror.SnapError
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -118,10 +118,10 @@ func New(opts ...workManagerOption) *scheduler {
 }
 
 type taskErrors struct {
-	errs []perror.PulseError
+	errs []perror.SnapError
 }
 
-func (t *taskErrors) Errors() []perror.PulseError {
+func (t *taskErrors) Errors() []perror.SnapError {
 	return t.errs
 }
 
@@ -149,7 +149,7 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	})
 	// Create a container for task errors
 	te := &taskErrors{
-		errs: make([]perror.PulseError, 0),
+		errs: make([]perror.SnapError, 0),
 	}
 
 	// Return error if we are not started.
@@ -280,15 +280,15 @@ func (s *scheduler) GetTask(id string) (core.Task, error) {
 }
 
 // StartTask provided a task id a task is started
-func (s *scheduler) StartTask(id string) []perror.PulseError {
+func (s *scheduler) StartTask(id string) []perror.SnapError {
 	return s.startTask(id, "user")
 }
 
-func (s *scheduler) StartTaskTribe(id string) []perror.PulseError {
+func (s *scheduler) StartTaskTribe(id string) []perror.SnapError {
 	return s.startTask(id, "tribe")
 }
 
-func (s *scheduler) startTask(id, source string) []perror.PulseError {
+func (s *scheduler) startTask(id, source string) []perror.SnapError {
 	logger := s.logger.WithFields(log.Fields{
 		"_block": "start-task",
 		"source": source,
@@ -300,7 +300,7 @@ func (s *scheduler) startTask(id, source string) []perror.PulseError {
 			"_error":  ErrTaskNotFound,
 			"task-id": id,
 		}).Error("error starting task")
-		return []perror.PulseError{
+		return []perror.SnapError{
 			perror.New(err),
 		}
 	}
@@ -310,7 +310,7 @@ func (s *scheduler) startTask(id, source string) []perror.PulseError {
 			"task-id":    t.ID(),
 			"task-state": t.State(),
 		}).Info("task is already running")
-		return []perror.PulseError{
+		return []perror.SnapError{
 			perror.New(ErrTaskAlreadyRunning),
 		}
 	}
@@ -336,15 +336,15 @@ func (s *scheduler) startTask(id, source string) []perror.PulseError {
 }
 
 // StopTask provided a task id a task is stopped
-func (s *scheduler) StopTask(id string) []perror.PulseError {
+func (s *scheduler) StopTask(id string) []perror.SnapError {
 	return s.stopTask(id, "user")
 }
 
-func (s *scheduler) StopTaskTribe(id string) []perror.PulseError {
+func (s *scheduler) StopTaskTribe(id string) []perror.SnapError {
 	return s.stopTask(id, "tribe")
 }
 
-func (s *scheduler) stopTask(id, source string) []perror.PulseError {
+func (s *scheduler) stopTask(id, source string) []perror.SnapError {
 	logger := s.logger.WithFields(log.Fields{
 		"_block": "stop-task",
 		"source": source,
@@ -355,7 +355,7 @@ func (s *scheduler) stopTask(id, source string) []perror.PulseError {
 			"_error":  err.Error(),
 			"task-id": id,
 		}).Error("error stopping task")
-		return []perror.PulseError{
+		return []perror.SnapError{
 			perror.New(err),
 		}
 	}
@@ -365,7 +365,7 @@ func (s *scheduler) stopTask(id, source string) []perror.PulseError {
 			"task-id":    t.ID(),
 			"task-state": t.State(),
 		}).Info("task is already stopped")
-		return []perror.PulseError{
+		return []perror.SnapError{
 			perror.New(ErrTaskAlreadyStopped),
 		}
 	}
@@ -573,7 +573,7 @@ func returnCorePlugin(plugins []core.SubscribedPlugin) []core.Plugin {
 	return cps
 }
 
-func buildErrorsLog(errs []perror.PulseError, logger *log.Entry) *log.Entry {
+func buildErrorsLog(errs []perror.SnapError, logger *log.Entry) *log.Entry {
 	for i, e := range errs {
 		logger = logger.WithField(fmt.Sprintf("%s[%d]", "error", i), e.Error())
 	}

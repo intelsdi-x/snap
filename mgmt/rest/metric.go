@@ -27,8 +27,8 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

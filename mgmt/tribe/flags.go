@@ -31,38 +31,38 @@ var (
 	flTribeNodeName = cli.StringFlag{
 		Name:   "tribe-node-name",
 		Usage:  "Name of this node in tribe cluster (default: hostname)",
-		EnvVar: "PULSE_TRIBE_NODE_NAME",
+		EnvVar: "SNAP_TRIBE_NODE_NAME",
 		Value:  getHostname(),
 	}
 
 	flTribe = cli.BoolFlag{
 		Name:   "tribe",
 		Usage:  `Enable tribe mode`,
-		EnvVar: "PULSE_TRIBE",
+		EnvVar: "SNAP_TRIBE",
 	}
 
 	flTribeSeed = cli.StringFlag{
 		Name:   "tribe-seed",
 		Usage:  "IP (or hostname) and port of a node to join (e.g. 127.0.0.1:6000)",
-		EnvVar: "PULSE_TRIBE_SEED",
+		EnvVar: "SNAP_TRIBE_SEED",
 		Value:  "",
 	}
 
 	flTribeAdvertisePort = cli.IntFlag{
 		Name:   "tribe-port",
 		Usage:  "Port tribe gossips over to maintain membership",
-		EnvVar: "PULSE_TRIBE_PORT",
+		EnvVar: "SNAP_TRIBE_PORT",
 		Value:  6000,
 	}
 
 	flTribeAdvertiseAddr = cli.StringFlag{
 		Name:   "tribe-addr",
 		Usage:  "Addr tribe gossips over to maintain membership",
-		EnvVar: "PULSE_TRIBE_ADDR",
+		EnvVar: "SNAP_TRIBE_ADDR",
 		Value:  getIP(),
 	}
 
-	// Flags consumed by pulsed
+	// Flags consumed by snapd
 	Flags = []cli.Flag{flTribeNodeName, flTribe, flTribeSeed, flTribeAdvertiseAddr, flTribeAdvertisePort}
 )
 

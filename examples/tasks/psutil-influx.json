@@ -30,7 +30,7 @@
                             "config": {
                                 "host": "INFLUXDB_IP",
                                 "port": 8086,
-                                "database": "pulse",
+                                "database": "snap",
                                 "user": "admin",
                                 "password": "admin"
                             }

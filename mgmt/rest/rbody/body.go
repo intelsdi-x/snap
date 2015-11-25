@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/snap/core/cdata"
 )
 
 type Body interface {

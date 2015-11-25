@@ -17,23 +17,23 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-# This script runs the correct godep sequences for pulse and built-in plugins
-# This will rebase back to the committed version. It should be run from pulse/.
+# This script runs the correct godep sequences for snap and built-in plugins
+# This will rebase back to the committed version. It should be run from snap/.
 ctrl_c()
 {
   exit $?
 } 
 trap ctrl_c SIGINT
 
-# First load pulse deps
-echo "Checking pulse root for deps"
+# First load snap deps
+echo "Checking snap root for deps"
 godep restore
 # REST API
-echo "Checking pulsectl for deps"
-cd cmd/pulsectl
+echo "Checking snapctl for deps"
+cd cmd/snapctl
 godep restore
 # CLI
-echo "Checking pulse mgmt/rest for deps"
+echo "Checking snap mgmt/rest for deps"
 cd ../../mgmt/rest
 godep restore
 cd ../../

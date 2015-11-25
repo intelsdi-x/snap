@@ -31,7 +31,7 @@ PROCESSORDIR=$BUILDDIR/$PLUGINDIR/processor
 BUILDCMD='go build -a -ldflags "-w"'
 
 echo
-echo "****  Pulse Build ($GITVERSION)  ****"
+echo "****  snap Build ($GITVERSION)  ****"
 echo
 
 # Disable CGO for builds...unless Linux...because appc
@@ -50,13 +50,13 @@ mkdir -p $COLLECTORDIR
 mkdir -p $PUBLISHERDIR
 mkdir -p $PROCESSORDIR
 
-# pulsed
+# snapd
 echo "Source Dir = $SOURCEDIR"
-echo " Building Pulse Daemon"
-go build -ldflags "-w -X main.gitversion=$GITVERSION" -o $BINDIR/pulsed . || exit 1
+echo " Building snap Daemon"
+go build -ldflags "-w -X main.gitversion=$GITVERSION" -o $BINDIR/snapd . || exit 1
 
-# pulsectl
-echo " Building Pulse Command Line"
+# snapctl
+echo " Building snap Command Line"
 cd $SOURCEDIR/cmd
 for d in *; do
 	if [[ -d $d ]]; then
@@ -82,7 +82,7 @@ if [ "$BUILDPLUGINS" == "true" ]; then
 		rm -rf $BUILDDIR/$PLUGINDIR/*
 		cd $SOURCEDIR
 		echo " Building Plugin(s)"
-		find ./plugin/* -iname "pulse-*" -print0 | xargs -0 -P 4 -n 1 $SOURCEDIR/scripts/build-plugin.sh $BUILDDIR/$PLUGINDIR/ || exit 2		
+		find ./plugin/* -iname "snap-*" -print0 | xargs -0 -P 4 -n 1 $SOURCEDIR/scripts/build-plugin.sh $BUILDDIR/$PLUGINDIR/ || exit 2		
 
 		cd $SOURCEDIR
 	fi

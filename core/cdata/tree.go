@@ -23,7 +23,7 @@ import (
 	"bytes"
 	"encoding/gob"
 
-	"github.com/intelsdi-x/pulse/pkg/ctree"
+	"github.com/intelsdi-x/snap/pkg/ctree"
 )
 
 // Allows adding of config data by namespace and retrieving of data from tree

@@ -37,11 +37,11 @@ import (
 	"github.com/appc/spec/schema"
 
 	"github.com/intelsdi-x/gomit"
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/control/plugin/client"
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/client"
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/perror"
 )
 
 const (
@@ -76,7 +76,7 @@ func newLoadedPlugins() *loadedPlugins {
 }
 
 // add adds a loadedPlugin pointer to the table
-func (l *loadedPlugins) add(lp *loadedPlugin) perror.PulseError {
+func (l *loadedPlugins) add(lp *loadedPlugin) perror.SnapError {
 	l.Lock()
 	defer l.Unlock()
 
@@ -147,7 +147,7 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 	return nil, ErrPluginNotFound
 }
 
-// the struct representing a plugin that is loaded into Pulse
+// the struct representing a plugin that is loaded into snap
 type pluginDetails struct {
 	CheckSum  [sha256.Size]byte
 	Exec      string
@@ -254,7 +254,7 @@ func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
 
 // Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
-func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter) (*loadedPlugin, perror.PulseError) {
+func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter) (*loadedPlugin, perror.SnapError) {
 	lPlugin := new(loadedPlugin)
 	lPlugin.Details = details
 	lPlugin.State = DetectedState
@@ -428,7 +428,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 }
 
 // unloads a plugin from the LoadedPlugins table
-func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.PulseError) {
+func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.SnapError) {
 
 	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {

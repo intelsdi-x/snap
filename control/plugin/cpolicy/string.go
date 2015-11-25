@@ -24,7 +24,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 
-	"github.com/intelsdi-x/pulse/core/ctypes"
+	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
 // A rule validating against string-typed config

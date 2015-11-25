@@ -30,10 +30,10 @@ These examples all include configuring and starting influxdb (a time series data
 The following scripts can be used to start the demos
 
 - run-pcm.sh *\<docker-machine name\>* 
-  - starts pulsed
+  - starts snapd
   - creates and starts a task that collects from both the pcm and psutil plugins
 - run-psutil.sh *\<docker-machine\>*
-  - starts pulsed
+  - starts snapd
   - creates and starts a task that collects from psutil plugin
 - ./run.sh *\<docker-machine\>*   
   - configured influxdb and grafana only 

@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/intelsdi-x/pulse/mgmt/rest",
+	"ImportPath": "github.com/intelsdi-x/snap/mgmt/rest",
 	"GoVersion": "go1.4.2",
 	"Deps": [
 		{

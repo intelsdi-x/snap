@@ -34,9 +34,9 @@ import (
 )
 
 var (
-	PluginName = "pulse-collector-mock2"
-	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", PluginName)
+	PluginName = "snap-collector-mock2"
+	SnapPath   = os.Getenv("SNAP_PATH")
+	PluginPath = path.Join(SnapPath, "plugin", PluginName)
 )
 
 type MockController struct {
@@ -177,13 +177,13 @@ func TestWaitForPluginResponse(t *testing.T) {
 		})
 
 		// These tests don't mock and directly use mock collector plugin
-		// They require pulse path being set and a recent build of the plugin
+		// They require snap path being set and a recent build of the plugin
 		// WIP
 		if PluginPath != "" {
 			Convey("mock", func() {
 				m := new(MockController)
 				a := m.GenerateArgs()
-				a.PluginLogPath = "/tmp/pulse-mock.log"
+				a.PluginLogPath = "/tmp/snap-mock.log"
 				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)
@@ -203,7 +203,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			Convey("mock2", func() {
 				m := new(MockController)
 				a := m.GenerateArgs()
-				a.PluginLogPath = "/tmp/pulse-mock.log"
+				a.PluginLogPath = "/tmp/snap-mock.log"
 				ex, err := NewExecutablePlugin(a, PluginPath)
 				if err != nil {
 					panic(err)

@@ -25,8 +25,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/pkg/chrono"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/pkg/chrono"
 )
 
 // the time limit for which a cache entry is valid.

@@ -29,18 +29,18 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/core/ctypes"
-	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/core/perror"
 )
 
 var (
-	PluginName = "pulse-collector-mock2"
-	PulsePath  = os.Getenv("PULSE_PATH")
-	PluginPath = path.Join(PulsePath, "plugin", PluginName)
+	PluginName = "snap-collector-mock2"
+	SnapPath   = os.Getenv("SNAP_PATH")
+	PluginPath = path.Join(SnapPath, "plugin", PluginName)
 
-	JSONRPC_PluginName = "pulse-collector-mock1"
-	JSONRPC_PluginPath = path.Join(PulsePath, "plugin", JSONRPC_PluginName)
+	JSONRPC_PluginName = "snap-collector-mock1"
+	JSONRPC_PluginPath = path.Join(SnapPath, "plugin", JSONRPC_PluginName)
 )
 
 func TestLoadedPlugins(t *testing.T) {
@@ -72,11 +72,11 @@ func TestLoadedPlugins(t *testing.T) {
 	})
 }
 
-func loadPlugin(p *pluginManager, path string) (*loadedPlugin, perror.PulseError) {
+func loadPlugin(p *pluginManager, path string) (*loadedPlugin, perror.SnapError) {
 	// This is a Travis optimized loading of plugins. From time to time, tests will error in Travis
 	// due to a timeout when waiting for a response from a plugin. We are going to attempt loading a plugin
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
-	var e perror.PulseError
+	var e perror.SnapError
 	var lp *loadedPlugin
 	details := &pluginDetails{
 		Path:     path,
@@ -98,11 +98,11 @@ func loadPlugin(p *pluginManager, path string) (*loadedPlugin, perror.PulseError
 
 // Uses the mock collector plugin to simulate loading
 func TestLoadPlugin(t *testing.T) {
-	// These tests only work if PULSE_PATH is known
+	// These tests only work if SNAP_PATH is known
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir
 
-	if PulsePath != "" {
+	if SnapPath != "" {
 		Convey("PluginManager.LoadPlugin", t, func() {
 
 			Convey("loads plugin successfully", func() {
@@ -173,7 +173,7 @@ func TestLoadPlugin(t *testing.T) {
 }
 
 func TestUnloadPlugin(t *testing.T) {
-	if PulsePath != "" {
+	if SnapPath != "" {
 		Convey("pluginManager.UnloadPlugin", t, func() {
 
 			Convey("when a loaded plugin is unloaded", func() {

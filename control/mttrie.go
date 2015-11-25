@@ -23,8 +23,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/perror"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/perror"
 )
 
 /*
@@ -146,7 +146,7 @@ func (mtt *mttNode) Add(mt *metricType) {
 
 // Collect collects all children below a given namespace
 // and concatenates their metric types into a single slice
-func (mtt *mttNode) Fetch(ns []string) ([]*metricType, perror.PulseError) {
+func (mtt *mttNode) Fetch(ns []string) ([]*metricType, perror.SnapError) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (mtt *mttNode) Fetch(ns []string) ([]*metricType, perror.PulseError) {
 }
 
 // Remove removes all children below a given namespace
-func (mtt *mttNode) Remove(ns []string) perror.PulseError {
+func (mtt *mttNode) Remove(ns []string) perror.SnapError {
 	_, err := mtt.find(ns)
 	if err != nil {
 		return err
@@ -189,7 +189,7 @@ func (mtt *mttNode) Remove(ns []string) perror.PulseError {
 
 // Get works like fetch, but only returns the MT at the given node
 // and does not gather the node's children.
-func (mtt *mttNode) Get(ns []string) ([]*metricType, perror.PulseError) {
+func (mtt *mttNode) Get(ns []string) ([]*metricType, perror.SnapError) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
@@ -226,7 +226,7 @@ func (mtt *mttNode) walk(ns []string) (*mttNode, int) {
 	return parent, len(ns)
 }
 
-func (mtt *mttNode) find(ns []string) (*mttNode, perror.PulseError) {
+func (mtt *mttNode) find(ns []string) (*mttNode, perror.SnapError) {
 	node, index := mtt.walk(ns)
 	if index != len(ns) {
 		pe := perror.New(errorMetricNotFound(ns))

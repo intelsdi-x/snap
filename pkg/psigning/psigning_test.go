@@ -30,10 +30,10 @@ import (
 
 func TestValidateSignature(t *testing.T) {
 	keyringFile := []string{"pubring.gpg"}
-	signedFile := "pulse-collector-mock1"
+	signedFile := "snap-collector-mock1"
 	signatureFile := signedFile + ".asc"
-	pulsePath := os.Getenv("PULSE_PATH")
-	unsignedFile := path.Join(pulsePath, "plugin", "pulse-collector-mock2")
+	snapPath := os.Getenv("SNAP_PATH")
+	unsignedFile := path.Join(snapPath, "plugin", "snap-collector-mock2")
 	s := SigningManager{}
 
 	signature, _ := ioutil.ReadFile(signatureFile)

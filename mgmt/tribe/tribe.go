@@ -31,12 +31,12 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
-	"github.com/intelsdi-x/pulse/core"
-	"github.com/intelsdi-x/pulse/core/control_event"
-	"github.com/intelsdi-x/pulse/core/perror"
-	"github.com/intelsdi-x/pulse/core/scheduler_event"
-	"github.com/intelsdi-x/pulse/mgmt/tribe/agreement"
-	"github.com/intelsdi-x/pulse/mgmt/tribe/worker"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/control_event"
+	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
+	"github.com/intelsdi-x/snap/mgmt/tribe/worker"
 	"github.com/pborman/uuid"
 
 	"github.com/hashicorp/go-msgpack/codec"
@@ -477,7 +477,7 @@ func (t *tribe) GetMembers() []string {
 	return members
 }
 
-func (t *tribe) LeaveAgreement(agreementName, memberName string) perror.PulseError {
+func (t *tribe) LeaveAgreement(agreementName, memberName string) perror.SnapError {
 	if err := t.canLeaveAgreement(agreementName, memberName); err != nil {
 		return err
 	}
@@ -495,7 +495,7 @@ func (t *tribe) LeaveAgreement(agreementName, memberName string) perror.PulseErr
 	return nil
 }
 
-func (t *tribe) JoinAgreement(agreementName, memberName string) perror.PulseError {
+func (t *tribe) JoinAgreement(agreementName, memberName string) perror.SnapError {
 	if err := t.canJoinAgreement(agreementName, memberName); err != nil {
 		return err
 	}
@@ -547,7 +547,7 @@ func (t *tribe) RemovePlugin(agreementName string, p agreement.Plugin) error {
 	return nil
 }
 
-func (t *tribe) GetAgreement(name string) (*agreement.Agreement, perror.PulseError) {
+func (t *tribe) GetAgreement(name string) (*agreement.Agreement, perror.SnapError) {
 	a, ok := t.agreements[name]
 	if !ok {
 		return nil, perror.New(errAgreementDoesNotExist, map[string]interface{}{"agreement_name": name})
@@ -559,7 +559,7 @@ func (t *tribe) GetAgreements() map[string]*agreement.Agreement {
 	return t.agreements
 }
 
-func (t *tribe) AddTask(agreementName string, task agreement.Task) perror.PulseError {
+func (t *tribe) AddTask(agreementName string, task agreement.Task) perror.SnapError {
 	if err := t.canAddTask(task, agreementName); err != nil {
 		return err
 	}
@@ -577,7 +577,7 @@ func (t *tribe) AddTask(agreementName string, task agreement.Task) perror.PulseE
 	return nil
 }
 
-func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.PulseError {
+func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.SnapError {
 	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
@@ -594,7 +594,7 @@ func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.Pul
 	return nil
 }
 
-func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.PulseError {
+func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.SnapError {
 	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
@@ -611,7 +611,7 @@ func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.Pulse
 	return nil
 }
 
-func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.PulseError {
+func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.SnapError {
 	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
@@ -629,7 +629,7 @@ func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.Puls
 	return nil
 }
 
-func (t *tribe) AddAgreement(name string) perror.PulseError {
+func (t *tribe) AddAgreement(name string) perror.SnapError {
 	if _, ok := t.agreements[name]; ok {
 		fields := log.Fields{
 			"agreement": name,
@@ -648,7 +648,7 @@ func (t *tribe) AddAgreement(name string) perror.PulseError {
 	return nil
 }
 
-func (t *tribe) RemoveAgreement(name string) perror.PulseError {
+func (t *tribe) RemoveAgreement(name string) perror.SnapError {
 	if _, ok := t.agreements[name]; !ok {
 		fields := log.Fields{
 			"Agreement": name,
@@ -1294,7 +1294,7 @@ func (t *tribe) registerQueryResponse(timeout time.Duration, resp *taskStateQuer
 	})
 }
 
-func (t *tribe) joinAgreement(msg *agreementMsg) perror.PulseError {
+func (t *tribe) joinAgreement(msg *agreementMsg) perror.SnapError {
 	if err := t.canJoinAgreement(msg.Agreement(), msg.MemberName); err != nil {
 		return err
 	}
@@ -1343,7 +1343,7 @@ func (t *tribe) joinAgreement(msg *agreementMsg) perror.PulseError {
 	return nil
 }
 
-func (t *tribe) leaveAgreement(msg *agreementMsg) perror.PulseError {
+func (t *tribe) leaveAgreement(msg *agreementMsg) perror.SnapError {
 	if err := t.canLeaveAgreement(msg.Agreement(), msg.MemberName); err != nil {
 		return err
 	}
@@ -1357,7 +1357,7 @@ func (t *tribe) leaveAgreement(msg *agreementMsg) perror.PulseError {
 	return nil
 }
 
-func (t *tribe) canLeaveAgreement(agreementName, memberName string) perror.PulseError {
+func (t *tribe) canLeaveAgreement(agreementName, memberName string) perror.SnapError {
 	fields := log.Fields{
 		"member-name": memberName,
 		"agreement":   agreementName,
@@ -1378,7 +1378,7 @@ func (t *tribe) canLeaveAgreement(agreementName, memberName string) perror.Pulse
 	return nil
 }
 
-func (t *tribe) canJoinAgreement(agreementName, memberName string) perror.PulseError {
+func (t *tribe) canJoinAgreement(agreementName, memberName string) perror.SnapError {
 	fields := log.Fields{
 		"member-name": memberName,
 		"agreement":   agreementName,
@@ -1400,7 +1400,7 @@ func (t *tribe) canJoinAgreement(agreementName, memberName string) perror.PulseE
 	return nil
 }
 
-func (t *tribe) canAddTask(task agreement.Task, agreementName string) perror.PulseError {
+func (t *tribe) canAddTask(task agreement.Task, agreementName string) perror.SnapError {
 	fields := log.Fields{
 		"agreement": agreementName,
 		"task-id":   task.ID,
@@ -1417,7 +1417,7 @@ func (t *tribe) canAddTask(task agreement.Task, agreementName string) perror.Pul
 	return nil
 }
 
-func (t *tribe) canStartStopRemoveTask(task agreement.Task, agreementName string) perror.PulseError {
+func (t *tribe) canStartStopRemoveTask(task agreement.Task, agreementName string) perror.SnapError {
 	fields := log.Fields{
 		"agreement": agreementName,
 		"task-id":   task.ID,

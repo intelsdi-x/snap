@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intelsdi-x/pulse/control/plugin/cpolicy"
-	"github.com/intelsdi-x/pulse/core/cdata"
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/core/cdata"
 )
 
 type Label struct {
@@ -32,7 +32,7 @@ type Label struct {
 	Name  string `json:"name"`
 }
 
-// Metric represents a Pulse metric collected or to be collected
+// Metric represents a snap metric collected or to be collected
 type Metric interface {
 	RequestedMetric
 	Config() *cdata.ConfigDataNode

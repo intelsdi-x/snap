@@ -24,8 +24,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/intelsdi-x/pulse/control/plugin"
-	"github.com/intelsdi-x/pulse/control/routing"
+	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/routing"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -52,7 +52,7 @@ func TestAvailablePlugin(t *testing.T) {
 		Convey("returns nil if plugin successfully stopped", func() {
 			r := newRunner(&routing.RoundRobinStrategy{})
 			a := plugin.Arg{
-				PluginLogPath: "/tmp/pulse-test-plugin-stop.log",
+				PluginLogPath: "/tmp/snap-test-plugin-stop.log",
 			}
 
 			exPlugin, _ := plugin.NewExecutablePlugin(a, PluginPath)
