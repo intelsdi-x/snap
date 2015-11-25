@@ -18,7 +18,7 @@ limitations under the License.
 -->
 
 # **snap** <sup><sub>_A powerful telemetry agent framework_</sub></sup>
-[![Build Status](https://magnum.travis-ci.com/intelsdi-x/snap.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://magnum.travis-ci.com/intelsdi-x/snap)
+[![Build Status](https://travis-ci.com/intelsdi-x/snap.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://travis-ci.com/intelsdi-x/snap)
 
 - [ ] TODO: Consider branching note ([like this one](https://github.com/Netflix/genie#in-active-development))
 
