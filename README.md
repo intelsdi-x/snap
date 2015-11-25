@@ -100,6 +100,8 @@ This will bring up a snap agent without requiring plugin signing and set the log
 ## Load Plugins
 snap gets its power from the use of plugins. The [Plugin Catalog](#plugin-catalog) is a collection of all known plugins for snap.
 
+- [ ] TODO - guide or pointer to building one of our plugins...
+
 Next, lets load a few of the demo plugins.  You can do this via cURL, or `snapctl`, snap's CLI:
 
 ```sh
@@ -109,6 +111,7 @@ curl -X POST -F plugin=@build/plugin/snap-collector-mock1 http://localhost:8181/
 And:
 
 ```sh
+$ ./bin/snapctl plugin load build/plugin/snap-collector-mock1
 $ ./bin/snapctl plugin load build/plugin/snap-processor-passthru
 $ ./bin/snapctl plugin load build/plugin/snap-publisher-file
 ```
