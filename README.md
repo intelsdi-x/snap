@@ -94,8 +94,23 @@ Start a standalone snap agent:
 ```sh
 $ ./bin/snapd --plugin-trust 0 --log-level 1
 ```
-
 This will bring up a snap agent without requiring plugin signing and set the logging level to debug.  snap's REST API will be listening on port 8181.
+
+### Running snap in tribe (cluster) mode
+
+The first node
+
+```
+$SNAP_PATH/bin/snapd --tribe
+```
+
+All other nodes who join will need to select any existing member of the cluster.
+
+```
+$SNAP_PATH/bin/snapd --tribe-seed <ip or name of another tribe member>
+```
+
+Checkout the [tribe](docs/TRIBE.md) doc for more info.
 
 ## Load Plugins
 snap gets its power from the use of plugins. The [Plugin Catalog](#plugin-catalog) is a collection of all known plugins for snap.
@@ -159,6 +174,7 @@ Documentation for snap will be kept in this repository for now. We would also li
 
 * [snapctl](cmd/snapctl/README.md)
 * [snapd](docs/SNAPD.md)
+ * [tribe](docs/TRIBE.md)
 
 ### Examples
 There are interesting examples of using snap in every plugin repository:
