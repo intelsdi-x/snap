@@ -6,16 +6,14 @@ will cover how to contribute code, report issues, build the project and run the 
 ## Contributing code
 
 Contributing code to snap is a snap (pun intended).
-- Fork the project to your own repo
+- Fork the project to your own repository
 - Create a topic branch from where you want to base your work (usually master)
 - Make commit(s) (following commit guidelines below)
-- Make sure tests pass and add any new tests
-- Run go fmt on your code
-- Push your commit(s) to a topic branch in your repo
+- Add any needed test coverage
+- Push your commit(s) to your repository
 - Open a pull request against the original repo and follow the pull request guidelines below
 
-The maintainers of the repo utilize a "Looks Good To Me" (LGTM) message in the pull request
-to indicate the pull request is good for merging.
+The maintainers of the repo utilize a "Looks Good To Me" (LGTM) message in the pull request.
 
 ### Commit Guidelines
 
@@ -59,46 +57,19 @@ To get dependencies and build snap just run:
 make
 ```
 
-Alternatively, you can run `make` with any of the following options:
+Alternatively, you can run `make` with any of the following targets:
 
-Makefile options:
-```
-default:
-	#runs make deps and make all
-	$(MAKE) deps
-	$(MAKE) all
-deps:
-	#gets all dependencies using godeps
-	bash -c "./scripts/deps.sh"
-test:
-	#exports snap build path to env var SNAP_PATH and runs test files
-	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh"
-check:
-	#runs make test
-	$(MAKE) test
-all:
-	#builds snap daemon, CLI, and plugin binaries
-	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))) true"
-snap:
-	#builds snap daemon and CLI binaries, but not plugin binaries
-	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))"
-install:
-	#copies snapd and snapctl binaries into /usr/local/bin
-	cp build/bin/snapd /usr/local/bin/
-	cp build/bin/snapctl /usr/local/bin/
-release:
-	#creates a snap release
-	bash -c "./scripts/release.sh $(TAG) $(COMMIT)"
-```
+* `default`: runs make deps and make all
+* `deps`: fetches all dependencies using godeps
+* `check`: runs test suite
+* `all`: builds snapd, snapctl, and the test plugins
+* `snap` builds snapd and snapctl
+* `install`: installs snapd and snapctl binaries in /usr/local/bin
+* `release`: cuts a snap release
 
 ###Test
 ####Creating Tests
-Our tests are written using [smartystreets' GoConvey package](https://github.com/smartystreets/goconvey)   
-File names have the following convention:  
-File to be tested: `filename.go`  
-Testing file:	   `filename_test.go`  
-Each convey statement starts off a new go routine.   
-See https://github.com/smartystreets/goconvey/wiki for an introduction to creating a test.
+Our tests are written using [smartystreets' GoConvey package](https://github.com/smartystreets/goconvey).  See https://github.com/smartystreets/goconvey/wiki for an introduction to creating a test.
 
 ####Running Tests
 #####In local machine
@@ -112,9 +83,9 @@ TO run all tests *and to continue through all directories even with errors*:
 go test ./...
 ```  
 
-To use advanced functionality possible through GoConvey:
+Tests can be pruned in go test with the `-run` option:
 ```
-go test ./... -v -run <ConveyFunc>
+go test ./... -v -run <TestName>
 ```
 
 e.g. `TestLoad` from `control_test.go`:
