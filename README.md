@@ -218,10 +218,11 @@ The power of snap comes from its open architecture. Add to the ecosystem by buil
 snap is Open Source software released under the Apache 2.0 [License](LICENSE).
 
 ## Maintainers
+Amongst the many awesome contributors, there are the maintainers. These maintainers may change over time, but they are all members of the **@intelsdi-x/snap-maintainers** team. This group will help you by:
+* Committing to reviewing pull requests, issues, and addressing comments/questions as quickly as possible
+* Acting as a point of contact for questions
 
-Amongst the many awesome contributors, there are the maintainers. These maintainers may change over time, but they are:
-* Committed to reviewing pull requests, issues, and addressing comments/questions as quickly as possible
-* A point of contact for questions
+Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on an issue. If at any time, you don't get a quick enough response, reach out to any of the following team members directly:
 
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
