@@ -31,7 +31,7 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
@@ -91,21 +91,21 @@ func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, p
 	return "", nil, nil
 }
 
-func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin) []perror.SnapError {
+func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin) []serror.SnapError {
 	if m.failValidatingMetrics {
-		return []perror.SnapError{
-			perror.New(errors.New("metric validation error")),
+		return []serror.SnapError{
+			serror.New(errors.New("metric validation error")),
 		}
 	}
 	return nil
 }
-func (m *mockMetricManager) SubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []perror.SnapError {
-	return []perror.SnapError{
-		perror.New(errors.New("metric validation error")),
+func (m *mockMetricManager) SubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
+	return []serror.SnapError{
+		serror.New(errors.New("metric validation error")),
 	}
 }
 
-func (m *mockMetricManager) UnsubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []perror.SnapError {
+func (m *mockMetricManager) UnsubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
 	return nil
 }
 
@@ -219,7 +219,7 @@ func TestScheduler(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			fmt.Printf("%d", len(err.Errors()))
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
-			So(err.Errors()[0], ShouldResemble, perror.New(errors.New("metric validation error")))
+			So(err.Errors()[0], ShouldResemble, serror.New(errors.New("metric validation error")))
 
 		})
 
@@ -248,7 +248,7 @@ func TestScheduler(t *testing.T) {
 			_, err := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
 			So(err, ShouldNotBeNil)
 			So(len(err.Errors()), ShouldBeGreaterThan, 0)
-			So(err.Errors()[0], ShouldResemble, perror.New(ErrSchedulerNotStarted))
+			So(err.Errors()[0], ShouldResemble, serror.New(ErrSchedulerNotStarted))
 			s1.metricManager = c
 			s1.Start()
 			_, err1 := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*0), w, false)

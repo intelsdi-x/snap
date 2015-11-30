@@ -41,7 +41,7 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 )
 
 const (
@@ -76,12 +76,12 @@ func newLoadedPlugins() *loadedPlugins {
 }
 
 // add adds a loadedPlugin pointer to the table
-func (l *loadedPlugins) add(lp *loadedPlugin) perror.SnapError {
+func (l *loadedPlugins) add(lp *loadedPlugin) serror.SnapError {
 	l.Lock()
 	defer l.Unlock()
 
 	if _, exists := l.table[lp.Key()]; exists {
-		return perror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
+		return serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
 			"plugin-name":    lp.Meta.Name,
 			"plugin-version": lp.Meta.Version,
 			"plugin-type":    lp.Type.String(),
@@ -254,7 +254,7 @@ func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
 
 // Load is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
-func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter) (*loadedPlugin, perror.SnapError) {
+func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter) (*loadedPlugin, serror.SnapError) {
 	lPlugin := new(loadedPlugin)
 	lPlugin.Details = details
 	lPlugin.State = DetectedState
@@ -270,7 +270,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error while creating executable plugin")
-		return nil, perror.New(err)
+		return nil, serror.New(err)
 	}
 
 	err = ePlugin.Start()
@@ -279,7 +279,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error while starting plugin")
-		return nil, perror.New(err)
+		return nil, serror.New(err)
 	}
 
 	var resp *plugin.Response
@@ -290,7 +290,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error while waiting for response from plugin")
-		return nil, perror.New(err)
+		return nil, serror.New(err)
 	}
 
 	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
@@ -299,7 +299,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error while creating available plugin")
-		return nil, perror.New(err)
+		return nil, serror.New(err)
 	}
 
 	if resp.Meta.Unsecure {
@@ -312,13 +312,13 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error while pinging the plugin")
-		return nil, perror.New(err)
+		return nil, serror.New(err)
 	}
 
 	// Get the ConfigPolicy and add it to the loaded plugin
 	c, ok := ap.client.(plugin.Plugin)
 	if !ok {
-		return nil, perror.New(errors.New("missing GetConfigPolicy function"))
+		return nil, serror.New(errors.New("missing GetConfigPolicy function"))
 	}
 	cp, err := c.GetConfigPolicy()
 	if err != nil {
@@ -330,7 +330,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"plugin-version": ap.Version(),
 			"plugin-id":      ap.ID(),
 		}).Error("error in getting config policy")
-		return nil, perror.New(err)
+		return nil, serror.New(err)
 	}
 	lPlugin.ConfigPolicy = cp
 
@@ -348,7 +348,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 				"plugin-type": "collector",
 				"error":       err.Error(),
 			}).Error("error in getting metric types")
-			return nil, perror.New(err)
+			return nil, serror.New(err)
 		}
 
 		// The plugin cache client will be integrated here later
@@ -384,7 +384,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 					"metric-version":   nmt.Version(),
 					"error":            err.Error(),
 				}).Error("received metric with bad version")
-				return nil, perror.New(err)
+				return nil, serror.New(err)
 			}
 			p.metricCatalog.AddLoadedMetricType(lPlugin, nmt)
 		}
@@ -396,7 +396,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"_block": "load-plugin",
 			"error":  err.Error(),
 		}).Error("load plugin error while killing plugin executable plugin")
-		return nil, perror.New(err)
+		return nil, serror.New(err)
 	}
 
 	if resp.State != plugin.PluginSuccess {
@@ -406,7 +406,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"error":           e,
 			"plugin response": resp.ErrorMessage,
 		}).Error("load plugin error")
-		return nil, perror.New(e)
+		return nil, serror.New(e)
 	}
 
 	lPlugin.Meta = resp.Meta
@@ -428,25 +428,25 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 }
 
 // unloads a plugin from the LoadedPlugins table
-func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.SnapError) {
+func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.SnapError) {
 
 	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
-		pe := perror.New(ErrPluginNotFound, map[string]interface{}{
+		se := serror.New(ErrPluginNotFound, map[string]interface{}{
 			"plugin-name":    pl.Name(),
 			"plugin-version": pl.Version(),
 			"plugin-type":    pl.TypeName(),
 		})
-		return nil, pe
+		return nil, se
 	}
 
 	if plugin.State != LoadedState {
-		pe := perror.New(ErrPluginNotInLoadedState, map[string]interface{}{
+		se := serror.New(ErrPluginNotInLoadedState, map[string]interface{}{
 			"plugin-name":    plugin.Name(),
 			"plugin-version": plugin.Version(),
 			"plugin-type":    pl.TypeName(),
 		})
-		return nil, pe
+		return nil, se
 	}
 
 	// If the plugin was loaded from os.TempDir() clean up
@@ -464,14 +464,14 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, perror.Snap
 				"plugin-version": plugin.Version(),
 				"plugin-path":    plugin.Details.Path,
 			}).Error(err)
-			pe := perror.New(err)
-			pe.SetFields(map[string]interface{}{
+			se := serror.New(err)
+			se.SetFields(map[string]interface{}{
 				"plugin-type":    plugin.TypeName(),
 				"plugin-name":    plugin.Name(),
 				"plugin-version": plugin.Version(),
 				"plugin-path":    plugin.Details.Path,
 			})
-			return nil, pe
+			return nil, se
 		}
 	}
 

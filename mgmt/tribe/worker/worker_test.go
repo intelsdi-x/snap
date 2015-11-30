@@ -28,16 +28,16 @@ package worker
 // 	. "github.com/smartystreets/goconvey/convey"
 //
 // 	"github.com/intelsdi-x/snap/core"
-// 	"github.com/intelsdi-x/snap/core/perror"
+// 	"github.com/intelsdi-x/snap/core/serror"
 // )
 //
 // type mockPluginManager struct{}
 //
-// func (m *mockPluginManager) Load(path string) (core.CatalogedPlugin, perror.SnapError) {
+// func (m *mockPluginManager) Load(path string) (core.CatalogedPlugin, serror.SnapError) {
 // 	return nil, nil
 // }
 //
-// func (m *mockPluginManager) Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.SnapError) {
+// func (m *mockPluginManager) Unload(plugin core.Plugin) (core.CatalogedPlugin, serror.SnapError) {
 // 	return nil, nil
 // }
 //

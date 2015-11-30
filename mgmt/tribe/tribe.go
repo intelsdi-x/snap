@@ -33,8 +33,8 @@ import (
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/control_event"
-	"github.com/intelsdi-x/snap/core/perror"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/mgmt/tribe/worker"
 	"github.com/pborman/uuid"
@@ -477,7 +477,7 @@ func (t *tribe) GetMembers() []string {
 	return members
 }
 
-func (t *tribe) LeaveAgreement(agreementName, memberName string) perror.SnapError {
+func (t *tribe) LeaveAgreement(agreementName, memberName string) serror.SnapError {
 	if err := t.canLeaveAgreement(agreementName, memberName); err != nil {
 		return err
 	}
@@ -495,7 +495,7 @@ func (t *tribe) LeaveAgreement(agreementName, memberName string) perror.SnapErro
 	return nil
 }
 
-func (t *tribe) JoinAgreement(agreementName, memberName string) perror.SnapError {
+func (t *tribe) JoinAgreement(agreementName, memberName string) serror.SnapError {
 	if err := t.canJoinAgreement(agreementName, memberName); err != nil {
 		return err
 	}
@@ -547,10 +547,10 @@ func (t *tribe) RemovePlugin(agreementName string, p agreement.Plugin) error {
 	return nil
 }
 
-func (t *tribe) GetAgreement(name string) (*agreement.Agreement, perror.SnapError) {
+func (t *tribe) GetAgreement(name string) (*agreement.Agreement, serror.SnapError) {
 	a, ok := t.agreements[name]
 	if !ok {
-		return nil, perror.New(errAgreementDoesNotExist, map[string]interface{}{"agreement_name": name})
+		return nil, serror.New(errAgreementDoesNotExist, map[string]interface{}{"agreement_name": name})
 	}
 	return a, nil
 }
@@ -559,7 +559,7 @@ func (t *tribe) GetAgreements() map[string]*agreement.Agreement {
 	return t.agreements
 }
 
-func (t *tribe) AddTask(agreementName string, task agreement.Task) perror.SnapError {
+func (t *tribe) AddTask(agreementName string, task agreement.Task) serror.SnapError {
 	if err := t.canAddTask(task, agreementName); err != nil {
 		return err
 	}
@@ -577,7 +577,7 @@ func (t *tribe) AddTask(agreementName string, task agreement.Task) perror.SnapEr
 	return nil
 }
 
-func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.SnapError {
+func (t *tribe) RemoveTask(agreementName string, task agreement.Task) serror.SnapError {
 	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
@@ -594,7 +594,7 @@ func (t *tribe) RemoveTask(agreementName string, task agreement.Task) perror.Sna
 	return nil
 }
 
-func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.SnapError {
+func (t *tribe) StopTask(agreementName string, task agreement.Task) serror.SnapError {
 	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
@@ -611,7 +611,7 @@ func (t *tribe) StopTask(agreementName string, task agreement.Task) perror.SnapE
 	return nil
 }
 
-func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.SnapError {
+func (t *tribe) StartTask(agreementName string, task agreement.Task) serror.SnapError {
 	if err := t.canStartStopRemoveTask(task, agreementName); err != nil {
 		return err
 	}
@@ -629,12 +629,12 @@ func (t *tribe) StartTask(agreementName string, task agreement.Task) perror.Snap
 	return nil
 }
 
-func (t *tribe) AddAgreement(name string) perror.SnapError {
+func (t *tribe) AddAgreement(name string) serror.SnapError {
 	if _, ok := t.agreements[name]; ok {
 		fields := log.Fields{
 			"agreement": name,
 		}
-		return perror.New(errAgreementAlreadyExists, fields)
+		return serror.New(errAgreementAlreadyExists, fields)
 	}
 	msg := &agreementMsg{
 		LTime:         t.clock.Increment(),
@@ -648,12 +648,12 @@ func (t *tribe) AddAgreement(name string) perror.SnapError {
 	return nil
 }
 
-func (t *tribe) RemoveAgreement(name string) perror.SnapError {
+func (t *tribe) RemoveAgreement(name string) serror.SnapError {
 	if _, ok := t.agreements[name]; !ok {
 		fields := log.Fields{
 			"Agreement": name,
 		}
-		return perror.New(errAgreementDoesNotExist, fields)
+		return serror.New(errAgreementDoesNotExist, fields)
 	}
 	msg := &agreementMsg{
 		LTime:         t.clock.Increment(),
@@ -1294,7 +1294,7 @@ func (t *tribe) registerQueryResponse(timeout time.Duration, resp *taskStateQuer
 	})
 }
 
-func (t *tribe) joinAgreement(msg *agreementMsg) perror.SnapError {
+func (t *tribe) joinAgreement(msg *agreementMsg) serror.SnapError {
 	if err := t.canJoinAgreement(msg.Agreement(), msg.MemberName); err != nil {
 		return err
 	}
@@ -1343,7 +1343,7 @@ func (t *tribe) joinAgreement(msg *agreementMsg) perror.SnapError {
 	return nil
 }
 
-func (t *tribe) leaveAgreement(msg *agreementMsg) perror.SnapError {
+func (t *tribe) leaveAgreement(msg *agreementMsg) serror.SnapError {
 	if err := t.canLeaveAgreement(msg.Agreement(), msg.MemberName); err != nil {
 		return err
 	}
@@ -1357,50 +1357,50 @@ func (t *tribe) leaveAgreement(msg *agreementMsg) perror.SnapError {
 	return nil
 }
 
-func (t *tribe) canLeaveAgreement(agreementName, memberName string) perror.SnapError {
+func (t *tribe) canLeaveAgreement(agreementName, memberName string) serror.SnapError {
 	fields := log.Fields{
 		"member-name": memberName,
 		"agreement":   agreementName,
 	}
 	if _, ok := t.agreements[agreementName]; !ok {
 		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
-		return perror.New(errAgreementDoesNotExist, fields)
+		return serror.New(errAgreementDoesNotExist, fields)
 	}
 	m, ok := t.members[memberName]
 	if !ok {
 		t.logger.WithFields(fields).Debugln(errUnknownMember)
-		return perror.New(errUnknownMember, fields)
+		return serror.New(errUnknownMember, fields)
 	}
 	if m.PluginAgreement == nil {
 		t.logger.WithFields(fields).Debugln(errNotAMember)
-		return perror.New(errNotAMember, fields)
+		return serror.New(errNotAMember, fields)
 	}
 	return nil
 }
 
-func (t *tribe) canJoinAgreement(agreementName, memberName string) perror.SnapError {
+func (t *tribe) canJoinAgreement(agreementName, memberName string) serror.SnapError {
 	fields := log.Fields{
 		"member-name": memberName,
 		"agreement":   agreementName,
 	}
 	if _, ok := t.agreements[agreementName]; !ok {
 		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
-		return perror.New(errAgreementDoesNotExist, fields)
+		return serror.New(errAgreementDoesNotExist, fields)
 	}
 	m, ok := t.members[memberName]
 	if !ok {
 		t.logger.WithFields(fields).Debugln(errUnknownMember)
-		return perror.New(errUnknownMember, fields)
+		return serror.New(errUnknownMember, fields)
 
 	}
 	if m.PluginAgreement != nil && len(m.PluginAgreement.Plugins) > 0 {
 		t.logger.WithFields(fields).Debugln(errAlreadyMemberOfPluginAgreement)
-		return perror.New(errAlreadyMemberOfPluginAgreement, fields)
+		return serror.New(errAlreadyMemberOfPluginAgreement, fields)
 	}
 	return nil
 }
 
-func (t *tribe) canAddTask(task agreement.Task, agreementName string) perror.SnapError {
+func (t *tribe) canAddTask(task agreement.Task, agreementName string) serror.SnapError {
 	fields := log.Fields{
 		"agreement": agreementName,
 		"task-id":   task.ID,
@@ -1408,16 +1408,16 @@ func (t *tribe) canAddTask(task agreement.Task, agreementName string) perror.Sna
 	a, ok := t.agreements[agreementName]
 	if !ok {
 		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
-		return perror.New(errAgreementDoesNotExist, fields)
+		return serror.New(errAgreementDoesNotExist, fields)
 	}
 	if ok, _ := a.TaskAgreement.Tasks.Contains(task); ok {
 		t.logger.WithFields(fields).Debugln(errTaskAlreadyExists)
-		return perror.New(errTaskAlreadyExists, fields)
+		return serror.New(errTaskAlreadyExists, fields)
 	}
 	return nil
 }
 
-func (t *tribe) canStartStopRemoveTask(task agreement.Task, agreementName string) perror.SnapError {
+func (t *tribe) canStartStopRemoveTask(task agreement.Task, agreementName string) serror.SnapError {
 	fields := log.Fields{
 		"agreement": agreementName,
 		"task-id":   task.ID,
@@ -1425,11 +1425,11 @@ func (t *tribe) canStartStopRemoveTask(task agreement.Task, agreementName string
 	a, ok := t.agreements[agreementName]
 	if !ok {
 		t.logger.WithFields(fields).Debugln(errAgreementDoesNotExist)
-		return perror.New(errAgreementDoesNotExist, fields)
+		return serror.New(errAgreementDoesNotExist, fields)
 	}
 	if ok, _ := a.TaskAgreement.Tasks.Contains(task); !ok {
 		t.logger.WithFields(fields).Debugln(errTaskDoesNotExist)
-		return perror.New(errTaskDoesNotExist, fields)
+		return serror.New(errTaskDoesNotExist, fields)
 	}
 	return nil
 }

@@ -30,7 +30,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -45,8 +45,8 @@ func (m *mockTaskManager) GetTask(id string) (core.Task, error) { return &mockTa
 func (m *mockTaskManager) CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	return nil, nil
 }
-func (m *mockTaskManager) StopTaskTribe(id string) []perror.SnapError  { return nil }
-func (m *mockTaskManager) StartTaskTribe(id string) []perror.SnapError { return nil }
+func (m *mockTaskManager) StopTaskTribe(id string) []serror.SnapError  { return nil }
+func (m *mockTaskManager) StartTaskTribe(id string) []serror.SnapError { return nil }
 func (m *mockTaskManager) RemoveTaskTribe(id string) error             { return nil }
 
 type mockTask struct{}
@@ -123,12 +123,12 @@ func TestTribeFullStateSync(t *testing.T) {
 		wg.Wait()
 		Convey("agreements are added", func() {
 			t := tribes[rand.Intn(len(tribes))]
-			perr := t.AddAgreement(agreement1)
-			So(perr, ShouldBeNil)
+			serr := t.AddAgreement(agreement1)
+			So(serr, ShouldBeNil)
 			err := t.AddPlugin(agreement1, plugin1)
 			So(err, ShouldBeNil)
-			perr = t.AddTask(agreement1, task1)
-			So(perr, ShouldBeNil)
+			serr = t.AddTask(agreement1, task1)
+			So(serr, ShouldBeNil)
 			So(len(t.agreements), ShouldEqual, 1)
 			Convey("the state is consistent across the tribe", func() {
 				wg = sync.WaitGroup{}

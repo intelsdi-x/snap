@@ -39,7 +39,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
@@ -220,32 +220,32 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 	}
 
 	if iErr != nil {
-		pe := perror.New(errors.New("invalid version"))
-		pe.SetFields(f)
-		respond(400, rbody.FromSnapError(pe), w)
+		se := serror.New(errors.New("invalid version"))
+		se.SetFields(f)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 
 	if plName == "" {
-		pe := perror.New(errors.New("missing plugin name"))
-		pe.SetFields(f)
-		respond(400, rbody.FromSnapError(pe), w)
+		se := serror.New(errors.New("missing plugin name"))
+		se.SetFields(f)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 	if plType == "" {
-		pe := perror.New(errors.New("missing plugin type"))
-		pe.SetFields(f)
-		respond(400, rbody.FromSnapError(pe), w)
+		se := serror.New(errors.New("missing plugin type"))
+		se.SetFields(f)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
-	up, pe := s.mm.Unload(&plugin{
+	up, se := s.mm.Unload(&plugin{
 		name:       plName,
 		version:    int(plVersion),
 		pluginType: plType,
 	})
-	if pe != nil {
-		pe.SetFields(f)
-		respond(500, rbody.FromSnapError(pe), w)
+	if se != nil {
+		se.SetFields(f)
+		respond(500, rbody.FromSnapError(se), w)
 		return
 	}
 	pr := &rbody.PluginUnloaded{
@@ -321,22 +321,22 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 	}
 
 	if iErr != nil {
-		pe := perror.New(errors.New("invalid version"))
-		pe.SetFields(f)
-		respond(400, rbody.FromSnapError(pe), w)
+		se := serror.New(errors.New("invalid version"))
+		se.SetFields(f)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 
 	if plName == "" {
-		pe := perror.New(errors.New("missing plugin name"))
-		pe.SetFields(f)
-		respond(400, rbody.FromSnapError(pe), w)
+		se := serror.New(errors.New("missing plugin name"))
+		se.SetFields(f)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 	if plType == "" {
-		pe := perror.New(errors.New("missing plugin type"))
-		pe.SetFields(f)
-		respond(400, rbody.FromSnapError(pe), w)
+		se := serror.New(errors.New("missing plugin type"))
+		se.SetFields(f)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 
@@ -351,8 +351,8 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		}
 	}
 	if plugin == nil {
-		pe := perror.New(ErrPluginNotFound, f)
-		respond(404, rbody.FromSnapError(pe), w)
+		se := serror.New(ErrPluginNotFound, f)
+		respond(404, rbody.FromSnapError(se), w)
 		return
 	}
 
@@ -362,8 +362,8 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		b, err := ioutil.ReadFile(plugin.PluginPath())
 		if err != nil {
 			f["plugin-path"] = plugin.PluginPath()
-			pe := perror.New(err, f)
-			respond(500, rbody.FromSnapError(pe), w)
+			se := serror.New(err, f)
+			respond(500, rbody.FromSnapError(se), w)
 			return
 		}
 
@@ -373,8 +373,8 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		_, err = gz.Write(b)
 		if err != nil {
 			f["plugin-path"] = plugin.PluginPath()
-			pe := perror.New(err, f)
-			respond(500, rbody.FromSnapError(pe), w)
+			se := serror.New(err, f)
+			respond(500, rbody.FromSnapError(se), w)
 			return
 		}
 		return

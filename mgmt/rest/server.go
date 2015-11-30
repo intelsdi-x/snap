@@ -36,7 +36,7 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
@@ -58,8 +58,8 @@ type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics([]string, int) ([]core.CatalogedMetric, error)
 	GetMetric([]string, int) (core.CatalogedMetric, error)
-	Load(*core.RequestedPlugin) (core.CatalogedPlugin, perror.SnapError)
-	Unload(core.Plugin) (core.CatalogedPlugin, perror.SnapError)
+	Load(*core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError)
+	Unload(core.Plugin) (core.CatalogedPlugin, serror.SnapError)
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin
 	GetAutodiscoverPaths() []string
@@ -69,20 +69,20 @@ type managesTasks interface {
 	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, bool, ...core.TaskOption) (core.Task, core.TaskErrors)
 	GetTasks() map[string]core.Task
 	GetTask(string) (core.Task, error)
-	StartTask(string) []perror.SnapError
-	StopTask(string) []perror.SnapError
+	StartTask(string) []serror.SnapError
+	StopTask(string) []serror.SnapError
 	RemoveTask(string) error
 	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
 	EnableTask(string) (core.Task, error)
 }
 
 type managesTribe interface {
-	GetAgreement(name string) (*agreement.Agreement, perror.SnapError)
+	GetAgreement(name string) (*agreement.Agreement, serror.SnapError)
 	GetAgreements() map[string]*agreement.Agreement
-	AddAgreement(name string) perror.SnapError
-	RemoveAgreement(name string) perror.SnapError
-	JoinAgreement(agreementName, memberName string) perror.SnapError
-	LeaveAgreement(agreementName, memberName string) perror.SnapError
+	AddAgreement(name string) serror.SnapError
+	RemoveAgreement(name string) serror.SnapError
+	JoinAgreement(agreementName, memberName string) serror.SnapError
+	LeaveAgreement(agreementName, memberName string) serror.SnapError
 	GetMembers() []string
 	GetMember(name string) *agreement.Member
 }

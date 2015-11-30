@@ -24,7 +24,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
@@ -140,5 +140,5 @@ func SetTaskID(id string) TaskOption {
 }
 
 type TaskErrors interface {
-	Errors() []perror.SnapError
+	Errors() []serror.SnapError
 }

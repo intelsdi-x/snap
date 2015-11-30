@@ -24,7 +24,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
@@ -34,7 +34,7 @@ func (c *Client) LoadPlugin(p []string) *LoadPluginResult {
 	r := new(LoadPluginResult)
 	resp, err := c.pluginUploadRequest(p)
 	if err != nil {
-		r.Err = perror.New(err)
+		r.Err = serror.New(err)
 		return r
 	}
 
@@ -48,9 +48,9 @@ func (c *Client) LoadPlugin(p []string) *LoadPluginResult {
 		for k, v := range f {
 			fields[k] = v
 		}
-		r.Err = perror.New(resp.Body.(*rbody.Error), fields)
+		r.Err = serror.New(resp.Body.(*rbody.Error), fields)
 	default:
-		r.Err = perror.New(ErrAPIResponseMetaType)
+		r.Err = serror.New(ErrAPIResponseMetaType)
 	}
 	return r
 }
@@ -122,7 +122,7 @@ type GetPluginsResult struct {
 // LoadPluginResult is the response from snap/client on a LoadPlugin call.
 type LoadPluginResult struct {
 	LoadedPlugins []LoadedPlugin
-	Err           perror.SnapError
+	Err           serror.SnapError
 }
 
 // UnloadPluginResponse is the response from snap/client on an UnloadPlugin call.
