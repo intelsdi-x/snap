@@ -32,13 +32,13 @@ $SNAP_PATH/bin/snapd [global options] [arguments...]
 --max-procs, -c			Set max cores to use for snap Agent. (Default: 1 core)
 --api-port, -p			Port rest api will listen on. (Default: 8181)
 --disable-api, -d		Flag to enable/disable rest api. (Default: true)
---version, -v			Print snap version. 
+--version, -v			Print snap version.
 ```
 
 ## Example Usage
 ```
 $SNAP_PATH/bin/snapd
-$SNAP_PATH/bin/snapd --log-level 1 
+$SNAP_PATH/bin/snapd --log-level 1
 $SNAP_PATH/bin/snapd --version
 ```
 
