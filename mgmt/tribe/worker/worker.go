@@ -34,7 +34,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
 	"github.com/intelsdi-x/snap/pkg/schedule"
@@ -103,16 +103,16 @@ type Task struct {
 }
 
 type ManagesPlugins interface {
-	Load(*core.RequestedPlugin) (core.CatalogedPlugin, perror.SnapError)
-	Unload(plugin core.Plugin) (core.CatalogedPlugin, perror.SnapError)
+	Load(*core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError)
+	Unload(plugin core.Plugin) (core.CatalogedPlugin, serror.SnapError)
 	PluginCatalog() core.PluginCatalog
 }
 
 type ManagesTasks interface {
 	GetTask(id string) (core.Task, error)
 	CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, opts ...core.TaskOption) (core.Task, core.TaskErrors)
-	StopTaskTribe(id string) []perror.SnapError
-	StartTaskTribe(id string) []perror.SnapError
+	StopTaskTribe(id string) []serror.SnapError
+	StartTaskTribe(id string) []serror.SnapError
 	RemoveTaskTribe(id string) error
 }
 

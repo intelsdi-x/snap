@@ -38,7 +38,7 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/control/routing"
 	"github.com/intelsdi-x/snap/core/control_event"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 )
 
 const (
@@ -481,7 +481,7 @@ func (p *apPool) subscriptionCount() int {
 	return len(p.subs)
 }
 
-func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, perror.SnapError) {
+func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, serror.SnapError) {
 	p.RLock()
 	defer p.RUnlock()
 
@@ -493,7 +493,7 @@ func (p *apPool) selectAP(strat RoutingStrategy) (*availablePlugin, perror.SnapE
 	}
 	sap, err := strat.Select(p, sp)
 	if err != nil || sap == nil {
-		return nil, perror.New(err)
+		return nil, serror.New(err)
 	}
 	return sap.(*availablePlugin), nil
 }
@@ -563,7 +563,7 @@ func (ap *availablePlugins) insert(pl *availablePlugin) error {
 	if !exists {
 		p, err := newPool(key, pl)
 		if err != nil {
-			return perror.New(ErrBadKey, map[string]interface{}{
+			return serror.New(ErrBadKey, map[string]interface{}{
 				"key": key,
 			})
 		}
@@ -574,21 +574,21 @@ func (ap *availablePlugins) insert(pl *availablePlugin) error {
 	return nil
 }
 
-func (ap *availablePlugins) getPool(key string) (*apPool, perror.SnapError) {
+func (ap *availablePlugins) getPool(key string) (*apPool, serror.SnapError) {
 	ap.RLock()
 	defer ap.RUnlock()
 	pool, ok := ap.table[key]
 	if !ok {
 		tnv := strings.Split(key, ":")
 		if len(tnv) != 3 {
-			return nil, perror.New(ErrBadKey, map[string]interface{}{
+			return nil, serror.New(ErrBadKey, map[string]interface{}{
 				"key": key,
 			})
 		}
 
 		v, err := strconv.Atoi(tnv[2])
 		if err != nil {
-			return nil, perror.New(ErrBadKey, map[string]interface{}{
+			return nil, serror.New(ErrBadKey, map[string]interface{}{
 				"key": key,
 			})
 		}
@@ -603,7 +603,7 @@ func (ap *availablePlugins) getPool(key string) (*apPool, perror.SnapError) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) holdPool(key string) (*apPool, perror.SnapError) {
+func (ap *availablePlugins) holdPool(key string) (*apPool, serror.SnapError) {
 	pool, err := ap.getPool(key)
 	if err != nil {
 		return nil, err
@@ -615,7 +615,7 @@ func (ap *availablePlugins) holdPool(key string) (*apPool, perror.SnapError) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) findLatestPool(pType, name string) (*apPool, perror.SnapError) {
+func (ap *availablePlugins) findLatestPool(pType, name string) (*apPool, serror.SnapError) {
 	// see if there exists a pool at all which matches name version.
 	var latest *apPool
 	for key, pool := range ap.table {
@@ -652,7 +652,7 @@ func (ap *availablePlugins) getOrCreatePool(key string) (*apPool, error) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) selectAP(key string) (*availablePlugin, perror.SnapError) {
+func (ap *availablePlugins) selectAP(key string) (*availablePlugin, serror.SnapError) {
 	ap.RLock()
 	defer ap.RUnlock()
 

@@ -37,7 +37,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
@@ -132,12 +132,12 @@ type coreModule interface {
 }
 
 type managesTribe interface {
-	GetAgreement(name string) (*agreement.Agreement, perror.SnapError)
+	GetAgreement(name string) (*agreement.Agreement, serror.SnapError)
 	GetAgreements() map[string]*agreement.Agreement
-	AddAgreement(name string) perror.SnapError
-	RemoveAgreement(name string) perror.SnapError
-	JoinAgreement(agreementName, memberName string) perror.SnapError
-	LeaveAgreement(agreementName, memberName string) perror.SnapError
+	AddAgreement(name string) serror.SnapError
+	RemoveAgreement(name string) serror.SnapError
+	JoinAgreement(agreementName, memberName string) serror.SnapError
+	LeaveAgreement(agreementName, memberName string) serror.SnapError
 	GetMembers() []string
 	GetMember(name string) *agreement.Member
 }

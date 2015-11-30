@@ -39,7 +39,7 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 )
 
 // Mock Executor used to test
@@ -58,11 +58,11 @@ type MockPluginManagerBadSwap struct {
 	loadedPlugins  *loadedPlugins
 }
 
-func (m *MockPluginManagerBadSwap) LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, perror.SnapError) {
+func (m *MockPluginManagerBadSwap) LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, serror.SnapError) {
 	return new(loadedPlugin), nil
 }
-func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, perror.SnapError) {
-	return nil, perror.New(errors.New("fake"))
+func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, serror.SnapError) {
+	return nil, serror.New(errors.New("fake"))
 }
 func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error) { return nil, nil }
 func (m *MockPluginManagerBadSwap) teardown()                         {}
@@ -75,11 +75,11 @@ func (m *MockPluginManagerBadSwap) all() map[string]*loadedPlugin {
 	return m.loadedPlugins.table
 }
 
-func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, perror.SnapError) {
+func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, serror.SnapError) {
 	// This is a Travis optimized loading of plugins. From time to time, tests will error in Travis
 	// due to a timeout when waiting for a response from a plugin. We are going to attempt loading a plugin
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
-	var e perror.SnapError
+	var e serror.SnapError
 	var p core.CatalogedPlugin
 	rp, _ := core.NewRequestedPlugin(paths[0])
 	if len(paths) > 1 {
@@ -556,9 +556,9 @@ type mc struct {
 	e int
 }
 
-func (m *mc) Fetch(ns []string) ([]*metricType, perror.SnapError) {
+func (m *mc) Fetch(ns []string) ([]*metricType, serror.SnapError) {
 	if m.e == 2 {
-		return nil, perror.New(errors.New("test"))
+		return nil, serror.New(errors.New("test"))
 	}
 	return nil, nil
 }
@@ -567,29 +567,29 @@ func (m *mc) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
 	return nil, nil
 }
 
-func (m *mc) GetPlugin([]string, int) (*loadedPlugin, perror.SnapError) {
+func (m *mc) GetPlugin([]string, int) (*loadedPlugin, serror.SnapError) {
 	return nil, nil
 }
 
-func (m *mc) Get(ns []string, ver int) (*metricType, perror.SnapError) {
+func (m *mc) Get(ns []string, ver int) (*metricType, serror.SnapError) {
 	if m.e == 1 {
 		return &metricType{
 			policy: &mockCDProc{},
 		}, nil
 	}
-	return nil, perror.New(errorMetricNotFound(ns))
+	return nil, serror.New(errorMetricNotFound(ns))
 }
 
-func (m *mc) Subscribe(ns []string, ver int) perror.SnapError {
+func (m *mc) Subscribe(ns []string, ver int) serror.SnapError {
 	if ns[0] == "nf" {
-		return perror.New(errorMetricNotFound(ns))
+		return serror.New(errorMetricNotFound(ns))
 	}
 	return nil
 }
 
-func (m *mc) Unsubscribe(ns []string, ver int) perror.SnapError {
+func (m *mc) Unsubscribe(ns []string, ver int) serror.SnapError {
 	if ns[0] == "nf" {
-		return perror.New(errorMetricNotFound(ns))
+		return serror.New(errorMetricNotFound(ns))
 	}
 	if ns[0] == "neg" {
 		return errNegativeSubCount

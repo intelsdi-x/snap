@@ -30,8 +30,8 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/core/perror"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
@@ -59,9 +59,9 @@ type managesMetrics interface {
 	publishesMetrics
 	processesMetrics
 	managesPluginContentTypes
-	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []perror.SnapError
-	SubscribeDeps(string, []core.Metric, []core.Plugin) []perror.SnapError
-	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []perror.SnapError
+	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []serror.SnapError
+	SubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
+	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -118,10 +118,10 @@ func New(opts ...workManagerOption) *scheduler {
 }
 
 type taskErrors struct {
-	errs []perror.SnapError
+	errs []serror.SnapError
 }
 
-func (t *taskErrors) Errors() []perror.SnapError {
+func (t *taskErrors) Errors() []serror.SnapError {
 	return t.errs
 }
 
@@ -149,12 +149,12 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	})
 	// Create a container for task errors
 	te := &taskErrors{
-		errs: make([]perror.SnapError, 0),
+		errs: make([]serror.SnapError, 0),
 	}
 
 	// Return error if we are not started.
 	if s.state != schedulerStarted {
-		te.errs = append(te.errs, perror.New(ErrSchedulerNotStarted))
+		te.errs = append(te.errs, serror.New(ErrSchedulerNotStarted))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error("scheduler not started")
 		return nil, te
@@ -162,7 +162,7 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 
 	// Ensure the schedule is valid at this point and time.
 	if err := sch.Validate(); err != nil {
-		te.errs = append(te.errs, perror.New(err))
+		te.errs = append(te.errs, serror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error("schedule passed not valid")
 		return nil, te
@@ -171,7 +171,7 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	// Generate a workflow from the workflow map
 	wf, err := wmapToWorkflow(wfMap)
 	if err != nil {
-		te.errs = append(te.errs, perror.New(err))
+		te.errs = append(te.errs, serror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error(ErrSchedulerNotStarted.Error())
 		return nil, te
@@ -193,7 +193,7 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {
-		te.errs = append(te.errs, perror.New(err))
+		te.errs = append(te.errs, serror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error("errors during task creation")
 		return nil, te
@@ -280,15 +280,15 @@ func (s *scheduler) GetTask(id string) (core.Task, error) {
 }
 
 // StartTask provided a task id a task is started
-func (s *scheduler) StartTask(id string) []perror.SnapError {
+func (s *scheduler) StartTask(id string) []serror.SnapError {
 	return s.startTask(id, "user")
 }
 
-func (s *scheduler) StartTaskTribe(id string) []perror.SnapError {
+func (s *scheduler) StartTaskTribe(id string) []serror.SnapError {
 	return s.startTask(id, "tribe")
 }
 
-func (s *scheduler) startTask(id, source string) []perror.SnapError {
+func (s *scheduler) startTask(id, source string) []serror.SnapError {
 	logger := s.logger.WithFields(log.Fields{
 		"_block": "start-task",
 		"source": source,
@@ -300,8 +300,8 @@ func (s *scheduler) startTask(id, source string) []perror.SnapError {
 			"_error":  ErrTaskNotFound,
 			"task-id": id,
 		}).Error("error starting task")
-		return []perror.SnapError{
-			perror.New(err),
+		return []serror.SnapError{
+			serror.New(err),
 		}
 	}
 
@@ -310,8 +310,8 @@ func (s *scheduler) startTask(id, source string) []perror.SnapError {
 			"task-id":    t.ID(),
 			"task-state": t.State(),
 		}).Info("task is already running")
-		return []perror.SnapError{
-			perror.New(ErrTaskAlreadyRunning),
+		return []serror.SnapError{
+			serror.New(ErrTaskAlreadyRunning),
 		}
 	}
 
@@ -336,15 +336,15 @@ func (s *scheduler) startTask(id, source string) []perror.SnapError {
 }
 
 // StopTask provided a task id a task is stopped
-func (s *scheduler) StopTask(id string) []perror.SnapError {
+func (s *scheduler) StopTask(id string) []serror.SnapError {
 	return s.stopTask(id, "user")
 }
 
-func (s *scheduler) StopTaskTribe(id string) []perror.SnapError {
+func (s *scheduler) StopTaskTribe(id string) []serror.SnapError {
 	return s.stopTask(id, "tribe")
 }
 
-func (s *scheduler) stopTask(id, source string) []perror.SnapError {
+func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 	logger := s.logger.WithFields(log.Fields{
 		"_block": "stop-task",
 		"source": source,
@@ -355,8 +355,8 @@ func (s *scheduler) stopTask(id, source string) []perror.SnapError {
 			"_error":  err.Error(),
 			"task-id": id,
 		}).Error("error stopping task")
-		return []perror.SnapError{
-			perror.New(err),
+		return []serror.SnapError{
+			serror.New(err),
 		}
 	}
 
@@ -365,8 +365,8 @@ func (s *scheduler) stopTask(id, source string) []perror.SnapError {
 			"task-id":    t.ID(),
 			"task-state": t.State(),
 		}).Info("task is already stopped")
-		return []perror.SnapError{
-			perror.New(ErrTaskAlreadyStopped),
+		return []serror.SnapError{
+			serror.New(ErrTaskAlreadyStopped),
 		}
 	}
 
@@ -573,7 +573,7 @@ func returnCorePlugin(plugins []core.SubscribedPlugin) []core.Plugin {
 	return cps
 }
 
-func buildErrorsLog(errs []perror.SnapError, logger *log.Entry) *log.Entry {
+func buildErrorsLog(errs []serror.SnapError, logger *log.Entry) *log.Entry {
 	for i, e := range errs {
 		logger = logger.WithField(fmt.Sprintf("%s[%d]", "error", i), e.Error())
 	}

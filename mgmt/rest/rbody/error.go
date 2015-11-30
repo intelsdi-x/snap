@@ -22,7 +22,7 @@ package rbody
 import (
 	"fmt"
 
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 )
 
 const (
@@ -35,7 +35,7 @@ type Error struct {
 	Fields       map[string]string `json:"fields"`
 }
 
-func FromSnapError(pe perror.SnapError) *Error {
+func FromSnapError(pe serror.SnapError) *Error {
 	e := &Error{ErrorMessage: pe.Error(), Fields: make(map[string]string)}
 	// Convert into string format
 	for k, v := range pe.Fields() {
@@ -44,7 +44,7 @@ func FromSnapError(pe perror.SnapError) *Error {
 	return e
 }
 
-func FromSnapErrors(errs []perror.SnapError) *Error {
+func FromSnapErrors(errs []serror.SnapError) *Error {
 	fields := make(map[string]string)
 	var msg string
 	for i, err := range errs {

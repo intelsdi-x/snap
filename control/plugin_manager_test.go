@@ -31,7 +31,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 )
 
 var (
@@ -72,11 +72,11 @@ func TestLoadedPlugins(t *testing.T) {
 	})
 }
 
-func loadPlugin(p *pluginManager, path string) (*loadedPlugin, perror.SnapError) {
+func loadPlugin(p *pluginManager, path string) (*loadedPlugin, serror.SnapError) {
 	// This is a Travis optimized loading of plugins. From time to time, tests will error in Travis
 	// due to a timeout when waiting for a response from a plugin. We are going to attempt loading a plugin
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
-	var e perror.SnapError
+	var e serror.SnapError
 	var lp *loadedPlugin
 	details := &pluginDetails{
 		Path:     path,

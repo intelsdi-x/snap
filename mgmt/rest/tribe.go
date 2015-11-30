@@ -27,7 +27,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/julienschmidt/httprouter"
 )
@@ -56,15 +56,15 @@ func (s *Server) getAgreement(w http.ResponseWriter, r *http.Request, p httprout
 			"agreement_name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
-		respond(400, rbody.FromSnapError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		respond(400, rbody.FromSnapError(serror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
 	a := &rbody.TribeGetAgreement{}
-	var perr perror.SnapError
-	a.Agreement, perr = s.tr.GetAgreement(name)
-	if perr != nil {
-		tribeLogger.Error(perr)
-		respond(400, rbody.FromSnapError(perr), w)
+	var serr serror.SnapError
+	a.Agreement, serr = s.tr.GetAgreement(name)
+	if serr != nil {
+		tribeLogger.Error(serr)
+		respond(400, rbody.FromSnapError(serr), w)
 		return
 	}
 	respond(200, a, w)
@@ -78,15 +78,15 @@ func (s *Server) deleteAgreement(w http.ResponseWriter, r *http.Request, p httpr
 			"agreement_name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
-		respond(400, rbody.FromSnapError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		respond(400, rbody.FromSnapError(serror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
 
-	var perr perror.SnapError
-	perr = s.tr.RemoveAgreement(name)
-	if perr != nil {
-		tribeLogger.Error(perr)
-		respond(400, rbody.FromSnapError(perr), w)
+	var serr serror.SnapError
+	serr = s.tr.RemoveAgreement(name)
+	if serr != nil {
+		tribeLogger.Error(serr)
+		respond(400, rbody.FromSnapError(serr), w)
 		return
 	}
 
@@ -103,7 +103,7 @@ func (s *Server) joinAgreement(w http.ResponseWriter, r *http.Request, p httprou
 			"agreement_name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
-		respond(400, rbody.FromSnapError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		respond(400, rbody.FromSnapError(serror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
 
@@ -123,16 +123,16 @@ func (s *Server) joinAgreement(w http.ResponseWriter, r *http.Request, p httprou
 			"error": err,
 			"hint":  `The body of the request should be of the form '{"member_name": "some_value"}'`,
 		}
-		pe := perror.New(ErrInvalidJSON, fields)
+		se := serror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
-		respond(400, rbody.FromSnapError(pe), w)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 
-	perr := s.tr.JoinAgreement(name, m.MemberName)
-	if perr != nil {
-		tribeLogger.Error(perr)
-		respond(400, rbody.FromSnapError(perr), w)
+	serr := s.tr.JoinAgreement(name, m.MemberName)
+	if serr != nil {
+		tribeLogger.Error(serr)
+		respond(400, rbody.FromSnapError(serr), w)
 		return
 	}
 	agreement, _ := s.tr.GetAgreement(name)
@@ -148,7 +148,7 @@ func (s *Server) leaveAgreement(w http.ResponseWriter, r *http.Request, p httpro
 			"agreement_name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrAgreementDoesNotExist)
-		respond(400, rbody.FromSnapError(perror.New(ErrAgreementDoesNotExist, fields)), w)
+		respond(400, rbody.FromSnapError(serror.New(ErrAgreementDoesNotExist, fields)), w)
 		return
 	}
 
@@ -168,16 +168,16 @@ func (s *Server) leaveAgreement(w http.ResponseWriter, r *http.Request, p httpro
 			"error": err,
 			"hint":  `The body of the request should be of the form '{"member_name": "some_value"}'`,
 		}
-		pe := perror.New(ErrInvalidJSON, fields)
+		se := serror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
-		respond(400, rbody.FromSnapError(pe), w)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 
-	perr := s.tr.LeaveAgreement(name, m.MemberName)
-	if perr != nil {
-		tribeLogger.Error(perr)
-		respond(400, rbody.FromSnapError(perr), w)
+	serr := s.tr.LeaveAgreement(name, m.MemberName)
+	if serr != nil {
+		tribeLogger.Error(serr)
+		respond(400, rbody.FromSnapError(serr), w)
 		return
 	}
 	agreement, _ := s.tr.GetAgreement(name)
@@ -198,7 +198,7 @@ func (s *Server) getMember(w http.ResponseWriter, r *http.Request, p httprouter.
 			"name": name,
 		}
 		tribeLogger.WithFields(fields).Error(ErrMemberNotFound)
-		respond(404, rbody.FromSnapError(perror.New(ErrMemberNotFound, fields)), w)
+		respond(404, rbody.FromSnapError(serror.New(ErrMemberNotFound, fields)), w)
 		return
 	}
 	resp := &rbody.TribeMemberShow{
@@ -232,9 +232,9 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 			"error": err,
 			"hint":  `The body of the request should be of the form '{"name": "agreement_name"}'`,
 		}
-		pe := perror.New(ErrInvalidJSON, fields)
+		se := serror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
-		respond(400, rbody.FromSnapError(pe), w)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 
@@ -242,9 +242,9 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 		fields := map[string]interface{}{
 			"hint": `The body of the request should be of the form '{"name": "agreement_name"}'`,
 		}
-		pe := perror.New(ErrInvalidJSON, fields)
+		se := serror.New(ErrInvalidJSON, fields)
 		tribeLogger.WithFields(fields).Error(ErrInvalidJSON)
-		respond(400, rbody.FromSnapError(pe), w)
+		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
 

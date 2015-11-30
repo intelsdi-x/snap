@@ -42,7 +42,7 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/aci"
 	"github.com/intelsdi-x/snap/pkg/psigning"
 )
@@ -102,24 +102,24 @@ type managesPlugins interface {
 	teardown()
 	get(string) (*loadedPlugin, error)
 	all() map[string]*loadedPlugin
-	LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, perror.SnapError)
-	UnloadPlugin(core.Plugin) (*loadedPlugin, perror.SnapError)
+	LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, serror.SnapError)
+	UnloadPlugin(core.Plugin) (*loadedPlugin, serror.SnapError)
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(pluginPath string) plugin.Arg
 	SetPluginConfig(*pluginConfig)
 }
 
 type catalogsMetrics interface {
-	Get([]string, int) (*metricType, perror.SnapError)
+	Get([]string, int) (*metricType, serror.SnapError)
 	Add(*metricType)
 	AddLoadedMetricType(*loadedPlugin, core.Metric)
 	RmUnloadedPluginMetrics(lp *loadedPlugin)
-	Fetch([]string) ([]*metricType, perror.SnapError)
+	Fetch([]string) ([]*metricType, serror.SnapError)
 	Item() (string, []*metricType)
 	Next() bool
-	Subscribe([]string, int) perror.SnapError
-	Unsubscribe([]string, int) perror.SnapError
-	GetPlugin([]string, int) (*loadedPlugin, perror.SnapError)
+	Subscribe([]string, int) serror.SnapError
+	Unsubscribe([]string, int) serror.SnapError
+	GetPlugin([]string, int) (*loadedPlugin, serror.SnapError)
 }
 
 type managesSigning interface {
@@ -255,14 +255,14 @@ func (p *pluginControl) Stop() {
 // Load is the public method to load a plugin into
 // the LoadedPlugins array and issue an event when
 // successful.
-func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, perror.SnapError) {
+func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError) {
 	f := map[string]interface{}{
 		"_block": "load",
 	}
 
-	details, perr := p.returnPluginDetails(rp)
-	if perr != nil {
-		return nil, perr
+	details, serr := p.returnPluginDetails(rp)
+	if serr != nil {
+		return nil, serr
 	}
 	if details.IsPackage {
 		defer os.RemoveAll(filepath.Dir(details.ExecPath))
@@ -270,15 +270,15 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, pe
 
 	controlLogger.WithFields(f).Info("plugin load called")
 	if !p.Started {
-		pe := perror.New(ErrControllerNotStarted)
-		pe.SetFields(f)
-		controlLogger.WithFields(f).Error(pe)
-		return nil, pe
+		se := serror.New(ErrControllerNotStarted)
+		se.SetFields(f)
+		controlLogger.WithFields(f).Error(se)
+		return nil, se
 	}
 
-	pl, pe := p.pluginManager.LoadPlugin(details, p.eventManager)
-	if pe != nil {
-		return nil, pe
+	pl, se := p.pluginManager.LoadPlugin(details, p.eventManager)
+	if se != nil {
+		return nil, se
 	}
 
 	// If plugin was loaded from a package, remove ExecPath for
@@ -298,7 +298,7 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, pe
 	return pl, nil
 }
 
-func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, perror.SnapError) {
+func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, serror.SnapError) {
 	f := map[string]interface{}{
 		"_block": "verifySignature",
 	}
@@ -308,7 +308,7 @@ func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, perror.
 	case PluginTrustEnabled:
 		err := p.signingManager.ValidateSignature(p.keyringFiles, rp.Path(), rp.Signature())
 		if err != nil {
-			return false, perror.New(err)
+			return false, serror.New(err)
 		}
 	case PluginTrustWarn:
 		if rp.Signature() == nil {
@@ -317,7 +317,7 @@ func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, perror.
 		} else {
 			err := p.signingManager.ValidateSignature(p.keyringFiles, rp.Path(), rp.Signature())
 			if err != nil {
-				return false, perror.New(err)
+				return false, serror.New(err)
 			}
 		}
 	}
@@ -325,13 +325,13 @@ func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, perror.
 
 }
 
-func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDetails, perror.SnapError) {
+func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDetails, serror.SnapError) {
 	details := &pluginDetails{}
-	var perr perror.SnapError
+	var serr serror.SnapError
 	//Check plugin signing
-	details.Signed, perr = p.verifySignature(rp)
-	if perr != nil {
-		return nil, perr
+	details.Signed, serr = p.verifySignature(rp)
+	if serr != nil {
+		return nil, serr
 	}
 
 	details.Path = rp.Path()
@@ -341,19 +341,19 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	if filepath.Ext(rp.Path()) == ".aci" {
 		f, err := os.Open(rp.Path())
 		if err != nil {
-			return nil, perror.New(err)
+			return nil, serror.New(err)
 		}
 		defer f.Close()
 		if err := aci.Validate(f); err != nil {
-			return nil, perror.New(err)
+			return nil, serror.New(err)
 		}
 		tempPath, err := aci.Extract(f)
 		if err != nil {
-			return nil, perror.New(err)
+			return nil, serror.New(err)
 		}
 		details.ExecPath = path.Join(tempPath, "rootfs")
 		if details.Manifest, err = aci.Manifest(f); err != nil {
-			return nil, perror.New(err)
+			return nil, serror.New(err)
 		}
 		details.Exec = details.Manifest.App.Exec[0]
 		details.IsPackage = true
@@ -366,7 +366,7 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	return details, nil
 }
 
-func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, perror.SnapError) {
+func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, serror.SnapError) {
 	up, err := p.pluginManager.UnloadPlugin(pl)
 	if err != nil {
 		return nil, err
@@ -381,11 +381,11 @@ func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, perror.Sna
 	return up, nil
 }
 
-func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.CatalogedPlugin) perror.SnapError {
+func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.CatalogedPlugin) serror.SnapError {
 
-	details, perr := p.returnPluginDetails(in)
-	if perr != nil {
-		return perr
+	details, serr := p.returnPluginDetails(in)
+	if serr != nil {
+		return serr
 	}
 	if details.IsPackage {
 		defer os.RemoveAll(filepath.Dir(details.ExecPath))
@@ -400,8 +400,8 @@ func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.Cataloged
 	if err != nil {
 		_, err2 := p.pluginManager.UnloadPlugin(lp)
 		if err2 != nil {
-			pe := perror.New(errors.New("failed to rollback after error"))
-			pe.SetFields(map[string]interface{}{
+			se := serror.New(errors.New("failed to rollback after error"))
+			se.SetFields(map[string]interface{}{
 				"original-unload-error": err.Error(),
 				"rollback-unload-error": err2.Error(),
 			})
@@ -422,51 +422,51 @@ func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.Cataloged
 	return nil
 }
 
-func (p *pluginControl) ValidateDeps(mts []core.Metric, plugins []core.SubscribedPlugin) []perror.SnapError {
-	var perrs []perror.SnapError
+func (p *pluginControl) ValidateDeps(mts []core.Metric, plugins []core.SubscribedPlugin) []serror.SnapError {
+	var serrs []serror.SnapError
 	for _, mt := range mts {
 		_, errs := p.validateMetricTypeSubscription(mt, mt.Config())
 		if len(errs) > 0 {
-			perrs = append(perrs, errs...)
+			serrs = append(serrs, errs...)
 		}
 	}
-	if len(perrs) > 0 {
-		return perrs
+	if len(serrs) > 0 {
+		return serrs
 	}
 
 	//validate plugins
 	for _, plg := range plugins {
 		typ, err := core.ToPluginType(plg.TypeName())
 		if err != nil {
-			return []perror.SnapError{perror.New(err)}
+			return []serror.SnapError{serror.New(err)}
 		}
 		plg.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(typ, plg.Name(), plg.Version()))
 		errs := p.validatePluginSubscription(plg)
 		if len(errs) > 0 {
-			perrs = append(perrs, errs...)
-			return perrs
+			serrs = append(serrs, errs...)
+			return serrs
 		}
 	}
 
-	return perrs
+	return serrs
 }
 
-func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []perror.SnapError {
-	var perrs = []perror.SnapError{}
+func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []serror.SnapError {
+	var serrs = []serror.SnapError{}
 	controlLogger.WithFields(log.Fields{
 		"_block": "validate-plugin-subscription",
 		"plugin": fmt.Sprintf("%s:%d", pl.Name(), pl.Version()),
 	}).Info(fmt.Sprintf("validating dependencies for plugin %s:%d", pl.Name(), pl.Version()))
 	lp, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
-		pe := perror.New(fmt.Errorf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version()))
-		pe.SetFields(map[string]interface{}{
+		se := serror.New(fmt.Errorf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version()))
+		se.SetFields(map[string]interface{}{
 			"name":    pl.Name(),
 			"version": pl.Version(),
 			"type":    pl.TypeName(),
 		})
-		perrs = append(perrs, pe)
-		return perrs
+		serrs = append(serrs, se)
+		return serrs
 	}
 
 	if lp.ConfigPolicy != nil {
@@ -474,17 +474,17 @@ func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []p
 		_, errs := ncd.Process(pl.Config().Table())
 		if errs != nil && errs.HasErrors() {
 			for _, e := range errs.Errors() {
-				pe := perror.New(e)
-				pe.SetFields(map[string]interface{}{"name": pl.Name(), "version": pl.Version()})
-				perrs = append(perrs, pe)
+				se := serror.New(e)
+				se.SetFields(map[string]interface{}{"name": pl.Name(), "version": pl.Version()})
+				serrs = append(serrs, se)
 			}
 		}
 	}
-	return perrs
+	return serrs
 }
 
-func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []perror.SnapError) {
-	var perrs []perror.SnapError
+func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, cd *cdata.ConfigDataNode) (core.Metric, []serror.SnapError) {
+	var serrs []serror.SnapError
 	controlLogger.WithFields(log.Fields{
 		"_block":    "validate-metric-subscription",
 		"namespace": mt.Namespace(),
@@ -493,21 +493,21 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 
 	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 	if err != nil {
-		perrs = append(perrs, err)
-		return nil, perrs
+		serrs = append(serrs, err)
+		return nil, serrs
 	}
 
 	// No metric found return error.
 	if m == nil {
-		perrs = append(perrs, perror.New(errors.New(fmt.Sprintf("no metric found cannot subscribe: (%s) version(%d)", mt.Namespace(), mt.Version()))))
-		return nil, perrs
+		serrs = append(serrs, serror.New(errors.New(fmt.Sprintf("no metric found cannot subscribe: (%s) version(%d)", mt.Namespace(), mt.Version()))))
+		return nil, serrs
 	}
 
 	m.config = cd
 
-	typ, perr := core.ToPluginType(m.Plugin.TypeName())
-	if perr != nil {
-		return nil, []perror.SnapError{perror.New(err)}
+	typ, serr := core.ToPluginType(m.Plugin.TypeName())
+	if serr != nil {
+		return nil, []serror.SnapError{serror.New(err)}
 	}
 
 	// merge global plugin config
@@ -522,26 +522,26 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 	// Checking m.policy for nil will not work, we need to check if rules are nil.
 	if m.policy.HasRules() {
 		if m.Config() == nil {
-			perrs = append(perrs, perror.New(errors.New(fmt.Sprintf("Policy defined for metric, (%s) version (%d), but no config defined in manifest", mt.Namespace(), mt.Version()))))
-			return nil, perrs
+			serrs = append(serrs, serror.New(errors.New(fmt.Sprintf("Policy defined for metric, (%s) version (%d), but no config defined in manifest", mt.Namespace(), mt.Version()))))
+			return nil, serrs
 		}
 		ncdTable, errs := m.policy.Process(m.Config().Table())
 		if errs != nil && errs.HasErrors() {
 			for _, e := range errs.Errors() {
-				perrs = append(perrs, perror.New(e))
+				serrs = append(serrs, serror.New(e))
 			}
-			return nil, perrs
+			return nil, serrs
 		}
 		m.config = cdata.FromTable(*ncdTable)
 	}
 
-	return m, perrs
+	return m, serrs
 }
 
-func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []perror.SnapError) {
+func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []serror.SnapError) {
 	var (
 		plugins []core.Plugin
-		perrs   []perror.SnapError
+		serrs   []serror.SnapError
 	)
 
 	// here we resolve and retrieve plugins for each metric type.
@@ -553,7 +553,7 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []pe
 	for _, mt := range mts {
 		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 		if err != nil {
-			perrs = append(perrs, err)
+			serrs = append(serrs, err)
 			continue
 		}
 		// if the metric subscription is to version -1, we need to carry
@@ -567,8 +567,8 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []pe
 			colPlugins[m.Plugin.Key()] = m.Plugin
 		}
 	}
-	if len(perrs) > 0 {
-		return plugins, perrs
+	if len(serrs) > 0 {
+		return plugins, serrs
 	}
 
 	for _, lp := range colPlugins {
@@ -578,12 +578,12 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []pe
 	return plugins, nil
 }
 
-func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins []core.Plugin) []perror.SnapError {
-	var perrs []perror.SnapError
+func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
+	var serrs []serror.SnapError
 
 	collectors, errs := p.gatherCollectors(mts)
 	if len(errs) > 0 {
-		perrs = append(perrs)
+		serrs = append(serrs)
 	}
 	plugins = append(plugins, collectors...)
 
@@ -595,59 +595,59 @@ func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins 
 		if sub.Version() < 1 {
 			latest, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
 			if err != nil {
-				perrs = append(perrs, perror.New(err))
-				return perrs
+				serrs = append(serrs, serror.New(err))
+				return serrs
 			}
 			pool, err := p.pluginRunner.AvailablePlugins().getOrCreatePool(latest.Key())
 			if err != nil {
-				perrs = append(perrs, perror.New(err))
-				return perrs
+				serrs = append(serrs, serror.New(err))
+				return serrs
 			}
 			pool.subscribe(taskId, unboundSubscriptionType)
 			if pool.eligible() {
 				err = p.verifyPlugin(latest)
 				if err != nil {
-					perrs = append(perrs, perror.New(err))
-					return perrs
+					serrs = append(serrs, serror.New(err))
+					return serrs
 				}
 				err = p.pluginRunner.runPlugin(latest.Details)
 				if err != nil {
-					perrs = append(perrs, perror.New(err))
-					return perrs
+					serrs = append(serrs, serror.New(err))
+					return serrs
 				}
 			}
 		} else {
 			pool, err := p.pluginRunner.AvailablePlugins().getOrCreatePool(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
 			if err != nil {
-				perrs = append(perrs, perror.New(err))
-				return perrs
+				serrs = append(serrs, serror.New(err))
+				return serrs
 			}
 			pool.subscribe(taskId, boundSubscriptionType)
 			if pool.eligible() {
 				pl, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
 				if err != nil {
-					perrs = append(perrs, perror.New(err))
-					return perrs
+					serrs = append(serrs, serror.New(err))
+					return serrs
 				}
 				err = p.verifyPlugin(pl)
 				if err != nil {
-					perrs = append(perrs, perror.New(err))
-					return perrs
+					serrs = append(serrs, serror.New(err))
+					return serrs
 				}
 				err = p.pluginRunner.runPlugin(pl.Details)
 				if err != nil {
-					perrs = append(perrs, perror.New(err))
-					return perrs
+					serrs = append(serrs, serror.New(err))
+					return serrs
 				}
 			}
 		}
-		perr := p.sendPluginSubscriptionEvent(taskId, sub)
-		if perr != nil {
-			perrs = append(perrs, perr)
+		serr := p.sendPluginSubscriptionEvent(taskId, sub)
+		if serr != nil {
+			serrs = append(serrs, serr)
 		}
 	}
 
-	return perrs
+	return serrs
 }
 
 func (p *pluginControl) verifyPlugin(lp *loadedPlugin) error {
@@ -665,10 +665,10 @@ func (p *pluginControl) verifyPlugin(lp *loadedPlugin) error {
 	return nil
 }
 
-func (p *pluginControl) sendPluginSubscriptionEvent(taskId string, pl core.Plugin) perror.SnapError {
+func (p *pluginControl) sendPluginSubscriptionEvent(taskId string, pl core.Plugin) serror.SnapError {
 	pt, err := core.ToPluginType(pl.TypeName())
 	if err != nil {
-		return perror.New(err)
+		return serror.New(err)
 	}
 	e := &control_event.PluginSubscriptionEvent{
 		TaskId:           taskId,
@@ -681,42 +681,42 @@ func (p *pluginControl) sendPluginSubscriptionEvent(taskId string, pl core.Plugi
 		e.SubscriptionType = int(boundSubscriptionType)
 	}
 	if _, err := p.eventManager.Emit(e); err != nil {
-		return perror.New(err)
+		return serror.New(err)
 	}
 	return nil
 }
 
-func (p *pluginControl) UnsubscribeDeps(taskId string, mts []core.Metric, plugins []core.Plugin) []perror.SnapError {
-	var perrs []perror.SnapError
+func (p *pluginControl) UnsubscribeDeps(taskId string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
+	var serrs []serror.SnapError
 
 	collectors, errs := p.gatherCollectors(mts)
 	if len(errs) > 0 {
-		perrs = append(perrs, errs...)
+		serrs = append(serrs, errs...)
 	}
 	plugins = append(plugins, collectors...)
 
 	for _, sub := range plugins {
 		pool, err := p.pluginRunner.AvailablePlugins().getPool(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
 		if err != nil {
-			perrs = append(perrs, err)
-			return perrs
+			serrs = append(serrs, err)
+			return serrs
 		}
 		if pool != nil {
 			pool.unsubscribe(taskId)
 		}
-		perr := p.sendPluginUnsubscriptionEvent(taskId, sub)
-		if perr != nil {
-			perrs = append(perrs, perr)
+		serr := p.sendPluginUnsubscriptionEvent(taskId, sub)
+		if serr != nil {
+			serrs = append(serrs, serr)
 		}
 	}
 
-	return perrs
+	return serrs
 }
 
-func (p *pluginControl) sendPluginUnsubscriptionEvent(taskId string, pl core.Plugin) perror.SnapError {
+func (p *pluginControl) sendPluginUnsubscriptionEvent(taskId string, pl core.Plugin) serror.SnapError {
 	pt, err := core.ToPluginType(pl.TypeName())
 	if err != nil {
-		return perror.New(err)
+		return serror.New(err)
 	}
 	e := &control_event.PluginUnsubscriptionEvent{
 		TaskId:        taskId,
@@ -725,7 +725,7 @@ func (p *pluginControl) sendPluginUnsubscriptionEvent(taskId string, pl core.Plu
 		PluginVersion: pl.Version(),
 	}
 	if _, err := p.eventManager.Emit(e); err != nil {
-		return perror.New(err)
+		return serror.New(err)
 	}
 	return nil
 }

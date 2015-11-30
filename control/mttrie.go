@@ -24,7 +24,7 @@ import (
 	"fmt"
 
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/perror"
+	"github.com/intelsdi-x/snap/core/serror"
 )
 
 /*
@@ -146,7 +146,7 @@ func (mtt *mttNode) Add(mt *metricType) {
 
 // Collect collects all children below a given namespace
 // and concatenates their metric types into a single slice
-func (mtt *mttNode) Fetch(ns []string) ([]*metricType, perror.SnapError) {
+func (mtt *mttNode) Fetch(ns []string) ([]*metricType, serror.SnapError) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (mtt *mttNode) Fetch(ns []string) ([]*metricType, perror.SnapError) {
 }
 
 // Remove removes all children below a given namespace
-func (mtt *mttNode) Remove(ns []string) perror.SnapError {
+func (mtt *mttNode) Remove(ns []string) serror.SnapError {
 	_, err := mtt.find(ns)
 	if err != nil {
 		return err
@@ -189,17 +189,17 @@ func (mtt *mttNode) Remove(ns []string) perror.SnapError {
 
 // Get works like fetch, but only returns the MT at the given node
 // and does not gather the node's children.
-func (mtt *mttNode) Get(ns []string) ([]*metricType, perror.SnapError) {
+func (mtt *mttNode) Get(ns []string) ([]*metricType, serror.SnapError) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
 	}
 	if node.mts == nil {
-		pe := perror.New(errorMetricNotFound(ns))
-		pe.SetFields(map[string]interface{}{
+		se := serror.New(errorMetricNotFound(ns))
+		se.SetFields(map[string]interface{}{
 			"name": core.JoinNamespace(ns),
 		})
-		return nil, pe
+		return nil, se
 	}
 	var mts []*metricType
 	for _, mt := range node.mts {
@@ -226,14 +226,14 @@ func (mtt *mttNode) walk(ns []string) (*mttNode, int) {
 	return parent, len(ns)
 }
 
-func (mtt *mttNode) find(ns []string) (*mttNode, perror.SnapError) {
+func (mtt *mttNode) find(ns []string) (*mttNode, serror.SnapError) {
 	node, index := mtt.walk(ns)
 	if index != len(ns) {
-		pe := perror.New(errorMetricNotFound(ns))
-		pe.SetFields(map[string]interface{}{
+		se := serror.New(errorMetricNotFound(ns))
+		se.SetFields(map[string]interface{}{
 			"name": core.JoinNamespace(ns),
 		})
-		return nil, pe
+		return nil, se
 	}
 	return node, nil
 }
