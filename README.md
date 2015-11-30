@@ -20,7 +20,9 @@ limitations under the License.
 # **snap** <sup><sub>_A powerful telemetry agent framework_</sub></sup>
 [![Build Status](https://travis-ci.com/intelsdi-x/snap.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://travis-ci.com/intelsdi-x/snap)
 
-- [ ] TODO: Consider branching note ([like this one](https://github.com/Netflix/genie#in-active-development))
+## In Active Development
+The master branch is used for new feature development. Our goal is to keep it in a deployable state. If you're looking for a version that is versioned and intended for production please [see the latest release](https://github.com/intelsdi-x/snap/releases).
+
 
 1. [Overview](#overview)
 2. [Getting Started](#getting-started)
