@@ -102,14 +102,18 @@ snap gets its power from the use of plugins. The [Plugin Catalog](#plugin-catalo
 
 - [ ] TODO - guide or pointer to building one of our plugins...
 
-Next, lets load a few of the demo plugins.  You can do this via cURL, or `snapctl`, snap's CLI:
+Next, lets load a few of the demo plugins.  You can do this via cURL, or `snapctl`, snap's CLI.
 
+Using cURL
 ```sh
 curl -X POST -F plugin=@build/plugin/snap-collector-mock1 http://localhost:8181/v1/plugins
+curl -X POST -F plugin=@build/plugin/snap-processor-passthru http://localhost:8181/v1/plugins
+curl -X POST -F plugin=@build/plugin/snap-publisher-file http://localhost:8181/v1/plugins
 ```
 
-And:
+Or:
 
+Using `snapctl`
 ```sh
 $ ./bin/snapctl plugin load build/plugin/snap-collector-mock1
 $ ./bin/snapctl plugin load build/plugin/snap-processor-passthru
