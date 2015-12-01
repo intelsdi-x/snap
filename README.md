@@ -81,7 +81,7 @@ Some additionally important notes about how snap works:
 ### System Requirements
 Snap deploys as a binary, which makes requirements quite simple. We've tested on a subset of Linux and OS X versions.
 
-### Installation
+### Install ation
 
 You can get the pre-built binaries for your OS and architecture at snap's [GitHub Releases](https://github.com/intelsdi-x/snap/releases) page.  Right now, snap only supports Linux and OS X.
 
@@ -92,9 +92,10 @@ If you're looking for the bleeding edge of snap, you can build it by cloning dow
 Start a standalone snap agent:
 
 ```sh
-$ ./bin/snapd --plugin-trust 0 --log-level 1
+export SNAP_PATH=<snapdirectory>/build
+$SNAP_PATH/bin/snapd --plugin-trust 0 --log-level 1
 ```
-This will bring up a snap agent without requiring plugin signing and set the logging level to debug.  snap's REST API will be listening on port 8181.
+This will bring up a snap agent without requiring plugin signing and set the logging level to debug. snap's REST API will be listening on port 8181.
 
 ### Running snap in tribe (cluster) mode
 
@@ -130,15 +131,15 @@ Or:
 
 Using `snapctl`
 ```sh
-$ ./bin/snapctl plugin load build/plugin/snap-collector-mock1
-$ ./bin/snapctl plugin load build/plugin/snap-processor-passthru
-$ ./bin/snapctl plugin load build/plugin/snap-publisher-file
+$SNAP_PATH/bin/snapctl plugin load build/plugin/snap-collector-mock1
+$SNAP_PATH/bin/snapctl plugin load build/plugin/snap-processor-passthru
+$SNAP_PATH/bin/snapctl plugin load build/plugin/snap-publisher-file
 ```
 
 Let's look at what plugins we have loaded now:
 
 ```sh
-$ ./bin/snapctl plugin list
+$SNAP_PATH/bin/snapctl plugin list
 NAME             VERSION         TYPE            SIGNED          STATUS          LOADED TIME
 mock1            1               collector       false           loaded          Tue, 17 Nov 2015 14:08:17 PST
 passthru         1               processor       false           loaded          Tue, 17 Nov 2015 14:16:12 PST
@@ -146,10 +147,10 @@ file             3               publisher       false           loaded         
 ```
 ### Running Tasks
 
-Next, let's start one of the [example tasks](./examples/tasks/mock-file.json) from the `examples/` directory:
+Tasks can be in JSON or YAML format. Let's start one of the [example tasks](./examples/tasks/mock-file.yaml) from the `examples/` directory:
 
 ```
-$ ./bin/snapctl task create -t examples/tasks/mock-file.json
+$SNAP_PATH/bin/snapctl task create -t examples/tasks/mock-file.yaml
 Using task manifest to create task
 Task created
 ID: 8b9babad-b3bc-4a16-9e06-1f35664a7679
@@ -166,7 +167,7 @@ $ tail -f /tmp/published
 
 Or actually tap into the data that snap is collecting:
 ```
-$ ./bin/snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
+$SNAP_PATH/bin/snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
 ```
 
 ### Building Tasks

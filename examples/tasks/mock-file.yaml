@@ -1,0 +1,24 @@
+---
+  version: 1
+  schedule: 
+    type: "simple"
+    interval: "1s"
+  workflow: 
+    collect: 
+      metrics: 
+        /intel/mock/foo: {}
+        /intel/mock/bar: {}
+        /intel/mock/*/baz: {}
+      config: 
+        /intel/mock: 
+          user: "root"
+          password: "secret"
+      process: 
+        - 
+          plugin_name: "passthru"
+          process: null
+          publish: 
+            - 
+              plugin_name: "file"
+              config: 
+                file: "/tmp/published"
