@@ -17,11 +17,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# **snap** <sup><sub>_A powerful telemetry agent framework_</sub></sup>
+# **snap** <sup><sub>_A powerful telemetry framework_</sub></sup>
 [![Build Status](https://travis-ci.com/intelsdi-x/snap.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://travis-ci.com/intelsdi-x/snap)
 
 ## In Active Development
-The master branch is used for new feature development. Our goal is to keep it in a deployable state. If you're looking for a version that is versioned and intended for production please [see the latest release](https://github.com/intelsdi-x/snap/releases).
+The master branch is used for new feature development. Our goal is to keep it in a deployable state. If you're looking for the most recent stable release that is versioned, please [see the latest release](https://github.com/intelsdi-x/snap/releases).
 
 
 1. [Overview](#overview)
@@ -186,13 +186,14 @@ There are interesting examples of using snap in every plugin repository. For the
 ### Roadmap
 We have a few known features we want to take on from here while we remain open for feedback after public release. They are:
 
-* Windows support
-* Inclusion of routing (see #539)
+* Windows support (spec pending)
+* Distributed Workflows (spec pending)
+* Workflow Routing (see #539)
 
 If you would like to propose a feature, please open a Issue that includes RFC in it (for [request for comments](https://en.wikipedia.org/wiki/Request_for_Comments)).
 
 ## Community Support
-This repository is one of **many** projects in the **snap Framework**. Discuss your questions about snap by reaching out to us on:
+This repository is one of **many** projects in the **snap framework**. Discuss your questions about snap by reaching out to us on:
 
 * Through GitHub Issues. Issues is our home for **all** needs: Q&A on everything - installation, request for events, integrations, bug issues, futures. [Open up an Issue](https://github.com/intelsdi-x/snap/issues) and know there's no wrong question for us.
 * We also have a Gitter channel opened up on this repository that threads directly into our engineering team Slack (thanks to [Sameroom](https://sameroom.io/)).
@@ -241,6 +242,8 @@ Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on a
   <td width="125"><a href="https://github.com/mjbrender"><sub>@mjbrender</sub><img src="https://avatars.githubusercontent.com/u/1744971" width="100" alt="@mjbrender"></a></td>
   </tr>
 </table>
+
+We're also looking for new maintainers from the community. Please let us know if you would like to become one by opening an Issue titled "interested in becoming a maintainer."
 
 ## Thank You
 And **thank you!** Your contribution, through code and participation, is incredibly important to us.
