@@ -52,11 +52,11 @@ mkdir -p $PROCESSORDIR
 
 # snapd
 echo "Source Dir = $SOURCEDIR"
-echo " Building snap Daemon"
+echo " Building snapd"
 go build -ldflags "-w -X main.gitversion=$GITVERSION" -o $BINDIR/snapd . || exit 1
 
 # snapctl
-echo " Building snap Command Line"
+echo " Building snapctl"
 cd $SOURCEDIR/cmd
 for d in *; do
 	if [[ -d $d ]]; then
