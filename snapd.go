@@ -153,7 +153,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "snapd"
 	app.Version = gitversion
-	app.Usage = "A powerful telemetry agent framework"
+	app.Usage = "A powerful telemetry framework"
 	app.Flags = []cli.Flag{
 		flAPIDisabled,
 		flAPIPort,

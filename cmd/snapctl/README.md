@@ -18,7 +18,7 @@ limitations under the License.
 -->
 
 # snapctl
-A powerful telemetry agent framework
+A powerful telemetry framework
 
 ## Usage
 ```
