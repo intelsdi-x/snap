@@ -40,7 +40,9 @@ The master branch is used for new feature development. Our goal is to keep it in
 4. [Contributing](#contributing)
   * [Author a Plugin](#author-a-plugin)
 5. [License](#license)
-6. [Maintainers](#maintainers)
+6. [Contributors](#contributors)
+  * [Initial Authors](#initial-authors)
+  * [Maintainers](#maintainers)
 7. [Thank You](#thank-you)
 
 ## Overview
@@ -225,7 +227,11 @@ The power of snap comes from its open architecture. Add to the ecosystem by buil
 ## License
 snap is Open Source software released under the Apache 2.0 [License](LICENSE).
 
-## Maintainers
+## Contributors
+### Initial Authors
+All contributors are equally important to us, but we would like to thank the [initial authors](AUTHORS.md#initial-authors) for helping make open sourcing snap possible.
+
+### Maintainers
 Amongst the many awesome contributors, there are the maintainers. These maintainers may change over time, but they are all members of the **@intelsdi-x/snap-maintainers** team. This group will help you by:
 * Committing to reviewing pull requests, issues, and addressing comments/questions as quickly as possible
 * Acting as a point of contact for questions
