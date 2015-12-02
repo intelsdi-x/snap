@@ -181,8 +181,9 @@ If you would like to write your own, read through [Author a Plugin](#author-a-pl
 ## Documentation
 Documentation for snap will be kept in this repository for now. We would also like to link to external how-to blog posts as people write them. See our [CONTRIBUTING.md](#contributing) for more details.
 
-* [snapctl](cmd/snapctl/README.md)
+* [snapctl](docs/SNAPCTL.md)
 * [snapd](docs/SNAPD.md)
+* [REST API](docs/REST_API.md)
 * [plugin signing](docs/PLUGIN_SIGNING.md)
 * [tribe](docs/TRIBE.md)
 
