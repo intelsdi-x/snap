@@ -184,6 +184,7 @@ Documentation for snap will be kept in this repository for now. We would also li
 
 * [snapctl](cmd/snapctl/README.md)
 * [snapd](docs/SNAPD.md)
+* [plugin signing](docs/PLUGIN_SIGNING.md)
 * [tribe](docs/TRIBE.md)
 
 ### Examples
