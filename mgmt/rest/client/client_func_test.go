@@ -333,8 +333,10 @@ func TestSnapClient(t *testing.T) {
 			})
 			Convey("StartTask", func() {
 				t1 := c.StartTask(tt.ID)
+				So(t1.Err, ShouldNotBeNil)
 				So(t1.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
 				t2 := c.StartTask(tt.ID)
+				So(t2.Err, ShouldNotBeNil)
 				So(t2.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
 			})
 			Convey("RemoveTask", func() {
@@ -348,6 +350,7 @@ func TestSnapClient(t *testing.T) {
 				So(t1.ID, ShouldEqual, tt.ID)
 				//try stopping again to make sure channel is closed
 				t2 := c.StopTask(tt.ID)
+				So(t2.Err, ShouldNotBeNil)
 				So(t2.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
 
 				b := make([]byte, 5)
