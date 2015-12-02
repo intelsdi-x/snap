@@ -115,8 +115,6 @@ Checkout the [tribe](docs/TRIBE.md) doc for more info.
 ## Load Plugins
 snap gets its power from the use of plugins. The [Plugin Catalog](#plugin-catalog) is a collection of all known plugins for snap.
 
-- [ ] TODO - guide or pointer to building one of our plugins...
-
 Next, lets load a few of the demo plugins.  You can do this via cURL, or `snapctl`, snap's CLI.
 
 Using cURL
@@ -170,7 +168,7 @@ $ ./bin/snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
 ```
 
 ### Building Tasks
-TODO
+Documentation for building a task can be found [here](docs/TASKS.md).
 
 ### Plugin Catalog
 All known Plugins are tracked in the [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) and are tagged as consumers, processors and publishers.
