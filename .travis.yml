@@ -4,8 +4,6 @@ go:
 - 1.4.2
 - 1.5
 before_install:
-- cp .netrc ~
-- chmod 600 .netrc
 - go get github.com/tools/godep
 - go get github.com/axw/gocov/gocov
 - go get github.com/mattn/goveralls

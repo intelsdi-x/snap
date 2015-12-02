@@ -268,4 +268,4 @@ Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on a
 We're also looking for new maintainers from the community. Please let us know if you would like to become one by opening an Issue titled "interested in becoming a maintainer."
 
 ## Thank You
-And **thank you!** Your contribution, through code and participation, is incredibly important to us.
+And **thank you!** Your contribution, through code and participation, is incredibly important to us. 
