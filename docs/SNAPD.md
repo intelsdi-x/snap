@@ -18,7 +18,7 @@ limitations under the License.
 -->
 
 # snapd
-The Pulse daemon (pulsed) is a modular application that consists of a control module, a scheduler module, and a rest api. The control module is responsible for loading and unloading plugins, managing loaded plugins, and maintaining an available pool of running plugins for running tasks. The scheduler module is responsible for running the workflows in created tasks per the schedule stated. The rest api provides an interface for loading and unloading plugins, creating and removing tasks, starting and stopping tasks, and listing metrics available for collection.
+The snap daemon (snapd) is a modular application that consists of a control module, a scheduler module, and a rest api. The control module is responsible for loading and unloading plugins, managing loaded plugins, and maintaining an available pool of running plugins for running tasks. The scheduler module is responsible for running the workflows in created tasks per the schedule stated. The rest api provides an interface for loading and unloading plugins, creating and removing tasks, starting and stopping tasks, and listing metrics available for collection.
 
 ## Usage
 ```
@@ -50,7 +50,7 @@ The Pulse daemon (pulsed) is a modular application that consists of a control mo
 --version, -v                                print the version
 ```
 
-## Examples 
+## Examples
 ### Commands
 ```
 $SNAP_PATH/bin/snapd
@@ -81,6 +81,6 @@ INFO[0000] setting log level to: debug
 ```
 
 ## More information
-* [REST_API.md](REST_API.md) 
-* [PLUGIN_SIGNING.md](PLUGIN_SIGNING.md) 
-* [TRIBE.md](TRIBE.md) 
+* [REST_API.md](REST_API.md)
+* [PLUGIN_SIGNING.md](PLUGIN_SIGNING.md)
+* [TRIBE.md](TRIBE.md)
