@@ -93,7 +93,7 @@ If you're looking for the bleeding edge of snap, you can build it by cloning dow
 
 Start a standalone snap agent:
 
-```sh
+```
 export SNAP_PATH=<snapdirectory>/build
 $SNAP_PATH/bin/snapd --plugin-trust 0 --log-level 1
 ```
@@ -181,8 +181,9 @@ If you would like to write your own, read through [Author a Plugin](#author-a-pl
 ## Documentation
 Documentation for snap will be kept in this repository for now. We would also like to link to external how-to blog posts as people write them. See our [CONTRIBUTING.md](#contributing) for more details.
 
-* [snapctl](cmd/snapctl/README.md)
+* [snapctl](docs/SNAPCTL.md)
 * [snapd](docs/SNAPD.md)
+* [REST API](docs/REST_API.md)
 * [plugin signing](docs/PLUGIN_SIGNING.md)
 * [tribe](docs/TRIBE.md)
 
@@ -242,13 +243,13 @@ Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on a
   <tr>
     <td width="125"><a href="https://github.com/andrzej-k"><sub>@andrzej-k</sub><img src="https://avatars.githubusercontent.com/u/13486250" alt="@andrzej-k"></a></td>
     <td width="125"><a href="https://github.com/candysmurf"><sub>@candysmurf</sub><img src="https://avatars.githubusercontent.com/u/13841563" alt="@candysmurf"></a></td>
-  	<td width="125"><a href="https://github.com/danielscottt"><sub>@danielscottt</sub><img src="https://avatars.githubusercontent.com/u/1194436" alt="@danielscottt"></a></td>
-  	<td width="125"><a href="https://github.com/geauxvirtual"><sub>@geauxvirtual</sub><img src="https://avatars.githubusercontent.com/u/1395030" alt="@geauxvirtual"></a></td>
+    <td width="125"><a href="https://github.com/danielscottt"><sub>@danielscottt</sub><img src="https://avatars.githubusercontent.com/u/1194436" alt="@danielscottt"></a></td>
+    <td width="125"><a href="https://github.com/geauxvirtual"><sub>@geauxvirtual</sub><img src="https://avatars.githubusercontent.com/u/1395030" alt="@geauxvirtual"></a></td>
   </tr>
   <tr>
     <td width="125"><a href="https://github.com/mjbrender"><sub>@mjbrender</sub><img src="https://avatars.githubusercontent.com/u/1744971" width="100" alt="@mjbrender"></a></td>
-  	<td width="125"><a href="http://github.com/jcooklin"><sub>@jcooklin</sub><img src="https://avatars.githubusercontent.com/u/862968" alt="@jcooklin"></a></td>
-  	<td width="125"><a href="https://github.com/tiffanyfj"><sub>@tiffanyfj</sub><img src="https://avatars.githubusercontent.com/u/12282848" width="100" alt="@tiffanyfj"></a></td>
+    <td width="125"><a href="http://github.com/jcooklin"><sub>@jcooklin</sub><img src="https://avatars.githubusercontent.com/u/862968" alt="@jcooklin"></a></td>
+    <td width="125"><a href="https://github.com/tiffanyfj"><sub>@tiffanyfj</sub><img src="https://avatars.githubusercontent.com/u/12282848" width="100" alt="@tiffanyfj"></a></td>
   </tr>
 </table>
 

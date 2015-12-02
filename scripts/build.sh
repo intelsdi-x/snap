@@ -31,7 +31,7 @@ PROCESSORDIR=$BUILDDIR/$PLUGINDIR/processor
 BUILDCMD='go build -a -ldflags "-w"'
 
 echo
-echo "****  snap Build ($GITVERSION)  ****"
+echo "****  snap build ($GITVERSION)  ****"
 echo
 
 # Disable CGO for builds...unless Linux...because appc
