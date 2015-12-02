@@ -21,7 +21,7 @@ limitations under the License.
 [![Build Status](https://travis-ci.com/intelsdi-x/snap.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://travis-ci.com/intelsdi-x/snap)
 
 ## In Active Development
-The master branch is used for new feature development. Our goal is to keep it in a deployable state. If you're looking for the most recent stable release that is versioned, please [see the latest release](https://github.com/intelsdi-x/snap/releases).
+The master branch is used for new feature development. Our goal is to keep it in a deployable state. If you're looking for the most recent binary that is versioned, please [see the latest release](https://github.com/intelsdi-x/snap/releases).
 
 
 1. [Overview](#overview)
@@ -83,11 +83,11 @@ Some additionally important notes about how snap works:
 ### System Requirements
 Snap deploys as a binary, which makes requirements quite simple. We've tested on a subset of Linux and OS X versions.
 
-### Install ation
+### Installation
 
 You can get the pre-built binaries for your OS and architecture at snap's [GitHub Releases](https://github.com/intelsdi-x/snap/releases) page. This isn't the comprehensive list of plugins, but they will help you get started. Right now, snap only supports Linux and OS X.
 
-If you're looking for the bleeding edge of snap, you can build it by cloning down the `master` branch.  To build snap from source, you will need [Golang >= 1.4](https://golang.org) and [GNU Make](https://www.gnu.org/software/make/).  More on building snap [here](./CONTRIBUTING.md).
+If you're looking for the bleeding edge of snap, you can build it by cloning down the `master` branch. To build snap from source, you will need [Golang >= 1.4](https://golang.org) and [GNU Make](https://www.gnu.org/software/make/). More on building snap [here](./CONTRIBUTING.md).
 
 ### Running snap
 
@@ -113,10 +113,10 @@ All other nodes who join will need to select any existing member of the cluster.
 $SNAP_PATH/bin/snapd --tribe-seed <ip or name of another tribe member>
 ```
 
-Checkout the [tribe](docs/TRIBE.md) doc for more info.
+Checkout the [tribe doc](docs/TRIBE.md) for more info.
 
 ## Load Plugins
-snap gets its power from the use of plugins. The [Plugin Catalog](#plugin-catalog) is a collection of all known plugins for snap.
+snap gets its power from the use of plugins. The [plugin catalog](#plugin-catalog) is a collection of all known plugins for snap.
 
 Next, lets load a few of the demo plugins.  You can do this via cURL, or `snapctl`, snap's CLI.
 
@@ -174,12 +174,12 @@ $SNAP_PATH/bin/snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
 Documentation for building a task can be found [here](docs/TASKS.md).
 
 ### Plugin Catalog
-All known plugins are tracked in the [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) and are tagged as collectors, processors and publishers.
+All known plugins are tracked in the [plugin catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) and are tagged as collectors, processors and publishers.
 
-If you would like to write your own, read through [Authoring a Plugin](#author-a-plugin). Let us know if you begin to write one by opening an Issue. When you finish, please open a Pull Request to add yours to the list!
+If you would like to write your own, read through [Author a Plugin](#author-a-plugin). Let us know if you begin to write one by opening an Issue. When you finish, please open a Pull Request to add yours to the catalog!
 
 ## Documentation
-Documentation for snap will be kept in this repository for now. We would also like to link to external how-to blog posts as people write them. See our [Contributing](#contributing) for more details.
+Documentation for snap will be kept in this repository for now. We would also like to link to external how-to blog posts as people write them. See our [CONTRIBUTING.md](#contributing) for more details.
 
 * [snapctl](cmd/snapctl/README.md)
 * [snapd](docs/SNAPD.md)
@@ -214,7 +214,7 @@ We encourage contribution from the community. **snap** needs:
 
 * _Feedback_: try it and tell us about it through issues, blog posts or Twitter
 * _Contributors_: We need plugins, schedules, testing, and more
-* _Integrations_: **snap** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vROPs](http://www.vmware.com/products/vrealize-operations), and more. See [the Plugin Catalog](./docs/PLUGIN_CATALOG.md#wish-list) for the full list
+* _Integrations_: **snap** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vROPs](http://www.vmware.com/products/vrealize-operations), and more. See [the plugin catalog](./docs/PLUGIN_CATALOG.md#wish-list) for the full list
 
 To contribute to the snap framework, see [our CONTRIBUTING file](CONTRIBUTING.md). To give back to a specific plugin, open an issue on its repository.
 
