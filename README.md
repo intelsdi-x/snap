@@ -85,7 +85,7 @@ Snap deploys as a binary, which makes requirements quite simple. We've tested on
 
 ### Installation
 
-You can get the pre-built binaries for your OS and architecture at snap's [GitHub Releases](https://github.com/intelsdi-x/snap/releases) page.  Right now, snap only supports Linux and OS X.
+You can get the pre-built binaries for your OS and architecture at snap's [GitHub Releases](https://github.com/intelsdi-x/snap/releases) page. This isn't the comprehensive list of plugins, but they will help you get started. Right now, snap only supports Linux and OS X.
 
 If you're looking for the bleeding edge of snap, you can build it by cloning down the `master` branch.  To build snap from source, you will need [Golang >= 1.4](https://golang.org) and [GNU Make](https://www.gnu.org/software/make/).  More on building snap [here](./CONTRIBUTING.md).
 
@@ -175,7 +175,7 @@ $ ./bin/snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
 TODO
 
 ### Plugin Catalog
-All known Plugins are tracked in the [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) and are tagged as consumers, processors and publishers.
+All known plugins are tracked in the [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) and are tagged as collectors, processors and publishers.
 
 If you would like to write your own, read through [Authoring a Plugin](#author-a-plugin). Let us know if you begin to write one by opening an Issue. When you finish, please open a Pull Request to add yours to the list!
 
@@ -197,7 +197,7 @@ We have a few known features we want to take on from here while we remain open f
 
 * Windows support (spec pending)
 * Distributed Workflows (spec pending)
-* Workflow Routing (see #539)
+* Workflow Routing (see issue [#539](https://github.com/intelsdi-x/snap/issues/539))
 
 If you would like to propose a feature, please open a Issue that includes RFC in it (for [request for comments](https://en.wikipedia.org/wiki/Request_for_Comments)).
 
@@ -240,19 +240,15 @@ Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on a
 
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
-  	<td width="125"><a href="https://github.com/candysmurf"><sub>@candysmurf</sub><img src="https://avatars.githubusercontent.com/u/13841563" alt="@candysmurf"></a></td>
-	<td width="125"><a href="https://github.com/ConnorDoyle"><sub>@ConnorDoyle</sub><img src="https://avatars.githubusercontent.com/u/379372" alt="@ConnorDoyle"></a></td>
-	<td width="125"><a href="https://github.com/danielscottt"><sub>@danielscottt</sub><img src="https://avatars.githubusercontent.com/u/1194436" alt="@danielscottt"></a></td>
-	<td width="125"><a href="https://github.com/geauxvirtual"><sub>@geauxvirtual</sub><img src="https://avatars.githubusercontent.com/u/1395030" alt="@geauxvirtual"></a></td>
-  <td width="125"><a href="https://github.com/andrzej-k"><sub>@andrzej-k</sub><img
-  src="https://avatars.githubusercontent.com/u/13486250" alt="@andrzej-k"></a></td>
+    <td width="125"><a href="https://github.com/andrzej-k"><sub>@andrzej-k</sub><img src="https://avatars.githubusercontent.com/u/13486250" alt="@andrzej-k"></a></td>
+    <td width="125"><a href="https://github.com/candysmurf"><sub>@candysmurf</sub><img src="https://avatars.githubusercontent.com/u/13841563" alt="@candysmurf"></a></td>
+  	<td width="125"><a href="https://github.com/danielscottt"><sub>@danielscottt</sub><img src="https://avatars.githubusercontent.com/u/1194436" alt="@danielscottt"></a></td>
+  	<td width="125"><a href="https://github.com/geauxvirtual"><sub>@geauxvirtual</sub><img src="https://avatars.githubusercontent.com/u/1395030" alt="@geauxvirtual"></a></td>
   </tr>
   <tr>
-	<td width="125"><a href="http://github.com/jcooklin"><sub>@jcooklin</sub><img src="https://avatars.githubusercontent.com/u/862968" alt="@jcooklin"></a></td>
-  <td width="125"><a href="https://github.com/lynxbat"><sub>@lynxbat</sub><img src="https://avatars.githubusercontent.com/u/1278669" width="100" alt="@lynxbat"></a></td>
-	<td width="125"><a href="https://github.com/nqn"><sub>@nqn</sub><img src="https://avatars.githubusercontent.com/u/897374" width="100" alt="@nqn"></a></td>
-	<td width="125"><a href="https://github.com/tiffanyfj"><sub>@tiffanyfj</sub><img src="https://avatars.githubusercontent.com/u/12282848" width="100" alt="@tiffanyfj"></a></td>
-  <td width="125"><a href="https://github.com/mjbrender"><sub>@mjbrender</sub><img src="https://avatars.githubusercontent.com/u/1744971" width="100" alt="@mjbrender"></a></td>
+    <td width="125"><a href="https://github.com/mjbrender"><sub>@mjbrender</sub><img src="https://avatars.githubusercontent.com/u/1744971" width="100" alt="@mjbrender"></a></td>
+  	<td width="125"><a href="http://github.com/jcooklin"><sub>@jcooklin</sub><img src="https://avatars.githubusercontent.com/u/862968" alt="@jcooklin"></a></td>
+  	<td width="125"><a href="https://github.com/tiffanyfj"><sub>@tiffanyfj</sub><img src="https://avatars.githubusercontent.com/u/12282848" width="100" alt="@tiffanyfj"></a></td>
   </tr>
 </table>
 
