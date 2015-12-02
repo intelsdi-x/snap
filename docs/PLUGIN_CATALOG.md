@@ -15,6 +15,7 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | Perfevents | Collector | Collects perfevents from Linux | [snap-plugin-collector-perfevents](https://github.com/intelsdi-x/snap-plugin-collector-perfevents)|
 | PSUtil | Collector | Collects from psutil | [snap-plugin-collector-psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil) |
 | SMART | Collector | Collects SMART metrics from Intel SSDs | [snap-plugin-collector-smart](https://github.com/intelsdi-x/snap-plugin-collector-smart) |
+| OSv | Collector | Collect from OSv | [snap-plugin-collector-osv](https://github.com/intelsdi-x/snap-plugin-collector-osv) |
  | 
 | Movingaverage | Processor | Processes data and outputs movingaverage | [snap-plugin-processor-movingaverage](https://github.com/intelsdi-x/snap-plugin-processor-movingaverage) |
  | 
@@ -40,7 +41,6 @@ These plugins are in planned/active development. This list is useful if you want
 | IOstat | Collector | Collect from IOstat | [snap-plugin-collector-iostat](https://github.com/intelsdi-x/snap-plugin-collector-iostat) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
 | Nova | Collector | Collect from Nova/Libvirt | -| [@sandlbn](https://github.com/sandlbn) |
 | Open vSwitch | Collector | Collect Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
-| OSv | Collector | Collect from OSv | [snap-plugin-collector-osv](https://github.com/intelsdi-x/snap-plugin-collector-osv) | [@sandlbn](https://github.com/sandlbn) |
 
 ## Wish List
 This is a wish list of plugins for snap. If you see one here and want to start on it please let us know.
