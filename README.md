@@ -22,6 +22,8 @@ limitations under the License.
 [![Join the chat at https://gitter.im/intelsdi-x/snap](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/intelsdi-x/snap?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap)
 
+<img src="https://cloud.githubusercontent.com/assets/12282848/11547103/516a352e-9906-11e5-82e5-b9865b2f2ec1.jpg" width="50%">
+
 Here are blog posts related to ***snap*** by the team:
 
 * Nickapedia.com - [What if collecting data center telemetry was a snap?](http://nickapedia.com/2015/12/02/what-if-collecting-data-center-telemetry-was-a-snap/)
