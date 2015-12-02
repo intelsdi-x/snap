@@ -22,12 +22,15 @@ limitations under the License.
 [![Join the chat at https://gitter.im/intelsdi-x/snap](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/intelsdi-x/snap?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.com/intelsdi-x/snap.svg?token=2ujsxEpZo1issFyVWX29&branch=master)](https://travis-ci.com/intelsdi-x/snap)
 
-## In Active Development
-The master branch is used for new feature development. Our goal is to keep it in a deployable state. If you're looking for the most recent binary that is versioned, please [see the latest release](https://github.com/intelsdi-x/snap/releases).
+Here are blog posts related to ***snap*** by the team:
 
+* Nickapedia.com - [What if collecting data center telemetry was a snap?](http://nickapedia.com/2015/12/02/what-if-collecting-data-center-telemetry-was-a-snap/)
+
+----
 
 1. [Overview](#overview)
 2. [Getting Started](#getting-started)
+  * [In Active Development](#in-active-development)
   * [System Requirements](#system-requirements)
   * [Installation](#installation)
   * [Running snap](#running-snap)
@@ -81,6 +84,9 @@ Some additionally important notes about how snap works:
 * Compete with existing metric/monitoring/telemetry agents: snap is simply a new option to use or reference
 
 ## Getting Started
+
+### In Active Development
+The master branch is used for new feature development. Our goal is to keep it in a deployable state. If you're looking for the most recent binary that is versioned, please [see the latest release](https://github.com/intelsdi-x/snap/releases).
 
 ### System Requirements
 Snap deploys as a binary, which makes requirements quite simple. We've tested on a subset of Linux and OS X versions.
