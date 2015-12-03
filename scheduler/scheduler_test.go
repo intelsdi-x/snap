@@ -315,6 +315,17 @@ func TestScheduler(t *testing.T) {
 			So(err1, ShouldBeNil)
 			So(etsk.State(), ShouldEqual, core.TaskStopped)
 		})
+		Convey("Start disabled task", func() {
+			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
+			So(tsk, ShouldNotBeNil)
+
+			t := s.tasks.Get(tsk.ID())
+			t.state = core.TaskDisabled
+
+			err := s.StartTask(tsk.ID())
+			So(err[0].Error(), ShouldResemble, "Task is disabled. Cannot be started.")
+			So(t.state, ShouldEqual, core.TaskDisabled)
+		})
 	})
 	Convey("Stop()", t, func() {
 		Convey("Should set scheduler state to SchedulerStopped", func() {
