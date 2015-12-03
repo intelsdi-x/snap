@@ -22,10 +22,14 @@
 ctrl_c()
 {
   exit $?
-} 
+}
 trap ctrl_c SIGINT
 
 # First load snap deps
+echo "Installing dependencies if not exists"
+go get github.com/tools/godep
+go get github.com/intelsdi-x/snap/control
+
 echo "Checking snap root for deps"
 godep restore
 # REST API
@@ -37,5 +41,3 @@ echo "Checking snap mgmt/rest for deps"
 cd ../../mgmt/rest
 godep restore
 cd ../../
-
-
