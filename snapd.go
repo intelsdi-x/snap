@@ -366,6 +366,9 @@ func action(ctx *cli.Context) {
 							"keyringPath": keyringPath,
 						}).Fatal(err)
 				}
+				if len(files) == 0 {
+					log.Fatal(fmt.Sprintf("given keyring path [%s] is an empty directory!", keyringPath))
+				}
 				for _, keyringFile := range files {
 					if keyringFile.IsDir() {
 						continue
