@@ -199,10 +199,7 @@ Documentation for snap will be kept in this repository for now. We would also li
 * [tribe](docs/TRIBE.md)
 
 ### Examples
-There are interesting examples of using snap in every plugin repository. For the full list of plugins, review the [plugin catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md):
-
-* [configs](examples/configs/) is a basic example of the configuration file that powers your plugins
-* [tasks](examples/tasks/) has JSON-encoded execution requests for snap plugins
+There are interesting examples of using snap in every plugin repository. For the full list of plugins, review the [plugin catalog](docs/PLUGIN_CATALOG.md). There is an [Examples](examples/README.md) package that demonstrates snap configurations and usages.
 
 ### Roadmap
 We have a few known features we want to take on from here while we remain open for feedback after public release. They are:
