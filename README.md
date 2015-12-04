@@ -21,6 +21,7 @@ limitations under the License.
 
 [![Join the chat at https://gitter.im/intelsdi-x/snap](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/intelsdi-x/snap?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap)
+[![Go Report Card](http://goreportcard.com/badge/intelsdi-x/snap)](http://goreportcard.com/report/intelsdi-x/snap)
 
 <img src="https://cloud.githubusercontent.com/assets/12282848/11570134/809832de-99aa-11e5-852a-cf599c1d893b.jpg" width="50%">
 
