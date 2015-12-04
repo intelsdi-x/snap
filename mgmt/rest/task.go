@@ -42,8 +42,9 @@ var (
 	// The amount of time to buffer streaming events before flushing in seconds
 	StreamingBufferWindow = 0.1
 
-	ErrStreamingUnsupported = errors.New("Streaming unsupported")
-	ErrTaskNotFound         = errors.New("Task not found")
+	ErrStreamingUnsupported    = errors.New("Streaming unsupported")
+	ErrTaskNotFound            = errors.New("Task not found")
+	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started")
 )
 
 type configItem struct {
@@ -238,6 +239,10 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	if errs != nil {
 		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
 			respond(404, rbody.FromSnapErrors(errs), w)
+			return
+		}
+		if strings.Contains(errs[0].Error(), ErrTaskDisabledNotRunnable.Error()) {
+			respond(409, rbody.FromSnapErrors(errs), w)
 			return
 		}
 		respond(500, rbody.FromSnapErrors(errs), w)

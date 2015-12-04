@@ -39,10 +39,11 @@ import (
 var (
 	HandlerRegistrationName = "scheduler"
 
-	ErrMetricManagerNotSet = errors.New("MetricManager is not set.")
-	ErrSchedulerNotStarted = errors.New("Scheduler is not started.")
-	ErrTaskAlreadyRunning  = errors.New("Task is already running.")
-	ErrTaskAlreadyStopped  = errors.New("Task is already stopped.")
+	ErrMetricManagerNotSet     = errors.New("MetricManager is not set.")
+	ErrSchedulerNotStarted     = errors.New("Scheduler is not started.")
+	ErrTaskAlreadyRunning      = errors.New("Task is already running.")
+	ErrTaskAlreadyStopped      = errors.New("Task is already stopped.")
+	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started.")
 )
 
 type schedulerState int
@@ -305,6 +306,14 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 		}
 	}
 
+	if t.state == core.TaskDisabled {
+		logger.WithFields(log.Fields{
+			"task-id": t.ID(),
+		}).Error("Task is disabled and must be enabled before starting")
+		return []serror.SnapError{
+			serror.New(ErrTaskDisabledNotRunnable),
+		}
+	}
 	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
 		logger.WithFields(log.Fields{
 			"task-id":    t.ID(),
