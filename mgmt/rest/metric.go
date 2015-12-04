@@ -41,7 +41,18 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 }
 
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	ns := parseNamespace(params.ByName("namespace"))
+	namespace := params.ByName("namespace")
+
+	// we land here if the request contains a trailing slash, because it matches the tree
+	// lookup URL: /v1/metrics/*namespace.  If the length of the namespace param is 1, we
+	// redirect the request to getMetrics.  This results in GET /v1/metrics and
+	// GET /v1/metrics/ behaving the same way.
+	if len(namespace) <= 1 {
+		s.getMetrics(w, r, params)
+		return
+	}
+
+	ns := parseNamespace(namespace)
 
 	var (
 		ver int
