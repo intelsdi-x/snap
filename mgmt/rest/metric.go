@@ -60,17 +60,18 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	)
 	q := r.URL.Query()
 	v := q.Get("ver")
-	if v == "" {
-		ver = -1
-	} else {
-		ver, err = strconv.Atoi(v)
-		if err != nil {
-			respond(400, rbody.FromError(err), w)
-			return
-		}
-	}
 
 	if ns[len(ns)-1] == "*" {
+		if v == "" {
+			ver = -1
+		} else {
+			ver, err = strconv.Atoi(v)
+			if err != nil {
+				respond(400, rbody.FromError(err), w)
+				return
+			}
+		}
+
 		mets, err := s.mm.FetchMetrics(ns[:len(ns)-1], ver)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
@@ -80,6 +81,23 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		return
 	}
 
+	// If no version was given, get all that fall at this namespace.
+	if v == "" {
+		mts, err := s.mm.GetMetricVersions(ns)
+		if err != nil {
+			respond(404, rbody.FromError(err), w)
+			return
+		}
+		respondWithMetrics(r.Host, mts, w)
+		return
+	}
+
+	// if an explicit version is given, get that single one.
+	ver, err = strconv.Atoi(v)
+	if err != nil {
+		respond(400, rbody.FromError(err), w)
+		return
+	}
 	mt, err := s.mm.GetMetric(ns, ver)
 	if err != nil {
 		respond(404, rbody.FromError(err), w)
@@ -139,5 +157,5 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 }
 
 func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics%s?version=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace()), mt.Version())
+	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace()), mt.Version())
 }

@@ -104,7 +104,6 @@ func TestTrie(t *testing.T) {
 			_, err := trie.Fetch([]string{"not", "present"})
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-			So(err.Fields()["name"], ShouldEqual, "/not/present")
 		})
 		Convey("Fetch with error: depth exceeded", func() {
 			lp := new(loadedPlugin)
@@ -114,7 +113,6 @@ func TestTrie(t *testing.T) {
 			_, err := trie.Fetch([]string{"intel", "foo", "bar", "baz"})
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-			So(err.Fields()["name"], ShouldEqual, "/intel/foo/bar/baz")
 
 		})
 	})
@@ -138,7 +136,6 @@ func TestTrie(t *testing.T) {
 			n, err := trie.Get([]string{"intel"})
 			So(n, ShouldBeNil)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-			So(err.Fields()["name"], ShouldEqual, "/intel")
 		})
 	})
 }

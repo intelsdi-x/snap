@@ -208,16 +208,23 @@ func (mc *metricCatalog) Add(m *metricType) {
 	mc.tree.Add(m)
 }
 
-// Get retrieves a loadedPlugin given a namespace and version.
+// Get retrieves a metric given a namespace and version.
 // If provided a version of -1 the latest plugin will be returned.
-func (mc *metricCatalog) Get(ns []string, version int) (*metricType, serror.SnapError) {
+func (mc *metricCatalog) Get(ns []string, version int) (*metricType, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 	return mc.get(ns, version)
 }
 
+// GetVersions retrieves all versions of a given metric namespace.
+func (mc *metricCatalog) GetVersions(ns []string) ([]*metricType, error) {
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
+	return mc.getVersions(ns)
+}
+
 // Fetch transactionally retrieves all metrics which fall under namespace ns
-func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, serror.SnapError) {
+func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
@@ -260,7 +267,7 @@ func (mc *metricCatalog) Next() bool {
 }
 
 // Subscribe atomically increments a metric's subscription count in the table.
-func (mc *metricCatalog) Subscribe(ns []string, version int) serror.SnapError {
+func (mc *metricCatalog) Subscribe(ns []string, version int) error {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
@@ -274,7 +281,7 @@ func (mc *metricCatalog) Subscribe(ns []string, version int) serror.SnapError {
 }
 
 // Unsubscribe atomically decrements a metric's count in the table
-func (mc *metricCatalog) Unsubscribe(ns []string, version int) serror.SnapError {
+func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
@@ -286,7 +293,7 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) serror.SnapError 
 	return m.Unsubscribe()
 }
 
-func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, serror.SnapError) {
+func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, error) {
 	m, err := mc.Get(mns, ver)
 	if err != nil {
 		return nil, err
@@ -294,29 +301,33 @@ func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, serror
 	return m.Plugin, nil
 }
 
-func (mc *metricCatalog) get(ns []string, ver int) (*metricType, serror.SnapError) {
-	mts, err := mc.tree.Get(ns)
+func (mc *metricCatalog) get(ns []string, ver int) (*metricType, error) {
+	mts, err := mc.getVersions(ns)
 	if err != nil {
 		return nil, err
 	}
-	if mts == nil {
-		return nil, serror.New(errMetricNotFound)
-	}
+
 	// a version IS given
 	if ver > 0 {
 		l, err := getVersion(mts, ver)
 		if err != nil {
-			se := serror.New(errorMetricNotFound(ns, ver))
-			se.SetFields(map[string]interface{}{
-				"name":    core.JoinNamespace(ns),
-				"version": ver,
-			})
-			return nil, se
+			return nil, errorMetricNotFound(ns, ver)
 		}
 		return l, nil
 	}
 	// ver is less than or equal to 0 get the latest
 	return getLatest(mts), nil
+}
+
+func (mc *metricCatalog) getVersions(ns []string) ([]*metricType, error) {
+	mts, err := mc.tree.Get(ns)
+	if err != nil {
+		return nil, err
+	}
+	if mts == nil {
+		return nil, errMetricNotFound
+	}
+	return mts, nil
 }
 
 func getMetricKey(metric []string) string {
@@ -343,11 +354,11 @@ func appendIfMissing(keys []string, ns string) []string {
 	return append(keys, ns)
 }
 
-func getVersion(c []*metricType, ver int) (*metricType, serror.SnapError) {
+func getVersion(c []*metricType, ver int) (*metricType, error) {
 	for _, m := range c {
 		if m.Plugin.Version() == ver {
 			return m, nil
 		}
 	}
-	return nil, serror.New(errMetricNotFound)
+	return nil, errMetricNotFound
 }

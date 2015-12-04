@@ -108,16 +108,17 @@ type managesPlugins interface {
 }
 
 type catalogsMetrics interface {
-	Get([]string, int) (*metricType, serror.SnapError)
+	Get([]string, int) (*metricType, error)
 	Add(*metricType)
 	AddLoadedMetricType(*loadedPlugin, core.Metric)
 	RmUnloadedPluginMetrics(lp *loadedPlugin)
-	Fetch([]string) ([]*metricType, serror.SnapError)
+	GetVersions([]string) ([]*metricType, error)
+	Fetch([]string) ([]*metricType, error)
 	Item() (string, []*metricType)
 	Next() bool
-	Subscribe([]string, int) serror.SnapError
-	Unsubscribe([]string, int) serror.SnapError
-	GetPlugin([]string, int) (*loadedPlugin, serror.SnapError)
+	Subscribe([]string, int) error
+	Unsubscribe([]string, int) error
+	GetPlugin([]string, int) (*loadedPlugin, error)
 }
 
 type managesSigning interface {
@@ -491,7 +492,10 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 
 	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 	if err != nil {
-		serrs = append(serrs, err)
+		serrs = append(serrs, serror.New(err, map[string]interface{}{
+			"name":    core.JoinNamespace(mt.Namespace()),
+			"version": mt.Version(),
+		}))
 		return nil, serrs
 	}
 
@@ -551,7 +555,10 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []se
 	for _, mt := range mts {
 		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 		if err != nil {
-			serrs = append(serrs, err)
+			serrs = append(serrs, serror.New(err, map[string]interface{}{
+				"name":    core.JoinNamespace(mt.Namespace()),
+				"version": mt.Version(),
+			}))
 			continue
 		}
 		// if the metric subscription is to version -1, we need to carry
@@ -784,6 +791,19 @@ func (p *pluginControl) FetchMetrics(ns []string, version int) ([]core.Cataloged
 
 func (p *pluginControl) GetMetric(ns []string, ver int) (core.CatalogedMetric, error) {
 	return p.metricCatalog.Get(ns, ver)
+}
+
+func (p *pluginControl) GetMetricVersions(ns []string) ([]core.CatalogedMetric, error) {
+	mts, err := p.metricCatalog.GetVersions(ns)
+	if err != nil {
+		return nil, err
+	}
+
+	rmts := make([]core.CatalogedMetric, len(mts))
+	for i, m := range mts {
+		rmts[i] = m
+	}
+	return rmts, nil
 }
 
 func (p *pluginControl) MetricExists(mns []string, ver int) bool {

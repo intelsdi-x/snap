@@ -556,7 +556,7 @@ type mc struct {
 	e int
 }
 
-func (m *mc) Fetch(ns []string) ([]*metricType, serror.SnapError) {
+func (m *mc) Fetch(ns []string) ([]*metricType, error) {
 	if m.e == 2 {
 		return nil, serror.New(errors.New("test"))
 	}
@@ -567,11 +567,15 @@ func (m *mc) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
 	return nil, nil
 }
 
-func (m *mc) GetPlugin([]string, int) (*loadedPlugin, serror.SnapError) {
+func (m *mc) GetPlugin([]string, int) (*loadedPlugin, error) {
 	return nil, nil
 }
 
-func (m *mc) Get(ns []string, ver int) (*metricType, serror.SnapError) {
+func (m *mc) GetVersions([]string) ([]*metricType, error) {
+	return nil, nil
+}
+
+func (m *mc) Get(ns []string, ver int) (*metricType, error) {
 	if m.e == 1 {
 		return &metricType{
 			policy: &mockCDProc{},
@@ -580,14 +584,14 @@ func (m *mc) Get(ns []string, ver int) (*metricType, serror.SnapError) {
 	return nil, serror.New(errorMetricNotFound(ns))
 }
 
-func (m *mc) Subscribe(ns []string, ver int) serror.SnapError {
+func (m *mc) Subscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
 		return serror.New(errorMetricNotFound(ns))
 	}
 	return nil
 }
 
-func (m *mc) Unsubscribe(ns []string, ver int) serror.SnapError {
+func (m *mc) Unsubscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
 		return serror.New(errorMetricNotFound(ns))
 	}
