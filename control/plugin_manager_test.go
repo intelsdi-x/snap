@@ -121,11 +121,11 @@ func TestLoadPlugin(t *testing.T) {
 				cfg.Plugins.Collector.Plugins["mock2"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, PluginPath)
+				lp, serr := loadPlugin(p, PluginPath)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.all(), ShouldNotBeEmpty)
-				So(err, ShouldBeNil)
+				So(serr, ShouldBeNil)
 				So(len(p.all()), ShouldBeGreaterThan, 0)
 				mts, err := p.metricCatalog.Fetch([]string{})
 				So(err, ShouldBeNil)

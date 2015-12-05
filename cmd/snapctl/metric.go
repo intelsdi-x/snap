@@ -54,8 +54,8 @@ func listMetrics(ctx *cli.Context) {
 
 	/*
 		NAMESPACE               VERSION
-		/intel/mock/foo        1,2
-		/intel/mock/bar        1
+		/intel/mock/foo         1,2
+		/intel/mock/bar         1
 	*/
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	metsByVer := make(map[string][]string)
@@ -78,26 +78,23 @@ func listMetrics(ctx *cli.Context) {
 }
 
 func getMetric(ctx *cli.Context) {
-	ns := ctx.String("metric-namespace")
-	ver := ctx.Int("metric-version")
-	if ns == "" {
-		fmt.Println("namespace is required")
+	if !ctx.IsSet("metric-namespace") || !ctx.IsSet("metric-version") {
+		fmt.Println("namespace and version are required")
+		fmt.Println("")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		return
 	}
-	if ver == 0 {
-		ver = -1
-	}
-	metrics := pClient.FetchMetrics(ns, ver)
-	if metrics.Err != nil {
-		fmt.Println(metrics.Err)
+	ns := ctx.String("metric-namespace")
+	ver := ctx.Int("metric-version")
+	metric := pClient.GetMetric(ns, ver)
+	if metric.Err != nil {
+		fmt.Println(metric.Err)
 		return
 	}
-	metric := metrics.Catalog[0]
 
 	/*
 		NAMESPACE                VERSION         LAST ADVERTISED TIME
-		/intel/mock/foo         2               Wed, 09 Sep 2015 10:01:04 PDT
+		/intel/mock/foo          2               Wed, 09 Sep 2015 10:01:04 PDT
 
 		  Rules for collecting /intel/mock/foo:
 
@@ -109,28 +106,12 @@ func getMetric(ctx *cli.Context) {
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	printFields(w, false, 0, "NAMESPACE", "VERSION", "LAST ADVERTISED TIME")
-	printFields(w, false, 0, metric.Namespace, metric.Version, time.Unix(metric.LastAdvertisedTimestamp, 0).Format(time.RFC1123))
+	printFields(w, false, 0, metric.Metric.Namespace, metric.Metric.Version, time.Unix(metric.Metric.LastAdvertisedTimestamp, 0).Format(time.RFC1123))
 	w.Flush()
-	fmt.Printf("\n  Rules for collecting %s:\n\n", metric.Namespace)
+	fmt.Printf("\n  Rules for collecting %s:\n\n", metric.Metric.Namespace)
 	printFields(w, true, 6, "NAME", "TYPE", "DEFAULT", "REQUIRED", "MINIMUM", "MAXIMUM")
-	for _, rule := range metric.Policy {
-		var def_, min_, max_ interface{}
-		if rule.Default == nil {
-			def_ = ""
-		} else {
-			def_ = rule.Default
-		}
-		if rule.Minimum == nil {
-			min_ = ""
-		} else {
-			min_ = rule.Minimum
-		}
-		if rule.Maximum == nil {
-			max_ = ""
-		} else {
-			max_ = rule.Maximum
-		}
-		printFields(w, true, 6, rule.Name, rule.Type, def_, rule.Required, min_, max_)
+	for _, rule := range metric.Metric.Policy {
+		printFields(w, true, 6, rule.Name, rule.Type, rule.Default, rule.Required, rule.Minimum, rule.Maximum)
 	}
 	w.Flush()
 }

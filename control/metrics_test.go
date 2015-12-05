@@ -140,8 +140,6 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Add(m35)
 			_, err := mc.Get([]string{"foo", "bar"}, 7)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-			So(err.Fields()["name"], ShouldEqual, "/foo/bar")
-			So(err.Fields()["version"], ShouldEqual, 7)
 		})
 	})
 	Convey("metricCatalog.Table()", t, func() {
@@ -164,7 +162,6 @@ func TestMetricCatalog(t *testing.T) {
 			_mt, err := mc.Get(ns, -1)
 			So(_mt, ShouldBeNil)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-			So(err.Fields()["name"], ShouldEqual, "/test")
 		})
 	})
 	Convey("metricCatalog.Next()", t, func() {
@@ -243,7 +240,6 @@ func TestSubscribe(t *testing.T) {
 		Convey("then it returns an error", func() {
 			err := mc.Subscribe([]string{"test4"}, -1)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-			So(err.Fields()["name"], ShouldEqual, "/test4")
 		})
 	})
 	Convey("when the metric is in the table", t, func() {
@@ -289,7 +285,6 @@ func TestUnsubscribe(t *testing.T) {
 		Convey("then it returns metric not found error", func() {
 			err := mc.Unsubscribe([]string{"test4"}, -1)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-			So(err.Fields()["name"], ShouldEqual, "/test4")
 		})
 	})
 	Convey("when the metric's count is already 0", t, func() {

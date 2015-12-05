@@ -219,7 +219,11 @@ func printFields(tw *tabwriter.Writer, indent bool, width int, fields ...interfa
 		argArray = append(argArray, strings.Repeat(" ", width))
 	}
 	for i, field := range fields {
-		argArray = append(argArray, field)
+		if field != nil {
+			argArray = append(argArray, field)
+		} else {
+			argArray = append(argArray, "")
+		}
 		if i < (len(fields) - 1) {
 			argArray = append(argArray, "\t")
 		}

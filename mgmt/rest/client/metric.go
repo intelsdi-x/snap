@@ -77,10 +77,59 @@ func (c *Client) FetchMetrics(ns string, ver int) *GetMetricsResult {
 	return r
 }
 
+// GetMetricVersions retrieves all versions of a metric at a given namespace.
+func (c *Client) GetMetricVersions(ns string) *GetMetricsResult {
+	r := &GetMetricsResult{}
+	q := fmt.Sprintf("/metrics%s", ns)
+	resp, err := c.do("GET", q, ContentTypeJSON)
+	if err != nil {
+		return &GetMetricsResult{Err: err}
+	}
+
+	switch resp.Meta.Type {
+	case rbody.MetricsReturnedType:
+		mc := resp.Body.(*rbody.MetricsReturned)
+		r.Catalog = convertCatalog(mc)
+	case rbody.ErrorType:
+		r.Err = resp.Body.(*rbody.Error)
+	default:
+		r.Err = ErrAPIResponseMetaType
+	}
+	return r
+}
+
+// GetMetric retrieves a metric at a given namespace and version.
+// If the version is < 1, the latest version is returned.
+func (c *Client) GetMetric(ns string, ver int) *GetMetricResult {
+	r := &GetMetricResult{}
+	q := fmt.Sprintf("/metrics%s?ver=%d", ns, ver)
+	resp, err := c.do("GET", q, ContentTypeJSON)
+	if err != nil {
+		return &GetMetricResult{Err: err}
+	}
+
+	switch resp.Meta.Type {
+	case rbody.MetricReturnedType:
+		mc := resp.Body.(*rbody.MetricReturned)
+		r.Metric = mc.Metric
+	case rbody.ErrorType:
+		r.Err = resp.Body.(*rbody.Error)
+	default:
+		r.Err = ErrAPIResponseMetaType
+	}
+	return r
+}
+
 // GetMetricsResult is the response from snap/client on a GetMetricCatalog call.
 type GetMetricsResult struct {
 	Catalog []*rbody.Metric
 	Err     error
+}
+
+// GetMetricResult is the response from snap/client on a GetMetricCatalog call.
+type GetMetricResult struct {
+	Metric *rbody.Metric
+	Err    error
 }
 
 // Len returns the slice's length of GetMetricsResult.Catalog.

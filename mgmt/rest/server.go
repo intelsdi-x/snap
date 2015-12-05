@@ -57,6 +57,7 @@ var (
 type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics([]string, int) ([]core.CatalogedMetric, error)
+	GetMetricVersions([]string) ([]core.CatalogedMetric, error)
 	GetMetric([]string, int) (core.CatalogedMetric, error)
 	Load(*core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError)
 	Unload(core.Plugin) (core.CatalogedPlugin, serror.SnapError)

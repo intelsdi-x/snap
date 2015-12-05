@@ -22,9 +22,6 @@ package control
 import (
 	"errors"
 	"fmt"
-
-	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/serror"
 )
 
 /*
@@ -146,7 +143,7 @@ func (mtt *mttNode) Add(mt *metricType) {
 
 // Collect collects all children below a given namespace
 // and concatenates their metric types into a single slice
-func (mtt *mttNode) Fetch(ns []string) ([]*metricType, serror.SnapError) {
+func (mtt *mttNode) Fetch(ns []string) ([]*metricType, error) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
@@ -171,7 +168,7 @@ func (mtt *mttNode) Fetch(ns []string) ([]*metricType, serror.SnapError) {
 }
 
 // Remove removes all children below a given namespace
-func (mtt *mttNode) Remove(ns []string) serror.SnapError {
+func (mtt *mttNode) Remove(ns []string) error {
 	_, err := mtt.find(ns)
 	if err != nil {
 		return err
@@ -189,17 +186,13 @@ func (mtt *mttNode) Remove(ns []string) serror.SnapError {
 
 // Get works like fetch, but only returns the MT at the given node
 // and does not gather the node's children.
-func (mtt *mttNode) Get(ns []string) ([]*metricType, serror.SnapError) {
+func (mtt *mttNode) Get(ns []string) ([]*metricType, error) {
 	node, err := mtt.find(ns)
 	if err != nil {
 		return nil, err
 	}
 	if node.mts == nil {
-		se := serror.New(errorMetricNotFound(ns))
-		se.SetFields(map[string]interface{}{
-			"name": core.JoinNamespace(ns),
-		})
-		return nil, se
+		return nil, errorMetricNotFound(ns)
 	}
 	var mts []*metricType
 	for _, mt := range node.mts {
@@ -226,14 +219,10 @@ func (mtt *mttNode) walk(ns []string) (*mttNode, int) {
 	return parent, len(ns)
 }
 
-func (mtt *mttNode) find(ns []string) (*mttNode, serror.SnapError) {
+func (mtt *mttNode) find(ns []string) (*mttNode, error) {
 	node, index := mtt.walk(ns)
 	if index != len(ns) {
-		se := serror.New(errorMetricNotFound(ns))
-		se.SetFields(map[string]interface{}{
-			"name": core.JoinNamespace(ns),
-		})
-		return nil, se
+		return nil, errorMetricNotFound(ns)
 	}
 	return node, nil
 }
