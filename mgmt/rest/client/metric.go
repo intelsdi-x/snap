@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	// The default response error.
+	// ErrAPIResponseMetaType is used when the response type is unrecognized.
 	ErrAPIResponseMetaType = errors.New("Received an invalid API response (META/TYPE)")
 )
 
@@ -139,7 +139,7 @@ func (g *GetMetricsResult) Len() int {
 
 func convertCatalog(c *rbody.MetricsReturned) []*rbody.Metric {
 	mci := make([]*rbody.Metric, len(*c))
-	for i, _ := range *c {
+	for i := range *c {
 		mci[i] = &(*c)[i]
 	}
 	return mci

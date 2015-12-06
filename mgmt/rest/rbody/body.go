@@ -26,6 +26,7 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 )
 
+// Body response interface
 type Body interface {
 	// These function names are rather verbose to avoid field vs function namespace collisions
 	// with varied object types that use them.
@@ -34,9 +35,11 @@ type Body interface {
 }
 
 var (
+	// ErrCannotUnmarshalBody The error message for unable to unmarshaling
 	ErrCannotUnmarshalBody = errors.New("Cannot unmarshal body: invalid type")
 )
 
+// APIResponse struct type
 type APIResponse struct {
 	Meta         *APIResponseMeta `json:"meta"`
 	Body         Body             `json:"body"`
@@ -48,6 +51,7 @@ type apiResponseJSON struct {
 	Body json.RawMessage  `json:"body"`
 }
 
+// APIResponseMeta struct type
 type APIResponseMeta struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -55,6 +59,7 @@ type APIResponseMeta struct {
 	Version int    `json:"version"`
 }
 
+// UnmarshalJSON unmarshals a JSON response
 func (a *APIResponse) UnmarshalJSON(b []byte) error {
 	ar := &apiResponseJSON{}
 	err := json.Unmarshal(b, ar)
@@ -71,6 +76,7 @@ func (a *APIResponse) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// UnmarshalBody unmarshals response body by plugin type
 func UnmarshalBody(t string, b []byte) (Body, error) {
 	switch t {
 	case PluginListType:

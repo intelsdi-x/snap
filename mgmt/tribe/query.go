@@ -27,6 +27,7 @@ import (
 )
 
 const (
+	// TaskStateQueryResponseSizeLimit - defines the task state response size limit
 	TaskStateQueryResponseSizeLimit int = 1024
 )
 

@@ -27,6 +27,7 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 )
 
+// Label is used when a metric uses a wildcard in its namespace
 type Label struct {
 	Index int    `json:"index"`
 	Name  string `json:"name"`
@@ -50,12 +51,14 @@ type RequestedMetric interface {
 	Version() int
 }
 
+// CatalogedMetric is the type returned when querying control's MetricCatalog
 type CatalogedMetric interface {
 	RequestedMetric
 	LastAdvertisedTime() time.Time
 	Policy() *cpolicy.ConfigPolicyNode
 }
 
+// JoinNamespace concatenates a metric namespace
 func JoinNamespace(ns []string) string {
 	return "/" + strings.Join(ns, "/")
 }

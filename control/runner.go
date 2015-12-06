@@ -43,11 +43,14 @@ var (
 type availablePluginState int
 
 const (
+	// HandlerRegistrationName - it is control runner
 	HandlerRegistrationName = "control.runner"
 
-	// availablePlugin States
+	// PluginRunning denotes a plugin running state
 	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
+	// PluginStopped denotes a plugin stopped state
 	PluginStopped
+	// PluginDisabled denotes a plugin disabled state
 	PluginDisabled
 )
 
@@ -78,42 +81,49 @@ func newRunner(routingStrategy RoutingStrategy) *runner {
 	return r
 }
 
+// SetStrategy sets routing strategy
 func (r *runner) SetStrategy(rs RoutingStrategy) {
 	r.routingStrategy = rs
 }
 
+// Strategy returns a routing strategy
 func (r *runner) Strategy() RoutingStrategy {
 	return r.routingStrategy
 }
 
+// SetMetricCatalog sets metric catalog
 func (r *runner) SetMetricCatalog(c catalogsMetrics) {
 	r.metricCatalog = c
 }
 
+// SetEmitter sets routing emitter
 func (r *runner) SetEmitter(e gomit.Emitter) {
 	r.emitter = e
 }
 
+// SetPluginManager sets the plugin manager
 func (r *runner) SetPluginManager(m managesPlugins) {
 	r.pluginManager = m
 }
 
+// AvailablePlugins returns array of loaded plugins
 func (r *runner) AvailablePlugins() *availablePlugins {
 	return r.availablePlugins
 }
 
+// Monitor returns a monitor
 func (r *runner) Monitor() *monitor {
 	return r.monitor
 }
 
-// Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
+// AddDelegates (gomit.Delegator) adds delegates for adding Runner handlers to on Start and
 // unregistration on Stop.
 func (r *runner) AddDelegates(delegates ...gomit.Delegator) {
 	// Append the variadic collection of gomit.RegisterHanlders to r.delegates
 	r.delegates = append(r.delegates, delegates...)
 }
 
-// Begin handing events and managing available plugins
+// Start begins handing events and managing available plugins
 func (r *runner) Start() error {
 	// Delegates must be added before starting if none exist
 	// then this Runner can do nothing and should not start.
@@ -162,12 +172,12 @@ func (r *runner) Stop() []error {
 func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	e := p.Start()
 	if e != nil {
-		e_ := errors.New("error while starting plugin: " + e.Error())
+		err := errors.New("error while starting plugin: " + e.Error())
 		defer runnerLog.WithFields(log.Fields{
 			"_block": "start-plugin",
 			"error":  e.Error(),
 		}).Error("error starting a plugin")
-		return nil, e_
+		return nil, err
 	}
 
 	// Wait for plugin response
@@ -239,7 +249,7 @@ func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
 	return nil
 }
 
-// Empty handler acting as placeholder until implementation. This helps tests
+// HandleGomitEvent is a handler acting as placeholder until implementation that helps tests
 // pass to ensure registration works.
 func (r *runner) HandleGomitEvent(e gomit.Event) {
 	switch v := e.Body.(type) {
@@ -336,21 +346,21 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
 					PluginName:       v.Name,
 					PluginVersion:    v.Version,
-					TaskId:           sub.taskId,
+					TaskId:           sub.taskID,
 					PluginType:       v.Type,
 					SubscriptionType: int(unboundSubscriptionType),
 				})
 				r.emitter.Emit(&control_event.PluginUnsubscriptionEvent{
 					PluginName:    v.Name,
 					PluginVersion: pool.version,
-					TaskId:        sub.taskId,
+					TaskId:        sub.taskID,
 					PluginType:    v.Type,
 				})
 				r.emitter.Emit(&control_event.MovePluginSubscriptionEvent{
 					PluginName:      v.Name,
 					PreviousVersion: pool.version,
 					NewVersion:      v.Version,
-					TaskId:          sub.taskId,
+					TaskId:          sub.taskID,
 					PluginType:      v.Type,
 				})
 			}
@@ -402,7 +412,7 @@ func (r *runner) runPlugin(details *pluginDetails) error {
 	return nil
 }
 
-func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskId string) error {
+func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID string) error {
 	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
 	if err != nil {
 		runnerLog.WithFields(log.Fields{

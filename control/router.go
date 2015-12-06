@@ -17,14 +17,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Router is the entry point for execution commands and routing to plugins
+// Package control Router is the entry point for execution commands and routing to plugins
 package control
 
 import "github.com/intelsdi-x/snap/control/routing"
 
+// RouterResponse interface
 type RouterResponse interface {
 }
 
+// RoutingStrategy interface
 type RoutingStrategy interface {
 	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
 	// Handy string for logging what strategy is selected

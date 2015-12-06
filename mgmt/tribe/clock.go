@@ -21,13 +21,15 @@ package tribe
 
 import "sync/atomic"
 
+// LClock struct type
 type LClock struct {
 	Inc uint64
 }
 
+// LTime uint64 typeß
 type LTime uint64
 
-//Update
+//Update the time of the clock
 func (l *LClock) Update(lt LTime) {
 	for {
 		cur := LTime(atomic.LoadUint64(&l.Inc))
@@ -43,7 +45,7 @@ func (l *LClock) Update(lt LTime) {
 	}
 }
 
-// Increment
+// Increment increase the time of the clock
 func (l *LClock) Increment() LTime {
 	return LTime(atomic.AddUint64(&l.Inc, 1))
 }

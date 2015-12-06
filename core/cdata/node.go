@@ -30,13 +30,13 @@ import (
 	"github.com/intelsdi-x/snap/pkg/ctree"
 )
 
-// Represents a set of configuration data
+// ConfigDataNode represents a set of configuration data
 type ConfigDataNode struct {
 	mutex *sync.Mutex
 	table map[string]ctypes.ConfigValue
 }
 
-// GobEcode encodes a ConfigDataNode in go binary format
+// GobEncode encodes a ConfigDataNode in go binary format
 func (c *ConfigDataNode) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -92,7 +92,7 @@ func (c *ConfigDataNode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Returns a new and empty node.
+// NewNode returns a new and empty node.
 func NewNode() *ConfigDataNode {
 	return &ConfigDataNode{
 		mutex: new(sync.Mutex),
@@ -100,6 +100,7 @@ func NewNode() *ConfigDataNode {
 	}
 }
 
+// FromTable returns a ConfigDataNode given a config table
 func FromTable(table map[string]ctypes.ConfigValue) *ConfigDataNode {
 	return &ConfigDataNode{
 		mutex: new(sync.Mutex),
@@ -107,14 +108,14 @@ func FromTable(table map[string]ctypes.ConfigValue) *ConfigDataNode {
 	}
 }
 
-// Returns the table of configuration items [key(string) / value(core.ConfigValue)].
+// Table returns the table of configuration items [key(string) / value(core.ConfigValue)].
 func (c *ConfigDataNode) Table() map[string]ctypes.ConfigValue {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.table
 }
 
-// Adds an item to the ConfigDataNode.
+// AddItem adds an item to the ConfigDataNode.
 func (c *ConfigDataNode) AddItem(k string, v ctypes.ConfigValue) {
 	// And empty is a noop
 	if k == "" {
@@ -125,7 +126,7 @@ func (c *ConfigDataNode) AddItem(k string, v ctypes.ConfigValue) {
 	c.table[k] = v
 }
 
-// Merges a ConfigDataNode on top of this one (overwriting items where it occurs).
+// Merge puts a ConfigDataNode on top of this one (overwriting items where it occurs).
 func (c ConfigDataNode) Merge(n ctree.Node) ctree.Node {
 	// Because Add only allows the ConfigDataNode type we
 	// are safe to convert ctree.Node interface to ConfigDataNode
@@ -140,7 +141,7 @@ func (c ConfigDataNode) Merge(n ctree.Node) ctree.Node {
 	return c
 }
 
-// Deletes a field in ConfigDataNode. If the field does not exist Delete is
+// DeleteItem deletes a field in ConfigDataNode. If the field does not exist Delete is
 // considered a no-op
 func (c ConfigDataNode) DeleteItem(k string) {
 	c.mutex.Lock()

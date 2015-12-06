@@ -32,6 +32,7 @@ import (
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
+// Schedule struct type
 type Schedule struct {
 	// Type specifies the type of the schedule. Currently,the type of "simple" and "windowed" are supported.
 	Type string
@@ -271,7 +272,7 @@ type CreateTaskResult struct {
 	Err error
 }
 
-// WatchTaskResult is the response from snap/client on a WatchTask call.
+// WatchTasksResult is the response from snap/client on a WatchTask call.
 type WatchTasksResult struct {
 	count     int
 	Err       error
@@ -279,6 +280,7 @@ type WatchTasksResult struct {
 	DoneChan  chan struct{}
 }
 
+// Close closes the watch task stream
 func (w *WatchTasksResult) Close() {
 	close(w.DoneChan)
 }
@@ -313,7 +315,7 @@ type RemoveTasksResult struct {
 	Err error
 }
 
-// EnableTasksResult is the response from snap/client on a EnableTask call.
+// EnableTaskResult is the response from snap/client on a EnableTask call.
 type EnableTaskResult struct {
 	*rbody.ScheduledTaskEnabled
 	Err error

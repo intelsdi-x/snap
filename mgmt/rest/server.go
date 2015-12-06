@@ -21,7 +21,6 @@ package rest
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,12 +43,11 @@ import (
 )
 
 const (
+	// APIVersion the API version constant
 	APIVersion = 1
 )
 
 var (
-	ErrBadCert = errors.New("Invalid certificate given")
-
 	restLogger     = log.WithField("_module", "_mgmt-rest")
 	protocolPrefix = "http"
 )
@@ -97,6 +95,7 @@ type managesConfig interface {
 	DeletePluginConfigDataNodeFieldAll(fields ...string) cdata.ConfigDataNode
 }
 
+// Server struct type
 type Server struct {
 	mm   managesMetrics
 	mt   managesTasks
@@ -109,6 +108,7 @@ type Server struct {
 	err  chan error
 }
 
+// New creates a new server instance
 func New(https bool, cpath, kpath string) (*Server, error) {
 	s := &Server{
 		err: make(chan error),
@@ -135,15 +135,18 @@ func New(https bool, cpath, kpath string) (*Server, error) {
 	return s, nil
 }
 
+// Start runs a server
 func (s *Server) Start(addrString string) error {
 	s.addRoutes()
 	return s.run(addrString)
 }
 
+// Err returns a channel server error
 func (s *Server) Err() <-chan error {
 	return s.err
 }
 
+// Port returns the server port
 func (s *Server) Port() int {
 	return s.addr.(*net.TCPAddr).Port
 }
@@ -188,6 +191,7 @@ type tcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
+// Accept returns the live connection
 func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	tc, err := ln.AcceptTCP()
 	if err != nil {
@@ -198,18 +202,22 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
+// BindMetricManager sets the matric manager
 func (s *Server) BindMetricManager(m managesMetrics) {
 	s.mm = m
 }
 
+// BindTaskManager sets the task manager
 func (s *Server) BindTaskManager(t managesTasks) {
 	s.mt = t
 }
 
+// BindTribeManager sets tribe manager
 func (s *Server) BindTribeManager(t managesTribe) {
 	s.tr = t
 }
 
+// BindConfigManager sets the config manager
 func (s *Server) BindConfigManager(c managesConfig) {
 	s.mc = c
 }

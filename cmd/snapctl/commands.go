@@ -231,6 +231,7 @@ func printFields(tw *tabwriter.Writer, indent bool, width int, fields ...interfa
 	fmt.Fprintln(tw, argArray...)
 }
 
+// ByCommand contains array of CLI commands.
 type ByCommand []cli.Command
 
 func (s ByCommand) Len() int {

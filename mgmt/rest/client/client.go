@@ -39,15 +39,21 @@ import (
 )
 
 var (
+	// CompressUpload A flag indicates if a plugin should be compressed.
 	CompressUpload = true
 
-	ErrUnknown     = errors.New("Unknown error calling API")
+	// ErrUnknown The error message when unknown error
+	ErrUnknown = errors.New("Unknown error calling API")
+	// ErrNilResponse The error message when Nil response
 	ErrNilResponse = errors.New("Nil response from JSON unmarshalling")
-	ErrDirNotFile  = errors.New("Provided plugin path is a directory not file")
+	// ErrDirNotFile The error message when plugin path is a directory
+	ErrDirNotFile = errors.New("Provided plugin path is a directory not file")
 )
 
 const (
+	// ContentTypeJSON The enum of JSON content type
 	ContentTypeJSON contentType = iota
+	// ContentTypeBinary The enum of Binary content type
 	ContentTypeBinary
 )
 
@@ -60,6 +66,7 @@ var (
 	}
 )
 
+// Client is a REST API client for snap
 type Client struct {
 	// URL specifies HTTP API request uniform resource locator.
 	URL string

@@ -125,13 +125,13 @@ type LoadPluginResult struct {
 	Err           serror.SnapError
 }
 
-// UnloadPluginResponse is the response from snap/client on an UnloadPlugin call.
+// UnloadPluginResult is the response from snap/client on an UnloadPlugin call.
 type UnloadPluginResult struct {
 	*rbody.PluginUnloaded
 	Err error
 }
 
-// We wrap this so we can provide some functionality (like LoadedTime)
+// LoadedPlugin wraps the LoadedPlugin so that it can provide some functionality (like LoadedTime)
 type LoadedPlugin struct {
 	*rbody.LoadedPlugin
 }
@@ -141,14 +141,14 @@ func (l *LoadedPlugin) LoadedTime() time.Time {
 	return time.Unix(l.LoadedTimestamp, 0)
 }
 
-// The wrapper for AvailablePlugin struct defined inside rbody package.
+// AvailablePlugin is the wrapper struct defined inside rbody package.
 type AvailablePlugin struct {
 	*rbody.AvailablePlugin
 }
 
 func convertLoadedPlugins(r []rbody.LoadedPlugin) []LoadedPlugin {
 	lp := make([]LoadedPlugin, len(r))
-	for i, _ := range r {
+	for i := range r {
 		lp[i] = LoadedPlugin{&r[i]}
 	}
 	return lp
@@ -156,7 +156,7 @@ func convertLoadedPlugins(r []rbody.LoadedPlugin) []LoadedPlugin {
 
 func convertAvailablePlugins(r []rbody.AvailablePlugin) []AvailablePlugin {
 	lp := make([]AvailablePlugin, len(r))
-	for i, _ := range r {
+	for i := range r {
 		lp[i] = AvailablePlugin{&r[i]}
 	}
 	return lp

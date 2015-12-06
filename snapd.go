@@ -104,7 +104,7 @@ var (
 		Name:  "config",
 		Usage: "A path to a config file",
 	}
-	flRestHttps = cli.BoolFlag{
+	flRestHTTPS = cli.BoolFlag{
 		Name:  "rest-https",
 		Usage: "start snap's API as https",
 	}
@@ -167,7 +167,7 @@ func main() {
 		flkeyringPaths,
 		flRestCert,
 		flConfig,
-		flRestHttps,
+		flRestHTTPS,
 		flRestKey,
 	}
 	app.Flags = append(app.Flags, tribe.Flags...)
@@ -230,7 +230,7 @@ func action(ctx *cli.Context) {
 		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
 	}
 	config := ctx.String("config")
-	restHttps := ctx.Bool("rest-https")
+	restHTTPS := ctx.Bool("rest-https")
 	restKey := ctx.String("rest-key")
 	restCert := ctx.String("rest-cert")
 
@@ -242,7 +242,7 @@ func action(ctx *cli.Context) {
 	// Validate log level and trust level settings for snapd
 	validateLevelSettings(logLevel, pluginTrust)
 
-	controlOpts := []control.ControlOpt{
+	controlOpts := []control.PluginControlOpt{
 		control.MaxRunningPlugins(maxRunning),
 		control.CacheExpiration(cache),
 	}
@@ -487,7 +487,7 @@ func action(ctx *cli.Context) {
 
 	//API
 	if !disableAPI {
-		r, err := rest.New(restHttps, restCert, restKey)
+		r, err := rest.New(restHTTPS, restCert, restKey)
 		if err != nil {
 			log.Fatal(err)
 			return

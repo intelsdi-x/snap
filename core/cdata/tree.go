@@ -26,19 +26,20 @@ import (
 	"github.com/intelsdi-x/snap/pkg/ctree"
 )
 
-// Allows adding of config data by namespace and retrieving of data from tree
+// ConfigDataTree allows adding of config data by namespace and retrieving of data from tree
 // at a specific namespace (merging the relevant hiearchy). Uses pkg.ConfigTree.
 type ConfigDataTree struct {
 	cTree *ctree.ConfigTree
 }
 
-// Returns a new ConfigDataTree.
+// NewTree returns a new ConfigDataTree.
 func NewTree() *ConfigDataTree {
 	return &ConfigDataTree{
 		cTree: ctree.New(),
 	}
 }
 
+// GobEncode encodes ConfigDataTree
 func (c *ConfigDataTree) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -48,18 +49,19 @@ func (c *ConfigDataTree) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes the ConfigDataTree
 func (c *ConfigDataTree) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
 	return decoder.Decode(&c.cTree)
 }
 
-// Adds a ConfigDataNode at the provided namespace.
+// Add adds a ConfigDataNode at the provided namespace.
 func (c *ConfigDataTree) Add(ns []string, cdn *ConfigDataNode) {
 	c.cTree.Add(ns, cdn)
 }
 
-// Returns a ConfigDataNode that is a merged version of the namespace provided.
+// Get returns a ConfigDataNode that is a merged version of the namespace provided.
 func (c *ConfigDataTree) Get(ns []string) *ConfigDataNode {
 	// Automatically freeze on first Get
 	if !c.cTree.Frozen() {
@@ -79,7 +81,7 @@ func (c *ConfigDataTree) Get(ns []string) *ConfigDataNode {
 	}
 }
 
-// Freezes the ConfigDataTree from future writes (adds) and triggers compression
+// Freeze freezes the ConfigDataTree from future writes (adds) and triggers compression
 // of tree into read-performant version.
 func (c *ConfigDataTree) Freeze() {
 	c.cTree.Freeze()

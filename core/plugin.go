@@ -28,14 +28,17 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 )
 
+// Plugin interface describing a plugin type, name and version
 type Plugin interface {
 	TypeName() string
 	Name() string
 	Version() int
 }
 
+// PluginType is used as an enum to differentiate types of snap plugins
 type PluginType int
 
+// ToPluginType transforms the name, e.g. "collector", to the corresponding enum
 func ToPluginType(name string) (PluginType, error) {
 	pts := map[string]PluginType{
 		"collector": 0,
@@ -49,6 +52,8 @@ func ToPluginType(name string) (PluginType, error) {
 	return t, nil
 }
 
+// String returns a string representation of collector, processor
+// and publisher of a plugin type.
 func (pt PluginType) String() string {
 	return []string{
 		"collector",
@@ -57,13 +62,14 @@ func (pt PluginType) String() string {
 	}[pt]
 }
 
+// enum of plugin types
 const (
-	// List of plugin type
 	CollectorPluginType PluginType = iota
 	ProcessorPluginType
 	PublisherPluginType
 )
 
+// AvailablePlugin is the public interface for a running plugin
 type AvailablePlugin interface {
 	Plugin
 	HitCount() int
@@ -71,9 +77,7 @@ type AvailablePlugin interface {
 	ID() uint32
 }
 
-// the public interface for a plugin
-// this should be the contract for
-// how mgmt modules know a plugin
+// CatalogedPlugin the public contract for a plugin
 type CatalogedPlugin interface {
 	Plugin
 	IsSigned() bool
@@ -82,21 +86,23 @@ type CatalogedPlugin interface {
 	LoadedTimestamp() *time.Time
 }
 
-// the collection of cataloged plugins used
-// by mgmt modules
+// PluginCatalog is the collection of _loaded_ plugins
 type PluginCatalog []CatalogedPlugin
 
+// SubscribedPlugin is used when ./scheduler calls SubscribeDeps on control.
 type SubscribedPlugin interface {
 	Plugin
 	Config() *cdata.ConfigDataNode
 }
 
+// RequestedPlugin is used by the API when loading a plugin.
 type RequestedPlugin struct {
 	path      string
 	checkSum  [sha256.Size]byte
 	signature []byte
 }
 
+// NewRequestedPlugin creates a requested plugin
 func NewRequestedPlugin(path string) (*RequestedPlugin, error) {
 	rp := &RequestedPlugin{
 		path:      path,
@@ -109,22 +115,27 @@ func NewRequestedPlugin(path string) (*RequestedPlugin, error) {
 	return rp, nil
 }
 
+// Path returns the plugin request path
 func (p *RequestedPlugin) Path() string {
 	return p.path
 }
 
+// CheckSum returns the plugin crequest checksum
 func (p *RequestedPlugin) CheckSum() [sha256.Size]byte {
 	return p.checkSum
 }
 
+// Signature returns the plugin singnature
 func (p *RequestedPlugin) Signature() []byte {
 	return p.signature
 }
 
+// SetPath sets the plugin path
 func (p *RequestedPlugin) SetPath(path string) {
 	p.path = path
 }
 
+// SetSignature sets plugin signature
 func (p *RequestedPlugin) SetSignature(data []byte) {
 	p.signature = data
 }
@@ -139,6 +150,7 @@ func (p *RequestedPlugin) generateCheckSum() error {
 	return nil
 }
 
+// ReadSignatureFile reads signature file and sets signature
 func (p *RequestedPlugin) ReadSignatureFile(file string) error {
 	var b []byte
 	var err error
