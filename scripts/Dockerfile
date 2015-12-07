@@ -4,7 +4,7 @@ ENV SNAP_PATH=/go/src/github.com/intelsdi-x/snap/build
 RUN apt-get update && \
     apt-get -y install facter
 WORKDIR /go/src/github.com/intelsdi-x/
-RUN git clone https://<GIT_TOKEN>@github.com/intelsdi-x/gomit.git
+RUN git clone https://github.com/intelsdi-x/gomit.git
 WORKDIR /go/src/github.com/intelsdi-x/snap
 ADD . /go/src/github.com/intelsdi-x/snap
 RUN go get github.com/tools/godep && \
