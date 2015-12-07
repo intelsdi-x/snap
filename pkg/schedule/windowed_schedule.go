@@ -10,7 +10,7 @@ var (
 	logger = log.WithField("_module", "schedule")
 )
 
-// A schedule that waits on an interval within a specific time window
+// WindowedSchedule is a schedule that waits on an interval within a specific time window
 type WindowedSchedule struct {
 	Interval  time.Duration
 	StartTime *time.Time
@@ -18,6 +18,8 @@ type WindowedSchedule struct {
 	state     ScheduleState
 }
 
+// NewWindowedSchedule returns an instance of WindowedSchedule given duration,
+// start and stop time
 func NewWindowedSchedule(i time.Duration, start *time.Time, stop *time.Time) *WindowedSchedule {
 	return &WindowedSchedule{
 		Interval:  i,
@@ -26,10 +28,13 @@ func NewWindowedSchedule(i time.Duration, start *time.Time, stop *time.Time) *Wi
 	}
 }
 
+// GetState returns ScheduleState of WindowedSchedule
 func (w *WindowedSchedule) GetState() ScheduleState {
 	return w.state
 }
 
+// Validate validates the start, stop and duration interval of
+// WindowedSchedule
 func (w *WindowedSchedule) Validate() error {
 	if w.StopTime != nil && time.Now().After(*w.StopTime) {
 		return ErrInvalidStopTime
@@ -43,6 +48,8 @@ func (w *WindowedSchedule) Validate() error {
 	return nil
 }
 
+// Wait waits the window interval and return.
+// Otherwise, it exits with a completed state
 func (w *WindowedSchedule) Wait(last time.Time) Response {
 	// Do we even have a specific start time?
 	if w.StartTime != nil {
@@ -107,28 +114,30 @@ func (w *WindowedSchedule) Wait(last time.Time) Response {
 	}
 }
 
-// A response from SimpleSchedule conforming to ScheduleResponse interface
+// WindowedScheduleResponse is the response from SimpleSchedule
+// conforming to ScheduleResponse interface
 type WindowedScheduleResponse struct {
 	state    ScheduleState
 	missed   uint
 	lastTime time.Time
 }
 
-// Returns the state of the Schedule
+// State returns the state of the Schedule
 func (w *WindowedScheduleResponse) State() ScheduleState {
 	return w.state
 }
 
-// Returns last error
+// Error returns last error
 func (w *WindowedScheduleResponse) Error() error {
 	return nil
 }
 
-// Returns any missed intervals
+// Missed returns any missed intervals
 func (w *WindowedScheduleResponse) Missed() uint {
 	return w.missed
 }
 
+// LastTime returns the last windowed schedule response time
 func (w *WindowedScheduleResponse) LastTime() time.Time {
 	return w.lastTime
 }

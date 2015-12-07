@@ -37,25 +37,25 @@ func (d mockNode) Merge(dn Node) Node {
 	return d
 }
 
-func (n *mockNode) GobEncode() ([]byte, error) {
+func (d *mockNode) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
 
-	if err := encoder.Encode(n.data); err != nil {
+	if err := encoder.Encode(d.data); err != nil {
 		return nil, err
 	}
 
 	return w.Bytes(), nil
 }
 
-func (n *mockNode) GobDecode(buf []byte) error {
+func (d *mockNode) GobDecode(buf []byte) error {
 	if len(buf) == 0 {
 		//there is nothing to do
 		return nil
 	}
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
-	return decoder.Decode(&n.data)
+	return decoder.Decode(&d.data)
 }
 
 func newMockNode() *mockNode {

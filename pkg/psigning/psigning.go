@@ -29,14 +29,20 @@ import (
 	"golang.org/x/crypto/openpgp"
 )
 
+// SigningManager anonymous struct type
 type SigningManager struct{}
 
 var (
-	ErrPluginNotFound      = errors.New("Plugin not found")
+	// ErrPluginNotFound - Error message for plugin not found
+	ErrPluginNotFound = errors.New("Plugin not found")
+	// ErrKeyringFileNotFound - Error message for keyring file (.gpg) not found
 	ErrKeyringFileNotFound = errors.New("Keyring file (.gpg) not found")
+	// ErrUnableToReadKeyring - Error message for unable to read keyring
 	ErrUnableToReadKeyring = errors.New("Unable to read keyring")
-	ErrSignedFileNotFound  = errors.New("Signed file not found")
-	ErrCheckSignature      = errors.New("Error checking signature")
+	// ErrSignedFileNotFound - Error message for signed file not found
+	ErrSignedFileNotFound = errors.New("Signed file not found")
+	// ErrCheckSignature - Error message for error checking signature
+	ErrCheckSignature = errors.New("Error checking signature")
 )
 
 //ValidateSignature is exported for plugin authoring

@@ -33,12 +33,18 @@ import (
 )
 
 var (
-	ErrChmod        = errors.New("Error changing file permissions")
-	ErrCopyingFile  = errors.New("Error copying file")
+	// ErrChmod - Error message for error changing file permission
+	ErrChmod = errors.New("Error changing file permissions")
+	// ErrCopyingFile - Error message for error copying file
+	ErrCopyingFile = errors.New("Error copying file")
+	// ErrCreatingFile - Error message for error creating file
 	ErrCreatingFile = errors.New("Error creating file")
-	ErrMkdirAll     = errors.New("Error making directory")
-	ErrNext         = errors.New("Error iterating through tar file")
-	ErrUntar        = errors.New("Error untarring file")
+	// ErrMkdirAll - Error message for error making directory
+	ErrMkdirAll = errors.New("Error making directory")
+	// ErrNext - Error message for error interating through tar file
+	ErrNext = errors.New("Error iterating through tar file")
+	// ErrUntar - Error message for error untarring file
+	ErrUntar = errors.New("Error untarring file")
 )
 
 // Manifest returns the ImageManifest inside the ACI file
@@ -103,6 +109,8 @@ func Extract(f io.ReadSeeker) (string, error) {
 	return dir, nil
 }
 
+// Validate makes sure the archive is valid. Otherwise,
+// an error is returned
 func Validate(f io.ReadSeeker) error {
 	tr, err := specaci.NewCompressedTarReader(f)
 	defer tr.Close()
