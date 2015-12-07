@@ -37,12 +37,18 @@ import (
 )
 
 var (
+	// HandlerRegistrationName registers a handler with the event manager
 	HandlerRegistrationName = "scheduler"
 
-	ErrMetricManagerNotSet     = errors.New("MetricManager is not set.")
-	ErrSchedulerNotStarted     = errors.New("Scheduler is not started.")
-	ErrTaskAlreadyRunning      = errors.New("Task is already running.")
-	ErrTaskAlreadyStopped      = errors.New("Task is already stopped.")
+	// ErrMetricManagerNotSet - The error message for metricManager is not set
+	ErrMetricManagerNotSet = errors.New("MetricManager is not set.")
+	// ErrSchedulerNotStarted - The error message for scheduler is not started
+	ErrSchedulerNotStarted = errors.New("Scheduler is not started.")
+	// ErrTaskAlreadyRunning - The error message for task is already running
+	ErrTaskAlreadyRunning = errors.New("Task is already running.")
+	// ErrTaskAlreadyStopped - The error message for task is already stopped
+	ErrTaskAlreadyStopped = errors.New("Task is already stopped.")
+	// ErrTaskDisabledNotRunnable - The error message for task is disabled and cannot be started
 	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started.")
 )
 

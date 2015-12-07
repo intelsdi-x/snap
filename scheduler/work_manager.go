@@ -68,6 +68,8 @@ const (
 
 type workManagerOption func(w *workManager) workManagerOption
 
+// CollectQSizeOption sets the collector queue size(length) and
+// returns the previous queue option state.
 func CollectQSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.collectQSize
@@ -76,6 +78,8 @@ func CollectQSizeOption(v uint) workManagerOption {
 	}
 }
 
+// PublishQSizeOption sets the publisher queue size(length) and
+// returns the previous queue option state.
 func PublishQSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.publishQSize
@@ -84,6 +88,8 @@ func PublishQSizeOption(v uint) workManagerOption {
 	}
 }
 
+// ProcessQSizeOption sets the processor queue size(length) and
+// returns the previous queue option state.
 func ProcessQSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.processQSize
@@ -92,6 +98,8 @@ func ProcessQSizeOption(v uint) workManagerOption {
 	}
 }
 
+// CollectWkrSizeOption sets the collector worker pool size
+// and returns the previous collector worker pool state.
 func CollectWkrSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.collectWkrSize
@@ -100,6 +108,8 @@ func CollectWkrSizeOption(v uint) workManagerOption {
 	}
 }
 
+// ProcessWkrSizeOption sets the processor worker pool size
+// and return the previous processor worker pool state.
 func ProcessWkrSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.processWkrSize
@@ -108,6 +118,8 @@ func ProcessWkrSizeOption(v uint) workManagerOption {
 	}
 }
 
+// PublishWkrSizeOption sets the publisher worker pool size
+// and returns the previous previous publisher worker pool state.
 func PublishWkrSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.publishWkrSize
@@ -164,7 +176,7 @@ func newWorkManager(opts ...workManagerOption) *workManager {
 	return wm
 }
 
-// workManager's loop just handles queuing errors.
+// Start workManager's loop just handles queuing errors.
 func (w *workManager) Start() {
 
 	w.mutex.Lock()
@@ -192,6 +204,7 @@ func (w *workManager) Start() {
 	}
 }
 
+// Stop closes the collector queue and worker
 func (w *workManager) Stop() {
 	w.collectq.Stop()
 	close(workerKillChan)
@@ -214,6 +227,8 @@ func (w *workManager) Work(j job) job {
 	return j
 }
 
+// AddCollectWorker adds a new worker to
+// the collector worker pool
 func (w *workManager) AddCollectWorker() {
 	nw := newWorker(w.collectchan)
 	go nw.start()
@@ -221,6 +236,8 @@ func (w *workManager) AddCollectWorker() {
 	w.collectWkrSize++
 }
 
+// AddPublishWorker adds a new worker to
+// the publisher worker pool
 func (w *workManager) AddPublishWorker() {
 	nw := newWorker(w.publishchan)
 	go nw.start()
@@ -228,6 +245,8 @@ func (w *workManager) AddPublishWorker() {
 	w.publishWkrSize++
 }
 
+// AddProcessWorker adds a new worker to
+// the processor worker pool
 func (w *workManager) AddProcessWorker() {
 	nw := newWorker(w.processchan)
 	go nw.start()

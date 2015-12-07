@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Test helper for testing plugins
+// Package helper The test helper for testing plugins
 package helper
 
 import (
@@ -32,7 +32,7 @@ var (
 	buildScript = "/scripts/build.sh"
 )
 
-// Attempts to make the plugins before each test.
+// BuildPlugin attempts to make the plugins before each test.
 func BuildPlugin(pluginType, pluginName string) error {
 	wd, err := os.Getwd()
 	if err != nil {

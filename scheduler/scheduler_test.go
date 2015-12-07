@@ -99,13 +99,13 @@ func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.Subscribe
 	}
 	return nil
 }
-func (m *mockMetricManager) SubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
+func (m *mockMetricManager) SubscribeDeps(taskID string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
 	return []serror.SnapError{
 		serror.New(errors.New("metric validation error")),
 	}
 }
 
-func (m *mockMetricManager) UnsubscribeDeps(taskId string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
+func (m *mockMetricManager) UnsubscribeDeps(taskID string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
 	return nil
 }
 
