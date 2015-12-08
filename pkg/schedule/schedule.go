@@ -6,23 +6,29 @@ import (
 )
 
 var (
-	ErrInvalidInterval  = errors.New("Interval must be greater than 0")
+	// ErrInvalidInterval - Error message for the valid schedule interval must ne greater than 0
+	ErrInvalidInterval = errors.New("Interval must be greater than 0")
+	// ErrInvalidStartTime - Error message for the start time is in the past
 	ErrInvalidStartTime = errors.New("Start time is in the past")
-	ErrInvalidStopTime  = errors.New("Stop time is in the past")
-	ErrStopBeforeStart  = errors.New("Stop time cannot occur before start time")
+	// ErrInvalidStopTime - Error message for the stop tome is in the past
+	ErrInvalidStopTime = errors.New("Stop time is in the past")
+	// ErrStopBeforeStart - Error message for the stop time cannot occur before start time
+	ErrStopBeforeStart = errors.New("Stop time cannot occur before start time")
 )
 
+// ScheduleState int type
 type ScheduleState int
 
 const (
-	// set by the scheduler once a schedule has been validated and is in use in a task
+	// Active - set by the scheduler once a schedule has been validated and is in use in a task
 	Active ScheduleState = iota
-	// Schedule is ended
+	// Ended - Schedule is ended
 	Ended
-	// Schedule is halted with an error
+	// Error - Schedule is halted with an error
 	Error
 )
 
+// Schedule interface
 type Schedule interface {
 	// Returns the current state of the schedule
 	GetState() ScheduleState
@@ -32,6 +38,7 @@ type Schedule interface {
 	Wait(time.Time) Response
 }
 
+// Response interface defines the behavior of schedule response
 type Response interface {
 	// Contains any errors captured during a schedule.Wait()
 	Error() error

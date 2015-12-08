@@ -55,7 +55,7 @@ func (c *chrono) Reset() {
 	c.skew = 0
 }
 
-// "Stops" time by recording current time and shortcircuit Now() to return this
+// Pause "Stops" time by recording current time and shortcircuit Now() to return this
 // time instead of the actual time (plus skew).
 func (c *chrono) Pause() {
 	c.pausedAt = c.Now()
@@ -68,4 +68,5 @@ func (c *chrono) Continue() {
 	c.paused = false
 }
 
+// Chrono variable
 var Chrono chrono

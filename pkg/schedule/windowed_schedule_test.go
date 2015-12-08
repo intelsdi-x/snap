@@ -29,7 +29,7 @@ func TestWindowedSchedule(t *testing.T) {
 			err := w.Validate()
 			So(err, ShouldBeNil)
 
-			r := make([]Response, 0)
+			var r []Response
 			last := *new(time.Time)
 
 			state := Active
@@ -80,7 +80,7 @@ func TestWindowedSchedule(t *testing.T) {
 			err := w.Validate()
 			So(err, ShouldBeNil)
 
-			r := make([]Response, 0)
+			var r []Response
 			last := *new(time.Time)
 
 			state := Active
@@ -122,7 +122,7 @@ func TestWindowedSchedule(t *testing.T) {
 			err := w.Validate()
 			So(err, ShouldBeNil)
 
-			r := make([]Response, 0)
+			var r []Response
 			last := *new(time.Time)
 
 			before := time.Now()
@@ -154,7 +154,7 @@ func TestWindowedSchedule(t *testing.T) {
 			err := w.Validate()
 			So(err, ShouldBeNil)
 
-			r := make([]Response, 0)
+			var r []Response
 			last := *new(time.Time)
 
 			before := time.Now()

@@ -28,6 +28,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// ConfigTree struct type
 type ConfigTree struct {
 	// Debug turns on verbose logging of the tree functions to stdout
 	Debug bool
@@ -36,6 +37,7 @@ type ConfigTree struct {
 	root       *node
 }
 
+// New returns a new instance of ConfigTree
 func New() *ConfigTree {
 	return &ConfigTree{}
 }
@@ -46,6 +48,8 @@ func (c *ConfigTree) log(s string) {
 	}
 }
 
+// GobEncode returns the encoded ConfigTree. Otherwise,
+// an error is returned
 func (c *ConfigTree) GobEncode() ([]byte, error) {
 	//todo throw an error if not frozen
 	w := new(bytes.Buffer)
@@ -63,6 +67,7 @@ func (c *ConfigTree) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes the ConfigTree.
 func (c *ConfigTree) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
@@ -72,6 +77,7 @@ func (c *ConfigTree) GobDecode(buf []byte) error {
 	return decoder.Decode(&c.freezeFlag)
 }
 
+// MarshalJSON marshals ConfigTree
 func (c *ConfigTree) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Root *node `json:"root"`
@@ -80,6 +86,7 @@ func (c *ConfigTree) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// Add adds a new tree node
 func (c *ConfigTree) Add(ns []string, inNode Node) {
 	c.log(fmt.Sprintf("Adding %v at %s\n", inNode, ns))
 	if len(ns) == 0 {
@@ -112,6 +119,7 @@ func (c *ConfigTree) Add(ns []string, inNode Node) {
 
 }
 
+// Get returns a tree node given the namespace
 func (c *ConfigTree) Get(ns []string) Node {
 	c.log(fmt.Sprintf("Get on ns (%s)\n", ns))
 	if !c.Frozen() {
@@ -163,6 +171,7 @@ func (c *ConfigTree) Get(ns []string) Node {
 	return rn
 }
 
+// Freeze sets the ConfigTree's freezeFlag to true
 func (c *ConfigTree) Freeze() {
 	if !c.freezeFlag {
 		c.freezeFlag = true
@@ -170,6 +179,7 @@ func (c *ConfigTree) Freeze() {
 	}
 }
 
+// Frozen returns the bool value of ConfigTree freezeFlag
 func (c *ConfigTree) Frozen() bool {
 	return c.freezeFlag
 }
@@ -180,10 +190,12 @@ func (c *ConfigTree) compact() {
 	}
 }
 
+// Print prints out the ConfigTree
 func (c *ConfigTree) Print() {
 	c.root.print("")
 }
 
+// Node interface
 type Node interface {
 	Merge(Node) Node
 }
@@ -195,6 +207,7 @@ type node struct {
 	Node      Node
 }
 
+// MarshalJSON marshals the ConfigTree.
 func (n *node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Nodes     []*node  `json:"nodes"`
@@ -209,6 +222,7 @@ func (n *node) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// GobEncode encodes every member of node struct instance
 func (n *node) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -227,6 +241,7 @@ func (n *node) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes every member of node struct instance
 func (n *node) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
