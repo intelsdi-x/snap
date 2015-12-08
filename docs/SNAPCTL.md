@@ -108,21 +108,21 @@ $SNAP_PATH/bin/snapd -l 1 -t 0
 2. load a processing plugin
 3. load a publishing plugin
 4. list the plugins
-5. create a task
-6. start a task with a task manifest
-7. start a task with a workflow manifest
+5. start a task with a task manifest
+6. start a task with a workflow manifest
 8. list the tasks
-9. unload a plugin
+9. unload a plugins
 
 ```
-$SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-collector-psutil
+
 $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-collector-mock1
 $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-processor-passthru
-$SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-publisher-influxdb
 $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-publisher-file
 $SNAP_PATH/bin/snapctl plugin list
-$SNAP_PATH/bin/snapctl task create -t $SNAP_PATH/../cmd/snapctl/sample/psutil-influx.json
+$SNAP_PATH/bin/snapctl task create -t $SNAP_PATH/../examples/tasks/mock-file.json
 $SNAP_PATH/bin/snapctl task create -w $SNAP_PATH/../mgmt/rest/wmap_sample/1.json -i 1s -d 10s
 $SNAP_PATH/bin/snapctl task list
-$SNAP_PATH/bin/snapctl plugin unload -t collector -n psutil -v 1
+$SNAP_PATH/bin/snapctl plugin unload -t collector -n mock1 -v <version>
+$SNAP_PATH/bin/snapctl plugin unload -t processor -n passthru -v <version>
+$SNAP_PATH/bin/snapctl plugin unload -t publisher -n publisher -v <version>
 ```
