@@ -326,8 +326,15 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 
 	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
 	cps := returnCorePlugin(plugins)
-	errs := s.metricManager.SubscribeDeps(t.ID(), mts, cps)
-	if len(errs) > 0 {
+	serrs := s.metricManager.SubscribeDeps(t.ID(), mts, cps)
+	if len(serrs) > 0 {
+		// Tear down plugin processes started so far.
+		uerrs := s.metricManager.UnsubscribeDeps(t.ID(), mts, cps)
+		errs := append(serrs, uerrs...)
+		logger.WithFields(log.Fields{
+			"task-id": t.ID(),
+			"_error":  errs,
+		}).Error("task failed to start due to dependencies")
 		return errs
 	}
 
