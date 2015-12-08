@@ -32,13 +32,16 @@ import (
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
+// WorkflowState int type
 type WorkflowState int
 
+// Workflow state constants
 const (
 	WorkflowStopped WorkflowState = iota
 	WorkflowStarted
 )
 
+// WorkflowStateLookup map and error vars
 var (
 	WorkflowStateLookup = map[WorkflowState]string{
 		WorkflowStopped: "Stopped",

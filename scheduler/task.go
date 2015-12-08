@@ -36,18 +36,25 @@ import (
 )
 
 const (
+	// DefaultDeadlineDuration - The default timeout is 5 second
 	DefaultDeadlineDuration = time.Second * 5
-	DefaultStopOnFailure    = 3
+	// DefaultStopOnFailure - The default stopping a failure is after three tries
+	DefaultStopOnFailure = 3
 )
 
 var (
 	schedulerLogger = log.WithField("_module", "scheduler-task")
 
-	ErrTaskNotFound            = errors.New("Task not found")
-	ErrTaskNotStopped          = errors.New("Task must be stopped")
+	// ErrTaskNotFound - The error message for task not found
+	ErrTaskNotFound = errors.New("Task not found")
+	// ErrTaskNotStopped - The error message for task must be stopped
+	ErrTaskNotStopped = errors.New("Task must be stopped")
+	// ErrTaskHasAlreadyBeenAdded - The error message for task has already been added
 	ErrTaskHasAlreadyBeenAdded = errors.New("Task has already been added")
-	ErrTaskDisabledOnFailures  = errors.New("Task disabled due to consecutive failures")
-	ErrTaskNotDisabled         = errors.New("Task must be disabled")
+	// ErrTaskDisabledOnFailures - The error message for task disabled due to consecutive failures
+	ErrTaskDisabledOnFailures = errors.New("Task disabled due to consecutive failures")
+	// ErrTaskNotDisabled - The error message for task must be disabled
+	ErrTaskNotDisabled = errors.New("Task must be disabled")
 )
 
 type task struct {
