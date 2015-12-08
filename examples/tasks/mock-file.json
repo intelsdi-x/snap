@@ -25,7 +25,7 @@
                         {
                             "plugin_name": "file",                            
                             "config": {
-                                "file": "/tmp/published"
+                                "file": "/tmp/snap_published_mock_file.log"
                             }
                         }
                     ]

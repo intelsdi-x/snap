@@ -18,11 +18,11 @@ limitations under the License.
 -->
 
 # snapd
-The snap daemon (snapd) is a modular application that consists of a control module, a scheduler module, and a REST API. The control module is responsible for loading and unloading plugins, managing loaded plugins, and maintaining an available pool of running plugins for running tasks. The scheduler module is responsible for running the workflows in created tasks per the schedule stated. The REST API provides an interface for loading and unloading plugins, creating and removing tasks, starting and stopping tasks, and listing metrics available for collection.
+The snap daemon/agent (snapd) is a modular application that consists of a control module, a scheduler module, and a REST API. The control module is responsible for loading and unloading plugins, managing loaded plugins, and maintaining an available pool of running plugins for running tasks. The scheduler module is responsible for running the workflows in created tasks per the schedule stated. The REST API provides an interface for loading and unloading plugins, creating and removing tasks, starting and stopping tasks, and listing metrics available for collection.
 
 ## Usage
 ```
-> $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
+$ $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
 ```
 
 ### Options
@@ -62,7 +62,7 @@ $SNAP_PATH/bin/snapd --version
 
 ### Output
 ```
-> $SNAP_PATH/bin/snapd -l 1 -t 0
+$ $SNAP_PATH/bin/snapd -l 1 -t 0
 ```
 ```
 INFO[0000] Starting snapd (version: v0.9.0-beta)

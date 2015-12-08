@@ -36,10 +36,10 @@ type snapError struct {
 // The variadic signature allows fields to optionally
 // be added at construction.
 func New(e error, fields ...map[string]interface{}) *snapError {
-	// Catch someone trying to wrap a pe around a pe.
+	// Catch someone trying to wrap a serror around a serror.
 	// We throw a panic to make them fix this.
 	if _, ok := e.(SnapError); ok {
-		panic("You are trying to wrap a snapError around a SnapError. Don't do this.")
+		panic("You are trying to wrap a snapError around a snapError. Don't do this.")
 	}
 
 	p := &snapError{
@@ -47,7 +47,7 @@ func New(e error, fields ...map[string]interface{}) *snapError {
 		fields: make(map[string]interface{}),
 	}
 
-	// insert fields into new SnapError
+	// insert fields into new snapError
 	for _, f := range fields {
 		for k, v := range f {
 			p.fields[k] = v

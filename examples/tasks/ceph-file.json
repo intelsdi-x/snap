@@ -55,7 +55,7 @@
                     "plugin_name": "file",
                     "plugin_version": 1,
                     "config": {
-                        "file": "/tmp/published_ceph"
+                        "file": "/tmp/snap_published_ceph_file.log"
                     }
                 }
             ]

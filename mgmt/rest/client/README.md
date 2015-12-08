@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-Go snap Client
+Go snap client
 ===============
 
 Go bindings for snap's REST API
