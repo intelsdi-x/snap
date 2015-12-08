@@ -368,6 +368,7 @@ func watchTask(ctx *cli.Context) {
 			case "metric-event":
 				sort.Sort(e.Event)
 				for _, event := range e.Event {
+					fmt.Printf("\033[0J")
 					printFields(w, false, 0,
 						event.Namespace,
 						event.Data,
