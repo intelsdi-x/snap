@@ -17,25 +17,31 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
+# add some color to the output
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr0`
+
 die () {
-    echo >&2 "$@"
+    echo >&2 "${red} $@ ${reset}"
     exit 1
 }
 
-[ "$#" -eq 1 ] || die "Error: Expected to get one or more machine names as arguments."
+# verify deps and the env
 [ "${SNAP_PATH}x" != "x" ] || die "Error: SNAP_PATH must be set"
-command -v docker-machine >/dev/null 2>&1 || die "Error: docker-machine is required."
-command -v docker-compose >/dev/null 2>&1 || die "Error: docker-compose is required."
-command -v docker >/dev/null 2>&1 || die "Error: docker is required."
-command -v netcat >/dev/null 2>&1 || die "Error: netcat is required."
-file $SNAP_PATH/plugin/snap-plugin-collector-psutil >/dev/null 2>&1 || die "Error: missing $SNAP_PATH/build/plugin/snap-plugin-collector-psutil"
-file $SNAP_PATH/plugin/snap-plugin-publisher-influxdb >/dev/null 2>&1 || die "Error: missing $SNAP_PATH/build/plugin/snap-plugin-publisher-influxdb"
-
-
-
-#docker machine ip
-dm_ip=$(docker-machine ip $1) || die
-echo "docker machine ip: ${dm_ip}"
+type docker-compose >/dev/null 2>&1 || die "Error: docker-compose is required"
+type docker >/dev/null 2>&1 || die "Error: docker is required"
+type netcat >/dev/null 2>&1 || die "Error: netcat is required"
+if type docker-machine >/dev/null 2>&1; then
+	docker-machine active >/dev/null 2>&1 || die "Error: no active docker host found"     
+    dm_ip=$(docker-machine ip $(docker-machine active)) || die
+	if [ "$dm_ip" = "" ]; then 
+		die "Error: Unable to identify IP for your docker-machine.  Make sure that it's started."
+	fi 
+    echo ">>docker machine ip: ${dm_ip}"
+else
+	dm_ip="127.0.0.1"	
+fi
 
 #start containers
 docker-compose up -d
@@ -63,8 +69,8 @@ curl -G "http://${dm_ip}:8086/query?u=admin&p=admin" --data-urlencode "q=CREATE 
 echo ""
 
 # create influxdb datasource in grafana
-echo -n "adding influxdb datasource to grafana => "
-COOKIEJAR=$(mktemp -t 'snap-tmp')
+echo -n "${green}adding influxdb datasource to grafana => ${reset}"
+COOKIEJAR=$(mktemp)
 curl -H 'Content-Type: application/json;charset=UTF-8' \
 	--data-binary '{"user":"admin","email":"","password":"admin"}' \
     --cookie-jar "$COOKIEJAR" \
@@ -87,22 +93,39 @@ curl --cookie "$COOKIEJAR" \
 	"http://${dm_ip}:3000/api/dashboards/db"
 echo ""
 
-echo -n "starting snapd"
-$SNAP_PATH/bin/snapd --log-level 1 -t 0 --auto-discover $SNAP_PATH/plugin > /tmp/snap.out 2>&1  &
+echo "${green}getting and building snap-plugin-publisher-influxdb${reset}"
+go get github.com/intelsdi-x/snap-plugin-publisher-influxdb
+# try and build; If the build first fails try again also getting deps else stop with an error
+(cd $SNAP_PATH/../../snap-plugin-publisher-influxdb && make all) || (cd $SNAP_PATH/../../snap-plugin-publisher-influxdb && make) || die "Error: failed to get and compile influxdb plugin" 
+
+echo "${green}getting and building snap-plugin-collector-psutil${reset}"
+go get github.com/intelsdi-x/snap-plugin-collector-psutil
+# try and build; If the build first fails try again also getting deps else stop with an error
+(cd $SNAP_PATH/../../snap-plugin-collector-psutil && make all) || (cd $SNAP_PATH/../../snap-plugin-collector-psutil && make) || die "Error: failed to get and compile psutil plugin"
+
+echo -n "${green}starting snapd${reset}"
+$SNAP_PATH/bin/snapd --log-level 1 -t 0  > /tmp/snap.out 2>&1  &
 echo ""
 
 sleep 3
 
-echo -n "adding task "
+echo "${green}loading snap-plugin-publisher-influxdb${reset}"
+($SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/../../snap-plugin-publisher-influxdb/build/rootfs/snap-plugin-publisher-influxdb) || die "Error: failed to load influxdb plugin"
+
+echo "${green}loading snap-plugin-collector-psutil${reset}"
+($SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/../../snap-plugin-collector-psutil/build/rootfs/snap-plugin-collector-psutil) || die "Error: failed to load psutil plugin"
+
+echo -n "${greeN}adding task${reset}"
+TMPDIR=${TMPDIR:="/tmp"}
 TASK="${TMPDIR}/snap-task-$$.json"
 echo "$TASK"
 cat $SNAP_PATH/../examples/tasks/psutil-influx.json | sed s/INFLUXDB_IP/${dm_ip}/ > $TASK
 $SNAP_PATH/bin/snapctl task create -t $TASK
 
-echo ""
+echo ""${green}
 echo "Grafana Dashboard => http://${dm_ip}:3000/dashboard/db/snap-dashboard"
 echo "Influxdb UI       => http://${dm_ip}:8083"
 echo ""
-echo "Press enter to start viewing the snap.log"
+echo "Press enter to start viewing the snap.log${reset}"
 read
 tail -f /tmp/snap.out

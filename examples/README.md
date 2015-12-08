@@ -18,10 +18,10 @@ limitations under the License.
 -->
 
 # Examples
-Example package contains a collection of snap examples and [videos](./videos.md) that demonstrate the snap libraries and usages.
+Example package contains a collection of snap examples that demonstrate the snap libraries and usages.
 
 * [configs](./configs) is an example of the global configuration file that powers your plugins
-* [influxdb-grafana](./influxdb-grafana) has an example of [snap Influxdb publisher plugin](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb). The example demonstrates
-Intel [PCM](https://software.intel.com/en-us/articles/intel-performance-counter-monitor) (Performance Counter Monitor) and [PSUTIL](https://github.com/intelsdi-x/snap-plugin-collector-psutil) (Processes and System Utilization) plugins to publish data into Influxdb and using Grafana to view the results. 
+* [influxdb-grafana](./influxdb-grafana) Has an example that shows
+  publishing [psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil) (Processes and System Utilization) data into [Influxdb](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb) and using Grafana to view the results 
 * [riemann](./riemann) has an example of [snap Riemann publisher plugin](https://github.com/intelsdi-x/snap-plugin-publisher-riemann) 
 * [tasks](./tasks) has JSON and YAML formatted execution requests for snap tasks

@@ -20,26 +20,19 @@
                     "user": "root"
                 }
             },
-            "process": [
+            "process": null,
+            "publish": [
                 {
-                    "plugin_name": "passthru",
-                    "process": null,
-                    "publish": [
-                        {
-                            "plugin_name": "influx",                            
-                            "config": {
-                                "host": "INFLUXDB_IP",
-                                "port": 8086,
-                                "database": "snap",
-                                "user": "admin",
-                                "password": "admin"
-                            }
-                        }
-                    ],
-                    "config": null
+                    "plugin_name": "influx",                            
+                    "config": {
+                        "host": "INFLUXDB_IP",
+                        "port": 8086,
+                        "database": "snap",
+                        "user": "admin",
+                        "password": "admin"
+                    }
                 }
-            ],
-            "publish": null
+            ]                                            
         }
     }
 }
