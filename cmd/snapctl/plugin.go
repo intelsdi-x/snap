@@ -22,6 +22,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -66,9 +68,31 @@ func loadPlugin(ctx *cli.Context) {
 }
 
 func unloadPlugin(ctx *cli.Context) {
-	pType := ctx.String("plugin-type")
-	pName := ctx.String("plugin-name")
-	pVer := ctx.Int("plugin-version")
+	pDetails := filepath.SplitList(ctx.Args().First())
+	var pType string
+	var pName string
+	var pVer int
+	var err error
+
+	if len(pDetails) == 3 {
+		pType = pDetails[0]
+		pName = pDetails[1]
+		pVer, err = strconv.Atoi(pDetails[2])
+		if err != nil {
+			fmt.Println("Can't convert version string to integer")
+			cli.ShowCommandHelp(ctx, ctx.Command.Name)
+			os.Exit(1)
+		}
+	} else {
+		pType = ctx.String("plugin-type")
+		pName = ctx.String("plugin-name")
+		pVer = ctx.Int("plugin-version")
+	}
+	if pType == "" {
+		fmt.Println("Must provide plugin type")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
 	if pName == "" {
 		fmt.Println("Must provide plugin name")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
