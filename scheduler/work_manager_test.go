@@ -91,23 +91,11 @@ func TestWorkerManager(t *testing.T) {
 			j2 := newMockJob(false)
 			j3 := newMockJob(false)
 
-			// Rendez-vous when all jobs have been submitted to the work manager.
-			submitChan := make(chan struct{})
-
-			qjs := []queuedJob{}
-
 			// Submit three jobs.
-			go func() {
-				qjs = append(qjs, manager.Work(j1))
-				qjs = append(qjs, manager.Work(j2))
-				qjs = append(qjs, manager.Work(j3))
-
-				// Signal completion of the job submissions.
-				submitChan <- struct{}{}
-			}()
-
-			// Await job submissions.
-			<-submitChan
+			qjs := []queuedJob{}
+			qjs = append(qjs, manager.Work(j1))
+			qjs = append(qjs, manager.Work(j2))
+			qjs = append(qjs, manager.Work(j3))
 
 			// Await completion of j1 (also unblocking j1.Run()).
 			j1.Await()
