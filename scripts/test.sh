@@ -25,7 +25,6 @@
 # 5. race detector (http://blog.golang.org/race-detector)
 # 6. test coverage (http://blog.golang.org/cover)
 
-COVERALLS_TOKEN=t47LG6BQsfLwb9WxB56hXUezvwpED6D11
 TEST_DIRS="cmd/ control/ core/ mgmt/ pkg/ snapd.go scheduler/"
 VET_DIRS="./cmd/... ./control/... ./core/... ./mgmt/... ./pkg/... ./scheduler/... ."
 
@@ -69,21 +68,3 @@ do
 done
  
 go tool cover -func profile.cov
- 
-# Disabled Coveralls.io for now
-# To submit the test coverage result to coveralls.io,
-# use goveralls (https://github.com/mattn/goveralls)
-# goveralls -coverprofile=profile.cov -service=travis-ci -repotoken t47LG6BQsfLwb9WxB56hXUezvwpED6D11
-#
-# If running inside Travis we update coveralls. We don't want his happening on Macs
-# if [ "$TRAVIS" == "true" ]
-# then
-#     n=1
-#     until [ $n -ge 6 ]
-#     do
-#         echo "posting to coveralls attempt $n of 5"
-#         goveralls -v -coverprofile=profile.cov -service travis.ci -repotoken $COVERALLS_TOKEN && break
-#         n=$[$n+1]
-#         sleep 30
-#     done
-# fi
