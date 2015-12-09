@@ -22,17 +22,24 @@ package scheduler
 import "sync"
 
 /*
-                             job queue
-    workManager.Work(j) ----> [jjjjjjj]
-                   ^                 |
-                   |                 | workManager.sendToWorker(j)
-                   |                 V
-         job.Run() |            +---------+
- <-job.ReplyChan() |            | w  w  w |
-                   +----------  |  w w  w | worker pool
-                                |  w   w  |
-                                +---------+
 
+  caller [optional: qj.Await()]
+     ^
+     |
+     |
+  queuedJob
+     |
+     |
+     |                                   job queue
+  workManager.Work(job) ---queuedJob---> [jjjjjjj]
+                                             |
+                                             | workManager.sendToWorker(j)
+                                             V
+                                        +---------+
+                                        | w  w  w |
+                  j.Job().Run() +-----  |  w w  w | worker pool
+                   j.Complete()         |  w   w  |
+                                        +---------+
 */
 
 type workManager struct {
@@ -49,9 +56,9 @@ type workManager struct {
 	collectWkrSize uint
 	publishWkrSize uint
 	processWkrSize uint
-	collectchan    chan job
-	publishchan    chan job
-	processchan    chan job
+	collectchan    chan queuedJob
+	publishchan    chan queuedJob
+	processchan    chan queuedJob
 	kill           chan struct{}
 	mutex          *sync.Mutex
 }
@@ -137,9 +144,9 @@ func newWorkManager(opts ...workManagerOption) *workManager {
 		collectWkrSize: defaultWkrSize,
 		publishWkrSize: defaultWkrSize,
 		processWkrSize: defaultWkrSize,
-		collectchan:    make(chan job),
-		publishchan:    make(chan job),
-		processchan:    make(chan job),
+		collectchan:    make(chan queuedJob),
+		publishchan:    make(chan queuedJob),
+		processchan:    make(chan queuedJob),
 		kill:           make(chan struct{}),
 		mutex:          &sync.Mutex{},
 	}
@@ -187,14 +194,11 @@ func (w *workManager) Start() {
 		go func() {
 			for {
 				select {
-				case qe := <-w.collectq.Err:
-					qe.Job.ReplChan() <- struct{}{}
+				case <-w.collectq.Err:
 					//TODO: log error
-				case qe := <-w.processq.Err:
-					qe.Job.ReplChan() <- struct{}{}
+				case <-w.processq.Err:
 					//TODO: log error
-				case qe := <-w.publishq.Err:
-					qe.Job.ReplChan() <- struct{}{}
+				case <-w.publishq.Err:
 					//TODO: log error
 				case <-w.kill:
 					return
@@ -212,19 +216,20 @@ func (w *workManager) Stop() {
 }
 
 // Work dispatches jobs to worker pools for processing.
-// a job is queued, a worker receives it, and then replies
-// on the job's  reply channel.
-func (w *workManager) Work(j job) job {
+//
+// Returns a queued job to the caller, which will be
+// completed by the work queue aubsystem.
+func (w *workManager) Work(j job) queuedJob {
+	qj := newQueuedJob(j)
 	switch j.Type() {
 	case collectJobType:
-		w.collectq.Event <- j
+		w.collectq.Event <- qj
 	case processJobType:
-		w.processq.Event <- j
+		w.processq.Event <- qj
 	case publishJobType:
-		w.publishq.Event <- j
+		w.publishq.Event <- qj
 	}
-	<-j.ReplChan()
-	return j
+	return qj
 }
 
 // AddCollectWorker adds a new worker to
@@ -256,8 +261,8 @@ func (w *workManager) AddProcessWorker() {
 
 // sendToWorker is the handler given to the queue.
 // it dispatches work to the worker pool.
-func (w *workManager) sendToWorker(j job) {
-	switch j.Type() {
+func (w *workManager) sendToWorker(j queuedJob) {
+	switch j.Job().Type() {
 	case collectJobType:
 		w.collectchan <- j
 	case publishJobType:

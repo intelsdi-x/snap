@@ -20,6 +20,7 @@ limitations under the License.
 package scheduler
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -63,12 +64,6 @@ func TestCollectorJob(t *testing.T) {
 			So(cj.Type(), ShouldEqual, collectJobType)
 		})
 	})
-	Convey("ReplChan()", t, func() {
-		Convey("it should return the reply channel", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
-			So(cj.ReplChan(), ShouldHaveSameTypeAs, make(chan struct{}))
-		})
-	})
 	// Convey("Metrics()", t, func() {
 	// 	Convey("it should return the job metrics", func() {
 	// 		cj := newCollectorJob([]core.MetricType{}, defaultDeadline, &mockCollector{})
@@ -82,11 +77,75 @@ func TestCollectorJob(t *testing.T) {
 		})
 	})
 	Convey("Run()", t, func() {
-		Convey("it should reply on the reply chan", func() {
+		Convey("it should complete without errors", func() {
 			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
-			go cj.(*collectorJob).Run()
-			<-cj.(*collectorJob).replchan
+			cj.(*collectorJob).Run()
 			So(cj.Errors(), ShouldResemble, []error{})
+		})
+	})
+}
+
+func TestQueuedJob(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
+	cdt := cdata.NewTree()
+	Convey("Job()", t, func() {
+		Convey("it should return the underlying job", func() {
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			qj := newQueuedJob(cj)
+			So(qj.Job(), ShouldEqual, cj)
+		})
+	})
+	Convey("IsComplete()", t, func() {
+		Convey("it should return the completion status", func() {
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			qj := newQueuedJob(cj)
+			So(qj.IsComplete(), ShouldBeFalse)
+			qj.Complete()
+			So(qj.IsComplete(), ShouldBeTrue)
+		})
+	})
+	Convey("Complete()", t, func() {
+		Convey("it should unblock any waiting goroutines", func() {
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			qj := newQueuedJob(cj)
+
+			numWaiters := 3
+			var wg sync.WaitGroup
+			wg.Add(numWaiters)
+
+			for i := 0; i < numWaiters; i++ {
+				go func() {
+					qj.Await()
+					wg.Done()
+				}()
+			}
+
+			qj.Complete()
+			wg.Wait()
+		})
+	})
+	Convey("AndThen()", t, func() {
+		Convey("it should defer the supplied closure until after completion", func() {
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			qj := newQueuedJob(cj)
+
+			funcRan := false
+			c := make(chan struct{})
+
+			qj.AndThen(func(queuedJob) {
+				funcRan = true
+				close(c)
+			})
+
+			// The callback should not have been executed yet.
+			So(funcRan, ShouldBeFalse)
+
+			// Trigger callback execution by completing the queued job.
+			qj.Complete()
+
+			// Wait for the deferred function to be executed.
+			<-c
+			So(funcRan, ShouldBeTrue)
 		})
 	})
 }

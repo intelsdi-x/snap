@@ -99,7 +99,7 @@ type scheduler struct {
 }
 
 type managesWork interface {
-	Work(job) job
+	Work(job) queuedJob
 }
 
 // New returns an instance of the scheduler

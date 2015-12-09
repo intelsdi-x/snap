@@ -20,8 +20,7 @@ limitations under the License.
 package scheduler
 
 import (
-	"time"
-
+	"github.com/intelsdi-x/snap/pkg/chrono"
 	"github.com/pborman/uuid"
 )
 
@@ -29,11 +28,11 @@ var workerKillChan = make(chan struct{})
 
 type worker struct {
 	id       string
-	rcv      <-chan job
+	rcv      <-chan queuedJob
 	kamikaze chan struct{}
 }
 
-func newWorker(rChan <-chan job) *worker {
+func newWorker(rChan <-chan queuedJob) *worker {
 	return &worker{
 		rcv:      rChan,
 		id:       uuid.New(),
@@ -45,14 +44,16 @@ func newWorker(rChan <-chan job) *worker {
 func (w *worker) start() {
 	for {
 		select {
-		case j := <-w.rcv:
+		case q := <-w.rcv:
 			// assert that deadline is not exceeded
-			if time.Now().Before(j.Deadline()) {
-				j.Run()
-				continue
+			if chrono.Chrono.Now().Before(q.Job().Deadline()) {
+				q.Job().Run()
 			}
-			// reply immediately -- Job not run
-			j.ReplChan() <- struct{}{}
+
+			// mark the job complete for one of two reasons:
+			// - this job was just run
+			// - the deadline was exceeded and this job will not run
+			q.Complete()
 
 		// the single kill-channel -- used when resizing worker pools
 		case <-w.kamikaze:
@@ -61,7 +62,6 @@ func (w *worker) start() {
 		//the broadcast that kills all workers
 		case <-workerKillChan:
 			return
-
 		}
 	}
 }

@@ -20,6 +20,7 @@ limitations under the License.
 package scheduler
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -30,30 +31,47 @@ import (
 func TestQueue(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	Convey("newQueue", t, func() {
-		q := newQueue(5, func(job) {})
+		q := newQueue(5, func(queuedJob) {})
 		So(q, ShouldHaveSameTypeAs, new(queue))
 	})
 
 	Convey("it pops items off and works them", t, func() {
 		x := 0
-		q := newQueue(5, func(job) { x = 1 })
+		q := newQueue(5, func(j queuedJob) {
+			x = 1
+			j.Complete()
+		})
 		q.Start()
-		q.Event <- &collectorJob{}
-		time.Sleep(time.Millisecond * 10)
+		j := &collectorJob{coreJob: &coreJob{}}
+		qj := newQueuedJob(j)
+		q.Event <- qj
+		qj.Await()
 		So(x, ShouldEqual, 1)
 		q.Stop()
 	})
 
 	Convey("it works the jobs in order", t, func() {
 		x := []time.Time{}
-		q := newQueue(5, func(j job) { x = append(x, j.Deadline()) })
+		q := newQueue(5, func(j queuedJob) {
+			x = append(x, j.Job().Deadline())
+			j.Complete()
+		})
 		q.Start()
-		for i := 0; i < 4; i++ {
+
+		numJobs := 4
+		var wg sync.WaitGroup
+		wg.Add(numJobs)
+
+		for i := 0; i < numJobs; i++ {
 			j := &collectorJob{coreJob: &coreJob{}}
 			j.deadline = time.Now().Add(time.Duration(i) * time.Second)
-			q.Event <- j
+			qj := newQueuedJob(j)
+			qj.AndThen(func(queuedJob) { wg.Done() })
+			q.Event <- qj
 		}
-		time.Sleep(time.Millisecond * 30)
+
+		wg.Wait()
+
 		So(x[0].Unix(), ShouldBeLessThan, x[1].Unix())
 		So(x[1].Unix(), ShouldBeLessThan, x[2].Unix())
 		So(x[2].Unix(), ShouldBeLessThan, x[3].Unix())
@@ -61,10 +79,10 @@ func TestQueue(t *testing.T) {
 	})
 
 	Convey("it sends an error if the queue bound is exceeded", t, func() {
-		q := newQueue(3, func(job) { time.Sleep(1 * time.Second) })
+		q := newQueue(3, func(queuedJob) { time.Sleep(1 * time.Second) })
 		q.Start()
 		for i := 0; i < 5; i++ {
-			q.Event <- &collectorJob{}
+			q.Event <- newQueuedJob(&collectorJob{})
 		}
 		err := <-q.Err
 		So(err, ShouldNotBeNil)
@@ -73,12 +91,12 @@ func TestQueue(t *testing.T) {
 	})
 
 	Convey("stop closes the queue", t, func() {
-		q := newQueue(3, func(job) { time.Sleep(1 * time.Second) })
+		q := newQueue(3, func(queuedJob) { time.Sleep(1 * time.Second) })
 		q.Start()
 		q.Stop()
 		time.Sleep(10 * time.Millisecond)
 		So(func() { q.kill <- struct{}{} }, ShouldPanic)
-		So(func() { q.Event <- &collectorJob{} }, ShouldPanic)
+		So(func() { q.Event <- newQueuedJob(&collectorJob{}) }, ShouldPanic)
 	})
 
 }

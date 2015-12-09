@@ -27,24 +27,48 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+// A mockJob can be either synchronus (will not return from Run()
+// until a receiver is ready on completeChan) or asynchronous.
+//
+// Test code can rendez-vous with synchronous mockJobs in Run()
+// by invoking Await(), which also unblocks the worker executing
+// the job.
+//
+// For asynchronous mockJobs, Await() blocks the caller until the
+// job does a buffered send on completeChan in Run().
 type mockJob struct {
-	errors    []error
-	worked    bool
-	replchan  chan struct{}
-	deadline  time.Time
-	starttime time.Time
+	errors       []error
+	worked       bool
+	deadline     time.Time
+	starttime    time.Time
+	completeChan chan struct{}
 }
 
-func (mj *mockJob) Errors() []error         { return mj.errors }
-func (mj *mockJob) StartTime() time.Time    { return mj.starttime }
-func (mj *mockJob) Deadline() time.Time     { return mj.deadline }
-func (mj *mockJob) Type() jobType           { return collectJobType }
-func (mj *mockJob) ReplChan() chan struct{} { return mj.replchan }
+func newMockJob(sync bool) *mockJob {
+	var completeChan chan struct{}
+	if sync {
+		completeChan = make(chan struct{})
+	} else {
+		completeChan = make(chan struct{}, 1)
+	}
+
+	return &mockJob{
+		worked:       false,
+		deadline:     time.Now().Add(1 * time.Second),
+		starttime:    time.Now(),
+		completeChan: completeChan,
+	}
+}
+
+func (mj *mockJob) Errors() []error      { return mj.errors }
+func (mj *mockJob) StartTime() time.Time { return mj.starttime }
+func (mj *mockJob) Deadline() time.Time  { return mj.deadline }
+func (mj *mockJob) Type() jobType        { return collectJobType }
+func (mj *mockJob) Await()               { <-mj.completeChan }
 
 func (mj *mockJob) Run() {
 	mj.worked = true
-	time.Sleep(time.Second * 1)
-	mj.replchan <- struct{}{}
+	mj.completeChan <- struct{}{}
 }
 
 func TestWorkerManager(t *testing.T) {
@@ -52,56 +76,55 @@ func TestWorkerManager(t *testing.T) {
 	Convey(".Work()", t, func() {
 		Convey("Sends / receives work to / from worker", func() {
 			manager := newWorkManager()
-			var j job
-			j = &mockJob{
-				worked:    false,
-				replchan:  make(chan struct{}),
-				deadline:  time.Now().Add(1 * time.Second),
-				starttime: time.Now(),
-			}
-			j = manager.Work(j)
-
-			So(j.(*mockJob).worked, ShouldEqual, true)
+			j := newMockJob(false)
+			manager.Work(j)
+			j.Await()
+			So(j.worked, ShouldEqual, true)
 		})
 
 		Convey("does not work job if queuing error occurs", func() {
 			log.SetLevel(log.DebugLevel)
 			manager := newWorkManager(CollectQSizeOption(1), CollectWkrSizeOption(1))
 			manager.Start()
-			j1 := &mockJob{
-				errors:    []error{},
-				worked:    false,
-				replchan:  make(chan struct{}),
-				deadline:  time.Now().Add(1100 * time.Millisecond),
-				starttime: time.Now(),
-			}
-			j2 := &mockJob{
-				errors:    []error{},
-				worked:    false,
-				replchan:  make(chan struct{}),
-				deadline:  time.Now().Add(1100 * time.Millisecond),
-				starttime: time.Now(),
-			}
-			j3 := &mockJob{
-				errors:    []error{},
-				worked:    false,
-				replchan:  make(chan struct{}),
-				deadline:  time.Now().Add(1100 * time.Millisecond),
-				starttime: time.Now(),
-			}
-			go manager.Work(j1)
-			go manager.Work(j2)
-			manager.Work(j3)
-			time.Sleep(time.Millisecond * 100)
 
-			worked := 0
-			for _, j := range []*mockJob{j1, j2, j3} {
+			j1 := newMockJob(true) // j1 does a blocking send on its completeChan
+			j2 := newMockJob(false)
+			j3 := newMockJob(false)
 
-				if j.worked == true {
-					worked++
-				}
+			// Rendez-vous when all jobs have been submitted to the work manager.
+			submitChan := make(chan struct{})
+
+			qjs := []queuedJob{}
+
+			// Submit three jobs.
+			go func() {
+				qjs = append(qjs, manager.Work(j1))
+				qjs = append(qjs, manager.Work(j2))
+				qjs = append(qjs, manager.Work(j3))
+
+				// Signal completion of the job submissions.
+				submitChan <- struct{}{}
+			}()
+
+			// Await job submissions.
+			<-submitChan
+
+			// Await completion of j1 (also unblocking j1.Run()).
+			j1.Await()
+
+			// Wait for all queued jobs to be marked complete.
+			for _, qj := range qjs {
+				qj.Await()
 			}
-			So(worked, ShouldEqual, 2)
+
+			// The work queue should be empty at this point.
+			So(manager.collectq.items, ShouldBeEmpty)
+
+			// The first job should have been worked.
+			So(j1.worked, ShouldBeTrue)
+
+			// At least one of the second and third jobs should have been dropped.
+			So(j2.worked && j3.worked, ShouldBeFalse)
 		})
 
 		// The below convey is WIP
