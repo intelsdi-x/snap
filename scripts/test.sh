@@ -25,6 +25,12 @@
 # 5. race detector (http://blog.golang.org/race-detector)
 # 6. test coverage (http://blog.golang.org/cover)
 
+# If the following plugins don't exist, exit
+[ -f $SNAP_PATH/plugin/snap-collector-mock1 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock1 does not exist. Run make to build it.' ; exit 1; } 
+[ -f $SNAP_PATH/plugin/snap-collector-mock2 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock2 does not exist. Run make to build it.' ; exit 1; } 
+[ -f $SNAP_PATH/plugin/snap-processor-passthru ] || { echo 'Error: $SNAP_PATH/plugin/snap-processor-passthru does not exist. Run make to build it.' ; exit 1; } 
+[ -f $SNAP_PATH/plugin/snap-publisher-file ] || { echo 'Error: $SNAP_PATH/plugin/snap-publisher-file does not exist. Run make to build it.' ; exit 1; } 
+
 TEST_DIRS="cmd/ control/ core/ mgmt/ pkg/ snapd.go scheduler/"
 VET_DIRS="./cmd/... ./control/... ./core/... ./mgmt/... ./pkg/... ./scheduler/... ."
 
