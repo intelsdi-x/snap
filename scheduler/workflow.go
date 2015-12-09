@@ -302,15 +302,16 @@ func (s *schedulerWorkflow) Start(t *task) {
 	j := newCollectorJob(s.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree)
 
 	// dispatch 'collect' job to be worked
-	j = t.manager.Work(j)
-	if len(j.Errors()) != 0 {
+	// Block until the job has been either run or skipped.
+	errors := t.manager.Work(j).Await()
 
+	if len(errors) != 0 {
 		t.failedRuns++
 		t.lastFailureTime = t.lastFireTime
 		t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
 		event := new(scheduler_event.MetricCollectionFailedEvent)
 		event.TaskID = t.id
-		event.Errors = j.Errors()
+		event.Errors = errors
 		defer s.eventEmitter.Emit(event)
 		return
 	}
@@ -336,11 +337,11 @@ func (s *schedulerWorkflow) StateString() string {
 func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *task, pj job) {
 	for _, pr := range prs {
 		j := newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.metricsManager)
-		j = t.manager.Work(j)
-		if len(j.Errors()) != 0 {
+		errors := t.manager.Work(j).Await()
+		if len(errors) != 0 {
 			t.failedRuns++
 			t.lastFailureTime = t.lastFireTime
-			t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
+			t.lastFailureMessage = errors[len(errors)-1].Error()
 			return
 		}
 
@@ -348,11 +349,11 @@ func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *
 	}
 	for _, pu := range pus {
 		j := newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.metricsManager)
-		j = t.manager.Work(j)
-		if len(j.Errors()) != 0 {
+		errors := t.manager.Work(j).Await()
+		if len(errors) != 0 {
 			t.failedRuns++
 			t.lastFailureTime = t.lastFireTime
-			t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
+			t.lastFailureMessage = errors[len(errors)-1].Error()
 			return
 		}
 	}

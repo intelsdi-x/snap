@@ -29,14 +29,16 @@ var (
 	errLimitExceeded = errors.New("limit exceeded")
 )
 
+type jobHandler func(queuedJob)
+
 type queue struct {
-	Event chan job
+	Event chan queuedJob
 	Err   chan *queuingError
 
-	handler func(job)
+	handler jobHandler
 	limit   uint
 	kill    chan struct{}
-	items   []job
+	items   []queuedJob
 	mutex   *sync.Mutex
 	status  queueStatus
 }
@@ -49,8 +51,6 @@ const (
 	queueWorking                    // queue is currently being worked (a goroutine is currently inside q.handle())
 )
 
-type jobHandler func(job)
-
 type queuingError struct {
 	Job job
 	Err error
@@ -62,13 +62,13 @@ func (qe *queuingError) Error() string {
 
 func newQueue(limit uint, handler jobHandler) *queue {
 	return &queue{
-		Event: make(chan job),
+		Event: make(chan queuedJob),
 		Err:   make(chan *queuingError),
 
 		handler: handler,
 		limit:   limit,
 		kill:    make(chan struct{}),
-		items:   []job{},
+		items:   []queuedJob{},
 		mutex:   &sync.Mutex{},
 		status:  queueStopped,
 	}
@@ -114,9 +114,10 @@ func (q *queue) start() {
 			if err := q.push(e); err != nil {
 				qe := &queuingError{
 					Err: err,
-					Job: e,
+					Job: e.Job(),
 				}
 				q.Err <- qe
+				e.Complete() // Signal job termination.
 				continue
 			}
 
@@ -159,7 +160,7 @@ func (q *queue) length() int {
 	return len(q.items)
 }
 
-func (q *queue) push(j job) error {
+func (q *queue) push(j queuedJob) error {
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -171,12 +172,12 @@ func (q *queue) push(j job) error {
 	return errLimitExceeded
 }
 
-func (q *queue) pop() (job, error) {
+func (q *queue) pop() (queuedJob, error) {
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	var j job
+	var j queuedJob
 
 	if q.length() == 0 {
 		return j, errQueueEmpty

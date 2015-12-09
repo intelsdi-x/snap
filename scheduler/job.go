@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -43,6 +44,71 @@ const (
 	defaultDeadline = time.Duration(5 * time.Second)
 )
 
+// Represents a queued job, together with a synchronization
+// barrier to signal job completion (successful or otherwise).
+//
+// Functions that operate on this type (IsComplete, Complete,
+// Await) are idempotent and thread-safe.
+type queuedJob interface {
+	Job() job
+	IsComplete() bool
+	Complete()
+	Await() []error
+	AndThen(f func(queuedJob))
+}
+
+type qj struct {
+	sync.Mutex
+
+	job          job
+	complete     bool
+	completeChan chan struct{}
+}
+
+func newQueuedJob(job job) queuedJob {
+	return &qj{
+		job:          job,
+		complete:     false,
+		completeChan: make(chan struct{}),
+	}
+}
+
+// Returns the underlying job.
+func (j *qj) Job() job {
+	return j.job
+}
+
+// Returns whether this job is complete yet, without blocking.
+func (j *qj) IsComplete() bool {
+	return j.complete
+}
+
+// This function unblocks everyone waiting for job completion.
+func (j *qj) Complete() {
+	j.Lock()
+	defer j.Unlock()
+
+	if !j.complete {
+		j.complete = true
+		close(j.completeChan)
+	}
+}
+
+// This function BLOCKS the caller until the job is
+// marked complete.
+func (j *qj) Await() []error {
+	<-j.completeChan
+	return j.Job().Errors()
+}
+
+// Invokes the supplied function after the job completes.
+func (j *qj) AndThen(f func(queuedJob)) {
+	go func() {
+		j.Await()
+		f(j)
+	}()
+}
+
 // Primary type for job inside
 // the scheduler.  Job encompasses all
 // all job types -- collect, process, and publish.
@@ -51,7 +117,6 @@ type job interface {
 	StartTime() time.Time
 	Deadline() time.Time
 	Type() jobType
-	ReplChan() chan struct{}
 	Run()
 }
 
@@ -62,7 +127,6 @@ type coreJob struct {
 	deadline  time.Time
 	starttime time.Time
 	errors    []error
-	replchan  chan struct{}
 }
 
 func newCoreJob(t jobType, deadline time.Time) *coreJob {
@@ -71,7 +135,6 @@ func newCoreJob(t jobType, deadline time.Time) *coreJob {
 		deadline:  deadline,
 		errors:    make([]error, 0),
 		starttime: time.Now(),
-		replchan:  make(chan struct{}),
 	}
 }
 
@@ -85,10 +148,6 @@ func (c *coreJob) Deadline() time.Time {
 
 func (c *coreJob) Type() jobType {
 	return c.jtype
-}
-
-func (c *coreJob) ReplChan() chan struct{} {
-	return c.replchan
 }
 
 func (c *coreJob) Errors() []error {
@@ -178,7 +237,6 @@ func (c *collectorJob) Run() {
 		}
 		c.errors = errs
 	}
-	c.replchan <- struct{}{}
 }
 
 type processJob struct {
@@ -276,8 +334,6 @@ func (p *processJob) Run() {
 		}).Fatal("unsupported parent job type")
 		panic("unsupported parent job type")
 	}
-
-	p.replchan <- struct{}{}
 }
 
 type publisherJob struct {
@@ -390,6 +446,4 @@ func (p *publisherJob) Run() {
 		}).Fatal("unsupported parent job type")
 		panic("unsupported job type")
 	}
-
-	p.replchan <- struct{}{}
 }
