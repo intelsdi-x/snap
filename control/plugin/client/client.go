@@ -145,7 +145,7 @@ func updateCache(mts []plugin.PluginMetricType) {
 	results := []core.Metric{}
 	dc := map[string][]core.Metric{}
 	for _, mt := range mts {
-		if mt.Labels == nil {
+		if mt.Labels() == nil {
 			// cache the individual metric
 			metricCache.put(core.JoinNamespace(mt.Namespace_), mt.Version(), mt)
 		} else {
