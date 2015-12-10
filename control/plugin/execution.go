@@ -46,7 +46,7 @@ const (
 	pluginResponseBad                   // plugin response received (invalid)
 )
 
-// A plugin that is executable as a forked process on *Linux.
+// ExecutablePlugin is a plugin that is executable as a forked process.
 type ExecutablePlugin struct {
 	cmd    *exec.Cmd
 	stdout io.Reader
@@ -70,7 +70,7 @@ type waitSignalValue struct {
 	Error    *error
 }
 
-// Starts the plugin and returns error if one occurred. This is non blocking.
+// Start starts the plugin and returns error if one occurred. This is non blocking.
 func (e *ExecutablePlugin) Start() error {
 	err := e.cmd.Start()
 	if err != nil {
@@ -85,28 +85,31 @@ func (e *ExecutablePlugin) Start() error {
 	return err
 }
 
-// Kills the plugin and returns error if one occurred. This is blocking.
+// Kill kills the plugin and returns error if one occurred. This is blocking.
 func (e *ExecutablePlugin) Kill() error {
 	execLogger.WithField("path", e.cmd.Path).Debug("Hard killing plugin")
 	return e.cmd.Process.Kill()
 }
 
-// Waits for plugin to halt. If error is returned then plugin stopped with error. If not plugin stopped safely.
+// WaitForExit waits for plugin to halt. If error is returned
+// then plugin stopped with error. If not plugin stopped safely.
 func (e *ExecutablePlugin) WaitForExit() error {
 	return e.cmd.Wait()
 }
 
-// The STDOUT pipe for the plugin as io.Reader. Use to read from plugin process STDOUT.
+// ResponseReader is the STDOUT pipe for the plugin as io.Reader.
+// Use to read from plugin process STDOUT.
 func (e *ExecutablePlugin) ResponseReader() io.Reader {
 	return e.stdout
 }
 
-// The STDERR pipe for the plugin as a io.reader
+// ErrorResponseReader is the STDERR pipe for the plugin as a io.reader
 func (e *ExecutablePlugin) ErrorResponseReader() io.Reader {
 	return e.stderr
 }
 
-// Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
+// NewExecutablePlugin initializes a new ExecutablePlugin from path to executable
+// and daemon mode (true or false)
 func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
 	jsonArgs, err := json.Marshal(a)
 	if err != nil {
@@ -135,7 +138,7 @@ func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
 	return ePlugin, nil
 }
 
-// Waits for a plugin response from a started plugin
+// WaitForResponse waits for a plugin response from a started plugin
 func (e *ExecutablePlugin) WaitForResponse(timeout time.Duration) (*Response, error) {
 	r, err := waitHandling(e, timeout, e.args.PluginLogPath)
 	return r, err
@@ -243,9 +246,8 @@ func waitHandling(p pluginExecutor, timeout time.Duration, logpath string) (*Res
 			// our own if not.
 			if *w.Error != nil {
 				return nil, *w.Error
-			} else {
-				return nil, errors.New("plugin died without sending response")
 			}
+			return nil, errors.New("plugin died without sending response")
 
 		case pluginResponseOk: // plugin response (valid) signal received
 			log.Debug("plugin response (ok) received")

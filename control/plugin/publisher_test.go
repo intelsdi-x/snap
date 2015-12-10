@@ -81,7 +81,7 @@ func (s *MockPublisherSessionState) Token() string {
 	return s.token
 }
 
-func (m *MockPublisherSessionState) ResetHeartbeat() {
+func (s *MockPublisherSessionState) ResetHeartbeat() {
 
 }
 

@@ -36,20 +36,24 @@ import (
 const (
 	// These are our built-in content types for plugins
 
-	// SnapAll the wildcard for accepting all snap content types
+	// SnapAllContentType the wildcard for accepting all snap content types
 	SnapAllContentType = "snap.*"
-	// SnapGOB snap metrics serialized into go binary format
+	// SnapGOBContentType snap metrics serialized into go binary format
 	SnapGOBContentType = "snap.gob"
-	// SnapJSON snap metrics serialized into json
+	// SnapJSONContentType snap metrics serialized into json
 	SnapJSONContentType = "snap.json"
 	// SnapProtoBuff snap metrics serialized into protocol buffers
 	// SnapProtoBuff = "snap.pb" // TO BE IMPLEMENTED
 )
 
+// PluginConfigType struct type pointing
+// to cdata.ConfigDataNode
 type PluginConfigType struct {
 	*cdata.ConfigDataNode
 }
 
+// UnmarshalJSON decodes the given JSON formatted data into
+// the ConfigDataNode.
 func (p *PluginConfigType) UnmarshalJSON(data []byte) error {
 	cdn := cdata.NewNode()
 	dec := json.NewDecoder(bytes.NewReader(data))
@@ -61,6 +65,7 @@ func (p *PluginConfigType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// GobEncode encodes the given byte array into the Go binary
 func (p PluginConfigType) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -70,6 +75,7 @@ func (p PluginConfigType) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes the given byte array into the ConfigDataNode
 func (p *PluginConfigType) GobDecode(data []byte) error {
 	cdn := cdata.NewNode()
 	decoder := gob.NewDecoder(bytes.NewReader(data))
@@ -81,13 +87,14 @@ func (p *PluginConfigType) GobDecode(data []byte) error {
 	return nil
 }
 
+// NewPluginConfigType returns a new instance of PluginConfigType
 func NewPluginConfigType() PluginConfigType {
 	return PluginConfigType{
 		ConfigDataNode: cdata.NewNode(),
 	}
 }
 
-// Represents a metric type. Only used within plugins and across plugin calls.
+// PluginMetricType represents a metric type. Only used within plugins and across plugin calls.
 // Converted to core.MetricType before being used within modules.
 type PluginMetricType struct {
 	// Namespace is the identifier for a metric.
@@ -117,7 +124,7 @@ type PluginMetricType struct {
 	Timestamp_ time.Time `json:"timestamp"`
 }
 
-// // PluginMetricType Constructor
+// NewPluginMetricType is the PluginMetricType Constructor
 func NewPluginMetricType(namespace []string, timestamp time.Time, source string, tags map[string]string, labels []core.Label, data interface{}) *PluginMetricType {
 	return &PluginMetricType{
 		Namespace_: namespace,
@@ -129,17 +136,17 @@ func NewPluginMetricType(namespace []string, timestamp time.Time, source string,
 	}
 }
 
-// Returns the namespace.
+// Namespace returns the namespace.
 func (p PluginMetricType) Namespace() []string {
 	return p.Namespace_
 }
 
-// Returns the last time this metric type was received from the plugin.
+// LastAdvertisedTime returns the last time this metric type was received from the plugin.
 func (p PluginMetricType) LastAdvertisedTime() time.Time {
 	return p.LastAdvertisedTime_
 }
 
-// Returns the namespace.
+// Version returns the metric version
 func (p PluginMetricType) Version() int {
 	return p.Version_
 }
@@ -159,25 +166,27 @@ func (p PluginMetricType) Labels() []core.Label {
 	return p.Labels_
 }
 
-// returns the timestamp of when the metric was collected
+// Timestamp returns the timestamp of when the metric was collected
 func (p PluginMetricType) Timestamp() time.Time {
 	return p.Timestamp_
 }
 
-// returns the source of the metric
+// Source returns the source of the metric
 func (p PluginMetricType) Source() string {
 	return p.Source_
 }
 
+// Data returns the data of the metric
 func (p PluginMetricType) Data() interface{} {
 	return p.Data_
 }
 
+// AddData adds the data into the metric
 func (p *PluginMetricType) AddData(data interface{}) {
 	p.Data_ = data
 }
 
-// MarshalMetricTypes returns a []byte containing a serialized version of []PluginMetricType using the content type provided.
+// MarshalPluginMetricTypes returns a []byte containing a serialized version of []PluginMetricType using the content type provided.
 func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([]byte, string, error) {
 	// If we have an empty slice we return an error
 	if len(metrics) == 0 {

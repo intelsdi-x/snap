@@ -67,14 +67,14 @@ func TestPlugin(t *testing.T) {
 	b := []string{SnapGOBContentType}
 	Convey("Start", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType, a, b)
-		var mockPluginArgs string = "{\"PluginLogPath\": \"/var/tmp/snap_plugin.log\"}"
+		var mockPluginArgs = "{\"PluginLogPath\": \"/var/tmp/snap_plugin.log\"}"
 		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldBeNil)
 		So(rc, ShouldEqual, 0)
 	})
 	Convey("Start with invalid args", t, func() {
 		mockPluginMeta := NewPluginMeta("test", 1, CollectorPluginType, a, b)
-		var mockPluginArgs string = ""
+		var mockPluginArgs = ""
 		err, rc := Start(mockPluginMeta, new(MockPlugin), mockPluginArgs)
 		So(err, ShouldNotBeNil)
 		So(rc, ShouldNotEqual, 0)

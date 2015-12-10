@@ -21,7 +21,7 @@ package plugin
 
 import "github.com/intelsdi-x/snap/core/ctypes"
 
-// Publisher plugin
+// PublisherPlugin interface defines the types and methods a publisher plugin must implement
 type PublisherPlugin interface {
 	Plugin
 	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error

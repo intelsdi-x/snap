@@ -21,7 +21,7 @@ package plugin
 
 import "github.com/intelsdi-x/snap/core/ctypes"
 
-// Processor plugin
+// ProcessorPlugin interface defines the types and methods a process plugin must implement
 type ProcessorPlugin interface {
 	Plugin
 	Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error)

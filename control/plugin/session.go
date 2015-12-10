@@ -25,7 +25,6 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -61,14 +60,15 @@ type Session interface {
 	Decode([]byte, interface{}) error
 }
 
-// Arguments passed to ping
+// PingArgs are arguments passed to ping
 type PingArgs struct{}
 
+// KillArgs struct has the reason to kill
 type KillArgs struct {
 	Reason string
 }
 
-// Started plugin session state
+// SessionState represents the started plugin session state
 type SessionState struct {
 	*Arg
 	*encrypter.Encrypter
@@ -85,8 +85,10 @@ type SessionState struct {
 	encoder       encoding.Encoder
 }
 
+// GetConfigPolicyArgs defines an empty struct
 type GetConfigPolicyArgs struct{}
 
+// GetConfigPolicyReply returns the plugin config policy
 type GetConfigPolicyReply struct {
 	Policy *cpolicy.ConfigPolicy
 }
@@ -99,7 +101,7 @@ func (s *SessionState) GetConfigPolicy(args []byte, reply *[]byte) error {
 
 	policy, err := s.plugin.GetConfigPolicy()
 	if err != nil {
-		return errors.New(fmt.Sprintf("GetConfigPolicy call error : %s", err.Error()))
+		return fmt.Errorf("GetConfigPolicy call error : %s", err.Error())
 	}
 
 	r := GetConfigPolicyReply{Policy: policy}
@@ -158,6 +160,7 @@ func (s *SessionState) SetListenAddress(a string) {
 	s.listenAddress = a
 }
 
+// ResetHeartbeat sets the last ping time to now
 func (s *SessionState) ResetHeartbeat() {
 	s.LastPing = time.Now()
 }
@@ -176,10 +179,12 @@ func (s *SessionState) isDaemon() bool {
 	return !s.NoDaemon
 }
 
+// SetKeyArgs struct type byte array of session keys
 type SetKeyArgs struct {
 	Key []byte
 }
 
+// SetKey sets the session keys
 func (s *SessionState) SetKey(args SetKeyArgs, reply *[]byte) error {
 	s.logger.Println("SetKey called")
 	out, err := s.DecryptKey(args.Key)
@@ -257,7 +262,7 @@ func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*Se
 	}
 	lf, err := os.OpenFile(pluginArg.PluginLogPath, os.O_WRONLY|os.O_CREATE|truncOrAppend, 0666)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
+		return nil, fmt.Errorf("error opening log file: %v", err), 3
 	}
 	logger := log.New(lf, ">>>", log.Ldate|log.Ltime)
 

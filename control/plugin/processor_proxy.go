@@ -20,12 +20,14 @@ limitations under the License.
 package plugin
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
+// ProcessorArgs struct type defines the content, type,
+// and a map of configs as a processor
+// plugin parameters.
 type ProcessorArgs struct {
 	//PluginMetrics []PluginMetric
 	ContentType string
@@ -33,6 +35,8 @@ type ProcessorArgs struct {
 	Config      map[string]ctypes.ConfigValue
 }
 
+// ProcessorReply struct represents the response from calling
+// Process method
 type ProcessorReply struct {
 	ContentType string
 	Content     []byte
@@ -43,6 +47,8 @@ type processorPluginProxy struct {
 	Session Session
 }
 
+// Process returns the content and type of the processor response.
+// Otherwise, an error is returned.
 func (p *processorPluginProxy) Process(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(p.Session.Logger())
 	p.Session.ResetHeartbeat()
@@ -56,7 +62,7 @@ func (p *processorPluginProxy) Process(args []byte, reply *[]byte) error {
 	r := ProcessorReply{}
 	r.ContentType, r.Content, err = p.Plugin.Process(dargs.ContentType, dargs.Content, dargs.Config)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Processor call error: %v", err.Error()))
+		return fmt.Errorf("Processor call error: %v", err.Error())
 	}
 
 	*reply, err = p.Session.Encode(r)

@@ -81,7 +81,7 @@ func (s *MockSessionState) Token() string {
 	return s.token
 }
 
-func (m *MockSessionState) ResetHeartbeat() {
+func (s *MockSessionState) ResetHeartbeat() {
 
 }
 
@@ -141,7 +141,7 @@ func TestSessionState(t *testing.T) {
 			So(r.Token, ShouldEqual, "asdf")
 		})
 		Convey("InitSessionState", func() {
-			var mockPluginArgs string = "{\"RunAsDaemon\": true, \"PingTimeoutDuration\": 2000000000}"
+			var mockPluginArgs = "{\"RunAsDaemon\": true, \"PingTimeoutDuration\": 2000000000}"
 			m := PluginMeta{
 				RPCType: JSONRPC,
 				Type:    CollectorPluginType,
@@ -163,7 +163,7 @@ func TestSessionState(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 		Convey("InitSessionState with a custom log path", func() {
-			var mockPluginArgs string = "{\"RunAsDaemon\": false, \"PluginLogPath\": \"/var/tmp/snap_plugin.log\"}"
+			var mockPluginArgs = "{\"RunAsDaemon\": false, \"PluginLogPath\": \"/var/tmp/snap_plugin.log\"}"
 			m := PluginMeta{
 				RPCType: JSONRPC,
 				Type:    CollectorPluginType,
