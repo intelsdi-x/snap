@@ -118,7 +118,7 @@ func TestLoadPlugin(t *testing.T) {
 
 			Convey("with a plugin config a plugin loads successfully", func() {
 				cfg := NewConfig()
-				cfg.Plugins.Collector.Plugins["mock2"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+				cfg.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
 				lp, serr := loadPlugin(p, PluginPath)
@@ -134,7 +134,7 @@ func TestLoadPlugin(t *testing.T) {
 
 			Convey("for a plugin requiring a config an incomplete config will result in a load failure", func() {
 				cfg := NewConfig()
-				cfg.Plugins.Collector.Plugins["mock2"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
+				cfg.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
 				lp, err := loadPlugin(p, PluginPath)
@@ -185,7 +185,7 @@ func TestUnloadPlugin(t *testing.T) {
 
 					numPluginsLoaded := len(p.all())
 					So(numPluginsLoaded, ShouldEqual, 1)
-					lp, _ := p.get("collector:mock2:2")
+					lp, _ := p.get("collector:mock:2")
 					_, err = p.UnloadPlugin(lp)
 
 					So(err, ShouldBeNil)
@@ -198,7 +198,7 @@ func TestUnloadPlugin(t *testing.T) {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
 					lp, err := loadPlugin(p, PluginPath)
-					glp, err2 := p.get("collector:mock2:2")
+					glp, err2 := p.get("collector:mock:2")
 					So(err2, ShouldBeNil)
 					glp.State = DetectedState
 					_, err = p.UnloadPlugin(lp)
@@ -212,7 +212,7 @@ func TestUnloadPlugin(t *testing.T) {
 					p.SetMetricCatalog(newMetricCatalog())
 					_, err := loadPlugin(p, PluginPath)
 
-					lp, err2 := p.get("collector:mock2:2")
+					lp, err2 := p.get("collector:mock:2")
 					So(err2, ShouldBeNil)
 					_, err = p.UnloadPlugin(lp)
 
