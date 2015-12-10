@@ -84,9 +84,9 @@ func TestMetricCatalog(t *testing.T) {
 		ts := time.Now()
 		Convey("add multiple metricTypes and get them back", func() {
 			ns := [][]string{
-				[]string{"test1"},
-				[]string{"test2"},
-				[]string{"test3"},
+				{"test1"},
+				{"test2"},
+				{"test3"},
 			}
 			lp := new(loadedPlugin)
 			mt := []*metricType{
@@ -180,9 +180,9 @@ func TestMetricCatalog(t *testing.T) {
 	})
 	Convey("metricCatalog.Item()", t, func() {
 		ns := [][]string{
-			[]string{"test1"},
-			[]string{"test2"},
-			[]string{"test3"},
+			{"test1"},
+			{"test2"},
+			{"test3"},
 		}
 		lp := new(loadedPlugin)
 		t := time.Now()
@@ -221,9 +221,9 @@ func TestMetricCatalog(t *testing.T) {
 
 func TestSubscribe(t *testing.T) {
 	ns := [][]string{
-		[]string{"test1"},
-		[]string{"test2"},
-		[]string{"test3"},
+		{"test1"},
+		{"test2"},
+		{"test3"},
 	}
 	lp := new(loadedPlugin)
 	ts := time.Now()
@@ -255,9 +255,9 @@ func TestSubscribe(t *testing.T) {
 
 func TestUnsubscribe(t *testing.T) {
 	ns := [][]string{
-		[]string{"test1"},
-		[]string{"test2"},
-		[]string{"test3"},
+		{"test1"},
+		{"test2"},
+		{"test3"},
 	}
 	lp := new(loadedPlugin)
 	ts := time.Now()

@@ -1088,7 +1088,7 @@ func (t *tribe) handleMemberLeave(n *memberlist.Node) {
 		if m.PluginAgreement != nil {
 			delete(t.agreements[m.PluginAgreement.Name].Members, n.Name)
 		}
-		for k, _ := range m.TaskAgreements {
+		for k := range m.TaskAgreements {
 			delete(t.agreements[k].Members, n.Name)
 		}
 		delete(t.members, n.Name)

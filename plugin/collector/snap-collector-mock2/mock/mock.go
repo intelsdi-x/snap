@@ -91,7 +91,7 @@ func (f *Mock) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetri
 	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "bar"}})
 	mts = append(mts, plugin.PluginMetricType{
 		Namespace_: []string{"intel", "mock", "*", "baz"},
-		Labels_:    []core.Label{core.Label{Index: 2, Name: "host"}},
+		Labels_:    []core.Label{{Index: 2, Name: "host"}},
 	})
 	return mts, nil
 }

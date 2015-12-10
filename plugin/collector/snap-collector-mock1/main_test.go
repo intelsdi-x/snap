@@ -34,7 +34,7 @@ import (
 var (
 	PluginName = "snap-collector-mock1"
 	PluginType = "collector"
-	SnapPath  = os.Getenv("SNAP_PATH")
+	SnapPath   = os.Getenv("SNAP_PATH")
 	PluginPath = path.Join(SnapPath, "plugin", PluginName)
 )
 

@@ -34,7 +34,7 @@ import (
 var (
 	PluginName = "snap-publisher-file"
 	PluginType = "publisher"
-	SnapPath  = os.Getenv("SNAP_PATH")
+	SnapPath   = os.Getenv("SNAP_PATH")
 	PluginPath = path.Join(SnapPath, "plugin", PluginName)
 )
 
