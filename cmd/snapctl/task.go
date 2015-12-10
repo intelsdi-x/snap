@@ -48,6 +48,8 @@ var (
 	unionParseFormat = timeParseFormat + " " + dateParseFormat
 )
 
+// Constants used to truncate task hit and miss counts
+// e.g. 1K, 1M, etc.
 const (
 	K = 1000
 	M = 1000 * K
