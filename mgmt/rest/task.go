@@ -39,11 +39,14 @@ import (
 )
 
 var (
-	// The amount of time to buffer streaming events before flushing in seconds
+	// StreamingBufferWindow - The amount of time to buffer streaming events before flushing in seconds
 	StreamingBufferWindow = 0.1
 
-	ErrStreamingUnsupported    = errors.New("Streaming unsupported")
-	ErrTaskNotFound            = errors.New("Task not found")
+	// ErrStreamingUnsupported - error message when streaming unsupported
+	ErrStreamingUnsupported = errors.New("Streaming unsupported")
+	// ErrTaskNotFound - error message when task not found
+	ErrTaskNotFound = errors.New("Task not found")
+	// ErrTaskDisabledNotRunnable - error message when starting a disabled task
 	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started")
 )
 
@@ -351,15 +354,17 @@ func makeSchedule(s request.Schedule) (cschedule.Schedule, error) {
 	}
 }
 
+// TaskWatchHandler struct type
 type TaskWatchHandler struct {
 	streamCount int
 	alive       bool
 	mChan       chan rbody.StreamedTaskEvent
 }
 
+// CatchCollection builds metric for streaming
 func (t *TaskWatchHandler) CatchCollection(m []core.Metric) {
 	sm := make([]rbody.StreamedMetric, len(m))
-	for i, _ := range m {
+	for i := range m {
 		sm[i] = rbody.StreamedMetric{
 			Namespace: core.JoinNamespace(m[i].Namespace()),
 			Data:      m[i].Data(),
@@ -374,18 +379,21 @@ func (t *TaskWatchHandler) CatchCollection(m []core.Metric) {
 	}
 }
 
+// CatchTaskStarted sends starting task stream
 func (t *TaskWatchHandler) CatchTaskStarted() {
 	t.mChan <- rbody.StreamedTaskEvent{
 		EventType: rbody.TaskWatchTaskStarted,
 	}
 }
 
+// CatchTaskStopped sends stopping the task stream
 func (t *TaskWatchHandler) CatchTaskStopped() {
 	t.mChan <- rbody.StreamedTaskEvent{
 		EventType: rbody.TaskWatchTaskStopped,
 	}
 }
 
+// CatchTaskDisabled sends disabling the task stream
 func (t *TaskWatchHandler) CatchTaskDisabled(why string) {
 	t.mChan <- rbody.StreamedTaskEvent{
 		EventType: rbody.TaskWatchTaskDisabled,

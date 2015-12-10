@@ -37,9 +37,12 @@ var (
 		"_module": "rest-tribe",
 	})
 
-	ErrInvalidJSON           = errors.New("Invalid JSON")
+	// ErrInvalidJSON - Error message when invalid JSON
+	ErrInvalidJSON = errors.New("Invalid JSON")
+	// ErrAgreementDoesNotExist - Error message when agreement not found
 	ErrAgreementDoesNotExist = errors.New("Agreement not found")
-	ErrMemberNotFound        = errors.New("Member not found")
+	// ErrMemberNotFound - Error message when tribe member not found
+	ErrMemberNotFound = errors.New("Member not found")
 )
 
 func (s *Server) getAgreements(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

@@ -57,12 +57,12 @@ type mttNode struct {
 	mts      map[int]*metricType
 }
 
-// The root in the trie
+// MTTrie is the root in the trie
 type MTTrie struct {
 	*mttNode
 }
 
-// New() returns an empty trie
+// NewMTTrie returns an empty trie
 func NewMTTrie() *MTTrie {
 	m := &mttNode{
 		children: map[string]*mttNode{},
@@ -80,8 +80,8 @@ func (m *MTTrie) String() string {
 }
 
 func (m *MTTrie) gatherMetricTypes() []metricType {
-	mts := make([]metricType, 0)
-	children := make([]*mttNode, 0)
+	var mts []metricType
+	var children []*mttNode
 	for _, node := range m.children {
 		children = gatherChildren(children, node)
 	}
@@ -93,7 +93,7 @@ func (m *MTTrie) gatherMetricTypes() []metricType {
 	return mts
 }
 
-// Remove all metrics from the catalog if they match a loadedPlugin
+// DeleteByPlugin removes all metrics from the catalog if they match a loadedPlugin
 func (m *MTTrie) DeleteByPlugin(lp *loadedPlugin) {
 	for _, mt := range m.gatherMetricTypes() {
 		if mt.Plugin.Key() == lp.Key() {
@@ -103,7 +103,7 @@ func (m *MTTrie) DeleteByPlugin(lp *loadedPlugin) {
 	}
 }
 
-// Removes a specific metric by namespace and version from the tree
+// RemoveMetric removes a specific metric by namespace and version from the tree
 func (m *MTTrie) RemoveMetric(mt metricType) {
 	a, _ := m.find(mt.Namespace())
 	if a != nil {

@@ -49,10 +49,15 @@ var (
 )
 
 const (
+	// K constant is the default count for truncating task hit and miss.
 	K = 1000
+	// M constant is 1000 times of constant K
 	M = 1000 * K
+	// G constant is 1000 times of constant M
 	G = 1000 * M
+	// T constant is 1000 times of constant G
 	T = 1000 * G
+	// P constant is 1000 times of constant T
 	P = 1000 * T
 )
 

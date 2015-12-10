@@ -23,6 +23,7 @@ import (
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
+// TaskCreationRequest struct type
 type TaskCreationRequest struct {
 	Name     string            `json:"name"`
 	Deadline string            `json:"deadline"`
@@ -31,6 +32,7 @@ type TaskCreationRequest struct {
 	Start    bool              `json:"start"`
 }
 
+// Schedule struct type
 type Schedule struct {
 	Type           string `json:"type,omitempty"`
 	Interval       string `json:"interval,omitempty"`

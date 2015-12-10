@@ -93,7 +93,7 @@ func TestSnapClientTribe(t *testing.T) {
 	Convey("REST API functional V1 - TRIBE", t, func() {
 		numOfTribes := 4
 		ports := startTribes(numOfTribes)
-		c := client.New(fmt.Sprintf("http://localhost:%d", ports[0]), "v1", true)
+		c := client.New(fmt.Sprintf("http://127.0.0.1:%d", ports[0]), "v1", true)
 
 		Convey("Get global membership", func() {
 			resp := c.ListMembers()

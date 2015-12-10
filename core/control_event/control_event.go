@@ -17,23 +17,38 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package control_event
+package controlevent
 
 const (
-	AvailablePluginDead   = "Control.AvailablePluginDead"
-	PluginLoaded          = "Control.PluginLoaded"
-	PluginUnloaded        = "Control.PluginUnloaded"
-	PluginsSwapped        = "Control.PluginsSwapped"
-	PluginSubscribed      = "Control.PluginSubscribed"
-	PluginUnsubscribed    = "Control.PluginUnsubscribed"
-	ProcessorSubscribed   = "Control.ProcessorSubscribed"
+	// AvailablePluginDead represents the state of a plugin is dead
+	AvailablePluginDead = "Control.AvailablePluginDead"
+	// PluginLoaded represents the state of a plugin is loaded
+	PluginLoaded = "Control.PluginLoaded"
+	// PluginUnloaded represents the state of a plugin is unloaded
+	PluginUnloaded = "Control.PluginUnloaded"
+	// PluginsSwapped represents the state of a plugin is swapped
+	PluginsSwapped = "Control.PluginsSwapped"
+	// PluginSubscribed represents the state of a plugin is subscribed
+	PluginSubscribed = "Control.PluginSubscribed"
+	// PluginUnsubscribed represents the state of a plugin is unsubscribed
+	PluginUnsubscribed = "Control.PluginUnsubscribed"
+	// ProcessorSubscribed represents the state of a processor is subscribed
+	ProcessorSubscribed = "Control.ProcessorSubscribed"
+	// ProcessorUnsubscribed represents the state of a processor is unsubscribed
 	ProcessorUnsubscribed = "Control.ProcessorUnsubscribed"
-	MetricSubscribed      = "Control.MetricSubscribed"
-	MetricUnsubscribed    = "Control.MetricUnsubscribed"
-	HealthCheckFailed     = "Control.PluginHealthCheckFailed"
-	MoveSubscription      = "Control.PluginSubscriptionMoved"
+	// MetricSubscribed represents the state of a metric is subscribed
+	MetricSubscribed = "Control.MetricSubscribed"
+	// MetricUnsubscribed represents the state of a metric is unsubscribed
+	MetricUnsubscribed = "Control.MetricUnsubscribed"
+	// HealthCheckFailed represents the state of a plugin health check failed
+	HealthCheckFailed = "Control.PluginHealthCheckFailed"
+	// MoveSubscription represents the state of a plugin subscription moved
+	MoveSubscription = "Control.PluginSubscriptionMoved"
 )
 
+// LoadPluginEvent struct type
+// defining the plugin name, version, type
+// and if a plugin is signed
 type LoadPluginEvent struct {
 	Name    string
 	Version int
@@ -41,20 +56,26 @@ type LoadPluginEvent struct {
 	Signed  bool
 }
 
+// Namespace returns PluginLoaded string message
 func (e LoadPluginEvent) Namespace() string {
 	return PluginLoaded
 }
 
+// UnloadPluginEvent struct describing
+// unloaded plugin name, version, and type
 type UnloadPluginEvent struct {
 	Name    string
 	Version int
 	Type    int
 }
 
+// Namespace returns PluginUnloaded message
 func (e UnloadPluginEvent) Namespace() string {
 	return PluginUnloaded
 }
 
+// DeadAvailablePluginEvent struct type describing
+// a dead plugin attributes
 type DeadAvailablePluginEvent struct {
 	Name    string
 	Version int
@@ -64,10 +85,13 @@ type DeadAvailablePluginEvent struct {
 	String  string
 }
 
+// Namespace returns AvailablePluginDead string message
 func (e *DeadAvailablePluginEvent) Namespace() string {
 	return AvailablePluginDead
 }
 
+// SwapPluginsEvent struct type describing
+// the swapped plugin names, versions and type
 type SwapPluginsEvent struct {
 	LoadedPluginName      string
 	LoadedPluginVersion   int
@@ -76,10 +100,14 @@ type SwapPluginsEvent struct {
 	PluginType            int
 }
 
+// Namespace returns PluginSwapped message
+// after a swapping plugin event
 func (s SwapPluginsEvent) Namespace() string {
 	return PluginsSwapped
 }
 
+// PluginSubscriptionEvent struct type describing
+// a plugin name, version, and other plugin attributes
 type PluginSubscriptionEvent struct {
 	PluginName       string
 	PluginVersion    int
@@ -88,10 +116,14 @@ type PluginSubscriptionEvent struct {
 	TaskId           string
 }
 
+// Namespace returns the PluginSubscribed message
+// after the plugin subscribe event
 func (ps PluginSubscriptionEvent) Namespace() string {
 	return PluginSubscribed
 }
 
+// PluginUnsubscriptionEvent struct type describing
+// plugin unsubscribing attributes
 type PluginUnsubscriptionEvent struct {
 	TaskId        string
 	PluginName    string
@@ -99,6 +131,8 @@ type PluginUnsubscriptionEvent struct {
 	PluginType    int
 }
 
+// Namespace returns PluginUnsubscribed message
+// after plugin unsubscribed event
 func (pu PluginUnsubscriptionEvent) Namespace() string {
 	return PluginUnsubscribed
 }

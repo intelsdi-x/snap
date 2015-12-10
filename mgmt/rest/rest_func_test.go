@@ -51,12 +51,12 @@ import (
 
 var (
 	// Switching this turns on logging for all the REST API calls
-	LOG_LEVEL = log.WarnLevel
+	LogLevel = log.WarnLevel
 
-	SNAP_PATH         = os.Getenv("SNAP_PATH")
-	MOCK_PLUGIN_PATH1 = SNAP_PATH + "/plugin/snap-collector-mock1"
-	MOCK_PLUGIN_PATH2 = SNAP_PATH + "/plugin/snap-collector-mock2"
-	FILE_PLUGIN_PATH  = SNAP_PATH + "/plugin/snap-publisher-file"
+	SnapPath        = os.Getenv("SNAP_PATH")
+	MockPluginPath1 = SnapPath + "/plugin/snap-collector-mock1"
+	MockPluginPath2 = SnapPath + "/plugin/snap-collector-mock2"
+	FilePluginPath  = SnapPath + "/plugin/snap-publisher-file"
 
 	CompressedUpload = true
 	TotalUploadSize  = 0
@@ -114,7 +114,7 @@ func (w *watchTaskResult) close() {
 }
 
 func watchTask(id string, port int) *watchTaskResult {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%s/watch", port, id))
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/v1/tasks/%s/watch", port, id))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func watchTask(id string, port int) *watchTaskResult {
 }
 
 func getTasks(port int) *rbody.APIResponse {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks", port))
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/v1/tasks", port))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func getTasks(port int) *rbody.APIResponse {
 }
 
 func getTask(id string, port int) *rbody.APIResponse {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/tasks/%s", port, id))
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/v1/tasks/%s", port, id))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func getTask(id string, port int) *rbody.APIResponse {
 }
 
 func startTask(id string, port int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s/start", port, id)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/tasks/%s/start", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
 	req, err := http.NewRequest("PUT", uri, b)
@@ -188,7 +188,7 @@ func startTask(id string, port int) *rbody.APIResponse {
 }
 
 func stopTask(id string, port int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s/stop", port, id)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/tasks/%s/stop", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
 	req, err := http.NewRequest("PUT", uri, b)
@@ -204,7 +204,7 @@ func stopTask(id string, port int) *rbody.APIResponse {
 }
 
 func removeTask(id string, port int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s", port, id)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/tasks/%s", port, id)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
 	if err != nil {
@@ -228,7 +228,7 @@ func createTask(sample, name, interval string, noStart bool, port int) *rbody.AP
 		log.Fatal(err)
 	}
 
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks", port)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/tasks", port)
 
 	t := request.TaskCreationRequest{
 		Schedule: request.Schedule{Type: "simple", Interval: interval},
@@ -257,7 +257,7 @@ func createTask(sample, name, interval string, noStart bool, port int) *rbody.AP
 }
 
 func enableTask(id string, port int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/tasks/%s/enable", port, id)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/tasks/%s/enable", port, id)
 	client := &http.Client{}
 	b := bytes.NewReader([]byte{})
 	req, err := http.NewRequest("PUT", uri, b)
@@ -273,7 +273,7 @@ func enableTask(id string, port int) *rbody.APIResponse {
 }
 
 func uploadPlugin(pluginPath string, port int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/plugins", port)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/plugins", port)
 
 	client := &http.Client{}
 	file, err := os.Open(pluginPath)
@@ -306,7 +306,7 @@ func uploadPlugin(pluginPath string, port int) *rbody.APIResponse {
 		log.Fatal(err)
 	}
 	TotalUploadSize += body.Len()
-	UploadCount += 1
+	UploadCount++
 	req, err := http.NewRequest("POST", uri, body)
 	if err != nil {
 		log.Fatal(err)
@@ -324,7 +324,7 @@ func uploadPlugin(pluginPath string, port int) *rbody.APIResponse {
 }
 
 func unloadPlugin(port int, pluginType string, name string, version int) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%d", port, pluginType, name, version)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/plugins/%s/%s/%d", port, pluginType, name, version)
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", uri, nil)
 	if err != nil {
@@ -339,7 +339,7 @@ func unloadPlugin(port int, pluginType string, name string, version int) *rbody.
 }
 
 func getPluginList(port int) *rbody.APIResponse {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/plugins", port))
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/v1/plugins", port))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -351,7 +351,7 @@ func getMetricCatalog(port int) *rbody.APIResponse {
 }
 
 func fetchMetrics(port int, ns string) *rbody.APIResponse {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics%s", port, ns))
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/v1/metrics%s", port, ns))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -360,7 +360,7 @@ func fetchMetrics(port int, ns string) *rbody.APIResponse {
 }
 
 func fetchMetricsWithVersion(port int, ns string, ver int) *rbody.APIResponse {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/metrics%s?ver=%d", port, ns, ver))
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/v1/metrics%s?ver=%d", port, ns, ver))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -371,9 +371,9 @@ func fetchMetricsWithVersion(port int, ns string, ver int) *rbody.APIResponse {
 func getPluginConfigItem(port int, typ *core.PluginType, name, ver string) *rbody.APIResponse {
 	var uri string
 	if typ != nil {
-		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%d/%s/%s/config", port, *typ, name, ver)
+		uri = fmt.Sprintf("http://127.0.0.1:%d/v1/plugins/%d/%s/%s/config", port, *typ, name, ver)
 	} else {
-		uri = fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, "", name, ver)
+		uri = fmt.Sprintf("http://127.0.0.1:%d/v1/plugins/%s/%s/%s/config", port, "", name, ver)
 	}
 	resp, err := http.Get(uri)
 	if err != nil {
@@ -384,7 +384,7 @@ func getPluginConfigItem(port int, typ *core.PluginType, name, ver string) *rbod
 }
 
 func setPluginConfigItem(port int, typ string, name, ver string, cdn *cdata.ConfigDataNode) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, typ, name, ver)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/plugins/%s/%s/%s/config", port, typ, name, ver)
 
 	client := &http.Client{}
 	b, err := json.Marshal(cdn)
@@ -405,7 +405,7 @@ func setPluginConfigItem(port int, typ string, name, ver string, cdn *cdata.Conf
 }
 
 func deletePluginConfigItem(port int, typ string, name, ver string, fields []string) *rbody.APIResponse {
-	uri := fmt.Sprintf("http://localhost:%d/v1/plugins/%s/%s/%s/config", port, typ, name, ver)
+	uri := fmt.Sprintf("http://127.0.0.1:%d/v1/plugins/%s/%s/%s/config", port, typ, name, ver)
 
 	client := &http.Client{}
 	b, err := json.Marshal(fields)
@@ -428,12 +428,12 @@ func deletePluginConfigItem(port int, typ string, name, ver string, fields []str
 // When we eventually have a REST API Stop command this can be killed.
 func startAPI(opts ...interface{}) *restAPIInstance {
 	// Start a REST API to talk to
-	log.SetLevel(LOG_LEVEL)
+	log.SetLevel(LogLevel)
 	r, _ := New(false, "", "")
-	controlOpts := []control.ControlOpt{}
+	controlOpts := []control.PluginControlOpt{}
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case control.ControlOpt:
+		case control.PluginControlOpt:
 			controlOpts = append(controlOpts, t)
 		}
 	}
@@ -584,8 +584,8 @@ func TestPluginRestCalls(t *testing.T) {
 				r := startAPI()
 				port := r.port
 
-				uploadPlugin(MOCK_PLUGIN_PATH2, port)
-				uploadPlugin(FILE_PLUGIN_PATH, port)
+				uploadPlugin(MockPluginPath2, port)
+				uploadPlugin(FilePluginPath, port)
 
 				r1 := createTask("1.json", "yeti", "1s", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))

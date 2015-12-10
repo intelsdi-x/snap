@@ -198,7 +198,7 @@ func TestTribeTaskAgreements(t *testing.T) {
 					So(timedOut, ShouldEqual, false)
 
 					Convey("Plugins and a task are uploaded", func() {
-						resp := uploadPlugin(MOCK_PLUGIN_PATH1, mgtPorts[0])
+						resp := uploadPlugin(MockPluginPath1, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.PluginsLoadedType)
 						resp = getPluginList(mgtPorts[0])
@@ -476,7 +476,7 @@ func TestTribePluginAgreements(t *testing.T) {
 					So(timedOut, ShouldEqual, false)
 
 					Convey("A plugin is uploaded", func() {
-						resp := uploadPlugin(MOCK_PLUGIN_PATH1, mgtPorts[0])
+						resp := uploadPlugin(MockPluginPath1, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.PluginsLoadedType)
 						lpName = resp.Body.(*rbody.PluginsLoaded).LoadedPlugins[0].Name
@@ -724,7 +724,7 @@ var nextPort uint64 = 55234
 
 func getAvailablePort() int {
 	atomic.AddUint64(&nextPort, 1)
-	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", nextPort))
+	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("127.0.0.1:%d", nextPort))
 	if err != nil {
 		panic(err)
 	}

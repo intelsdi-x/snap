@@ -43,11 +43,14 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
+// PluginAlreadyLoaded is constant message
 const PluginAlreadyLoaded = "plugin is already loaded"
 
 var (
+	// ErrMissingPluginName - error message for missing plugin name
 	ErrMissingPluginName = errors.New("missing plugin name")
-	ErrPluginNotFound    = errors.New("plugin not found")
+	// ErrPluginNotFound - error message for plugin not found
+	ErrPluginNotFound = errors.New("plugin not found")
 )
 
 type plugin struct {
@@ -56,14 +59,17 @@ type plugin struct {
 	pluginType string
 }
 
+// Name returns the plugin name
 func (p *plugin) Name() string {
 	return p.name
 }
 
+// Version returns the plugin version
 func (p *plugin) Version() int {
 	return p.version
 }
 
+// TypeName returns the plugin type
 func (p *plugin) TypeName() string {
 	return p.pluginType
 }
@@ -259,7 +265,7 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var detail bool
 	// make this a function because DRY
-	for k, _ := range r.URL.Query() {
+	for k := range r.URL.Query() {
 		if k == "details" {
 			detail = true
 		}
@@ -378,18 +384,17 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 			return
 		}
 		return
-	} else {
-		pluginRet := &rbody.PluginReturned{
-			Name:            plugin.Name(),
-			Version:         plugin.Version(),
-			Type:            plugin.TypeName(),
-			Signed:          plugin.IsSigned(),
-			Status:          plugin.Status(),
-			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
-			Href:            catalogedPluginURI(r.Host, plugin),
-		}
-		respond(200, pluginRet, w)
 	}
+	pluginRet := &rbody.PluginReturned{
+		Name:            plugin.Name(),
+		Version:         plugin.Version(),
+		Type:            plugin.TypeName(),
+		Signed:          plugin.IsSigned(),
+		Status:          plugin.Status(),
+		LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
+		Href:            catalogedPluginURI(r.Host, plugin),
+	}
+	respond(200, pluginRet, w)
 }
 
 func catalogedPluginURI(host string, c core.CatalogedPlugin) string {

@@ -22,10 +22,12 @@ package control
 import "time"
 
 const (
+	// MonitorStopped - Enumeration of monitor states
 	MonitorStopped monitorState = iota - 1 // default is stopped
+	// MonitorStarted - Enumeration of mintor started state
 	MonitorStarted
 
-	// Changed to one second until we get proper control of duration runtime into this.
+	// DefaultMonitorDuration - Changed to one second until we get proper control of duration runtime into this.
 	DefaultMonitorDuration = time.Second * 1
 )
 
@@ -50,7 +52,7 @@ func (m *monitor) Option(opts ...monitorOption) monitorOption {
 	return previous
 }
 
-// MonitorDuration sets monitor's duration to v.
+// MonitorDurationOption sets monitor's duration to v.
 func MonitorDurationOption(v time.Duration) monitorOption {
 	return func(m *monitor) monitorOption {
 		previous := m.duration
@@ -71,7 +73,7 @@ func newMonitor(opts ...monitorOption) *monitor {
 	return mon
 }
 
-// start the monitor
+// Start starts the monitor
 func (m *monitor) Start(availablePlugins *availablePlugins) {
 	//start a routine that will be fired every X duration looping
 	//over available plugins and firing a health check routine
@@ -98,7 +100,7 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 	m.State = MonitorStarted
 }
 
-// stop the monitor
+// Stop stops the monitor
 func (m *monitor) Stop() {
 	close(m.quit)
 	m.State = MonitorStopped

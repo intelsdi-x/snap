@@ -25,16 +25,18 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 )
 
+// const constants
 const (
 	ErrorType = "error"
 )
 
-// Unsuccessful generic response to a failed API call
+// Error Unsuccessful generic response to a failed API call
 type Error struct {
 	ErrorMessage string            `json:"message"`
 	Fields       map[string]string `json:"fields"`
 }
 
+// FromSnapError converts snap error to the generic error
 func FromSnapError(pe serror.SnapError) *Error {
 	e := &Error{ErrorMessage: pe.Error(), Fields: make(map[string]string)}
 	// Convert into string format
@@ -44,6 +46,7 @@ func FromSnapError(pe serror.SnapError) *Error {
 	return e
 }
 
+// FromSnapErrors converts array of snap errors to Error
 func FromSnapErrors(errs []serror.SnapError) *Error {
 	fields := make(map[string]string)
 	var msg string
@@ -59,19 +62,23 @@ func FromSnapErrors(errs []serror.SnapError) *Error {
 	}
 }
 
+// FromError returns an Error object
 func FromError(err error) *Error {
 	e := &Error{ErrorMessage: err.Error(), Fields: make(map[string]string)}
 	return e
 }
 
+// Error returns a string error message
 func (e *Error) Error() string {
 	return e.ErrorMessage
 }
 
+// ResponseBodyMessage returns the string error message
 func (e *Error) ResponseBodyMessage() string {
 	return e.ErrorMessage
 }
 
+// ResponseBodyType returns a string error type
 func (e *Error) ResponseBodyType() string {
 	return ErrorType
 }

@@ -1108,7 +1108,7 @@ var nextPort uint64 = 55234
 
 func getAvailablePort() int {
 	atomic.AddUint64(&nextPort, 1)
-	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", nextPort))
+	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("127.0.0.1:%d", nextPort))
 	if err != nil {
 		panic(err)
 	}

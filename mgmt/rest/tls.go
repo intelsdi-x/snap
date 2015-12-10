@@ -25,10 +25,16 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"time"
+)
+
+var (
+	// ErrBadCert - bad certe error message
+	ErrBadCert = errors.New("Bad Certificate")
 )
 
 type tls struct {

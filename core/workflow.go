@@ -19,13 +19,16 @@ limitations under the License.
 
 package core
 
+// WorkflowState represents task states
 type WorkflowState int
 
+// enum for task states
 const (
 	WorkflowStopped WorkflowState = iota
 	WorkflowStarted
 )
 
+// Workflow interface defines workflow functions
 type Workflow interface {
 	Marshal() ([]byte, error)
 	Unmarshal([]byte) error

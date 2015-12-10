@@ -41,13 +41,18 @@ import (
 
 var (
 	// Change to set the REST API logging to debug
-	LOG_LEVEL = log.FatalLevel
+	LogLevel = log.FatalLevel
 
-	SNAP_PATH         = os.Getenv("SNAP_PATH")
-	MOCK_PLUGIN_PATH1 = []string{SNAP_PATH + "/plugin/snap-collector-mock1"}
-	MOCK_PLUGIN_PATH2 = []string{SNAP_PATH + "/plugin/snap-collector-mock2"}
-	FILE_PLUGIN_PATH  = []string{SNAP_PATH + "/plugin/snap-publisher-file"}
-	DIRECTORY_PATH    = []string{SNAP_PATH + "/plugin/"}
+	// SnapPath The snap path
+	SnapPath = os.Getenv("SNAP_PATH")
+	// MockPluginPath1 The one of mock sample plugin paths
+	MockPluginPath1 = []string{SnapPath + "/plugin/snap-collector-mock1"}
+	// MockPluginPath2 The one of mock sample plugin paths
+	MockPluginPath2 = []string{SnapPath + "/plugin/snap-collector-mock2"}
+	//FilePluginPath The sample file plugin path
+	FilePluginPath = []string{SnapPath + "/plugin/snap-publisher-file"}
+	// DirectoryPath The snap plugin directory path
+	DirectoryPath = []string{SnapPath + "/plugin/"}
 
 	NextPort = 45000
 )
@@ -69,7 +74,7 @@ func getWMFromSample(sample string) *wmap.WorkflowMap {
 func startAPI() string {
 	// Start a REST API to talk to
 	rest.StreamingBufferWindow = 0.01
-	log.SetLevel(LOG_LEVEL)
+	log.SetLevel(LogLevel)
 	r, _ := rest.New(false, "", "")
 	c := control.New()
 	c.Start()
@@ -85,7 +90,7 @@ func startAPI() string {
 		panic(err)
 	}
 	time.Sleep(100 * time.Millisecond)
-	return fmt.Sprintf("http://localhost:%d", r.Port())
+	return fmt.Sprintf("http://127.0.0.1:%d", r.Port())
 }
 
 func TestSnapClient(t *testing.T) {
@@ -123,7 +128,7 @@ func TestSnapClient(t *testing.T) {
 			So(m.Len(), ShouldEqual, 0)
 		})
 		Convey("load directory error", func() {
-			p := c.LoadPlugin(DIRECTORY_PATH)
+			p := c.LoadPlugin(DirectoryPath)
 			So(p.Err, ShouldNotBeNil)
 			So(p.LoadedPlugins, ShouldBeEmpty)
 			So(p.Err.Error(), ShouldEqual, "Provided plugin path is a directory not file")
@@ -154,7 +159,7 @@ func TestSnapClient(t *testing.T) {
 	})
 
 	CompressUpload = true
-	p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
+	p1 := c.LoadPlugin(MockPluginPath1)
 	CompressUpload = false
 	Convey("single plugin loaded", t, func() {
 		Convey("an error should not be received loading a plugin", func() {
@@ -178,13 +183,13 @@ func TestSnapClient(t *testing.T) {
 			So(tf.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file)")
 		})
 		Convey("plugin already loaded", func() {
-			p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
+			p1 := c.LoadPlugin(MockPluginPath1)
 			So(p1.Err, ShouldNotBeNil)
 			So(p1.Err.Error(), ShouldEqual, "plugin is already loaded")
 		})
 	})
 
-	p2 := c.LoadPlugin(MOCK_PLUGIN_PATH2)
+	p2 := c.LoadPlugin(MockPluginPath2)
 	Convey("loading second plugin", t, func() {
 		Convey("an error should not be received loading second plugin", func() {
 			So(p2.Err, ShouldBeNil)
@@ -243,7 +248,7 @@ func TestSnapClient(t *testing.T) {
 		})
 	})
 
-	p3 := c.LoadPlugin(FILE_PLUGIN_PATH)
+	p3 := c.LoadPlugin(FilePluginPath)
 	Convey("publisher plugin loaded", t, func() {
 		Convey("an error should not be received loading publisher plugin", func() {
 			So(p3.Err, ShouldBeNil)
@@ -482,7 +487,7 @@ func TestSnapClient(t *testing.T) {
 	c = New("http://localhost:127.0.0.1:-1", "v1", true)
 
 	Convey("API with invalid port", t, func() {
-		p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
+		p1 := c.LoadPlugin(MockPluginPath1)
 		So(p1.Err, ShouldNotBeNil)
 		So(p1.LoadedPlugins, ShouldBeEmpty)
 

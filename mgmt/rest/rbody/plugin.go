@@ -24,6 +24,7 @@ import (
 	"strings"
 )
 
+// const A list of constants
 const (
 	PluginsLoadedType  = "plugins_loaded"
 	PluginUnloadedType = "plugin_unloaded"
@@ -31,11 +32,12 @@ const (
 	PluginReturnedType = "plugin_returned"
 )
 
-// Successful response to the loading of a plugins
+// PluginsLoaded Successful response to the loading of a plugins
 type PluginsLoaded struct {
 	LoadedPlugins []LoadedPlugin `json:"loaded_plugins"`
 }
 
+// ResponseBodyMessage returns a string of response body message
 func (p *PluginsLoaded) ResponseBodyMessage() string {
 	s := "Plugins loaded: "
 	l := make([]string, len(p.LoadedPlugins))
@@ -46,48 +48,58 @@ func (p *PluginsLoaded) ResponseBodyMessage() string {
 	return s
 }
 
+// ResponseBodyType returns a string of response body type
 func (p *PluginsLoaded) ResponseBodyType() string {
 	return PluginsLoadedType
 }
 
-// Successful response to the unloading of a plugin
+// PluginUnloaded Successful response to the unloading of a plugin
 type PluginUnloaded struct {
 	Name    string `json:"name"`
 	Version int    `json:"version"`
 	Type    string `json:"type"`
 }
 
+// ResponseBodyMessage returns a string of body response
 func (u *PluginUnloaded) ResponseBodyMessage() string {
 	return fmt.Sprintf("Plugin successfuly unloaded (%sv%d)", u.Name, u.Version)
 }
 
+// ResponseBodyType returns a string of response type
 func (u *PluginUnloaded) ResponseBodyType() string {
 	return PluginUnloadedType
 }
 
+// PluginList struct type
 type PluginList struct {
 	LoadedPlugins    []LoadedPlugin    `json:"loaded_plugins,omitempty"`
 	AvailablePlugins []AvailablePlugin `json:"available_plugins,omitempty"`
 }
 
+// ResponseBodyMessage return a string response body message
 func (p *PluginList) ResponseBodyMessage() string {
 	return "Plugin list returned"
 }
 
+// ResponseBodyType returns a string response of PluginListType
 func (p *PluginList) ResponseBodyType() string {
 	return PluginListType
 }
 
+// PluginReturned type
 type PluginReturned LoadedPlugin
 
+// ResponseBodyMessage returns a string response
 func (p *PluginReturned) ResponseBodyMessage() string {
 	return "Plugin returned"
 }
 
+// ResponseBodyType returns a string response of PluginReturnedType
 func (p *PluginReturned) ResponseBodyType() string {
 	return PluginReturnedType
 }
 
+// LoadedPlugin struct type
 type LoadedPlugin struct {
 	Name            string `json:"name"`
 	Version         int    `json:"version"`
@@ -98,6 +110,7 @@ type LoadedPlugin struct {
 	Href            string `json:"href"`
 }
 
+// AvailablePlugin struct type
 type AvailablePlugin struct {
 	Name             string `json:"name"`
 	Version          int    `json:"version"`

@@ -44,6 +44,7 @@ import (
 )
 
 const (
+	// HandlerRegistrationName - constant
 	HandlerRegistrationName = "tribe"
 )
 
@@ -97,6 +98,7 @@ type config struct {
 	MemberlistConfig          *memberlist.Config
 }
 
+// DefaultConfig returns the default config of a tribe
 func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string, restAPIPort int) *config {
 	c := &config{
 		seed:         seed,
@@ -112,6 +114,7 @@ func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string, r
 	return c
 }
 
+// New creates a new instance of a tribe
 func New(c *config) (*tribe, error) {
 	logger := logger.WithFields(log.Fields{
 		"port": c.MemberlistConfig.BindPort,
@@ -219,18 +222,23 @@ func (c *cache) put(m msg, duration time.Duration) bool {
 	return true
 }
 
+// SetPluginCatalog sets the tribe plugin catalog
 func (t *tribe) SetPluginCatalog(p worker.ManagesPlugins) {
 	t.pluginCatalog = p
 }
 
+// SetTaskManager sets the tribe task manager
 func (t *tribe) SetTaskManager(m worker.ManagesTasks) {
 	t.taskManager = m
 }
 
+// Name returns the name of a tribe.
+// At this time, it returns the string tribe
 func (t *tribe) Name() string {
 	return "tribe"
 }
 
+// Start starts a tribe
 func (t *tribe) Start() error {
 	if t.pluginCatalog == nil {
 		return errPluginCatalogNotSet
@@ -250,6 +258,7 @@ func (t *tribe) Start() error {
 	return nil
 }
 
+// Stop shuts down a tribe
 func (t *tribe) Stop() {
 	logger := t.logger.WithFields(log.Fields{
 		"_block": "stop",
@@ -266,6 +275,7 @@ func (t *tribe) Stop() {
 	t.workerWaitGroup.Wait()
 }
 
+// GetTaskAgreementMembers returns array of tribe task agreement members
 func (t *tribe) GetTaskAgreementMembers() ([]worker.Member, error) {
 	m, ok := t.members[t.memberlist.LocalNode().Name]
 	if !ok || m.TaskAgreements == nil {
@@ -285,6 +295,7 @@ func (t *tribe) GetTaskAgreementMembers() ([]worker.Member, error) {
 	return members, nil
 }
 
+// GetPluginAgreementMembers returns array of tribe plugin members
 func (t *tribe) GetPluginAgreementMembers() ([]worker.Member, error) {
 	m, ok := t.members[t.memberlist.LocalNode().Name]
 	if !ok || m.PluginAgreement == nil {
@@ -462,6 +473,7 @@ func (t *tribe) broadcast(mt msgType, msg interface{}, notify chan<- struct{}) e
 	return nil
 }
 
+// GetMember returns a tribe agreement member
 func (t *tribe) GetMember(name string) *agreement.Member {
 	if m, ok := t.members[name]; ok {
 		return m
@@ -469,6 +481,7 @@ func (t *tribe) GetMember(name string) *agreement.Member {
 	return nil
 }
 
+// GerMembers returns array of tribe members
 func (t *tribe) GetMembers() []string {
 	var members []string
 	for _, member := range t.memberlist.Members() {
@@ -477,6 +490,7 @@ func (t *tribe) GetMembers() []string {
 	return members
 }
 
+// LeaveAgreement removes a member from the given tribe agreement
 func (t *tribe) LeaveAgreement(agreementName, memberName string) serror.SnapError {
 	if err := t.canLeaveAgreement(agreementName, memberName); err != nil {
 		return err
@@ -495,6 +509,7 @@ func (t *tribe) LeaveAgreement(agreementName, memberName string) serror.SnapErro
 	return nil
 }
 
+// JoinAgreement joins a tribe member into the given tribe agreement
 func (t *tribe) JoinAgreement(agreementName, memberName string) serror.SnapError {
 	if err := t.canJoinAgreement(agreementName, memberName); err != nil {
 		return err
@@ -513,6 +528,7 @@ func (t *tribe) JoinAgreement(agreementName, memberName string) serror.SnapError
 	return nil
 }
 
+// AddPlugin adds an plugin into the tribe agreement
 func (t *tribe) AddPlugin(agreementName string, p agreement.Plugin) error {
 	if _, ok := t.agreements[agreementName]; !ok {
 		return errAgreementDoesNotExist
@@ -667,8 +683,8 @@ func (t *tribe) RemoveAgreement(name string) serror.SnapError {
 	return nil
 }
 
-func (t *tribe) TaskStateQuery(agreementName string, taskId string) core.TaskState {
-	resp := t.taskStateQuery(agreementName, taskId)
+func (t *tribe) TaskStateQuery(agreementName string, taskID string) core.TaskState {
+	resp := t.taskStateQuery(agreementName, taskID)
 
 	responses := taskStateResponses{}
 	for r := range resp.resp {
@@ -678,7 +694,7 @@ func (t *tribe) TaskStateQuery(agreementName string, taskId string) core.TaskSta
 	return responses.State()
 }
 
-func (t *tribe) taskStateQuery(agreementName string, taskId string) *taskStateQueryResponse {
+func (t *tribe) taskStateQuery(agreementName string, taskID string) *taskStateQueryResponse {
 	timeout := t.getTimeout()
 	msg := &taskStateQueryMsg{
 		LTime:         t.clock.Increment(),
@@ -687,7 +703,7 @@ func (t *tribe) taskStateQuery(agreementName string, taskId string) *taskStateQu
 		Type:          getTaskStateMsgType,
 		Addr:          t.memberlist.LocalNode().Addr,
 		Port:          t.memberlist.LocalNode().Port,
-		TaskID:        taskId,
+		TaskID:        taskID,
 		Deadline:      time.Now().Add(timeout),
 	}
 
@@ -1088,7 +1104,7 @@ func (t *tribe) handleMemberLeave(n *memberlist.Node) {
 		if m.PluginAgreement != nil {
 			delete(t.agreements[m.PluginAgreement.Name].Members, n.Name)
 		}
-		for k, _ := range m.TaskAgreements {
+		for k := range m.TaskAgreements {
 			delete(t.agreements[k].Members, n.Name)
 		}
 		delete(t.members, n.Name)
