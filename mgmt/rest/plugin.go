@@ -259,7 +259,7 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var detail bool
 	// make this a function because DRY
-	for k, _ := range r.URL.Query() {
+	for k := range r.URL.Query() {
 		if k == "details" {
 			detail = true
 		}

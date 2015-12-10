@@ -47,7 +47,7 @@ func (p *mockPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, e
 
 func (p *mockPlugin) CollectMetrics(mockPluginMetricTypes []PluginMetricType) ([]PluginMetricType, error) {
 	for i := range mockPluginMetricTypes {
-		mockPluginMetricTypes[i].Labels_ = []core.Label{core.Label{Index: 0, Name: "test"}}
+		mockPluginMetricTypes[i].Labels_ = []core.Label{{Index: 0, Name: "test"}}
 		mockPluginMetricTypes[i].Tags_ = map[string]string{"key": "value"}
 	}
 	return mockPluginMetricTypes, nil

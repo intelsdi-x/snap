@@ -38,7 +38,7 @@ set -e
 
 # Automatic checks
 echo "gofmt"
-test -z "$(gofmt -l -d $TEST_DIRS | tee /dev/stderr)"
+test -z "$(gofmt -s -l -d $TEST_DIRS | tee /dev/stderr)"
 
 echo "goimports"
 test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"

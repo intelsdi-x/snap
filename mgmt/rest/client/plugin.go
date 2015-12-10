@@ -148,7 +148,7 @@ type AvailablePlugin struct {
 
 func convertLoadedPlugins(r []rbody.LoadedPlugin) []LoadedPlugin {
 	lp := make([]LoadedPlugin, len(r))
-	for i, _ := range r {
+	for i := range r {
 		lp[i] = LoadedPlugin{&r[i]}
 	}
 	return lp
@@ -156,7 +156,7 @@ func convertLoadedPlugins(r []rbody.LoadedPlugin) []LoadedPlugin {
 
 func convertAvailablePlugins(r []rbody.AvailablePlugin) []AvailablePlugin {
 	lp := make([]AvailablePlugin, len(r))
-	for i, _ := range r {
+	for i := range r {
 		lp[i] = AvailablePlugin{&r[i]}
 	}
 	return lp

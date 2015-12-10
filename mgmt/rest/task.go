@@ -359,7 +359,7 @@ type TaskWatchHandler struct {
 
 func (t *TaskWatchHandler) CatchCollection(m []core.Metric) {
 	sm := make([]rbody.StreamedMetric, len(m))
-	for i, _ := range m {
+	for i := range m {
 		sm[i] = rbody.StreamedMetric{
 			Namespace: core.JoinNamespace(m[i].Namespace()),
 			Data:      m[i].Data(),
