@@ -21,6 +21,7 @@ package encoding
 
 import "github.com/intelsdi-x/snap/control/plugin/encrypter"
 
+// Encoder interface defines encode, decode and etc methods of plugins
 type Encoder interface {
 	Encode(interface{}) ([]byte, error)
 	Decode([]byte, interface{}) error

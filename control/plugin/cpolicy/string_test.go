@@ -33,7 +33,7 @@ func TestConfigPolicyRuleString(t *testing.T) {
 		Convey("empty key", func() {
 			r, e := NewStringRule("", true)
 			So(r, ShouldBeNil)
-			So(e, ShouldResemble, EmptyKeyError)
+			So(e, ShouldResemble, ErrEmptyKey)
 		})
 
 		Convey("key is correct", func() {

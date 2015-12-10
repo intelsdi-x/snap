@@ -27,7 +27,7 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
-// A rule validating against string-typed config
+// StringRule is validating against string-typed config
 type StringRule struct {
 	rule
 
@@ -36,11 +36,11 @@ type StringRule struct {
 	default_ *string
 }
 
-// Returns a new string-typed rule. Arguments are key(string), required(bool), default(string).
+// NewStringRule returns a new string-typed rule. Arguments are key(string), required(bool), default(string).
 func NewStringRule(key string, req bool, opts ...string) (*StringRule, error) {
 	// Return error if key is empty
 	if key == "" {
-		return nil, EmptyKeyError
+		return nil, ErrEmptyKey
 	}
 
 	var def *string
@@ -55,6 +55,7 @@ func NewStringRule(key string, req bool, opts ...string) (*StringRule, error) {
 	}, nil
 }
 
+// Type returns string type representation of string
 func (s *StringRule) Type() string {
 	return "string"
 }
@@ -74,7 +75,7 @@ func (s *StringRule) MarshalJSON() ([]byte, error) {
 	})
 }
 
-//GobEncode encodes a StringRule in to a GOB
+//GobEncode encodes a StringRule into a GOB
 func (s *StringRule) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -105,20 +106,20 @@ func (s *StringRule) GobDecode(buf []byte) error {
 	if err := decoder.Decode(&s.required); err != nil {
 		return err
 	}
-	var is_default_set bool
-	decoder.Decode(&is_default_set)
-	if is_default_set {
+	var isDefaultSet bool
+	decoder.Decode(&isDefaultSet)
+	if isDefaultSet {
 		return decoder.Decode(&s.default_)
 	}
 	return nil
 }
 
-// Returns the key
+// Key returns the key of a StringRule
 func (s *StringRule) Key() string {
 	return s.key
 }
 
-// Validates a config value against this rule.
+// Validate validates a config value against this rule.
 func (s *StringRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
 	if cv.Type() != "string" {
@@ -127,7 +128,7 @@ func (s *StringRule) Validate(cv ctypes.ConfigValue) error {
 	return nil
 }
 
-// Returns a default value is it exists.
+// Default returns a default value is it exists.
 func (s *StringRule) Default() ctypes.ConfigValue {
 	if s.default_ != nil {
 		return &ctypes.ConfigValueStr{Value: *s.default_}
@@ -135,15 +136,17 @@ func (s *StringRule) Default() ctypes.ConfigValue {
 	return nil
 }
 
-// Indicates this rule is required.
+// Required indicates this rule is required.
 func (s *StringRule) Required() bool {
 	return s.required
 }
 
+// string rules do not have mins.
 func (s *StringRule) Minimum() ctypes.ConfigValue {
 	return nil
 }
 
+// string rules do not have maxes.
 func (s *StringRule) Maximum() ctypes.ConfigValue {
 	return nil
 }

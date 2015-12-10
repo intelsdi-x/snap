@@ -23,13 +23,12 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
-// FloatRule A rule validating against string-typed config
+// FloatRule defines a rule validating against string-typed config
 type FloatRule struct {
 	rule
 
@@ -59,7 +58,8 @@ func (f *FloatRule) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (s *FloatRule) Type() string {
+// Type returns the string representation of float
+func (f *FloatRule) Type() string {
 	return "float"
 }
 
@@ -110,21 +110,21 @@ func (f *FloatRule) GobDecode(buf []byte) error {
 	if err := decoder.Decode(&f.required); err != nil {
 		return err
 	}
-	var is_default_set bool
-	decoder.Decode(&is_default_set)
-	if is_default_set {
+	var isDefaultSet bool
+	decoder.Decode(&isDefaultSet)
+	if isDefaultSet {
 		return decoder.Decode(&f.default_)
 	}
-	var is_minimum_set bool
-	decoder.Decode(&is_minimum_set)
-	if is_minimum_set {
+	var isMinimumSet bool
+	decoder.Decode(&isMinimumSet)
+	if isMinimumSet {
 		if err := decoder.Decode(&f.minimum); err != nil {
 			return err
 		}
 	}
-	var is_maximum_set bool
-	decoder.Decode(&is_maximum_set)
-	if is_maximum_set {
+	var isMaximumSet bool
+	decoder.Decode(&isMaximumSet)
+	if isMaximumSet {
 		if err := decoder.Decode(&f.maximum); err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func (f *FloatRule) GobDecode(buf []byte) error {
 func NewFloatRule(key string, req bool, opts ...float64) (*FloatRule, error) {
 	// Return error if key is empty
 	if key == "" {
-		return nil, EmptyKeyError
+		return nil, ErrEmptyKey
 	}
 
 	options := make([]*float64, 1)
@@ -164,11 +164,11 @@ func (f *FloatRule) Validate(cv ctypes.ConfigValue) error {
 	}
 	// Check minimum. Type should be safe now because of the check above.
 	if f.minimum != nil && cv.(ctypes.ConfigValueFloat).Value < *f.minimum {
-		return errors.New(fmt.Sprintf("value is under minimum (%s value %f < %f)", f.key, cv.(ctypes.ConfigValueFloat).Value, *f.minimum))
+		return fmt.Errorf("value is under minimum (%s value %f < %f)", f.key, cv.(ctypes.ConfigValueFloat).Value, *f.minimum)
 	}
 	// Check maximum. Type should be safe now because of the check above.
 	if f.maximum != nil && cv.(ctypes.ConfigValueFloat).Value > *f.maximum {
-		return errors.New(fmt.Sprintf("value is over maximum (%s value %f > %f)", f.key, cv.(ctypes.ConfigValueFloat).Value, *f.maximum))
+		return fmt.Errorf("value is over maximum (%s value %f > %f)", f.key, cv.(ctypes.ConfigValueFloat).Value, *f.maximum)
 	}
 	return nil
 }
@@ -196,16 +196,18 @@ func (f *FloatRule) SetMaximum(m float64) {
 	f.maximum = &m
 }
 
-func (i *FloatRule) Minimum() ctypes.ConfigValue {
-	if i.minimum != nil {
-		return &ctypes.ConfigValueFloat{Value: *i.minimum}
+// Minimum returns the minimum allowable value for the FloatRule
+func (f *FloatRule) Minimum() ctypes.ConfigValue {
+	if f.minimum != nil {
+		return &ctypes.ConfigValueFloat{Value: *f.minimum}
 	}
 	return nil
 }
 
-func (i *FloatRule) Maximum() ctypes.ConfigValue {
-	if i.maximum != nil {
-		return &ctypes.ConfigValueFloat{Value: *i.maximum}
+// Maximum returns the maximum allowable value for the FloatRule
+func (f *FloatRule) Maximum() ctypes.ConfigValue {
+	if f.maximum != nil {
+		return &ctypes.ConfigValueFloat{Value: *f.maximum}
 	}
 	return nil
 }
