@@ -117,7 +117,16 @@ func (f *Mock) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 
 //Meta returns meta data for testing
 func Meta() *plugin.PluginMeta {
-	return plugin.NewPluginMeta(Name, Version, Type, []string{plugin.SnapGOBContentType}, []string{plugin.SnapGOBContentType}, plugin.Unsecure(true))
+	return plugin.NewPluginMeta(
+		Name,
+		Version,
+		Type,
+		[]string{plugin.SnapGOBContentType},
+		[]string{plugin.SnapGOBContentType},
+		plugin.Unsecure(true),
+		plugin.RoutingStrategy(plugin.DefaultRouting),
+		plugin.CacheTTL(1100*time.Millisecond),
+	)
 }
 
 //Random number generator

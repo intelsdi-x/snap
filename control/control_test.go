@@ -35,6 +35,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/control_event"
@@ -829,6 +830,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(OptSetConfig(config), CacheExpiration(time.Second*1))
 		c.Start()
+		So(strategy.GlobalCacheExpiration, ShouldResemble, time.Second*1)
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 		_, e := load(c, PluginPath)
@@ -871,17 +873,23 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
 			So(errp, ShouldBeNil)
 			So(pool, ShouldNotBeNil)
+			ttl, err := pool.CacheTTL()
+			So(err, ShouldResemble, ErrPoolEmpty)
+			So(ttl, ShouldEqual, 0)
 			pool.subscribe("1", unboundSubscriptionType)
 			err = c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
+			ttl, err = pool.CacheTTL()
+			So(err, ShouldBeNil)
+			So(ttl, ShouldEqual, strategy.GlobalCacheExpiration)
 			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1))
-			hits, err := pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 2)
+			hits, err := pool.CacheHits(core.JoinNamespace(m.namespace), 2)
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 0)
 			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 10)
 			mts, errs = c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1))
-			hits, err = pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 2)
+			hits, err = pool.CacheHits(core.JoinNamespace(m.namespace), 2)
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 1)
 			So(errs, ShouldBeNil)
@@ -894,25 +902,32 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
 				So(errp, ShouldBeNil)
 				So(pool, ShouldNotBeNil)
+				ttl, err := pool.CacheTTL()
+				So(err, ShouldResemble, ErrPoolEmpty)
+				So(ttl, ShouldEqual, 0)
 				pool.subscribe("1", unboundSubscriptionType)
 				err = c.pluginRunner.runPlugin(lp.Details)
 				So(err, ShouldBeNil)
+				ttl, err = pool.CacheTTL()
+				So(err, ShouldBeNil)
+				So(ttl, ShouldEqual, 1100*time.Millisecond)
 				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1))
-				hits, err := pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 1)
+				hits, err := pool.CacheHits(core.JoinNamespace(jsonm.namespace), jsonm.version)
+				So(pool.subscriptionCount(), ShouldEqual, 1)
+				So(pool.strategy, ShouldNotBeNil)
+				So(len(mts), ShouldBeGreaterThan, 0)
 				So(err, ShouldBeNil)
 				So(hits, ShouldEqual, 0)
 				So(errs, ShouldBeNil)
 				So(len(mts), ShouldEqual, 10)
 				mts, errs = c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1))
-				hits, err = pool.plugins[1].client.CacheHits(core.JoinNamespace(m.namespace), 1)
+				hits, err = pool.CacheHits(core.JoinNamespace(m.namespace), 1)
 				So(err, ShouldBeNil)
 				So(hits, ShouldEqual, 1)
 				So(errs, ShouldBeNil)
 				So(len(mts), ShouldEqual, 10)
-				hits = pool.plugins[1].client.AllCacheHits()
-				So(hits, ShouldEqual, 2)
-				misses := pool.plugins[1].client.AllCacheMisses()
-				So(misses, ShouldEqual, 2)
+				So(pool.AllCacheHits(), ShouldEqual, 1)
+				So(pool.AllCacheMisses(), ShouldEqual, 1)
 				pool.unsubscribe("1")
 				c.Stop()
 				time.Sleep(100 * time.Millisecond)
@@ -922,8 +937,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 }
 
 func TestCollectMetrics(t *testing.T) {
-
-	Convey("given a new router", t, func() {
+	Convey("given a loaded plugin", t, func() {
 		// adjust HB timeouts for test
 		plugin.PingTimeoutLimit = 1
 		plugin.PingTimeoutDurationDefault = time.Second * 1
@@ -936,7 +950,6 @@ func TestCollectMetrics(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		time.Sleep(100 * time.Millisecond)
 
 		// Add a global plugin config
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
@@ -969,26 +982,36 @@ func TestCollectMetrics(t *testing.T) {
 		lp, err := c.pluginManager.get("collector:mock:1")
 		So(err, ShouldBeNil)
 		So(lp, ShouldNotBeNil)
-		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
-		So(errp, ShouldBeNil)
-		pool.subscribe("1", unboundSubscriptionType)
-		err = c.pluginRunner.runPlugin(lp.Details)
-		So(err, ShouldBeNil)
-		m = append(m, m1, m2, m3)
-		time.Sleep(time.Millisecond * 1100)
-
-		for x := 0; x < 5; x++ {
-			cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1))
+		Convey("create a pool, add subscriptions and start plugins", func() {
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			So(errp, ShouldBeNil)
+			pool.subscribe("1", unboundSubscriptionType)
+			err = c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
-			for i := range cr {
-				So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
-				So(cr[i].Data(), ShouldContainSubstring, "test=true")
-			}
-		}
-		ap := c.AvailablePlugins()
-		So(ap, ShouldNotBeEmpty)
-		c.Stop()
-		time.Sleep(100 * time.Millisecond)
+			pool.subscribe("2", unboundSubscriptionType)
+			err = c.pluginRunner.runPlugin(lp.Details)
+			So(err, ShouldBeNil)
+			m = append(m, m1, m2, m3)
+			Convey("collect metrics", func() {
+				for x := 0; x < 4; x++ {
+					cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1))
+					So(err, ShouldBeNil)
+					for i := range cr {
+						So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
+						So(cr[i].Data(), ShouldContainSubstring, "test=true")
+					}
+				}
+				ap := c.AvailablePlugins()
+				So(ap, ShouldNotBeEmpty)
+				So(pool.strategy.String(), ShouldEqual, plugin.DefaultRouting.String())
+				So(len(pool.plugins), ShouldEqual, 2)
+				for _, p := range pool.plugins {
+					So(p.hitCount, ShouldEqual, 2)
+					So(p.hitCount, ShouldEqual, 2)
+				}
+				c.Stop()
+			})
+		})
 	})
 
 	// Not sure what this was supposed to test, because it's actually testing nothing

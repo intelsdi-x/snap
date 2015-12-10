@@ -69,24 +69,14 @@ type runner struct {
 	availablePlugins *availablePlugins
 	metricCatalog    catalogsMetrics
 	pluginManager    managesPlugins
-	routingStrategy  RoutingStrategy
 }
 
-func newRunner(routingStrategy RoutingStrategy) *runner {
+func newRunner() *runner {
 	r := &runner{
 		monitor:          newMonitor(),
-		availablePlugins: newAvailablePlugins(routingStrategy),
-		routingStrategy:  routingStrategy,
+		availablePlugins: newAvailablePlugins(),
 	}
 	return r
-}
-
-func (r *runner) SetStrategy(rs RoutingStrategy) {
-	r.routingStrategy = rs
-}
-
-func (r *runner) Strategy() RoutingStrategy {
-	return r.routingStrategy
 }
 
 func (r *runner) SetMetricCatalog(c catalogsMetrics) {

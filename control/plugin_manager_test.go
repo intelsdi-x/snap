@@ -164,7 +164,7 @@ func TestLoadPlugin(t *testing.T) {
 
 				So(err, ShouldBeNil)
 				So(lp.Meta.CacheTTL, ShouldNotBeNil)
-				So(lp.Meta.CacheTTL, ShouldResemble, time.Duration(time.Millisecond*100))
+				So(lp.Meta.CacheTTL, ShouldResemble, time.Duration(time.Millisecond*1100))
 			})
 
 		})

@@ -362,8 +362,6 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			return nil, serror.New(err)
 		}
 
-		// The plugin cache client will be integrated here later
-
 		// Add metric types to metric catalog
 		for _, nmt := range metricTypes {
 			// If the version is 0 default it to the plugin version
