@@ -51,9 +51,12 @@ const (
 )
 
 var (
+	// ErrPoolNotFound - error message when the plugin pool not found
 	ErrPoolNotFound = errors.New("plugin pool not found")
-	ErrBadKey       = errors.New("bad key")
-	ErrBadType      = errors.New("bad plugin type")
+	// ErrBadKey - error message when a bad key used
+	ErrBadKey = errors.New("bad key")
+	// ErrBadType - error message when a bad plugin type used
+	ErrBadType = errors.New("bad plugin type")
 
 	// This defines the maximum running instances of a loaded plugin.
 	// It is initialized at runtime via the cli.
@@ -108,13 +111,13 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 	}
 	ap.key = fmt.Sprintf("%s:%s:%d", ap.pluginType.String(), ap.name, ap.version)
 
-	listenUrl := fmt.Sprintf("http://%v/rpc", resp.ListenAddress)
+	listenURL := fmt.Sprintf("http://%v/rpc", resp.ListenAddress)
 	// Create RPC Client
 	switch resp.Type {
 	case plugin.CollectorPluginType:
 		switch resp.Meta.RPCType {
 		case plugin.JSONRPC:
-			c, e := client.NewCollectorHttpJSONRPCClient(listenUrl, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			c, e := client.NewCollectorHttpJSONRPCClient(listenURL, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -129,7 +132,7 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 	case plugin.PublisherPluginType:
 		switch resp.Meta.RPCType {
 		case plugin.JSONRPC:
-			c, e := client.NewPublisherHttpJSONRPCClient(listenUrl, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			c, e := client.NewPublisherHttpJSONRPCClient(listenURL, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -144,7 +147,7 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 	case plugin.ProcessorPluginType:
 		switch resp.Meta.RPCType {
 		case plugin.JSONRPC:
-			c, e := client.NewProcessorHttpJSONRPCClient(listenUrl, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			c, e := client.NewProcessorHttpJSONRPCClient(listenURL, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -363,27 +366,27 @@ func (p *apPool) insert(ap *availablePlugin) error {
 
 // subscribe adds a subscription to the pool.
 // Using subscribe is idempotent.
-func (p *apPool) subscribe(taskId string, subType subscriptionType) {
+func (p *apPool) subscribe(taskID string, subType subscriptionType) {
 	p.Lock()
 	defer p.Unlock()
 
-	if _, exists := p.subs[taskId]; !exists {
+	if _, exists := p.subs[taskID]; !exists {
 		// Version is the last item in the key, so we split here
 		// to retrieve it for the subscription.
-		p.subs[taskId] = &subscription{
-			taskId:  taskId,
+		p.subs[taskID] = &subscription{
+			taskID:  taskID,
 			subType: subType,
 			version: p.version,
 		}
 	}
 }
 
-// subscribe adds a subscription to the pool.
+// unsubscribe removes a subscription from the pool.
 // Using unsubscribe is idempotent.
-func (p *apPool) unsubscribe(taskId string) {
+func (p *apPool) unsubscribe(taskID string) {
 	p.Lock()
 	defer p.Unlock()
-	delete(p.subs, taskId)
+	delete(p.subs, taskID)
 }
 
 func (p *apPool) eligible() bool {
@@ -526,7 +529,7 @@ func (p *apPool) moveSubscriptions(to *apPool) []subscription {
 type subscription struct {
 	subType subscriptionType
 	version int
-	taskId  string
+	taskID  string
 }
 
 type availablePlugins struct {

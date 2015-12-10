@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// PluginManger manages loading, unloading, and swapping
+// Package control PluginManger manages loading, unloading, and swapping
 // of plugins
 package control
 
@@ -45,16 +45,22 @@ import (
 )
 
 const (
-	// loadedPlugin States
+	// DetectedState is the detected state of a plugin
 	DetectedState pluginState = "detected"
-	LoadingState  pluginState = "loading"
-	LoadedState   pluginState = "loaded"
+	// LoadingState is the loading state of a plugin
+	LoadingState pluginState = "loading"
+	// LoadedState is the loaded state of a plugin
+	LoadedState pluginState = "loaded"
+	// UnloadedState is the unloaded state of a plugin
 	UnloadedState pluginState = "unloaded"
 )
 
 var (
-	ErrPluginNotFound         = errors.New("plugin not found")
-	ErrPluginAlreadyLoaded    = errors.New("plugin is already loaded")
+	// ErrPluginNotFound - error message when a plugin is not found
+	ErrPluginNotFound = errors.New("plugin not found")
+	// ErrPluginAlreadyLoaded - error message when a plugin is already loaded
+	ErrPluginAlreadyLoaded = errors.New("plugin is already loaded")
+	// ErrPluginNotInLoadedState - error message when a plugin must ne in a loaded state
 	ErrPluginNotInLoadedState = errors.New("Plugin must be in a LoadedState")
 
 	pmLogger = log.WithField("_module", "control-plugin-mgr")
@@ -169,45 +175,47 @@ type loadedPlugin struct {
 	ConfigPolicy *cpolicy.ConfigPolicy
 }
 
-// returns plugin name
+// Name returns plugin name
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Name() string {
 	return lp.Meta.Name
 }
 
+// PluginPath returns the plugin path
 func (lp *loadedPlugin) PluginPath() string {
 	return lp.Details.Path
 }
 
-func (l *loadedPlugin) Key() string {
-	return fmt.Sprintf("%s:%s:%d", l.TypeName(), l.Name(), l.Version())
+// Key returns plugin type, name and version
+func (lp *loadedPlugin) Key() string {
+	return fmt.Sprintf("%s:%s:%d", lp.TypeName(), lp.Name(), lp.Version())
 }
 
-// returns plugin version
+// Version returns plugin version
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Version() int {
 	return lp.Meta.Version
 }
 
-// returns plugin type as a string
+// TypeName returns plugin type as a string
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) TypeName() string {
 	return lp.Type.String()
 }
 
-// returns current plugin state
+// Status returns current plugin state
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) Status() string {
 	return string(lp.State)
 }
 
-// returns plugin signing as a bool
+// IsSigned returns plugin signing as a bool
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) IsSigned() bool {
 	return lp.Details.Signed
 }
 
-// returns a unix timestamp of the LoadTime of a plugin
+// LoadedTimestamp returns a unix timestamp of the LoadTime of a plugin
 // implements the CatalogedPlugin interface
 func (lp *loadedPlugin) LoadedTimestamp() *time.Time {
 	return &lp.LoadedTime
@@ -238,21 +246,24 @@ func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 
 type pluginManagerOpt func(*pluginManager)
 
+// OptSetPluginConfig sets the config on the plugin manager
 func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
 	return func(p *pluginManager) {
 		p.pluginConfig = cf
 	}
 }
 
+// SetPluginConfig sets plugin config
 func (p *pluginManager) SetPluginConfig(cf *pluginConfig) {
 	p.pluginConfig = cf
 }
 
+// SetMetricCatalog sets metric catalog
 func (p *pluginManager) SetMetricCatalog(mc catalogsMetrics) {
 	p.metricCatalog = mc
 }
 
-// Load is the method for loading a plugin and
+// LoadPlugin is the method for loading a plugin and
 // saving plugin into the LoadedPlugins array
 func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter) (*loadedPlugin, serror.SnapError) {
 	lPlugin := new(loadedPlugin)
@@ -427,7 +438,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	return lPlugin, nil
 }
 
-// unloads a plugin from the LoadedPlugins table
+// UnloadPlugin unloads a plugin from the LoadedPlugins table
 func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.SnapError) {
 
 	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
@@ -485,6 +496,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 	return plugin, nil
 }
 
+// GenerateArgs generates the cli args to send when stating a plugin
 func (p *pluginManager) GenerateArgs(pluginPath string) plugin.Arg {
 	pluginLog := filepath.Join(p.logPath, filepath.Base(pluginPath)) + ".log"
 	return plugin.NewArg(pluginLog)

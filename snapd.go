@@ -242,7 +242,7 @@ func action(ctx *cli.Context) {
 	// Validate log level and trust level settings for snapd
 	validateLevelSettings(logLevel, pluginTrust)
 
-	controlOpts := []control.ControlOpt{
+	controlOpts := []control.PluginControlOpt{
 		control.MaxRunningPlugins(maxRunning),
 		control.CacheExpiration(cache),
 	}

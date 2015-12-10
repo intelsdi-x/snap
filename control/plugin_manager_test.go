@@ -39,8 +39,8 @@ var (
 	SnapPath   = os.Getenv("SNAP_PATH")
 	PluginPath = path.Join(SnapPath, "plugin", PluginName)
 
-	JSONRPC_PluginName = "snap-collector-mock1"
-	JSONRPC_PluginPath = path.Join(SnapPath, "plugin", JSONRPC_PluginName)
+	JSONRPCPluginName = "snap-collector-mock1"
+	JSONRPCPluginPath = path.Join(SnapPath, "plugin", JSONRPCPluginName)
 )
 
 func TestLoadedPlugins(t *testing.T) {
@@ -149,7 +149,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads json-rpc plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, JSONRPC_PluginPath)
+				lp, err := loadPlugin(p, JSONRPCPluginPath)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.loadedPlugins, ShouldNotBeEmpty)
@@ -160,7 +160,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin with cache TTL set", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, JSONRPC_PluginPath)
+				lp, err := loadPlugin(p, JSONRPCPluginPath)
 
 				So(err, ShouldBeNil)
 				So(lp.Meta.CacheTTL, ShouldNotBeNil)

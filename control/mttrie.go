@@ -57,12 +57,12 @@ type mttNode struct {
 	mts      map[int]*metricType
 }
 
-// The root in the trie
+// MTTrie struct representing the root in the trie
 type MTTrie struct {
 	*mttNode
 }
 
-// New() returns an empty trie
+// NewMTTrie returns an empty trie
 func NewMTTrie() *MTTrie {
 	m := &mttNode{
 		children: map[string]*mttNode{},
@@ -70,7 +70,7 @@ func NewMTTrie() *MTTrie {
 	return &MTTrie{m}
 }
 
-// Handy print out of the tr(i)e
+// String prints out of the tr(i)e
 func (m *MTTrie) String() string {
 	out := ""
 	for _, mt := range m.gatherMetricTypes() {
@@ -80,8 +80,8 @@ func (m *MTTrie) String() string {
 }
 
 func (m *MTTrie) gatherMetricTypes() []metricType {
-	mts := make([]metricType, 0)
-	children := make([]*mttNode, 0)
+	var mts []metricType
+	var children []*mttNode
 	for _, node := range m.children {
 		children = gatherChildren(children, node)
 	}
@@ -93,7 +93,7 @@ func (m *MTTrie) gatherMetricTypes() []metricType {
 	return mts
 }
 
-// Remove all metrics from the catalog if they match a loadedPlugin
+// DeleteByPlugin removes all metrics from the catalog if they match a loadedPlugin
 func (m *MTTrie) DeleteByPlugin(lp *loadedPlugin) {
 	for _, mt := range m.gatherMetricTypes() {
 		if mt.Plugin.Key() == lp.Key() {
@@ -103,7 +103,7 @@ func (m *MTTrie) DeleteByPlugin(lp *loadedPlugin) {
 	}
 }
 
-// Removes a specific metric by namespace and version from the tree
+// RemoveMetric removes a specific metric by namespace and version from the tree
 func (m *MTTrie) RemoveMetric(mt metricType) {
 	a, _ := m.find(mt.Namespace())
 	if a != nil {
@@ -141,7 +141,7 @@ func (mtt *mttNode) Add(mt *metricType) {
 	node.mts[mt.Version()] = mt
 }
 
-// Collect collects all children below a given namespace
+// Fetch collects all children below a given namespace
 // and concatenates their metric types into a single slice
 func (mtt *mttNode) Fetch(ns []string) ([]*metricType, error) {
 	node, err := mtt.find(ns)

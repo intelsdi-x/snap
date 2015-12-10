@@ -430,10 +430,10 @@ func startAPI(opts ...interface{}) *restAPIInstance {
 	// Start a REST API to talk to
 	log.SetLevel(LOG_LEVEL)
 	r, _ := New(false, "", "")
-	controlOpts := []control.ControlOpt{}
+	controlOpts := []control.PluginControlOpt{}
 	for _, opt := range opts {
 		switch t := opt.(type) {
-		case control.ControlOpt:
+		case control.PluginControlOpt:
 			controlOpts = append(controlOpts, t)
 		}
 	}
