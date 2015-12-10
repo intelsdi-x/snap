@@ -162,7 +162,7 @@ func TestSnapClient(t *testing.T) {
 
 			So(p1.Err, ShouldBeNil)
 			So(p1.LoadedPlugins, ShouldNotBeEmpty)
-			So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock1")
+			So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock")
 			So(p1.LoadedPlugins[0].Version, ShouldEqual, 1)
 			So(p1.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
@@ -189,7 +189,7 @@ func TestSnapClient(t *testing.T) {
 		Convey("an error should not be received loading second plugin", func() {
 			So(p2.Err, ShouldBeNil)
 			So(p2.LoadedPlugins, ShouldNotBeEmpty)
-			So(p2.LoadedPlugins[0].Name, ShouldEqual, "mock2")
+			So(p2.LoadedPlugins[0].Name, ShouldEqual, "mock")
 			So(p2.LoadedPlugins[0].Version, ShouldEqual, 2)
 			So(p2.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
 		})
@@ -449,9 +449,9 @@ func TestSnapClient(t *testing.T) {
 			So(p1.Err, ShouldBeNil)
 			So(len(p1.LoadedPlugins), ShouldEqual, 3)
 
-			p2 := c.UnloadPlugin("collector", "mock2", 2)
+			p2 := c.UnloadPlugin("collector", "mock", 2)
 			So(p2.Err, ShouldBeNil)
-			So(p2.Name, ShouldEqual, "mock2")
+			So(p2.Name, ShouldEqual, "mock")
 			So(p2.Version, ShouldEqual, 2)
 			So(p2.Type, ShouldEqual, "collector")
 
@@ -465,11 +465,11 @@ func TestSnapClient(t *testing.T) {
 			p1 := c.GetPlugins(false)
 			So(p1.Err, ShouldBeNil)
 			So(len(p1.LoadedPlugins), ShouldEqual, 1)
-			So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock1")
+			So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock")
 
-			p2 := c.UnloadPlugin("collector", "mock1", 1)
+			p2 := c.UnloadPlugin("collector", "mock", 1)
 			So(p2.Err, ShouldBeNil)
-			So(p2.Name, ShouldEqual, "mock1")
+			So(p2.Name, ShouldEqual, "mock")
 			So(p2.Version, ShouldEqual, 1)
 			So(p2.Type, ShouldEqual, "collector")
 

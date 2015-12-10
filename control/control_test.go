@@ -139,32 +139,37 @@ func TestSwapPlugin(t *testing.T) {
 		}
 		<-lpe.done
 		Convey("First plugin in catalog", t, func() {
-			Convey("Should have name mock2", func() {
-				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock2")
+			Convey("Should have name mock", func() {
+				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
 			})
 		})
 		mock1Path := strings.Replace(PluginPath, "snap-collector-mock2", "snap-collector-mock1", 1)
 		mockRP, _ := core.NewRequestedPlugin(mock1Path)
 		err := c.SwapPlugins(mockRP, c.PluginCatalog()[0])
-		<-lpe.done
-
-		// Swap plugin that was loaded with a different plugin
 		Convey("Swapping plugins", t, func() {
 			Convey("Should not error", func() {
 				So(err, ShouldBeNil)
 			})
+		})
+		if err != nil {
+			t.FailNow()
+		}
+		<-lpe.done
+
+		// Swap plugin that was loaded with a different version of the plugin
+		Convey("Swapping plugins", t, func() {
 			Convey("Should generate a swapped plugins event", func() {
-				Convey("So first plugin in catalog after swap should have name mock1", func() {
-					So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock1")
+				Convey("So first plugin in catalog after swap should have name mock", func() {
+					So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
 				})
-				Convey("So swapped plugins event should show loaded plugin name as mock1", func() {
-					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock1")
+				Convey("So swapped plugins event should show loaded plugin name as mock", func() {
+					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock")
 				})
 				Convey("So swapped plugins event should show loaded plugin version as 1", func() {
 					So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
 				})
-				Convey("So swapped plugins event should show unloaded plugin name as mock2", func() {
-					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock2")
+				Convey("So swapped plugins event should show unloaded plugin name as mock", func() {
+					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock")
 				})
 				Convey("So swapped plugins event should show unloaded plugin version as 2", func() {
 					So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
@@ -172,6 +177,22 @@ func TestSwapPlugin(t *testing.T) {
 				Convey("So swapped plugins event should show plugin type as collector", func() {
 					So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 				})
+			})
+		})
+
+		// Swap plugin with a different type of plugin
+		Convey("First plugin in catalog", t, func() {
+			Convey("Should have name mock", func() {
+				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
+			})
+		})
+
+		filePath := strings.Replace(PluginPath, "snap-collector-mock2", "snap-publisher-file", 1)
+		fileRP, _ := core.NewRequestedPlugin(filePath)
+		err = c.SwapPlugins(fileRP, c.PluginCatalog()[0])
+		Convey("Swapping mock and file plugins", t, func() {
+			Convey("Should error", func() {
+				So(err, ShouldNotBeNil)
 			})
 		})
 
@@ -193,6 +214,7 @@ func TestSwapPlugin(t *testing.T) {
 				So(err, ShouldNotBeNil)
 			})
 		})
+
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -297,8 +319,8 @@ func TestLoad(t *testing.T) {
 
 		Convey("pluginControl.Load on successful load", t, func() {
 			Convey("should emit a plugin event message", func() {
-				Convey("with loaded plugin name is mock2", func() {
-					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock2")
+				Convey("with loaded plugin name is mock", func() {
+					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock")
 				})
 				Convey("with loaded plugin version as 2", func() {
 					So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 2)
@@ -401,8 +423,8 @@ func TestUnload(t *testing.T) {
 				So(err, ShouldBeNil)
 			})
 			Convey("should generate an unloaded plugin event", func() {
-				Convey("where unloaded plugin name is mock2", func() {
-					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock2")
+				Convey("where unloaded plugin name is mock", func() {
+					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock")
 				})
 				Convey("where unloaded plugin version should equal 2", func() {
 					So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
@@ -843,10 +865,10 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		So(errs, ShouldBeNil)
 		So(metric, ShouldNotBeNil)
 		Convey("collects metrics from plugin using native client", func() {
-			lp, err := c.pluginManager.get("collector:mock2:2")
+			lp, err := c.pluginManager.get("collector:mock:2")
 			So(err, ShouldBeNil)
 			So(lp, ShouldNotBeNil)
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock2:2")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
 			So(errp, ShouldBeNil)
 			So(pool, ShouldNotBeNil)
 			pool.subscribe("1", unboundSubscriptionType)
@@ -866,10 +888,10 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(len(mts), ShouldEqual, 10)
 			pool.unsubscribe("1")
 			Convey("collects metrics from plugin using httpjson client", func() {
-				lp, err := c.pluginManager.get("collector:mock1:1")
+				lp, err := c.pluginManager.get("collector:mock:1")
 				So(err, ShouldBeNil)
 				So(lp, ShouldNotBeNil)
-				pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock1:1")
+				pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
 				So(errp, ShouldBeNil)
 				So(pool, ShouldNotBeNil)
 				pool.subscribe("1", unboundSubscriptionType)
@@ -917,7 +939,7 @@ func TestCollectMetrics(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		// Add a global plugin config
-		c.Config.Plugins.Collector.Plugins["mock1"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
 		load(c, JSONRPC_PluginPath)
@@ -944,10 +966,10 @@ func TestCollectMetrics(t *testing.T) {
 		}
 
 		// retrieve loaded plugin
-		lp, err := c.pluginManager.get("collector:mock1:1")
+		lp, err := c.pluginManager.get("collector:mock:1")
 		So(err, ShouldBeNil)
 		So(lp, ShouldNotBeNil)
-		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock1:1")
+		pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
 		So(errp, ShouldBeNil)
 		pool.subscribe("1", unboundSubscriptionType)
 		err = c.pluginRunner.runPlugin(lp.Details)

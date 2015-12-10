@@ -381,7 +381,6 @@ func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, serror.Sna
 }
 
 func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.CatalogedPlugin) serror.SnapError {
-
 	details, serr := p.returnPluginDetails(in)
 	if serr != nil {
 		return serr
@@ -395,16 +394,37 @@ func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.Cataloged
 		return err
 	}
 
+	// Make sure plugin types and names are the same
+	if lp.TypeName() != out.TypeName() || lp.Name() != out.Name() {
+		serr := serror.New(errors.New("Plugin types and names must match."))
+		serr.SetFields(map[string]interface{}{
+			"in-type":  lp.TypeName(),
+			"out-type": out.TypeName(),
+			"in-name":  lp.Name(),
+			"out-name": out.Name(),
+		})
+		_, err := p.pluginManager.UnloadPlugin(lp)
+		if err != nil {
+			se := serror.New(errors.New("Failed to rollback after error"))
+			se.SetFields(map[string]interface{}{
+				"original-unload-error": serr.Error(),
+				"rollback-unload-error": err.Error(),
+			})
+			return se
+		}
+		return serr
+	}
+
 	up, err := p.pluginManager.UnloadPlugin(out)
 	if err != nil {
 		_, err2 := p.pluginManager.UnloadPlugin(lp)
 		if err2 != nil {
-			se := serror.New(errors.New("failed to rollback after error"))
+			se := serror.New(errors.New("Failed to rollback after error"))
 			se.SetFields(map[string]interface{}{
 				"original-unload-error": err.Error(),
 				"rollback-unload-error": err2.Error(),
 			})
-			return err
+			return se
 		}
 		return err
 	}
@@ -524,7 +544,7 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 	// Checking m.policy for nil will not work, we need to check if rules are nil.
 	if m.policy.HasRules() {
 		if m.Config() == nil {
-			serrs = append(serrs, serror.New(errors.New(fmt.Sprintf("Policy defined for metric, (%s) version (%d), but no config defined in manifest", mt.Namespace(), mt.Version()))))
+			serrs = append(serrs, serror.New(fmt.Errorf("Policy defined for metric, (%s) version (%d), but no config defined in manifest", mt.Namespace(), mt.Version())))
 			return nil, serrs
 		}
 		ncdTable, errs := m.policy.Process(m.Config().Table())

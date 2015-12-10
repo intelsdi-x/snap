@@ -33,7 +33,7 @@ import (
 
 const (
 	// Name of plugin
-	Name = "mock2"
+	Name = "mock"
 	// Version of plugin
 	Version = 2
 	// Type of plugin
