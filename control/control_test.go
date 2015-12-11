@@ -758,7 +758,7 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		load(c, JSONRPC_PluginPath)
+		load(c, JSONRPCPluginPath)
 		<-lpe.done
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
@@ -785,7 +785,7 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		load(c, JSONRPC_PluginPath)
+		load(c, JSONRPCPluginPath)
 		<-lpe.done
 		var cd *cdata.ConfigDataNode
 		m1 := MockMetricType{
@@ -806,7 +806,7 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		load(c, JSONRPC_PluginPath)
+		load(c, JSONRPCPluginPath)
 		<-lpe.done
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
@@ -841,7 +841,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			t.FailNow()
 		}
 		<-lpe.done
-		_, e = load(c, JSONRPC_PluginPath)
+		_, e = load(c, JSONRPCPluginPath)
 		Convey("Loading JSONRPC client plugin", func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
@@ -942,7 +942,7 @@ func TestCollectMetrics(t *testing.T) {
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		load(c, JSONRPC_PluginPath)
+		load(c, JSONRPCPluginPath)
 		<-lpe.done
 		mts, err := c.MetricCatalog()
 		So(err, ShouldBeNil)

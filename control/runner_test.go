@@ -130,67 +130,67 @@ func (mpcc *MockHealthyPluginCollectorClient) Kill(string) error {
 	return nil
 }
 
-func (mucc *MockHealthyPluginCollectorClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+func (mpcc *MockHealthyPluginCollectorClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	return nil, errors.New("Fail")
 }
 
-func (mucc *MockHealthyPluginCollectorClient) SetKey() error {
+func (mpcc *MockHealthyPluginCollectorClient) SetKey() error {
 	return nil
 }
 
-func (c *MockHealthyPluginCollectorClient) AllCacheHits() uint64 {
+func (mpcc *MockHealthyPluginCollectorClient) AllCacheHits() uint64 {
 	return 0
 }
 
-func (c *MockHealthyPluginCollectorClient) AllCacheMisses() uint64 {
+func (mpcc *MockHealthyPluginCollectorClient) AllCacheMisses() uint64 {
 	return 0
 }
 
-func (c *MockHealthyPluginCollectorClient) CacheHits(key string, version int) (uint64, error) {
+func (mpcc *MockHealthyPluginCollectorClient) CacheHits(key string, version int) (uint64, error) {
 	return 0, nil
 }
 
-func (c *MockHealthyPluginCollectorClient) CacheMisses(key string, version int) (uint64, error) {
+func (mpcc *MockHealthyPluginCollectorClient) CacheMisses(key string, version int) (uint64, error) {
 	return 0, nil
 }
 
 type MockUnhealthyPluginCollectorClient struct{}
 
-func (mucc *MockUnhealthyPluginCollectorClient) Ping() error {
+func (mpcc *MockUnhealthyPluginCollectorClient) Ping() error {
 	return errors.New("Fail")
 }
 
-func (mucc *MockUnhealthyPluginCollectorClient) Kill(string) error {
+func (mpcc *MockUnhealthyPluginCollectorClient) Kill(string) error {
 	return errors.New("Fail")
 }
 
-func (mucc *MockUnhealthyPluginCollectorClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+func (mpcc *MockUnhealthyPluginCollectorClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	return nil, errors.New("Fail")
 }
 
-func (mucc *MockUnhealthyPluginCollectorClient) SetKey() error {
+func (mpcc *MockUnhealthyPluginCollectorClient) SetKey() error {
 	return nil
 }
 
-func (c *MockUnhealthyPluginCollectorClient) AllCacheHits() uint64 {
+func (mpcc *MockUnhealthyPluginCollectorClient) AllCacheHits() uint64 {
 	return 0
 }
 
-func (c *MockUnhealthyPluginCollectorClient) AllCacheMisses() uint64 {
+func (mpcc *MockUnhealthyPluginCollectorClient) AllCacheMisses() uint64 {
 	return 0
 }
 
-func (c *MockUnhealthyPluginCollectorClient) CacheHits(key string, version int) (uint64, error) {
+func (mpcc *MockUnhealthyPluginCollectorClient) CacheHits(key string, version int) (uint64, error) {
 	return 0, nil
 }
 
-func (c *MockUnhealthyPluginCollectorClient) CacheMisses(key string, version int) (uint64, error) {
+func (mpcc *MockUnhealthyPluginCollectorClient) CacheMisses(key string, version int) (uint64, error) {
 	return 0, nil
 }
 
 type MockEmitter struct{}
 
-func (me *MockEmitter) Emit(gomit.EventBody) (int, error) { return 0, nil }
+func (memitter *MockEmitter) Emit(gomit.EventBody) (int, error) { return 0, nil }
 
 func TestRunnerState(t *testing.T) {
 	// Enabled log output in test

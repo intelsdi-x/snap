@@ -48,8 +48,11 @@ import (
 )
 
 const (
+	// PluginTrustDisabled - enum representing plugin trust disabled
 	PluginTrustDisabled int = iota
+	// PluginTrustEnabled - enum representing plugin trust enabled
 	PluginTrustEnabled
+	// PluginTrustWarn - enum representing plugin trust warning
 	PluginTrustWarn
 )
 
@@ -58,7 +61,9 @@ var (
 		"_module": "control",
 	})
 
+	// ErrLoadedPluginNotFound - error message when a loaded plugin is not found
 	ErrLoadedPluginNotFound = errors.New("Loaded plugin not found")
+	// ErrControllerNotStarted - error message when the Controller was not started
 	ErrControllerNotStarted = errors.New("Must start Controller before calling Load()")
 )
 
@@ -125,21 +130,25 @@ type managesSigning interface {
 	ValidateSignature([]string, string, []byte) error
 }
 
-type ControlOpt func(*pluginControl)
+// PluginControlOpt is used to set optional parameters on the pluginControl struct
+type PluginControlOpt func(*pluginControl)
 
-func MaxRunningPlugins(m int) ControlOpt {
+// MaxRunningPlugins sets the maximum number of plugins to run per pool
+func MaxRunningPlugins(m int) PluginControlOpt {
 	return func(c *pluginControl) {
 		maximumRunningPlugins = m
 	}
 }
 
-func CacheExpiration(t time.Duration) ControlOpt {
+// CacheExpiration is the PluginControlOpt which sets the global metric cache TTL
+func CacheExpiration(t time.Duration) PluginControlOpt {
 	return func(c *pluginControl) {
 		client.GlobalCacheExpiration = t
 	}
 }
 
-func OptSetConfig(cfg *config) ControlOpt {
+// OptSetConfig sets the plugin control configuration.
+func OptSetConfig(cfg *config) PluginControlOpt {
 	return func(c *pluginControl) {
 		c.Config = cfg
 		c.pluginManager.SetPluginConfig(cfg.Plugins)
@@ -147,7 +156,7 @@ func OptSetConfig(cfg *config) ControlOpt {
 }
 
 // New returns a new pluginControl instance
-func New(opts ...ControlOpt) *pluginControl {
+func New(opts ...PluginControlOpt) *pluginControl {
 
 	c := &pluginControl{}
 	c.Config = NewConfig()
@@ -313,11 +322,10 @@ func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, serror.
 		if rp.Signature() == nil {
 			controlLogger.WithFields(f).Warn("Loading unsigned plugin ", rp.Path())
 			return false, nil
-		} else {
-			err := p.signingManager.ValidateSignature(p.keyringFiles, rp.Path(), rp.Signature())
-			if err != nil {
-				return false, serror.New(err)
-			}
+		}
+		err := p.signingManager.ValidateSignature(p.keyringFiles, rp.Path(), rp.Signature())
+		if err != nil {
+			return false, serror.New(err)
 		}
 	}
 	return true, nil
@@ -521,7 +529,7 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 
 	// No metric found return error.
 	if m == nil {
-		serrs = append(serrs, serror.New(errors.New(fmt.Sprintf("no metric found cannot subscribe: (%s) version(%d)", mt.Namespace(), mt.Version()))))
+		serrs = append(serrs, serror.New(fmt.Errorf("no metric found cannot subscribe: (%s) version(%d)", mt.Namespace(), mt.Version())))
 		return nil, serrs
 	}
 
@@ -603,7 +611,7 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []se
 	return plugins, nil
 }
 
-func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
+func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
 	var serrs []serror.SnapError
 
 	collectors, errs := p.gatherCollectors(mts)
@@ -628,7 +636,7 @@ func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins 
 				serrs = append(serrs, serror.New(err))
 				return serrs
 			}
-			pool.subscribe(taskId, unboundSubscriptionType)
+			pool.subscribe(taskID, unboundSubscriptionType)
 			if pool.eligible() {
 				err = p.verifyPlugin(latest)
 				if err != nil {
@@ -647,7 +655,7 @@ func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins 
 				serrs = append(serrs, serror.New(err))
 				return serrs
 			}
-			pool.subscribe(taskId, boundSubscriptionType)
+			pool.subscribe(taskID, boundSubscriptionType)
 			if pool.eligible() {
 				pl, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
 				if err != nil {
@@ -666,7 +674,7 @@ func (p *pluginControl) SubscribeDeps(taskId string, mts []core.Metric, plugins 
 				}
 			}
 		}
-		serr := p.sendPluginSubscriptionEvent(taskId, sub)
+		serr := p.sendPluginSubscriptionEvent(taskID, sub)
 		if serr != nil {
 			serrs = append(serrs, serr)
 		}
@@ -690,13 +698,13 @@ func (p *pluginControl) verifyPlugin(lp *loadedPlugin) error {
 	return nil
 }
 
-func (p *pluginControl) sendPluginSubscriptionEvent(taskId string, pl core.Plugin) serror.SnapError {
+func (p *pluginControl) sendPluginSubscriptionEvent(taskID string, pl core.Plugin) serror.SnapError {
 	pt, err := core.ToPluginType(pl.TypeName())
 	if err != nil {
 		return serror.New(err)
 	}
 	e := &control_event.PluginSubscriptionEvent{
-		TaskId:           taskId,
+		TaskId:           taskID,
 		PluginType:       int(pt),
 		PluginName:       pl.Name(),
 		PluginVersion:    pl.Version(),
@@ -711,7 +719,7 @@ func (p *pluginControl) sendPluginSubscriptionEvent(taskId string, pl core.Plugi
 	return nil
 }
 
-func (p *pluginControl) UnsubscribeDeps(taskId string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
+func (p *pluginControl) UnsubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
 	var serrs []serror.SnapError
 
 	collectors, errs := p.gatherCollectors(mts)
@@ -727,9 +735,9 @@ func (p *pluginControl) UnsubscribeDeps(taskId string, mts []core.Metric, plugin
 			return serrs
 		}
 		if pool != nil {
-			pool.unsubscribe(taskId)
+			pool.unsubscribe(taskID)
 		}
-		serr := p.sendPluginUnsubscriptionEvent(taskId, sub)
+		serr := p.sendPluginUnsubscriptionEvent(taskID, sub)
 		if serr != nil {
 			serrs = append(serrs, serr)
 		}
@@ -738,13 +746,13 @@ func (p *pluginControl) UnsubscribeDeps(taskId string, mts []core.Metric, plugin
 	return serrs
 }
 
-func (p *pluginControl) sendPluginUnsubscriptionEvent(taskId string, pl core.Plugin) serror.SnapError {
+func (p *pluginControl) sendPluginUnsubscriptionEvent(taskID string, pl core.Plugin) serror.SnapError {
 	pt, err := core.ToPluginType(pl.TypeName())
 	if err != nil {
 		return serror.New(err)
 	}
 	e := &control_event.PluginUnsubscriptionEvent{
-		TaskId:        taskId,
+		TaskId:        taskID,
 		PluginType:    int(pt),
 		PluginName:    pl.Name(),
 		PluginVersion: pl.Version(),

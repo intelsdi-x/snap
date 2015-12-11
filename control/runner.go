@@ -43,11 +43,14 @@ var (
 type availablePluginState int
 
 const (
+	// HandlerRegistrationName is the registered name of the control runner
 	HandlerRegistrationName = "control.runner"
 
-	// availablePlugin States
+	// PluginRunning is the running state of a plugin
 	PluginRunning availablePluginState = iota - 1 // Default value (0) is Running
+	// PluginStopped is the stopped state of a plugin
 	PluginStopped
+	// PluginDisabled is the disabled state of a plugin
 	PluginDisabled
 )
 
@@ -162,12 +165,12 @@ func (r *runner) Stop() []error {
 func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	e := p.Start()
 	if e != nil {
-		e_ := errors.New("error while starting plugin: " + e.Error())
+		err := errors.New("error while starting plugin: " + e.Error())
 		defer runnerLog.WithFields(log.Fields{
 			"_block": "start-plugin",
 			"error":  e.Error(),
 		}).Error("error starting a plugin")
-		return nil, e_
+		return nil, err
 	}
 
 	// Wait for plugin response
@@ -336,21 +339,21 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
 					PluginName:       v.Name,
 					PluginVersion:    v.Version,
-					TaskId:           sub.taskId,
+					TaskId:           sub.taskID,
 					PluginType:       v.Type,
 					SubscriptionType: int(unboundSubscriptionType),
 				})
 				r.emitter.Emit(&control_event.PluginUnsubscriptionEvent{
 					PluginName:    v.Name,
 					PluginVersion: pool.version,
-					TaskId:        sub.taskId,
+					TaskId:        sub.taskID,
 					PluginType:    v.Type,
 				})
 				r.emitter.Emit(&control_event.MovePluginSubscriptionEvent{
 					PluginName:      v.Name,
 					PreviousVersion: pool.version,
 					NewVersion:      v.Version,
-					TaskId:          sub.taskId,
+					TaskId:          sub.taskID,
 					PluginType:      v.Type,
 				})
 			}
@@ -402,7 +405,7 @@ func (r *runner) runPlugin(details *pluginDetails) error {
 	return nil
 }
 
-func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskId string) error {
+func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID string) error {
 	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
