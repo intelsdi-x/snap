@@ -22,8 +22,12 @@
 ctrl_c()
 {
   exit $?
-} 
+}
 trap ctrl_c SIGINT
+
+# Godep
+echo "Getting godep if not found"
+go get github.com/tools/godep
 
 # First load snap deps
 echo "Checking snap root for deps"
@@ -37,5 +41,3 @@ echo "Checking snap mgmt/rest for deps"
 cd ../../mgmt/rest
 godep restore
 cd ../../
-
-

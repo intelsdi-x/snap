@@ -26,15 +26,25 @@
 # 6. test coverage (http://blog.golang.org/cover)
 
 # If the following plugins don't exist, exit
-[ -f $SNAP_PATH/plugin/snap-collector-mock1 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock1 does not exist. Run make to build it.' ; exit 1; } 
-[ -f $SNAP_PATH/plugin/snap-collector-mock2 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock2 does not exist. Run make to build it.' ; exit 1; } 
-[ -f $SNAP_PATH/plugin/snap-processor-passthru ] || { echo 'Error: $SNAP_PATH/plugin/snap-processor-passthru does not exist. Run make to build it.' ; exit 1; } 
-[ -f $SNAP_PATH/plugin/snap-publisher-file ] || { echo 'Error: $SNAP_PATH/plugin/snap-publisher-file does not exist. Run make to build it.' ; exit 1; } 
+[ -f $SNAP_PATH/plugin/snap-collector-mock1 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock1 does not exist. Run make to build it.' ; exit 1; }
+[ -f $SNAP_PATH/plugin/snap-collector-mock2 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock2 does not exist. Run make to build it.' ; exit 1; }
+[ -f $SNAP_PATH/plugin/snap-processor-passthru ] || { echo 'Error: $SNAP_PATH/plugin/snap-processor-passthru does not exist. Run make to build it.' ; exit 1; }
+[ -f $SNAP_PATH/plugin/snap-publisher-file ] || { echo 'Error: $SNAP_PATH/plugin/snap-publisher-file does not exist. Run make to build it.' ; exit 1; }
 
 TEST_DIRS="cmd/ control/ core/ mgmt/ pkg/ snapd.go scheduler/"
 VET_DIRS="./cmd/... ./control/... ./core/... ./mgmt/... ./pkg/... ./scheduler/... ."
 
 set -e
+
+# If the following tools don't exist, get them
+echo "Getting GoConvey if not found"
+go get github.com/smartystreets/goconvey
+echo "Getting goimports if not found"
+go get golang.org/x/tools/cmd/goimports
+echo "Getting govet if not found"
+go get golang.org/x/tools/cmd/vet
+echo "Getting cover if not found"
+go get golang.org/x/tools/cmd/cover
 
 # Automatic checks
 echo "gofmt"
@@ -56,10 +66,10 @@ test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"
 echo "go vet"
 go vet $VET_DIRS
 # go test -race ./... - Lets disable for now
- 
+
 # Run test coverage on each subdirectories and merge the coverage profile.
 echo "mode: count" > profile.cov
- 
+
 # Standard go tooling behavior is to ignore dirs with leading underscors
 for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -not -path './examples/*' -not -path './scripts/*' -type d);
 do
@@ -72,5 +82,5 @@ do
 	    fi
 	fi
 done
- 
+
 go tool cover -func profile.cov
