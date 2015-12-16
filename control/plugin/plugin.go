@@ -38,40 +38,49 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 )
 
-// Plugin type
+// PluginType represents the plugin type
 type PluginType int
 
-// Returns string for matching enum plugin type
+// String returns string for matching enum plugin type
 func (p PluginType) String() string {
 	return types[p]
 }
 
 const (
+	// CollectorPluginType - enum representation of collector plugin type
 	CollectorPluginType PluginType = iota
+	// ProcessorPluginType - enum representation of processor plugin type
 	ProcessorPluginType
+	// PublisherPluginType - enum representation of publisher plugin type
 	PublisherPluginType
 )
 
-// Plugin response states
+// PluginResponseState represents the plugin response states
 type PluginResponseState int
 
 const (
+	// PluginSuccess - enum plugin response state of success
 	PluginSuccess PluginResponseState = iota
+	// PluginFailure - enum plugin response state of failure
 	PluginFailure
 )
 
+// RPCType represents the enum type of RPC calls
 type RPCType int
 
 const (
+	// NativeRPC - enum type of the native RPC
 	NativeRPC RPCType = iota
+	// JSONRPC - enum type of JSON RPC
 	JSONRPC
 )
 
 var (
 	// Timeout settings
-	// How much time must elapse before a lack of Ping results in a timeout
+
+	// PingTimeoutDurationDefault is how much time must elapse before a lack of Ping results in a timeout
 	PingTimeoutDurationDefault = time.Millisecond * 1500
-	// How many succesive PingTimeouts must occur to equal a failure.
+	// PingTimeoutLimit is how many succesive PingTimeouts must occur to equal a failure.
 	PingTimeoutLimit = 3
 
 	// Array matching plugin type enum to a string
@@ -83,6 +92,8 @@ var (
 	}
 )
 
+// Plugin interface defines the types and methods
+// that a plugin must implement
 type Plugin interface {
 	GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
 }
@@ -113,18 +124,22 @@ type PluginMeta struct {
 
 type metaOp func(m *PluginMeta)
 
+// ConcurrencyCount sets the concurrent count in PluginMeta
+// and returns the metaOp
 func ConcurrencyCount(cc int) metaOp {
 	return func(m *PluginMeta) {
 		m.ConcurrencyCount = cc
 	}
 }
 
+// Exclusive sets the exclusive flag in PluginMeta
 func Exclusive(e bool) metaOp {
 	return func(m *PluginMeta) {
 		m.Exclusive = e
 	}
 }
 
+// Unsecure sets Unsecure flag in the PluginMeta
 func Unsecure(e bool) metaOp {
 	return func(m *PluginMeta) {
 		m.Unsecure = e
@@ -175,7 +190,7 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 	return p
 }
 
-// Arguments passed to startup of Plugin
+// Arg struct type defines arguments passed to startup of Plugin
 type Arg struct {
 	// Plugin file path to binary
 	PluginLogPath string
@@ -187,6 +202,7 @@ type Arg struct {
 	listenPort string
 }
 
+// NewArg returns a new instance of Arg passed to the startup of a plugin
 func NewArg(logpath string) Arg {
 	return Arg{
 		PluginLogPath:       logpath,
@@ -220,7 +236,7 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 
 	var (
 		r        *Response
-		exitCode int = 0
+		exitCode int
 	)
 
 	switch m.Type {

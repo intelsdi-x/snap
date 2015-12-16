@@ -20,18 +20,20 @@ limitations under the License.
 package plugin
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
+// PublishArgs struct type defines the parameters for loading
+// a publisher plugin
 type PublishArgs struct {
 	ContentType string
 	Content     []byte
 	Config      map[string]ctypes.ConfigValue
 }
 
+// PublishReply struct
 type PublishReply struct {
 }
 
@@ -40,6 +42,8 @@ type publisherPluginProxy struct {
 	Session Session
 }
 
+// Publish decodes input parameters into the publisher plugin suitable content
+// type and configs before publishing it. Otherwise, an error is returned.
 func (p *publisherPluginProxy) Publish(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(p.Session.Logger())
 	p.Session.ResetHeartbeat()
@@ -52,7 +56,7 @@ func (p *publisherPluginProxy) Publish(args []byte, reply *[]byte) error {
 
 	err = p.Plugin.Publish(dargs.ContentType, dargs.Content, dargs.Config)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Publish call error: %v", err.Error()))
+		return fmt.Errorf("Publish call error: %v", err.Error())
 	}
 	return nil
 }

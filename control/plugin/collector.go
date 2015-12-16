@@ -22,7 +22,8 @@ package plugin
 // Acts as a proxy for RPC calls to a CollectorPlugin. This helps keep the function signature simple
 // within plugins vs. having to match required RPC patterns.
 
-// Collector plugin
+// CollectorPlugin interface defines the type and methods a collector plugin
+// must implement.
 type CollectorPlugin interface {
 	Plugin
 	CollectMetrics([]PluginMetricType) ([]PluginMetricType, error)

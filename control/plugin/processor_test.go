@@ -52,52 +52,52 @@ type MockProcessorSessionState struct {
 	killChan            chan int
 }
 
-func (s *MockProcessorSessionState) Ping(arg PingArgs, b *bool) error {
+func (m *MockProcessorSessionState) Ping(arg PingArgs, b *bool) error {
 	return nil
 }
 
-func (s *MockProcessorSessionState) Kill(arg KillArgs, b *bool) error {
-	s.killChan <- 0
+func (m *MockProcessorSessionState) Kill(arg KillArgs, b *bool) error {
+	m.killChan <- 0
 	return nil
 }
 
-func (s *MockProcessorSessionState) Logger() *log.Logger {
-	return s.logger
+func (m *MockProcessorSessionState) Logger() *log.Logger {
+	return m.logger
 }
 
-func (s *MockProcessorSessionState) ListenAddress() string {
-	return s.listenAddress
+func (m *MockProcessorSessionState) ListenAddress() string {
+	return m.listenAddress
 }
 
-func (s *MockProcessorSessionState) ListenPort() string {
-	return s.listenPort
+func (m *MockProcessorSessionState) ListenPort() string {
+	return m.listenPort
 }
 
-func (s *MockProcessorSessionState) SetListenAddress(a string) {
-	s.listenAddress = a
+func (m *MockProcessorSessionState) SetListenAddress(a string) {
+	m.listenAddress = a
 }
 
-func (s *MockProcessorSessionState) Token() string {
-	return s.token
+func (m *MockProcessorSessionState) Token() string {
+	return m.token
 }
 
 func (m *MockProcessorSessionState) ResetHeartbeat() {
 
 }
 
-func (s *MockProcessorSessionState) KillChan() chan int {
-	return s.killChan
+func (m *MockProcessorSessionState) KillChan() chan int {
+	return m.killChan
 }
 
-func (s *MockProcessorSessionState) isDaemon() bool {
-	return !s.Daemon
+func (m *MockProcessorSessionState) isDaemon() bool {
+	return !m.Daemon
 }
 
-func (s *MockProcessorSessionState) generateResponse(r *Response) []byte {
+func (m *MockProcessorSessionState) generateResponse(r *Response) []byte {
 	return []byte("mockResponse")
 }
 
-func (s *MockProcessorSessionState) heartbeatWatch(killChan chan int) {
+func (m *MockProcessorSessionState) heartbeatWatch(killChan chan int) {
 	time.Sleep(time.Millisecond * 200)
 	killChan <- 0
 }

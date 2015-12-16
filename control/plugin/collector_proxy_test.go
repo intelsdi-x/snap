@@ -36,7 +36,7 @@ import (
 type mockPlugin struct {
 }
 
-var mockPluginMetricType []PluginMetricType = []PluginMetricType{
+var mockPluginMetricType = []PluginMetricType{
 	*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
 	*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, 2),
 }

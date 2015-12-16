@@ -20,18 +20,17 @@ limitations under the License.
 package plugin
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/intelsdi-x/snap/core/cdata"
 )
 
-// Arguments passed to CollectMetrics() for a Collector implementation
+// CollectMetricsArgs arguments passed to CollectMetrics() for a Collector implementation
 type CollectMetricsArgs struct {
 	PluginMetricTypes []PluginMetricType
 }
 
-// Reply assigned by a Collector implementation using CollectMetrics()
+// CollectMetricsReply is the reply assigned by a Collector implementation using CollectMetrics()
 type CollectMetricsReply struct {
 	PluginMetrics []PluginMetricType
 }
@@ -51,6 +50,8 @@ type collectorPluginProxy struct {
 	Session Session
 }
 
+// GetMetricTypes returns the given metric types in the reply reference parameter.
+// Otherwise, an error is returned.
 func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(c.Session.Logger())
 
@@ -63,7 +64,7 @@ func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error 
 
 	mts, err := c.Plugin.GetMetricTypes(dargs.PluginConfig)
 	if err != nil {
-		return errors.New(fmt.Sprintf("GetMetricTypes call error : %s", err.Error()))
+		return fmt.Errorf("GetMetricTypes call error : %s", err.Error())
 	}
 
 	r := GetMetricTypesReply{PluginMetricTypes: mts}
@@ -75,6 +76,8 @@ func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error 
 	return nil
 }
 
+// CollectMetrics returns the collected metrics in the reply reference parameter.
+// Otherwise, an error is returned
 func (c *collectorPluginProxy) CollectMetrics(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(c.Session.Logger())
 	c.Session.Logger().Println("CollectMetrics called")
@@ -86,7 +89,7 @@ func (c *collectorPluginProxy) CollectMetrics(args []byte, reply *[]byte) error 
 
 	ms, err := c.Plugin.CollectMetrics(dargs.PluginMetricTypes)
 	if err != nil {
-		return errors.New(fmt.Sprintf("CollectMetrics call error : %s", err.Error()))
+		return fmt.Errorf("CollectMetrics call error : %s", err.Error())
 	}
 
 	r := CollectMetricsReply{PluginMetrics: ms}
