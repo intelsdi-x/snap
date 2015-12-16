@@ -23,13 +23,12 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
-// A rule validating against string-typed config
+// IntRule is the rule validating against string-typed config
 type IntRule struct {
 	rule
 
@@ -40,11 +39,11 @@ type IntRule struct {
 	maximum  *int
 }
 
-// Returns a new int-typed rule. Arguments are key(string), required(bool), default(int), min(int), max(int)
+// NewIntegerRule returns a new int-typed rule. Arguments are key(string), required(bool), default(int), min(int), max(int)
 func NewIntegerRule(key string, req bool, opts ...int) (*IntRule, error) {
 	// Return error if key is empty
 	if key == "" {
-		return nil, EmptyKeyError
+		return nil, ErrEmptyKey
 	}
 
 	options := make([]*int, 1)
@@ -59,6 +58,7 @@ func NewIntegerRule(key string, req bool, opts ...int) (*IntRule, error) {
 	}, nil
 }
 
+// Type is the name of the rule type
 func (i *IntRule) Type() string {
 	return "integer"
 }
@@ -129,21 +129,21 @@ func (i *IntRule) GobDecode(buf []byte) error {
 	if err := decoder.Decode(&i.required); err != nil {
 		return err
 	}
-	var is_default_set bool
-	decoder.Decode(&is_default_set)
-	if is_default_set {
+	var isDefaultSet bool
+	decoder.Decode(&isDefaultSet)
+	if isDefaultSet {
 		return decoder.Decode(&i.default_)
 	}
-	var is_minimum_set bool
-	decoder.Decode(&is_minimum_set)
-	if is_minimum_set {
+	var isMinimumSet bool
+	decoder.Decode(&isMinimumSet)
+	if isMinimumSet {
 		if err := decoder.Decode(&i.minimum); err != nil {
 			return err
 		}
 	}
-	var is_maximum_set bool
-	decoder.Decode(&is_maximum_set)
-	if is_maximum_set {
+	var isMaximumSet bool
+	decoder.Decode(&isMaximumSet)
+	if isMaximumSet {
 		if err := decoder.Decode(&i.maximum); err != nil {
 			return err
 		}
@@ -167,11 +167,11 @@ func (i *IntRule) Validate(cv ctypes.ConfigValue) error {
 	}
 	// Check minimum. Type should be safe now because of the check above.
 	if i.minimum != nil && cv.(ctypes.ConfigValueInt).Value < *i.minimum {
-		return errors.New(fmt.Sprintf("value is under minimum (%s value %d < %d)", i.key, cv.(ctypes.ConfigValueInt).Value, *i.minimum))
+		return fmt.Errorf("value is under minimum (%s value %d < %d)", i.key, cv.(ctypes.ConfigValueInt).Value, *i.minimum)
 	}
 	// Check maximum. Type should be safe now because of the check above.
 	if i.maximum != nil && cv.(ctypes.ConfigValueInt).Value > *i.maximum {
-		return errors.New(fmt.Sprintf("value is over maximum (%s value %d > %d)", i.key, cv.(ctypes.ConfigValueInt).Value, *i.maximum))
+		return fmt.Errorf("value is over maximum (%s value %d > %d)", i.key, cv.(ctypes.ConfigValueInt).Value, *i.maximum)
 	}
 	return nil
 }
@@ -199,6 +199,7 @@ func (i *IntRule) SetMaximum(m int) {
 	i.maximum = &m
 }
 
+// Minimum returns the minimum allowable value for IntRule
 func (i *IntRule) Minimum() ctypes.ConfigValue {
 	if i.minimum != nil {
 		return &ctypes.ConfigValueInt{Value: *i.minimum}
@@ -206,6 +207,7 @@ func (i *IntRule) Minimum() ctypes.ConfigValue {
 	return nil
 }
 
+// Maximum returns the maximum allowable value for the IntRule
 func (i *IntRule) Maximum() ctypes.ConfigValue {
 	if i.maximum != nil {
 		return &ctypes.ConfigValueInt{Value: *i.maximum}

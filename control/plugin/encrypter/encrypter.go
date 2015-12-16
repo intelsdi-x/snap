@@ -31,6 +31,7 @@ import (
 	"io/ioutil"
 )
 
+// ErrKeyNotValid is an error message when the given key length is not valid
 var ErrKeyNotValid = errors.New("given key length is invalid. did you set it?")
 
 const (
@@ -38,6 +39,7 @@ const (
 	keySize   = 32
 )
 
+// GenerateKey generates an encryption key
 func GenerateKey() ([]byte, error) {
 	key := make([]byte, keySize)
 	_, err := io.ReadFull(rand.Reader, key)
@@ -47,6 +49,7 @@ func GenerateKey() ([]byte, error) {
 	return key, nil
 }
 
+// Encrypter represents the RSA enpcryption encrypter
 type Encrypter struct {
 	Key []byte
 
@@ -55,6 +58,7 @@ type Encrypter struct {
 	md5        hash.Hash
 }
 
+// New returns a new encrypter
 func New(pub *rsa.PublicKey, priv *rsa.PrivateKey) *Encrypter {
 	return &Encrypter{
 		rsaPublic:  pub,
@@ -63,6 +67,7 @@ func New(pub *rsa.PublicKey, priv *rsa.PrivateKey) *Encrypter {
 	}
 }
 
+// Encrypt returns the encrypted input
 func (e *Encrypter) Encrypt(in io.Reader) ([]byte, error) {
 	if len(e.Key) < keySize {
 		return nil, ErrKeyNotValid
@@ -87,6 +92,7 @@ func (e *Encrypter) Encrypt(in io.Reader) ([]byte, error) {
 	return gcm.Seal(nonce, nonce, bytes, nil), nil
 }
 
+// Decrypt returns the decrypted input
 func (e *Encrypter) Decrypt(in io.Reader) ([]byte, error) {
 	if len(e.Key) < keySize {
 		return nil, ErrKeyNotValid
@@ -108,6 +114,7 @@ func (e *Encrypter) Decrypt(in io.Reader) ([]byte, error) {
 	return gcm.Open(nil, nonce, bytes[nonceSize:], nil)
 }
 
+// EncryptKey returns an encryption key
 func (e *Encrypter) EncryptKey() ([]byte, error) {
 	if len(e.Key) != keySize {
 		return nil, ErrKeyNotValid
@@ -115,6 +122,7 @@ func (e *Encrypter) EncryptKey() ([]byte, error) {
 	return rsa.EncryptOAEP(e.md5, rand.Reader, e.rsaPublic, e.Key, []byte(""))
 }
 
+// DecryptKey returns a decryption key
 func (e *Encrypter) DecryptKey(in []byte) ([]byte, error) {
 	return rsa.DecryptOAEP(e.md5, rand.Reader, e.rsaPrivate, in, []byte(""))
 }

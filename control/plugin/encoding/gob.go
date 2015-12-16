@@ -30,14 +30,17 @@ type gobEncoder struct {
 	e *encrypter.Encrypter
 }
 
+// NewGobEncoder returns a new Gob encoder
 func NewGobEncoder() *gobEncoder {
 	return &gobEncoder{}
 }
 
+// SetEncrypter sets the encrypter for Gob encoder
 func (g *gobEncoder) SetEncrypter(e *encrypter.Encrypter) {
 	g.e = e
 }
 
+// Encode returns encoded array of bytes with the encryption if it's required
 func (g *gobEncoder) Encode(in interface{}) ([]byte, error) {
 	buff := &bytes.Buffer{}
 	enc := gob.NewEncoder(buff)
@@ -53,6 +56,7 @@ func (g *gobEncoder) Encode(in interface{}) ([]byte, error) {
 	return buff.Bytes(), err
 }
 
+// Decode returns the decrypted value
 func (g *gobEncoder) Decode(in []byte, out interface{}) error {
 	var err error
 	if g.e != nil {

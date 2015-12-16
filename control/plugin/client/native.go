@@ -44,7 +44,7 @@ type CallsRPC interface {
 	Call(methd string, args interface{}, reply interface{}) error
 }
 
-// Native clients use golang net/rpc for communication to a native rpc server.
+// PluginNativeClient uses golang net/rpc for communication to a native rpc server.
 type PluginNativeClient struct {
 	PluginCacheClient
 	connection CallsRPC
@@ -53,24 +53,29 @@ type PluginNativeClient struct {
 	encrypter  *encrypter.Encrypter
 }
 
+// NewCollectorNativeClient returns a new instance of PluginCollectorClient
 func NewCollectorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginCollectorClient, error) {
 	return newNativeClient(address, timeout, plugin.CollectorPluginType, pub, secure)
 }
 
+// NewPublisherNativeClient returns a new instance of PluginPublisherClient
 func NewPublisherNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginPublisherClient, error) {
 	return newNativeClient(address, timeout, plugin.PublisherPluginType, pub, secure)
 }
 
+// NewProcessorNativeClient returns a new instance of PluginProcessorClient
 func NewProcessorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginProcessorClient, error) {
 	return newNativeClient(address, timeout, plugin.ProcessorPluginType, pub, secure)
 }
 
+// Ping returns the response from the sessio state ping
 func (p *PluginNativeClient) Ping() error {
 	var reply []byte
 	err := p.connection.Call("SessionState.Ping", []byte{}, &reply)
 	return err
 }
 
+// SetKey sets the encryption key
 func (p *PluginNativeClient) SetKey() error {
 	out, err := p.encrypter.EncryptKey()
 	if err != nil {
@@ -81,6 +86,8 @@ func (p *PluginNativeClient) SetKey() error {
 	}, &[]byte{})
 }
 
+// Kill stops the plugin native client and returns the
+// killing reason.
 func (p *PluginNativeClient) Kill(reason string) error {
 	args := plugin.KillArgs{Reason: reason}
 	out, err := p.encoder.Encode(args)
@@ -93,6 +100,7 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	return err
 }
 
+// Publish publishes the content via the native RPC client
 func (p *PluginNativeClient) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	args := plugin.PublishArgs{ContentType: contentType, Content: content, Config: config}
 
@@ -106,6 +114,7 @@ func (p *PluginNativeClient) Publish(contentType string, content []byte, config 
 	return err
 }
 
+// Process returns the processed content given content and configurations.
 func (p *PluginNativeClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
 	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
 
@@ -129,6 +138,9 @@ func (p *PluginNativeClient) Process(contentType string, content []byte, config 
 	return r.ContentType, r.Content, nil
 }
 
+// CollectMetrics returns array of collected metrics. The metric data is returned
+// from the cache if data is still valid. Otherwise, a real time data collection
+// is performed and revalidates the cache entry.
 func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {
 	// Convert core.MetricType slice into plugin.PluginMetricType slice as we have
 	// to send structs over RPC
@@ -172,12 +184,11 @@ func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, e
 			idx++
 		}
 		return results, nil
-	} else {
-		return metricsFromCache, nil
 	}
-
+	return metricsFromCache, nil
 }
 
+// GetMetricTypes returns arrays of metric types given the plugin configuration type
 func (p *PluginNativeClient) GetMetricTypes(config plugin.PluginConfigType) ([]core.Metric, error) {
 	var reply []byte
 
@@ -209,6 +220,7 @@ func (p *PluginNativeClient) GetMetricTypes(config plugin.PluginConfigType) ([]c
 	return retMetricTypes, nil
 }
 
+// GetConfigPolicy returns the plugin config policy
 func (p *PluginNativeClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	var reply []byte
 	err := p.connection.Call("SessionState.GetConfigPolicy", []byte{}, &reply)

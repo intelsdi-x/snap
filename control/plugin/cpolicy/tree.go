@@ -27,19 +27,20 @@ import (
 	"github.com/intelsdi-x/snap/pkg/ctree"
 )
 
-// Allows adding of config policy by namespace and retrieving of policy from a tree
+// ConfigPolicy allows adding of config policy by namespace and retrieving of policy from a tree
 // at a specific namespace (merging the relevant hiearchy). Uses pkg.ConfigTree.
 type ConfigPolicy struct {
 	config *ctree.ConfigTree
 }
 
-// Returns a new ConfigPolicy.
+// New returns a new ConfigPolicy.
 func New() *ConfigPolicy {
 	return &ConfigPolicy{
 		config: ctree.New(),
 	}
 }
 
+// GobEncode encodes bytes into Gob
 func (c *ConfigPolicy) GobEncode() ([]byte, error) {
 	//todo throw an error if not frozen
 	w := new(bytes.Buffer)
@@ -50,6 +51,7 @@ func (c *ConfigPolicy) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes Gob into the Config of ConfigPolicy
 func (c *ConfigPolicy) GobDecode(buf []byte) error {
 	r := bytes.NewBuffer(buf)
 	decoder := gob.NewDecoder(r)
@@ -119,12 +121,12 @@ func (c *ConfigPolicy) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// Adds a ConfigPolicyNode at the provided namespace.
+// Add adds a ConfigPolicyNode at the provided namespace.
 func (c *ConfigPolicy) Add(ns []string, cpn *ConfigPolicyNode) {
 	c.config.Add(ns, cpn)
 }
 
-// Returns a ConfigPolicyNode that is a merged version of the namespace provided.
+// Get returns a ConfigPolicyNode that is a merged version of the namespace provided.
 func (c *ConfigPolicy) Get(ns []string) *ConfigPolicyNode {
 	// Automatically freeze on first Get
 	if !c.config.Frozen() {
@@ -144,7 +146,7 @@ func (c *ConfigPolicy) Get(ns []string) *ConfigPolicyNode {
 	}
 }
 
-// Freezes the ConfigPolicy from future writes (adds) and triggers compression
+// Freeze freezes the ConfigPolicy from future writes (adds) and triggers compression
 // of tree into read-performant version.
 func (c *ConfigPolicy) Freeze() {
 	c.config.Freeze()

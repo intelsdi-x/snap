@@ -30,14 +30,17 @@ type jsonEncoder struct {
 	e *encrypter.Encrypter
 }
 
+// NewJsonEncoder returns a new JSON encoder
 func NewJsonEncoder() *jsonEncoder {
 	return &jsonEncoder{}
 }
 
+// SetEncrypter sets the message encrypter
 func (j *jsonEncoder) SetEncrypter(e *encrypter.Encrypter) {
 	j.e = e
 }
 
+// Encode sets the encrypter for JSON marshalling
 func (j *jsonEncoder) Encode(in interface{}) ([]byte, error) {
 	out, err := json.Marshal(in)
 	if err != nil {
@@ -49,6 +52,7 @@ func (j *jsonEncoder) Encode(in interface{}) ([]byte, error) {
 	return out, err
 }
 
+// Decode sets the decrypter for JSON unmarshalling
 func (j *jsonEncoder) Decode(in []byte, out interface{}) error {
 	var err error
 	if j.e != nil {

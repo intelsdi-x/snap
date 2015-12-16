@@ -29,10 +29,11 @@ import (
 )
 
 var (
-	EmptyKeyError = errors.New("key cannot be empty")
+	// ErrEmptyKey is an error message when the key of a rule is empty
+	ErrEmptyKey = errors.New("key cannot be empty")
 )
 
-// A rule used to process ConfigData
+// Rule is used to process ConfigData
 type Rule interface {
 	Key() string
 	Validate(ctypes.ConfigValue) error
@@ -48,5 +49,5 @@ type rule struct {
 }
 
 func wrongType(key, inType, reqType string) error {
-	return errors.New(fmt.Sprintf("type mismatch (%s wanted type '%s' but provided type '%s')", key, reqType, inType))
+	return fmt.Errorf("type mismatch (%s wanted type '%s' but provided type '%s')", key, reqType, inType)
 }

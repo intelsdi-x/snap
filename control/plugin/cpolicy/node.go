@@ -31,11 +31,13 @@ import (
 	"github.com/intelsdi-x/snap/pkg/ctree"
 )
 
+// ProcessingErrors contains the errors encountered when processing the policy
 type ProcessingErrors struct {
 	errors []error
 	mutex  *sync.Mutex
 }
 
+// NewProcessingErrors returns a new instance of ProcessingErrors
 func NewProcessingErrors() *ProcessingErrors {
 	return &ProcessingErrors{
 		errors: []error{},
@@ -43,27 +45,35 @@ func NewProcessingErrors() *ProcessingErrors {
 	}
 }
 
+// Errors returns array of errors. It is a locked operation.
 func (p *ProcessingErrors) Errors() []error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.errors
 }
 
+// HasErrors returns true if there is processing error.
+// Otherwise, it returns false.
 func (p *ProcessingErrors) HasErrors() bool {
 	return len(p.errors) > 0
 }
 
+// AddError adds an error into the error array.
+// This is a locked operation.
 func (p *ProcessingErrors) AddError(e error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.errors = append(p.errors, e)
 }
 
+// ConfigPolicyNode represents a map of config policy rules.
 type ConfigPolicyNode struct {
 	rules map[string]Rule
 	mutex *sync.Mutex
 }
 
+// NewPolicyNode returns a new instance of
+// ConfigPolicyNode
 func NewPolicyNode() *ConfigPolicyNode {
 	return &ConfigPolicyNode{
 		rules: make(map[string]Rule),
@@ -90,6 +100,7 @@ func (c *ConfigPolicyNode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals array of byte into JSON
 func (c *ConfigPolicyNode) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Rules map[string]Rule `json:"rules"`
@@ -98,6 +109,7 @@ func (c *ConfigPolicyNode) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// GobEncode encodes rules of ConfigPolicyNode into Go binary
 func (c *ConfigPolicyNode) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
@@ -107,6 +119,7 @@ func (c *ConfigPolicyNode) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
+// GobDecode decodes bytes into rules of ConfigPolicyNode
 func (c *ConfigPolicyNode) GobDecode(buf []byte) error {
 	c.mutex = &sync.Mutex{}
 	r := bytes.NewBuffer(buf)
@@ -114,15 +127,16 @@ func (c *ConfigPolicyNode) GobDecode(buf []byte) error {
 	return decoder.Decode(&c.rules)
 }
 
-// Adds a rule to this policy node
-func (p *ConfigPolicyNode) Add(rules ...Rule) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+// Add adds a rule to this policy node
+func (c *ConfigPolicyNode) Add(rules ...Rule) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	for _, r := range rules {
-		p.rules[r.Key()] = r
+		c.rules[r.Key()] = r
 	}
 }
 
+// RuleTable represents the rule of ConfigPolicyNode
 type RuleTable struct {
 	Name     string
 	Type     string
@@ -132,12 +146,13 @@ type RuleTable struct {
 	Maximum  interface{}
 }
 
-func (p *ConfigPolicyNode) RulesAsTable() []RuleTable {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+// RulesAsTable returns array of RuleTable
+func (c *ConfigPolicyNode) RulesAsTable() []RuleTable {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
-	rt := make([]RuleTable, 0, len(p.rules))
-	for _, r := range p.rules {
+	rt := make([]RuleTable, 0, len(c.rules))
+	for _, r := range c.rules {
 		rt = append(rt, RuleTable{
 			Name:     r.Key(),
 			Type:     r.Type(),
@@ -150,6 +165,7 @@ func (p *ConfigPolicyNode) RulesAsTable() []RuleTable {
 	return rt
 }
 
+// HasRules returns the bool value if rules exist
 func (c *ConfigPolicyNode) HasRules() bool {
 	if len(c.rules) > 0 {
 		return true
@@ -157,7 +173,7 @@ func (c *ConfigPolicyNode) HasRules() bool {
 	return false
 }
 
-// Validates and returns a processed policy node or nil and error if validation has failed
+// Process validates and returns a processed policy node or nil and error if validation has failed
 func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *ProcessingErrors) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -174,7 +190,7 @@ func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string
 		} else {
 			// If it was required add error
 			if rule.Required() {
-				e := errors.New(fmt.Sprintf("required key missing (%s)", key))
+				e := fmt.Errorf("required key missing (%s)", key)
 				pErrors.AddError(e)
 			} else {
 				// If default returns we should add it
@@ -193,7 +209,7 @@ func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string
 	return &m, pErrors
 }
 
-// Merges a ConfigPolicyNode on top of this one (overwriting items where it occurs).
+// Merge merges a ConfigPolicyNode on top of this one (overwriting items where it occurs).
 func (c ConfigPolicyNode) Merge(n ctree.Node) ctree.Node {
 	// Because Add only allows the ConfigPolicyNode type we
 	// are safe to convert ctree.Node interface to ConfigPolicyNode

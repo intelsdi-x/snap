@@ -30,6 +30,8 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
+// PluginCacheClient interface defines the plugin
+// client caching methods
 type PluginCacheClient interface {
 	CacheHits(string, int) (uint64, error)
 	CacheMisses(string, int) (uint64, error)

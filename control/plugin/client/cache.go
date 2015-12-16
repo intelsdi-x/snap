@@ -29,7 +29,7 @@ import (
 	"github.com/intelsdi-x/snap/pkg/chrono"
 )
 
-// the time limit for which a cache entry is valid.
+// GlobalCacheExpiration the time limit for which a cache entry is valid.
 var GlobalCacheExpiration time.Duration
 
 var (
@@ -38,6 +38,7 @@ var (
 	}
 	cacheLog = log.WithField("_module", "client-cache")
 
+	// ErrCacheEntryDoesNotExist - error message when a cache error does not exist
 	ErrCacheEntryDoesNotExist = errors.New("cache entry does not exist")
 )
 
@@ -71,20 +72,20 @@ func (c *cache) get(ns string, version int) interface{} {
 			return cell.metric
 		}
 		return cell.metrics
-	} else {
-		if !ok {
-			c.table[key] = &cachecell{
-				time:    time.Time{},
-				metrics: nil,
-			}
-		}
-		c.table[key].misses++
-		cacheLog.WithFields(log.Fields{
-			"namespace": key,
-			"hits":      c.table[key].hits,
-			"misses":    c.table[key].misses,
-		}).Debug(fmt.Sprintf("cache miss [%s]", key))
 	}
+	if !ok {
+		c.table[key] = &cachecell{
+			time:    time.Time{},
+			metrics: nil,
+		}
+	}
+	c.table[key].misses++
+	cacheLog.WithFields(log.Fields{
+		"namespace": key,
+		"hits":      c.table[key].hits,
+		"misses":    c.table[key].misses,
+	}).Debug(fmt.Sprintf("cache miss [%s]", key))
+
 	return nil
 }
 

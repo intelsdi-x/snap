@@ -193,9 +193,8 @@ func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, er
 			idx++
 		}
 		return results, nil
-	} else {
-		return metricsFromCache, nil
 	}
+	return metricsFromCache, nil
 }
 
 // GetMetricTypes returns metric types that can be collected
@@ -259,6 +258,8 @@ func (h *httpJSONRPCClient) Publish(contentType string, content []byte, config m
 	return nil
 }
 
+// Process method encodes the inputs for processing and returns
+// the after processed HTTP response.
 func (h *httpJSONRPCClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
 	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
 	out, err := h.encoder.Encode(args)
@@ -276,17 +277,18 @@ func (h *httpJSONRPCClient) Process(contentType string, content []byte, config m
 	return processorReply.ContentType, processorReply.Content, nil
 }
 
+// GetType returns the plugin type in the upper case initial
 func (h *httpJSONRPCClient) GetType() string {
 	return upcaseInitial(h.pluginType.String())
 }
 
-type jsonRpcResp struct {
+type jsonRPCResp struct {
 	Id     int    `json:"id"`
 	Result []byte `json:"result"`
 	Error  string `json:"error"`
 }
 
-func (h *httpJSONRPCClient) call(method string, args []interface{}) (*jsonRpcResp, error) {
+func (h *httpJSONRPCClient) call(method string, args []interface{}) (*jsonRPCResp, error) {
 	data, err := json.Marshal(map[string]interface{}{
 		"method": method,
 		"id":     h.id,
@@ -315,7 +317,7 @@ func (h *httpJSONRPCClient) call(method string, args []interface{}) (*jsonRpcRes
 		return nil, err
 	}
 	defer resp.Body.Close()
-	result := &jsonRpcResp{}
+	result := &jsonRPCResp{}
 	if err = json.NewDecoder(resp.Body).Decode(result); err != nil {
 		bs, _ := ioutil.ReadAll(resp.Body)
 		logger.WithFields(log.Fields{
