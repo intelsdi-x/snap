@@ -8,8 +8,8 @@
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.7.3",
-			"Rev": "55eb11d21d2a31a3cc93838241d04800f52e823d"
+			"Comment": "v0.8.3",
+			"Rev": "cd321ca94de831148a41ea220fb3db7db88d45b3"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",
