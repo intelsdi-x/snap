@@ -41,7 +41,7 @@ Since tribe is implemented on top of a gossip based protocol there is no
 "master".
 
 ```
-$SNAP_PATH/bin/snapd --tribe-seed <ip or name of another tribe member>
+$SNAP_PATH/bin/snapd --tribe-seed <IP or name of another tribe member>
 ```
 
 ## Member
@@ -69,19 +69,19 @@ $SNAP_PATH/bin/snapctl agreement create <agreement_name>
 #### list
 
 ```
-$SNAP_PATH/bin/snapctl agreeement list
+$SNAP_PATH/bin/snapctl agreement list
 ```
 
 #### join
 
 ```
-$SNAP_PATH/bin/snapctl agreeement join <agreement_name> <member_name>
+$SNAP_PATH/bin/snapctl agreement join <agreement_name> <member_name>
 ```
 
 #### delete
 
 ```
-$SNAP_PATH/bin/snapctl agreeement delete <agreement_name>
+$SNAP_PATH/bin/snapctl agreement delete <agreement_name>
 ```
 
 #### leave

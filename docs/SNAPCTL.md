@@ -22,7 +22,7 @@ A powerful telemetry framework
 
 ## Usage
 ```
-$SNAP_PATH/bin/snapctl [global options] command [command options] [arguments...]
+$ $SNAP_PATH/bin/snapctl [global options] command [command options] [arguments...]
 ```
 ### Global Options
 ```
@@ -42,7 +42,7 @@ help, h      Shows a list of commands or help for one command
 ### Command Options
 #### task
 ```
-$SNAP_PATH/bin/snapctl task command [command options] [arguments...]
+$ $SNAP_PATH/bin/snapctl task command [command options] [arguments...]
 ```
 ```
 create      There are two ways to create a task.
@@ -72,7 +72,7 @@ help, h      Shows a list of commands or help for one command
 ```
 #### plugin
 ```
-$SNAP_PATH/bin/snapctl plugin command [command options] [arguments...]
+$ $SNAP_PATH/bin/snapctl plugin command [command options] [arguments...]
 ```
 ```
 load		load <plugin path> 
@@ -86,7 +86,7 @@ help, h		Shows a list of commands or help for one command
 ```
 #### metric
 ```
-$SNAP_PATH/bin/snapctl metric command [command options] [arguments...]
+$ $SNAP_PATH/bin/snapctl metric command [command options] [arguments...]
 ```
 ```
 list         list
@@ -101,7 +101,7 @@ Example Usage
 (Log level is set to 1 and signing is turned off for this example.)
 
 ```
-$SNAP_PATH/bin/snapd -l 1 -t 0 
+$ $SNAP_PATH/bin/snapd -l 1 -t 0 
 ```
 
 1. load a collector plugin
@@ -115,14 +115,14 @@ $SNAP_PATH/bin/snapd -l 1 -t 0
 
 ```
 
-$SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-collector-mock1
-$SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-processor-passthru
-$SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-publisher-file
-$SNAP_PATH/bin/snapctl plugin list
-$SNAP_PATH/bin/snapctl task create -t $SNAP_PATH/../examples/tasks/mock-file.json
-$SNAP_PATH/bin/snapctl task create -w $SNAP_PATH/../mgmt/rest/wmap_sample/1.json -i 1s -d 10s
-$SNAP_PATH/bin/snapctl task list
-$SNAP_PATH/bin/snapctl plugin unload -t collector -n mock1 -v <version>
-$SNAP_PATH/bin/snapctl plugin unload -t processor -n passthru -v <version>
-$SNAP_PATH/bin/snapctl plugin unload -t publisher -n publisher -v <version>
+$ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-collector-mock1
+$ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-processor-passthru
+$ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-publisher-file
+$ $SNAP_PATH/bin/snapctl plugin list
+$ $SNAP_PATH/bin/snapctl task create -t $SNAP_PATH/../examples/tasks/mock-file.json
+$ $SNAP_PATH/bin/snapctl task create -w $SNAP_PATH/../mgmt/rest/wmap_sample/1.json -i 1s -d 10s
+$ $SNAP_PATH/bin/snapctl task list
+$ $SNAP_PATH/bin/snapctl plugin unload -t collector -n mock -v <version>
+$ $SNAP_PATH/bin/snapctl plugin unload -t processor -n passthru -v <version>
+$ $SNAP_PATH/bin/snapctl plugin unload -t publisher -n publisher -v <version>
 ```

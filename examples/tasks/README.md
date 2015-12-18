@@ -18,20 +18,28 @@ limitations under the License.
 -->
 
 #Example tasks
-
-- **pcm-influx.json**
+- **mock-file.json/yaml**
   - schedule
     - interval (1s)
-  - collectors
-    - psutil
-    - pcm
-  - publish
-    - influxdb  
-
-- **psutil-influx**
+  - collector
+    - mock
+  - processor
+    - passthru
+  - publisher
+    - file
+    
+- **ceph-file.json**
   - schedule
     - interval (1s)
-  - collectors
+  - collector
+    - CEPH
+  - publisher
+    - file
+
+- **psutil-influx.json**
+  - schedule
+    - interval (1s)
+  - collector
     - psutil
-  - publish
-    - influxdb  
+  - publisher
+    - influxdb
