@@ -41,6 +41,7 @@ These plugins are in planned/active development. This list is useful if you want
 | IOstat | Collector | Collect from IOstat | [snap-plugin-collector-iostat](https://github.com/intelsdi-x/snap-plugin-collector-iostat) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
 | Nova | Collector | Collect from Nova/Libvirt | -| [@sandlbn](https://github.com/sandlbn) |
 | Open vSwitch | Collector | Collect Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
+| NFS Client | Collector | Collect NFS client counters and RPC data | [snap-plugin-collector-nfsclient](https://github.com/thomastaylor312/snap-plugin-collector-nfsclient) | [@thomastaylor312](https://github.com/thomastaylor312)
 
 ## Wish List
 This is a wish list of plugins for snap. If you see one here and want to start on it please let us know.
