@@ -46,7 +46,6 @@ type CallsRPC interface {
 
 // Native clients use golang net/rpc for communication to a native rpc server.
 type PluginNativeClient struct {
-	PluginCacheClient
 	connection CallsRPC
 	pluginType plugin.PluginType
 	encoder    encoding.Encoder
@@ -137,45 +136,45 @@ func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, e
 		return nil, errors.New("no metrics to collect")
 	}
 
-	metricsToCollect, metricsFromCache := checkCache(mts)
-
-	if len(metricsToCollect) > 0 {
-		args := plugin.CollectMetricsArgs{PluginMetricTypes: metricsToCollect}
-
-		out, err := p.encoder.Encode(args)
-		if err != nil {
-			return nil, err
+	metricsToCollect := make([]plugin.PluginMetricType, len(mts))
+	for idx, mt := range mts {
+		metricsToCollect[idx] = plugin.PluginMetricType{
+			Namespace_:          mt.Namespace(),
+			LastAdvertisedTime_: mt.LastAdvertisedTime(),
+			Version_:            mt.Version(),
+			Tags_:               mt.Tags(),
+			Labels_:             mt.Labels(),
+			Config_:             mt.Config(),
 		}
-
-		var reply []byte
-		err = p.connection.Call("Collector.CollectMetrics", out, &reply)
-		if err != nil {
-			return nil, err
-		}
-
-		r := &plugin.CollectMetricsReply{}
-		err = p.encoder.Decode(reply, r)
-		if err != nil {
-			return nil, err
-		}
-
-		updateCache(r.PluginMetrics)
-
-		results = make([]core.Metric, len(metricsFromCache)+len(r.PluginMetrics))
-		idx := 0
-		for _, m := range r.PluginMetrics {
-			results[idx] = m
-			idx++
-		}
-		for _, m := range metricsFromCache {
-			results[idx] = m
-			idx++
-		}
-		return results, nil
-	} else {
-		return metricsFromCache, nil
 	}
 
+	args := plugin.CollectMetricsArgs{PluginMetricTypes: metricsToCollect}
+
+	out, err := p.encoder.Encode(args)
+	if err != nil {
+		return nil, err
+	}
+
+	var reply []byte
+	err = p.connection.Call("Collector.CollectMetrics", out, &reply)
+	if err != nil {
+		return nil, err
+	}
+
+	r := &plugin.CollectMetricsReply{}
+	err = p.encoder.Decode(reply, r)
+	if err != nil {
+		return nil, err
+	}
+
+	results = make([]core.Metric, len(r.PluginMetrics))
+	idx := 0
+	for _, m := range r.PluginMetrics {
+		results[idx] = m
+		idx++
+	}
+
+	return results, nil
 }
 
 func (p *PluginNativeClient) GetMetricTypes(config plugin.PluginConfigType) ([]core.Metric, error) {
@@ -240,9 +239,8 @@ func newNativeClient(address string, timeout time.Duration, t plugin.PluginType,
 	}
 	r := rpc.NewClient(conn)
 	p := &PluginNativeClient{
-		PluginCacheClient: &pluginCacheClient{},
-		connection:        r,
-		pluginType:        t,
+		connection: r,
+		pluginType: t,
 	}
 
 	p.encoder = encoding.NewGobEncoder()

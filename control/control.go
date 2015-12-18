@@ -27,8 +27,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -36,8 +34,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
-	"github.com/intelsdi-x/snap/control/plugin/client"
-	"github.com/intelsdi-x/snap/control/routing"
+	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/control_event"
@@ -95,8 +92,6 @@ type runsPlugins interface {
 	SetEmitter(gomit.Emitter)
 	SetMetricCatalog(catalogsMetrics)
 	SetPluginManager(managesPlugins)
-	SetStrategy(RoutingStrategy)
-	Strategy() RoutingStrategy
 	Monitor() *monitor
 	runPlugin(*pluginDetails) error
 }
@@ -143,7 +138,7 @@ func MaxRunningPlugins(m int) PluginControlOpt {
 // CacheExpiration is the PluginControlOpt which sets the global metric cache TTL
 func CacheExpiration(t time.Duration) PluginControlOpt {
 	return func(c *pluginControl) {
-		client.GlobalCacheExpiration = t
+		strategy.GlobalCacheExpiration = t
 	}
 }
 
@@ -190,18 +185,14 @@ func New(opts ...PluginControlOpt) *pluginControl {
 	}).Debug("signing manager created")
 
 	// Plugin Runner
-	// TODO (danielscottt): handle routing strat changes via events
-	c.pluginRunner = newRunner(&routing.RoundRobinStrategy{})
+	c.pluginRunner = newRunner()
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("runner created")
 	c.pluginRunner.AddDelegates(c.eventManager)
-	c.pluginRunner.SetEmitter(c.eventManager) // emitter is passed to created availablePlugins
+	c.pluginRunner.SetEmitter(c.eventManager)
 	c.pluginRunner.SetMetricCatalog(c.metricCatalog)
 	c.pluginRunner.SetPluginManager(c.pluginManager)
-	c.pluginRunner.SetStrategy(&routing.RoundRobinStrategy{})
-
-	// Wire event manager
 
 	// Start stuff
 	err := c.pluginRunner.Start()
@@ -846,7 +837,6 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 // of metrics and errors.  If an error is encountered no metrics will be
 // returned.
 func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.Time) (metrics []core.Metric, errs []error) {
-
 	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
 		errs = append(errs, err)
@@ -859,55 +849,23 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
-
-		// retrieve an available plugin
-		pool, err := p.pluginRunner.AvailablePlugins().holdPool(pluginKey)
-		if err != nil {
-			errs = append(errs, err)
-			continue
+		// merge global plugin config into the config for the metric
+		for _, mt := range pmt.metricTypes {
+			if mt.Config() != nil {
+				mt.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, pmt.plugin.Name(), pmt.plugin.Version()))
+			}
 		}
-		if pool != nil {
-			defer pool.release()
 
-			ap, err := pool.selectAP(p.pluginRunner.Strategy())
+		wg.Add(1)
+
+		go func(pluginKey string, mt []core.Metric) {
+			mts, err := p.pluginRunner.AvailablePlugins().collectMetrics(pluginKey, mt)
 			if err != nil {
-				errs = append(errs, err)
-				continue
+				cError <- err
+			} else {
+				cMetrics <- mts
 			}
-
-			// cast client to PluginCollectorClient
-			cli, ok := ap.client.(client.PluginCollectorClient)
-			if !ok {
-				err := errors.New("unable to cast client to PluginCollectorClient")
-				errs = append(errs, err)
-				continue
-			}
-
-			wg.Add(1)
-
-			// merge global plugin config into the config for the metric
-			for _, mt := range pmt.metricTypes {
-				if mt.Config() != nil {
-					mt.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, ap.Name(), ap.Version()))
-				}
-			}
-
-			// get a metrics
-			go func(mt []core.Metric) {
-				mts, err := cli.CollectMetrics(mt)
-				if err != nil {
-					cError <- err
-				} else {
-					cMetrics <- mts
-				}
-			}(pmt.metricTypes)
-
-			// update statics about plugin
-			ap.hitCount++
-			ap.lastHitTime = time.Now()
-		} else {
-			errs = append(errs, fmt.Errorf("pool not found for plugin key: %s", pluginKey))
-		}
+		}(pluginKey, pmt.metricTypes)
 	}
 
 	go func() {
@@ -936,86 +894,22 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 // PublishMetrics
 func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
-	var errs []error
-	key := strings.Join([]string{"publisher", pluginName, strconv.Itoa(pluginVersion)}, ":")
-
-	// retrieve an available plugin
-	pool, err := p.pluginRunner.AvailablePlugins().holdPool(key)
-	if err != nil {
-		errs = append(errs, err)
-		return errs
+	// merge global plugin config into the config for this request
+	cfg := p.Config.Plugins.getPluginConfigDataNode(core.PublisherPluginType, pluginName, pluginVersion).Table()
+	for k, v := range config {
+		cfg[k] = v
 	}
-	if pool != nil {
-		defer pool.release()
-
-		ap, err := pool.selectAP(p.pluginRunner.Strategy())
-		if err != nil {
-			errs = append(errs, err)
-			return errs
-		}
-
-		cli, ok := ap.client.(client.PluginPublisherClient)
-		if !ok {
-			return []error{errors.New("unable to cast client to PluginPublisherClient")}
-		}
-
-		// merge global plugin config into the config for this request
-		cfg := p.Config.Plugins.getPluginConfigDataNode(core.PublisherPluginType, ap.Name(), ap.Version()).Table()
-		for k, v := range config {
-			cfg[k] = v
-		}
-
-		errp := cli.Publish(contentType, content, cfg)
-		if errp != nil {
-			return []error{errp}
-		}
-		ap.hitCount++
-		ap.lastHitTime = time.Now()
-		return nil
-	}
-	return []error{errors.New("pool not found")}
+	return p.pluginRunner.AvailablePlugins().publishMetrics(contentType, content, pluginName, pluginVersion, cfg)
 }
 
 // ProcessMetrics
 func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
-	var errs []error
-	key := strings.Join([]string{"processor", pluginName, strconv.Itoa(pluginVersion)}, ":")
-
-	// retrieve an available plugin
-	pool, err := p.pluginRunner.AvailablePlugins().holdPool(key)
-	if err != nil {
-		errs = append(errs, err)
-		return "", nil, errs
+	// merge global plugin config into the config for this request
+	cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, pluginName, pluginVersion).Table()
+	for k, v := range config {
+		cfg[k] = v
 	}
-	if pool != nil {
-		defer pool.release()
-
-		ap, err := pool.selectAP(p.pluginRunner.Strategy())
-		if err != nil {
-			errs = append(errs, err)
-			return "", nil, errs
-		}
-
-		cli, ok := ap.client.(client.PluginProcessorClient)
-		if !ok {
-			return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
-		}
-
-		// merge global plugin config into the config for this request
-		cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, ap.Name(), ap.Version()).Table()
-		for k, v := range config {
-			cfg[k] = v
-		}
-
-		ct, c, errp := cli.Process(contentType, content, cfg)
-		if errp != nil {
-			return "", nil, []error{errp}
-		}
-		ap.hitCount++
-		ap.lastHitTime = time.Now()
-		return ct, c, nil
-	}
-	return "", nil, []error{errors.New("pool not found")}
+	return p.pluginRunner.AvailablePlugins().processMetrics(contentType, content, pluginName, pluginVersion, cfg)
 }
 
 // GetPluginContentTypes returns accepted and returned content types for the
@@ -1077,29 +971,30 @@ func (p *pluginMetricTypes) Count() int {
 }
 
 // groupMetricTypesByPlugin groups metricTypes by a plugin.Key() and returns appropriate structure
-func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (map[string]pluginMetricTypes, error) {
+func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (map[string]pluginMetricTypes, serror.SnapError) {
 	pmts := make(map[string]pluginMetricTypes)
 	// For each plugin type select a matching available plugin to call
 	for _, mt := range metricTypes {
+		version := mt.Version()
+		if version == 0 {
+			// If the version is not provided we will choose the latest
+			version = -1
+		}
 
-		// This is set to choose the newest and not pin version. TODO, be sure version is set to -1 if not provided by user on Task creation.
-		lp, err := cat.GetPlugin(mt.Namespace(), -1)
+		lp, err := cat.GetPlugin(mt.Namespace(), version)
 		if err != nil {
-			return nil, err
+			return nil, serror.New(err)
 		}
 		// if loaded plugin is nil, we have failed.  return error
 		if lp == nil {
-			return nil, errorMetricNotFound(mt.Namespace())
+			return nil, serror.New(errorMetricNotFound(mt.Namespace()))
 		}
 
 		key := lp.Key()
-
-		//
 		pmt, _ := pmts[key]
 		pmt.plugin = lp
 		pmt.metricTypes = append(pmt.metricTypes, mt)
 		pmts[key] = pmt
-
 	}
 	return pmts, nil
 }

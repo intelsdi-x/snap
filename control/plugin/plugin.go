@@ -52,6 +52,25 @@ const (
 	PublisherPluginType
 )
 
+type RoutingStrategyType int
+
+// Returns string for matching enum RoutingStrategy type
+func (p RoutingStrategyType) String() string {
+	return routingStrategyTypes[p]
+}
+
+const (
+	// DefaultRouting is a least recently used strategy.
+	DefaultRouting RoutingStrategyType = iota
+	// StickyRouting is a one-to-one strategy.
+	// Using this strategy a tasks requests are sent to the same running instance of a plugin.
+	StickyRouting
+	// ConfigRouting is routing to plugins based on the config provided to the plugin.
+	// Using this strategy enables a running database plugin that has the same connection info between
+	// two tasks to be shared.
+	ConfigRouting
+)
+
 // Plugin response states
 type PluginResponseState int
 
@@ -81,6 +100,12 @@ var (
 		"processor",
 		"publisher",
 	}
+
+	routingStrategyTypes = [...]string{
+		"least-recently-used",
+		"sticky",
+		"config",
+	}
 )
 
 type Plugin interface {
@@ -93,41 +118,62 @@ type PluginMeta struct {
 	Version int
 	Type    PluginType
 	RPCType RPCType
-	// Content types accepted by this plugin in priority order
-	// snap.* means any snap type
+	// AcceptedContentTypes are types accepted by this plugin in priority order.
+	// snap.* means any snap type.
 	AcceptedContentTypes []string
-	// Return content types in priority order
-	// This is only really valid on processors
+	// ReturnedContentTypes are content types returned in priority order.
+	// This is only applicable on processors.
 	ReturnedContentTypes []string
-	// the max number of subscriptions this plugin
-	// can handle
+	// ConcurrencyCount is the max number concurrent calls the plugin may take.
+	// If there are 5 tasks using the plugin and concurrency count is 2 there
+	// will be 3 plugins running.
 	ConcurrencyCount int
-	// should always only be one instance of this plugin running
+	// Exclusive results in a single instance of the plugin running regardless
+	// the number of tasks using the plugin.
 	Exclusive bool
-	// do not encrypt communication with this plugin
+	// Unsecure results in unencrypted communication with this plugin.
 	Unsecure bool
-	// plugin cache TTL duration.
-	// It will be converted from the client
+	// CacheTTL will override the default cache TTL for the provided plugin.
 	CacheTTL time.Duration
+	// RoutingStrategy will override the routing strategy this plugin requires.
+	// The default routing strategy round-robin.
+	RoutingStrategy RoutingStrategyType
 }
 
 type metaOp func(m *PluginMeta)
 
+// ConcurrencyCount is an option that can be be provided to the func NewPluginMeta.
 func ConcurrencyCount(cc int) metaOp {
 	return func(m *PluginMeta) {
 		m.ConcurrencyCount = cc
 	}
 }
 
+// Exclusive is an option that can be be provided to the func NewPluginMeta.
 func Exclusive(e bool) metaOp {
 	return func(m *PluginMeta) {
 		m.Exclusive = e
 	}
 }
 
+// Unsecure is an option that can be be provided to the func NewPluginMeta.
 func Unsecure(e bool) metaOp {
 	return func(m *PluginMeta) {
 		m.Unsecure = e
+	}
+}
+
+// RoutingStrategy is an option that can be be provided to the func NewPluginMeta.
+func RoutingStrategy(r RoutingStrategyType) metaOp {
+	return func(m *PluginMeta) {
+		m.RoutingStrategy = r
+	}
+}
+
+// CacheTTL is an option that can be be provided to the func NewPluginMeta.
+func CacheTTL(t time.Duration) metaOp {
+	return func(m *PluginMeta) {
+		m.CacheTTL = t
 	}
 }
 

@@ -17,18 +17,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package control contains the routing functionality. Router is the entry point for execution commands and routing to plugins
-package control
+// Package strategy provides basic interfaces for routing to availble
+// plugins and caching metric data.
+package strategy
 
-import "github.com/intelsdi-x/snap/control/routing"
+import (
+	"time"
 
-// RouterResponse interface
-type RouterResponse interface {
+	"github.com/intelsdi-x/snap/core"
+)
+
+type SelectablePlugin interface {
+	HitCount() int
+	LastHit() time.Time
+	String() string
 }
 
-// RoutingStrategy interface
-type RoutingStrategy interface {
-	Select(routing.SelectablePluginPool, []routing.SelectablePlugin) (routing.SelectablePlugin, error)
-	// Handy string for logging what strategy is selected
+type RoutingAndCaching interface {
+	Select([]SelectablePlugin) (SelectablePlugin, error)
+	CheckCache(mts []core.Metric) ([]core.Metric, []core.Metric)
+	UpdateCache(mts []core.Metric)
+	CacheHits(string, int) (uint64, error)
+	CacheMisses(string, int) (uint64, error)
+	AllCacheHits() uint64
+	AllCacheMisses() uint64
+	CacheTTL() time.Duration
 	String() string
 }

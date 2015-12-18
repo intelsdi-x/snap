@@ -25,7 +25,6 @@ import (
 	"testing"
 
 	"github.com/intelsdi-x/snap/control/plugin"
-	"github.com/intelsdi-x/snap/control/routing"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -50,7 +49,7 @@ func TestAvailablePlugin(t *testing.T) {
 
 	Convey("Stop()", t, func() {
 		Convey("returns nil if plugin successfully stopped", func() {
-			r := newRunner(&routing.RoundRobinStrategy{})
+			r := newRunner()
 			a := plugin.Arg{
 				PluginLogPath: "/tmp/snap-test-plugin-stop.log",
 			}
@@ -68,13 +67,13 @@ func TestAvailablePlugin(t *testing.T) {
 func TestAvailablePlugins(t *testing.T) {
 	Convey("newAvailablePlugins()", t, func() {
 		Convey("returns a pointer to an availablePlugins struct", func() {
-			aps := newAvailablePlugins(&routing.RoundRobinStrategy{})
+			aps := newAvailablePlugins()
 			So(aps, ShouldHaveSameTypeAs, new(availablePlugins))
 		})
 	})
 	Convey("insert()", t, func() {
 		Convey("adds a collector into the collectors collection", func() {
-			aps := newAvailablePlugins(&routing.RoundRobinStrategy{})
+			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				pluginType: plugin.CollectorPluginType,
 				name:       "test",
@@ -90,7 +89,7 @@ func TestAvailablePlugins(t *testing.T) {
 			So(nap, ShouldEqual, ap)
 		})
 		Convey("returns an error if an unknown plugin type is given", func() {
-			aps := newAvailablePlugins(&routing.RoundRobinStrategy{})
+			aps := newAvailablePlugins()
 			ap := &availablePlugin{
 				pluginType: 99,
 				name:       "test",

@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package client
+package strategy
 
 import (
 	"testing"
@@ -32,22 +32,19 @@ import (
 func TestCache(t *testing.T) {
 	GlobalCacheExpiration = time.Duration(300 * time.Millisecond)
 	Convey("puts and gets a metric", t, func() {
-		mc := &cache{
-			table: make(map[string]*cachecell),
-		}
+		mc := NewCache(GlobalCacheExpiration)
 		foo := &plugin.PluginMetricType{
 			Namespace_: []string{"foo", "bar"},
 		}
 
 		mc.put("/foo/bar", 1, foo)
 		ret := mc.get("/foo/bar", 1)
+
 		So(ret, ShouldNotBeNil)
 		So(ret, ShouldEqual, foo)
 	})
 	Convey("returns nil if the cache cell does not exist", t, func() {
-		mc := &cache{
-			table: make(map[string]*cachecell),
-		}
+		mc := NewCache(GlobalCacheExpiration)
 		ret := mc.get("/foo/bar", 1)
 		So(ret, ShouldBeNil)
 	})
@@ -59,23 +56,19 @@ func TestCache(t *testing.T) {
 		// Use artificial time: pause to get base time.
 		chrono.Chrono.Pause()
 
-		mc := &cache{
-			table: make(map[string]*cachecell),
-		}
+		mc := NewCache(400 * time.Millisecond)
 		foo := &plugin.PluginMetricType{
 			Namespace_: []string{"foo", "bar"},
 		}
 		mc.put("/foo/bar", 1, foo)
-		chrono.Chrono.Forward(301 * time.Millisecond)
+		chrono.Chrono.Forward(401 * time.Millisecond)
 
 		ret := mc.get("/foo/bar", 1)
 		So(ret, ShouldBeNil)
 	})
 	Convey("hit and miss counts", t, func() {
 		Convey("ticks hit count when a cache entry is hit", func() {
-			mc := &cache{
-				table: make(map[string]*cachecell),
-			}
+			mc := NewCache(400 * time.Millisecond)
 			foo := &plugin.PluginMetricType{
 				Namespace_: []string{"foo", "bar"},
 			}
@@ -89,9 +82,7 @@ func TestCache(t *testing.T) {
 
 			chrono.Chrono.Pause()
 
-			mc := &cache{
-				table: make(map[string]*cachecell),
-			}
+			mc := NewCache(400 * time.Millisecond)
 			foo := &plugin.PluginMetricType{
 				Namespace_: []string{"foo", "bar"},
 			}
@@ -107,9 +98,7 @@ func TestCache(t *testing.T) {
 
 			chrono.Chrono.Pause()
 
-			mc := &cache{
-				table: make(map[string]*cachecell),
-			}
+			mc := NewCache(GlobalCacheExpiration)
 			foo := &plugin.PluginMetricType{
 				Namespace_: []string{"foo", "bar"},
 			}

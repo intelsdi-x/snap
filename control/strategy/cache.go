@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package client
+package strategy
 
 import (
 	"errors"
@@ -29,14 +29,12 @@ import (
 	"github.com/intelsdi-x/snap/pkg/chrono"
 )
 
-// the time limit for which a cache entry is valid.
+// GlobalCacheExpiration the default time limit for which a cache entry is valid.
+// A plugin can override the GlobalCacheExpiration (default).
 var GlobalCacheExpiration time.Duration
 
 var (
-	metricCache = cache{
-		table: make(map[string]*cachecell),
-	}
-	cacheLog = log.WithField("_module", "client-cache")
+	cacheLog = log.WithField("_module", "routing-cache")
 
 	ErrCacheEntryDoesNotExist = errors.New("cache entry does not exist")
 )
@@ -51,6 +49,14 @@ type cachecell struct {
 
 type cache struct {
 	table map[string]*cachecell
+	ttl   time.Duration
+}
+
+func NewCache(expiration time.Duration) *cache {
+	return &cache{
+		table: make(map[string]*cachecell),
+		ttl:   expiration,
+	}
 }
 
 func (c *cache) get(ns string, version int) interface{} {
@@ -60,7 +66,7 @@ func (c *cache) get(ns string, version int) interface{} {
 	)
 
 	key := fmt.Sprintf("%v:%v", ns, version)
-	if cell, ok = c.table[key]; ok && chrono.Chrono.Now().Sub(cell.time) < GlobalCacheExpiration {
+	if cell, ok = c.table[key]; ok && chrono.Chrono.Now().Sub(cell.time) < c.ttl {
 		cell.hits++
 		cacheLog.WithFields(log.Fields{
 			"namespace": key,

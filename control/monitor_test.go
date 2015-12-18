@@ -26,14 +26,13 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
-	"github.com/intelsdi-x/snap/control/routing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestMonitor(t *testing.T) {
 	Convey("monitor", t, func() {
-		aps := newAvailablePlugins(&routing.RoundRobinStrategy{})
+		aps := newAvailablePlugins()
 
 		ap1 := &availablePlugin{
 			pluginType: plugin.CollectorPluginType,

@@ -43,7 +43,6 @@ import (
 var logger = log.WithField("_module", "client-httpjsonrpc")
 
 type httpJSONRPCClient struct {
-	PluginCacheClient
 	url        string
 	id         uint64
 	timeout    time.Duration
@@ -55,11 +54,10 @@ type httpJSONRPCClient struct {
 // NewCollectorHttpJSONRPCClient returns CollectorHttpJSONRPCClient
 func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginCollectorClient, error) {
 	hjr := &httpJSONRPCClient{
-		PluginCacheClient: &pluginCacheClient{},
-		url:               u,
-		timeout:           timeout,
-		pluginType:        plugin.CollectorPluginType,
-		encoder:           encoding.NewJsonEncoder(),
+		url:        u,
+		timeout:    timeout,
+		pluginType: plugin.CollectorPluginType,
+		encoder:    encoding.NewJsonEncoder(),
 	}
 	if secure {
 		key, err := encrypter.GenerateKey()
@@ -76,11 +74,10 @@ func NewCollectorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.Pub
 
 func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginProcessorClient, error) {
 	hjr := &httpJSONRPCClient{
-		PluginCacheClient: &pluginCacheClient{},
-		url:               u,
-		timeout:           timeout,
-		pluginType:        plugin.ProcessorPluginType,
-		encoder:           encoding.NewJsonEncoder(),
+		url:        u,
+		timeout:    timeout,
+		pluginType: plugin.ProcessorPluginType,
+		encoder:    encoding.NewJsonEncoder(),
 	}
 	if secure {
 		key, err := encrypter.GenerateKey()
@@ -97,11 +94,10 @@ func NewProcessorHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.Pub
 
 func NewPublisherHttpJSONRPCClient(u string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginPublisherClient, error) {
 	hjr := &httpJSONRPCClient{
-		PluginCacheClient: &pluginCacheClient{},
-		url:               u,
-		timeout:           timeout,
-		pluginType:        plugin.PublisherPluginType,
-		encoder:           encoding.NewJsonEncoder(),
+		url:        u,
+		timeout:    timeout,
+		pluginType: plugin.PublisherPluginType,
+		encoder:    encoding.NewJsonEncoder(),
 	}
 	if secure {
 		key, err := encrypter.GenerateKey()
@@ -146,56 +142,56 @@ func (h *httpJSONRPCClient) Kill(reason string) error {
 
 // CollectMetrics returns collected metrics
 func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {
-
 	var results []core.Metric
 	if len(mts) == 0 {
 		return nil, errors.New("no metrics to collect")
 	}
 
-	metricsToCollect, metricsFromCache := checkCache(mts)
-
-	if len(metricsToCollect) > 0 {
-		args := &plugin.CollectMetricsArgs{PluginMetricTypes: metricsToCollect}
-
-		out, err := h.encoder.Encode(args)
-		if err != nil {
-			return nil, err
+	metricsToCollect := make([]plugin.PluginMetricType, len(mts))
+	for idx, mt := range mts {
+		metricsToCollect[idx] = plugin.PluginMetricType{
+			Namespace_:          mt.Namespace(),
+			LastAdvertisedTime_: mt.LastAdvertisedTime(),
+			Version_:            mt.Version(),
+			Tags_:               mt.Tags(),
+			Labels_:             mt.Labels(),
+			Config_:             mt.Config(),
 		}
-
-		res, err := h.call("Collector.CollectMetrics", []interface{}{out})
-		if err != nil {
-			return nil, err
-		}
-		if len(res.Result) == 0 {
-			err := errors.New("Invalid response: result is 0")
-			logger.WithFields(log.Fields{
-				"_block":           "CollectMetrics",
-				"jsonrpc response": fmt.Sprintf("%+v", res),
-			}).Error(err)
-			return nil, err
-		}
-		r := &plugin.CollectMetricsReply{}
-		err = h.encoder.Decode(res.Result, r)
-		if err != nil {
-			return nil, err
-		}
-
-		updateCache(r.PluginMetrics)
-
-		results = make([]core.Metric, len(metricsFromCache)+len(r.PluginMetrics))
-		idx := 0
-		for _, m := range r.PluginMetrics {
-			results[idx] = m
-			idx++
-		}
-		for _, m := range metricsFromCache {
-			results[idx] = m
-			idx++
-		}
-		return results, nil
-	} else {
-		return metricsFromCache, nil
 	}
+
+	args := &plugin.CollectMetricsArgs{PluginMetricTypes: metricsToCollect}
+
+	out, err := h.encoder.Encode(args)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := h.call("Collector.CollectMetrics", []interface{}{out})
+	if err != nil {
+		return nil, err
+	}
+	if len(res.Result) == 0 {
+		err := errors.New("Invalid response: result is 0")
+		logger.WithFields(log.Fields{
+			"_block":           "CollectMetrics",
+			"jsonrpc response": fmt.Sprintf("%+v", res),
+		}).Error(err)
+		return nil, err
+	}
+	r := &plugin.CollectMetricsReply{}
+	err = h.encoder.Decode(res.Result, r)
+	if err != nil {
+		return nil, err
+	}
+
+	results = make([]core.Metric, len(r.PluginMetrics))
+	idx := 0
+	for _, m := range r.PluginMetrics {
+		results[idx] = m
+		idx++
+	}
+
+	return results, nil
 }
 
 // GetMetricTypes returns metric types that can be collected
