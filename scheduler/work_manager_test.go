@@ -102,7 +102,7 @@ func TestWorkerManager(t *testing.T) {
 
 			// Wait for all queued jobs to be marked complete.
 			for _, qj := range qjs {
-				qj.Await()
+				qj.Promise().Await()
 			}
 
 			// The work queue should be empty at this point.

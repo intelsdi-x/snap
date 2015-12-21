@@ -39,13 +39,13 @@ func TestQueue(t *testing.T) {
 		x := 0
 		q := newQueue(5, func(j queuedJob) {
 			x = 1
-			j.Complete()
+			j.Promise().Complete([]error{})
 		})
 		q.Start()
 		j := &collectorJob{coreJob: &coreJob{}}
 		qj := newQueuedJob(j)
 		q.Event <- qj
-		qj.Await()
+		qj.Promise().Await()
 		So(x, ShouldEqual, 1)
 		q.Stop()
 	})
@@ -54,7 +54,7 @@ func TestQueue(t *testing.T) {
 		x := []time.Time{}
 		q := newQueue(5, func(j queuedJob) {
 			x = append(x, j.Job().Deadline())
-			j.Complete()
+			j.Promise().Complete([]error{})
 		})
 		q.Start()
 
@@ -66,7 +66,7 @@ func TestQueue(t *testing.T) {
 			j := &collectorJob{coreJob: &coreJob{}}
 			j.deadline = time.Now().Add(time.Duration(i) * time.Second)
 			qj := newQueuedJob(j)
-			qj.AndThen(func(queuedJob) { wg.Done() })
+			qj.Promise().AndThen(func(errors []error) { wg.Done() })
 			q.Event <- qj
 		}
 
