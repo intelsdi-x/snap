@@ -23,7 +23,7 @@ import "sync"
 
 /*
 
-  caller [optional: qj.Await()]
+  caller [optional: qj.Promise().Await()]
      ^
      |
      |
