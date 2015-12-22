@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -32,6 +31,7 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	. "github.com/intelsdi-x/snap/pkg/promise"
 )
 
 const (
@@ -51,25 +51,18 @@ const (
 // Await) are idempotent and thread-safe.
 type queuedJob interface {
 	Job() job
-	IsComplete() bool
-	Complete()
-	Await() []error
-	AndThen(f func(queuedJob))
+	Promise() Promise
 }
 
 type qj struct {
-	sync.Mutex
-
-	job          job
-	complete     bool
-	completeChan chan struct{}
+	job     job
+	promise Promise
 }
 
 func newQueuedJob(job job) queuedJob {
 	return &qj{
-		job:          job,
-		complete:     false,
-		completeChan: make(chan struct{}),
+		job:     job,
+		promise: NewPromise(),
 	}
 }
 
@@ -78,35 +71,9 @@ func (j *qj) Job() job {
 	return j.job
 }
 
-// Returns whether this job is complete yet, without blocking.
-func (j *qj) IsComplete() bool {
-	return j.complete
-}
-
-// This function unblocks everyone waiting for job completion.
-func (j *qj) Complete() {
-	j.Lock()
-	defer j.Unlock()
-
-	if !j.complete {
-		j.complete = true
-		close(j.completeChan)
-	}
-}
-
-// This function BLOCKS the caller until the job is
-// marked complete.
-func (j *qj) Await() []error {
-	<-j.completeChan
-	return j.Job().Errors()
-}
-
-// Invokes the supplied function after the job completes.
-func (j *qj) AndThen(f func(queuedJob)) {
-	go func() {
-		j.Await()
-		f(j)
-	}()
+// Returns the underlying promise.
+func (j *qj) Promise() Promise {
+	return j.promise
 }
 
 // Primary type for job inside

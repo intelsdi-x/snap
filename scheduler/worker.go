@@ -53,7 +53,7 @@ func (w *worker) start() {
 			// mark the job complete for one of two reasons:
 			// - this job was just run
 			// - the deadline was exceeded and this job will not run
-			q.Complete()
+			q.Promise().Complete(q.Job().Errors())
 
 		// the single kill-channel -- used when resizing worker pools
 		case <-w.kamikaze:
