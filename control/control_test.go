@@ -881,6 +881,8 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(err, ShouldBeNil)
 			ttl, err = pool.CacheTTL()
 			So(err, ShouldBeNil)
+			// The minimum TTL advertised by the plugin is 100ms therefore the TTL for the
+			// pool should be the global cache expiration
 			So(ttl, ShouldEqual, strategy.GlobalCacheExpiration)
 			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1))
 			hits, err := pool.CacheHits(core.JoinNamespace(m.namespace), 2)

@@ -367,7 +367,8 @@ func (p *apPool) applyPluginMeta(ap *availablePlugin) error {
 
 	// Set the cache TTL
 	cacheTTL := strategy.GlobalCacheExpiration
-	if ap.meta.CacheTTL != 0 {
+	// if the plugin exposes a default TTL that is greater the the global default use it
+	if ap.meta.CacheTTL != 0 && ap.meta.CacheTTL > strategy.GlobalCacheExpiration {
 		cacheTTL = ap.meta.CacheTTL
 	}
 
