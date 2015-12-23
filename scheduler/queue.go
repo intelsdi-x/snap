@@ -117,7 +117,7 @@ func (q *queue) start() {
 					Job: e.Job(),
 				}
 				q.Err <- qe
-				e.Complete() // Signal job termination.
+				e.Promise().Complete([]error{qe}) // Signal job termination.
 				continue
 			}
 

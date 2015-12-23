@@ -24,39 +24,37 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	. "github.com/intelsdi-x/snap/pkg/promise"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// A mockJob can be either synchronus (will not return from Run()
-// until a receiver is ready on completeChan) or asynchronous.
+// A mockJob can be either asynchronous or synchronous (will not return from
+// Run() until a caller is ready in Await()).
 //
 // Test code can rendez-vous with synchronous mockJobs in Run()
 // by invoking Await(), which also unblocks the worker executing
 // the job.
 //
 // For asynchronous mockJobs, Await() blocks the caller until the
-// job does a buffered send on completeChan in Run().
+// job is completed in Run().
 type mockJob struct {
-	errors       []error
-	worked       bool
-	deadline     time.Time
-	starttime    time.Time
-	completeChan chan struct{}
+	errors          []error
+	sync            bool
+	worked          bool
+	deadline        time.Time
+	starttime       time.Time
+	completePromise Promise
+	syncPromise     Promise
 }
 
 func newMockJob(sync bool) *mockJob {
-	var completeChan chan struct{}
-	if sync {
-		completeChan = make(chan struct{})
-	} else {
-		completeChan = make(chan struct{}, 1)
-	}
-
 	return &mockJob{
-		worked:       false,
-		deadline:     time.Now().Add(1 * time.Second),
-		starttime:    time.Now(),
-		completeChan: completeChan,
+		sync:            sync,
+		worked:          false,
+		deadline:        time.Now().Add(1 * time.Second),
+		starttime:       time.Now(),
+		completePromise: NewPromise(),
+		syncPromise:     NewPromise(),
 	}
 }
 
@@ -64,11 +62,18 @@ func (mj *mockJob) Errors() []error      { return mj.errors }
 func (mj *mockJob) StartTime() time.Time { return mj.starttime }
 func (mj *mockJob) Deadline() time.Time  { return mj.deadline }
 func (mj *mockJob) Type() jobType        { return collectJobType }
-func (mj *mockJob) Await()               { <-mj.completeChan }
+
+func (mj *mockJob) Await() {
+	mj.syncPromise.Complete([]error{})
+	mj.completePromise.Await()
+}
 
 func (mj *mockJob) Run() {
 	mj.worked = true
-	mj.completeChan <- struct{}{}
+	if mj.sync {
+		mj.syncPromise.Await()
+	}
+	mj.completePromise.Complete([]error{})
 }
 
 func TestWorkerManager(t *testing.T) {
@@ -87,7 +92,7 @@ func TestWorkerManager(t *testing.T) {
 			manager := newWorkManager(CollectQSizeOption(1), CollectWkrSizeOption(1))
 			manager.Start()
 
-			j1 := newMockJob(true) // j1 does a blocking send on its completeChan
+			j1 := newMockJob(true) // j1 blocks in Run() until Await() is invoked.
 			j2 := newMockJob(false)
 			j3 := newMockJob(false)
 
@@ -102,7 +107,7 @@ func TestWorkerManager(t *testing.T) {
 
 			// Wait for all queued jobs to be marked complete.
 			for _, qj := range qjs {
-				qj.Await()
+				qj.Promise().Await()
 			}
 
 			// The work queue should be empty at this point.
