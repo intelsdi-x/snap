@@ -62,3 +62,31 @@ func TestPromise(t *testing.T) {
 		})
 	})
 }
+
+func TestRendezVous(t *testing.T) {
+	Convey("IsComplete()", t, func() {
+		Convey("it should return the completion status", func() {
+			r := NewRendezVous()
+			So(r.IsComplete(), ShouldBeFalse)
+			go r.A()
+			r.B()
+			So(r.IsComplete(), ShouldBeTrue)
+		})
+	})
+	Convey("A() and B()", t, func() {
+		Convey("it should synchronize concurrent processes", func() {
+			r1, r2 := NewRendezVous(), NewRendezVous()
+			evidence := false
+
+			go func() {
+				r1.A()
+				evidence = true
+				r2.A()
+			}()
+
+			r1.B()
+			r2.B()
+			So(evidence, ShouldBeTrue)
+		})
+	})
+}

@@ -20,6 +20,7 @@ limitations under the License.
 package scheduler
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -28,33 +29,46 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// A mockJob can be either asynchronous or synchronous (will not return from
-// Run() until a caller is ready in Await()).
-//
-// Test code can rendez-vous with synchronous mockJobs in Run()
-// by invoking Await(), which also unblocks the worker executing
-// the job.
-//
-// For asynchronous mockJobs, Await() blocks the caller until the
-// job is completed in Run().
 type mockJob struct {
+	sync.Mutex
+
 	errors          []error
-	sync            bool
 	worked          bool
 	deadline        time.Time
 	starttime       time.Time
 	completePromise Promise
-	syncPromise     Promise
+	numSyncs        int
+	rvs             []RendezVous
 }
 
-func newMockJob(sync bool) *mockJob {
+// Create an asynchronous mockJob.
+//
+// The returned job will NOT block waiting for any calls to RendezVous()
+// when Run() is invoked.
+func newMockJob() *mockJob {
+	return newMultiSyncMockJob(0)
+}
+
+// Create a synchronous mockJob.
+//
+// The returned job WILL block waiting for the supplied number of calls
+// to RendezVous() when Run() is invoked before completing.
+//
+// All callers of Await() will also be transitively blocked by these
+// rendez-vous steps.
+func newMultiSyncMockJob(n int) *mockJob {
+	rvs := make([]RendezVous, n)
+	for i := 0; i < n; i++ {
+		rvs[i] = NewRendezVous()
+	}
+
 	return &mockJob{
-		sync:            sync,
 		worked:          false,
 		deadline:        time.Now().Add(1 * time.Second),
 		starttime:       time.Now(),
 		completePromise: NewPromise(),
-		syncPromise:     NewPromise(),
+		numSyncs:        0,
+		rvs:             rvs,
 	}
 }
 
@@ -63,16 +77,26 @@ func (mj *mockJob) StartTime() time.Time { return mj.starttime }
 func (mj *mockJob) Deadline() time.Time  { return mj.deadline }
 func (mj *mockJob) Type() jobType        { return collectJobType }
 
+// Complete the first incomplete rendez-vous (if there is one)
+func (mj *mockJob) RendezVous() {
+	mj.Lock()
+	defer mj.Unlock()
+
+	if mj.numSyncs < len(mj.rvs) {
+		mj.rvs[mj.numSyncs].B()
+		mj.numSyncs++
+	}
+}
+
 func (mj *mockJob) Await() {
-	mj.syncPromise.Complete([]error{})
 	mj.completePromise.Await()
 }
 
 func (mj *mockJob) Run() {
-	mj.worked = true
-	if mj.sync {
-		mj.syncPromise.Await()
+	for _, rv := range mj.rvs {
+		rv.A()
 	}
+	mj.worked = true
 	mj.completePromise.Complete([]error{})
 }
 
@@ -81,7 +105,7 @@ func TestWorkerManager(t *testing.T) {
 	Convey(".Work()", t, func() {
 		Convey("Sends / receives work to / from worker", func() {
 			manager := newWorkManager()
-			j := newMockJob(false)
+			j := newMockJob()
 			manager.Work(j)
 			j.Await()
 			So(j.worked, ShouldEqual, true)
@@ -92,32 +116,38 @@ func TestWorkerManager(t *testing.T) {
 			manager := newWorkManager(CollectQSizeOption(1), CollectWkrSizeOption(1))
 			manager.Start()
 
-			j1 := newMockJob(true) // j1 blocks in Run() until Await() is invoked.
-			j2 := newMockJob(false)
-			j3 := newMockJob(false)
+			j1 := newMultiSyncMockJob(2) // j1 will block in Run() twice.
+			j2 := newMockJob()
+			j3 := newMockJob()
 
 			// Submit three jobs.
-			qjs := []queuedJob{}
-			qjs = append(qjs, manager.Work(j1))
-			qjs = append(qjs, manager.Work(j2))
-			qjs = append(qjs, manager.Work(j3))
+			qj1 := manager.Work(j1)
+			j1.RendezVous() // First RendezVous with j1 in Run().
+			qj2 := manager.Work(j2)
+			qj3 := manager.Work(j3)
 
-			// Await completion of j1 (also unblocking j1.Run()).
-			j1.Await()
+			// Wait for the third queued job to be marked complete,
+			// "out-of-order" and with errors.
+			errs3 := qj3.Promise().Await()
+			So(errs3, ShouldNotBeEmpty)
 
-			// Wait for all queued jobs to be marked complete.
-			for _, qj := range qjs {
-				qj.Promise().Await()
-			}
+			j1.RendezVous() // Second RendezVous with j1 (unblocks j1.Run()).
+
+			errs1 := qj1.Promise().Await()
+			So(errs1, ShouldBeEmpty)
+
+			errs2 := qj2.Promise().Await()
+			So(errs2, ShouldBeEmpty)
 
 			// The work queue should be empty at this point.
 			So(manager.collectq.items, ShouldBeEmpty)
 
-			// The first job should have been worked.
+			// The first and second jobs should have been worked.
 			So(j1.worked, ShouldBeTrue)
+			So(j2.worked, ShouldBeTrue)
 
-			// At least one of the second and third jobs should have been dropped.
-			So(j2.worked && j3.worked, ShouldBeFalse)
+			// The third job should have been dropped.
+			So(j3.worked, ShouldBeFalse)
 		})
 
 		// The below convey is WIP

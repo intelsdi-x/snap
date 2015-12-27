@@ -35,7 +35,7 @@ func TestWorker(t *testing.T) {
 		rcv := make(chan queuedJob)
 		w := newWorker(rcv)
 		go w.start()
-		mj := newMockJob(false)
+		mj := newMockJob()
 		rcv <- newQueuedJob(mj)
 		mj.Await()
 		So(mj.worked, ShouldEqual, true)
@@ -52,7 +52,7 @@ func TestWorker(t *testing.T) {
 		rcv := make(chan queuedJob)
 		w := newWorker(rcv)
 		go w.start()
-		mj := newMockJob(false)
+		mj := newMockJob()
 		// Time travel 1.5 seconds.
 		chrono.Chrono.Forward(1500 * time.Millisecond)
 		qj := newQueuedJob(mj)
