@@ -8,7 +8,9 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | :---- | :---- | :---------- | :--- |
 | CEPH | Collector | Collects from CEPH cluster | [snap-plugin-collector-ceph](https://github.com/intelsdi-x/snap-plugin-collector-ceph)
 | Docker | Collector | Collects from Docker engine | [snap-plugin-collector-docker](https://github.com/intelsdi-x/snap-plugin-collector-docker)
-| Facter | Collector | Collects from Facter | [snap-plugin-collector-facter](https://github.com/intelsdi-x/snap-plugin-collector-facter) |
+| Ethtool | Collector | Collect from ethtool stats & registry dump |[snap-plugin-collector-ethtool](https://github.com/intelsdi-x/snap-plugin-collector-ethtool)
+| Facter | Collector | Collects from Facter | [snap-plugin-collector-facter](https://github.com/intelsdi-x/snap-plugin-collector-facter)
+| IOstat | Collector | Collect from IOstat | [snap-plugin-collector-iostat](https://github.com/intelsdi-x/snap-plugin-collector-iostat)
 | Libvirt | Collector | Collects from libvirt | [snap-plugin-collector-libvirt](https://github.com/intelsdi-x/snap-plugin-collector-libvirt)
 | NodeManager | Collector | Collects from Intel Node Manager | [snap-plugin-collector-node-manager](https://github.com/intelsdi-x/snap-plugin-collector-node-manager)
 | PCM | Collector | Collects from PCM.x | [snap-plugin-collector-pcm](https://github.com/intelsdi-x/snap-plugin-collector-pcm)|
@@ -16,10 +18,10 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | PSUtil | Collector | Collects from psutil | [snap-plugin-collector-psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil) |
 | SMART | Collector | Collects SMART metrics from Intel SSDs | [snap-plugin-collector-smart](https://github.com/intelsdi-x/snap-plugin-collector-smart) |
 | OSv | Collector | Collect from OSv | [snap-plugin-collector-osv](https://github.com/intelsdi-x/snap-plugin-collector-osv) |
- | 
+ |
 | Movingaverage | Processor | Processes data and outputs movingaverage | [snap-plugin-processor-movingaverage](https://github.com/intelsdi-x/snap-plugin-processor-movingaverage) |
- | 
-| HANA | Publisher | Writes to SAP HANA Database | [snap-plugin-publisher-hana](https://github.com/intelsdi-x/snap-plugin-publisher-hana) | 
+ |
+| HANA | Publisher | Writes to SAP HANA Database | [snap-plugin-publisher-hana](https://github.com/intelsdi-x/snap-plugin-publisher-hana) |
 | InfluxDB | Publisher | Writes to Influx Database | [snap-plugin-publisher-influxdb](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb) |
 | Kafka | Publisher | Writes to Kafka messaging system | [snap-plugin-publisher-kafka](https://github.com/intelsdi-x/snap-plugin-publisher-kafka) |
 | MySQL | Publisher | Writes to MySQL Database | [snap-plugin-publisher-mysql](https://github.com/intelsdi-x/snap-plugin-publisher-mysql) |
@@ -37,11 +39,16 @@ These plugins are in planned/active development. This list is useful if you want
 
 | Name  | Type  | Description | Link | Authors |
 | :---- | :---- | :---------- | :--- | :------ |
-| Ethtool | Collector | Collect from ethtool stats & registry dump |[snap-plugin-collector-ethtool](https://github.com/intelsdi-x/snap-plugin-collector-ethtool)| [@lmroz](https://github.com/lmroz)|
-| IOstat | Collector | Collect from IOstat | [snap-plugin-collector-iostat](https://github.com/intelsdi-x/snap-plugin-collector-iostat) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
 | Nova | Collector | Collect from Nova/Libvirt | -| [@sandlbn](https://github.com/sandlbn) |
 | Open vSwitch | Collector | Collect Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
-| NFS Client | Collector | Collect NFS client counters and RPC data | [snap-plugin-collector-nfsclient](https://github.com/thomastaylor312/snap-plugin-collector-nfsclient) | [@thomastaylor312](https://github.com/thomastaylor312)
+| NFS Client | Collector | Collect NFS client counters and RPC data | [snap-plugin-collector-nfsclient](https://github.com/thomastaylor312/snap-plugin-collector-nfsclient) | [@thomastaylor312](https://github.com/thomastaylor312) |
+| Disk | Collector | Collects disk related metrics from Linux procfs | [snap-plugin-collector-disk](https://github.com/intelsdi-x/snap-plugin-collector-disk) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
+| Swap | Collector | Collects swap related metrics from Linux procfs | [snap-plugin-collector-swap](https://github.com/intelsdi-x/snap-plugin-collector-swap) | [@andrzej-k](https://github.com/andrzej-k) |
+| Meminfo | Collector | Collects memory related metrics from Linux procfs | [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo) | [@marcin-krolik](https://github.com/marcin-krolik) |
+| Load | Collector | Collects plaform load metrics from Linux procfs | [snap-plugin-collector-load](https://github.com/intelsdi-x/snap-plugin-collector-load) | [@marcin-krolik](https://github.com/marcin-krolik) |
+| Interface | Collector | Collects network interfaces metrics from Linux procfs | [snap-plugin-collector-interface](https://github.com/intelsdi-x/snap-plugin-collector-interface) | [@marcin-krolik](https://github.com/marcin-krolik) |
+| Df | Collector | Collects disk space metrics from ```df``` Linux tool | [snap-plugin-collector-df](https://github.com/intelsdi-x/snap-plugin-collector-df) | [@PatrykMatyjasek](https://github.com/PatrykMatyjasek) |
+| HAProxy | Collector | Collects metrics from HAProxy | [snap-plugin-collector-haproxy](https://github.com/intelsdi-x/snap-plugin-collector-haproxy) | [@marcin-krolik](https://github.com/marcin-krolik) |
 
 ## Wish List
 This is a wish list of plugins for snap. If you see one here and want to start on it please let us know.
@@ -54,7 +61,6 @@ This is a wish list of plugins for snap. If you see one here and want to start o
 - Kubernetes Minion
 - Mesos Slave
 - Mesos Master
-- OpenStack Nova
 
 #### Processor
 
@@ -67,3 +73,4 @@ This is a wish list of plugins for snap. If you see one here and want to start o
 - ActiveMQ
 - SQLite
 - Ceilometer (possibly just OSLO proc + RMQ)
+
