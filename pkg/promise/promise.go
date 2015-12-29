@@ -1,7 +1,9 @@
 package promise
 
 import (
+	"fmt"
 	"sync"
+	"time"
 )
 
 // A disposable write-once latch, to act as a synchronization
@@ -9,12 +11,14 @@ import (
 // (successful or otherwise).
 //
 // Functions that operate on this type (IsComplete, Complete,
-// Await) are idempotent and thread-safe.
+// Await, AwaitUntil) are idempotent and thread-safe.
 type Promise interface {
 	IsComplete() bool
 	Complete(errors []error)
 	Await() []error
+	AwaitUntil(timeout time.Duration) []error
 	AndThen(f func([]error))
+	AndThenUntil(timeout time.Duration, f func([]error))
 }
 
 func NewPromise() Promise {
@@ -49,16 +53,46 @@ func (p *promise) Complete(errors []error) {
 	}
 }
 
-// Blocks the caller until the promise is marked complete.
+// Blocks the caller until the promise is marked complete. This function
+// is equivalent to invoking AwaitUntil() with a zero-length duration.
+// To avoid blocking the caller indefinitely, use AwaitUntil() with a
+// non-zero duration instead.
 func (p *promise) Await() []error {
-	<-p.completeChan
-	return p.errors
+	return p.AwaitUntil(0 * time.Second)
 }
 
-// Invokes the supplied function after this promise completes.
+// Blocks the caller until the promise is marked complete, or the supplied
+// duration has elapsed. If the promise has not been completed before the
+// await times out, this function returns with nonempty errors. If the
+// supplied duration has zero length, this await will never time out.
+func (p *promise) AwaitUntil(duration time.Duration) []error {
+	var timeoutChan <-chan time.Time
+	if duration.Nanoseconds() > 0 {
+		timeoutChan = time.After(duration)
+	}
+
+	select {
+	case <-p.completeChan:
+		return p.errors
+	case <-timeoutChan:
+		return []error{fmt.Errorf("Await timed out for promise after [%s]", duration)}
+	}
+}
+
+// Invokes the supplied function after this promise completes. This function
+// is equivalent to invoking AndThenUntil() with a zero-length duration.
+// To avoid blocking a goroutine indefinitely, use AndThenUntil() with a
+// non-zero duration instead.
 func (p *promise) AndThen(f func([]error)) {
+	p.AndThenUntil(0*time.Nanosecond, f)
+}
+
+// Invokes the supplied function after this promise completes or times out
+// after the supplied duration. If the supplied duration has zero length,
+// the deferred execution will never time out.
+func (p *promise) AndThenUntil(d time.Duration, f func([]error)) {
 	go func() {
-		f(p.Await())
+		f(p.AwaitUntil(d))
 	}()
 }
 
