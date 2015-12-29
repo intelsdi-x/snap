@@ -3,6 +3,7 @@ package promise
 import (
 	"sync"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -38,6 +39,13 @@ func TestPromise(t *testing.T) {
 			wg.Wait()
 		})
 	})
+	Convey("AwaitUntil()", t, func() {
+		Convey("it should return with errors on timeout", func() {
+			p := NewPromise()
+			errors := p.AwaitUntil(time.Nanosecond)
+			So(errors, ShouldNotBeEmpty)
+		})
+	})
 	Convey("AndThen()", t, func() {
 		Convey("it should defer the supplied closure until after completion", func() {
 			p := NewPromise()
@@ -59,6 +67,28 @@ func TestPromise(t *testing.T) {
 			// Wait for the deferred function to be executed.
 			<-c
 			So(funcRan, ShouldBeTrue)
+		})
+	})
+	Convey("AndThenUntil()", t, func() {
+		Convey("it should defer the supplied closure until timeout", func() {
+			p := NewPromise()
+			timeout := time.Nanosecond
+
+			var resultErrors []error
+			c := make(chan struct{})
+
+			callback := func(errors []error) {
+				resultErrors = errors
+				close(c)
+			}
+
+			p.AndThenUntil(timeout, callback)
+
+			// Wait for the deferred function to be executed.
+			<-c
+			So(resultErrors, ShouldNotBeEmpty)
+			expectedMsg := "Await timed out for promise after [1ns]"
+			So(resultErrors[0].Error(), ShouldEqual, expectedMsg)
 		})
 	})
 }
