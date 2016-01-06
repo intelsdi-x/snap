@@ -17,10 +17,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
+## About This
+The following is a recipe for authoring a plugin that fits smoothly within the snap framework. Like any recipe, the ingredients and the order in which you mix them are important. Like any good recipe, it will do you well to read the entire document, as well as the [Plugin Best Practices](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_BEST_PRACTICES.md), before you start cooking.
+
+The last use of this analogy here: Bon Appétit! :stew:
+
 ## Plugin Authoring
 snap itself runs as a master daemon with the core functionality that may load and unload plugin processes via either CLI or HTTP APIs.
 
-A snap plugin is a program, or a set of functions or services, written in Go or any language; that may seamlessly integrate with snap as executables. 
+A snap plugin is a program, or a set of functions or services, written in Go or any language; that may seamlessly integrate with snap as executables.
 
 Communication between snap and plugins uses RPC either through HTTP or TCP protocols. HTTP JSON-RPC is good for any language to use due to its nature of JSON representation of data while the native client is only suitable for plugins written in Golang. The data that plugins report to snap is in the form of JSON or GOB CODEC.
 
@@ -35,7 +40,7 @@ Before writing a plugin, you may sketch the type of metrics you want to collect 
 4. Setup your development enviroment properly
 5. Write the plugin that implements the type of interfaces defined in snap
 6. Test the plugin
-7. Expose the plugin 
+7. Expose the plugin
 
 ### Naming, Files, and Directory    
 snap supports three type of plugins. They are collectors, processors, and publishers.  The plugin project name should use the following format:  
@@ -116,7 +121,7 @@ While developing a plugin, unit and integration tests need to be performed. snap
 
 For example, to run a plugin integration test
 ```
-go test -v tag=integration ./… 
+go test -v tag=integration ./…
 ```
 
 For more build and test tips, please refer to our [contributing doc](https://github.com/intelsdi-x/snap/blob/master/CONTRIBUTING.md).
