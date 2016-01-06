@@ -37,7 +37,7 @@ Before writing a plugin, you may sketch the type of metrics you want to collect 
 1. Plan your plugin
 2. Decide the CODEC for the plugin
 3. Download or clone snap
-4. Setup your development enviroment properly
+4. Setup your development environment properly
 5. Write the plugin that implements the type of interfaces defined in snap
 6. Test the plugin
 7. Expose the plugin
