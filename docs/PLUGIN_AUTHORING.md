@@ -18,9 +18,19 @@ limitations under the License.
 -->
 
 ## About This
-The following is a recipe for authoring a plugin that fits smoothly within the snap framework. Like any recipe, the ingredients and the order in which you mix them are important. Like any good recipe, it will do you well to read the entire document, as well as the [Plugin Best Practices](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_BEST_PRACTICES.md), before you start cooking.
+The following is a recipe for authoring a plugin that fits smoothly within the snap framework. Like any recipe, the ingredients and the order in which you mix them are important. The major steps are:
 
-The last use of this analogy here: Bon Appétit! :stew:
+1. Outline your plugin metrics
+2. Decide the CODEC for the plugin
+3. Download or clone [snap](https://github.com/intelsdi-x/snap)
+4. Download or clone [snap-plugin-utilities](https://github.com/intelsdi-x/snap-plugin-utilities)
+5. Implement the required interfaces
+6. Test the plugin
+7. Expose the plugin
+
+Like any good recipe, it will do you well to read the entire document, as well as the [Plugin Best Practices](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_BEST_PRACTICES.md), before you start cooking.
+
+Bon Appétit! :stew:
 
 ## Plugin Authoring
 snap itself runs as a master daemon with the core functionality that may load and unload plugin processes via either CLI or HTTP APIs.
@@ -30,17 +40,6 @@ A snap plugin is a program, or a set of functions or services, written in Go or 
 Communication between snap and plugins uses RPC either through HTTP or TCP protocols. HTTP JSON-RPC is good for any language to use due to its nature of JSON representation of data while the native client is only suitable for plugins written in Golang. The data that plugins report to snap is in the form of JSON or GOB CODEC.
 
 Before starting writing snap plugins, check out the [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) to see if any suit your needs. If not, you need to reference the plugin packages that defines the type of structures and interfaces inside snap and then write plugin endpoints to implement the defined interfaces.
-
-## Getting started with the plugin development
-Before writing a plugin, you may sketch the type of metrics you want to collect or understand what kind of metrics you like to publish. Basic steps are:
-
-1. Plan your plugin
-2. Decide the CODEC for the plugin
-3. Download or clone snap
-4. Setup your development environment properly
-5. Write the plugin that implements the type of interfaces defined in snap
-6. Test the plugin
-7. Expose the plugin
 
 ### Naming, Files, and Directory    
 snap supports three type of plugins. They are collectors, processors, and publishers.  The plugin project name should use the following format:  
