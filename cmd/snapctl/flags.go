@@ -108,6 +108,10 @@ var (
 		Name:  "no-start",
 		Usage: "Do not start task on creation [normally started on creation]",
 	}
+	flTaskDeadline = cli.StringFlag{
+		Name:  "deadline",
+		Usage: "The deadline for the task to be killed after started if the task runs too long (All tasks default to 5s)",
+	}
 
 	// metric
 	flMetricVersion = cli.IntFlag{
