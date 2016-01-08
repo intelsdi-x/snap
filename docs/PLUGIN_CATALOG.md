@@ -61,6 +61,7 @@ This is a wish list of plugins for snap. If you see one here and want to start o
 - Kubernetes Minion
 - Mesos Slave
 - Mesos Master
+- JVM (via JMX)
 
 #### Processor
 
