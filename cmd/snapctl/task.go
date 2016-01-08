@@ -88,6 +88,7 @@ type task struct {
 	Schedule *client.Schedule
 	Workflow *wmap.WorkflowMap
 	Name     string
+	Deadline string
 }
 
 func createTask(ctx *cli.Context) {
@@ -140,7 +141,7 @@ func createTaskUsingTaskManifest(ctx *cli.Context) {
 		fmt.Println("Invalid version provided")
 		os.Exit(1)
 	}
-	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, !ctx.IsSet("no-start"))
+	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"))
 
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
@@ -193,6 +194,9 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 		fmt.Printf("Bad interval format:\n%v\n", err)
 		os.Exit(1)
 	}
+
+	// Deadline for a task
+	dl := ctx.String("deadline")
 
 	var sch *client.Schedule
 	// None of these mean it is a simple schedule
@@ -256,7 +260,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 		}
 	}
 	// Create task
-	r := pClient.CreateTask(sch, wf, name, !ctx.IsSet("no-start"))
+	r := pClient.CreateTask(sch, wf, name, dl, !ctx.IsSet("no-start"))
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
 		fmt.Println("Error creating task:")

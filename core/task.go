@@ -98,6 +98,14 @@ func TaskDeadlineDuration(v time.Duration) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.DeadlineDuration()
 		t.SetDeadlineDuration(v)
+		log.WithFields(log.Fields{
+			"_module":                "core",
+			"_block":                 "TaskDeadlineDuration",
+			"task-id":                t.ID(),
+			"task-name":              t.GetName(),
+			"task deadline duration": t.DeadlineDuration(),
+		}).Debug("Setting deadlineDuration on task")
+
 		return TaskDeadlineDuration(previous)
 	}
 }
