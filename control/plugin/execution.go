@@ -276,11 +276,13 @@ func waitForPluginTimeout(timeout time.Duration, p pluginExecutor, waitChannel c
 func waitForResponseFromPlugin(r io.Reader, waitChannel chan waitSignalValue, logpath string) {
 	lp := strings.TrimSuffix(logpath, filepath.Ext(logpath))
 	lf, _ := os.OpenFile(lp+".stdout", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	defer lf.Close()
 	logger := log.New(lf, "", log.Ldate|log.Ltime)
 	processedResponse := false
 	scanner := bufio.NewScanner(r)
 	resp := new(Response)
 	// scan until we get a response or reader is closed
+OK:
 	for scanner.Scan() {
 		if !processedResponse {
 			// Get bytes
@@ -303,15 +305,33 @@ func waitForResponseFromPlugin(r io.Reader, waitChannel chan waitSignalValue, lo
 			logger.Println(scanner.Text())
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		if err == bufio.ErrTooLong {
+			reader := bufio.NewReader(r)
+			logger.Println(reader.ReadLine())
+			goto OK
+		}
+		logger.Println(err)
+	}
 }
 
 func logStdErr(r io.Reader, logpath string) {
 	lp := strings.TrimSuffix(logpath, filepath.Ext(logpath))
 	lf, _ := os.OpenFile(lp+".stderr", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	defer lf.Close()
 	logger := log.New(lf, "", log.Ldate|log.Ltime)
 	scanner := bufio.NewScanner(r)
+OK:
 	for scanner.Scan() {
 		logger.Println(scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		if err == bufio.ErrTooLong {
+			reader := bufio.NewReader(r)
+			logger.Println(reader.ReadLine())
+			goto OK
+		}
+		logger.Println(err)
 	}
 }
 
