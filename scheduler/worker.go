@@ -20,6 +20,8 @@ limitations under the License.
 package scheduler
 
 import (
+	"errors"
+
 	"github.com/intelsdi-x/snap/pkg/chrono"
 	"github.com/pborman/uuid"
 )
@@ -48,11 +50,12 @@ func (w *worker) start() {
 			// assert that deadline is not exceeded
 			if chrono.Chrono.Now().Before(q.Job().Deadline()) {
 				q.Job().Run()
+			} else {
+				// the deadline was exceeded and this job will not run
+				q.Job().AddErrors(errors.New("Worker refused to run overdue job."))
 			}
 
-			// mark the job complete for one of two reasons:
-			// - this job was just run
-			// - the deadline was exceeded and this job will not run
+			// mark the job complete
 			q.Promise().Complete(q.Job().Errors())
 
 		// the single kill-channel -- used when resizing worker pools
