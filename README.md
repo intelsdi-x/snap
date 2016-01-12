@@ -178,7 +178,7 @@ From here, you should be able to do 2 things:
 
 See the data that is being published to the file:
 ```
-$ tail -f /tmp/snap-published-mock-file.log
+$ tail -f /tmp/snap_published_mock_file.log
 ```
 
 Or actually tap into the data that snap is collecting using the task ID to watch the task:
