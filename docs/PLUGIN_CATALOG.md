@@ -49,6 +49,7 @@ These plugins are in planned/active development. This list is useful if you want
 | Interface | Collector | Collects network interfaces metrics from Linux procfs | [snap-plugin-collector-interface](https://github.com/intelsdi-x/snap-plugin-collector-interface) | [@marcin-krolik](https://github.com/marcin-krolik) |
 | Df | Collector | Collects disk space metrics from ```df``` Linux tool | [snap-plugin-collector-df](https://github.com/intelsdi-x/snap-plugin-collector-df) | [@PatrykMatyjasek](https://github.com/PatrykMatyjasek) |
 | HAProxy | Collector | Collects metrics from HAProxy | [snap-plugin-collector-haproxy](https://github.com/intelsdi-x/snap-plugin-collector-haproxy) | [@marcin-krolik](https://github.com/marcin-krolik) |
+| Etcd | Collector | Collects metrics from Etcd's `/metrics` endpoint. | [snap-plugin-collector-etcd](https://github.com/intelsdi-x/snap-plugin-collector-etcd) | [@danielscottt](https://github.com/danielscottt) |
 
 ## Wish List
 This is a wish list of plugins for snap. If you see one here and want to start on it please let us know.
