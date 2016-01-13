@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -80,6 +81,7 @@ func (j *qj) Promise() Promise {
 // the scheduler.  Job encompasses all
 // all job types -- collect, process, and publish.
 type job interface {
+	AddErrors(errs ...error)
 	Errors() []error
 	StartTime() time.Time
 	Deadline() time.Time
@@ -90,6 +92,8 @@ type job interface {
 type jobType int
 
 type coreJob struct {
+	sync.Mutex
+
 	jtype     jobType
 	deadline  time.Time
 	starttime time.Time
@@ -115,6 +119,12 @@ func (c *coreJob) Deadline() time.Time {
 
 func (c *coreJob) Type() jobType {
 	return c.jtype
+}
+
+func (c *coreJob) AddErrors(errs ...error) {
+	c.Lock()
+	defer c.Unlock()
+	c.errors = append(c.errors, errs...)
 }
 
 func (c *coreJob) Errors() []error {
@@ -202,7 +212,7 @@ func (c *collectorJob) Run() {
 				"error":    e,
 			}).Error("collector run error")
 		}
-		c.errors = errs
+		c.AddErrors(errs...)
 	}
 }
 
@@ -273,7 +283,7 @@ func (p *processJob) Run() {
 						"error":          e.Error(),
 					}).Error("error with processor job")
 				}
-				p.errors = append(p.errors, errs...)
+				p.AddErrors(errs...)
 			}
 			p.content = content
 		default:
@@ -366,7 +376,7 @@ func (p *publisherJob) Run() {
 						"error":          e.Error(),
 					}).Error("error with publisher job")
 				}
-				p.errors = append(p.errors, errs...)
+				p.AddErrors(errs...)
 			}
 		default:
 			log.WithFields(log.Fields{
@@ -397,7 +407,7 @@ func (p *publisherJob) Run() {
 						"error":          e.Error(),
 					}).Error("error with publisher job")
 				}
-				p.errors = append(p.errors, errs...)
+				p.AddErrors(errs...)
 			}
 		}
 	default:

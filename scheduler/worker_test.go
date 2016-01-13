@@ -57,8 +57,9 @@ func TestWorker(t *testing.T) {
 		chrono.Chrono.Forward(1500 * time.Millisecond)
 		qj := newQueuedJob(mj)
 		rcv <- qj
-		qj.Promise().Await()
-		So(mj.worked, ShouldEqual, false)
+		errors := qj.Promise().Await()
+		So(errors, ShouldNotBeEmpty)
+		So(mj.worked, ShouldBeFalse)
 	})
 	Convey("stops the worker if kamikaze chan is closed", t, func() {
 		workerKillChan = make(chan struct{})

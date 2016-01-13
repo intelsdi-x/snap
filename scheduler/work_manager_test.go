@@ -72,6 +72,11 @@ func newMultiSyncMockJob(n int) *mockJob {
 	}
 }
 
+func (mj *mockJob) AddErrors(errs ...error) {
+	mj.Lock()
+	defer mj.Unlock()
+	mj.errors = append(mj.errors, errs...)
+}
 func (mj *mockJob) Errors() []error      { return mj.errors }
 func (mj *mockJob) StartTime() time.Time { return mj.starttime }
 func (mj *mockJob) Deadline() time.Time  { return mj.deadline }
