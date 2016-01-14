@@ -77,20 +77,19 @@ func (c *cache) get(ns string, version int) interface{} {
 			return cell.metric
 		}
 		return cell.metrics
-	} else {
-		if !ok {
-			c.table[key] = &cachecell{
-				time:    time.Time{},
-				metrics: nil,
-			}
-		}
-		c.table[key].misses++
-		cacheLog.WithFields(log.Fields{
-			"namespace": key,
-			"hits":      c.table[key].hits,
-			"misses":    c.table[key].misses,
-		}).Debug(fmt.Sprintf("cache miss [%s]", key))
 	}
+	if !ok {
+		c.table[key] = &cachecell{
+			time:    time.Time{},
+			metrics: nil,
+		}
+	}
+	c.table[key].misses++
+	cacheLog.WithFields(log.Fields{
+		"namespace": key,
+		"hits":      c.table[key].hits,
+		"misses":    c.table[key].misses,
+	}).Debug(fmt.Sprintf("cache miss [%s]", key))
 	return nil
 }
 
@@ -102,6 +101,7 @@ func (c *cache) put(ns string, version int, m interface{}) {
 			c.table[key].time = chrono.Chrono.Now()
 			c.table[key].metric = metric
 		} else {
+			log.Errorf("%+v", c.table)
 			c.table[key] = &cachecell{
 				time:   chrono.Chrono.Now(),
 				metric: metric,
@@ -123,4 +123,82 @@ func (c *cache) put(ns string, version int, m interface{}) {
 			"_block":    "put",
 		}).Error("unsupported type")
 	}
+}
+
+func (c *cache) checkCache(mts []core.Metric) (metricsToCollect []core.Metric, fromCache []core.Metric) {
+	for _, mt := range mts {
+		if m := c.get(core.JoinNamespace(mt.Namespace()), mt.Version()); m != nil {
+			switch metric := m.(type) {
+			case core.Metric:
+				fromCache = append(fromCache, metric)
+			case []core.Metric:
+				for _, met := range metric {
+					fromCache = append(fromCache, met)
+				}
+			default:
+				cacheLog.WithFields(log.Fields{
+					"_block": "checkCache",
+				}).Error("unsupported type found in the cache")
+			}
+		} else {
+			metricsToCollect = append(metricsToCollect, mt)
+		}
+	}
+	return metricsToCollect, fromCache
+}
+
+func (c *cache) updateCache(mts []core.Metric) {
+	results := []core.Metric{}
+	dc := map[string][]core.Metric{}
+	for _, mt := range mts {
+		if mt.Labels() == nil {
+			// cache the individual metric
+			c.put(core.JoinNamespace(mt.Namespace()), mt.Version(), mt)
+		} else {
+			// collect the dynamic query results so we can cache
+			ns := make([]string, len(mt.Namespace()))
+			copy(ns, mt.Namespace())
+			for _, label := range mt.Labels() {
+				ns[label.Index] = "*"
+			}
+			if _, ok := dc[core.JoinNamespace(ns)]; !ok {
+				dc[core.JoinNamespace(ns)] = []core.Metric{}
+			}
+			dc[core.JoinNamespace(ns)] = append(dc[core.JoinNamespace(ns)], mt)
+			c.put(core.JoinNamespace(ns), mt.Version(), dc[core.JoinNamespace(ns)])
+		}
+		results = append(results, mt)
+	}
+}
+
+func (c *cache) allCacheHits() uint64 {
+	var hits uint64
+	for _, v := range c.table {
+		hits += v.hits
+	}
+	return hits
+}
+
+func (c *cache) allCacheMisses() uint64 {
+	var misses uint64
+	for _, v := range c.table {
+		misses += v.misses
+	}
+	return misses
+}
+
+func (c *cache) cacheHits(ns string, version int) (uint64, error) {
+	key := fmt.Sprintf("%v:%v", ns, version)
+	if v, ok := c.table[key]; ok {
+		return v.hits, nil
+	}
+	return 0, ErrCacheEntryDoesNotExist
+}
+
+func (c *cache) cacheMisses(ns string, version int) (uint64, error) {
+	key := fmt.Sprintf("%v:%v", ns, version)
+	if v, ok := c.table[key]; ok {
+		return v.misses, nil
+	}
+	return 0, ErrCacheEntryDoesNotExist
 }

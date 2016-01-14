@@ -31,6 +31,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/pkg/aci"
@@ -218,16 +219,12 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 }
 
 func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {
-	err := ap.Stop(reason)
-	if err != nil {
-		return err
-	}
 	pool, err := r.availablePlugins.getPool(ap.key)
 	if err != nil {
 		return err
 	}
 	if pool != nil {
-		pool.remove(ap.id)
+		pool.Kill(ap.id, reason)
 	}
 	return nil
 }
@@ -251,7 +248,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			return
 		}
 		if pool != nil {
-			pool.kill(v.Id, "plugin dead")
+			pool.Kill(v.Id, "plugin dead")
 		}
 	case *control_event.PluginUnsubscriptionEvent:
 		runnerLog.WithFields(log.Fields{
@@ -267,7 +264,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			return
 		}
 	case *control_event.LoadPluginEvent:
-		var pool *apPool
+		var pool strategy.Pool
 		r.availablePlugins.RLock()
 		for key, p := range r.availablePlugins.pools() {
 			// tuple of type name and version
@@ -288,7 +285,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 			// attempt to find a pool whose type and name are the same, and whose version is
 			// less than newly loaded plugin.  If we find it, break out of loop.
-			if core.PluginType(v.Type).String() == tnv[0] && v.Name == tnv[1] && v.Version > p.version {
+			if core.PluginType(v.Type).String() == tnv[0] && v.Name == tnv[1] && v.Version > p.Version() {
 				pool = p
 				break
 			}
@@ -316,7 +313,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			return
 		}
 
-		subs := pool.moveSubscriptions(newPool)
+		subs := pool.MoveSubscriptions(newPool)
 		if len(subs) != 0 {
 			runnerLog.WithFields(log.Fields{
 				"_block":         "subscribe-pool",
@@ -329,21 +326,21 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
 					PluginName:       v.Name,
 					PluginVersion:    v.Version,
-					TaskId:           sub.taskID,
+					TaskId:           sub.TaskID,
 					PluginType:       v.Type,
-					SubscriptionType: int(unboundSubscriptionType),
+					SubscriptionType: int(strategy.UnboundSubscriptionType),
 				})
 				r.emitter.Emit(&control_event.PluginUnsubscriptionEvent{
 					PluginName:    v.Name,
-					PluginVersion: pool.version,
-					TaskId:        sub.taskID,
+					PluginVersion: pool.Version(),
+					TaskId:        sub.TaskID,
 					PluginType:    v.Type,
 				})
 				r.emitter.Emit(&control_event.MovePluginSubscriptionEvent{
 					PluginName:      v.Name,
-					PreviousVersion: pool.version,
+					PreviousVersion: pool.Version(),
 					NewVersion:      v.Version,
-					TaskId:          sub.taskID,
+					TaskId:          sub.TaskID,
 					PluginType:      v.Type,
 				})
 			}
@@ -415,13 +412,13 @@ func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID 
 		}).Error("pool not found")
 		return errors.New("pool not found")
 	}
-	if pool.subscriptionCount() < pool.count() {
+	if pool.SubscriptionCount() < pool.Count() {
 		runnerLog.WithFields(log.Fields{
 			"_block":                  "handle-unsubscription",
-			"pool-count":              pool.count(),
-			"pool-subscription-count": pool.subscriptionCount(),
+			"pool-count":              pool.Count(),
+			"pool-subscription-count": pool.SubscriptionCount(),
 		}).Debug(fmt.Sprintf("killing an available plugin in pool  %s:%s:%d", pType, pName, pVersion))
-		pool.killLeastUsed("unsubscription event")
+		pool.SelectAndKill(taskID, "unsubscription event")
 	}
 	return nil
 }

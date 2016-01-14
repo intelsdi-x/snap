@@ -68,18 +68,14 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 				metrics = append(metrics, mt)
 			}
 		} else {
-			var data string
 			if cv, ok := p.Config().Table()["test"]; ok {
-				data = fmt.Sprintf("The mock collected data! config data: user=%s password=%s test=%v", p.Config().Table()["user"], p.Config().Table()["password"], cv.(ctypes.ConfigValueBool).Value)
+				p.Data_ = fmt.Sprintf("The mock collected data! config data: user=%s password=%s test=%v", p.Config().Table()["user"], p.Config().Table()["password"], cv.(ctypes.ConfigValueBool).Value)
 			} else {
-				data = fmt.Sprintf("The mock collected data! config data: user=%s password=%s", p.Config().Table()["user"], p.Config().Table()["password"])
+				p.Data_ = fmt.Sprintf("The mock collected data! config data: user=%s password=%s", p.Config().Table()["user"], p.Config().Table()["password"])
 			}
-			mt := plugin.PluginMetricType{
-				Data_:      data,
-				Timestamp_: time.Now(),
-				Source_:    hostname,
-			}
-			metrics = append(metrics, mt)
+			p.Timestamp_ = time.Now()
+			p.Source_ = hostname
+			metrics = append(metrics, p)
 		}
 	}
 	return metrics, nil

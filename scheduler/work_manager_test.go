@@ -81,6 +81,7 @@ func (mj *mockJob) Errors() []error      { return mj.errors }
 func (mj *mockJob) StartTime() time.Time { return mj.starttime }
 func (mj *mockJob) Deadline() time.Time  { return mj.deadline }
 func (mj *mockJob) Type() jobType        { return collectJobType }
+func (mj *mockJob) TaskID() string       { return "" }
 
 // Complete the first incomplete rendez-vous (if there is one)
 func (mj *mockJob) RendezVous() {

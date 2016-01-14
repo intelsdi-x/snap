@@ -22,25 +22,33 @@ limitations under the License.
 package strategy
 
 import (
+	"errors"
 	"time"
 
 	"github.com/intelsdi-x/snap/core"
+)
+
+var (
+	ErrCouldNotSelect = errors.New("could not select a plugin")
 )
 
 type SelectablePlugin interface {
 	HitCount() int
 	LastHit() time.Time
 	String() string
+	Kill(r string) error
+	ID() uint32
 }
 
 type RoutingAndCaching interface {
-	Select([]SelectablePlugin) (SelectablePlugin, error)
-	CheckCache(mts []core.Metric) ([]core.Metric, []core.Metric)
-	UpdateCache(mts []core.Metric)
-	CacheHits(string, int) (uint64, error)
-	CacheMisses(string, int) (uint64, error)
+	Select(selectablePlugins []SelectablePlugin, taskID string) (SelectablePlugin, error)
+	Remove(selectablePlugins []SelectablePlugin, taskID string) (SelectablePlugin, error)
+	CheckCache(metrics []core.Metric, taskID string) ([]core.Metric, []core.Metric)
+	UpdateCache(metrics []core.Metric, taskID string)
+	CacheHits(ns string, ver int, taskID string) (uint64, error)
+	CacheMisses(ns string, ver int, taskID string) (uint64, error)
 	AllCacheHits() uint64
 	AllCacheMisses() uint64
-	CacheTTL() time.Duration
+	CacheTTL(taskID string) (time.Duration, error)
 	String() string
 }

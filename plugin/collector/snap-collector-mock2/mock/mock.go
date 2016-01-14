@@ -47,7 +47,7 @@ type Mock struct {
 // CollectMetrics collects metrics for testing
 func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
 	for _, p := range mts {
-		log.Printf("collecting %+v", p)
+		log.Printf("collecting %+v\n", p)
 	}
 	rand.Seed(time.Now().UTC().UnixNano())
 	metrics := []plugin.PluginMetricType{}
@@ -117,6 +117,7 @@ func Meta() *plugin.PluginMeta {
 		[]string{plugin.SnapGOBContentType},
 		[]string{plugin.SnapGOBContentType},
 		plugin.CacheTTL(100*time.Millisecond),
+		plugin.RoutingStrategy(plugin.StickyRouting),
 	)
 }
 

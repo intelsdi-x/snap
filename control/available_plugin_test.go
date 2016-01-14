@@ -84,7 +84,7 @@ func TestAvailablePlugins(t *testing.T) {
 
 			pool, err := aps.getPool("collector:test:1")
 			So(err, ShouldBeNil)
-			nap, ok := pool.plugins[ap.id]
+			nap, ok := pool.Plugins()[ap.id]
 			So(ok, ShouldBeTrue)
 			So(nap, ShouldEqual, ap)
 		})

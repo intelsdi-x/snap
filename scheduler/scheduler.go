@@ -77,15 +77,15 @@ type managesPluginContentTypes interface {
 }
 
 type collectsMetrics interface {
-	CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error)
+	CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error)
 }
 
 type publishesMetrics interface {
-	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error
+	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error
 }
 
 type processesMetrics interface {
-	ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error)
+	ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error)
 }
 
 type scheduler struct {
