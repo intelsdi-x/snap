@@ -64,7 +64,7 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 		return errors.New(fmt.Sprintf("Unknown content type '%s'", contentType))
 	}
 
-	logger.Printf("publishing %v to %v", metrics, config)
+	logger.Printf("publishing %v metrics to %v", len(metrics), config)
 	file, err := os.OpenFile(config["file"].(ctypes.ConfigValueStr).Value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
 	defer file.Close()
 	if err != nil {
