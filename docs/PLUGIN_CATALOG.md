@@ -50,6 +50,11 @@ These plugins are in planned/active development. This list is useful if you want
 | Df | Collector | Collects disk space metrics from ```df``` Linux tool | [snap-plugin-collector-df](https://github.com/intelsdi-x/snap-plugin-collector-df) | [@PatrykMatyjasek](https://github.com/PatrykMatyjasek) |
 | HAProxy | Collector | Collects metrics from HAProxy | [snap-plugin-collector-haproxy](https://github.com/intelsdi-x/snap-plugin-collector-haproxy) | [@marcin-krolik](https://github.com/marcin-krolik) |
 | Etcd | Collector | Collects metrics from Etcd's `/metrics` endpoint. | [snap-plugin-collector-etcd](https://github.com/intelsdi-x/snap-plugin-collector-etcd) | [@danielscottt](https://github.com/danielscottt) |
+| Processes | Collector | Collects processes metrics from Linux procfs | [snap-plugin-collector-processes](https://github.com/intelsdi-x/snap-plugin-collector-processes) | [@marcin-krolik](https://github.com/marcin-krolik) |
+| Users | Collector | Collects users related metrics from Linux utmp | [snap-plugin-collector-users](https://github.com/intelsdi-x/snap-plugin-collector-users) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
+| MySQL | Collector | Collects metrics from MySQL DB | [snap-plugin-collector-mysql](https://github.com/intelsdi-x/snap-plugin-collector-mysql) | [@lmroz](https://github.com/lmroz) |
+| CPU | Collector | Collects CPU metrics from Linux procfs | [snap-plugin-collector-cpu](https://github.com/intelsdi-x/snap-plugin-collector-cpu) | [@katarzyna-z](https://github.com/katarzyna-z) |
+| DBI | Collector | Collects metrics from SQL DBs using go's "sql" package | [snap-plugin-collector-dbi](https://github.com/intelsdi-x/snap-plugin-collector-dbi) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
 
 ## Wish List
 This is a wish list of plugins for snap. If you see one here and want to start on it please let us know.
