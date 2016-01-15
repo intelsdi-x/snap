@@ -29,6 +29,7 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
 const (
@@ -49,9 +50,13 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 	for _, p := range mts {
 		log.Printf("collecting %+v\n", p)
 	}
+
 	rand.Seed(time.Now().UTC().UnixNano())
 	metrics := []plugin.PluginMetricType{}
 	for i := range mts {
+		if c, ok := mts[i].Config().Table()["panic"]; ok && c.(ctypes.ConfigValueBool).Value {
+			panic("Opps!")
+		}
 		if mts[i].Namespace()[2] == "*" {
 			hostname, _ := os.Hostname()
 			for j := 0; j < 10; j++ {

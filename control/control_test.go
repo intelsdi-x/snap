@@ -229,6 +229,7 @@ type mockPluginEvent struct {
 	UnloadedPluginName    string
 	UnloadedPluginVersion int
 	PluginType            int
+	EventNamespace        string
 }
 
 type listenToPluginEvent struct {
@@ -245,6 +246,9 @@ func newListenToPluginEvent() *listenToPluginEvent {
 
 func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 	switch v := e.Body.(type) {
+	case *control_event.DeadAvailablePluginEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
 	case *control_event.LoadPluginEvent:
 		l.plugin.LoadedPluginName = v.Name
 		l.plugin.LoadedPluginVersion = v.Version
@@ -839,10 +843,11 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		if e != nil {
 			t.FailNow()
 		}
-		metric, err := c.metricCatalog.Get([]string{"intel", "mock", "foo"}, 2)
-		So(err, ShouldBeNil)
-		So(metric.NamespaceAsString(), ShouldResemble, "/intel/mock/foo")
-		So(err, ShouldBeNil)
+		metric := MockMetricType{
+			namespace: []string{"intel", "mock", "foo"},
+			ver:       2,
+			cfg:       cdata.NewNode(),
+		}
 		<-lpe.done
 		Convey("Start the plugins", func() {
 			lp, err := c.pluginManager.get("collector:mock:2")
@@ -1077,6 +1082,65 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				time.Sleep(100 * time.Millisecond)
 			})
 		})
+	})
+}
+
+func TestFailedPlugin(t *testing.T) {
+	Convey("given a loaded plugin", t, func() {
+		// Create controller
+		c := New()
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("TEST", lpe)
+		c.Config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+
+		// Load plugin
+		load(c, PluginPath)
+		<-lpe.done
+		_, err := c.MetricCatalog()
+		So(err, ShouldBeNil)
+
+		// metrics to collect
+		cfg := cdata.NewNode()
+		cfg.AddItem("panic", ctypes.ConfigValueBool{Value: true})
+		m := []core.Metric{
+			MockMetricType{
+				namespace: []string{"intel", "mock", "foo"},
+				cfg:       cfg,
+			},
+		}
+
+		// retrieve loaded plugin
+		lp, err := c.pluginManager.get("collector:mock:2")
+		So(err, ShouldBeNil)
+		So(lp, ShouldNotBeNil)
+
+		Convey("create a pool, add subscriptions and start plugins", func() {
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			So(errp, ShouldBeNil)
+			pool.subscribe("1", unboundSubscriptionType)
+			err = c.pluginRunner.runPlugin(lp.Details)
+			So(err, ShouldBeNil)
+
+			Convey("collect metrics against a plugin that will panic", func() {
+				So(len(pool.plugins), ShouldEqual, 1)
+				cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1))
+				So(err, ShouldNotBeNil)
+				So(cr, ShouldBeNil)
+				<-lpe.done
+				So(lpe.plugin.EventNamespace, ShouldResemble, control_event.AvailablePluginDead)
+				// sleep is necessary unless/until we add an event that is fired when the AP is removed
+				// from the array of plugins on the pool
+				time.Sleep(100 * time.Millisecond)
+				So(len(pool.plugins), ShouldEqual, 1)
+				// TODO: On the AvailablePluginDeadEvent we should attempt to restart the plugin
+				//       ensuring that we can't enter an endless failure loop.
+				//
+				//       - Add a configurable max-failure-count for running plugins
+				//       - Add the logic that detects a failure loop to the eligibilty method on the pool
+			})
+		})
+		c.Stop()
 	})
 }
 
