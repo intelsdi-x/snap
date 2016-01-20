@@ -141,7 +141,7 @@ func (e *ExecutablePlugin) WaitForResponse(timeout time.Duration) (*Response, er
 	return r, err
 }
 
-// Private method which handles behvaior for wait for response for daemon and non-daemon modes.
+// Private method which handles behavior for wait for response for daemon and non-daemon modes.
 func waitHandling(p pluginExecutor, timeout time.Duration, logpath string) (*Response, error) {
 	log := execLogger.WithField("_block", "waitHandling")
 
