@@ -20,6 +20,7 @@ limitations under the License.
 package scheduler
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -73,6 +74,21 @@ func TestCollectorJob(t *testing.T) {
 		Convey("it should return the errors from the job", func() {
 			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
 			So(cj.Errors(), ShouldResemble, []error{})
+		})
+	})
+	Convey("AddErrors()", t, func() {
+		Convey("it should append errors to the job", func() {
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			So(cj.Errors(), ShouldResemble, []error{})
+
+			e1 := errors.New("1")
+			e2 := errors.New("2")
+			e3 := errors.New("3")
+
+			cj.AddErrors(e1)
+			So(cj.Errors(), ShouldResemble, []error{e1})
+			cj.AddErrors(e2, e3)
+			So(cj.Errors(), ShouldResemble, []error{e1, e2, e3})
 		})
 	})
 	Convey("Run()", t, func() {
