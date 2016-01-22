@@ -896,20 +896,20 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
 	// merge global plugin config into the config for this request
 	cfg := p.Config.Plugins.getPluginConfigDataNode(core.PublisherPluginType, pluginName, pluginVersion).Table()
-	for k, v := range config {
-		cfg[k] = v
+	for k, v := range cfg {
+		config[k] = v
 	}
-	return p.pluginRunner.AvailablePlugins().publishMetrics(contentType, content, pluginName, pluginVersion, cfg)
+	return p.pluginRunner.AvailablePlugins().publishMetrics(contentType, content, pluginName, pluginVersion, config)
 }
 
 // ProcessMetrics
 func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
 	// merge global plugin config into the config for this request
 	cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, pluginName, pluginVersion).Table()
-	for k, v := range config {
-		cfg[k] = v
+	for k, v := range cfg {
+		config[k] = v
 	}
-	return p.pluginRunner.AvailablePlugins().processMetrics(contentType, content, pluginName, pluginVersion, cfg)
+	return p.pluginRunner.AvailablePlugins().processMetrics(contentType, content, pluginName, pluginVersion, config)
 }
 
 // GetPluginContentTypes returns accepted and returned content types for the
