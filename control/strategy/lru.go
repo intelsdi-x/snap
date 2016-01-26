@@ -124,6 +124,7 @@ func (l *lru) UpdateCache(mts []core.Metric) {
 		if mt.Labels() == nil {
 			// cache the individual metric
 			l.metricCache.put(core.JoinNamespace(mt.Namespace()), mt.Version(), mt)
+			l.logger.Debugf("putting %v:%v in the cache", mt.Namespace(), mt.Version())
 		} else {
 			// collect the dynamic query results so we can cache
 			ns := make([]string, len(mt.Namespace()))
@@ -136,7 +137,7 @@ func (l *lru) UpdateCache(mts []core.Metric) {
 			}
 			dc[core.JoinNamespace(ns)] = append(dc[core.JoinNamespace(ns)], mt)
 			l.metricCache.put(core.JoinNamespace(ns), mt.Version(), dc[core.JoinNamespace(ns)])
-			l.logger.Errorf("putting %v:%v in the cache", mt.Namespace(), mt.Version())
+			l.logger.Debugf("putting %v:%v in the cache", ns, mt.Version())
 		}
 		results = append(results, mt)
 	}
