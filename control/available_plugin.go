@@ -28,7 +28,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -54,23 +53,7 @@ const (
 
 var (
 	ErrPoolNotFound = errors.New("plugin pool not found")
-	ErrPoolEmpty    = errors.New("plugin pool is empty")
 	ErrBadKey       = errors.New("bad key")
-	ErrBadType      = errors.New("bad plugin type")
-	ErrBadStrategy  = errors.New("bad strategy")
-
-	// This defines the maximum running instances of a loaded plugin.
-	// It is initialized at runtime via the cli.
-	maximumRunningPlugins = 3
-)
-
-type subscriptionType int
-
-const (
-	// this subscription is bound to an explicit version
-	boundSubscriptionType subscriptionType = iota
-	// this subscription is akin to "latest" and must be moved if a newer version is loaded.
-	unboundSubscriptionType
 )
 
 // availablePlugin represents a plugin which is
@@ -98,7 +81,7 @@ type availablePlugin struct {
 // plugin.Response
 func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
 	if resp.Type != plugin.CollectorPluginType && resp.Type != plugin.ProcessorPluginType && resp.Type != plugin.PublisherPluginType {
-		return nil, ErrBadType
+		return nil, strategy.ErrBadType
 	}
 	ap := &availablePlugin{
 		meta:        resp.Meta,
@@ -171,12 +154,36 @@ func (a *availablePlugin) ID() uint32 {
 	return a.id
 }
 
+func (a *availablePlugin) SetID(id uint32) {
+	a.id = id
+}
+
+func (a *availablePlugin) Exclusive() bool {
+	return a.meta.Exclusive
+}
+
+func (a *availablePlugin) CacheTTL() time.Duration {
+	return a.meta.CacheTTL
+}
+
+func (a *availablePlugin) RoutingStrategy() plugin.RoutingStrategyType {
+	return a.meta.RoutingStrategy
+}
+
+func (a *availablePlugin) ConcurrencyCount() int {
+	return a.meta.ConcurrencyCount
+}
+
 func (a *availablePlugin) String() string {
 	return fmt.Sprintf("%s:%s:v%d:id%d", a.TypeName(), a.name, a.version, a.id)
 }
 
 func (a *availablePlugin) TypeName() string {
 	return a.pluginType.String()
+}
+
+func (a *availablePlugin) Type() plugin.PluginType {
+	return a.pluginType
 }
 
 func (a *availablePlugin) Name() string {
@@ -283,322 +290,25 @@ func (a *availablePlugin) healthCheckFailed() {
 	defer a.emitter.Emit(hcfe)
 }
 
-type apPool struct {
-	// used to coordinate changes to a pool
-	*sync.RWMutex
-
-	// the version of the plugins in the pool.
-	// subscriptions uses this.
-	version int
-	// key is the primary key used in availablePlugins:
-	// {plugin_type}:{plugin_name}:{plugin_version}
-	key string
-
-	// The subscriptions to this pool.
-	subs map[string]*subscription
-
-	// The plugins in the pool.
-	// the primary key is an increasing --> uint from
-	// snapd epoch (`service snapd start`).
-	plugins    map[uint32]*availablePlugin
-	pidCounter uint32
-
-	// The max size which this pool may grow.
-	max int
-
-	// The number of subscriptions per running instance
-	concurrencyCount int
-
-	// The routing and caching strategy declared by the plugin.
-	strategy strategy.RoutingAndCaching
-}
-
-func newPool(key string, plugins ...*availablePlugin) (*apPool, error) {
-	versl := strings.Split(key, ":")
-	ver, err := strconv.Atoi(versl[len(versl)-1])
-	if err != nil {
-		return nil, err
-	}
-	p := &apPool{
-		RWMutex:          &sync.RWMutex{},
-		version:          ver,
-		key:              key,
-		subs:             map[string]*subscription{},
-		plugins:          make(map[uint32]*availablePlugin),
-		max:              maximumRunningPlugins,
-		concurrencyCount: 1,
-	}
-
-	if len(plugins) > 0 {
-		for _, plg := range plugins {
-			p.insert(plg)
-		}
-	}
-
-	return p, nil
-}
-
-func (p *apPool) insert(ap *availablePlugin) error {
-	if ap.pluginType != plugin.CollectorPluginType && ap.pluginType != plugin.ProcessorPluginType && ap.pluginType != plugin.PublisherPluginType {
-		return ErrBadType
-	}
-	// If an empty pool is created, it does not have
-	// any available plugins from which to retrieve
-	// concurrency count or exclusivity.  We ensure it
-	// is set correctly on an insert.
-	if len(p.plugins) == 0 {
-		if err := p.applyPluginMeta(ap); err != nil {
-			return err
-		}
-	}
-
-	ap.id = p.generatePID()
-	p.plugins[ap.id] = ap
-
-	return nil
-}
-
-func (p *apPool) applyPluginMeta(ap *availablePlugin) error {
-	// Checking if plugin is exclusive
-	// (only one instance should be running).
-	if ap.meta.Exclusive {
-		p.max = 1
-	}
-
-	// Set the cache TTL
-	cacheTTL := strategy.GlobalCacheExpiration
-	// if the plugin exposes a default TTL that is greater the the global default use it
-	if ap.meta.CacheTTL != 0 && ap.meta.CacheTTL > strategy.GlobalCacheExpiration {
-		cacheTTL = ap.meta.CacheTTL
-	}
-
-	// Set the routing and caching strategy
-	switch ap.meta.RoutingStrategy {
-	case plugin.DefaultRouting:
-		p.strategy = strategy.NewLRU(cacheTTL)
-	default:
-		return ErrBadStrategy
-	}
-
-	// set concurrency count
-	p.concurrencyCount = ap.meta.ConcurrencyCount
-
-	return nil
-}
-
-// subscribe adds a subscription to the pool.
-// Using subscribe is idempotent.
-func (p *apPool) subscribe(taskID string, subType subscriptionType) {
-	p.Lock()
-	defer p.Unlock()
-
-	if _, exists := p.subs[taskID]; !exists {
-		// Version is the last item in the key, so we split here
-		// to retrieve it for the subscription.
-		p.subs[taskID] = &subscription{
-			taskID:  taskID,
-			subType: subType,
-			version: p.version,
-		}
-	}
-}
-
-// unsubscribe removes a subscription from the pool.
-// Using unsubscribe is idempotent.
-func (p *apPool) unsubscribe(taskID string) {
-	p.Lock()
-	defer p.Unlock()
-	delete(p.subs, taskID)
-}
-
-func (p *apPool) eligible() bool {
-	p.RLock()
-	defer p.RUnlock()
-
-	// optimization: don't even bother with concurrency
-	// count if we have already reached pool max
-	if p.count() == p.max {
-		return false
-	}
-
-	should := p.subscriptionCount() / p.concurrencyCount
-	if should > p.count() && should <= p.max {
-		return true
-	}
-
-	return false
-}
-
-// kill kills and removes the available plugin from its pool.
-// Using kill is idempotent.
-func (p *apPool) kill(id uint32, reason string) {
-	p.Lock()
-	defer p.Unlock()
-
-	ap, ok := p.plugins[id]
-	if ok {
-		ap.Kill(reason)
-		delete(p.plugins, id)
-	}
-}
-
-// kills the plugin with the lowest hit count
-func (p *apPool) killLeastUsed(reason string) {
-	p.Lock()
-	defer p.Unlock()
-
-	var (
-		id   uint32
-		prev int
-	)
-
-	// grab details from the first item
-	for _, p := range p.plugins {
-		prev = p.hitCount
-		id = p.id
-		break
-	}
-
-	// walk through all and find the lowest hit count
-	for _, p := range p.plugins {
-		if p.hitCount < prev {
-			prev = p.hitCount
-			id = p.id
-		}
-	}
-
-	// kill that ap
-	ap, ok := p.plugins[id]
-	if ok {
-		// only log on first ok health check
-		log.WithFields(log.Fields{
-			"_module": "control-aplugin",
-			"block":   "kill-least-used",
-			"aplugin": ap,
-		}).Debug("killing available plugin")
-		ap.Kill(reason)
-		delete(p.plugins, id)
-	}
-}
-
-// remove removes an available plugin from the the pool.
-// using remove is idempotent.
-func (p *apPool) remove(id uint32) {
-	p.Lock()
-	defer p.Unlock()
-	delete(p.plugins, id)
-}
-
-func (p *apPool) count() int {
-	return len(p.plugins)
-}
-
-// NOTE: The data returned by subscriptions should be constant and read only.
-func (p *apPool) subscriptions() map[string]*subscription {
-	p.RLock()
-	defer p.RUnlock()
-	return p.subs
-}
-
-func (p *apPool) subscriptionCount() int {
-	p.RLock()
-	defer p.RUnlock()
-	return len(p.subs)
-}
-
-func (p *apPool) selectAP() (*availablePlugin, serror.SnapError) {
-	p.RLock()
-	defer p.RUnlock()
-
-	sp := make([]strategy.SelectablePlugin, p.count())
-	i := 0
-	for _, plg := range p.plugins {
-		sp[i] = plg
-		i++
-	}
-	sap, err := p.strategy.Select(sp)
-	if err != nil || sap == nil {
-		return nil, serror.New(err)
-	}
-	return sap.(*availablePlugin), nil
-}
-
-func (p *apPool) generatePID() uint32 {
-	atomic.AddUint32(&p.pidCounter, 1)
-	return p.pidCounter
-}
-
-func (p *apPool) moveSubscriptions(to *apPool) []subscription {
-	var subs []subscription
-
-	p.Lock()
-	defer p.Unlock()
-
-	for task, sub := range p.subs {
-		if sub.subType == unboundSubscriptionType && to.version > p.version {
-			subs = append(subs, *sub)
-			to.subscribe(task, unboundSubscriptionType)
-			delete(p.subs, task)
-		}
-	}
-	return subs
-}
-
-type subscription struct {
-	subType subscriptionType
-	version int
-	taskID  string
-}
-
-func (p *apPool) CheckCache(mts []core.Metric) ([]core.Metric, []core.Metric) {
-	return p.strategy.CheckCache(mts)
-}
-
-func (p *apPool) UpdateCache(mts []core.Metric) {
-	p.strategy.UpdateCache(mts)
-}
-
-func (p *apPool) CacheHits(ns string, ver int) (uint64, error) {
-	return p.strategy.CacheHits(ns, ver)
-}
-
-func (p *apPool) CacheMisses(ns string, ver int) (uint64, error) {
-	return p.strategy.CacheMisses(ns, ver)
-}
-func (p *apPool) AllCacheHits() uint64 {
-	return p.strategy.AllCacheHits()
-}
-
-func (p *apPool) AllCacheMisses() uint64 {
-	return p.strategy.AllCacheMisses()
-}
-
-func (p *apPool) CacheTTL() (time.Duration, error) {
-	if len(p.plugins) == 0 {
-		return 0, ErrPoolEmpty
-	}
-	return p.strategy.CacheTTL(), nil
-}
-
 type availablePlugins struct {
 	// Used to coordinate operations on the table.
 	*sync.RWMutex
 	// table holds all the plugin pools.
 	// The Pools' primary keys are equal to
 	// {plugin_type}:{plugin_name}:{plugin_version}
-	table map[string]*apPool
+	table map[string]strategy.Pool
 }
 
 func newAvailablePlugins() *availablePlugins {
 	return &availablePlugins{
 		RWMutex: &sync.RWMutex{},
-		table:   make(map[string]*apPool),
+		table:   make(map[string]strategy.Pool),
 	}
 }
 
 func (ap *availablePlugins) insert(pl *availablePlugin) error {
 	if pl.pluginType != plugin.CollectorPluginType && pl.pluginType != plugin.ProcessorPluginType && pl.pluginType != plugin.PublisherPluginType {
-		return ErrBadType
+		return strategy.ErrBadType
 	}
 
 	ap.Lock()
@@ -607,7 +317,7 @@ func (ap *availablePlugins) insert(pl *availablePlugin) error {
 	key := fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.name, pl.version)
 	_, exists := ap.table[key]
 	if !exists {
-		p, err := newPool(key, pl)
+		p, err := strategy.NewPool(key, pl)
 		if err != nil {
 			return serror.New(ErrBadKey, map[string]interface{}{
 				"key": key,
@@ -616,11 +326,11 @@ func (ap *availablePlugins) insert(pl *availablePlugin) error {
 		ap.table[key] = p
 		return nil
 	}
-	ap.table[key].insert(pl)
+	ap.table[key].Insert(pl)
 	return nil
 }
 
-func (ap *availablePlugins) getPool(key string) (*apPool, serror.SnapError) {
+func (ap *availablePlugins) getPool(key string) (strategy.Pool, serror.SnapError) {
 	ap.RLock()
 	defer ap.RUnlock()
 	pool, ok := ap.table[key]
@@ -649,7 +359,7 @@ func (ap *availablePlugins) getPool(key string) (*apPool, serror.SnapError) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.Metric) ([]core.Metric, error) {
+func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.Metric, taskID string) ([]core.Metric, error) {
 	var results []core.Metric
 	pool, serr := ap.getPool(pluginKey)
 	if serr != nil {
@@ -659,7 +369,7 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 		return nil, serror.New(ErrPoolNotFound, map[string]interface{}{"pool-key": pluginKey})
 	}
 
-	metricsToCollect, metricsFromCache := pool.CheckCache(metricTypes)
+	metricsToCollect, metricsFromCache := pool.CheckCache(metricTypes, taskID)
 
 	if len(metricsToCollect) == 0 {
 		return metricsFromCache, nil
@@ -667,13 +377,13 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 
 	pool.RLock()
 	defer pool.RUnlock()
-	p, serr := pool.selectAP()
+	p, serr := pool.SelectAP(taskID)
 	if serr != nil {
 		return nil, serr
 	}
 
 	// cast client to PluginCollectorClient
-	cli, ok := p.client.(client.PluginCollectorClient)
+	cli, ok := p.(*availablePlugin).client.(client.PluginCollectorClient)
 	if !ok {
 		return nil, serror.New(errors.New("unable to cast client to PluginCollectorClient"))
 	}
@@ -684,7 +394,7 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 		return nil, serror.New(err)
 	}
 
-	pool.UpdateCache(metrics)
+	pool.UpdateCache(metrics, taskID)
 
 	results = make([]core.Metric, len(metricsFromCache)+len(metrics))
 	idx := 0
@@ -698,13 +408,13 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 	}
 
 	// update plugin stats
-	p.hitCount++
-	p.lastHitTime = time.Now()
+	p.(*availablePlugin).hitCount++
+	p.(*availablePlugin).lastHitTime = time.Now()
 
 	return metrics, nil
 }
 
-func (ap *availablePlugins) publishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
+func (ap *availablePlugins) publishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	var errs []error
 	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, ":")
 	pool, serr := ap.getPool(key)
@@ -718,13 +428,13 @@ func (ap *availablePlugins) publishMetrics(contentType string, content []byte, p
 
 	pool.RLock()
 	defer pool.RUnlock()
-	p, err := pool.selectAP()
+	p, err := pool.SelectAP(taskID)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
 	}
 
-	cli, ok := p.client.(client.PluginPublisherClient)
+	cli, ok := p.(*availablePlugin).client.(client.PluginPublisherClient)
 	if !ok {
 		return []error{errors.New("unable to cast client to PluginPublisherClient")}
 	}
@@ -733,12 +443,12 @@ func (ap *availablePlugins) publishMetrics(contentType string, content []byte, p
 	if errp != nil {
 		return []error{errp}
 	}
-	p.hitCount++
-	p.lastHitTime = time.Now()
+	p.(*availablePlugin).hitCount++
+	p.(*availablePlugin).lastHitTime = time.Now()
 	return nil
 }
 
-func (ap *availablePlugins) processMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
+func (ap *availablePlugins) processMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
 	var errs []error
 	key := strings.Join([]string{plugin.ProcessorPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, ":")
 	pool, serr := ap.getPool(key)
@@ -752,13 +462,13 @@ func (ap *availablePlugins) processMetrics(contentType string, content []byte, p
 
 	pool.RLock()
 	defer pool.RUnlock()
-	p, err := pool.selectAP()
+	p, err := pool.SelectAP(taskID)
 	if err != nil {
 		errs = append(errs, err)
 		return "", nil, errs
 	}
 
-	cli, ok := p.client.(client.PluginProcessorClient)
+	cli, ok := p.(*availablePlugin).client.(client.PluginProcessorClient)
 	if !ok {
 		return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
 	}
@@ -767,14 +477,14 @@ func (ap *availablePlugins) processMetrics(contentType string, content []byte, p
 	if errp != nil {
 		return "", nil, []error{errp}
 	}
-	p.hitCount++
-	p.lastHitTime = time.Now()
+	p.(*availablePlugin).hitCount++
+	p.(*availablePlugin).lastHitTime = time.Now()
 	return ct, c, nil
 }
 
-func (ap *availablePlugins) findLatestPool(pType, name string) (*apPool, serror.SnapError) {
+func (ap *availablePlugins) findLatestPool(pType, name string) (strategy.Pool, serror.SnapError) {
 	// see if there exists a pool at all which matches name version.
-	var latest *apPool
+	var latest strategy.Pool
 	for key, pool := range ap.table {
 		tnv := strings.Split(key, ":")
 		if tnv[0] == pType && tnv[1] == name {
@@ -785,7 +495,7 @@ func (ap *availablePlugins) findLatestPool(pType, name string) (*apPool, serror.
 	if latest != nil {
 		for key, pool := range ap.table {
 			tnv := strings.Split(key, ":")
-			if tnv[0] == pType && tnv[1] == name && pool.version > latest.version {
+			if tnv[0] == pType && tnv[1] == name && pool.Version() > latest.Version() {
 				latest = pool
 			}
 		}
@@ -795,13 +505,13 @@ func (ap *availablePlugins) findLatestPool(pType, name string) (*apPool, serror.
 	return nil, nil
 }
 
-func (ap *availablePlugins) getOrCreatePool(key string) (*apPool, error) {
+func (ap *availablePlugins) getOrCreatePool(key string) (strategy.Pool, error) {
 	var err error
 	pool, ok := ap.table[key]
 	if ok {
 		return pool, nil
 	}
-	pool, err = newPool(key)
+	pool, err = strategy.NewPool(key)
 	if err != nil {
 		return nil, err
 	}
@@ -809,30 +519,18 @@ func (ap *availablePlugins) getOrCreatePool(key string) (*apPool, error) {
 	return pool, nil
 }
 
-func (ap *availablePlugins) selectAP(key string) (*availablePlugin, serror.SnapError) {
-	ap.RLock()
-	defer ap.RUnlock()
-
-	pool, err := ap.getPool(key)
-	if err != nil {
-		return nil, err
-	}
-
-	return pool.selectAP()
-}
-
-func (ap *availablePlugins) pools() map[string]*apPool {
+func (ap *availablePlugins) pools() map[string]strategy.Pool {
 	ap.RLock()
 	defer ap.RUnlock()
 	return ap.table
 }
 
-func (ap *availablePlugins) all() []*availablePlugin {
-	var aps = []*availablePlugin{}
+func (ap *availablePlugins) all() []strategy.AvailablePlugin {
+	var aps = []strategy.AvailablePlugin{}
 	ap.RLock()
 	defer ap.RUnlock()
 	for _, pool := range ap.table {
-		for _, ap := range pool.plugins {
+		for _, ap := range pool.Plugins() {
 			aps = append(aps, ap)
 		}
 	}

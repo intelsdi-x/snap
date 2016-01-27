@@ -79,15 +79,15 @@ func (m *mockMetricManager) GetPluginContentTypes(n string, t core.PluginType, v
 	return m.acceptedContentTypes[key], m.returnedContentTypes[key], nil
 }
 
-func (m *mockMetricManager) CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error) {
+func (m *mockMetricManager) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error) {
 	return nil, nil
 }
 
-func (m *mockMetricManager) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
+func (m *mockMetricManager) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	return nil
 }
 
-func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
+func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
 	return "", nil, nil
 }
 

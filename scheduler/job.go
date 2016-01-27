@@ -86,6 +86,7 @@ type job interface {
 	StartTime() time.Time
 	Deadline() time.Time
 	Type() jobType
+	TaskID() string
 	Run()
 }
 
@@ -93,17 +94,18 @@ type jobType int
 
 type coreJob struct {
 	sync.Mutex
-
+	taskID    string
 	jtype     jobType
 	deadline  time.Time
 	starttime time.Time
 	errors    []error
 }
 
-func newCoreJob(t jobType, deadline time.Time) *coreJob {
+func newCoreJob(t jobType, deadline time.Time, taskID string) *coreJob {
 	return &coreJob{
 		jtype:     t,
 		deadline:  deadline,
+		taskID:    taskID,
 		errors:    make([]error, 0),
 		starttime: time.Now(),
 	}
@@ -131,6 +133,10 @@ func (c *coreJob) Errors() []error {
 	return c.errors
 }
 
+func (c *coreJob) TaskID() string {
+	return c.taskID
+}
+
 type collectorJob struct {
 	*coreJob
 	collector      collectsMetrics
@@ -139,12 +145,12 @@ type collectorJob struct {
 	configDataTree *cdata.ConfigDataTree
 }
 
-func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.Duration, collector collectsMetrics, cdt *cdata.ConfigDataTree) job {
+func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.Duration, collector collectsMetrics, cdt *cdata.ConfigDataTree, taskID string) job {
 	return &collectorJob{
 		collector:      collector,
 		metricTypes:    metricTypes,
 		metrics:        []core.Metric{},
-		coreJob:        newCoreJob(collectJobType, time.Now().Add(deadlineDuration)),
+		coreJob:        newCoreJob(collectJobType, time.Now().Add(deadlineDuration), taskID),
 		configDataTree: cdt,
 	}
 }
@@ -193,7 +199,7 @@ func (c *collectorJob) Run() {
 			config:    config,
 		}
 	}
-	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline())
+	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline(), c.TaskID())
 
 	log.WithFields(log.Fields{
 		"_module":      "scheduler-job",
@@ -228,13 +234,13 @@ type processJob struct {
 	content       []byte
 }
 
-func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, processor processesMetrics) job {
+func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, processor processesMetrics, taskID string) job {
 	return &processJob{
 		parentJob:     parentJob,
 		pluginName:    pluginName,
 		pluginVersion: pluginVersion,
 		metrics:       []core.Metric{},
-		coreJob:       newCoreJob(processJobType, parentJob.Deadline()),
+		coreJob:       newCoreJob(processJobType, parentJob.Deadline(), taskID),
 		config:        config,
 		processor:     processor,
 		contentType:   contentType,
@@ -269,7 +275,7 @@ func (p *processJob) Run() {
 				}
 			}
 			enc.Encode(metrics)
-			_, content, errs := p.processor.ProcessMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
+			_, content, errs := p.processor.ProcessMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config, p.taskID)
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{
@@ -323,13 +329,13 @@ type publisherJob struct {
 	contentType   string
 }
 
-func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher publishesMetrics) job {
+func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher publishesMetrics, taskID string) job {
 	return &publisherJob{
 		parentJob:     parentJob,
 		publisher:     publisher,
 		pluginName:    pluginName,
 		pluginVersion: pluginVersion,
-		coreJob:       newCoreJob(publishJobType, parentJob.Deadline()),
+		coreJob:       newCoreJob(publishJobType, parentJob.Deadline(), taskID),
 		config:        config,
 		contentType:   contentType,
 	}
@@ -362,7 +368,7 @@ func (p *publisherJob) Run() {
 				}
 			}
 			enc.Encode(metrics)
-			errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config)
+			errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config, p.taskID)
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{
@@ -393,7 +399,7 @@ func (p *publisherJob) Run() {
 	case processJobType:
 		switch p.contentType {
 		case plugin.SnapGOBContentType:
-			errs := p.publisher.PublishMetrics(p.contentType, p.parentJob.(*processJob).content, p.pluginName, p.pluginVersion, p.config)
+			errs := p.publisher.PublishMetrics(p.contentType, p.parentJob.(*processJob).content, p.pluginName, p.pluginVersion, p.config, p.taskID)
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{

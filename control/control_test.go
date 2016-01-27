@@ -25,11 +25,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"path"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/pborman/uuid"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/gomit"
@@ -824,6 +826,131 @@ func TestMetricConfig(t *testing.T) {
 	})
 }
 
+func TestRoutingCachingStrategy(t *testing.T) {
+	Convey("Given loaded plugins that use sticky routing", t, func() {
+		config := NewConfig()
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		c := New(OptSetConfig(config))
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+		_, e := load(c, PluginPath)
+		So(e, ShouldBeNil)
+		if e != nil {
+			t.FailNow()
+		}
+		metric, err := c.metricCatalog.Get([]string{"intel", "mock", "foo"}, 2)
+		So(err, ShouldBeNil)
+		So(metric.NamespaceAsString(), ShouldResemble, "/intel/mock/foo")
+		So(err, ShouldBeNil)
+		<-lpe.done
+		Convey("Start the plugins", func() {
+			lp, err := c.pluginManager.get("collector:mock:2")
+			So(err, ShouldBeNil)
+			So(lp, ShouldNotBeNil)
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			So(errp, ShouldBeNil)
+			So(pool, ShouldNotBeNil)
+			tasks := []string{
+				uuid.New(),
+				uuid.New(),
+				uuid.New(),
+				uuid.New(),
+				uuid.New(),
+			}
+			for _, id := range tasks {
+				pool.Subscribe(id, strategy.BoundSubscriptionType)
+				err = c.pluginRunner.runPlugin(lp.Details)
+				So(err, ShouldBeNil)
+			}
+			// The cache ttl should be 100ms which is what the plugin exposed (no system default was provided)
+			ttl, err := pool.CacheTTL(tasks[0])
+			So(err, ShouldBeNil)
+			So(ttl, ShouldResemble, 100*time.Millisecond)
+			So(pool.Strategy(), ShouldHaveSameTypeAs, strategy.NewSticky(ttl))
+			So(pool.Count(), ShouldEqual, len(tasks))
+			So(pool.SubscriptionCount(), ShouldEqual, len(tasks))
+			Convey("Collect metrics", func() {
+				taskID := tasks[rand.Intn(len(tasks))]
+				for i := 0; i < 10; i++ {
+					_, errs := c.CollectMetrics([]core.Metric{metric}, time.Now().Add(time.Second*1), taskID)
+					So(errs, ShouldBeEmpty)
+				}
+				Convey("Check cache stats", func() {
+					So(pool.AllCacheHits(), ShouldEqual, 9)
+					So(pool.AllCacheMisses(), ShouldEqual, 1)
+				})
+			})
+		})
+	})
+
+	Convey("Given loaded plugins that use least-recently-used routing", t, func() {
+		c := New()
+		c.Start()
+		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(
+			optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}),
+			optAddPluginConfigItem("user", ctypes.ConfigValueStr{Value: "jane"}),
+			optAddPluginConfigItem("password", ctypes.ConfigValueStr{Value: "doe"}),
+		)
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+		_, e := load(c, JSONRPCPluginPath)
+		So(e, ShouldBeNil)
+		if e != nil {
+			t.FailNow()
+		}
+		metric, err := c.metricCatalog.Get([]string{"intel", "mock", "foo"}, 1)
+		metric.config = cdata.NewNode()
+		So(err, ShouldBeNil)
+		So(metric.NamespaceAsString(), ShouldResemble, "/intel/mock/foo")
+		So(err, ShouldBeNil)
+		<-lpe.done
+		Convey("Start the plugins", func() {
+			lp, err := c.pluginManager.get("collector:mock:1")
+			So(err, ShouldBeNil)
+			So(lp, ShouldNotBeNil)
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			time.Sleep(1 * time.Second)
+			So(errp, ShouldBeNil)
+			So(pool, ShouldNotBeNil)
+			tasks := []string{
+				uuid.New(),
+				uuid.New(),
+				uuid.New(),
+				uuid.New(),
+				uuid.New(),
+			}
+			for _, id := range tasks {
+				pool.Subscribe(id, strategy.BoundSubscriptionType)
+				err = c.pluginRunner.runPlugin(lp.Details)
+				So(err, ShouldBeNil)
+			}
+			// The cache ttl should be 100ms which is what the plugin exposed (no system default was provided)
+			ttl, err := pool.CacheTTL(tasks[0])
+			So(err, ShouldBeNil)
+			So(ttl, ShouldResemble, 1100*time.Millisecond)
+			So(pool.Strategy(), ShouldHaveSameTypeAs, strategy.NewLRU(ttl))
+			So(pool.Count(), ShouldEqual, len(tasks))
+			So(pool.SubscriptionCount(), ShouldEqual, len(tasks))
+			Convey("Collect metrics", func() {
+				taskID := tasks[rand.Intn(len(tasks))]
+				for i := 0; i < 10; i++ {
+					cr, errs := c.CollectMetrics([]core.Metric{metric}, time.Now().Add(time.Second*1), taskID)
+					So(errs, ShouldBeEmpty)
+					for i := range cr {
+						So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
+						So(cr[i].Data(), ShouldContainSubstring, "test=true")
+					}
+				}
+				Convey("Check cache stats", func() {
+					So(pool.AllCacheHits(), ShouldEqual, 9)
+					So(pool.AllCacheMisses(), ShouldEqual, 1)
+				})
+			})
+		})
+	})
+}
+
 func TestCollectDynamicMetrics(t *testing.T) {
 	Convey("given a plugin using the native client", t, func() {
 		config := NewConfig()
@@ -873,30 +1000,38 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
 			So(errp, ShouldBeNil)
 			So(pool, ShouldNotBeNil)
-			ttl, err := pool.CacheTTL()
-			So(err, ShouldResemble, ErrPoolEmpty)
+			taskID := uuid.New()
+			ttl, err := pool.CacheTTL(taskID)
+			So(err, ShouldResemble, strategy.ErrPoolEmpty)
 			So(ttl, ShouldEqual, 0)
-			pool.subscribe("1", unboundSubscriptionType)
+			So(pool.Count(), ShouldEqual, 0)
+			So(pool.SubscriptionCount(), ShouldEqual, 0)
+			pool.Subscribe(taskID, strategy.UnboundSubscriptionType)
 			err = c.pluginRunner.runPlugin(lp.Details)
+			So(pool.Count(), ShouldEqual, 1)
+			So(pool.SubscriptionCount(), ShouldEqual, 1)
 			So(err, ShouldBeNil)
-			ttl, err = pool.CacheTTL()
+			ttl, err = pool.CacheTTL(taskID)
 			So(err, ShouldBeNil)
 			// The minimum TTL advertised by the plugin is 100ms therefore the TTL for the
 			// pool should be the global cache expiration
 			So(ttl, ShouldEqual, strategy.GlobalCacheExpiration)
-			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1))
-			hits, err := pool.CacheHits(core.JoinNamespace(m.namespace), 2)
+			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
+			hits, err := pool.CacheHits(core.JoinNamespace(m.namespace), 2, taskID)
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 0)
 			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 10)
-			mts, errs = c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1))
-			hits, err = pool.CacheHits(core.JoinNamespace(m.namespace), 2)
+			mts, errs = c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
+			hits, err = pool.CacheHits(core.JoinNamespace(m.namespace), 2, taskID)
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 1)
 			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 10)
-			pool.unsubscribe("1")
+			pool.Unsubscribe(taskID)
+			pool.SelectAndKill(taskID, "unsubscription event")
+			So(pool.Count(), ShouldEqual, 0)
+			So(pool.SubscriptionCount(), ShouldEqual, 0)
 			Convey("collects metrics from plugin using httpjson client", func() {
 				lp, err := c.pluginManager.get("collector:mock:1")
 				So(err, ShouldBeNil)
@@ -904,33 +1039,40 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
 				So(errp, ShouldBeNil)
 				So(pool, ShouldNotBeNil)
-				ttl, err := pool.CacheTTL()
-				So(err, ShouldResemble, ErrPoolEmpty)
+				ttl, err := pool.CacheTTL(taskID)
+				So(err, ShouldResemble, strategy.ErrPoolEmpty)
 				So(ttl, ShouldEqual, 0)
-				pool.subscribe("1", unboundSubscriptionType)
+				So(pool.Count(), ShouldEqual, 0)
+				So(pool.SubscriptionCount(), ShouldEqual, 0)
+				pool.Subscribe("1", strategy.UnboundSubscriptionType)
 				err = c.pluginRunner.runPlugin(lp.Details)
+				So(pool.Count(), ShouldEqual, 1)
+				So(pool.SubscriptionCount(), ShouldEqual, 1)
 				So(err, ShouldBeNil)
-				ttl, err = pool.CacheTTL()
+				ttl, err = pool.CacheTTL(taskID)
 				So(err, ShouldBeNil)
 				So(ttl, ShouldEqual, 1100*time.Millisecond)
-				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1))
-				hits, err := pool.CacheHits(core.JoinNamespace(jsonm.namespace), jsonm.version)
-				So(pool.subscriptionCount(), ShouldEqual, 1)
-				So(pool.strategy, ShouldNotBeNil)
+				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New())
+				hits, err := pool.CacheHits(core.JoinNamespace(jsonm.namespace), jsonm.version, taskID)
+				So(pool.SubscriptionCount(), ShouldEqual, 1)
+				So(pool.Strategy, ShouldNotBeNil)
 				So(len(mts), ShouldBeGreaterThan, 0)
 				So(err, ShouldBeNil)
 				So(hits, ShouldEqual, 0)
 				So(errs, ShouldBeNil)
 				So(len(mts), ShouldEqual, 10)
-				mts, errs = c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1))
-				hits, err = pool.CacheHits(core.JoinNamespace(m.namespace), 1)
+				mts, errs = c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New())
+				hits, err = pool.CacheHits(core.JoinNamespace(m.namespace), 1, taskID)
 				So(err, ShouldBeNil)
 				So(hits, ShouldEqual, 1)
 				So(errs, ShouldBeNil)
 				So(len(mts), ShouldEqual, 10)
 				So(pool.AllCacheHits(), ShouldEqual, 1)
 				So(pool.AllCacheMisses(), ShouldEqual, 1)
-				pool.unsubscribe("1")
+				pool.Unsubscribe("1")
+				pool.SelectAndKill("1", "unsubscription event")
+				So(pool.Count(), ShouldEqual, 0)
+				So(pool.SubscriptionCount(), ShouldEqual, 0)
 				c.Stop()
 				time.Sleep(100 * time.Millisecond)
 			})
@@ -987,16 +1129,16 @@ func TestCollectMetrics(t *testing.T) {
 		Convey("create a pool, add subscriptions and start plugins", func() {
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
 			So(errp, ShouldBeNil)
-			pool.subscribe("1", unboundSubscriptionType)
+			pool.Subscribe("1", strategy.UnboundSubscriptionType)
 			err = c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
-			pool.subscribe("2", unboundSubscriptionType)
+			pool.Subscribe("2", strategy.UnboundSubscriptionType)
 			err = c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
 			m = append(m, m1, m2, m3)
 			Convey("collect metrics", func() {
 				for x := 0; x < 4; x++ {
-					cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1))
+					cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New())
 					So(err, ShouldBeNil)
 					for i := range cr {
 						So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
@@ -1005,12 +1147,13 @@ func TestCollectMetrics(t *testing.T) {
 				}
 				ap := c.AvailablePlugins()
 				So(ap, ShouldNotBeEmpty)
-				So(pool.strategy.String(), ShouldEqual, plugin.DefaultRouting.String())
-				So(len(pool.plugins), ShouldEqual, 2)
-				for _, p := range pool.plugins {
-					So(p.hitCount, ShouldEqual, 2)
-					So(p.hitCount, ShouldEqual, 2)
-				}
+				So(pool.Strategy().String(), ShouldEqual, plugin.DefaultRouting.String())
+				So(len(pool.Plugins()), ShouldEqual, 2)
+				// when the first first plugin is hit the cache is populated the
+				// cache satifies the next 3 collect calls that come in within the
+				// cache duration
+				So(pool.Plugins()[1].HitCount(), ShouldEqual, 1)
+				So(pool.Plugins()[2].HitCount(), ShouldEqual, 0)
 				c.Stop()
 			})
 		})
@@ -1027,7 +1170,7 @@ func TestCollectMetrics(t *testing.T) {
 		c.Start()
 		load(c, PluginPath)
 		m := []core.Metric{}
-		c.CollectMetrics(m, time.Now().Add(time.Second*60))
+		c.CollectMetrics(m, time.Now().Add(time.Second*60), uuid.New())
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	})
@@ -1088,7 +1231,7 @@ func TestPublishMetrics(t *testing.T) {
 			config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/snap-TestPublishMetrics.out"}))
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:3")
 			So(errp, ShouldBeNil)
-			pool.subscribe("1", unboundSubscriptionType)
+			pool.Subscribe("1", strategy.UnboundSubscriptionType)
 			err := c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
 			time.Sleep(2500 * time.Millisecond)
@@ -1101,7 +1244,7 @@ func TestPublishMetrics(t *testing.T) {
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
 				contentType := plugin.SnapGOBContentType
-				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 3, n.Table())
+				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 3, n.Table(), uuid.New())
 				So(errs, ShouldBeNil)
 				ap := c.AvailablePlugins()
 				So(ap, ShouldNotBeEmpty)
@@ -1141,7 +1284,7 @@ func TestProcessMetrics(t *testing.T) {
 			n := cdata.NewNode()
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("processor:passthru:1")
 			So(errp, ShouldBeNil)
-			pool.subscribe("1", unboundSubscriptionType)
+			pool.Subscribe("1", strategy.UnboundSubscriptionType)
 			err := c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
 			time.Sleep(2500 * time.Millisecond)
@@ -1154,7 +1297,7 @@ func TestProcessMetrics(t *testing.T) {
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
 				contentType := plugin.SnapGOBContentType
-				_, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table())
+				_, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table(), uuid.New())
 				So(errs, ShouldBeEmpty)
 				mts := []plugin.PluginMetricType{}
 				dec := gob.NewDecoder(bytes.NewBuffer(ct))

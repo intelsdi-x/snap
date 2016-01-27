@@ -131,7 +131,7 @@ type PluginControlOpt func(*pluginControl)
 // MaxRunningPlugins sets the maximum number of plugins to run per pool
 func MaxRunningPlugins(m int) PluginControlOpt {
 	return func(c *pluginControl) {
-		maximumRunningPlugins = m
+		strategy.MaximumRunningPlugins = m
 	}
 }
 
@@ -627,8 +627,8 @@ func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins 
 				serrs = append(serrs, serror.New(err))
 				return serrs
 			}
-			pool.subscribe(taskID, unboundSubscriptionType)
-			if pool.eligible() {
+			pool.Subscribe(taskID, strategy.UnboundSubscriptionType)
+			if pool.Eligible() {
 				err = p.verifyPlugin(latest)
 				if err != nil {
 					serrs = append(serrs, serror.New(err))
@@ -646,8 +646,8 @@ func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins 
 				serrs = append(serrs, serror.New(err))
 				return serrs
 			}
-			pool.subscribe(taskID, boundSubscriptionType)
-			if pool.eligible() {
+			pool.Subscribe(taskID, strategy.BoundSubscriptionType)
+			if pool.Eligible() {
 				pl, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
 				if err != nil {
 					serrs = append(serrs, serror.New(err))
@@ -699,10 +699,10 @@ func (p *pluginControl) sendPluginSubscriptionEvent(taskID string, pl core.Plugi
 		PluginType:       int(pt),
 		PluginName:       pl.Name(),
 		PluginVersion:    pl.Version(),
-		SubscriptionType: int(unboundSubscriptionType),
+		SubscriptionType: int(strategy.UnboundSubscriptionType),
 	}
 	if pl.Version() > 0 {
-		e.SubscriptionType = int(boundSubscriptionType)
+		e.SubscriptionType = int(strategy.BoundSubscriptionType)
 	}
 	if _, err := p.eventManager.Emit(e); err != nil {
 		return serror.New(err)
@@ -726,7 +726,7 @@ func (p *pluginControl) UnsubscribeDeps(taskID string, mts []core.Metric, plugin
 			return serrs
 		}
 		if pool != nil {
-			pool.unsubscribe(taskID)
+			pool.Unsubscribe(taskID)
 		}
 		serr := p.sendPluginUnsubscriptionEvent(taskID, sub)
 		if serr != nil {
@@ -836,7 +836,7 @@ func (p *pluginControl) MetricExists(mns []string, ver int) bool {
 // CollectMetrics is a blocking call to collector plugins returning a collection
 // of metrics and errors.  If an error is encountered no metrics will be
 // returned.
-func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.Time) (metrics []core.Metric, errs []error) {
+func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.Time, taskID string) (metrics []core.Metric, errs []error) {
 	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
 		errs = append(errs, err)
@@ -859,7 +859,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 		wg.Add(1)
 
 		go func(pluginKey string, mt []core.Metric) {
-			mts, err := p.pluginRunner.AvailablePlugins().collectMetrics(pluginKey, mt)
+			mts, err := p.pluginRunner.AvailablePlugins().collectMetrics(pluginKey, mt, taskID)
 			if err != nil {
 				cError <- err
 			} else {
@@ -893,23 +893,23 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 }
 
 // PublishMetrics
-func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) []error {
+func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	// merge global plugin config into the config for this request
 	cfg := p.Config.Plugins.getPluginConfigDataNode(core.PublisherPluginType, pluginName, pluginVersion).Table()
 	for k, v := range cfg {
 		config[k] = v
 	}
-	return p.pluginRunner.AvailablePlugins().publishMetrics(contentType, content, pluginName, pluginVersion, config)
+	return p.pluginRunner.AvailablePlugins().publishMetrics(contentType, content, pluginName, pluginVersion, config, taskID)
 }
 
 // ProcessMetrics
-func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue) (string, []byte, []error) {
+func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
 	// merge global plugin config into the config for this request
 	cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, pluginName, pluginVersion).Table()
 	for k, v := range cfg {
 		config[k] = v
 	}
-	return p.pluginRunner.AvailablePlugins().processMetrics(contentType, content, pluginName, pluginVersion, config)
+	return p.pluginRunner.AvailablePlugins().processMetrics(contentType, content, pluginName, pluginVersion, config, taskID)
 }
 
 // GetPluginContentTypes returns accepted and returned content types for the

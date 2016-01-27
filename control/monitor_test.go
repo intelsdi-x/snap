@@ -80,7 +80,7 @@ func TestMonitor(t *testing.T) {
 			Convey("health monitor", func() {
 				for _, ap := range aps.all() {
 					So(ap, ShouldNotBeNil)
-					So(ap.failedHealthChecks, ShouldBeGreaterThan, 3)
+					So(ap.(*availablePlugin).failedHealthChecks, ShouldBeGreaterThan, 3)
 				}
 			})
 		})

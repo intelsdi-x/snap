@@ -33,7 +33,7 @@ import (
 
 type mockCollector struct{}
 
-func (m *mockCollector) CollectMetrics([]core.Metric, time.Time) ([]core.Metric, []error) {
+func (m *mockCollector) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error) {
 	return nil, nil
 }
 
@@ -42,43 +42,37 @@ func TestCollectorJob(t *testing.T) {
 	cdt := cdata.NewTree()
 	Convey("newCollectorJob()", t, func() {
 		Convey("it returns an init-ed collectorJob", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			So(cj, ShouldHaveSameTypeAs, &collectorJob{})
 		})
 	})
 	Convey("StartTime()", t, func() {
 		Convey("it should return the job starttime", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			So(cj.StartTime(), ShouldHaveSameTypeAs, time.Now())
 		})
 	})
 	Convey("Deadline()", t, func() {
 		Convey("it should return the job daedline", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			So(cj.Deadline(), ShouldResemble, cj.(*collectorJob).deadline)
 		})
 	})
 	Convey("Type()", t, func() {
 		Convey("it should return the job type", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			So(cj.Type(), ShouldEqual, collectJobType)
 		})
 	})
-	// Convey("Metrics()", t, func() {
-	// 	Convey("it should return the job metrics", func() {
-	// 		cj := newCollectorJob([]core.MetricType{}, defaultDeadline, &mockCollector{})
-	// 		So(cj.Metrics(), ShouldResemble, []core.Metric{})
-	// 	})
-	// })
 	Convey("Errors()", t, func() {
 		Convey("it should return the errors from the job", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			So(cj.Errors(), ShouldResemble, []error{})
 		})
 	})
 	Convey("AddErrors()", t, func() {
 		Convey("it should append errors to the job", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			So(cj.Errors(), ShouldResemble, []error{})
 
 			e1 := errors.New("1")
@@ -93,7 +87,7 @@ func TestCollectorJob(t *testing.T) {
 	})
 	Convey("Run()", t, func() {
 		Convey("it should complete without errors", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			cj.(*collectorJob).Run()
 			So(cj.Errors(), ShouldResemble, []error{})
 		})
@@ -105,14 +99,14 @@ func TestQueuedJob(t *testing.T) {
 	cdt := cdata.NewTree()
 	Convey("Job()", t, func() {
 		Convey("it should return the underlying job", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			qj := newQueuedJob(cj)
 			So(qj.Job(), ShouldEqual, cj)
 		})
 	})
 	Convey("Promise()", t, func() {
 		Convey("it should return the underlying promise", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt)
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
 			qj := newQueuedJob(cj)
 			So(qj.Promise().IsComplete(), ShouldBeFalse)
 		})

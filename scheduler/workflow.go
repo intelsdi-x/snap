@@ -299,7 +299,7 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPl
 // Start starts a workflow
 func (s *schedulerWorkflow) Start(t *task) {
 	s.state = WorkflowStarted
-	j := newCollectorJob(s.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree)
+	j := newCollectorJob(s.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree, t.id)
 
 	// dispatch 'collect' job to be worked
 	// Block until the job has been either run or skipped.
@@ -336,7 +336,7 @@ func (s *schedulerWorkflow) StateString() string {
 
 func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *task, pj job) {
 	for _, pr := range prs {
-		j := newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.metricsManager)
+		j := newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.metricsManager, t.id)
 		errors := t.manager.Work(j).Promise().Await()
 		if len(errors) != 0 {
 			t.failedRuns++
@@ -348,7 +348,7 @@ func (s *schedulerWorkflow) workJobs(prs []*processNode, pus []*publishNode, t *
 		s.workJobs(pr.ProcessNodes, pr.PublishNodes, t, j)
 	}
 	for _, pu := range pus {
-		j := newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.metricsManager)
+		j := newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.metricsManager, t.id)
 		errors := t.manager.Work(j).Promise().Await()
 		if len(errors) != 0 {
 			t.failedRuns++
