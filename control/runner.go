@@ -53,6 +53,10 @@ const (
 	PluginStopped
 	// PluginDisabled is the disabled state of a plugin
 	PluginDisabled
+
+	// MaximumRestartOnDeadPluginEvent is the maximum count of restarting a plugin
+	// after the event of control_event.DeadAvailablePluginEvent
+	MaximumRestartOnDeadPluginEvent = 3
 )
 
 // TBD
@@ -239,6 +243,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			"event":   v.Namespace(),
 			"aplugin": v.String,
 		}).Warning("handling dead available plugin event")
+
 		pool, err := r.availablePlugins.getPool(v.Key)
 		if err != nil {
 			runnerLog.WithFields(log.Fields{
@@ -247,8 +252,21 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			}).Error(err.Error())
 			return
 		}
+
 		if pool != nil {
 			pool.Kill(v.Id, "plugin dead")
+		}
+
+		if pool.Eligible() && pool.RestartCount() < MaximumRestartOnDeadPluginEvent {
+			e := r.restartPlugin(v.Key)
+			if e != nil {
+				runnerLog.WithFields(log.Fields{
+					"_block":  "handle-events",
+					"aplugin": v.String,
+				}).Error(err.Error())
+				return
+			}
+			pool.IncRestartCount()
 		}
 	case *control_event.PluginUnsubscriptionEvent:
 		runnerLog.WithFields(log.Fields{
@@ -421,4 +439,12 @@ func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID 
 		pool.SelectAndKill(taskID, "unsubscription event")
 	}
 	return nil
+}
+
+func (r *runner) restartPlugin(key string) error {
+	lp, err := r.pluginManager.get(key)
+	if err != nil {
+		return err
+	}
+	return r.runPlugin(lp.Details)
 }

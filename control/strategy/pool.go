@@ -72,6 +72,8 @@ type Pool interface {
 	SubscriptionCount() int
 	Unsubscribe(taskID string)
 	Version() int
+	RestartCount() int
+	IncRestartCount()
 }
 
 type AvailablePlugin interface {
@@ -122,6 +124,10 @@ type pool struct {
 	// The routing and caching strategy declared by the plugin.
 	// strategy RoutingAndCaching
 	RoutingAndCaching
+
+	// restartCount the restart count of available plugins
+	// when the DeadAvailablePluginEvent occurs
+	restartCount int
 }
 
 func NewPool(key string, plugins ...AvailablePlugin) (Pool, error) {
@@ -162,6 +168,17 @@ func (p *pool) Plugins() map[uint32]AvailablePlugin {
 // Strategy returns the routing strategy
 func (p *pool) Strategy() RoutingAndCaching {
 	return p.RoutingAndCaching
+}
+
+// RestartCount returns the restart count of a pool
+func (p *pool) RestartCount() int {
+	return p.restartCount
+}
+
+func (p *pool) IncRestartCount() {
+	p.RLock()
+	defer p.RUnlock()
+	p.restartCount++
 }
 
 // Insert inserts an AvailablePlugin into the pool

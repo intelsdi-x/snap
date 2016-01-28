@@ -1118,26 +1118,31 @@ func TestFailedPlugin(t *testing.T) {
 		Convey("create a pool, add subscriptions and start plugins", func() {
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
 			So(errp, ShouldBeNil)
-			pool.subscribe("1", unboundSubscriptionType)
+			pool.Subscribe("1", strategy.UnboundSubscriptionType)
 			err = c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
 
 			Convey("collect metrics against a plugin that will panic", func() {
-				So(len(pool.plugins), ShouldEqual, 1)
-				cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1))
-				So(err, ShouldNotBeNil)
-				So(cr, ShouldBeNil)
-				<-lpe.done
-				So(lpe.plugin.EventNamespace, ShouldResemble, control_event.AvailablePluginDead)
-				// sleep is necessary unless/until we add an event that is fired when the AP is removed
-				// from the array of plugins on the pool
-				time.Sleep(100 * time.Millisecond)
-				So(len(pool.plugins), ShouldEqual, 1)
-				// TODO: On the AvailablePluginDeadEvent we should attempt to restart the plugin
-				//       ensuring that we can't enter an endless failure loop.
-				//
-				//       - Add a configurable max-failure-count for running plugins
-				//       - Add the logic that detects a failure loop to the eligibilty method on the pool
+				So(len(pool.Plugins()), ShouldEqual, 1)
+
+				var err []error
+				var cr []core.Metric
+				for i := 0; i <= MaximumRestartOnDeadPluginEvent; i++ {
+					cr, err = c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New())
+					So(err, ShouldNotBeNil)
+					So(cr, ShouldBeNil)
+					<-lpe.done
+					So(lpe.plugin.EventNamespace, ShouldResemble, control_event.AvailablePluginDead)
+
+					time.Sleep(700 * time.Millisecond)
+
+					if i < 3 {
+						So(len(pool.Plugins()), ShouldEqual, 1)
+						So(pool.RestartCount(), ShouldEqual, i+1)
+					}
+				}
+				So(len(pool.Plugins()), ShouldEqual, 0)
+				So(pool.RestartCount(), ShouldEqual, MaximumRestartOnDeadPluginEvent)
 			})
 		})
 		c.Stop()
