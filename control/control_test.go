@@ -1144,7 +1144,6 @@ func TestFailedPlugin(t *testing.T) {
 					if i < MaxPluginRestartCount {
 						<-lpe.done
 						eventMap[lpe.plugin.EventNamespace]++
-						So(len(pool.Plugins()), ShouldEqual, 1)
 						So(pool.RestartCount(), ShouldEqual, i+1)
 					}
 				}
