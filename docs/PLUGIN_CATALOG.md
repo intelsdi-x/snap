@@ -55,7 +55,10 @@ These plugins are in planned/active development. This list is useful if you want
 | MySQL | Collector | Collects metrics from MySQL DB | [snap-plugin-collector-mysql](https://github.com/intelsdi-x/snap-plugin-collector-mysql) | [@lmroz](https://github.com/lmroz) |
 | CPU | Collector | Collects CPU metrics from Linux procfs | [snap-plugin-collector-cpu](https://github.com/intelsdi-x/snap-plugin-collector-cpu) | [@katarzyna-z](https://github.com/katarzyna-z) |
 | DBI | Collector | Collects metrics from SQL DBs using go's "sql" package | [snap-plugin-collector-dbi](https://github.com/intelsdi-x/snap-plugin-collector-dbi) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
+| Apache | Collector | Collects metrics from the Apache Webserver for mod_status| [snap-plugin-collector-apache](https://github.com/intelsdi-x/snap-plugin-collector-apache) | [@tiffanyfj](https://github.com/tiffanyfj) |
+ |
 | HEKA | Publisher | Publishes snap metrics into heka via TCP | [snap-plugin-publisher-heka](https://github.com/intelsdi-x/snap-plugin-publisher-heka) | [@candysmurf](https://github.com/candysmurf) |
+
 
 ## Wish List
 This is a wish list of plugins for snap. If you see one here and want to start on it please let us know.
