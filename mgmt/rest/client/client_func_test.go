@@ -79,11 +79,15 @@ func startAPI() string {
 	r.BindConfigManager(c.Config)
 	r.BindMetricManager(c)
 	r.BindTaskManager(s)
-	err := r.Start("127.0.0.1:0")
-	if err != nil {
-		// Panic on an error
-		panic(err)
-	}
+	go func(ch <-chan error) {
+		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
+		err, ok := <-ch
+		if !ok {
+			return
+		}
+		log.Fatal(err)
+	}(r.Err())
+	r.Start("127.0.0.1:0")
 	time.Sleep(100 * time.Millisecond)
 	return fmt.Sprintf("http://localhost:%d", r.Port())
 }
