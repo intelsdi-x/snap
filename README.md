@@ -109,24 +109,24 @@ If you cloned down the repository and aren't using just downloaded binaries, you
 ```
 $ export SNAP_PATH=<snapDirectoryPath>/build
 ```
-And then you can use `$SNAP_PATH` for your `<snapBinPath>`.
+And then you can use `$SNAP_PATH/bin` for your `<snapBinPath>`.
 ```
-$ <snapBinPath>/bin/snapd --plugin-trust 0 --log-level 1
+$ <snapBinPath>/snapd --plugin-trust 0 --log-level 1
 ```
-This will bring up a snap agent without requiring plugin signing and set the logging level to debug. snap's REST API will be listening on port 8181. To learn more about the snap agent and how to use it look at [SNAPD.md](docs/SNAPD.md) and/or run `<snapBinPath>/bin/snapd -h`.
+This will bring up a snap agent without requiring plugin signing and set the logging level to debug. snap's REST API will be listening on port 8181. To learn more about the snap agent and how to use it look at [SNAPD.md](docs/SNAPD.md) and/or run `<snapBinPath>/snapd -h`.
 
 ### Running snap in tribe (cluster) mode
 
 Start the first node:
 
 ```
-$ <snapBinPath>/bin/snapd --tribe
+$ <snapBinPath>/snapd --tribe
 ```
 
 All other nodes who join will need to select any existing member of the cluster.
 
 ```
-$ <snapBinPath>/bin/snapd --tribe-seed <ip or name of another tribe member>
+$ <snapBinPath>/snapd --tribe-seed <ip or name of another tribe member>
 ```
 
 Checkout the [tribe doc](docs/TRIBE.md) for more info.
@@ -134,28 +134,30 @@ Checkout the [tribe doc](docs/TRIBE.md) for more info.
 ## Load Plugins
 snap gets its power from the use of plugins. The [plugin catalog](#plugin-catalog) is a collection of all known plugins for snap.
 
-Next, lets load a few of the demo plugins.  You can do this via cURL, or `snapctl`, snap's CLI.
+Next, open a new shell and lets load a few of the demo plugins.  You can do this via cURL, or `snapctl`, snap's CLI.
 
 Using cURL
 ```sh
-$ curl -X POST -F plugin=@build/plugin/snap-collector-mock1 http://localhost:8181/v1/plugins
-$ curl -X POST -F plugin=@build/plugin/snap-processor-passthru http://localhost:8181/v1/plugins
-$ curl -X POST -F plugin=@build/plugin/snap-publisher-file http://localhost:8181/v1/plugins
+$ cd $SNAP_PATH
+$ curl -X POST -F plugin=@plugin/snap-collector-mock1 http://localhost:8181/v1/plugins
+$ curl -X POST -F plugin=@plugin/snap-processor-passthru http://localhost:8181/v1/plugins
+$ curl -X POST -F plugin=@plugin/snap-publisher-file http://localhost:8181/v1/plugins
 ```
 
 Or:
 
 Using `snapctl` (snap CLI)
 ```
-$ <snapBinPath>/bin/snapctl plugin load build/plugin/snap-collector-mock1
-$ <snapBinPath>/bin/snapctl plugin load build/plugin/snap-processor-passthru
-$ <snapBinPath>/bin/snapctl plugin load build/plugin/snap-publisher-file
+cd $SNAP_PATH
+$ <snapBinPath>/snapctl plugin load plugin/snap-collector-mock1
+$ <snapBinPath>/snapctl plugin load plugin/snap-processor-passthru
+$ <snapBinPath>/snapctl plugin load plugin/snap-publisher-file
 ```
 
 Let's look at what plugins we have loaded now:
 
 ```
-$ <snapBinPath>/bin/snapctl plugin list
+$ <snapBinPath>/snapctl plugin list
 NAME             VERSION         TYPE            SIGNED          STATUS          LOADED TIME
 mock             1               collector       false           loaded          Tue, 17 Nov 2015 14:08:17 PST
 passthru         1               processor       false           loaded          Tue, 17 Nov 2015 14:16:12 PST
@@ -166,7 +168,8 @@ file             3               publisher       false           loaded         
 Tasks can be in JSON or YAML format. Let's start one of the [example tasks](./examples/tasks/mock-file.yaml) from the `examples/tasks/` directory:
 
 ```
-$ <snapBinPath>/bin/snapctl task create -t examples/tasks/mock-file.yaml
+$ cd <snapDirectoryPath>
+$ <snapBinPath>/snapctl task create -t examples/tasks/mock-file.yaml
 Using task manifest to create task
 Task created
 ID: 8b9babad-b3bc-4a16-9e06-1f35664a7679
@@ -183,7 +186,12 @@ $ tail -f /tmp/snap_published_mock_file.log
 
 Or actually tap into the data that snap is collecting using the task ID to watch the task:
 ```
-$ <snapBinPath>/bin/snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
+$ <snapBinPath>/snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
+```
+
+If the task ID already scrolled by, you can get the task ID with:
+```
+$ <snapBinPath>/snapctl task list
 ```
 
 ### Building Tasks
