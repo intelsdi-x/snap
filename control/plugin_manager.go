@@ -28,6 +28,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -231,9 +232,13 @@ type pluginManager struct {
 }
 
 func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
+	logPath := "/tmp"
+	if runtime.GOOS == "windows" {
+		logPath = `c:\temp`
+	}
 	p := &pluginManager{
 		loadedPlugins: newLoadedPlugins(),
-		logPath:       "/tmp",
+		logPath:       logPath,
 		pluginConfig:  newPluginConfig(),
 	}
 
