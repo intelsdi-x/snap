@@ -101,7 +101,6 @@ func (c *cache) put(ns string, version int, m interface{}) {
 			c.table[key].time = chrono.Chrono.Now()
 			c.table[key].metric = metric
 		} else {
-			log.Errorf("%+v", c.table)
 			c.table[key] = &cachecell{
 				time:   chrono.Chrono.Now(),
 				metric: metric,
