@@ -32,6 +32,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -200,9 +201,11 @@ func writeFile(filename string, b []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = f.Chmod(0700)
-	if err != nil {
-		return "", err
+	if runtime.GOOS != "windows" {
+		err = f.Chmod(0700)
+		if err != nil {
+			return "", err
+		}
 	}
 	// Close before load
 	f.Close()
