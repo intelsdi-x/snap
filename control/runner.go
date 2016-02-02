@@ -56,7 +56,7 @@ const (
 
 	// MaximumRestartOnDeadPluginEvent is the maximum count of restarting a plugin
 	// after the event of control_event.DeadAvailablePluginEvent
-	MaximumRestartOnDeadPluginEvent = 3
+	MaxPluginRestartCount = 3
 )
 
 // TBD
@@ -257,16 +257,33 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			pool.Kill(v.Id, "plugin dead")
 		}
 
-		if pool.Eligible() && pool.RestartCount() < MaximumRestartOnDeadPluginEvent {
-			e := r.restartPlugin(v.Key)
-			if e != nil {
-				runnerLog.WithFields(log.Fields{
-					"_block":  "handle-events",
-					"aplugin": v.String,
-				}).Error(err.Error())
-				return
+		if pool.Eligible() {
+			if pool.RestartCount() < MaxPluginRestartCount {
+				e := r.restartPlugin(v.Key)
+				if e != nil {
+					runnerLog.WithFields(log.Fields{
+						"_block":  "handle-events",
+						"aplugin": v.String,
+					}).Error(err.Error())
+					return
+				}
+				pool.IncRestartCount()
+				r.emitter.Emit(&control_event.RestartedAvailablePluginEvent{
+					Id:      v.Id,
+					Name:    v.Name,
+					Version: v.Version,
+					Key:     v.Key,
+					Type:    v.Type,
+				})
+			} else {
+				r.emitter.Emit(&control_event.MaxPluginRestartsExceededEvent{
+					Id:      v.Id,
+					Name:    v.Name,
+					Version: v.Version,
+					Key:     v.Key,
+					Type:    v.Type,
+				})
 			}
-			pool.IncRestartCount()
 		}
 	case *control_event.PluginUnsubscriptionEvent:
 		runnerLog.WithFields(log.Fields{

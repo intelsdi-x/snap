@@ -20,18 +20,20 @@ limitations under the License.
 package control_event
 
 const (
-	AvailablePluginDead   = "Control.AvailablePluginDead"
-	PluginLoaded          = "Control.PluginLoaded"
-	PluginUnloaded        = "Control.PluginUnloaded"
-	PluginsSwapped        = "Control.PluginsSwapped"
-	PluginSubscribed      = "Control.PluginSubscribed"
-	PluginUnsubscribed    = "Control.PluginUnsubscribed"
-	ProcessorSubscribed   = "Control.ProcessorSubscribed"
-	ProcessorUnsubscribed = "Control.ProcessorUnsubscribed"
-	MetricSubscribed      = "Control.MetricSubscribed"
-	MetricUnsubscribed    = "Control.MetricUnsubscribed"
-	HealthCheckFailed     = "Control.PluginHealthCheckFailed"
-	MoveSubscription      = "Control.PluginSubscriptionMoved"
+	AvailablePluginDead      = "Control.AvailablePluginDead"
+	AvailablePluginRestarted = "Control.RestartedAvailablePlugin"
+	PluginRestartsExceeded   = "Control.PluginRestartsExceeded"
+	PluginLoaded             = "Control.PluginLoaded"
+	PluginUnloaded           = "Control.PluginUnloaded"
+	PluginsSwapped           = "Control.PluginsSwapped"
+	PluginSubscribed         = "Control.PluginSubscribed"
+	PluginUnsubscribed       = "Control.PluginUnsubscribed"
+	ProcessorSubscribed      = "Control.ProcessorSubscribed"
+	ProcessorUnsubscribed    = "Control.ProcessorUnsubscribed"
+	MetricSubscribed         = "Control.MetricSubscribed"
+	MetricUnsubscribed       = "Control.MetricUnsubscribed"
+	HealthCheckFailed        = "Control.PluginHealthCheckFailed"
+	MoveSubscription         = "Control.PluginSubscriptionMoved"
 )
 
 type LoadPluginEvent struct {
@@ -66,6 +68,30 @@ type DeadAvailablePluginEvent struct {
 
 func (e *DeadAvailablePluginEvent) Namespace() string {
 	return AvailablePluginDead
+}
+
+type RestartedAvailablePluginEvent struct {
+	Name    string
+	Version int
+	Type    int
+	Key     string
+	Id      uint32
+}
+
+func (e *MaxPluginRestartsExceededEvent) Namespace() string {
+	return PluginRestartsExceeded
+}
+
+type MaxPluginRestartsExceededEvent struct {
+	Name    string
+	Version int
+	Type    int
+	Key     string
+	Id      uint32
+}
+
+func (e *RestartedAvailablePluginEvent) Namespace() string {
+	return AvailablePluginRestarted
 }
 
 type SwapPluginsEvent struct {

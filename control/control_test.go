@@ -246,6 +246,12 @@ func newListenToPluginEvent() *listenToPluginEvent {
 
 func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 	switch v := e.Body.(type) {
+	case *control_event.RestartedAvailablePluginEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.MaxPluginRestartsExceededEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
 	case *control_event.DeadAvailablePluginEvent:
 		l.plugin.EventNamespace = v.Namespace()
 		l.done <- struct{}{}
@@ -1127,22 +1133,28 @@ func TestFailedPlugin(t *testing.T) {
 
 				var err []error
 				var cr []core.Metric
-				for i := 0; i <= MaximumRestartOnDeadPluginEvent; i++ {
+				eventMap := map[string]int{}
+				for i := 0; i <= MaxPluginRestartCount; i++ {
 					cr, err = c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New())
 					So(err, ShouldNotBeNil)
 					So(cr, ShouldBeNil)
 					<-lpe.done
-					So(lpe.plugin.EventNamespace, ShouldResemble, control_event.AvailablePluginDead)
+					eventMap[lpe.plugin.EventNamespace]++
 
-					time.Sleep(700 * time.Millisecond)
-
-					if i < 3 {
+					if i < MaxPluginRestartCount {
+						<-lpe.done
+						eventMap[lpe.plugin.EventNamespace]++
 						So(len(pool.Plugins()), ShouldEqual, 1)
 						So(pool.RestartCount(), ShouldEqual, i+1)
 					}
 				}
+				<-lpe.done
+				eventMap[lpe.plugin.EventNamespace]++
+				So(eventMap[control_event.AvailablePluginDead], ShouldEqual, 4)
+				So(eventMap[control_event.AvailablePluginRestarted], ShouldEqual, 3)
+				So(eventMap[control_event.PluginRestartsExceeded], ShouldEqual, 1)
 				So(len(pool.Plugins()), ShouldEqual, 0)
-				So(pool.RestartCount(), ShouldEqual, MaximumRestartOnDeadPluginEvent)
+				So(pool.RestartCount(), ShouldEqual, MaxPluginRestartCount)
 			})
 		})
 		c.Stop()
