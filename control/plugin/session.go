@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
@@ -252,7 +253,11 @@ func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*Se
 	truncOrAppend := os.O_TRUNC // truncate log file explicitly given by user
 	// Empty or /tmp means use default tmp log (needs to be removed post-aAtruncOrAppendpha)
 	if pluginArg.PluginLogPath == "" || pluginArg.PluginLogPath == "/tmp" {
-		pluginArg.PluginLogPath = "/tmp/snap_plugin.log"
+		if runtime.GOOS == "windows" {
+			pluginArg.PluginLogPath = `c:\TEMP\snap_plugin.log`
+		} else {
+			pluginArg.PluginLogPath = "/tmp/snap_plugin.log"
+		}
 		truncOrAppend = os.O_APPEND
 	}
 	lf, err := os.OpenFile(pluginArg.PluginLogPath, os.O_WRONLY|os.O_CREATE|truncOrAppend, 0666)
