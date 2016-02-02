@@ -135,9 +135,9 @@ func New(https bool, cpath, kpath string) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) Start(addrString string) error {
+func (s *Server) Start(addrString string) {
 	s.addRoutes()
-	return s.run(addrString)
+	s.run(addrString)
 }
 
 func (s *Server) Err() <-chan error {
@@ -148,20 +148,18 @@ func (s *Server) Port() int {
 	return s.addr.(*net.TCPAddr).Port
 }
 
-func (s *Server) run(addrString string) error {
+func (s *Server) run(addrString string) {
 	restLogger.Info("Starting REST API on ", addrString)
 	if s.tls != nil {
 		go s.serveTLS(addrString)
 	} else {
 		ln, err := net.Listen("tcp", addrString)
 		if err != nil {
-			return err
+			s.err <- err
 		}
 		s.addr = ln.Addr()
 		go s.serve(ln)
-
 	}
-	return nil
 }
 
 func (s *Server) serveTLS(addrString string) {

@@ -490,7 +490,6 @@ func action(ctx *cli.Context) {
 		r, err := rest.New(restHttps, restCert, restKey)
 		if err != nil {
 			log.Fatal(err)
-			return
 		}
 		r.BindMetricManager(c)
 		r.BindConfigManager(c.Config)
@@ -498,8 +497,8 @@ func action(ctx *cli.Context) {
 		if tr != nil {
 			r.BindTribeManager(tr)
 		}
-		r.Start(fmt.Sprintf(":%d", apiPort))
 		go monitorErrors(r.Err())
+		r.Start(fmt.Sprintf(":%d", apiPort))
 		log.Info("Rest API is enabled")
 	} else {
 		log.Info("Rest API is disabled")
@@ -520,11 +519,11 @@ func action(ctx *cli.Context) {
 
 func monitorErrors(ch <-chan error) {
 	// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
-	_, ok := <-ch
+	err, ok := <-ch
 	if !ok {
 		return
 	}
-	os.Exit(1)
+	log.Fatal(err)
 }
 
 // setMaxProcs configures runtime.GOMAXPROCS for snapd. GOMAXPROCS can be set by using
