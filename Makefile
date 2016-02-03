@@ -31,5 +31,3 @@ snap:
 install:
 	cp build/bin/snapd /usr/local/bin/
 	cp build/bin/snapctl /usr/local/bin/
-release:
-	bash -c "./scripts/release.sh $(TAG) $(COMMIT)"
