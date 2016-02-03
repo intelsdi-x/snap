@@ -36,7 +36,10 @@ import (
 )
 
 var (
-	SnapPath = os.Getenv("SNAP_PATH")
+	SnapPath                     = os.Getenv("SNAP_PATH")
+	snap_collector_mock2_path    = path.Join(SnapPath, "plugin", "snap-collector-mock2")
+	snap_processor_passthru_path = path.Join(SnapPath, "plugin", "snap-processor-passthru")
+	snap_publisher_file_path     = path.Join(SnapPath, "plugin", "snap-publisher-file")
 )
 
 type MockMetricType struct {
@@ -72,13 +75,16 @@ func TestCollectPublishWorkflow(t *testing.T) {
 		s := New()
 		s.SetMetricManager(c)
 		Convey("create a workflow", func() {
-			rp, _ := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-collector-mock2"))
-			_, err := c.Load(rp)
+			rp, err := core.NewRequestedPlugin(snap_collector_mock2_path)
 			So(err, ShouldBeNil)
-			rp2, _ := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-publisher-file"))
+			_, err = c.Load(rp)
+			So(err, ShouldBeNil)
+			rp2, err := core.NewRequestedPlugin(snap_publisher_file_path)
+			So(err, ShouldBeNil)
 			_, err = c.Load(rp2)
 			So(err, ShouldBeNil)
-			rp3, _ := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-processor-passthru"))
+			rp3, err := core.NewRequestedPlugin(snap_processor_passthru_path)
+			So(err, ShouldBeNil)
 			_, err = c.Load(rp3)
 			So(err, ShouldBeNil)
 			time.Sleep(100 * time.Millisecond)
