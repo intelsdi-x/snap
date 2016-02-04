@@ -38,42 +38,48 @@ var (
 
 func TestRequestedPlugin(t *testing.T) {
 	// Creating a plugin request
-	rp, err := NewRequestedPlugin(PluginPath)
+
 	Convey("Creating a plugin request from a valid path", t, func() {
-		Convey("Should return a RequestedPlugin type", func() {
-			So(rp, ShouldHaveSameTypeAs, &RequestedPlugin{})
-		})
+		rp, err := NewRequestedPlugin(PluginPath)
 		Convey("Should not return an error", func() {
 			So(err, ShouldBeNil)
-		})
-		Convey("Should set the path to the plugin", func() {
-			So(rp.Path(), ShouldEqual, PluginPath)
-		})
-		Convey("Should generate a checksum for the plugin", func() {
-			So(rp.CheckSum(), ShouldNotBeNil)
-			Convey("And checksum should match manually generated checksum", func() {
-				b, _ := ioutil.ReadFile(PluginPath)
-				So(rp.CheckSum(), ShouldResemble, sha256.Sum256(b))
+
+			Convey("Should return a RequestedPlugin type", func() {
+				So(rp, ShouldHaveSameTypeAs, &RequestedPlugin{})
 			})
-		})
-		Convey("And plugin signature should initially be nil", func() {
-			So(rp.Signature(), ShouldBeNil)
+
+			Convey("Should set the path to the plugin", func() {
+				So(rp.Path(), ShouldEqual, PluginPath)
+			})
+			Convey("Should generate a checksum for the plugin", func() {
+				So(rp.CheckSum(), ShouldNotBeNil)
+				Convey("And checksum should match manually generated checksum", func() {
+					b, _ := ioutil.ReadFile(PluginPath)
+					So(rp.CheckSum(), ShouldResemble, sha256.Sum256(b))
+				})
+			})
+			Convey("And plugin signature should initially be nil", func() {
+				So(rp.Signature(), ShouldBeNil)
+			})
+			// Set a signature for the plugin
+			rp.SetSignature([]byte{00, 00, 00})
+			Convey("A signature for the plugin can be added to a plugin request", func() {
+				Convey("So signature should not be nil", func() {
+					So(rp.Signature(), ShouldNotBeNil)
+				})
+				Convey("And signature should equal what we set it to", func() {
+					So(rp.Signature(), ShouldResemble, []byte{00, 00, 00})
+				})
+			})
+
 		})
 	})
-	// Set a signature for the plugin
-	rp.SetSignature([]byte{00, 00, 00})
-	Convey("A signature for the plugin can be added to a plugin request", t, func() {
-		Convey("So signature should not be nil", func() {
-			So(rp.Signature(), ShouldNotBeNil)
-		})
-		Convey("And signature should equal what we set it to", func() {
-			So(rp.Signature(), ShouldResemble, []byte{00, 00, 00})
-		})
-	})
-	// Create a plugin request and read a signature file for the plugin
-	rp1, _ := NewRequestedPlugin(PluginPath)
-	err1 := rp1.ReadSignatureFile(SignatureFile)
+
 	Convey("A signature file can be read in for a plugin request", t, func() {
+		rp1, err1 := NewRequestedPlugin(PluginPath)
+		So(err1, ShouldBeNil)
+		err1 = rp1.ReadSignatureFile(SignatureFile)
+
 		Convey("Should not receive an error reading signature file", func() {
 			So(err1, ShouldBeNil)
 		})
@@ -93,9 +99,12 @@ func TestRequestedPlugin(t *testing.T) {
 		})
 	})
 	// Create a plugin request and try to add a signature from an non-existant signature file
-	rp3, _ := NewRequestedPlugin(PluginPath)
-	err3 := rp3.ReadSignatureFile(SignatureFile + "foo")
+
 	Convey("When passing in a non-existant signature file", t, func() {
+		rp3, err3 := NewRequestedPlugin(PluginPath)
+		So(err3, ShouldBeNil)
+		err3 = rp3.ReadSignatureFile(SignatureFile + "foo")
+
 		Convey("signature should still be nil", func() {
 			So(rp3.Signature(), ShouldBeNil)
 		})
