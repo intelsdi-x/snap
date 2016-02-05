@@ -162,6 +162,11 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 	path := ctx.String("workflow-manifest")
 	ext := filepath.Ext(path)
 	file, e := ioutil.ReadFile(path)
+
+	if !ctx.IsSet("interval") && !ctx.IsSet("i") {
+		fmt.Println("Workflow manifest requires interval to be set via flag.")
+		os.Exit(1)
+	}
 	if e != nil {
 		fmt.Printf("File error [%s]- %v\n", ext, e)
 		os.Exit(1)
@@ -186,7 +191,6 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 	}
 	// Get the task name
 	name := ctx.String("name")
-
 	// Get the interval
 	i := ctx.String("interval")
 	_, err := time.ParseDuration(i)
