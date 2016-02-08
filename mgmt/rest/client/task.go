@@ -24,7 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
+	"strings"
 	"time"
 
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
@@ -104,9 +104,13 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 	}
 
 	url := fmt.Sprintf("%s/tasks/%v/watch", c.prefix, id)
-	resp, err := http.Get(url)
+	resp, err := c.http.Get(url)
 	if err != nil {
-		r.Err = err
+		if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
+			r.Err = fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
+		} else {
+			r.Err = err
+		}
 		r.Close()
 		return r
 	}
