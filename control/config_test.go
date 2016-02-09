@@ -30,6 +30,27 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func TestFlags(t *testing.T) {
+	Convey("Provided a config in JSON", t, func() {
+		cfg := NewConfig()
+		b, err := ioutil.ReadFile("../examples/configs/snap-config-sample.json")
+		So(b, ShouldNotBeEmpty)
+		So(b, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+		Convey("We are able to unmarshal it into a valid config", func() {
+			err = json.Unmarshal(b, &cfg)
+			So(err, ShouldBeNil)
+			So(cfg.Flags, ShouldNotBeNil)
+			So(cfg.Flags.LogLevel, ShouldNotBeNil)
+			So(cfg.Flags.PluginTrust, ShouldNotBeNil)
+			So(cfg.Flags.AutodiscoverPath, ShouldNotBeNil)
+			So(*cfg.Flags.LogLevel, ShouldEqual, 1)
+			So(*cfg.Flags.PluginTrust, ShouldEqual, 0)
+			So(*cfg.Flags.AutodiscoverPath, ShouldEqual, "build/plugin")
+		})
+	})
+}
+
 func TestPluginConfig(t *testing.T) {
 	Convey("Given a plugin config", t, func() {
 		cfg := NewConfig()
@@ -59,7 +80,7 @@ func TestPluginConfig(t *testing.T) {
 		})
 	})
 
-	Convey("Provided a config in json", t, func() {
+	Convey("Provided a config in JSON", t, func() {
 		cfg := NewConfig()
 		b, err := ioutil.ReadFile("../examples/configs/snap-config-sample.json")
 		So(b, ShouldNotBeEmpty)
@@ -93,7 +114,7 @@ func TestPluginConfig(t *testing.T) {
 					So(c.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
 					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
 				})
-				Convey("Overwritting the value of a variable defined for all plugins", func() {
+				Convey("Overwriting the value of a variable defined for all plugins", func() {
 					c := cfg.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, "movingaverage", 1)
 					So(c, ShouldNotBeNil)
 					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "new password"})
@@ -103,7 +124,7 @@ func TestPluginConfig(t *testing.T) {
 					So(c, ShouldNotBeNil)
 					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
 				})
-				Convey("Overwritting the value of a variable defined for all versions of the plugin", func() {
+				Convey("Overwriting the value of a variable defined for all versions of the plugin", func() {
 					c := cfg.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, "movingaverage", 1)
 					So(c, ShouldNotBeNil)
 					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "new password"})

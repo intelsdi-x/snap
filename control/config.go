@@ -31,6 +31,7 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/pkg/flags"
 )
 
 type pluginConfig struct {
@@ -52,7 +53,8 @@ type pluginConfigItem struct {
 }
 
 type config struct {
-	Plugins *pluginConfig `json:"plugins"`
+	Flags   flags.FlagConfig `json:"flags"`
+	Plugins *pluginConfig    `json:"plugins"`
 }
 
 // NewConfig returns a reference to a global config type for the snap daemon

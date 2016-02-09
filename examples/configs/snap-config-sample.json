@@ -1,4 +1,9 @@
 {
+    "flags": {
+        "log-level": 1,
+        "plugin-trust": 0,
+        "auto-discover": "build/plugin"
+    },
     "control": {
         "cache_ttl": "5s"
     },
