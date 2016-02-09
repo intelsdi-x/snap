@@ -64,7 +64,7 @@ func init() {
 			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
 				url = *prtURL
 			}
-		case "--u":
+		case "-u":
 			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
 				url = *prtU
 			}
@@ -72,7 +72,7 @@ func init() {
 			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
 				ver = *prtAv
 			}
-		case "--a":
+		case "-a":
 			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
 				ver = *prtA
 			}
