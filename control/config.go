@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"strconv"
 
@@ -31,7 +32,6 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/pkg/flags"
 )
 
 type pluginConfig struct {
@@ -53,8 +53,7 @@ type pluginConfigItem struct {
 }
 
 type config struct {
-	Flags   flags.FlagConfig `json:"flags"`
-	Plugins *pluginConfig    `json:"plugins"`
+	Plugins *pluginConfig `json:"plugins"`
 }
 
 // NewConfig returns a reference to a global config type for the snap daemon
@@ -79,6 +78,27 @@ func newPluginConfig() *pluginConfig {
 		Processor:   newPluginTypeConfigItem(),
 		Publisher:   newPluginTypeConfigItem(),
 		pluginCache: make(map[string]*cdata.ConfigDataNode),
+	}
+}
+
+func (p *config) LoadConfig(path string) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"block":   "main",
+			"_module": "snapd",
+			"error":   err.Error(),
+			"path":    path,
+		}).Fatal("unable to read config")
+	}
+	err = json.Unmarshal(b, p)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"block":   "main",
+			"_module": "snapd",
+			"error":   err.Error(),
+			"path":    path,
+		}).Fatal("invalid config")
 	}
 }
 

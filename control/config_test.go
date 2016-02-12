@@ -30,27 +30,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestFlags(t *testing.T) {
-	Convey("Provided a config in JSON", t, func() {
-		cfg := NewConfig()
-		b, err := ioutil.ReadFile("../examples/configs/snap-config-sample.json")
-		So(b, ShouldNotBeEmpty)
-		So(b, ShouldNotBeNil)
-		So(err, ShouldBeNil)
-		Convey("We are able to unmarshal it into a valid config", func() {
-			err = json.Unmarshal(b, &cfg)
-			So(err, ShouldBeNil)
-			So(cfg.Flags, ShouldNotBeNil)
-			So(cfg.Flags.LogLevel, ShouldNotBeNil)
-			So(cfg.Flags.PluginTrust, ShouldNotBeNil)
-			So(cfg.Flags.AutodiscoverPath, ShouldNotBeNil)
-			So(*cfg.Flags.LogLevel, ShouldEqual, 1)
-			So(*cfg.Flags.PluginTrust, ShouldEqual, 0)
-			So(*cfg.Flags.AutodiscoverPath, ShouldEqual, "build/plugin")
-		})
-	})
-}
-
 func TestPluginConfig(t *testing.T) {
 	Convey("Given a plugin config", t, func() {
 		cfg := NewConfig()

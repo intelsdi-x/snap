@@ -20,7 +20,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -194,36 +193,21 @@ func main() {
 func action(ctx *cli.Context) {
 	log.Info("Starting snapd (version: ", gitversion, ")")
 
-	cfg := control.NewConfig()
-	config := ctx.String("config")
-	if config != "" {
-		b, err := ioutil.ReadFile(config)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"block":   "main",
-				"_module": "snapd",
-				"error":   err.Error(),
-				"path":    config,
-			}).Fatal("unable to read config")
-		}
-		err = json.Unmarshal(b, &cfg)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"block":   "main",
-				"_module": "snapd",
-				"error":   err.Error(),
-				"path":    config,
-			}).Fatal("invalid config")
-		}
+	fcfg := &flags.FlagConfig{}
+	ccfg := control.NewConfig()
+	fpath := ctx.String("config")
+	if fpath != "" {
+		fcfg.LoadConfig(fpath)
+		ccfg.LoadConfig(fpath)
 	}
 
 	// Get flag values
-	disableAPI := flags.GetFlagBool(ctx, cfg.Flags.DisableAPI, "disable-api")
-	apiPort := flags.GetFlagInt(ctx, cfg.Flags.APIPort, "api-port")
-	logLevel := flags.GetFlagInt(ctx, cfg.Flags.LogLevel, "log-level")
+	disableAPI := flags.GetFlagBool(ctx, fcfg.DisableAPI, "disable-api")
+	apiPort := flags.GetFlagInt(ctx, fcfg.APIPort, "api-port")
+	logLevel := flags.GetFlagInt(ctx, fcfg.LogLevel, "log-level")
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.
-	logPath := flags.GetFlagString(ctx, cfg.Flags.LogPath, "log-path")
+	logPath := flags.GetFlagString(ctx, fcfg.LogPath, "log-path")
 	if logPath != "" {
 		f, err := os.Stat(logPath)
 		if err != nil {
@@ -238,31 +222,31 @@ func action(ctx *cli.Context) {
 			log.Fatal(err)
 		}
 		defer file.Close()
-		log.SetOutput(file)
+		// log.SetOutput
 	}
-	maxProcs := flags.GetFlagInt(ctx, cfg.Flags.MaxProcs, "log-level")
-	autodiscoverPath := flags.GetFlagString(ctx, cfg.Flags.AutodiscoverPath, "auto-discover")
-	maxRunning := flags.GetFlagInt(ctx, cfg.Flags.MaxRunning, "max-running-plugins")
-	pluginTrust := flags.GetFlagInt(ctx, cfg.Flags.PluginTrust, "plugin-trust")
-	keyringPaths := flags.GetFlagString(ctx, cfg.Flags.KeyringPaths, "keyring-paths")
-	cachestr := flags.GetFlagString(ctx, cfg.Flags.Cachestr, "cache-expiration")
+	maxProcs := flags.GetFlagInt(ctx, fcfg.MaxProcs, "log-level")
+	autodiscoverPath := flags.GetFlagString(ctx, fcfg.AutodiscoverPath, "auto-discover")
+	maxRunning := flags.GetFlagInt(ctx, fcfg.MaxRunning, "max-running-plugins")
+	pluginTrust := flags.GetFlagInt(ctx, fcfg.PluginTrust, "plugin-trust")
+	keyringPaths := flags.GetFlagString(ctx, fcfg.KeyringPaths, "keyring-paths")
+	cachestr := flags.GetFlagString(ctx, fcfg.Cachestr, "cache-expiration")
 	cache, err := time.ParseDuration(cachestr)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
 	}
-	isTribeEnabled := flags.GetFlagBool(ctx, cfg.Flags.IsTribeEnabled, "tribe")
-	tribeSeed := flags.GetFlagString(ctx, cfg.Flags.TribeSeed, "tribe-seed")
-	tribeNodeName := flags.GetFlagString(ctx, cfg.Flags.TribeNodeName, "tribe-node-name")
-	tribeAddr := flags.GetFlagString(ctx, cfg.Flags.TribeAddr, "tribe-addr")
-	tribePort := flags.GetFlagInt(ctx, cfg.Flags.TribePort, "tribe-port")
-	restHTTPS := flags.GetFlagBool(ctx, cfg.Flags.RestHTTPS, "rest-https")
-	restKey := flags.GetFlagString(ctx, cfg.Flags.RestKey, "rest-key")
-	restCert := flags.GetFlagString(ctx, cfg.Flags.RestCert, "rest-cert")
+	isTribeEnabled := flags.GetFlagBool(ctx, fcfg.IsTribeEnabled, "tribe")
+	tribeSeed := flags.GetFlagString(ctx, fcfg.TribeSeed, "tribe-seed")
+	tribeNodeName := flags.GetFlagString(ctx, fcfg.TribeNodeName, "tribe-node-name")
+	tribeAddr := flags.GetFlagString(ctx, fcfg.TribeAddr, "tribe-addr")
+	tribePort := flags.GetFlagInt(ctx, fcfg.TribePort, "tribe-port")
+	restHTTPS := flags.GetFlagBool(ctx, fcfg.RestHTTPS, "rest-https")
+	restKey := flags.GetFlagString(ctx, fcfg.RestKey, "rest-key")
+	restCert := flags.GetFlagString(ctx, fcfg.RestCert, "rest-cert")
 
 	controlOpts := []control.PluginControlOpt{
 		control.MaxRunningPlugins(maxRunning),
 		control.CacheExpiration(cache),
-		control.OptSetConfig(cfg),
+		control.OptSetConfig(ccfg),
 	}
 
 	// Set Max Processors for snapd.

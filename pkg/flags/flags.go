@@ -19,7 +19,14 @@ limitations under the License.
 
 package flags
 
-import "github.com/codegangsta/cli"
+import (
+	"encoding/json"
+	"io/ioutil"
+
+	log "github.com/Sirupsen/logrus"
+
+	"github.com/codegangsta/cli"
+)
 
 // FlagConfig struct has all of the snapd flags
 type FlagConfig struct {
@@ -41,6 +48,37 @@ type FlagConfig struct {
 	RestHTTPS        *bool   `json:"rest-https"`
 	RestKey          *string `json:"rest-key"`
 	RestCert         *string `json:"rest-cert"`
+}
+
+func (f *FlagConfig) LoadConfig(path string) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"block":   "New",
+			"_module": "flags",
+			"error":   err.Error(),
+			"path":    path,
+		}).Fatal("unable to read config")
+	}
+	var cfg map[string]interface{}
+	err = json.Unmarshal(b, &cfg)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"block":   "main",
+			"_module": "snapd",
+			"error":   err.Error(),
+		}).Fatal("invalid config")
+	}
+	if _, ok := cfg["flags"]; ok {
+		err = json.Unmarshal(b, f)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"block":   "main",
+				"_module": "snapd",
+				"error":   err.Error(),
+			}).Fatal("invalid config")
+		}
+	}
 }
 
 // GetFlagInt eturns the integer value for the flag to be used by snapd
