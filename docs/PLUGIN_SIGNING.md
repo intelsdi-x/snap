@@ -16,7 +16,7 @@ openpgp.CheckArmoredDetachedSignature(keyring, signed, signature)
 ```
 snapd 
   --plugin-trust, -t '1'		0-2 (Disabled, Enabled, Warning) [$SNAP_TRUST_LEVEL]
-  --keyring-paths, -k 			Keyring files for signing verification separated by colons [$SNAP_KEYRING_FILES]
+  --keyring-files, -k 			Keyring files for signing verification separated by colons [$SNAP_KEYRING_FILES]
 ```
 One keyring (-t flag is not needed for signing enabled)
 ```
