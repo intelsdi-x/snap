@@ -20,8 +20,6 @@ limitations under the License.
 package control
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"testing"
 
 	"github.com/intelsdi-x/snap/core"
@@ -59,57 +57,53 @@ func TestPluginConfig(t *testing.T) {
 		})
 	})
 
-	Convey("Provided a config in json", t, func() {
+	Convey("Provided a config in JSON we are able to unmarshal it into a valid config", t, func() {
 		cfg := NewConfig()
-		b, err := ioutil.ReadFile("../examples/configs/snap-config-sample.json")
-		So(b, ShouldNotBeEmpty)
-		So(b, ShouldNotBeNil)
-		So(err, ShouldBeNil)
-		Convey("We are able to unmarshal it into a valid config", func() {
-			err = json.Unmarshal(b, &cfg)
-			So(err, ShouldBeNil)
-			So(cfg.Plugins.All.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
-			So(cfg.Plugins.Collector.Plugins["pcm"], ShouldNotBeNil)
-			So(cfg.Plugins.Collector.Plugins["pcm"].Table()["path"], ShouldResemble, ctypes.ConfigValueStr{Value: "/usr/local/pcm/bin"})
-			So(cfg.Plugins, ShouldNotBeNil)
-			So(cfg.Plugins.All, ShouldNotBeNil)
-			So(cfg.Plugins.Collector.Plugins["pcm"].Versions[1].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
-			So(cfg.Plugins.Processor.Plugins["movingaverage"].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
+		cfg.LoadConfig("../examples/configs/snap-config-sample.json")
+		So(cfg.Plugins, ShouldNotBeNil)
+		So(cfg.Plugins.All, ShouldNotBeNil)
+		So(cfg.Plugins.All.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
+		So(cfg.Plugins.Collector, ShouldNotBeNil)
+		So(cfg.Plugins.All, ShouldNotBeNil)
+		So(cfg.Plugins.Collector.Plugins["pcm"], ShouldNotBeNil)
+		So(cfg.Plugins.Collector.Plugins["pcm"].Table()["path"], ShouldResemble, ctypes.ConfigValueStr{Value: "/usr/local/pcm/bin"})
+		So(cfg.Plugins.Collector.Plugins["pcm"].Versions[1].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
+		So(cfg.Plugins.Processor, ShouldNotBeNil)
+		So(cfg.Plugins.Processor.Plugins["movingaverage"].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
 
-			Convey("We can access the config for plugins", func() {
-				Convey("Getting the values of a specific version of a plugin", func() {
-					c := cfg.Plugins.getPluginConfigDataNode(core.CollectorPluginType, "pcm", 1)
-					So(c, ShouldNotBeNil)
-					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
-					So(c.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
-					So(c.Table()["somefloat"], ShouldResemble, ctypes.ConfigValueFloat{Value: 3.14})
-					So(c.Table()["someint"], ShouldResemble, ctypes.ConfigValueInt{Value: 1234})
-					So(c.Table()["somebool"], ShouldResemble, ctypes.ConfigValueBool{Value: true})
-				})
-				Convey("Getting the common config for collectors", func() {
-					c := cfg.Plugins.getPluginConfigDataNode(core.CollectorPluginType, "", -2)
-					So(c, ShouldNotBeNil)
-					So(len(c.Table()), ShouldEqual, 2)
-					So(c.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
-					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
-				})
-				Convey("Overwritting the value of a variable defined for all plugins", func() {
-					c := cfg.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, "movingaverage", 1)
-					So(c, ShouldNotBeNil)
-					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "new password"})
-				})
-				Convey("Retrieving the value of a variable defined for all versions of a plugin", func() {
-					c := cfg.Plugins.getPluginConfigDataNode(core.CollectorPluginType, "pcm", 0)
-					So(c, ShouldNotBeNil)
-					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
-				})
-				Convey("Overwritting the value of a variable defined for all versions of the plugin", func() {
-					c := cfg.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, "movingaverage", 1)
-					So(c, ShouldNotBeNil)
-					So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "new password"})
-				})
-
+		Convey("We can access the config for plugins", func() {
+			Convey("Getting the values of a specific version of a plugin", func() {
+				c := cfg.Plugins.getPluginConfigDataNode(core.CollectorPluginType, "pcm", 1)
+				So(c, ShouldNotBeNil)
+				So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
+				So(c.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
+				So(c.Table()["somefloat"], ShouldResemble, ctypes.ConfigValueFloat{Value: 3.14})
+				So(c.Table()["someint"], ShouldResemble, ctypes.ConfigValueInt{Value: 1234})
+				So(c.Table()["somebool"], ShouldResemble, ctypes.ConfigValueBool{Value: true})
 			})
+			Convey("Getting the common config for collectors", func() {
+				c := cfg.Plugins.getPluginConfigDataNode(core.CollectorPluginType, "", -2)
+				So(c, ShouldNotBeNil)
+				So(len(c.Table()), ShouldEqual, 2)
+				So(c.Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
+				So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
+			})
+			Convey("Overwriting the value of a variable defined for all plugins", func() {
+				c := cfg.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, "movingaverage", 1)
+				So(c, ShouldNotBeNil)
+				So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "new password"})
+			})
+			Convey("Retrieving the value of a variable defined for all versions of a plugin", func() {
+				c := cfg.Plugins.getPluginConfigDataNode(core.CollectorPluginType, "pcm", 0)
+				So(c, ShouldNotBeNil)
+				So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
+			})
+			Convey("Overwriting the value of a variable defined for all versions of the plugin", func() {
+				c := cfg.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, "movingaverage", 1)
+				So(c, ShouldNotBeNil)
+				So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "new password"})
+			})
+
 		})
 	})
 }

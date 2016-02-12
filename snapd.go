@@ -20,7 +20,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -41,6 +40,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
+	"github.com/intelsdi-x/snap/pkg/globalconfig"
 	"github.com/intelsdi-x/snap/scheduler"
 )
 
@@ -78,10 +78,10 @@ var (
 		EnvVar: "SNAP_LOG_LEVEL",
 		Value:  3,
 	}
-	flPluginVersion = cli.StringFlag{
+	flAutoDiscover = cli.StringFlag{
 		Name:   "auto-discover, a",
 		Usage:  "Auto discover paths separated by colons.",
-		EnvVar: "SNAP_AUTOLOAD_PATH",
+		EnvVar: "SNAP_AUTODISCOVER_PATH",
 	}
 	flPluginTrust = cli.IntFlag{
 		Name:   "plugin-trust, t",
@@ -89,10 +89,10 @@ var (
 		EnvVar: "SNAP_TRUST_LEVEL",
 		Value:  1,
 	}
-	flkeyringPaths = cli.StringFlag{
-		Name:   "keyring-files, k",
-		Usage:  "Keyring files for signing verification separated by colons",
-		EnvVar: "SNAP_KEYRING_FILES",
+	flKeyringPaths = cli.StringFlag{
+		Name:   "keyring-paths, k",
+		Usage:  "Keyring paths for signing verification separated by colons",
+		EnvVar: "SNAP_KEYRING_PATHS",
 	}
 	flCache = cli.StringFlag{
 		Name:   "cache-expiration",
@@ -104,7 +104,7 @@ var (
 		Name:  "config",
 		Usage: "A path to a config file",
 	}
-	flRestHttps = cli.BoolFlag{
+	flRestHTTPS = cli.BoolFlag{
 		Name:  "rest-https",
 		Usage: "start snap's API as https",
 	}
@@ -117,7 +117,23 @@ var (
 		Usage: "A path to a key file to use for HTTPS deployment of snap's REST API",
 	}
 
-	gitversion string
+	gitversion  string
+	coreModules []coreModule
+
+	// log levels
+	l = map[int]string{
+		1: "debug",
+		2: "info",
+		3: "warning",
+		4: "error",
+		5: "fatal",
+	}
+	// plugin trust levels
+	t = map[int]string{
+		0: "disabled",
+		1: "enabled",
+		2: "warning",
+	}
 )
 
 const (
@@ -142,8 +158,6 @@ type managesTribe interface {
 	GetMember(name string) *agreement.Member
 }
 
-var coreModules []coreModule
-
 func main() {
 	// Add a check to see if gitversion is blank from the build process
 	if gitversion == "" {
@@ -160,14 +174,14 @@ func main() {
 		flLogLevel,
 		flLogPath,
 		flMaxProcs,
-		flPluginVersion,
+		flAutoDiscover,
 		flNumberOfPLs,
 		flCache,
 		flPluginTrust,
-		flkeyringPaths,
+		flKeyringPaths,
 		flRestCert,
 		flConfig,
-		flRestHttps,
+		flRestHTTPS,
 		flRestKey,
 	}
 	app.Flags = append(app.Flags, tribe.Flags...)
@@ -177,9 +191,23 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
+	log.Info("Starting snapd (version: ", gitversion, ")")
+
+	fcfg := globalconfig.NewConfig()
+	ccfg := control.NewConfig()
+	fpath := ctx.String("config")
+	if fpath != "" {
+		fcfg.LoadConfig(fpath)
+		ccfg.LoadConfig(fpath)
+	}
+
+	// Get flag values
+	disableAPI := globalconfig.GetFlagBool(ctx, fcfg.Flags.DisableAPI, "disable-api")
+	apiPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.APIPort, "api-port")
+	logLevel := globalconfig.GetFlagInt(ctx, fcfg.Flags.LogLevel, "log-level")
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.
-	logPath := ctx.String("log-path")
+	logPath := globalconfig.GetFlagString(ctx, fcfg.Flags.LogPath, "log-path")
 	if logPath != "" {
 		f, err := os.Stat(logPath)
 		if err != nil {
@@ -194,81 +222,38 @@ func action(ctx *cli.Context) {
 			log.Fatal(err)
 		}
 		defer file.Close()
-		log.SetOutput(file)
+		// log.SetOutput
 	}
-
-	var l = map[int]string{
-		1: "debug",
-		2: "info",
-		3: "warning",
-		4: "error",
-		5: "fatal",
-	}
-
-	var t = map[int]string{
-		0: "disabled",
-		1: "enabled",
-		2: "warning",
-	}
-
-	logLevel := ctx.Int("log-level")
-	maxProcs := ctx.Int("max-procs")
-	disableAPI := ctx.Bool("disable-api")
-	apiPort := ctx.Int("api-port")
-	autodiscoverPath := ctx.String("auto-discover")
-	maxRunning := ctx.Int("max-running-plugins")
-	pluginTrust := ctx.Int("plugin-trust")
-	keyringPaths := ctx.String("keyring-files")
-	cachestr := ctx.String("cache-expiration")
-	isTribeEnabled := ctx.Bool("tribe")
-	tribeSeed := ctx.String("tribe-seed")
-	tribeNodeName := ctx.String("tribe-node-name")
-	tribeAddr := ctx.String("tribe-addr")
-	tribePort := ctx.Int("tribe-port")
+	maxProcs := globalconfig.GetFlagInt(ctx, fcfg.Flags.MaxProcs, "max-procs")
+	autodiscoverPath := globalconfig.GetFlagString(ctx, fcfg.Flags.AutodiscoverPath, "auto-discover")
+	maxRunning := globalconfig.GetFlagInt(ctx, fcfg.Flags.MaxRunning, "max-running-plugins")
+	pluginTrust := globalconfig.GetFlagInt(ctx, fcfg.Flags.PluginTrust, "plugin-trust")
+	keyringPaths := globalconfig.GetFlagString(ctx, fcfg.Flags.KeyringPaths, "keyring-paths")
+	cachestr := globalconfig.GetFlagString(ctx, fcfg.Flags.Cachestr, "cache-expiration")
 	cache, err := time.ParseDuration(cachestr)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
 	}
-	config := ctx.String("config")
-	restHttps := ctx.Bool("rest-https")
-	restKey := ctx.String("rest-key")
-	restCert := ctx.String("rest-cert")
+	isTribeEnabled := globalconfig.GetFlagBool(ctx, fcfg.Flags.IsTribeEnabled, "tribe")
+	tribeSeed := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeSeed, "tribe-seed")
+	tribeNodeName := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeNodeName, "tribe-node-name")
+	tribeAddr := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeAddr, "tribe-addr")
+	tribePort := globalconfig.GetFlagInt(ctx, fcfg.Flags.TribePort, "tribe-port")
+	restHTTPS := globalconfig.GetFlagBool(ctx, fcfg.Flags.RestHTTPS, "rest-https")
+	restKey := globalconfig.GetFlagString(ctx, fcfg.Flags.RestKey, "rest-key")
+	restCert := globalconfig.GetFlagString(ctx, fcfg.Flags.RestCert, "rest-cert")
 
-	log.Info("Starting snapd (version: ", gitversion, ")")
+	controlOpts := []control.PluginControlOpt{
+		control.MaxRunningPlugins(maxRunning),
+		control.CacheExpiration(cache),
+		control.OptSetConfig(ccfg),
+	}
 
 	// Set Max Processors for snapd.
 	setMaxProcs(maxProcs)
 
 	// Validate log level and trust level settings for snapd
 	validateLevelSettings(logLevel, pluginTrust)
-
-	controlOpts := []control.PluginControlOpt{
-		control.MaxRunningPlugins(maxRunning),
-		control.CacheExpiration(cache),
-	}
-
-	if config != "" {
-		b, err := ioutil.ReadFile(config)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"block":   "main",
-				"_module": "snapd",
-				"error":   err.Error(),
-				"path":    config,
-			}).Fatal("unable to read config")
-		}
-		cfg := control.NewConfig()
-		err = json.Unmarshal(b, &cfg)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"block":   "main",
-				"_module": "snapd",
-				"error":   err.Error(),
-				"path":    config,
-			}).Fatal("invalid config")
-		}
-		controlOpts = append(controlOpts, control.OptSetConfig(cfg))
-	}
 
 	c := control.New(
 		controlOpts...,
@@ -307,7 +292,7 @@ func action(ctx *cli.Context) {
 	// Set interrupt handling so we can die gracefully.
 	startInterruptHandling(coreModules...)
 
-	//  Start our modules
+	// Start our modules
 	var started []coreModule
 	for _, m := range coreModules {
 		if err := startModule(m); err != nil {
@@ -319,11 +304,10 @@ func action(ctx *cli.Context) {
 		started = append(started, m)
 	}
 
-	//Plugin Trust
+	// Plugin Trust
 	c.SetPluginTrustLevel(pluginTrust)
 	log.Info("setting plugin trust level to: ", t[pluginTrust])
-	//Keyring checking for trust levels 1 and 2
-
+	// Keyring checking for trust levels 1 and 2
 	if pluginTrust > 0 {
 		keyrings := filepath.SplitList(keyringPaths)
 		if len(keyrings) == 0 {
@@ -487,7 +471,7 @@ func action(ctx *cli.Context) {
 
 	//API
 	if !disableAPI {
-		r, err := rest.New(restHttps, restCert, restKey)
+		r, err := rest.New(restHTTPS, restCert, restKey)
 		if err != nil {
 			log.Fatal(err)
 		}
