@@ -32,11 +32,11 @@ $ $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
 --log-level, -l '3'                          1-5 (Debug, Info, Warning, Error, Fatal) [$SNAP_LOG_LEVEL]
 --log-path, -o                               Path for logs. Empty path logs to stdout. [$SNAP_LOG_PATH]
 --max-procs, -c '1'                          Set max cores to use for snap Agent. Default is 1 core. [$GOMAXPROCS]
---auto-discover, -a                          Auto discover paths separated by colons. [$SNAP_AUTODISCOVER_PATH]
+--auto-discover, -a                          Auto discover paths separated by colons. [$SNAP_AUTOLOAD_PATH]
 --max-running-plugins, -m '3'                The maximum number of instances of a loaded plugin to run [$SNAP_MAX_PLUGINS]
 --cache-expiration '500ms'                   The time limit for which a metric cache entry is valid [$SNAP_CACHE_EXPIRATION]
 --plugin-trust, -t '1'                       0-2 (Disabled, Enabled, Warning) [$SNAP_TRUST_LEVEL]
---keyring-paths, -k                          Keyring paths for signing verification separated by colons [$SNAP_KEYRING_PATHS]
+--keyring-files, -k                          Keyring files for signing verification separated by colons [$SNAP_KEYRING_FILES]
 --rest-cert                                  A path to a certificate to use for HTTPS deployment of snap's REST API
 --config                                     A path to a config file
 --rest-https                                 start snap's API as https

@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 	"strconv"
 
@@ -78,27 +77,6 @@ func newPluginConfig() *pluginConfig {
 		Processor:   newPluginTypeConfigItem(),
 		Publisher:   newPluginTypeConfigItem(),
 		pluginCache: make(map[string]*cdata.ConfigDataNode),
-	}
-}
-
-func (p *config) LoadConfig(path string) {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"block":   "LoadConfig",
-			"_module": "control-config",
-			"error":   err.Error(),
-			"path":    path,
-		}).Fatal("unable to read config")
-	}
-	err = json.Unmarshal(b, p)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"block":   "LoadConfig",
-			"_module": "control-config",
-			"error":   err.Error(),
-			"path":    path,
-		}).Fatal("invalid config")
 	}
 }
 
