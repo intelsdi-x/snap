@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package flags
+package globalconfig
 
 import (
 	"encoding/json"
@@ -28,8 +28,12 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+type config struct {
+	Flags *flagConfig `json:"flags"`
+}
+
 // FlagConfig struct has all of the snapd flags
-type FlagConfig struct {
+type flagConfig struct {
 	LogPath          *string `json:"log-path"`
 	LogLevel         *int    `json:"log-level"`
 	MaxProcs         *int    `json:"max-procs"`
@@ -50,34 +54,29 @@ type FlagConfig struct {
 	RestCert         *string `json:"rest-cert"`
 }
 
-func (f *FlagConfig) LoadConfig(path string) {
+// NewConfig returns a reference to a global config type for the snap daemon
+func NewConfig() *config {
+	return &config{}
+}
+
+func (f *config) LoadConfig(path string) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"block":   "New",
+			"block":   "LoadConfig",
 			"_module": "flags",
 			"error":   err.Error(),
 			"path":    path,
 		}).Fatal("unable to read config")
 	}
-	var cfg map[string]interface{}
-	err = json.Unmarshal(b, &cfg)
+	err = json.Unmarshal(b, &f)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"block":   "main",
-			"_module": "snapd",
+			"block":   "LoadConfig",
+			"_module": "flags",
 			"error":   err.Error(),
+			"path":    path,
 		}).Fatal("invalid config")
-	}
-	if _, ok := cfg["flags"]; ok {
-		err = json.Unmarshal(b, f)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"block":   "main",
-				"_module": "snapd",
-				"error":   err.Error(),
-			}).Fatal("invalid config")
-		}
 	}
 }
 

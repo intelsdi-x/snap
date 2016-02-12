@@ -85,8 +85,8 @@ func (p *config) LoadConfig(path string) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"block":   "main",
-			"_module": "snapd",
+			"block":   "LoadConfig",
+			"_module": "control-config",
 			"error":   err.Error(),
 			"path":    path,
 		}).Fatal("unable to read config")
@@ -94,8 +94,8 @@ func (p *config) LoadConfig(path string) {
 	err = json.Unmarshal(b, p)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"block":   "main",
-			"_module": "snapd",
+			"block":   "LoadConfig",
+			"_module": "control-config",
 			"error":   err.Error(),
 			"path":    path,
 		}).Fatal("invalid config")

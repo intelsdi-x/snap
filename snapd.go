@@ -40,7 +40,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
-	"github.com/intelsdi-x/snap/pkg/flags"
+	"github.com/intelsdi-x/snap/pkg/globalconfig"
 	"github.com/intelsdi-x/snap/scheduler"
 )
 
@@ -193,7 +193,7 @@ func main() {
 func action(ctx *cli.Context) {
 	log.Info("Starting snapd (version: ", gitversion, ")")
 
-	fcfg := &flags.FlagConfig{}
+	fcfg := globalconfig.NewConfig()
 	ccfg := control.NewConfig()
 	fpath := ctx.String("config")
 	if fpath != "" {
@@ -202,12 +202,12 @@ func action(ctx *cli.Context) {
 	}
 
 	// Get flag values
-	disableAPI := flags.GetFlagBool(ctx, fcfg.DisableAPI, "disable-api")
-	apiPort := flags.GetFlagInt(ctx, fcfg.APIPort, "api-port")
-	logLevel := flags.GetFlagInt(ctx, fcfg.LogLevel, "log-level")
+	disableAPI := globalconfig.GetFlagBool(ctx, fcfg.Flags.DisableAPI, "disable-api")
+	apiPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.APIPort, "api-port")
+	logLevel := globalconfig.GetFlagInt(ctx, fcfg.Flags.LogLevel, "log-level")
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.
-	logPath := flags.GetFlagString(ctx, fcfg.LogPath, "log-path")
+	logPath := globalconfig.GetFlagString(ctx, fcfg.Flags.LogPath, "log-path")
 	if logPath != "" {
 		f, err := os.Stat(logPath)
 		if err != nil {
@@ -224,24 +224,24 @@ func action(ctx *cli.Context) {
 		defer file.Close()
 		// log.SetOutput
 	}
-	maxProcs := flags.GetFlagInt(ctx, fcfg.MaxProcs, "log-level")
-	autodiscoverPath := flags.GetFlagString(ctx, fcfg.AutodiscoverPath, "auto-discover")
-	maxRunning := flags.GetFlagInt(ctx, fcfg.MaxRunning, "max-running-plugins")
-	pluginTrust := flags.GetFlagInt(ctx, fcfg.PluginTrust, "plugin-trust")
-	keyringPaths := flags.GetFlagString(ctx, fcfg.KeyringPaths, "keyring-paths")
-	cachestr := flags.GetFlagString(ctx, fcfg.Cachestr, "cache-expiration")
+	maxProcs := globalconfig.GetFlagInt(ctx, fcfg.Flags.MaxProcs, "max-procs")
+	autodiscoverPath := globalconfig.GetFlagString(ctx, fcfg.Flags.AutodiscoverPath, "auto-discover")
+	maxRunning := globalconfig.GetFlagInt(ctx, fcfg.Flags.MaxRunning, "max-running-plugins")
+	pluginTrust := globalconfig.GetFlagInt(ctx, fcfg.Flags.PluginTrust, "plugin-trust")
+	keyringPaths := globalconfig.GetFlagString(ctx, fcfg.Flags.KeyringPaths, "keyring-paths")
+	cachestr := globalconfig.GetFlagString(ctx, fcfg.Flags.Cachestr, "cache-expiration")
 	cache, err := time.ParseDuration(cachestr)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
 	}
-	isTribeEnabled := flags.GetFlagBool(ctx, fcfg.IsTribeEnabled, "tribe")
-	tribeSeed := flags.GetFlagString(ctx, fcfg.TribeSeed, "tribe-seed")
-	tribeNodeName := flags.GetFlagString(ctx, fcfg.TribeNodeName, "tribe-node-name")
-	tribeAddr := flags.GetFlagString(ctx, fcfg.TribeAddr, "tribe-addr")
-	tribePort := flags.GetFlagInt(ctx, fcfg.TribePort, "tribe-port")
-	restHTTPS := flags.GetFlagBool(ctx, fcfg.RestHTTPS, "rest-https")
-	restKey := flags.GetFlagString(ctx, fcfg.RestKey, "rest-key")
-	restCert := flags.GetFlagString(ctx, fcfg.RestCert, "rest-cert")
+	isTribeEnabled := globalconfig.GetFlagBool(ctx, fcfg.Flags.IsTribeEnabled, "tribe")
+	tribeSeed := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeSeed, "tribe-seed")
+	tribeNodeName := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeNodeName, "tribe-node-name")
+	tribeAddr := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeAddr, "tribe-addr")
+	tribePort := globalconfig.GetFlagInt(ctx, fcfg.Flags.TribePort, "tribe-port")
+	restHTTPS := globalconfig.GetFlagBool(ctx, fcfg.Flags.RestHTTPS, "rest-https")
+	restKey := globalconfig.GetFlagString(ctx, fcfg.Flags.RestKey, "rest-key")
+	restCert := globalconfig.GetFlagString(ctx, fcfg.Flags.RestCert, "rest-cert")
 
 	controlOpts := []control.PluginControlOpt{
 		control.MaxRunningPlugins(maxRunning),
