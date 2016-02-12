@@ -1150,8 +1150,8 @@ func TestFailedPlugin(t *testing.T) {
 				}
 				<-lpe.done
 				eventMap[lpe.plugin.EventNamespace]++
-				So(eventMap[control_event.AvailablePluginDead], ShouldEqual, 4)
-				So(eventMap[control_event.AvailablePluginRestarted], ShouldEqual, 3)
+				So(eventMap[control_event.AvailablePluginDead], ShouldEqual, MaxPluginRestartCount+1)
+				So(eventMap[control_event.AvailablePluginRestarted], ShouldEqual, MaxPluginRestartCount)
 				So(eventMap[control_event.PluginRestartsExceeded], ShouldEqual, 1)
 				So(len(pool.Plugins()), ShouldEqual, 0)
 				So(pool.RestartCount(), ShouldEqual, MaxPluginRestartCount)

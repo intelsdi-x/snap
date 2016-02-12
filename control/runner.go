@@ -268,6 +268,14 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 					return
 				}
 				pool.IncRestartCount()
+
+				runnerLog.WithFields(log.Fields{
+					"_block":        "handle-events",
+					"event":         v.Name,
+					"aplugin":       v.Version,
+					"restart_count": pool.RestartCount(),
+				}).Warning("plugin restarted")
+
 				r.emitter.Emit(&control_event.RestartedAvailablePluginEvent{
 					Id:      v.Id,
 					Name:    v.Name,
