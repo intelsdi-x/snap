@@ -29,7 +29,7 @@ import (
 )
 
 type config struct {
-	Flags *flagConfig `json:"flags"`
+	Flags flagConfig `json:"flags"`
 }
 
 // FlagConfig struct has all of the snapd flags
