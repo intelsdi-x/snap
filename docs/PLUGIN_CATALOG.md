@@ -41,7 +41,7 @@ These plugins are in planned/active development. This list is useful if you want
 | :---- | :---- | :---------- | :--- | :------ |
 | Nova | Collector | Collect from Nova/Libvirt | -| [@sandlbn](https://github.com/sandlbn) |
 | Open vSwitch | Collector | Collect Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
-| NFS Client | Collector | Collect NFS client counters and RPC data | [snap-plugin-collector-nfsclient](https://github.com/thomastaylor312/snap-plugin-collector-nfsclient) | [@thomastaylor312](https://github.com/thomastaylor312) |
+| NFS Client | Collector | Collect NFS client counters and RPC data | [snap-plugin-collector-nfsclient](https://github.com/intelsdi-x/snap-plugin-collector-nfsclient) | [@thomastaylor312](https://github.com/thomastaylor312) |
 | Disk | Collector | Collects disk related metrics from Linux procfs | [snap-plugin-collector-disk](https://github.com/intelsdi-x/snap-plugin-collector-disk) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
 | Swap | Collector | Collects swap related metrics from Linux procfs | [snap-plugin-collector-swap](https://github.com/intelsdi-x/snap-plugin-collector-swap) | [@andrzej-k](https://github.com/andrzej-k) |
 | Meminfo | Collector | Collects memory related metrics from Linux procfs | [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo) | [@marcin-krolik](https://github.com/marcin-krolik) |
