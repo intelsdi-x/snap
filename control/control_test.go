@@ -245,38 +245,40 @@ func newListenToPluginEvent() *listenToPluginEvent {
 }
 
 func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
-	switch v := e.Body.(type) {
-	case *control_event.RestartedAvailablePluginEvent:
-		l.plugin.EventNamespace = v.Namespace()
-		l.done <- struct{}{}
-	case *control_event.MaxPluginRestartsExceededEvent:
-		l.plugin.EventNamespace = v.Namespace()
-		l.done <- struct{}{}
-	case *control_event.DeadAvailablePluginEvent:
-		l.plugin.EventNamespace = v.Namespace()
-		l.done <- struct{}{}
-	case *control_event.LoadPluginEvent:
-		l.plugin.LoadedPluginName = v.Name
-		l.plugin.LoadedPluginVersion = v.Version
-		l.plugin.PluginType = v.Type
-		l.done <- struct{}{}
-	case *control_event.UnloadPluginEvent:
-		l.plugin.UnloadedPluginName = v.Name
-		l.plugin.UnloadedPluginVersion = v.Version
-		l.plugin.PluginType = v.Type
-		l.done <- struct{}{}
-	case *control_event.SwapPluginsEvent:
-		l.plugin.LoadedPluginName = v.LoadedPluginName
-		l.plugin.LoadedPluginVersion = v.LoadedPluginVersion
-		l.plugin.UnloadedPluginName = v.UnloadedPluginName
-		l.plugin.UnloadedPluginVersion = v.UnloadedPluginVersion
-		l.plugin.PluginType = v.PluginType
-		l.done <- struct{}{}
-	case *control_event.PluginSubscriptionEvent:
-		l.done <- struct{}{}
-	default:
-		fmt.Println("Got an event you're not handling")
-	}
+	go func() {
+		switch v := e.Body.(type) {
+		case *control_event.RestartedAvailablePluginEvent:
+			l.plugin.EventNamespace = v.Namespace()
+			l.done <- struct{}{}
+		case *control_event.MaxPluginRestartsExceededEvent:
+			l.plugin.EventNamespace = v.Namespace()
+			l.done <- struct{}{}
+		case *control_event.DeadAvailablePluginEvent:
+			l.plugin.EventNamespace = v.Namespace()
+			l.done <- struct{}{}
+		case *control_event.LoadPluginEvent:
+			l.plugin.LoadedPluginName = v.Name
+			l.plugin.LoadedPluginVersion = v.Version
+			l.plugin.PluginType = v.Type
+			l.done <- struct{}{}
+		case *control_event.UnloadPluginEvent:
+			l.plugin.UnloadedPluginName = v.Name
+			l.plugin.UnloadedPluginVersion = v.Version
+			l.plugin.PluginType = v.Type
+			l.done <- struct{}{}
+		case *control_event.SwapPluginsEvent:
+			l.plugin.LoadedPluginName = v.LoadedPluginName
+			l.plugin.LoadedPluginVersion = v.LoadedPluginVersion
+			l.plugin.UnloadedPluginName = v.UnloadedPluginName
+			l.plugin.UnloadedPluginVersion = v.UnloadedPluginVersion
+			l.plugin.PluginType = v.PluginType
+			l.done <- struct{}{}
+		case *control_event.PluginSubscriptionEvent:
+			l.done <- struct{}{}
+		default:
+			fmt.Println("Got an event you're not handling")
+		}
+	}()
 }
 
 var (
