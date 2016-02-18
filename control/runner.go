@@ -53,6 +53,10 @@ const (
 	PluginStopped
 	// PluginDisabled is the disabled state of a plugin
 	PluginDisabled
+
+	// MaximumRestartOnDeadPluginEvent is the maximum count of restarting a plugin
+	// after the event of control_event.DeadAvailablePluginEvent
+	MaxPluginRestartCount = 3
 )
 
 // TBD
@@ -239,6 +243,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			"event":   v.Namespace(),
 			"aplugin": v.String,
 		}).Warning("handling dead available plugin event")
+
 		pool, err := r.availablePlugins.getPool(v.Key)
 		if err != nil {
 			runnerLog.WithFields(log.Fields{
@@ -247,8 +252,46 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			}).Error(err.Error())
 			return
 		}
+
 		if pool != nil {
 			pool.Kill(v.Id, "plugin dead")
+		}
+
+		if pool.Eligible() {
+			if pool.RestartCount() < MaxPluginRestartCount {
+				e := r.restartPlugin(v.Key)
+				if e != nil {
+					runnerLog.WithFields(log.Fields{
+						"_block":  "handle-events",
+						"aplugin": v.String,
+					}).Error(err.Error())
+					return
+				}
+				pool.IncRestartCount()
+
+				runnerLog.WithFields(log.Fields{
+					"_block":        "handle-events",
+					"event":         v.Name,
+					"aplugin":       v.Version,
+					"restart_count": pool.RestartCount(),
+				}).Warning("plugin restarted")
+
+				r.emitter.Emit(&control_event.RestartedAvailablePluginEvent{
+					Id:      v.Id,
+					Name:    v.Name,
+					Version: v.Version,
+					Key:     v.Key,
+					Type:    v.Type,
+				})
+			} else {
+				r.emitter.Emit(&control_event.MaxPluginRestartsExceededEvent{
+					Id:      v.Id,
+					Name:    v.Name,
+					Version: v.Version,
+					Key:     v.Key,
+					Type:    v.Type,
+				})
+			}
 		}
 	case *control_event.PluginUnsubscriptionEvent:
 		runnerLog.WithFields(log.Fields{
@@ -421,4 +464,12 @@ func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID 
 		pool.SelectAndKill(taskID, "unsubscription event")
 	}
 	return nil
+}
+
+func (r *runner) restartPlugin(key string) error {
+	lp, err := r.pluginManager.get(key)
+	if err != nil {
+		return err
+	}
+	return r.runPlugin(lp.Details)
 }
