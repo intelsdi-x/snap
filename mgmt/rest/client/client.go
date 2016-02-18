@@ -185,8 +185,17 @@ func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, error) {
 		return nil, err
 	}
 	jErr := json.Unmarshal(b, resp)
+	// If unmarshaling fails show first part of response to help debug
+	// connection issues.
 	if jErr != nil {
-		return nil, jErr
+		bound := 1000
+		var invalidResp string
+		if len(b) > bound {
+			invalidResp = string(b[:bound])
+		} else {
+			invalidResp = string(b)
+		}
+		return nil, fmt.Errorf("Unknown API response: %s\n\n Received: %s", jErr, invalidResp)
 	}
 	if resp == nil {
 		// Catch corner case where JSON gives no error but resp is nil
