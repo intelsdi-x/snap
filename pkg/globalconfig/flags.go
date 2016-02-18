@@ -21,7 +21,6 @@ package globalconfig
 
 import (
 	"encoding/json"
-	"io/ioutil"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -59,24 +58,16 @@ func NewConfig() *config {
 	return &config{}
 }
 
-func (f *config) LoadConfig(path string) {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"block":   "LoadConfig",
-			"_module": "flags",
-			"error":   err.Error(),
-			"path":    path,
-		}).Fatal("unable to read config")
-	}
-	err = json.Unmarshal(b, &f)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"block":   "LoadConfig",
-			"_module": "flags",
-			"error":   err.Error(),
-			"path":    path,
-		}).Fatal("invalid config")
+func (f *config) LoadConfig(b []byte, cfg map[string]interface{}) {
+	if _, ok := cfg["flags"]; ok {
+		err := json.Unmarshal(b, &f)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"block":   "LoadConfig",
+				"_module": "globalconfig",
+				"error":   err.Error(),
+			}).Fatal("invalid config")
+		}
 	}
 }
 

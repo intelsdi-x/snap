@@ -25,6 +25,7 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/pkg/globalconfig"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -59,7 +60,9 @@ func TestPluginConfig(t *testing.T) {
 
 	Convey("Provided a config in JSON we are able to unmarshal it into a valid config", t, func() {
 		cfg := NewConfig()
-		cfg.LoadConfig("../examples/configs/snap-config-sample.json")
+		path := "../examples/configs/snap-config-sample.json"
+		b, config := globalconfig.Read(path)
+		cfg.LoadConfig(b, config)
 		So(cfg.Plugins, ShouldNotBeNil)
 		So(cfg.Plugins.All, ShouldNotBeNil)
 		So(cfg.Plugins.All.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})

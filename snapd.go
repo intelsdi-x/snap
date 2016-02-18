@@ -197,8 +197,9 @@ func action(ctx *cli.Context) {
 	ccfg := control.NewConfig()
 	fpath := ctx.String("config")
 	if fpath != "" {
-		fcfg.LoadConfig(fpath)
-		ccfg.LoadConfig(fpath)
+		b, cfg := globalconfig.Read(fpath)
+		fcfg.LoadConfig(b, cfg)
+		ccfg.LoadConfig(b, cfg)
 	}
 
 	// Get flag values

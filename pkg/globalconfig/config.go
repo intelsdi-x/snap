@@ -20,23 +20,31 @@ limitations under the License.
 package globalconfig
 
 import (
-	"testing"
+	"encoding/json"
+	"io/ioutil"
 
-	. "github.com/smartystreets/goconvey/convey"
+	log "github.com/Sirupsen/logrus"
 )
 
-func TestFlags(t *testing.T) {
-	Convey("Provided a config in JSON we are able to unmarshal it into a valid config", t, func() {
-		cfg := NewConfig()
-		path := "../../examples/configs/snap-config-sample.json"
-		b, config := Read(path)
-		cfg.LoadConfig(b, config)
-		So(cfg.Flags, ShouldNotBeNil)
-		So(cfg.Flags.LogLevel, ShouldNotBeNil)
-		So(cfg.Flags.PluginTrust, ShouldNotBeNil)
-		So(cfg.Flags.AutodiscoverPath, ShouldNotBeNil)
-		So(*cfg.Flags.LogLevel, ShouldEqual, 1)
-		So(*cfg.Flags.PluginTrust, ShouldEqual, 0)
-		So(*cfg.Flags.AutodiscoverPath, ShouldEqual, "build/plugin")
-	})
+// Read reads the JSON file and unmarshals it into a map[string]interface{}
+func Read(path string) ([]byte, map[string]interface{}) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"block":   "Read",
+			"_module": "globalconfig",
+			"error":   err.Error(),
+			"path":    path,
+		}).Fatal("unable to read config")
+	}
+	var cfg map[string]interface{}
+	err = json.Unmarshal(b, &cfg)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"block":   "Read",
+			"_module": "globalconfig",
+			"error":   err.Error(),
+		}).Fatal("invalid config")
+	}
+	return b, cfg
 }
