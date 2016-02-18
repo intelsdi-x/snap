@@ -28,18 +28,14 @@ BINDIR=$BUILDDIR/bin
 COLLECTORDIR=$BUILDDIR/$PLUGINDIR/collector
 PUBLISHERDIR=$BUILDDIR/$PLUGINDIR/publisher
 PROCESSORDIR=$BUILDDIR/$PLUGINDIR/processor
-BUILDCMD='go build -a -ldflags "-w"'
+BUILDCMD='go build -a -ldflags "-w" -tags netgo'
 
 echo
 echo "****  snap build ($GITVERSION)  ****"
 echo
 
-# Disable CGO for builds...unless Linux...because appc
+# Disable CGO for builds.
 export CGO_ENABLED=0
-platform=$(uname)
-if [[ $platform == "Linux" ]]; then
-	export CGO_ENABLED=1
-fi
 
 # Clean build bin dir
 rm -rf $BINDIR/*

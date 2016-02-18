@@ -12,23 +12,23 @@
 		},
 		{
 			"ImportPath": "github.com/appc/spec/aci",
-			"Comment": "v0.7.1",
-			"Rev": "818ac4d0073424f4e0a46f45abaa147ccc1b5a24"
+			"Comment": "v0.7.4",
+			"Rev": "62d46939da30111dc3eae51dd36ad5cd146dd964"
 		},
 		{
 			"ImportPath": "github.com/appc/spec/pkg/device",
-			"Comment": "v0.7.1",
-			"Rev": "818ac4d0073424f4e0a46f45abaa147ccc1b5a24"
+			"Comment": "v0.7.4",
+			"Rev": "62d46939da30111dc3eae51dd36ad5cd146dd964"
 		},
 		{
 			"ImportPath": "github.com/appc/spec/pkg/tarheader",
-			"Comment": "v0.7.1",
-			"Rev": "818ac4d0073424f4e0a46f45abaa147ccc1b5a24"
+			"Comment": "v0.7.4",
+			"Rev": "62d46939da30111dc3eae51dd36ad5cd146dd964"
 		},
 		{
 			"ImportPath": "github.com/appc/spec/schema",
-			"Comment": "v0.7.1",
-			"Rev": "818ac4d0073424f4e0a46f45abaa147ccc1b5a24"
+			"Comment": "v0.7.4",
+			"Rev": "62d46939da30111dc3eae51dd36ad5cd146dd964"
 		},
 		{
 			"ImportPath": "github.com/armon/go-metrics",
