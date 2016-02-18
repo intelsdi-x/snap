@@ -61,23 +61,31 @@ func init() {
 	for idx, a := range os.Args {
 		switch a {
 		case "--url":
-			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
-				url = *prtURL
+			if len(os.Args) >= idx+2 {
+				if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
+					url = *prtURL
+				}
 			}
 		case "-u":
-			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
-				url = *prtU
+			if len(os.Args) >= idx+2 {
+				if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
+					url = *prtU
+				}
 			}
 		case "--api-version":
-			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
-				ver = *prtAv
+			if len(os.Args) >= idx+2 {
+				if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
+					ver = *prtAv
+				}
 			}
 		case "-a":
-			if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
-				ver = *prtA
+			if len(os.Args) >= idx+2 {
+				if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
+					ver = *prtA
+				}
 			}
 		case "--insecure":
-			if err := f1.Parse(os.Args[idx:]); err == nil {
+			if err := f1.Parse([]string{os.Args[idx]}); err == nil {
 				secure = *prti
 			}
 		}
