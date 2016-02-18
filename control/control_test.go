@@ -1134,7 +1134,7 @@ func TestFailedPlugin(t *testing.T) {
 				var err []error
 				var cr []core.Metric
 				eventMap := map[string]int{}
-				for i := 0; i <= MaxPluginRestartCount; i++ {
+				for i := 0; i < MaxPluginRestartCount+1; i++ {
 					cr, err = c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New())
 					So(err, ShouldNotBeNil)
 					So(cr, ShouldBeNil)
@@ -1145,13 +1145,12 @@ func TestFailedPlugin(t *testing.T) {
 						<-lpe.done
 						eventMap[lpe.plugin.EventNamespace]++
 						So(pool.RestartCount(), ShouldEqual, i+1)
+						So(lpe.plugin.EventNamespace, ShouldEqual, control_event.AvailablePluginRestarted)
 					}
 				}
 				<-lpe.done
-				eventMap[lpe.plugin.EventNamespace]++
-				So(eventMap[control_event.AvailablePluginDead], ShouldEqual, MaxPluginRestartCount+1)
+				So(lpe.plugin.EventNamespace, ShouldEqual, control_event.PluginRestartsExceeded)
 				So(eventMap[control_event.AvailablePluginRestarted], ShouldEqual, MaxPluginRestartCount)
-				So(eventMap[control_event.PluginRestartsExceeded], ShouldEqual, 1)
 				So(len(pool.Plugins()), ShouldEqual, 0)
 				So(pool.RestartCount(), ShouldEqual, MaxPluginRestartCount)
 			})

@@ -252,7 +252,7 @@ func (a *availablePlugin) CheckHealth() {
 		} else {
 			a.healthCheckFailed()
 		}
-	case <-time.After(time.Second * 1):
+	case <-time.After(DefaultHealthCheckTimeout):
 		a.healthCheckFailed()
 	}
 }
