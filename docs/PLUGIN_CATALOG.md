@@ -57,6 +57,7 @@ These plugins are in planned/active development. This list is useful if you want
 | DBI | Collector | Collects metrics from SQL DBs using go's "sql" package | [snap-plugin-collector-dbi](https://github.com/intelsdi-x/snap-plugin-collector-dbi) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
 | Apache | Collector | Collects metrics from the Apache Webserver for mod_status| [snap-plugin-collector-apache](https://github.com/intelsdi-x/snap-plugin-collector-apache) | [@tiffanyfj](https://github.com/tiffanyfj) |
  |
+| Elasticsearch | Collector | Collects metrics from Elasticsearch cluster | [snap-plugin-collector-elasticsearch](https://github.com/intelsdi-x/snap-plugin-collector-elasticsearch) | [@candysmurf](https://github.com/candysmurf) |
 | HEKA | Publisher | Publishes snap metrics into heka via TCP | [snap-plugin-publisher-heka](https://github.com/intelsdi-x/snap-plugin-publisher-heka) | [@candysmurf](https://github.com/candysmurf) |
 |Graphite | Publisher | Publishes snap metrics to graphite | [snap-plugin-publisher-graphite](https://github.com/intelsdi-x/snap-plugin-publisher-graphite) | [@ircody](https://github.com/ircody) |
 
