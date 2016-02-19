@@ -61,6 +61,9 @@ func (a *APIResponse) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		panic(err)
 	}
+	if ar.Meta == nil {
+		return errors.New("Unable to parse JSON response")
+	}
 	body, err := UnmarshalBody(ar.Meta.Type, ar.Body)
 	if err != nil {
 		return err
