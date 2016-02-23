@@ -34,7 +34,7 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 	styp := p.ByName("type")
 	if styp == "" {
 		cdn := s.mc.GetPluginConfigDataNodeAll()
-		item := &rbody.PluginConfigItem{cdn}
+		item := &rbody.PluginConfigItem{ConfigDataNode: cdn}
 		respond(200, item, w)
 		return
 	}
@@ -58,7 +58,7 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 	}
 
 	cdn := s.mc.GetPluginConfigDataNode(typ, name, iver)
-	item := &rbody.PluginConfigItem{cdn}
+	item := &rbody.PluginConfigItem{ConfigDataNode: cdn}
 	respond(200, item, w)
 }
 
@@ -100,7 +100,7 @@ func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, 
 		res = s.mc.DeletePluginConfigDataNodeField(typ, name, iver, src...)
 	}
 
-	item := &rbody.DeletePluginConfigItem{res}
+	item := &rbody.DeletePluginConfigItem{ConfigDataNode: res}
 	respond(200, item, w)
 }
 
@@ -142,7 +142,7 @@ func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 		res = s.mc.MergePluginConfigDataNode(typ, name, iver, src)
 	}
 
-	item := &rbody.SetPluginConfigItem{res}
+	item := &rbody.SetPluginConfigItem{ConfigDataNode: res}
 	respond(200, item, w)
 }
 
