@@ -3,9 +3,9 @@
   schedule:         # How frequently should we run this task?
     type: "simple"  # Simple means run forever at the interval below
     interval: "1s"  # This accepts seconds ('s') and milliseconds  ('ms')
-  workflow:           # For a small number of statistics, you can go as small
-    collect:          # as 500ms. For a large number, more than 1s may be needed
-      metrics:
+  workflow:           # For a small number of statistics, we have tests as small
+    collect:          # as 10ms. For a large number, more than 1s may be needed.
+      metrics:        # Collector caching defaults to 500ms.
         /intel/psutil/load/load1: {}   # Here are the specific metrics we collect
         /intel/psutil/load/load15: {}    # out of the set of all available from
         /intel/psutil/load/load5: {}     # our installed plugins. This list only
