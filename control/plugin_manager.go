@@ -222,6 +222,10 @@ func (lp *loadedPlugin) LoadedTimestamp() *time.Time {
 	return &lp.LoadedTime
 }
 
+func (lp *loadedPlugin) Policy() *cpolicy.ConfigPolicy {
+	return lp.ConfigPolicy
+}
+
 // the struct representing the object responsible for
 // loading and unloading plugins
 type pluginManager struct {

@@ -361,6 +361,25 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 
 	rd := r.FormValue("download")
 	d, _ := strconv.ParseBool(rd)
+	var configPolicy []rbody.PolicyTable
+	if plugin.TypeName() == "processor" || plugin.TypeName() == "publisher" {
+		rules := plugin.Policy().Get([]string{""}).RulesAsTable()
+		configPolicy = make([]rbody.PolicyTable, 0, len(rules))
+		for _, r := range rules {
+			configPolicy = append(configPolicy, rbody.PolicyTable{
+				Name:     r.Name,
+				Type:     r.Type,
+				Default:  r.Default,
+				Required: r.Required,
+				Minimum:  r.Minimum,
+				Maximum:  r.Maximum,
+			})
+		}
+
+	} else {
+		configPolicy = nil
+	}
+
 	if d {
 		b, err := ioutil.ReadFile(plugin.PluginPath())
 		if err != nil {
@@ -390,6 +409,7 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 			Status:          plugin.Status(),
 			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
 			Href:            catalogedPluginURI(r.Host, plugin),
+			ConfigPolicy:    configPolicy,
 		}
 		respond(200, pluginRet, w)
 	}
