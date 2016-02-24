@@ -219,9 +219,10 @@ There are interesting examples of using snap in every plugin repository. For the
 ### Roadmap
 We have a few known features we want to take on from here while we remain open for feedback after public release. They are:
 
-* Windows support (spec pending)
-* Distributed Workflows (spec pending)
+* Authentication, authorization, and auditing (see issue [#286](https://github.com/intelsdi-x/snap/issues/286))
 * Workflow Routing (see issue [#539](https://github.com/intelsdi-x/snap/issues/539))
+* Windows support (see [#671](https://github.com/intelsdi-x/snap/issues/671))
+* Distributed Workflows (see [#539](https://github.com/intelsdi-x/snap/issues/539) and [#640](https://github.com/intelsdi-x/snap/issues/640))
 
 If you would like to propose a feature, please [open an Issue](https://github.com/intelsdi-x/snap/issues)) that includes RFC in it (for [request for comments](https://en.wikipedia.org/wiki/Request_for_Comments)).
 
@@ -283,4 +284,4 @@ Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on a
 We're also looking for new maintainers from the community. Please let us know if you would like to become one by opening an Issue titled "interested in becoming a maintainer." We are currently working on a more official process.
 
 ## Thank You
-And **thank you!** Your contribution, through code and participation, is incredibly important to us. 
+And **thank you!** Your contribution, through code and participation, is incredibly important to us.

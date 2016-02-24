@@ -17,8 +17,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-#Example tasks
-- **mock-file.json/yaml**
+A task describes the how, what, and when to do for a __snap__ job.  A task is described in a task _manifest_, which can be either JSON or YAML. For more information, see the [documentation for tasks](/docs/TASKS.md).
+
+# Examples in this folder
+
+- **mock-file.json/yaml**: a simple example of task structure in both JSON and YAML format.
   - schedule
     - interval (1s)
   - collector
@@ -27,16 +30,24 @@ limitations under the License.
     - passthru
   - publisher
     - file
-    
-- **ceph-file.json**
+
+- **psutil-file.yaml**: another simple example of collecting statistics and publishing them to a file. This file includes in-line comments to help get oriented with task structure.
   - schedule
     - interval (1s)
   - collector
-    - CEPH
+    - psutil
   - publisher
     - file
 
-- **psutil-influx.json**
+- **ceph-file.json**: collect numerous statistics around Ceph, a storage system for OpenStack.
+  - schedule
+    - interval (1s)
+  - collector
+    - Ceph
+  - publisher
+    - file
+
+- **psutil-influx.json**: a more complex example that collects information from psutil and publishes to an instance of InfluxDB running locally. See [influxdb-grafana](../influxdb-grafana/) for other files to get this running.
   - schedule
     - interval (1s)
   - collector
