@@ -176,9 +176,16 @@ func newMetricCatalog() *metricCatalog {
 	}
 }
 
-func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
+func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) error {
 	if lp.ConfigPolicy == nil {
-		panic("NO")
+		err := errors.New("Config policy is nil")
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "add-loaded-metric-type",
+			"error":   err,
+		}).Error("error adding loaded metric type")
+		return err
 	}
 
 	newMt := metricType{
@@ -191,6 +198,7 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
 		policy:             lp.ConfigPolicy.Get(mt.Namespace()),
 	}
 	mc.Add(&newMt)
+	return nil
 }
 
 func (mc *metricCatalog) RmUnloadedPluginMetrics(lp *loadedPlugin) {
