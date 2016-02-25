@@ -647,7 +647,8 @@ func (m *mc) Next() bool {
 	return false
 }
 
-func (m *mc) AddLoadedMetricType(*loadedPlugin, core.Metric) {
+func (m *mc) AddLoadedMetricType(*loadedPlugin, core.Metric) error {
+	return nil
 
 }
 

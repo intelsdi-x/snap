@@ -26,6 +26,8 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
@@ -174,9 +176,16 @@ func newMetricCatalog() *metricCatalog {
 	}
 }
 
-func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
+func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) error {
 	if lp.ConfigPolicy == nil {
-		panic("NO")
+		err := errors.New("Config policy is nil")
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "add-loaded-metric-type",
+			"error":   err,
+		}).Error("error adding loaded metric type")
+		return err
 	}
 
 	newMt := metricType{
@@ -189,6 +198,7 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) {
 		policy:             lp.ConfigPolicy.Get(mt.Namespace()),
 	}
 	mc.Add(&newMt)
+	return nil
 }
 
 func (mc *metricCatalog) RmUnloadedPluginMetrics(lp *loadedPlugin) {
@@ -230,6 +240,12 @@ func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, error) {
 
 	mtsi, err := mc.tree.Fetch(ns)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "fetch",
+			"error":   err,
+		}).Error("error fetching metrics")
 		return nil, err
 	}
 	return mtsi, nil
@@ -273,6 +289,12 @@ func (mc *metricCatalog) Subscribe(ns []string, version int) error {
 
 	m, err := mc.get(ns, version)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "subscribe",
+			"error":   err,
+		}).Error("error getting metrics")
 		return err
 	}
 
@@ -287,6 +309,12 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
 
 	m, err := mc.get(ns, version)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "unsubscribe",
+			"error":   err,
+		}).Error("error getting metrics")
 		return err
 	}
 
@@ -296,6 +324,12 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
 func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, error) {
 	m, err := mc.Get(mns, ver)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "get-plugin",
+			"error":   err,
+		}).Error("error getting plugin")
 		return nil, err
 	}
 	return m.Plugin, nil
@@ -304,13 +338,24 @@ func (mc *metricCatalog) GetPlugin(mns []string, ver int) (*loadedPlugin, error)
 func (mc *metricCatalog) get(ns []string, ver int) (*metricType, error) {
 	mts, err := mc.getVersions(ns)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "get",
+			"error":   err,
+		}).Error("error getting plugin version from metric catalog")
 		return nil, err
 	}
-
 	// a version IS given
 	if ver > 0 {
 		l, err := getVersion(mts, ver)
 		if err != nil {
+			log.WithFields(log.Fields{
+				"_module": "control",
+				"_file":   "metrics.go,",
+				"_block":  "get",
+				"error":   err,
+			}).Error("error getting plugin version")
 			return nil, errorMetricNotFound(ns, ver)
 		}
 		return l, nil
@@ -322,6 +367,12 @@ func (mc *metricCatalog) get(ns []string, ver int) (*metricType, error) {
 func (mc *metricCatalog) getVersions(ns []string) ([]*metricType, error) {
 	mts, err := mc.tree.Get(ns)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "getVersions",
+			"error":   err,
+		}).Error("error getting plugin version")
 		return nil, err
 	}
 	if mts == nil {
@@ -340,7 +391,6 @@ func getLatest(c []*metricType) *metricType {
 		if mt.Version() > cur.Version() {
 			cur = mt
 		}
-
 	}
 	return cur
 }

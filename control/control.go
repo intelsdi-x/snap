@@ -110,7 +110,7 @@ type managesPlugins interface {
 type catalogsMetrics interface {
 	Get([]string, int) (*metricType, error)
 	Add(*metricType)
-	AddLoadedMetricType(*loadedPlugin, core.Metric)
+	AddLoadedMetricType(*loadedPlugin, core.Metric) error
 	RmUnloadedPluginMetrics(lp *loadedPlugin)
 	GetVersions([]string) ([]*metricType, error)
 	Fetch([]string) ([]*metricType, error)

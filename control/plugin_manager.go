@@ -400,7 +400,19 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 				}).Error("received metric with bad version")
 				return nil, serror.New(err)
 			}
-			p.metricCatalog.AddLoadedMetricType(lPlugin, nmt)
+			if err := p.metricCatalog.AddLoadedMetricType(lPlugin, nmt); err != nil {
+				pmLogger.WithFields(log.Fields{
+					"_block":           "load-plugin",
+					"plugin-name":      resp.Meta.Name,
+					"plugin-version":   resp.Meta.Version,
+					"plugin-type":      resp.Meta.Type.String(),
+					"plugin-path":      filepath.Base(lPlugin.Details.ExecPath),
+					"metric-namespace": nmt.Namespace(),
+					"metric-version":   nmt.Version(),
+					"error":            err.Error(),
+				}).Error("error adding loaded metric type")
+				return nil, serror.New(err)
+			}
 		}
 	}
 
