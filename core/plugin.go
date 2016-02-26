@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/cdata"
 )
 
@@ -80,6 +81,7 @@ type CatalogedPlugin interface {
 	Status() string
 	PluginPath() string
 	LoadedTimestamp() *time.Time
+	Policy() *cpolicy.ConfigPolicy
 }
 
 // the collection of cataloged plugins used

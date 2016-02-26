@@ -89,13 +89,14 @@ func (p *PluginReturned) ResponseBodyType() string {
 }
 
 type LoadedPlugin struct {
-	Name            string `json:"name"`
-	Version         int    `json:"version"`
-	Type            string `json:"type"`
-	Signed          bool   `json:"signed"`
-	Status          string `json:"status"`
-	LoadedTimestamp int64  `json:"loaded_timestamp"`
-	Href            string `json:"href"`
+	Name            string        `json:"name"`
+	Version         int           `json:"version"`
+	Type            string        `json:"type"`
+	Signed          bool          `json:"signed"`
+	Status          string        `json:"status"`
+	LoadedTimestamp int64         `json:"loaded_timestamp"`
+	Href            string        `json:"href"`
+	ConfigPolicy    []PolicyTable `json:"policy,omitempty"`
 }
 
 type AvailablePlugin struct {
