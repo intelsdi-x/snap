@@ -98,15 +98,17 @@ type managesConfig interface {
 }
 
 type Server struct {
-	mm   managesMetrics
-	mt   managesTasks
-	tr   managesTribe
-	mc   managesConfig
-	n    *negroni.Negroni
-	r    *httprouter.Router
-	tls  *tls
-	addr net.Addr
-	err  chan error
+	mm      managesMetrics
+	mt      managesTasks
+	tr      managesTribe
+	mc      managesConfig
+	n       *negroni.Negroni
+	r       *httprouter.Router
+	tls     *tls
+	auth    bool
+	authpwd string
+	addr    net.Addr
+	err     chan error
 }
 
 func New(https bool, cpath, kpath string) (*Server, error) {
@@ -124,15 +126,43 @@ func New(https bool, cpath, kpath string) (*Server, error) {
 	}
 
 	restLogger.Info(fmt.Sprintf("Configuring REST API with HTTPS set to: %v", https))
-
 	s.n = negroni.New(
 		NewLogger(),
 		negroni.NewRecovery(),
+		negroni.HandlerFunc(s.authMiddleware),
 	)
 	s.r = httprouter.New()
 	// Use negroni to handle routes
 	s.n.UseHandler(s.r)
 	return s, nil
+}
+
+// SetAPIAuth sets API authentication to enabled or disabled
+func (s *Server) SetAPIAuth(auth bool) {
+	s.auth = auth
+}
+
+// SetAPIAuthPwd sets the API authentication password from snapd
+func (s *Server) SetAPIAuthPwd(pwd string) {
+	s.authpwd = pwd
+}
+
+// Auth Middleware for REST API
+func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	defer r.Body.Close()
+	if s.auth {
+		_, password, ok := r.BasicAuth()
+		// If we have valid password or going to tribe/agreements endpoint
+		// go to next. tribe/agreements endpoint used for populating
+		// snapctl help page when tribe mode is turned on.
+		if ok && password == s.authpwd {
+			next(rw, r)
+		} else {
+			http.Error(rw, "Not Authorized", 401)
+		}
+	} else {
+		next(rw, r)
+	}
 }
 
 func (s *Server) Start(addrString string) {
