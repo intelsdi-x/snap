@@ -26,7 +26,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
-	"net/http"
 	"os"
 	"path"
 	"sync"
@@ -119,6 +118,7 @@ type ManagesTasks interface {
 type getsMembers interface {
 	GetPluginAgreementMembers() ([]Member, error)
 	GetTaskAgreementMembers() ([]Member, error)
+	GetRequestPassword() string
 }
 
 type Member interface {
@@ -317,7 +317,15 @@ func (w worker) loadPlugin(plugin core.Plugin) error {
 	}
 	for _, member := range shuffle(members) {
 		url := fmt.Sprintf("%s://%s:%s/v1/plugins/%s/%s/%d?download=true", member.GetRestProto(), member.GetAddr(), member.GetRestPort(), plugin.TypeName(), plugin.Name(), plugin.Version())
-		resp, err := http.Get(url)
+		c, err := client.New(url, "v1", member.GetRestInsecureSkipVerify(), client.Password(w.memberManager.GetRequestPassword()))
+		if err != nil {
+			logger.WithFields(log.Fields{
+				"err": err,
+				"url": url,
+			}).Info("unable to create client")
+			continue
+		}
+		resp, err := c.TribeRequest()
 		if err != nil {
 			logger.WithFields(log.Fields{
 				"err": err,
@@ -385,11 +393,13 @@ func (w worker) createTask(taskID string, startOnCreate bool) {
 		for _, member := range shuffle(members) {
 			uri := fmt.Sprintf("%s://%s:%s", member.GetRestProto(), member.GetAddr(), member.GetRestPort())
 			logger.Debugf("getting task %v from %v", taskID, uri)
-			c, err := client.New(uri, "v1", member.GetRestInsecureSkipVerify())
+
+			c, err := client.New(uri, "v1", member.GetRestInsecureSkipVerify(), client.Password(w.memberManager.GetRequestPassword()))
 			if err != nil {
 				logger.Error(err)
 				continue
 			}
+
 			taskResult := c.GetTask(taskID)
 			if taskResult.Err != nil {
 				logger.WithField("err", taskResult.Err.Error()).Debug("error getting task")

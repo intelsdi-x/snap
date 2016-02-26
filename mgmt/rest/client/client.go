@@ -72,6 +72,9 @@ type Client struct {
 	// prefix is the string concatenation of a request URL, forward slash
 	// and the request client version.
 	prefix string
+	// Basic http auth username/password
+	Username string
+	Password string
 }
 
 // Checks validity of URL
@@ -82,9 +85,25 @@ func parseURL(url string) error {
 	return nil
 }
 
+type metaOp func(c *Client)
+
+//Password is an option than can be provided to the func client.New.
+func Password(p string) metaOp {
+	return func(c *Client) {
+		c.Password = strings.TrimSpace(p)
+	}
+}
+
+//Username is an option that can be provided to the func client.New.
+func Username(u string) metaOp {
+	return func(c *Client) {
+		c.Username = u
+	}
+}
+
 // New returns a pointer to a snap api client
 // if ver is an empty string, v1 is used by default
-func New(url, ver string, insecure bool) (*Client, error) {
+func New(url, ver string, insecure bool, opts ...metaOp) (*Client, error) {
 	if err := parseURL(url); err != nil {
 		return nil, err
 	}
@@ -103,6 +122,9 @@ func New(url, ver string, insecure bool) (*Client, error) {
 			},
 		},
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
 	c.prefix = url + "/" + ver
 	return c, nil
 }
@@ -110,6 +132,18 @@ func New(url, ver string, insecure bool) (*Client, error) {
 // String returns the string representation of the content type given a content number.
 func (t contentType) String() string {
 	return contentTypes[t]
+}
+
+/*
+   Add's auth info to request if password is set.
+*/
+func addAuth(req *http.Request, username, password string) {
+	if password != "" {
+		if username == "" {
+			username = "snap"
+		}
+		req.SetBasicAuth(username, password)
+	}
 }
 
 /*
@@ -122,10 +156,16 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 	var (
 		rsp *http.Response
 		err error
+		req *http.Request
 	)
 	switch method {
 	case "GET":
-		rsp, err = c.http.Get(c.prefix + path)
+		req, err = http.NewRequest(method, c.prefix+path, nil)
+		if err != nil {
+			return nil, err
+		}
+		addAuth(req, c.Username, c.Password)
+		rsp, err = c.http.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
 				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
@@ -139,11 +179,13 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		} else {
 			b = bytes.NewReader(body[0])
 		}
-		req, err := http.NewRequest("PUT", c.prefix+path, b)
-		req.Header.Add("Content-Type", ct.String())
+		req, err = http.NewRequest(method, c.prefix+path, b)
 		if err != nil {
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		addAuth(req, c.Username, c.Password)
+		req.Header.Add("Content-Type", ct.String())
+
 		rsp, err = c.http.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
@@ -158,11 +200,13 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		} else {
 			b = bytes.NewReader(body[0])
 		}
-		req, err := http.NewRequest("DELETE", c.prefix+path, b)
-		req.Header.Add("Content-Type", "application/json")
+
+		req, err = http.NewRequest(method, c.prefix+path, b)
 		if err != nil {
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		addAuth(req, c.Username, c.Password)
+		req.Header.Add("Content-Type", "application/json")
 		rsp, err = c.http.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
@@ -177,7 +221,13 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		} else {
 			b = bytes.NewReader(body[0])
 		}
-		rsp, err = c.http.Post(c.prefix+path, ct.String(), b)
+		req, err = http.NewRequest(method, c.prefix+path, b)
+		if err != nil {
+			return nil, err
+		}
+		addAuth(req, c.Username, c.Password)
+		req.Header.Add("Content-Type", ct.String())
+		rsp, err = c.http.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
 				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
@@ -190,6 +240,9 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 }
 
 func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, error) {
+	if rsp.StatusCode == 401 {
+		return nil, fmt.Errorf("Invalid credentials")
+	}
 	resp := new(rbody.APIResponse)
 	b, err := ioutil.ReadAll(rsp.Body)
 	rsp.Body.Close()
@@ -248,6 +301,7 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 	go writePluginToWriter(pw, bufins, writer, paths, errChan)
 
 	req, err := http.NewRequest("POST", c.prefix+"/plugins", pr)
+	addAuth(req, c.Username, c.Password)
 	if err != nil {
 		return nil, fmt.Errorf("URL target is not available. %v", err)
 	}
@@ -308,4 +362,18 @@ func writePluginToWriter(pw io.WriteCloser, bufin []*bufio.Reader, writer *multi
 		return
 	}
 	errChan <- nil
+}
+
+// Passthrough for tribe request to allow use of client auth.
+func (c *Client) TribeRequest() (*http.Response, error) {
+	req, err := http.NewRequest("GET", c.URL, nil)
+	if err != nil {
+		return nil, err
+	}
+	addAuth(req, "snap", c.Password)
+	rsp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return rsp, nil
 }

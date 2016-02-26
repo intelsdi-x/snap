@@ -43,6 +43,16 @@ var (
 		Name:  "running",
 		Usage: "Shows running plugins",
 	}
+	flPassword = cli.BoolFlag{
+		Name:  "password, p",
+		Usage: "Password for REST API authentication",
+	}
+	flConfig = cli.StringFlag{
+		Name:   "config, c",
+		EnvVar: "SNAPCTL_CONFIG_PATH",
+		Usage:  "Path to a config file",
+		Value:  "",
+	}
 
 	// Plugin flags
 	flPluginAsc = cli.StringFlag{
