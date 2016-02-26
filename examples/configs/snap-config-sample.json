@@ -2,7 +2,9 @@
     "flags": {
         "log-level": 1,
         "plugin-trust": 0,
-        "auto-discover": "build/plugin"
+        "auto-discover": "build/plugin",
+        "rest-auth": true,
+        "rest-auth-pwd": "example"
     },    
     "plugins": {
         "all": {
