@@ -11,18 +11,43 @@ snap exposes a list of RESTful APIs to perform various actions. All of snap's AP
 | version | API meta version |
 
 ## API Index
-1. [Plugin API](#plugin-api)  
+1. [Authentication](#authentication)
+2. [Plugin API](#plugin-api)  
  * [Plugin Response Parameters](#plugin-response-parameters)
  * [Plugin APIs and Examples](#plugin-apis-and-examples)
-2. [Metric API](#metric-api)  
+3. [Metric API](#metric-api)  
  * [Metric Response Parameters](#metric-response-parameters)  
  * [Metric APIs and Examples](#metric-apis-and-examples)
-3. [Task API](#task-api)  
+4. [Task API](#task-api)  
  * [Task API Response Parameters](#task-api-response-parameters)  
  * [Task APIs and Examples](#task-apis-and-examples)
-4. [Tribe API](#tribe-api)  
+5. [Tribe API](#tribe-api)  
  * [Tribe API Response Parameters](#tribe-api-response-parameters)  
  * [Tribe APIs and Examples](#tribe-apis-and-examples)
+
+### Authentication
+Enabled in snapd
+```
+curl -L http://localhost:8181/v1/plugins
+```
+```
+Not Authorized
+```
+```
+curl -L http://localhost:8181/v1/plugins -u snap
+Enter host password for user 'snap':
+```
+```json
+{
+  "meta": {
+    "code": 200,
+    "message": "Plugin list returned",
+    "type": "plugin_list_returned",
+    "version": 1
+  },
+  "body": {}
+}
+```
 
 ## Plugin API
 Plugin RESTful APIs provide the functionality to load, unload and retrieve plugin information. You may see plugin APIs along with their request and response attributes as following:
@@ -57,7 +82,7 @@ _**Example Response**_
   "body": {
     "loaded_plugins": [
       {
-        "name": "mock1",
+        "name": "mock",
         "version": 1,
         "type": "collector",
         "signed": false,
@@ -65,7 +90,7 @@ _**Example Response**_
         "loaded_timestamp": 1447977606
       },
       {
-        "name": "mock2",
+        "name": "mock",
         "version": 2,
         "type": "collector",
         "signed": false,
@@ -97,7 +122,7 @@ List plugins for the given type, name, and version
 
 _**Example Request**_
 ```
-curl -L http://localhost:8181/v1/plugins/collector/mock1/1
+curl -L http://localhost:8181/v1/plugins/collector/mock/1
 ```
 _**Example Response**_
 ```json
@@ -109,7 +134,7 @@ _**Example Response**_
     "version": 1
   },
   "body": {
-    "name": "mock1",
+    "name": "mock",
     "version": 1,
     "type": "collector",
     "signed": false,
@@ -123,21 +148,21 @@ Load a plugin
 
 _**Example Request**_
 ```
-curl -X POST -F plugin=@build/plugin/snap-collector-mock1 http://localhost:8181/v1/plugins
+curl -X POST -F plugin=@build/plugin/snap-collector-mock http://localhost:8181/v1/plugins
 ```
 _**Example Response**_
 ```json
 {
   "meta": {
     "code": 201,
-    "message": "Plugins loaded: mock1(collector v1)",
+    "message": "Plugins loaded: mock(collector v1)",
     "type": "plugins_loaded",
     "version": 1
   },
   "body": {
     "loaded_plugins": [
       {
-        "name": "mock1",
+        "name": "mock",
         "version": 1,
         "type": "collector",
         "signed": false,
@@ -153,19 +178,19 @@ Unload a plugin for the given type, name, and version
 
 _**Example Request**_
 ```
-curl -X DELETE http://localhost:8181/v1/plugins/collector/mock1/1   
+curl -X DELETE http://localhost:8181/v1/plugins/collector/mock/1   
 ```
 _**Example Response**_
 ```json
 {
   "meta": {
     "code": 200,
-    "message": "Plugin successfully unloaded (mock1v1)",
+    "message": "Plugin successfuly unloaded (mockv1)",
     "type": "plugin_unloaded",
     "version": 1
   },
   "body": {
-    "name": "mock1",
+    "name": "mock",
     "version": 1,
     "type": "collector"
   }
@@ -176,7 +201,7 @@ Retrieve the config for the given type, name, and version plugin
 
 _**Example Request**_
 ```
-curl -L http://localhost:8181/v1/plugins/collector/mock1/1/config  
+curl -L http://localhost:8181/v1/plugins/collector/mock/1/config  
 ```
 _**Example Response**_
 ```json
