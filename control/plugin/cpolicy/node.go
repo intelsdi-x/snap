@@ -199,7 +199,7 @@ func (c ConfigPolicyNode) Merge(n ctree.Node) ctree.Node {
 	// are safe to convert ctree.Node interface to ConfigPolicyNode
 	cd := n.(*ConfigPolicyNode)
 	// For the rules in the passed ConfigPolicyNode(converted) add each rule to
-	// this ConfigPolicyNode overwritting where needed.
+	// this ConfigPolicyNode overwriting where needed.
 	for _, r := range cd.rules {
 		c.Add(r)
 	}

@@ -132,7 +132,7 @@ func (c ConfigDataNode) Merge(n ctree.Node) ctree.Node {
 	cd := n.(*ConfigDataNode)
 	t := cd.Table()
 	// For the table in the passed ConfigDataNode(converted) add each item to
-	// this ConfigDataNode overwritting where needed.
+	// this ConfigDataNode overwriting where needed.
 	for k, v := range t {
 		c.AddItem(k, v)
 	}

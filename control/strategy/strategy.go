@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package strategy provides basic interfaces for routing to availble
+// Package strategy provides basic interfaces for routing to available
 // plugins and caching metric data.
 package strategy
 

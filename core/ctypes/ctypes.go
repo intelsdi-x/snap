@@ -77,7 +77,7 @@ func (c ConfigValueBool) MarshalJSON() ([]byte, error) {
 
 // Returns a slice of string keywords for the types supported by ConfigValue.
 func SupportedTypes() []string {
-	// This is kind of a hack but keeps the definiton of types here in
+	// This is kind of a hack but keeps the definition of types here in
 	// ctypes.go. If you create a new ConfigValue type be sure and add here
 	// to return the Type() response. This will cause any depedant components
 	// to acknowledge and use that type.
