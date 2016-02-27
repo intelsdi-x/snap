@@ -61,7 +61,7 @@ func waitOnInterval(last time.Time, i time.Duration) (uint, time.Time) {
 	nanoInterval := i.Nanoseconds()
 	// use modulo operation to obtain the remainder of time over last interval
 	remainder := timeDiff % nanoInterval
-	// substract remainder from
+	// subtract remainder from
 	missed := (timeDiff - remainder) / nanoInterval // timeDiff.Nanoseconds() % s.Interval.Nanoseconds()
 	waitDuration := nanoInterval - remainder
 	// Wait until predicted interval fires

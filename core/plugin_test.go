@@ -93,7 +93,7 @@ func TestRequestedPlugin(t *testing.T) {
 	})
 	// Try to create a plugin request from a bad path to a plugin
 	_, err2 := NewRequestedPlugin(PluginPath + "foo")
-	Convey("An error should be generated when creating a plugin request with non-existant path", t, func() {
+	Convey("An error should be generated when creating a plugin request with non-existent path", t, func() {
 		Convey("So error should not be nil", func() {
 			So(err2, ShouldNotBeNil)
 		})
