@@ -84,7 +84,10 @@ func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, serror.SnapE
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
 	var e serror.SnapError
 	var p core.CatalogedPlugin
-	rp, _ := core.NewRequestedPlugin(paths[0])
+	rp, err := core.NewRequestedPlugin(paths[0])
+	if err != nil {
+		return nil, serror.New(err)
+	}
 	if len(paths) > 1 {
 		rp.SetSignature([]byte{00, 00, 00})
 	}
@@ -147,7 +150,10 @@ func TestSwapPlugin(t *testing.T) {
 			})
 		})
 		mock1Path := strings.Replace(PluginPath, "snap-collector-mock2", "snap-collector-mock1", 1)
-		mockRP, _ := core.NewRequestedPlugin(mock1Path)
+		mockRP, mErr := core.NewRequestedPlugin(mock1Path)
+		Convey("Loading a plugin should not error", t, func() {
+			So(mErr, ShouldBeNil)
+		})
 		err := c.SwapPlugins(mockRP, c.PluginCatalog()[0])
 		Convey("Swapping plugins", t, func() {
 			Convey("Should not error", func() {
@@ -191,7 +197,10 @@ func TestSwapPlugin(t *testing.T) {
 		})
 
 		filePath := strings.Replace(PluginPath, "snap-collector-mock2", "snap-publisher-file", 1)
-		fileRP, _ := core.NewRequestedPlugin(filePath)
+		fileRP, pErr := core.NewRequestedPlugin(filePath)
+		Convey("Loading a plugin should not error", t, func() {
+			So(pErr, ShouldBeNil)
+		})
 		err = c.SwapPlugins(fileRP, c.PluginCatalog()[0])
 		Convey("Swapping mock and file plugins", t, func() {
 			Convey("Should error", func() {
@@ -211,7 +220,8 @@ func TestSwapPlugin(t *testing.T) {
 			pm.ExistingPlugin = lp
 			c.pluginManager = pm
 
-			mockRP, _ := core.NewRequestedPlugin(mock1Path)
+			mockRP, mErr := core.NewRequestedPlugin(mock1Path)
+			So(mErr, ShouldBeNil)
 			err := c.SwapPlugins(mockRP, lp)
 			Convey("So err should be received if rollback fails", func() {
 				So(err, ShouldNotBeNil)
@@ -774,7 +784,8 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		load(c, JSONRPCPluginPath)
+		_, err := load(c, JSONRPCPluginPath)
+		So(err, ShouldBeNil)
 		<-lpe.done
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
@@ -801,7 +812,9 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		load(c, JSONRPCPluginPath)
+		_, err := load(c, JSONRPCPluginPath)
+		So(err, ShouldBeNil)
+
 		<-lpe.done
 		var cd *cdata.ConfigDataNode
 		m1 := MockMetricType{
@@ -822,7 +835,8 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		load(c, JSONRPCPluginPath)
+		_, err := load(c, JSONRPCPluginPath)
+		So(err, ShouldBeNil)
 		<-lpe.done
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
@@ -1104,7 +1118,8 @@ func TestFailedPlugin(t *testing.T) {
 		c.Config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 
 		// Load plugin
-		load(c, PluginPath)
+		_, e := load(c, PluginPath)
+		So(e, ShouldBeNil)
 		<-lpe.done
 		_, err := c.MetricCatalog()
 		So(err, ShouldBeNil)
@@ -1181,7 +1196,8 @@ func TestCollectMetrics(t *testing.T) {
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		load(c, JSONRPCPluginPath)
+		_, e := load(c, JSONRPCPluginPath)
+		So(e, ShouldBeNil)
 		<-lpe.done
 		mts, err := c.MetricCatalog()
 		So(err, ShouldBeNil)
@@ -1300,8 +1316,8 @@ func TestPublishMetrics(t *testing.T) {
 
 		// Load plugin
 		_, err := load(c, path.Join(SnapPath, "plugin", "snap-publisher-file"))
-		<-lpe.done
 		So(err, ShouldBeNil)
+		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("publisher:file:3")
 		So(err2, ShouldBeNil)
@@ -1354,8 +1370,8 @@ func TestProcessMetrics(t *testing.T) {
 
 		// Load plugin
 		_, err := load(c, path.Join(SnapPath, "plugin", "snap-processor-passthru"))
-		<-lpe.done
 		So(err, ShouldBeNil)
+		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("processor:passthru:1")
 		So(err2, ShouldBeNil)
