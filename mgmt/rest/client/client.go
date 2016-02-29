@@ -130,7 +130,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
 				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
 			}
-			return nil, err
+			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
 	case "PUT":
 		var b *bytes.Reader
@@ -142,14 +142,14 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		req, err := http.NewRequest("PUT", c.prefix+path, b)
 		req.Header.Add("Content-Type", ct.String())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
 		rsp, err = c.http.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
 				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
 			}
-			return nil, err
+			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
 	case "DELETE":
 		var b *bytes.Reader
@@ -161,14 +161,14 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		req, err := http.NewRequest("DELETE", c.prefix+path, b)
 		req.Header.Add("Content-Type", "application/json")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
 		rsp, err = c.http.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
 				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
 			}
-			return nil, err
+			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
 	case "POST":
 		var b *bytes.Reader
@@ -182,7 +182,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
 				return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
 			}
-			return nil, err
+			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
 	}
 
@@ -249,7 +249,7 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 
 	req, err := http.NewRequest("POST", c.prefix+"/plugins", pr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("URL target is not available. %v", err)
 	}
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
@@ -261,7 +261,7 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 		if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
 			return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
 		}
-		return nil, err
+		return nil, fmt.Errorf("URL target is not available. %v", err)
 	}
 	cErr := <-errChan
 	if cErr != nil {
