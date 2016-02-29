@@ -87,7 +87,7 @@ var (
 		Name:   "plugin-trust, t",
 		Usage:  "0-2 (Disabled, Enabled, Warning)",
 		EnvVar: "SNAP_TRUST_LEVEL",
-		Value:  1,
+		Value:  0,
 	}
 	flKeyringPaths = cli.StringFlag{
 		Name:   "keyring-paths, k",
