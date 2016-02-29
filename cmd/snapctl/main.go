@@ -21,6 +21,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"sort"
 	"time"
@@ -33,6 +34,7 @@ var (
 	gitversion string
 	pClient    *client.Client
 	timeFormat = time.RFC1123
+	err        error
 )
 
 func main() {
@@ -90,7 +92,11 @@ func init() {
 			}
 		}
 	}
-	pClient = client.New(url, ver, secure)
+	pClient, err = client.New(url, ver, secure)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	resp := pClient.ListAgreements()
 	if resp.Err == nil {
 		commands = append(commands, tribeCommands...)
