@@ -35,7 +35,7 @@ $ $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
 --auto-discover, -a                          Auto discover paths separated by colons. [$SNAP_AUTODISCOVER_PATH]
 --max-running-plugins, -m '3'                The maximum number of instances of a loaded plugin to run [$SNAP_MAX_PLUGINS]
 --cache-expiration '500ms'                   The time limit for which a metric cache entry is valid [$SNAP_CACHE_EXPIRATION]
---plugin-trust, -t '1'                       0-2 (Disabled, Enabled, Warning) [$SNAP_TRUST_LEVEL]
+--plugin-trust, -t '0'                       0-2 (Disabled, Enabled, Warning) [$SNAP_TRUST_LEVEL]
 --keyring-paths, -k                          Keyring paths for signing verification separated by colons [$SNAP_KEYRING_PATHS]
 --rest-cert                                  A path to a certificate to use for HTTPS deployment of snap's REST API
 --config                                     A path to a config file
@@ -62,7 +62,7 @@ $SNAP_PATH/bin/snapd --version
 
 ### Output
 ```
-$ $SNAP_PATH/bin/snapd -l 1 -t 0
+$ $SNAP_PATH/bin/snapd -l 1
 ```
 ```
 INFO[0000] Starting snapd (version: v0.9.0-beta)

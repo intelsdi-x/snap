@@ -111,7 +111,7 @@ $ export SNAP_PATH=<snapDirectoryPath>/build
 ```
 And then you can use `$SNAP_PATH/bin` for your `<snapBinPath>`.
 ```
-$ <snapBinPath>/snapd --plugin-trust 0 --log-level 1
+$ <snapBinPath>/snapd --log-level 1
 ```
 This will bring up a snap agent without requiring plugin signing and set the logging level to debug. snap's REST API will be listening on port 8181. To learn more about the snap agent and how to use it look at [SNAPD.md](docs/SNAPD.md) and/or run `<snapBinPath>/snapd -h`.
 
