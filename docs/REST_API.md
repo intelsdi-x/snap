@@ -1,5 +1,5 @@
 # snap API
-snap exposes a list of RESTful APIs to perform various actions. All of snap's API requests return `JSON`-formatted reponses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation have the endpoint:
+snap exposes a list of RESTful APIs to perform various actions. All of snap's API requests return `JSON`-formatted responses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation have the endpoint:
 > http://localhost:8181
 
 ## API Response Meta
@@ -160,7 +160,7 @@ _**Example Response**_
 {
   "meta": {
     "code": 200,
-    "message": "Plugin successfuly unloaded (mock1v1)",
+    "message": "Plugin successfully unloaded (mock1v1)",
     "type": "plugin_unloaded",
     "version": 1
   },

@@ -94,7 +94,7 @@ var (
 	PingTimeoutLimit = 3
 
 	// Array matching plugin type enum to a string
-	// note: in string represenation we use lower case
+	// note: in string representation we use lower case
 	types = [...]string{
 		"collector",
 		"processor",

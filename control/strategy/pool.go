@@ -364,7 +364,7 @@ func (p *pool) SelectAP(taskID string) (SelectablePlugin, serror.SnapError) {
 	return sap, nil
 }
 
-// generatePID returns the next availble pid for the pool
+// generatePID returns the next available pid for the pool
 func (p *pool) generatePID() uint32 {
 	atomic.AddUint32(&p.pidCounter, 1)
 	return p.pidCounter

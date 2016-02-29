@@ -1232,7 +1232,7 @@ func TestCollectMetrics(t *testing.T) {
 				So(pool.Strategy().String(), ShouldEqual, plugin.DefaultRouting.String())
 				So(len(pool.Plugins()), ShouldEqual, 2)
 				// when the first first plugin is hit the cache is populated the
-				// cache satifies the next 3 collect calls that come in within the
+				// cache satisfies the next 3 collect calls that come in within the
 				// cache duration
 				So(pool.Plugins()[1].HitCount(), ShouldEqual, 1)
 				So(pool.Plugins()[2].HitCount(), ShouldEqual, 0)

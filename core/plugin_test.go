@@ -98,7 +98,7 @@ func TestRequestedPlugin(t *testing.T) {
 			So(err2, ShouldNotBeNil)
 		})
 	})
-	// Create a plugin request and try to add a signature from an non-existant signature file
+	// Create a plugin request and try to add a signature from an non-existent signature file
 
 	Convey("When passing in a non-existant signature file", t, func() {
 		rp3, err3 := NewRequestedPlugin(PluginPath)
