@@ -126,7 +126,7 @@ func (p *config) GetPluginConfigDataNodeAll() cdata.ConfigDataNode {
 }
 
 // UnmarshalJSON unmarshals valid json into pluginConfig.  An example Config
-// github.com/intelsdi-x/snap/examples/configs/snap-config-sample.
+// github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
 func (p *pluginConfig) UnmarshalJSON(data []byte) error {
 	t := map[string]interface{}{}
 	dec := json.NewDecoder(bytes.NewReader(data))
