@@ -31,6 +31,8 @@ import (
 	"syscall"
 	"time"
 
+	"google.golang.org/grpc"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 
@@ -42,6 +44,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/pkg/globalconfig"
 	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 )
 
 var (
@@ -478,7 +481,13 @@ func action(ctx *cli.Context) {
 		}
 		r.BindMetricManager(c)
 		r.BindConfigManager(c.Config)
-		r.BindTaskManager(s)
+		//TODO (JC) add flags for overriding the default ports
+		conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, scheduler.DefaultListenPort), grpc.WithInsecure())
+		if err != nil {
+			log.Fatal(err)
+		}
+		client := rpc.NewTaskManagerClient(conn)
+		r.BindTaskManager(client)
 		if tr != nil {
 			r.BindTribeManager(tr)
 		}

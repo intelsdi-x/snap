@@ -29,6 +29,7 @@ import (
 
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -140,13 +141,16 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 				if err != nil {
 					r.Err = err
 					r.Close()
-					return
 				}
 				switch ste.EventType {
-				case rbody.TaskWatchTaskDisabled:
+				case rpc.Watch_ERROR:
+					r.Err = errors.New(ste.Message)
 					r.EventChan <- ste
 					r.Close()
-				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
+				case rpc.Watch_TASK_DISABLED:
+					r.EventChan <- ste
+					r.Close()
+				case rpc.Watch_TASK_STOPPED, rpc.Watch_TASK_STARTED, rpc.Watch_METRICS_COLLECTED:
 					r.EventChan <- ste
 				}
 			}

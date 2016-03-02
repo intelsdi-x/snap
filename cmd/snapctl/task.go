@@ -35,6 +35,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 
 	"github.com/ghodss/yaml"
@@ -375,7 +376,7 @@ func watchTask(ctx *cli.Context) {
 		select {
 		case e := <-r.EventChan:
 			switch e.EventType {
-			case "metric-event":
+			case rpc.Watch_METRICS_COLLECTED:
 				sort.Sort(e.Event)
 				for _, event := range e.Event {
 					fmt.Printf("\033[0J")

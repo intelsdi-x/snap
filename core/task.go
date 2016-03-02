@@ -68,7 +68,6 @@ func (t TaskState) String() string {
 
 type Task interface {
 	ID() string
-	// Status() WorkflowState TODO, switch to string
 	State() TaskState
 	HitCount() uint
 	GetName() string
@@ -84,17 +83,16 @@ type Task interface {
 	SetTaskID(id string)
 	SetStopOnFailure(uint)
 	GetStopOnFailure() uint
-	Option(...TaskOption) TaskOption
 	WMap() *wmap.WorkflowMap
 	Schedule() schedule.Schedule
 }
 
 type TaskOption func(Task) TaskOption
 
-// TaskDeadlineDuration sets the tasks deadline.
+// TaskDeadlineDurationOption sets the tasks deadline.
 // The deadline is the amount of time that can pass before a worker begins
 // processing the tasks collect job.
-func TaskDeadlineDuration(v time.Duration) TaskOption {
+func TaskDeadlineDurationOption(v time.Duration) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.DeadlineDuration()
 		t.SetDeadlineDuration(v)
@@ -106,14 +104,14 @@ func TaskDeadlineDuration(v time.Duration) TaskOption {
 			"task deadline duration": t.DeadlineDuration(),
 		}).Debug("Setting deadlineDuration on task")
 
-		return TaskDeadlineDuration(previous)
+		return TaskDeadlineDurationOption(previous)
 	}
 }
 
-// TaskStopOnFailure sets the tasks stopOnFailure
+// TaskStopOnFailureOption sets the tasks stopOnFailure
 // The stopOnFailure is the number of consecutive task failures that will
 // trigger disabling the task
-func OptionStopOnFailure(v uint) TaskOption {
+func StopOnFailureOption(v uint) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.GetStopOnFailure()
 		t.SetStopOnFailure(v)
@@ -124,26 +122,27 @@ func OptionStopOnFailure(v uint) TaskOption {
 			"task-name":                 t.GetName(),
 			"consecutive failure limit": t.GetStopOnFailure(),
 		}).Debug("Setting stop-on-failure limit for task")
-		return OptionStopOnFailure(previous)
+		return StopOnFailureOption(previous)
 	}
 }
 
-// SetTaskName sets the name of the task.
+// SetTaskNameOption sets the name of the task.
 // This is optional.
 // If task name is not set, the task name is then defaulted to "Task-<task-id>"
-func SetTaskName(name string) TaskOption {
+func SetTaskNameOption(name string) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.GetName()
 		t.SetName(name)
-		return SetTaskName(previous)
+		return SetTaskNameOption(previous)
 	}
 }
 
-func SetTaskID(id string) TaskOption {
+// SetTaskIdOption sets the id of the task.
+func SetTaskIdOption(id string) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.ID()
 		t.SetID(id)
-		return SetTaskID(previous)
+		return SetTaskIdOption(previous)
 	}
 }
 

@@ -119,7 +119,7 @@ func TestWorkerManager(t *testing.T) {
 
 		Convey("does not work job if queuing error occurs", func() {
 			log.SetLevel(log.DebugLevel)
-			manager := newWorkManager(CollectQSizeOption(1), CollectWkrSizeOption(1))
+			manager := newWorkManager(collectQSizeOption(1), collectWkrSizeOption(1))
 			manager.Start()
 
 			j1 := newMultiSyncMockJob(2) // j1 will block in Run() twice.
@@ -197,12 +197,12 @@ func TestWorkerManager(t *testing.T) {
 			manager.Work(j3)
 		})*/
 		Convey("testing workMangerOptions", func() {
-			wMOption1 := CollectQSizeOption(100)
-			wMOption2 := PublishQSizeOption(100)
-			wMOption3 := CollectWkrSizeOption(100)
-			wMOption4 := ProcessQSizeOption(100)
-			wMOption5 := ProcessWkrSizeOption(100)
-			wMOption6 := PublishWkrSizeOption(100)
+			wMOption1 := collectQSizeOption(100)
+			wMOption2 := publishQSizeOption(100)
+			wMOption3 := collectWkrSizeOption(100)
+			wMOption4 := processQSizeOption(100)
+			wMOption5 := processWkrSizeOption(100)
+			wMOption6 := publishWkrSizeOption(100)
 			manager := newWorkManager(wMOption1, wMOption2, wMOption3, wMOption4, wMOption5, wMOption6)
 			manager.Start()
 			manager.AddPublishWorker()
