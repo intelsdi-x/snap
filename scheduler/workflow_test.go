@@ -20,6 +20,7 @@ limitations under the License.
 package scheduler
 
 import (
+	"net"
 	"os"
 	"path"
 	"testing"
@@ -72,7 +73,9 @@ func TestCollectPublishWorkflow(t *testing.T) {
 
 		c := control.New()
 		c.Start()
-		s := New()
+		l, _ := net.Listen("tcp", ":0")
+		l.Close()
+		s := New(ListenPortOption(l.Addr().(*net.TCPAddr).Port))
 		s.SetMetricManager(c)
 		Convey("create a workflow", func() {
 			rp, err := core.NewRequestedPlugin(snap_collector_mock2_path)

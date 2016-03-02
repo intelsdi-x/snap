@@ -29,11 +29,12 @@ import (
 )
 
 func TestSnapClientConfig(t *testing.T) {
-	uri := startAPI()
+	uri, err := startAPI()
 	CompressUpload = false
-	c, err := New(uri, "v1", true)
+	c, err2 := New(uri, "v1", true)
 	Convey("Client should be created", t, func() {
 		So(err, ShouldBeNil)
+		So(err2, ShouldBeNil)
 		Convey("When no config is set", func() {
 			Convey("Get global config", func() {
 				res := c.GetPluginConfig("", "", "")

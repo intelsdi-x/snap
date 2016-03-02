@@ -22,6 +22,9 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"net"
+
+	"google.golang.org/grpc"
 	// "strings"
 	"time"
 
@@ -32,11 +35,21 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/pkg/netutil"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
+const (
+	// DefaultListenAddr is the default port that the scheduler will listen on for RPC
+	DefaultListenPort int = 8081
+)
+
 var (
+	// DefaultListAddr is the default addr that the scheduler will listen on for RPC
+	DefaultListenAddr string = netutil.GetIP()
 	// HandlerRegistrationName registers a handler with the event manager
 	HandlerRegistrationName = "scheduler"
 
@@ -89,13 +102,18 @@ type processesMetrics interface {
 }
 
 type scheduler struct {
-	workManager     *workManager
-	metricManager   managesMetrics
-	tasks           *taskCollection
-	state           schedulerState
-	logger          *log.Entry
-	eventManager    *gomit.EventController
-	taskWatcherColl *taskWatcherCollection
+	tlsCAPath         string
+	tlsCAKeyPath      string
+	listenPort        int
+	listenAddress     string
+	workManager       *workManager
+	workerManagerOpts []workManagerOption
+	metricManager     managesMetrics
+	tasks             *taskCollection
+	state             schedulerState
+	logger            *log.Entry
+	eventManager      *gomit.EventController
+	taskWatcherColl   *taskWatcherCollection
 }
 
 type managesWork interface {
@@ -105,23 +123,116 @@ type managesWork interface {
 // New returns an instance of the scheduler
 // The MetricManager must be set before the scheduler can be started.
 // The MetricManager must be started before it can be used.
-func New(opts ...workManagerOption) *scheduler {
+func New(opts ...SchedulerOption) *scheduler {
 	s := &scheduler{
-		tasks: newTaskCollection(),
+		listenAddress: DefaultListenAddr,
+		listenPort:    DefaultListenPort,
+		tasks:         newTaskCollection(),
 		logger: log.WithFields(log.Fields{
 			"_module": "scheduler",
 		}),
-		eventManager:    gomit.NewEventController(),
-		taskWatcherColl: newTaskWatcherCollection(),
+		eventManager:      gomit.NewEventController(),
+		taskWatcherColl:   newTaskWatcherCollection(),
+		workerManagerOpts: []workManagerOption{},
 	}
 
-	// we are setting the size of the queue and number of workers for
-	// collect, process and publish consistently for now
-	s.workManager = newWorkManager(opts...)
+	//set options
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	s.workManager = newWorkManager(s.workerManagerOpts...)
 	s.workManager.Start()
 	s.eventManager.RegisterHandler(HandlerRegistrationName, s)
 
 	return s
+}
+
+type SchedulerOption func(s *scheduler)
+
+func TlsCAPathOption(p string) SchedulerOption {
+	return func(s *scheduler) {
+		s.tlsCAPath = p
+	}
+}
+
+func TlsCAKeyPathOption(p string) SchedulerOption {
+	return func(s *scheduler) {
+		s.tlsCAKeyPath = p
+	}
+}
+
+// ListenPortOption sets the port RPC will be listening on
+func ListenPortOption(p int) SchedulerOption {
+	return func(s *scheduler) {
+		s.listenPort = p
+	}
+}
+
+// ListenAddressOption sets the address RPC will be listening on
+func ListenAddressOption(a string) SchedulerOption {
+	return func(s *scheduler) {
+		s.listenAddress = a
+	}
+}
+
+// CollectQSizeOption sets the collector queue size(length) and
+// returns the previous queue option state.
+func CollectQSizeOption(v uint) SchedulerOption {
+	return func(s *scheduler) {
+		s.workerManagerOpts = append(s.workerManagerOpts, collectQSizeOption(v))
+	}
+}
+
+// PublishQSizeOption sets the publisher queue size(length) and
+// returns the previous queue option state.
+func PublishQSizeOption(v uint) SchedulerOption {
+	return func(s *scheduler) {
+		s.workerManagerOpts = append(s.workerManagerOpts, publishQSizeOption(v))
+	}
+}
+
+// ProcessQSizeOption sets the processor queue size(length) and
+// returns the previous queue option state.
+func ProcessQSizeOption(v uint) SchedulerOption {
+	return func(s *scheduler) {
+		s.workerManagerOpts = append(s.workerManagerOpts, processQSizeOption(v))
+	}
+}
+
+// CollectWkrSizeOption sets the collector worker pool size
+// and returns the previous collector worker pool state.
+func CollectWkrSizeOption(v uint) SchedulerOption {
+	return func(s *scheduler) {
+		s.workerManagerOpts = append(s.workerManagerOpts, collectWkrSizeOption(v))
+	}
+}
+
+// ProcessWkrSizeOption sets the processor worker pool size
+// and return the previous processor worker pool state.
+func ProcessWkrSizeOption(v uint) SchedulerOption {
+	return func(s *scheduler) {
+		s.workerManagerOpts = append(s.workerManagerOpts, processWkrSizeOption(v))
+	}
+}
+
+// PublishWkrSizeOption sets the publisher worker pool size
+// and returns the previous previous publisher worker pool state.
+func PublishWkrSizeOption(v uint) SchedulerOption {
+	return func(s *scheduler) {
+		s.workerManagerOpts = append(s.workerManagerOpts, publishWkrSizeOption(v))
+	}
+}
+
+// NewClient returns a scheduler client.  If valid caCertPath and caKeyPath values are
+// provided client returned will be secured (tls).  If caCertPath and caKeypath are
+// empty values the client returned will not be secure.
+func NewClient(addr string, port int, caCertPath, caKeyPath string) (rpc.TaskManagerClient, error) {
+	conn, err := rpcutil.GetClientConnection(addr, port, caCertPath, caKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	return rpc.NewTaskManagerClient(conn), nil
 }
 
 type taskErrors struct {
@@ -454,6 +565,35 @@ func (s *scheduler) Start() error {
 	s.logger.WithFields(log.Fields{
 		"_block": "start-scheduler",
 	}).Info("scheduler started")
+
+	lis, err := net.Listen("tcp", fmt.Sprintf("%v:%v", s.listenAddress, s.listenPort))
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Error("Failed to listen")
+		return err
+	}
+	opts := []grpc.ServerOption{}
+
+	// tls is enabled if provided a CA cert and key
+	if s.tlsCAPath != "" && s.tlsCAKeyPath != "" {
+		s.logger.WithFields(log.Fields{
+			"_block": "start-scheduler",
+		}).Info("tls enabled")
+		opt, err := rpcutil.ServerTlsOption(s.tlsCAPath, s.tlsCAKeyPath, s.listenAddress)
+		if err != nil {
+			return err
+		}
+		opts = append(opts, opt)
+	}
+
+	grpcServer := grpc.NewServer(opts...)
+	rpc.RegisterTaskManagerServer(grpcServer, &schedulerProxy{s})
+	go func() {
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			s.logger.Fatal(err)
+		}
+	}()
+
 	return nil
 }
 

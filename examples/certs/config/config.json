@@ -1,0 +1,13 @@
+{
+  "signing": {
+    "default": {
+      "expiry": "87600h"
+    },
+    "profiles": {
+      "cert": {
+        "usages": ["key encipherment", "auth"],
+        "expiry": "87600h"
+      }
+    }
+  }
+}

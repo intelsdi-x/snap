@@ -20,10 +20,10 @@ limitations under the License.
 package tribe
 
 import (
-	"net"
 	"os"
 
 	"github.com/codegangsta/cli"
+	"github.com/intelsdi-x/snap/pkg/netutil"
 	"github.com/pborman/uuid"
 )
 
@@ -59,7 +59,7 @@ var (
 		Name:   "tribe-addr",
 		Usage:  "Addr tribe gossips over to maintain membership",
 		EnvVar: "SNAP_TRIBE_ADDR",
-		Value:  getIP(),
+		Value:  netutil.GetIP(),
 	}
 
 	// Flags consumed by snapd
@@ -72,37 +72,4 @@ func getHostname() string {
 		return uuid.New()
 	}
 	return hostname
-}
-
-func getIP() string {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		logger.WithField("_block", "getIP").Error(err)
-		return "127.0.0.1"
-	}
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			logger.WithField("_block", "getIP").Error(err)
-			return "127.0.0.1"
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPAddr:
-				ip = v.IP
-			case *net.IPNet:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			ip = ip.To4()
-			if ip == nil {
-				continue // not an ipv4 address
-			}
-			return ip.String()
-		}
-	}
-	return "127.0.0.1"
 }

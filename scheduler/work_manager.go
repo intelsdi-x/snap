@@ -77,61 +77,61 @@ type workManagerOption func(w *workManager) workManagerOption
 
 // CollectQSizeOption sets the collector queue size(length) and
 // returns the previous queue option state.
-func CollectQSizeOption(v uint) workManagerOption {
+func collectQSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.collectQSize
 		w.collectQSize = v
-		return CollectQSizeOption(previous)
+		return collectQSizeOption(previous)
 	}
 }
 
 // PublishQSizeOption sets the publisher queue size(length) and
 // returns the previous queue option state.
-func PublishQSizeOption(v uint) workManagerOption {
+func publishQSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.publishQSize
 		w.publishQSize = v
-		return PublishQSizeOption(previous)
+		return publishQSizeOption(previous)
 	}
 }
 
 // ProcessQSizeOption sets the processor queue size(length) and
 // returns the previous queue option state.
-func ProcessQSizeOption(v uint) workManagerOption {
+func processQSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.processQSize
 		w.processQSize = v
-		return ProcessQSizeOption(previous)
+		return processQSizeOption(previous)
 	}
 }
 
 // CollectWkrSizeOption sets the collector worker pool size
 // and returns the previous collector worker pool state.
-func CollectWkrSizeOption(v uint) workManagerOption {
+func collectWkrSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.collectWkrSize
 		w.collectWkrSize = v
-		return CollectWkrSizeOption(previous)
+		return collectWkrSizeOption(previous)
 	}
 }
 
 // ProcessWkrSizeOption sets the processor worker pool size
 // and return the previous processor worker pool state.
-func ProcessWkrSizeOption(v uint) workManagerOption {
+func processWkrSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.processWkrSize
 		w.processWkrSize = v
-		return ProcessWkrSizeOption(previous)
+		return processWkrSizeOption(previous)
 	}
 }
 
 // PublishWkrSizeOption sets the publisher worker pool size
 // and returns the previous previous publisher worker pool state.
-func PublishWkrSizeOption(v uint) workManagerOption {
+func publishWkrSizeOption(v uint) workManagerOption {
 	return func(w *workManager) workManagerOption {
 		previous := w.publishWkrSize
 		w.publishWkrSize = v
-		return PublishWkrSizeOption(previous)
+		return publishWkrSizeOption(previous)
 	}
 }
 

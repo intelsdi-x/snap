@@ -115,7 +115,7 @@ func (l *loadedPlugins) get(key string) (*loadedPlugin, error) {
 			return nil, ErrBadKey
 		}
 		if v < 1 {
-			pmLogger.Info("finding latest plugin")
+			pmLogger.Debug("finding latest plugin")
 			return l.findLatest(tnv[0], tnv[1])
 		}
 		return nil, ErrPluginNotFound

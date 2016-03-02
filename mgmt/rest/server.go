@@ -30,6 +30,9 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
@@ -39,8 +42,7 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
-	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
-	"github.com/intelsdi-x/snap/scheduler/wmap"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 )
 
 const (
@@ -67,14 +69,14 @@ type managesMetrics interface {
 }
 
 type managesTasks interface {
-	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, bool, ...core.TaskOption) (core.Task, core.TaskErrors)
-	GetTasks() map[string]core.Task
-	GetTask(string) (core.Task, error)
-	StartTask(string) []serror.SnapError
-	StopTask(string) []serror.SnapError
-	RemoveTask(string) error
-	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
-	EnableTask(string) (core.Task, error)
+	CreateTask(context.Context, *rpc.CreateTaskArg, ...grpc.CallOption) (*rpc.CreateTaskReply, error)
+	GetTasks(context.Context, *rpc.Empty, ...grpc.CallOption) (*rpc.GetTasksReply, error)
+	WatchTask(context.Context, *rpc.WatchTaskArg, ...grpc.CallOption) (rpc.TaskManager_WatchTaskClient, error)
+	GetTask(context.Context, *rpc.GetTaskArg, ...grpc.CallOption) (*rpc.Task, error)
+	StartTask(context.Context, *rpc.StartTaskArg, ...grpc.CallOption) (*rpc.StartTaskReply, error)
+	StopTask(context.Context, *rpc.StopTaskArg, ...grpc.CallOption) (*rpc.StopTaskReply, error)
+	RemoveTask(context.Context, *rpc.RemoveTaskArg, ...grpc.CallOption) (*rpc.Empty, error)
+	EnableTask(context.Context, *rpc.EnableTaskArg, ...grpc.CallOption) (*rpc.Task, error)
 }
 
 type managesTribe interface {
