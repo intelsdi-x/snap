@@ -27,6 +27,7 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
 	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -239,9 +240,9 @@ func (s *ScheduledTaskWatchingEnded) ResponseBodyType() string {
 
 type StreamedTaskEvent struct {
 	// Used to describe the event
-	EventType string          `json:"type"`
-	Message   string          `json:"message"`
-	Event     StreamedMetrics `json:"event,omitempty"`
+	EventType rpc.Watch_EventType `json:"event_type"`
+	Message   string              `json:"message"`
+	Event     StreamedMetrics     `json:"events,omitempty"`
 }
 
 func (s *StreamedTaskEvent) ToJSON() string {

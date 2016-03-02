@@ -80,6 +80,14 @@ control:
 # scheduler configuration settings contains all settings for scheduler
 # module
 scheduler:
+  # listen_addr is the address for the scheduler rpc server to bind to. Default address
+  # is 127.0.0.1
+  listen_addr: 0.0.0.0
+
+  # listen_port is the port for the scheduler rpc server to bind to. Default port is
+  # 8081.
+  listen_port: 10081
+
   # work_manager_queue_size sets the size of the worker queue inside snapd scheduler.
   # Default value is 25.
   work_manager_queue_size: 10

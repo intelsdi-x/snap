@@ -22,8 +22,11 @@ package scheduler
 import (
 	"errors"
 	"fmt"
-	// "strings"
+	"net"
+
 	"time"
+
+	"google.golang.org/grpc"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
@@ -32,7 +35,9 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -96,6 +101,7 @@ type processesMetrics interface {
 }
 
 type scheduler struct {
+	config          *Config
 	workManager     *workManager
 	metricManager   managesMetrics
 	tasks           *taskCollection
@@ -129,18 +135,28 @@ func New(cfg *Config) *scheduler {
 		ProcessWkrSizeOption(cfg.WorkManagerPoolSize),
 	}
 	s := &scheduler{
+		config:          cfg,
 		tasks:           newTaskCollection(),
 		eventManager:    gomit.NewEventController(),
 		taskWatcherColl: newTaskWatcherCollection(),
 	}
 
 	// we are setting the size of the queue and number of workers for
-	// collect, process and publish consistently for now
+	// collect, process, and publish consistently for now
 	s.workManager = newWorkManager(opts...)
 	s.workManager.Start()
 	s.eventManager.RegisterHandler(HandlerRegistrationName, s)
 
 	return s
+}
+
+// NewClient returns a scheduler client.
+func NewClient(addr string, port int) (rpc.TaskManagerClient, error) {
+	conn, err := rpcutil.GetClientConnection(addr, port)
+	if err != nil {
+		return nil, err
+	}
+	return rpc.NewTaskManagerClient(conn), nil
 }
 
 type taskErrors struct {
@@ -466,6 +482,11 @@ func (s *scheduler) EnableTask(id string) (core.Task, error) {
 	return t, nil
 }
 
+// Returns the scheduler config
+func (s *scheduler) Config() *Config {
+	return s.config
+}
+
 // Start starts the scheduler
 func (s *scheduler) Start() error {
 	if s.metricManager == nil {
@@ -479,6 +500,23 @@ func (s *scheduler) Start() error {
 	schedulerLogger.WithFields(log.Fields{
 		"_block": "start-scheduler",
 	}).Info("scheduler started")
+
+	lis, err := net.Listen("tcp", fmt.Sprintf("%v:%v", s.config.ListenAddr, s.config.ListenPort))
+	if err != nil {
+		schedulerLogger.WithField("error", err.Error()).Error("Failed to listen")
+		return err
+	}
+	opts := []grpc.ServerOption{}
+
+	grpcServer := grpc.NewServer(opts...)
+	rpc.RegisterTaskManagerServer(grpcServer, &schedulerProxy{s})
+	go func() {
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			schedulerLogger.Fatal(err)
+		}
+	}()
+
 	return nil
 }
 

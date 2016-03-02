@@ -22,6 +22,7 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -52,7 +53,7 @@ func (m *mockMetricManager) lazyContentType(key string) {
 		m.returnedContentTypes = make(map[string][]string)
 	}
 	if m.acceptedContentTypes[key] == nil {
-		m.acceptedContentTypes[key] = []string{}
+		m.acceptedContentTypes[key] = []string{"snap.gob"}
 	}
 	if m.returnedContentTypes[key] == nil {
 		m.returnedContentTypes[key] = []string{}
@@ -171,7 +172,11 @@ func TestScheduler(t *testing.T) {
 		c.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.gob"})
 		c.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"snap.json", "snap.gob"})
 		c.setAcceptedContentType("file", core.PublisherPluginType, -1, []string{"snap.json"})
-		s := New(GetDefaultConfig())
+		cfg := GetDefaultConfig()
+		l, _ := net.Listen("tcp", ":0")
+		l.Close()
+		cfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+		s := New(cfg)
 		s.SetMetricManager(c)
 		w := wmap.NewWorkflowMap()
 		// Collection node
@@ -295,10 +300,10 @@ func TestScheduler(t *testing.T) {
 
 		// 		// // TODO NICK
 		Convey("returns a task with a 6 second deadline duration", func() {
-			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*6), w, false, core.TaskDeadlineDuration(6*time.Second))
+			tsk, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*6), w, false, core.TaskDeadlineDurationOption(6*time.Second))
 			So(len(err.Errors()), ShouldEqual, 0)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
-			prev := tsk.(*task).Option(core.TaskDeadlineDuration(1 * time.Second))
+			prev := tsk.(*task).Option(core.TaskDeadlineDurationOption(1 * time.Second))
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(1*time.Second))
 			tsk.(*task).Option(prev)
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))

@@ -477,7 +477,11 @@ func action(ctx *cli.Context) {
 		}
 		r.BindMetricManager(c)
 		r.BindConfigManager(c.Config)
-		r.BindTaskManager(s)
+		client, err := scheduler.NewClient(cfg.Scheduler.ListenAddr, cfg.Scheduler.ListenPort)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.BindTaskManager(client)
 		//Rest Authentication
 		if cfg.RestAPI.RestAuth {
 			log.Info("REST API authentication is enabled")
@@ -626,6 +630,8 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	// next for the scheduler related flags
 	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
 	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")
+	cfg.Scheduler.ListenAddr = setStringVal(cfg.Scheduler.ListenAddr, ctx, "scheduler-listen-addr")
+	cfg.Scheduler.ListenPort = setIntVal(cfg.Scheduler.ListenPort, ctx, "scheduler-listen-port")
 	// and finally for the tribe-related flags
 	cfg.Tribe.Name = setStringVal(cfg.Tribe.Name, ctx, "tribe-node-name")
 	cfg.Tribe.Enable = setBoolVal(cfg.Tribe.Enable, ctx, "tribe")

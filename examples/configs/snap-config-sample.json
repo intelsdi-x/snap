@@ -59,6 +59,8 @@
         }
     },
     "scheduler": {
+        "listen_addr": "0.0.0.0",
+        "listen_port": 10081,
         "work_manager_queue_size": 10,
         "work_manager_pool_size": 2
     },

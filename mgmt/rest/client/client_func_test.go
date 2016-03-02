@@ -24,6 +24,7 @@ package client
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"sync"
 	"testing"
@@ -35,6 +36,7 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -70,19 +72,27 @@ func getWMFromSample(sample string) *wmap.WorkflowMap {
 
 // REST API instances that are started are killed when the tests end.
 // When we eventually have a REST API Stop command this can be killed.
-func startAPI() string {
+func startAPI() (string, error) {
 	// Start a REST API to talk to
 	rest.StreamingBufferWindow = 0.01
 	log.SetLevel(LOG_LEVEL)
 	r, _ := rest.New(rest.GetDefaultConfig())
 	c := control.New(control.GetDefaultConfig())
 	c.Start()
-	s := scheduler.New(scheduler.GetDefaultConfig())
+	scfg := scheduler.GetDefaultConfig()
+	l, _ := net.Listen("tcp", ":0")
+	l.Close()
+	scfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+	s := scheduler.New(scfg)
 	s.SetMetricManager(c)
 	s.Start()
+	client, err := scheduler.NewClient(s.Config().ListenAddr, s.Config().ListenPort)
+	if err != nil {
+		return "", err
+	}
 	r.BindConfigManager(c.Config)
 	r.BindMetricManager(c)
-	r.BindTaskManager(s)
+	r.BindTaskManager(client)
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
 		err, ok := <-ch
@@ -93,19 +103,19 @@ func startAPI() string {
 	}(r.Err())
 	r.Start("127.0.0.1:0")
 	time.Sleep(100 * time.Millisecond)
-	return fmt.Sprintf("http://localhost:%d", r.Port())
+	return fmt.Sprintf("http://localhost:%d", r.Port()), nil
 }
 
 func TestSnapClient(t *testing.T) {
 	CompressUpload = false
-
-	uri := startAPI()
+	uri, err := startAPI()
 	c, cerr := New(uri, "v1", true)
 	wf := getWMFromSample("1.json")
 	sch := &Schedule{Type: "simple", Interval: "1s"}
 	uuid := uuid.New()
 
 	Convey("Client should exist", t, func() {
+		So(err, ShouldBeNil)
 		So(cerr, ShouldBeNil)
 		Convey("Testing API after startup", func() {
 			Convey("empty version", func() {
@@ -133,11 +143,10 @@ func TestSnapClient(t *testing.T) {
 				So(m.Err, ShouldBeNil)
 				So(m.Len(), ShouldEqual, 0)
 			})
-			Convey("load directory error", func() {
-				p := c.LoadPlugin(DIRECTORY_PATH)
-				So(p.Err, ShouldNotBeNil)
-				So(p.LoadedPlugins, ShouldBeEmpty)
-				So(p.Err.Error(), ShouldEqual, "Provided plugin path is a directory not file")
+			Convey("RemoveTask", func() {
+				t1 := c.RemoveTask(uuid)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldContainSubstring, fmt.Sprintf("Task not found: ID(%s)", uuid))
 			})
 			Convey("unknown task", func() {
 				Convey("GetTask/GetTasks", func() {
@@ -364,9 +373,6 @@ func TestSnapClient(t *testing.T) {
 					t1 := c.StartTask(tt.ID)
 					So(t1.Err, ShouldNotBeNil)
 					So(t1.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
-					t2 := c.StartTask(tt.ID)
-					So(t2.Err, ShouldNotBeNil)
-					So(t2.Err.Error(), ShouldEqual, "error 0: Task is already running. ")
 				})
 				Convey("RemoveTask", func() {
 					t1 := c.RemoveTask(tt.ID)
@@ -381,11 +387,6 @@ func TestSnapClient(t *testing.T) {
 					t2 := c.StopTask(tt.ID)
 					So(t2.Err, ShouldNotBeNil)
 					So(t2.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
-
-					b := make([]byte, 5)
-					rsp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", tt.ID), ContentTypeJSON, b)
-					So(rsp, ShouldNotBeNil)
-					So(err, ShouldBeNil)
 				})
 				Convey("enable a stopped task", func() {
 					et := c.EnableTask(tt.ID)
@@ -397,7 +398,7 @@ func TestSnapClient(t *testing.T) {
 						rest.StreamingBufferWindow = 0.01
 
 						type ea struct {
-							events []string
+							events []rpc.Watch_EventType
 							sync.Mutex
 						}
 
@@ -430,12 +431,13 @@ func TestSnapClient(t *testing.T) {
 						tf := c.CreateTask(sch, wf, "baron", "", false)
 
 						type ea struct {
-							events []string
+							events []rpc.Watch_EventType
 							sync.Mutex
 						}
 
 						a := new(ea)
 						r := c.WatchTask(tf.ID)
+						So(r.Err, ShouldBeNil)
 						wait := make(chan struct{})
 						go func() {
 							for {
@@ -455,61 +457,63 @@ func TestSnapClient(t *testing.T) {
 						}()
 						startResp := c.StartTask(tf.ID)
 						So(startResp.Err, ShouldBeNil)
+						So(startResp.ID, ShouldEqual, tf.ID)
 						<-wait
 						a.Lock()
 						So(len(a.events), ShouldEqual, 5)
 						a.Unlock()
-						So(a.events[0], ShouldEqual, "task-started")
+						So(a.events[0], ShouldEqual, rpc.Watch_TASK_STARTED)
 						for x := 2; x <= 4; x++ {
-							So(a.events[x], ShouldEqual, "metric-event")
+							So(a.events[x], ShouldEqual, rpc.Watch_METRICS_COLLECTED)
 						}
 					})
 				})
 			})
 		})
-		Convey("UnloadPlugin", func() {
-			Convey("unload unknown plugin", func() {
-				p := c.UnloadPlugin("not a type", "foo", 3)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "plugin not found")
-			})
-			Convey("unload one of multiple", func() {
-				p1 := c.GetPlugins(false)
-				So(p1.Err, ShouldBeNil)
-				So(len(p1.LoadedPlugins), ShouldEqual, 3)
+	})
 
-				p2 := c.UnloadPlugin("collector", "mock", 2)
-				So(p2.Err, ShouldBeNil)
-				So(p2.Name, ShouldEqual, "mock")
-				So(p2.Version, ShouldEqual, 2)
-				So(p2.Type, ShouldEqual, "collector")
+	Convey("Unload plugins", t, func() {
+		Convey("unload unknown plugin", func() {
+			p := c.UnloadPlugin("not a type", "foo", 3)
+			So(p.Err, ShouldNotBeNil)
+			So(p.Err.Error(), ShouldEqual, "plugin not found")
+		})
+		Convey("unload one of multiple", func() {
+			p1 := c.GetPlugins(false)
+			So(p1.Err, ShouldBeNil)
+			So(len(p1.LoadedPlugins), ShouldEqual, 3)
 
-				p3 := c.UnloadPlugin("publisher", "file", 3)
-				So(p3.Err, ShouldBeNil)
-				So(p3.Name, ShouldEqual, "file")
-				So(p3.Version, ShouldEqual, 3)
-				So(p3.Type, ShouldEqual, "publisher")
-			})
-			Convey("unload when only one plugin loaded", func() {
-				p1 := c.GetPlugins(false)
-				So(p1.Err, ShouldBeNil)
-				So(len(p1.LoadedPlugins), ShouldEqual, 1)
-				So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock")
+			p2 := c.UnloadPlugin("collector", "mock", 2)
+			So(p2.Err, ShouldBeNil)
+			So(p2.Name, ShouldEqual, "mock")
+			So(p2.Version, ShouldEqual, 2)
+			So(p2.Type, ShouldEqual, "collector")
 
-				p2 := c.UnloadPlugin("collector", "mock", 1)
-				So(p2.Err, ShouldBeNil)
-				So(p2.Name, ShouldEqual, "mock")
-				So(p2.Version, ShouldEqual, 1)
-				So(p2.Type, ShouldEqual, "collector")
+			p3 := c.UnloadPlugin("publisher", "file", 3)
+			So(p3.Err, ShouldBeNil)
+			So(p3.Name, ShouldEqual, "file")
+			So(p3.Version, ShouldEqual, 3)
+			So(p3.Type, ShouldEqual, "publisher")
+		})
+		Convey("unload when only one plugin loaded", func() {
+			p1 := c.GetPlugins(false)
+			So(p1.Err, ShouldBeNil)
+			So(len(p1.LoadedPlugins), ShouldEqual, 1)
+			So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock")
 
-				p3 := c.GetPlugins(false)
-				So(p3.Err, ShouldBeNil)
-				So(len(p3.LoadedPlugins), ShouldEqual, 0)
-			})
+			p2 := c.UnloadPlugin("collector", "mock", 1)
+			So(p2.Err, ShouldBeNil)
+			So(p2.Name, ShouldEqual, "mock")
+			So(p2.Version, ShouldEqual, 1)
+			So(p2.Type, ShouldEqual, "collector")
+
+			p3 := c.GetPlugins(false)
+			So(p3.Err, ShouldBeNil)
+			So(len(p3.LoadedPlugins), ShouldEqual, 0)
 		})
 	})
 
-	c, err := New("http://localhost:-1", "v1", true)
+	c, err = New("http://localhost:-1", "v1", true)
 	Convey("API with invalid port", t, func() {
 		So(err, ShouldNotBeNil)
 		So(c, ShouldBeNil)

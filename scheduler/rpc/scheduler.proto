@@ -1,0 +1,146 @@
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2015 Intel Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+syntax = "proto3";
+package rpc;
+
+service TaskManager {
+    rpc CreateTask(CreateTaskArg) returns (CreateTaskReply) {}
+    rpc GetTask(GetTaskArg) returns (Task) {}
+    rpc GetTasks(Empty) returns (GetTasksReply) {}
+    rpc StartTask(StartTaskArg) returns (StartTaskReply) {}
+    rpc StopTask(StopTaskArg) returns (StopTaskReply) {}
+    rpc RemoveTask(RemoveTaskArg) returns (Empty) {}
+    rpc EnableTask(EnableTaskArg) returns (Task) {}
+    rpc WatchTask(WatchTaskArg) returns (stream Watch) {}
+}
+
+message CreateTaskArg {
+    bytes schedule_json  = 1;
+    bytes wmap_json = 2;
+    bool start = 3;
+    CreateTaskOpts opts = 4;
+}
+
+message CreateTaskOpts {
+    string task_name = 1;
+    string deadline = 2;
+    uint64 stop_on_fail = 3;
+    string task_id = 4;
+}
+
+message CreateTaskReply {
+    Task task = 1;
+    repeated SnapError errors = 2;
+}
+
+message GetTaskArg {
+    string id = 1;
+}
+
+message GetTasksReply {
+    map<string, Task> Tasks = 1;
+}
+
+message StartTaskArg {
+    string id = 1;
+}
+
+message StartTaskReply {
+    repeated SnapError errors = 1;
+}
+
+message StopTaskArg {
+    string id = 1;
+}
+
+message StopTaskReply {
+    repeated SnapError errors = 1;
+}
+
+message RemoveTaskArg {
+    string id = 1;
+}
+
+message EnableTaskArg {
+    string id = 1;
+}
+
+message WatchTaskArg {
+    string id = 1;
+}
+
+message Watch {
+    enum EventType {
+        METRICS_COLLECTED = 0;
+        TASK_STARTED = 1;
+        TASK_STOPPED = 2;
+        TASK_DISABLED = 3;
+        TASK_STREAM_OPEN = 4;
+        ERROR = 5;
+    }
+    EventType event_type = 1;
+    string message = 2;
+    repeated Metric events = 3;
+}
+
+message Metric {
+    repeated string namespace = 1;
+    bytes data = 2;
+    string data_type = 3;
+    uint64 version = 4;
+    string source = 5;
+    repeated Label labels = 6;
+    map<string, string> tags = 7;
+    Time Timestamp = 8;
+}
+
+message Label {
+    uint64 index = 1;
+    string name = 2;
+}
+
+message Task {
+    string id = 1;
+    uint64 task_state = 2;
+    string name = 3;
+    uint64 hit = 4;
+    uint64 misses = 5;
+    uint64 failed = 6;
+    string last_failure = 7;
+    Time time_last_run = 8;
+    Time time_created = 9;
+    string deadline = 10;
+    string wmap_json = 11;
+    uint64 stop_on_fail = 12;
+    string schedule_json = 13;
+}
+
+message SnapError {
+    string error_string = 1;
+    map<string, string> error_fields = 2;
+}
+
+message Time {
+    int64 sec = 1;
+    int64 nsec = 2;
+}
+
+message Empty {
+}

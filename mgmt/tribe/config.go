@@ -20,11 +20,11 @@ limitations under the License.
 package tribe
 
 import (
-	"net"
 	"os"
 	"time"
 
 	"github.com/hashicorp/memberlist"
+	"github.com/intelsdi-x/snap/pkg/netutil"
 	"github.com/pborman/uuid"
 )
 
@@ -62,7 +62,7 @@ func GetDefaultConfig() *Config {
 	return &Config{
 		Name:                      getHostname(),
 		Enable:                    defaultEnable,
-		BindAddr:                  getIP(),
+		BindAddr:                  netutil.GetIP(),
 		BindPort:                  defaultBindPort,
 		Seed:                      defaultSeed,
 		MemberlistConfig:          mlCfg,
@@ -79,37 +79,4 @@ func getHostname() string {
 		return uuid.New()
 	}
 	return hostname
-}
-
-func getIP() string {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		logger.WithField("_block", "getIP").Error(err)
-		return "127.0.0.1"
-	}
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			logger.WithField("_block", "getIP").Error(err)
-			return "127.0.0.1"
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPAddr:
-				ip = v.IP
-			case *net.IPNet:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			ip = ip.To4()
-			if ip == nil {
-				continue // not an ipv4 address
-			}
-			return ip.String()
-		}
-	}
-	return "127.0.0.1"
 }

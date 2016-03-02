@@ -406,7 +406,7 @@ func (w worker) createTask(taskID string, startOnCreate bool) {
 				continue
 			}
 			logger.Debug("creating task")
-			opt := core.SetTaskID(taskID)
+			opt := core.SetTaskIdOption(taskID)
 			_, errs := w.taskManager.CreateTaskTribe(
 				getSchedule(taskResult.ScheduledTaskReturned.Schedule),
 				taskResult.Workflow,
