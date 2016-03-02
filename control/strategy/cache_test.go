@@ -26,6 +26,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/pkg/chrono"
 )
 
@@ -109,4 +110,77 @@ func TestCache(t *testing.T) {
 		})
 	})
 
+	Convey("Add and get metrics via updateCache and checkCache", t, func() {
+		defer chrono.Chrono.Reset()
+		defer chrono.Chrono.Continue()
+
+		chrono.Chrono.Pause()
+
+		mc := NewCache(GlobalCacheExpiration)
+		foo := &plugin.PluginMetricType{
+			Namespace_: []string{"foo", "bar"},
+		}
+		baz := &plugin.PluginMetricType{
+			Namespace_: []string{"foo", "baz"},
+		}
+		metricList := []core.Metric{foo, baz}
+		mc.updateCache(metricList)
+		Convey("they should be retrievable via get", func() {
+			ret := mc.get(core.JoinNamespace(foo.Namespace()), foo.Version())
+			So(ret, ShouldEqual, foo)
+			ret = mc.get(core.JoinNamespace(baz.Namespace()), baz.Version())
+			So(ret, ShouldEqual, baz)
+		})
+		Convey("they should be retrievable via checkCache", func() {
+			nonCached := &plugin.PluginMetricType{
+				Namespace_: []string{"foo", "fooer"},
+			}
+			metricList = append(metricList, nonCached)
+			toCollect, fromCache := mc.checkCache(metricList)
+			Convey("Should return cached metrics", func() {
+				So(len(fromCache), ShouldEqual, 2)
+				So(fromCache[0], ShouldEqual, foo)
+				So(fromCache[1], ShouldEqual, baz)
+			})
+			Convey("Should return non-cached metrics to be collect", func() {
+				So(len(toCollect), ShouldEqual, 1)
+				So(toCollect[0], ShouldEqual, nonCached)
+			})
+		})
+	})
+
+	Convey("Adding plugins with same namespace but different versions", t, func() {
+		defer chrono.Chrono.Reset()
+		defer chrono.Chrono.Continue()
+		chrono.Chrono.Pause()
+		mc := NewCache(GlobalCacheExpiration)
+		v1 := plugin.PluginMetricType{
+			Namespace_: []string{"foo", "bar"},
+			Version_:   1,
+			Labels_:    []core.Label{{Index: 1, Name: "Hostname"}},
+		}
+		v2 := plugin.PluginMetricType{
+			Namespace_: []string{"foo", "Baz"},
+			Version_:   2,
+			Labels_:    []core.Label{{Index: 1, Name: "Hostname"}},
+		}
+		metricList := []core.Metric{v1, v2}
+		mc.updateCache(metricList)
+		Convey("Should be cached separately", func() {
+			Convey("so only 1 should be returned from the cache", func() {
+				starMetric := &plugin.PluginMetricType{
+					Namespace_: []string{"foo", "*"},
+					Version_:   2,
+				}
+				// Check /foo/* with both versions
+				toCollect, fromCache := mc.checkCache([]core.Metric{starMetric})
+				So(len(toCollect), ShouldEqual, 0)
+				So(len(fromCache), ShouldEqual, 1)
+				starMetric.Version_ = 1
+				toCollect, fromCache = mc.checkCache([]core.Metric{starMetric})
+				So(len(toCollect), ShouldEqual, 0)
+				So(len(fromCache), ShouldEqual, 1)
+			})
+		})
+	})
 }
