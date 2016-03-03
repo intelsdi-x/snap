@@ -385,7 +385,11 @@ func (w worker) createTask(taskID string, startOnCreate bool) {
 		for _, member := range shuffle(members) {
 			uri := fmt.Sprintf("%s://%s:%s", member.GetRestProto(), member.GetAddr(), member.GetRestPort())
 			logger.Debugf("getting task %v from %v", taskID, uri)
-			c := client.New(uri, "v1", member.GetRestInsecureSkipVerify())
+			c, err := client.New(uri, "v1", member.GetRestInsecureSkipVerify())
+			if err != nil {
+				logger.Error(err)
+				continue
+			}
 			taskResult := c.GetTask(taskID)
 			if taskResult.Err != nil {
 				logger.WithField("err", taskResult.Err.Error()).Debug("error getting task")

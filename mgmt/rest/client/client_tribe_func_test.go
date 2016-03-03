@@ -90,10 +90,12 @@ func getMembers(port int) *rbody.APIResponse {
 }
 
 func TestSnapClientTribe(t *testing.T) {
+	numOfTribes := 4
+	ports := startTribes(numOfTribes)
+	c, err := client.New(fmt.Sprintf("http://localhost:%d", ports[0]), "v1", true)
+
 	Convey("REST API functional V1 - TRIBE", t, func() {
-		numOfTribes := 4
-		ports := startTribes(numOfTribes)
-		c := client.New(fmt.Sprintf("http://localhost:%d", ports[0]), "v1", true)
+		So(err, ShouldBeNil)
 
 		Convey("Get global membership", func() {
 			resp := c.ListMembers()

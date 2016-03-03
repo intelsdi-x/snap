@@ -35,6 +35,11 @@
 			"Rev": "06b60999766278efd6d2b5d8418a58c3d5b99e87"
 		},
 		{
+			"ImportPath": "github.com/asaskevich/govalidator",
+			"Comment": "v2-51-g9699ab6",
+			"Rev": "9699ab6b38bee2e02cd3fe8b99ecf67665395c96"
+		},
+		{
 			"ImportPath": "github.com/codegangsta/cli",
 			"Comment": "1.2.0-26-gf7ebb76",
 			"Rev": "f7ebb761e83e21225d1d8954fde853bf8edd46c4"
