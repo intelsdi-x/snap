@@ -1,6 +1,7 @@
 package promise
 
 import (
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -15,6 +16,22 @@ func TestPromise(t *testing.T) {
 			So(p.IsComplete(), ShouldBeFalse)
 			p.Complete([]error{})
 			So(p.IsComplete(), ShouldBeTrue)
+		})
+	})
+	Convey("IsError()", t, func() {
+		Convey("it should return the error status", func() {
+			Convey("after completing without errors, IsError() returns false", func() {
+				p := NewPromise()
+				So(p.IsError(), ShouldBeFalse)
+				p.Complete([]error{})
+				So(p.IsError(), ShouldBeFalse)
+			})
+			Convey("after completing with errors, IsError() returns true", func() {
+				p := NewPromise()
+				So(p.IsError(), ShouldBeFalse)
+				p.Complete([]error{errors.New("ERROR")})
+				So(p.IsError(), ShouldBeTrue)
+			})
 		})
 	})
 	Convey("Complete()", t, func() {
