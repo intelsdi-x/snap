@@ -376,18 +376,23 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			// If the version is 0 default it to the plugin version
 			// This honors the plugins explicit version but falls back
 			// to the plugin version as default
+			var v int
 			if nmt.Version() < 1 {
-				// Since we have to override version we convert to a internal struct
-				nmt = &metricType{
-					namespace:          nmt.Namespace(),
-					version:            resp.Meta.Version,
-					lastAdvertisedTime: nmt.LastAdvertisedTime(),
-					config:             nmt.Config(),
-					data:               nmt.Data(),
-					tags:               nmt.Tags(),
-					labels:             nmt.Labels(),
-				}
+				v = resp.Meta.Version
+			} else {
+				v = nmt.Version()
 			}
+			// Since we have to override version we convert to a internal struct
+			nmt = &metricType{
+				namespace:          nmt.Namespace(),
+				version:            v,
+				lastAdvertisedTime: nmt.LastAdvertisedTime(),
+				config:             nmt.Config(),
+				data:               nmt.Data(),
+				tags:               nmt.Tags(),
+				labels:             nmt.Labels(),
+			}
+
 			// We quit and throw an error on bad metric versions (<1)
 			// the is a safety catch otherwise the catalog will be corrupted
 			if nmt.Version() < 1 {

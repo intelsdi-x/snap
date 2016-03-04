@@ -45,8 +45,8 @@ type RoutingAndCaching interface {
 	Remove(selectablePlugins []SelectablePlugin, taskID string) (SelectablePlugin, error)
 	CheckCache(metrics []core.Metric, taskID string) ([]core.Metric, []core.Metric)
 	UpdateCache(metrics []core.Metric, taskID string)
-	CacheHits(ns string, ver int, taskID string) (uint64, error)
-	CacheMisses(ns string, ver int, taskID string) (uint64, error)
+	CacheHits(mt core.Metric, taskID string) (uint64, error)
+	CacheMisses(mt core.Metric, taskID string) (uint64, error)
 	AllCacheHits() uint64
 	AllCacheMisses() uint64
 	CacheTTL(taskID string) (time.Duration, error)

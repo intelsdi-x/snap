@@ -119,17 +119,17 @@ func (s *sticky) AllCacheMisses() uint64 {
 }
 
 // CacheHits returns the cache hits for a given metric namespace and version.
-func (s *sticky) CacheHits(ns string, version int, taskID string) (uint64, error) {
+func (s *sticky) CacheHits(mt core.Metric, taskID string) (uint64, error) {
 	if cache, ok := s.metricCache[taskID]; ok {
-		return cache.cacheHits(ns, version)
+		return cache.cacheHits(mt)
 	}
 	return 0, ErrCacheDoesNotExist
 }
 
 // CacheMisses returns the cache misses for a given metric namespace and version.
-func (s *sticky) CacheMisses(ns string, version int, taskID string) (uint64, error) {
+func (s *sticky) CacheMisses(mt core.Metric, taskID string) (uint64, error) {
 	if cache, ok := s.metricCache[taskID]; ok {
-		return cache.cacheMisses(ns, version)
+		return cache.cacheMisses(mt)
 	}
 	return 0, ErrCacheDoesNotExist
 }

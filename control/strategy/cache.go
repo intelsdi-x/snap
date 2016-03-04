@@ -40,51 +40,67 @@ var (
 )
 
 type cachecell struct {
-	time    time.Time
-	metric  core.Metric
-	metrics []core.Metric
-	hits    uint64
-	misses  uint64
+	// Time this cachecell was created
+	time time.Time
+	// Metric stored in this cachecell
+	metric core.Metric
+	// Number of cache hits for this entry
+	hits uint64
+	// Number of cache misses for this entry
+	misses uint64
 }
 
 type cache struct {
+	// Stores invidual metrics with a concrete namespace
 	table map[string]*cachecell
-	ttl   time.Duration
+	// Stores a list of individual metrics with a wildcard namespace.
+	lookaside map[string][]string
+	// Length of time cache entry is valid
+	ttl time.Duration
+	// Total cache hits
+	hits uint64
+	// Total cache misses
+	misses uint64
 }
 
 func NewCache(expiration time.Duration) *cache {
 	return &cache{
-		table: make(map[string]*cachecell),
-		ttl:   expiration,
+		table:     make(map[string]*cachecell),
+		lookaside: map[string][]string{},
+		ttl:       expiration,
 	}
 }
 
-func (c *cache) get(ns string, version int) interface{} {
+// Given a metric returns the key to be used to access
+// that metric in the cache
+func genKeyFromMetric(m core.Metric) string {
+	return fmt.Sprintf("%v:%v", core.JoinNamespace(m.Namespace()), m.Version())
+}
+
+func (c *cache) get(key string) core.Metric {
 	var (
 		cell *cachecell
 		ok   bool
 	)
 
-	key := fmt.Sprintf("%v:%v", ns, version)
 	if cell, ok = c.table[key]; ok && chrono.Chrono.Now().Sub(cell.time) < c.ttl {
 		cell.hits++
+		c.hits++
 		cacheLog.WithFields(log.Fields{
 			"namespace": key,
 			"hits":      cell.hits,
 			"misses":    cell.misses,
 		}).Debug(fmt.Sprintf("cache hit [%s]", key))
-		if cell.metric != nil {
-			return cell.metric
-		}
-		return cell.metrics
+		return cell.metric
 	}
 	if !ok {
 		c.table[key] = &cachecell{
-			time:    time.Time{},
-			metrics: nil,
+			time:   time.Time{},
+			metric: nil,
 		}
 	}
 	c.table[key].misses++
+	c.misses++
 	cacheLog.WithFields(log.Fields{
 		"namespace": key,
 		"hits":      c.table[key].hits,
@@ -93,52 +109,48 @@ func (c *cache) get(ns string, version int) interface{} {
 	return nil
 }
 
-func (c *cache) put(ns string, version int, m interface{}) {
-	key := fmt.Sprintf("%v:%v", ns, version)
-	switch metric := m.(type) {
-	case core.Metric:
-		if _, ok := c.table[key]; ok {
-			c.table[key].time = chrono.Chrono.Now()
-			c.table[key].metric = metric
-		} else {
-			c.table[key] = &cachecell{
-				time:   chrono.Chrono.Now(),
-				metric: metric,
-			}
+func (c *cache) put(key string, m core.Metric) {
+	if _, ok := c.table[key]; !ok {
+		c.table[key] = &cachecell{
+			time:   time.Time{},
+			metric: nil,
 		}
-	case []core.Metric:
-		if _, ok := c.table[key]; ok {
-			c.table[key].time = time.Now()
-			c.table[key].metrics = metric
-		} else {
-			c.table[key] = &cachecell{
-				time:    chrono.Chrono.Now(),
-				metrics: metric,
-			}
-		}
-	default:
-		cacheLog.WithFields(log.Fields{
-			"namespace": key,
-			"_block":    "put",
-		}).Error("unsupported type")
 	}
+	c.table[key].metric = m
+	c.table[key].time = chrono.Chrono.Now()
 }
 
 func (c *cache) checkCache(mts []core.Metric) (metricsToCollect []core.Metric, fromCache []core.Metric) {
 	for _, mt := range mts {
-		if m := c.get(core.JoinNamespace(mt.Namespace()), mt.Version()); m != nil {
-			switch metric := m.(type) {
-			case core.Metric:
-				fromCache = append(fromCache, metric)
-			case []core.Metric:
-				for _, met := range metric {
-					fromCache = append(fromCache, met)
+		if hasStar(mt.Namespace()) {
+			// If the namespace has a star it is a wildcard metric and we will check lookaside table
+			lookups, ok := c.lookaside[genKeyFromMetric(mt)]
+			if !ok {
+				// If we have a wildcarded entry that is not in the lookaside table, add
+				// it to the metrics to be collected and increment the global miss counter.
+				metricsToCollect = append(metricsToCollect, mt)
+				c.misses++
+			} else {
+				// Look for all entries that we received from the lookaside for the
+				// given wildcard metric. If we find them all in the cache add them to
+				// fromCache. If not add the wildcard metrics to metricsToCollect.
+				// This enforces 'all or nothing' for wildcard metrics w/r/t cache lookups.
+				metrics := make([]core.Metric, 0, len(lookups))
+				for _, lookup := range lookups {
+					if m := c.get(lookup); m != nil {
+						metrics = append(metrics, m)
+					} else {
+						break
+					}
 				}
-			default:
-				cacheLog.WithFields(log.Fields{
-					"_block": "checkCache",
-				}).Error("unsupported type found in the cache")
+				if len(metrics) != len(lookups) {
+					metricsToCollect = append(metricsToCollect, mt)
+				} else {
+					fromCache = append(fromCache, metrics...)
+				}
 			}
+		} else if m := c.get(genKeyFromMetric(mt)); m != nil {
+			fromCache = append(fromCache, m)
 		} else {
 			metricsToCollect = append(metricsToCollect, mt)
 		}
@@ -146,69 +158,60 @@ func (c *cache) checkCache(mts []core.Metric) (metricsToCollect []core.Metric, f
 	return metricsToCollect, fromCache
 }
 
-type listMetricInfo struct {
-	metrics   []core.Metric
-	namespace string
-	version   int
+func hasStar(s []string) bool {
+	for _, ch := range s {
+		if ch == "*" {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *cache) updateCache(mts []core.Metric) {
-	dc := map[string]listMetricInfo{}
+	dc := map[string][]string{}
 	for _, mt := range mts {
-		if mt.Labels() == nil {
-			// cache the individual metric
-			c.put(core.JoinNamespace(mt.Namespace()), mt.Version(), mt)
-		} else {
+		// cache the individual metric
+		c.put(genKeyFromMetric(mt), mt)
+		// if we have labels, get labled info to put in lookaside
+		if mt.Labels() != nil {
 			// collect the dynamic query results so we can cache
 			ns := make([]string, len(mt.Namespace()))
 			copy(ns, mt.Namespace())
 			for _, label := range mt.Labels() {
 				ns[label.Index] = "*"
 			}
+			// Generate key here instead of genKeyFromMetric because we have modified
+			// the namespace to replace labeled indexes with *.
 			key := fmt.Sprintf("%v:%v", core.JoinNamespace(ns), mt.Version())
 			if _, ok := dc[key]; !ok {
-				dc[key] = listMetricInfo{
-					metrics: []core.Metric{},
-				}
+				dc[key] = []string{}
 			}
-			var tmp = dc[key]
-			tmp.metrics = append(dc[key].metrics, mt)
-			tmp.namespace = core.JoinNamespace(ns)
-			tmp.version = mt.Version()
-			dc[key] = tmp
+			dc[key] = append(dc[key], genKeyFromMetric(mt))
 		}
 	}
-	for _, v := range dc {
-		c.put(v.namespace, v.version, v.metrics)
+	for k, v := range dc {
+		c.lookaside[k] = v
 	}
 }
 
 func (c *cache) allCacheHits() uint64 {
-	var hits uint64
-	for _, v := range c.table {
-		hits += v.hits
-	}
-	return hits
+	return c.hits
 }
 
 func (c *cache) allCacheMisses() uint64 {
-	var misses uint64
-	for _, v := range c.table {
-		misses += v.misses
-	}
-	return misses
+	return c.misses
 }
 
-func (c *cache) cacheHits(ns string, version int) (uint64, error) {
-	key := fmt.Sprintf("%v:%v", ns, version)
+func (c *cache) cacheHits(mt core.Metric) (uint64, error) {
+	key := genKeyFromMetric(mt)
 	if v, ok := c.table[key]; ok {
 		return v.hits, nil
 	}
 	return 0, ErrCacheEntryDoesNotExist
 }
 
-func (c *cache) cacheMisses(ns string, version int) (uint64, error) {
-	key := fmt.Sprintf("%v:%v", ns, version)
+func (c *cache) cacheMisses(mt core.Metric) (uint64, error) {
+	key := genKeyFromMetric(mt)
 	if v, ok := c.table[key]; ok {
 		return v.misses, nil
 	}
