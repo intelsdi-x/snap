@@ -146,9 +146,14 @@ func (c *cache) checkCache(mts []core.Metric) (metricsToCollect []core.Metric, f
 	return metricsToCollect, fromCache
 }
 
+type listMetricInfo struct {
+	metrics   []core.Metric
+	namespace string
+	version   int
+}
+
 func (c *cache) updateCache(mts []core.Metric) {
-	results := []core.Metric{}
-	dc := map[string][]core.Metric{}
+	dc := map[string]listMetricInfo{}
 	for _, mt := range mts {
 		if mt.Labels() == nil {
 			// cache the individual metric
@@ -160,13 +165,21 @@ func (c *cache) updateCache(mts []core.Metric) {
 			for _, label := range mt.Labels() {
 				ns[label.Index] = "*"
 			}
-			if _, ok := dc[core.JoinNamespace(ns)]; !ok {
-				dc[core.JoinNamespace(ns)] = []core.Metric{}
+			key := fmt.Sprintf("%v:%v", core.JoinNamespace(ns), mt.Version())
+			if _, ok := dc[key]; !ok {
+				dc[key] = listMetricInfo{
+					metrics: []core.Metric{},
+				}
 			}
-			dc[core.JoinNamespace(ns)] = append(dc[core.JoinNamespace(ns)], mt)
-			c.put(core.JoinNamespace(ns), mt.Version(), dc[core.JoinNamespace(ns)])
+			var tmp = dc[key]
+			tmp.metrics = append(dc[key].metrics, mt)
+			tmp.namespace = core.JoinNamespace(ns)
+			tmp.version = mt.Version()
+			dc[key] = tmp
 		}
-		results = append(results, mt)
+	}
+	for _, v := range dc {
+		c.put(v.namespace, v.version, v.metrics)
 	}
 }
 
