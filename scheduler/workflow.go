@@ -307,9 +307,7 @@ func (s *schedulerWorkflow) Start(t *task) {
 	errors := t.manager.Work(j).Promise().Await()
 
 	if len(errors) != 0 {
-		t.failedRuns++
-		t.lastFailureTime = t.lastFireTime
-		t.lastFailureMessage = j.Errors()[len(j.Errors())-1].Error()
+		t.RecordFailure(j.Errors())
 		event := new(scheduler_event.MetricCollectionFailedEvent)
 		event.TaskID = t.id
 		event.Errors = errors
@@ -367,11 +365,9 @@ func submitProcessJob(pj job, t *task, wg *sync.WaitGroup, pr *processNode) {
 	errors := t.manager.Work(j).Promise().Await()
 	// Check for errors and update the task
 	if len(errors) != 0 {
-		// Note: we just update the error tracking, the change of state for a task is handled before this is reached.
-		t.failedRuns++
-		t.lastFailureTime = t.lastFireTime
-		t.lastFailureMessage = errors[len(errors)-1].Error()
-		// Return and do not proceed further down the workflow
+		// Record the failures in the task
+		// note: this function is thread safe against t
+		t.RecordFailure(errors)
 		return
 	}
 	// Iterate into any child process or publish nodes
@@ -387,11 +383,9 @@ func submitPublishJob(pj job, t *task, wg *sync.WaitGroup, pu *publishNode) {
 	errors := t.manager.Work(j).Promise().Await()
 	// Check for errors and update the task
 	if len(errors) != 0 {
-		// Note: we just update the error tracking, the change of state for a task is handled before this is reached.
-		t.failedRuns++
-		t.lastFailureTime = t.lastFireTime
-		t.lastFailureMessage = errors[len(errors)-1].Error()
-		// Return and do not proceed further down the workflow
+		// Record the failures in the task
+		// note: this function is thread safe against t
+		t.RecordFailure(errors)
 		return
 	}
 	// Publish nodes cannot contain child nodes (publish is a terminal node)

@@ -348,6 +348,16 @@ func (t *task) waitForSchedule() {
 	}
 }
 
+// RecordFailure updates the failed runs and last failure properties
+func (t *task) RecordFailure(e []error) {
+	// We synchronize this update to ensure it is atomic
+	t.Lock()
+	defer t.Unlock()
+	t.failedRuns++
+	t.lastFailureTime = t.lastFireTime
+	t.lastFailureMessage = e[len(e)-1].Error()
+}
+
 type taskCollection struct {
 	*sync.Mutex
 
