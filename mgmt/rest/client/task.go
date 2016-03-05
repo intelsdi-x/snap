@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -104,7 +105,14 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 	}
 
 	url := fmt.Sprintf("%s/tasks/%v/watch", c.prefix, id)
-	resp, err := c.http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	addAuth(req, c.Username, c.Password)
+	if err != nil {
+		r.Err = err
+		r.Close()
+		return r
+	}
+	resp, err := c.http.Do(req)
 	if err != nil {
 		if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
 			r.Err = fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
@@ -114,6 +122,7 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 		r.Close()
 		return r
 	}
+
 	if resp.StatusCode != 200 {
 		ar, err := httpRespToAPIResp(resp)
 		if err != nil {

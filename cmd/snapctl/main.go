@@ -20,11 +20,13 @@ limitations under the License.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
@@ -42,64 +44,86 @@ func main() {
 	app.Name = "snapctl"
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry framework"
-	app.Flags = []cli.Flag{flURL, flSecure, flAPIVer}
-	app.Commands = commands
+	app.Flags = []cli.Flag{flURL, flSecure, flAPIVer, flPassword, flConfig}
+	app.Commands = append(commands, tribeCommands...)
 	sort.Sort(ByCommand(app.Commands))
+	app.Before = beforeAction
 	app.Run(os.Args)
 }
 
-func init() {
-	f1 := flag.NewFlagSet("f1", flag.ContinueOnError)
-	prtURL := f1.String("url", flURL.Value, flURL.Usage)
-	prtU := f1.String("u", flURL.Value, flURL.Usage)
-	prtAv := f1.String("api-version", flAPIVer.Value, flAPIVer.Usage)
-	prtA := f1.String("a", flAPIVer.Value, flAPIVer.Usage)
-	prti := f1.Bool("insecure", false, flSecure.Usage)
-
-	url := flURL.Value
-	ver := flAPIVer.Value
-	secure := false
-
-	for idx, a := range os.Args {
-		switch a {
-		case "--url":
-			if len(os.Args) >= idx+2 {
-				if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
-					url = *prtURL
-				}
-			}
-		case "-u":
-			if len(os.Args) >= idx+2 {
-				if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
-					url = *prtU
-				}
-			}
-		case "--api-version":
-			if len(os.Args) >= idx+2 {
-				if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
-					ver = *prtAv
-				}
-			}
-		case "-a":
-			if len(os.Args) >= idx+2 {
-				if err := f1.Parse(os.Args[idx : idx+2]); err == nil {
-					ver = *prtA
-				}
-			}
-		case "--insecure":
-			if err := f1.Parse([]string{os.Args[idx]}); err == nil {
-				secure = *prti
-			}
-		}
-	}
-	pClient, err = client.New(url, ver, secure)
+// Run before every command
+func beforeAction(ctx *cli.Context) error {
+	username, password := checkForAuth(ctx)
+	pClient, err = client.New(ctx.String("url"), ctx.String("api-version"), ctx.Bool("insecure"))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	resp := pClient.ListAgreements()
-	if resp.Err == nil {
-		commands = append(commands, tribeCommands...)
+	pClient.Password = password
+	pClient.Username = username
+	if err = checkTribeCommand(ctx); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
+	return nil
+}
 
+// Checks if a tribe command was issued when tribe mode was not
+// enabled on the specified snapd instance.
+func checkTribeCommand(ctx *cli.Context) error {
+	tribe := false
+	for _, a := range os.Args {
+		for _, command := range tribeCommands {
+			if strings.Contains(a, command.Name) {
+				tribe = true
+				break
+			}
+		}
+		if tribe {
+			break
+		}
+	}
+	if !tribe {
+		return nil
+	}
+	resp := pClient.ListAgreements()
+	if resp.Err != nil {
+		if resp.Err.Error() == "Invalid credentials" {
+			return resp.Err
+		}
+		return fmt.Errorf("Tribe mode must be enabled in snapd to use tribe command")
+	}
+	return nil
+}
+
+// Checks for authentication flags and returns a username/password
+// from the specified settings
+func checkForAuth(ctx *cli.Context) (username, password string) {
+	if ctx.IsSet("password") {
+		username = "snap" // for now since username is unused but needs to exist for basicAuth
+		// Prompt for password
+		fmt.Print("Password:")
+		pass, err := terminal.ReadPassword(0)
+		if err != nil {
+			password = ""
+		} else {
+			password = string(pass)
+		}
+		// Go to next line after password prompt
+		fmt.Println()
+		return
+	}
+	//Get config file path in the order:
+	if ctx.IsSet("config") {
+		cfg := &config{}
+		if err := cfg.loadConfig(ctx.String("config")); err != nil {
+			fmt.Println(err)
+		}
+		if cfg.RestAPI.Password != nil {
+			password = *cfg.RestAPI.Password
+		} else {
+			fmt.Println("Error config password field 'rest-auth-pwd' is empty")
+		}
+	}
+	return
 }

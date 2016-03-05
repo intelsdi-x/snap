@@ -41,6 +41,7 @@ $ $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
 --config                                     A path to a config file
 --rest-https                                 start snap's API as https
 --rest-key                                   A path to a key file to use for HTTPS deployment of snap's REST API
+--rest-auth					                 Enables snap's REST API authentication
 --tribe-node-name 'tjerniga-mac01.local'     Name of this node in tribe cluster (default: hostname) [$SNAP_TRIBE_NODE_NAME]
 --tribe                                      Enable tribe mode [$SNAP_TRIBE]
 --tribe-seed                                 IP (or hostname) and port of a node to join (e.g. 127.0.0.1:6000) [$SNAP_TRIBE_SEED]
@@ -62,10 +63,10 @@ $SNAP_PATH/bin/snapd --version
 
 ### Output
 ```
-$ $SNAP_PATH/bin/snapd -l 1 -t 0
+$ $SNAP_PATH/bin/snapd -l 1 -t 0 --rest-auth 
 ```
 ```
-INFO[0000] Starting snapd (version: v0.9.0-beta)
+INFO[0000] Starting snapd (version: unknown)
 INFO[0000] setting GOMAXPROCS to: 1 core(s)
 INFO[0000] control started                               _block=start _module=control
 INFO[0000] module started                                _module=snapd block=main snap-module=control
@@ -74,12 +75,15 @@ INFO[0000] module started                                _module=snapd block=mai
 INFO[0000] setting plugin trust level to: disabled
 INFO[0000] auto discover path is disabled
 INFO[0000] Configuring REST API with HTTPS set to: false  _module=_mgmt-rest
-INFO[0000] Starting REST API on :8181                    _module=_mgmt-rest
-INFO[0000] Rest API is enabled
-INFO[0000] snapd started                                 _module=snapd block=main
-INFO[0000] setting log level to: debug
+INFO[0000] REST API authentication is enabled
+What password do you want to use for authentication?
+Password:
+INFO[0111] REST API authentication password is set
+INFO[0111] Starting REST API on :8181                    _module=_mgmt-rest
+INFO[0111] REST API is enabled
+INFO[0111] snapd started                                 _module=snapd block=main
+INFO[0111] setting log level to: debug
 ```
-
 ## More information
 * [REST_API.md](REST_API.md)
 * [PLUGIN_SIGNING.md](PLUGIN_SIGNING.md)

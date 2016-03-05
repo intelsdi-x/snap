@@ -143,14 +143,15 @@ var (
 			},
 		},
 	}
-
+	tribeWarning  = "Can only be used when tribe mode is enabled."
 	tribeCommands = []cli.Command{
 		{
-			Name: "member",
+			Name:  "member",
+			Usage: tribeWarning,
 			Subcommands: []cli.Command{
 				{
 					Name:   "list",
-					Usage:  "list",
+					Usage:  "list" + tribeWarning,
 					Action: listMembers,
 				},
 				{
@@ -162,7 +163,8 @@ var (
 			},
 		},
 		{
-			Name: "agreement",
+			Name:  "agreement",
+			Usage: tribeWarning,
 			Subcommands: []cli.Command{
 				{
 					Name:   "list",
@@ -197,11 +199,12 @@ var (
 			},
 		},
 		{
-			Name: "plugin-config",
+			Name:  "plugin-config",
+			Usage: tribeWarning,
 			Subcommands: []cli.Command{
 				{
 					Name:   "get",
-					Usage:  "get <plugin_type>:<plugin_name>:<plugin_version> or unload -t <plugin_type> -n <plugin_version> -v <plugin_version>",
+					Usage:  "get <plugin_type>:<plugin_name>:<plugin_version> or get -t <plugin_type> -n <plugin_version> -v <plugin_version>",
 					Action: getConfig,
 					Flags: []cli.Flag{
 						flPluginName,

@@ -20,7 +20,10 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -29,6 +32,25 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
+
+type config struct {
+	RestAPI restAPIConfig `json:"rest"`
+}
+type restAPIConfig struct {
+	Password *string `json:"rest-auth-pwd"`
+}
+
+func (c *config) loadConfig(path string) error {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return errors.New("Unable to read config. File might not exist.")
+	}
+	err = json.Unmarshal(b, &c)
+	if err != nil {
+		return errors.New("Invalid config")
+	}
+	return nil
+}
 
 func getConfig(ctx *cli.Context) {
 	pDetails := filepath.SplitList(ctx.Args().First())
@@ -69,12 +91,16 @@ func getConfig(ctx *cli.Context) {
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	defer w.Flush()
+	r := pClient.GetPluginConfig(ptyp, pname, strconv.Itoa(pver))
+	if r.Err != nil {
+		fmt.Println("Error requesting info: ", r.Err)
+		os.Exit(1)
+	}
 	printFields(w, false, 0,
 		"NAME",
 		"VALUE",
 		"TYPE",
 	)
-	r := pClient.GetPluginConfig(ptyp, pname, strconv.Itoa(pver))
 	for k, v := range r.Table() {
 		switch t := v.(type) {
 		case ctypes.ConfigValueInt:

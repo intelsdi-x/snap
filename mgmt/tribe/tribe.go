@@ -95,6 +95,7 @@ type config struct {
 	restAPIProto              string
 	restAPIInsecureSkipVerify string
 	MemberlistConfig          *memberlist.Config
+	RestAPIPassword           string
 }
 
 func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string, restAPIPort int) *config {
@@ -1514,4 +1515,8 @@ func (t *tribe) addTaskIntent(m *taskMsg) bool {
 func (t *tribe) getTimeout() time.Duration {
 	// query duration - gossip interval * timeout mult * log(n+1)
 	return time.Duration(t.config.MemberlistConfig.GossipInterval * 5 * time.Duration(math.Ceil(math.Log10(float64(len(t.memberlist.Members())+1)))))
+}
+
+func (t *tribe) GetRequestPassword() string {
+	return t.config.RestAPIPassword
 }
