@@ -17,34 +17,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package globalconfig
+package cfgfile
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/ghodss/yaml"
 )
 
-// Read reads the JSON file and unmarshals it into a map[string]interface{}
-func Read(path string) ([]byte, map[string]interface{}) {
+//
+func Read(path string, v interface{}) error {
+	// read bytes from file
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"block":   "Read",
-			"_module": "globalconfig",
-			"error":   err.Error(),
-			"path":    path,
-		}).Fatal("unable to read config")
+		return err
 	}
-	var cfg map[string]interface{}
-	err = json.Unmarshal(b, &cfg)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"block":   "Read",
-			"_module": "globalconfig",
-			"error":   err.Error(),
-		}).Fatal("invalid config")
+
+	// Try to unmarshal the byte array, first in YAML, then JSON. If both
+	// fail to unmarshal the blob read above, then return an error.
+	if err := yaml.Unmarshal(b, v); err == nil {
+		return nil
 	}
-	return b, cfg
+	if err := json.Unmarshal(b, v); err == nil {
+		return nil
+	}
+	return fmt.Errorf("Unknown file type")
 }

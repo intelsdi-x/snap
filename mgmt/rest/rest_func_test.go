@@ -44,6 +44,7 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
+	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
@@ -424,22 +425,38 @@ func deletePluginConfigItem(port int, typ string, name, ver string, fields []str
 	return getAPIResponse(resp)
 }
 
+// Since we do not have a global snap package that could be imported
+// we create a mock config struct to mock what is in snapd.go
+
+type mockConfig struct {
+	LogLevel   int    `json:"-"yaml:"-"`
+	GoMaxProcs int    `json:"-"yaml:"-"`
+	LogPath    string `json:"-"yaml:"-"`
+	Control    *control.Config
+	Scheduler  *scheduler.Config `json:"-",yaml:"-"`
+	RestAPI    *Config           `json:"-",yaml:"-"`
+}
+
+func getDefaultMockConfig() *mockConfig {
+	return &mockConfig{
+		LogLevel:   3,
+		GoMaxProcs: 1,
+		LogPath:    "",
+		Control:    control.GetDefaultConfig(),
+		Scheduler:  scheduler.GetDefaultConfig(),
+		RestAPI:    GetDefaultConfig(),
+	}
+}
+
 // REST API instances that are started are killed when the tests end.
 // When we eventually have a REST API Stop command this can be killed.
-func startAPI(opts ...interface{}) *restAPIInstance {
+func startAPI(cfg *mockConfig) *restAPIInstance {
 	// Start a REST API to talk to
 	log.SetLevel(LOG_LEVEL)
-	r, _ := New(false, "", "")
-	controlOpts := []control.PluginControlOpt{}
-	for _, opt := range opts {
-		switch t := opt.(type) {
-		case control.PluginControlOpt:
-			controlOpts = append(controlOpts, t)
-		}
-	}
-	c := control.New(controlOpts...)
+	r, _ := New(cfg.RestAPI)
+	c := control.New(cfg.Control)
 	c.Start()
-	s := scheduler.New()
+	s := scheduler.New(cfg.Scheduler)
 	s.SetMetricManager(c)
 	s.Start()
 	r.BindMetricManager(c)
@@ -468,7 +485,7 @@ func TestPluginRestCalls(t *testing.T) {
 			Convey("a single plugin loads", func() {
 				// This test alone tests gzip. Saves on test time.
 				CompressedUpload = true
-				r := startAPI()
+				r := startAPI(getDefaultMockConfig())
 				port := r.port
 				col := core.CollectorPluginType
 				pub := core.PublisherPluginType
@@ -541,11 +558,10 @@ func TestPluginRestCalls(t *testing.T) {
 
 			})
 			Convey("Plugin config is set at startup", func() {
-				cfg := control.NewConfig()
-				b, err := ioutil.ReadFile("../../examples/configs/snap-config-sample.json")
+				cfg := getDefaultMockConfig()
+				err := cfgfile.Read("../../examples/configs/snap-config-sample.json", &cfg)
 				So(err, ShouldBeNil)
-				json.Unmarshal(b, cfg)
-				r := startAPI(control.OptSetConfig(cfg))
+				r := startAPI(cfg)
 				port := r.port
 				col := core.CollectorPluginType
 
@@ -585,7 +601,7 @@ func TestPluginRestCalls(t *testing.T) {
 
 		Convey("Enable task - put - /v1/tasks/:id/enable", func() {
 			Convey("Enable a running task", func(c C) {
-				r := startAPI()
+				r := startAPI(getDefaultMockConfig())
 				port := r.port
 
 				uploadPlugin(MOCK_PLUGIN_PATH2, port)

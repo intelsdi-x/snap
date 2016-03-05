@@ -35,6 +35,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
+	"github.com/vrischmann/jsonutil"
 
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
@@ -42,7 +43,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
-	"github.com/intelsdi-x/snap/pkg/globalconfig"
+	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	"github.com/intelsdi-x/snap/scheduler"
 )
 
@@ -54,18 +55,15 @@ var (
 	flAPIPort = cli.IntFlag{
 		Name:  "api-port,  p",
 		Usage: "API port (Default: 8181)",
-		Value: 8181,
 	}
 	flMaxProcs = cli.IntFlag{
 		Name:   "max-procs, c",
 		Usage:  "Set max cores to use for snap Agent. Default is 1 core.",
-		Value:  1,
 		EnvVar: "GOMAXPROCS",
 	}
 	flNumberOfPLs = cli.IntFlag{
 		Name:   "max-running-plugins, m",
 		Usage:  "The maximum number of instances of a loaded plugin to run",
-		Value:  3,
 		EnvVar: "SNAP_MAX_PLUGINS",
 	}
 	// plugin
@@ -78,7 +76,6 @@ var (
 		Name:   "log-level, l",
 		Usage:  "1-5 (Debug, Info, Warning, Error, Fatal)",
 		EnvVar: "SNAP_LOG_LEVEL",
-		Value:  3,
 	}
 	flAutoDiscover = cli.StringFlag{
 		Name:   "auto-discover, a",
@@ -89,18 +86,16 @@ var (
 		Name:   "plugin-trust, t",
 		Usage:  "0-2 (Disabled, Enabled, Warning)",
 		EnvVar: "SNAP_TRUST_LEVEL",
-		Value:  1,
 	}
 	flKeyringPaths = cli.StringFlag{
 		Name:   "keyring-paths, k",
 		Usage:  "Keyring paths for signing verification separated by colons",
 		EnvVar: "SNAP_KEYRING_PATHS",
 	}
-	flCache = cli.StringFlag{
+	flCache = cli.DurationFlag{
 		Name:   "cache-expiration",
 		Usage:  "The time limit for which a metric cache entry is valid",
 		EnvVar: "SNAP_CACHE_EXPIRATION",
-		Value:  "500ms",
 	}
 	flConfig = cli.StringFlag{
 		Name:   "config",
@@ -143,10 +138,24 @@ var (
 	}
 )
 
+// default configuration values
 const (
-	defaultQueueSize uint = 25
-	defaultPoolSize  uint = 4
+	defaultLogLevel   int    = 3
+	defaultGoMaxProcs int    = 1
+	defaultLogPath    string = ""
+	defaultConfigPath string = "/etc/snap/snapd.conf"
 )
+
+// holds the configuration passed in through the SNAP config file
+type Config struct {
+	LogLevel   int               `json:"log_level,omitempty"yaml:"log_level,omitempty"`
+	GoMaxProcs int               `json:"gomaxprocs,omitempty"yaml:"gomaxprocs,omitempty"`
+	LogPath    string            `json:"log_path,omitempty"yaml:"log_path,omitempty"`
+	Control    *control.Config   `json:"control,omitempty"yaml:"control,omitempty"`
+	Scheduler  *scheduler.Config `json:"scheduler,omitempty"yaml:"scheduler,omitempty"`
+	RestAPI    *rest.Config      `json:"restapi,omitempty"yaml:"restapi,omitempty"`
+	Tribe      *tribe.Config     `json:"tribe,omitempty"yaml:"tribe,omitempty"`
+}
 
 type coreModule interface {
 	Start() error
@@ -199,18 +208,21 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
-	fcfg := globalconfig.NewConfig()
-	ccfg := control.NewConfig()
-	fpath := ctx.String("config")
-	if fpath != "" {
-		b, cfg := globalconfig.Read(fpath)
-		fcfg.LoadConfig(b, cfg)
-		ccfg.LoadConfig(b, cfg)
-	}
+	// get default configuration
+	cfg := getDefaultConfig()
+
+	// read config file
+	readConfig(cfg, ctx.String("config"))
+
+	// apply values that may have been passed from the command line
+	// to the configuration that we have built so far, overriding the
+	// values that may have already been set (if any) for the
+	// same variables in that configuration
+	applyCmdLineFlags(cfg, ctx)
 
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.
-	logPath := globalconfig.GetFlagString(ctx, fcfg.Flags.LogPath, "log-path")
+	logPath := cfg.LogPath
 	if logPath != "" {
 		f, err := os.Stat(logPath)
 		if err != nil {
@@ -230,63 +242,23 @@ func action(ctx *cli.Context) {
 
 	log.Info("Starting snapd (version: ", gitversion, ")")
 
-	// Get flag values
-	disableAPI := globalconfig.GetFlagBool(ctx, fcfg.Flags.DisableAPI, "disable-api")
-	apiPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.APIPort, "api-port")
-	logLevel := globalconfig.GetFlagInt(ctx, fcfg.Flags.LogLevel, "log-level")
-	maxProcs := globalconfig.GetFlagInt(ctx, fcfg.Flags.MaxProcs, "max-procs")
-	autodiscoverPath := globalconfig.GetFlagString(ctx, fcfg.Flags.AutodiscoverPath, "auto-discover")
-	maxRunning := globalconfig.GetFlagInt(ctx, fcfg.Flags.MaxRunning, "max-running-plugins")
-	pluginTrust := globalconfig.GetFlagInt(ctx, fcfg.Flags.PluginTrust, "plugin-trust")
-	keyringPaths := globalconfig.GetFlagString(ctx, fcfg.Flags.KeyringPaths, "keyring-paths")
-	cachestr := globalconfig.GetFlagString(ctx, fcfg.Flags.Cachestr, "cache-expiration")
-	cache, err := time.ParseDuration(cachestr)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("invalid cache-expiration format: %s", cachestr))
-	}
-	isTribeEnabled := globalconfig.GetFlagBool(ctx, fcfg.Flags.IsTribeEnabled, "tribe")
-	tribeSeed := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeSeed, "tribe-seed")
-	tribeNodeName := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeNodeName, "tribe-node-name")
-	tribeAddr := globalconfig.GetFlagString(ctx, fcfg.Flags.TribeAddr, "tribe-addr")
-	tribePort := globalconfig.GetFlagInt(ctx, fcfg.Flags.TribePort, "tribe-port")
-	restHTTPS := globalconfig.GetFlagBool(ctx, fcfg.Flags.RestHTTPS, "rest-https")
-	restKey := globalconfig.GetFlagString(ctx, fcfg.Flags.RestKey, "rest-key")
-	restCert := globalconfig.GetFlagString(ctx, fcfg.Flags.RestCert, "rest-cert")
-	restAuth := globalconfig.GetFlagBool(ctx, fcfg.Flags.RestAuth, "rest-auth")
-	restAuthPwd := globalconfig.GetFlagString(ctx, fcfg.Flags.RestAuthPwd, "rest-auth-pwd")
-
-	controlOpts := []control.PluginControlOpt{
-		control.MaxRunningPlugins(maxRunning),
-		control.CacheExpiration(cache),
-		control.OptSetConfig(ccfg),
-	}
-
 	// Set Max Processors for snapd.
-	setMaxProcs(maxProcs)
+	setMaxProcs(cfg.GoMaxProcs)
 
 	// Validate log level and trust level settings for snapd
-	validateLevelSettings(logLevel, pluginTrust)
+	validateLevelSettings(cfg.LogLevel, cfg.Control.PluginTrust)
 
-	c := control.New(
-		controlOpts...,
-	)
+	c := control.New(cfg.Control)
 
 	coreModules = []coreModule{}
 
 	coreModules = append(coreModules, c)
-	s := scheduler.New(
-		scheduler.CollectQSizeOption(defaultQueueSize),
-		scheduler.CollectWkrSizeOption(defaultPoolSize),
-		scheduler.PublishQSizeOption(defaultQueueSize),
-		scheduler.PublishWkrSizeOption(defaultPoolSize),
-		scheduler.ProcessQSizeOption(defaultQueueSize),
-		scheduler.ProcessWkrSizeOption(defaultPoolSize),
-	)
+	s := scheduler.New(cfg.Scheduler)
 	s.SetMetricManager(c)
 	coreModules = append(coreModules, s)
 
 	// Auth requested and not provided as part of config
-	if restAuthPwd == "" && restAuth && !disableAPI {
+	if cfg.RestAPI.Enable && cfg.RestAPI.RestAuth && cfg.RestAPI.RestAuthPassword == "" {
 		fmt.Println("What password do you want to use for authentication?")
 		fmt.Print("Password:")
 		password, err := terminal.ReadPassword(0)
@@ -294,17 +266,17 @@ func action(ctx *cli.Context) {
 		if err != nil {
 			log.Fatal("Failed to get credentials")
 		}
-		restAuthPwd = string(password)
+		cfg.RestAPI.RestAuthPassword = string(password)
 	}
 
 	var tr managesTribe
-	if isTribeEnabled {
-		log.Info("Tribe is enabled")
-		tc := tribe.DefaultConfig(tribeNodeName, tribeAddr, tribePort, tribeSeed, apiPort)
-		if restAuth {
-			tc.RestAPIPassword = restAuthPwd
+	if cfg.Tribe.Enable {
+		cfg.Tribe.RestAPIPort = cfg.RestAPI.Port
+		if cfg.RestAPI.RestAuth {
+			cfg.Tribe.RestAPIPassword = cfg.RestAPI.RestAuthPassword
 		}
-		t, err := tribe.New(tc)
+		log.Info("Tribe is enabled")
+		t, err := tribe.New(cfg.Tribe)
 		if err != nil {
 			printErrorAndExit(t.Name(), err)
 		}
@@ -332,11 +304,11 @@ func action(ctx *cli.Context) {
 	}
 
 	// Plugin Trust
-	c.SetPluginTrustLevel(pluginTrust)
-	log.Info("setting plugin trust level to: ", t[pluginTrust])
+	c.SetPluginTrustLevel(cfg.Control.PluginTrust)
+	log.Info("setting plugin trust level to: ", t[cfg.Control.PluginTrust])
 	// Keyring checking for trust levels 1 and 2
-	if pluginTrust > 0 {
-		keyrings := filepath.SplitList(keyringPaths)
+	if cfg.Control.PluginTrust > 0 {
+		keyrings := filepath.SplitList(cfg.Control.KeyringPaths)
 		if len(keyrings) == 0 {
 			log.WithFields(
 				log.Fields{
@@ -420,9 +392,9 @@ func action(ctx *cli.Context) {
 	}
 
 	//Autodiscover
-	if autodiscoverPath != "" {
+	if cfg.Control.AutoDiscoverPath != "" {
 		log.Info("auto discover path is enabled")
-		paths := filepath.SplitList(autodiscoverPath)
+		paths := filepath.SplitList(cfg.Control.AutoDiscoverPath)
 		c.SetAutodiscoverPaths(paths)
 		for _, p := range paths {
 			fullPath, err := filepath.Abs(p)
@@ -496,9 +468,9 @@ func action(ctx *cli.Context) {
 		log.Info("auto discover path is disabled")
 	}
 
-	//API
-	if !disableAPI {
-		r, err := rest.New(restHTTPS, restCert, restKey)
+	//Setup RESTful API if it was enbled in th configuration
+	if cfg.RestAPI.Enable {
+		r, err := rest.New(cfg.RestAPI)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -506,20 +478,21 @@ func action(ctx *cli.Context) {
 		r.BindConfigManager(c.Config)
 		r.BindTaskManager(s)
 		//Rest Authentication
-		if restAuth {
+		if cfg.RestAPI.RestAuth {
 			log.Info("REST API authentication is enabled")
-			r.SetAPIAuth(restAuth)
+			r.SetAPIAuth(cfg.RestAPI.RestAuth)
 			log.Info("REST API authentication password is set")
-			r.SetAPIAuthPwd(restAuthPwd)
-			if !restHTTPS {
+			r.SetAPIAuthPwd(cfg.RestAPI.RestAuthPassword)
+			if !cfg.RestAPI.HTTPS {
 				log.Warning("Using REST API authentication without HTTPS enabled.")
 			}
 		}
+
 		if tr != nil {
 			r.BindTribeManager(tr)
 		}
 		go monitorErrors(r.Err())
-		r.Start(fmt.Sprintf(":%d", apiPort))
+		r.Start(fmt.Sprintf(":%d", cfg.RestAPI.Port))
 		log.Info("REST API is enabled")
 	} else {
 		log.Info("REST API is disabled")
@@ -532,10 +505,122 @@ func action(ctx *cli.Context) {
 		}).Info("snapd started")
 
 	// Switch log level to user defined
-	log.Info("setting log level to: ", l[logLevel])
-	log.SetLevel(getLevel(logLevel))
+	log.Info("setting log level to: ", l[cfg.LogLevel])
+	log.SetLevel(getLevel(cfg.LogLevel))
 
 	select {} //run forever and ever
+}
+
+// get the default snapd configuration
+func getDefaultConfig() *Config {
+	return &Config{
+		LogLevel:   defaultLogLevel,
+		GoMaxProcs: defaultGoMaxProcs,
+		LogPath:    defaultLogPath,
+		Control:    control.GetDefaultConfig(),
+		Scheduler:  scheduler.GetDefaultConfig(),
+		RestAPI:    rest.GetDefaultConfig(),
+		Tribe:      tribe.GetDefaultConfig(),
+	}
+}
+
+// Read the snapd configuration from a configuration file
+func readConfig(cfg *Config, fpath string) {
+	var path string
+	if !defaultConfigFile() && fpath == "" {
+		return
+	}
+	if defaultConfigFile() && fpath == "" {
+		path = defaultConfigPath
+	}
+	if fpath != "" {
+		f, err := os.Stat(fpath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if f.IsDir() {
+			log.Fatal("configuration path provided must be a file")
+		}
+		path = fpath
+	}
+
+	err := cfgfile.Read(path, &cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func defaultConfigFile() bool {
+	_, err := os.Stat(defaultConfigPath)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+// used to set fields in the configuration to values from the
+// command line context if the corresponding flagName is set
+// in that context
+func setBoolVal(field bool, ctx *cli.Context, flagName string, inverse ...bool) bool {
+	if ctx.IsSet(flagName) {
+		field = ctx.Bool(flagName)
+		if len(inverse) > 0 {
+			field = !field
+		}
+	}
+	return field
+}
+
+func setStringVal(field string, ctx *cli.Context, flagName string) string {
+	if ctx.IsSet(flagName) {
+		field = ctx.String(flagName)
+	}
+	return field
+}
+
+func setIntVal(field int, ctx *cli.Context, flagName string) int {
+	if ctx.IsSet(flagName) {
+		field = ctx.Int(flagName)
+	}
+	return field
+}
+
+func setDurationVal(field time.Duration, ctx *cli.Context, flagName string) time.Duration {
+	if ctx.IsSet(flagName) {
+		field = ctx.Duration(flagName)
+	}
+	return field
+}
+
+// Apply the command line flags set (if any) to override the values
+// in the input configuration
+func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
+	invertBoolean := true
+	// apply any command line flags that might have been set, first for the
+	// snapd-related flags
+	cfg.GoMaxProcs = setIntVal(cfg.GoMaxProcs, ctx, "max-procs")
+	cfg.LogLevel = setIntVal(cfg.LogLevel, ctx, "log-level")
+	cfg.LogPath = setStringVal(cfg.LogPath, ctx, "log-path")
+	// next for the flags related to the control package
+	cfg.Control.MaxRunningPlugins = setIntVal(cfg.Control.MaxRunningPlugins, ctx, "max-running-plugins")
+	cfg.Control.PluginTrust = setIntVal(cfg.Control.PluginTrust, ctx, "plugin-trust")
+	cfg.Control.AutoDiscoverPath = setStringVal(cfg.Control.AutoDiscoverPath, ctx, "auto-discover")
+	cfg.Control.KeyringPaths = setStringVal(cfg.Control.KeyringPaths, ctx, "keyring-paths")
+	cfg.Control.CacheExpiration = jsonutil.Duration{setDurationVal(cfg.Control.CacheExpiration.Duration, ctx, "cache-expiration")}
+	// next for the RESTful server related flags
+	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
+	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")
+	cfg.RestAPI.HTTPS = setBoolVal(cfg.RestAPI.HTTPS, ctx, "rest-https")
+	cfg.RestAPI.RestCertificate = setStringVal(cfg.RestAPI.RestCertificate, ctx, "rest-cert")
+	cfg.RestAPI.RestKey = setStringVal(cfg.RestAPI.RestKey, ctx, "rest-key")
+	cfg.RestAPI.RestAuth = setBoolVal(cfg.RestAPI.RestAuth, ctx, "rest-auth")
+	cfg.RestAPI.RestAuthPassword = setStringVal(cfg.RestAPI.RestAuthPassword, ctx, "rest-auth-pwd")
+	// and finally for the tribe-related flags
+	cfg.Tribe.Name = setStringVal(cfg.Tribe.Name, ctx, "tribe-node-name")
+	cfg.Tribe.Enable = setBoolVal(cfg.Tribe.Enable, ctx, "tribe")
+	cfg.Tribe.BindAddr = setStringVal(cfg.Tribe.BindAddr, ctx, "tribe-addr")
+	cfg.Tribe.BindPort = setIntVal(cfg.Tribe.BindPort, ctx, "tribe-port")
+	cfg.Tribe.Seed = setStringVal(cfg.Tribe.Seed, ctx, "tribe-seed")
 }
 
 func monitorErrors(ch <-chan error) {

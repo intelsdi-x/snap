@@ -671,8 +671,13 @@ func startTribes(count int, seed string) ([]int, int) {
 		mgtPort := getAvailablePort()
 		mgtPorts = append(mgtPorts, mgtPort)
 		tribePort = getAvailablePort()
-		conf := tribe.DefaultConfig(fmt.Sprintf("member-%v", mgtPort), "127.0.0.1", tribePort, seed, mgtPort)
-		// conf.MemberlistConfig.PushPullInterval = 5 * time.Second
+		conf := tribe.GetDefaultConfig()
+		conf.Name = fmt.Sprintf("member-%v", mgtPort)
+		conf.BindAddr = "127.0.0.1"
+		conf.BindPort = tribePort
+		conf.Seed = seed
+		conf.RestAPIPort = mgtPort
+		//conf.MemberlistConfig.PushPullInterval = 5 * time.Second
 		conf.MemberlistConfig.RetransmitMult = conf.MemberlistConfig.RetransmitMult * 2
 		if seed == "" {
 			seed = fmt.Sprintf("%s:%d", "127.0.0.1", tribePort)
@@ -682,17 +687,17 @@ func startTribes(count int, seed string) ([]int, int) {
 			panic(err)
 		}
 
-		c := control.New()
+		c := control.New(control.GetDefaultConfig())
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
-		s := scheduler.New()
+		s := scheduler.New(scheduler.GetDefaultConfig())
 		s.SetMetricManager(c)
 		s.RegisterEventHandler("tribe", t)
 		s.Start()
 		t.SetPluginCatalog(c)
 		t.SetTaskManager(s)
 		t.Start()
-		r, _ := New(false, "", "")
+		r, _ := New(GetDefaultConfig())
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
 		r.BindTribeManager(t)

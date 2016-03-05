@@ -206,6 +206,7 @@ If you would like to write your own, read through [Author a Plugin](#author-a-pl
 Documentation for snap will be kept in this repository for now in the `docs/` directory. We would also like to link to external how-to blog posts as people write them. See our [CONTRIBUTING.md](#contributing) for more details.
 
 * [snapd (snap agent)](docs/SNAPD.md)
+* [configuring snapd](docs/SNAPD_CONFIGURATION.md)
 * [snapctl (snap CLI)](docs/SNAPCTL.md)
 * [build and test](docs/BUILD_AND_TEST.md)
 * [REST API](docs/REST_API.md)

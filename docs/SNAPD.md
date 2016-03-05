@@ -41,7 +41,9 @@ $ $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
 --config                                     A path to a config file
 --rest-https                                 start snap's API as https
 --rest-key                                   A path to a key file to use for HTTPS deployment of snap's REST API
---rest-auth					                 Enables snap's REST API authentication
+--rest-auth                                  Enables snap's REST API authentication
+--work-manager-queue-size "0"                Size of the work manager queue (default: 25) [$WORK_MANAGER_QUEUE_SIZE]
+--work-manager-pool-size "0"                 Size of the work manager pool (default 4) [$WORK_MANAGER_POOL_SIZE]
 --tribe-node-name 'tjerniga-mac01.local'     Name of this node in tribe cluster (default: hostname) [$SNAP_TRIBE_NODE_NAME]
 --tribe                                      Enable tribe mode [$SNAP_TRIBE]
 --tribe-seed                                 IP (or hostname) and port of a node to join (e.g. 127.0.0.1:6000) [$SNAP_TRIBE_SEED]
@@ -85,6 +87,7 @@ INFO[0111] snapd started                                 _module=snapd block=mai
 INFO[0111] setting log level to: debug
 ```
 ## More information
+* [SNAPD_CONFIGURATION.md](SNAPD_CONFIGURATION.md)
 * [REST_API.md](REST_API.md)
 * [PLUGIN_SIGNING.md](PLUGIN_SIGNING.md)
 * [TRIBE.md](TRIBE.md)

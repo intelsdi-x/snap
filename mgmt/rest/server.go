@@ -47,12 +47,34 @@ const (
 	APIVersion = 1
 )
 
+// default configuration values
+const (
+	defaultEnable          bool   = true
+	defaultPort            int    = 8181
+	defaultHTTPS           bool   = false
+	defaultRestCertificate string = ""
+	defaultRestKey         string = ""
+	defaultAuth            bool   = false
+	defaultAuthPassword    string = ""
+)
+
 var (
 	ErrBadCert = errors.New("Invalid certificate given")
 
 	restLogger     = log.WithField("_module", "_mgmt-rest")
 	protocolPrefix = "http"
 )
+
+// holds the configuration passed in through the SNAP config file
+type Config struct {
+	Enable           bool   `json:"enable,omitempty"yaml:"enable,omitempty"`
+	Port             int    `json:"port,omitempty"yaml:"port,omitempty"`
+	HTTPS            bool   `json:"https,omitempty"yaml:"https,omitempty"`
+	RestCertificate  string `json:"rest_certificate,omitempty"yaml:"rest_certificate,omitempty"`
+	RestKey          string `json:"rest_key,omitempty"yaml:"rest_key,omitempty"`
+	RestAuth         bool   `json:"rest_auth,omitempty"yaml:"rest_auth,omitempty"`
+	RestAuthPassword string `json:"rest_auth_password,omitempty"yaml:"rest_auth_password,omitempty"`
+}
 
 type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
@@ -111,11 +133,15 @@ type Server struct {
 	err     chan error
 }
 
-func New(https bool, cpath, kpath string) (*Server, error) {
+// func New(https bool, cpath, kpath string) (*Server, error) {
+func New(cfg *Config) (*Server, error) {
+	// pull a few parameters from the configuration passed in by snapd
+	https := cfg.HTTPS
+	cpath := cfg.RestCertificate
+	kpath := cfg.RestKey
 	s := &Server{
 		err: make(chan error),
 	}
-
 	if https {
 		var err error
 		s.tls, err = newtls(cpath, kpath)
@@ -135,6 +161,19 @@ func New(https bool, cpath, kpath string) (*Server, error) {
 	// Use negroni to handle routes
 	s.n.UseHandler(s.r)
 	return s, nil
+}
+
+// get the default snapd configuration
+func GetDefaultConfig() *Config {
+	return &Config{
+		Enable:           defaultEnable,
+		Port:             defaultPort,
+		HTTPS:            defaultHTTPS,
+		RestCertificate:  defaultRestCertificate,
+		RestKey:          defaultRestKey,
+		RestAuth:         defaultAuth,
+		RestAuthPassword: defaultAuthPassword,
+	}
 }
 
 // SetAPIAuth sets API authentication to enabled or disabled

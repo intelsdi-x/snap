@@ -47,7 +47,7 @@ func TestMockPluginLoad(t *testing.T) {
 		helper.BuildPlugin(PluginType, PluginName)
 		//
 		Convey("ensure plugin loads and responds", t, func() {
-			c := control.New()
+			c := control.New(control.GetDefaultConfig())
 			c.Start()
 			rp, _ := core.NewRequestedPlugin(PluginPath)
 			_, err := c.Load(rp)

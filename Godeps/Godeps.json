@@ -41,8 +41,7 @@
 		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",
-			"Comment": "1.2.0-26-gf7ebb76",
-			"Rev": "f7ebb761e83e21225d1d8954fde853bf8edd46c4"
+			"Rev": "aca5b047ed14d17224157c3434ea93bf6cdaadee"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
@@ -120,6 +119,10 @@
 		{
 			"ImportPath": "speter.net/go/exp/math/dec/inf",
 			"Rev": "42ca6cd68aa922bc3f32f1e056e61b65945d9ad7"
+		},
+		{
+			"ImportPath": "github.com/vrischmann/jsonutil",
+			"Rev": "694784f9315ee9fc763c1d30f28753cba21307aa"
 		}
 	]
 }

@@ -78,7 +78,7 @@ type tribe struct {
 	taskStateResponses map[string]*taskStateQueryResponse
 	members            map[string]*agreement.Member
 	tags               map[string]string
-	config             *config
+	config             *Config
 
 	pluginCatalog   worker.ManagesPlugins
 	taskManager     worker.ManagesTasks
@@ -89,35 +89,14 @@ type tribe struct {
 	workerWaitGroup *sync.WaitGroup
 }
 
-type config struct {
-	seed                      string
-	restAPIPort               int
-	restAPIProto              string
-	restAPIInsecureSkipVerify string
-	MemberlistConfig          *memberlist.Config
-	RestAPIPassword           string
-}
-
-func DefaultConfig(name, advertiseAddr string, advertisePort int, seed string, restAPIPort int) *config {
-	c := &config{
-		seed:         seed,
-		restAPIPort:  restAPIPort,
-		restAPIProto: "http",
-	}
-	c.MemberlistConfig = memberlist.DefaultLANConfig()
-	c.MemberlistConfig.PushPullInterval = 300 * time.Second
-	c.MemberlistConfig.Name = name
-	c.MemberlistConfig.BindAddr = advertiseAddr
-	c.MemberlistConfig.BindPort = advertisePort
-	c.MemberlistConfig.GossipNodes = c.MemberlistConfig.GossipNodes * 2
-	return c
-}
-
-func New(c *config) (*tribe, error) {
+func New(cfg *Config) (*tribe, error) {
+	cfg.MemberlistConfig.Name = cfg.Name
+	cfg.MemberlistConfig.BindAddr = cfg.BindAddr
+	cfg.MemberlistConfig.BindPort = cfg.BindPort
 	logger := logger.WithFields(log.Fields{
-		"port": c.MemberlistConfig.BindPort,
-		"addr": c.MemberlistConfig.BindAddr,
-		"name": c.MemberlistConfig.Name,
+		"port": cfg.MemberlistConfig.BindPort,
+		"addr": cfg.MemberlistConfig.BindAddr,
+		"name": cfg.MemberlistConfig.Name,
 	})
 
 	tribe := &tribe{
@@ -127,17 +106,17 @@ func New(c *config) (*tribe, error) {
 		taskStartStopCache: newCache(),
 		msgBuffer:          make([]msg, 512),
 		intentBuffer:       []msg{},
-		logger:             logger.WithField("_name", c.MemberlistConfig.Name),
+		logger:             logger.WithField("_name", cfg.MemberlistConfig.Name),
 		tags: map[string]string{
-			agreement.RestPort:               strconv.Itoa(c.restAPIPort),
-			agreement.RestProtocol:           c.restAPIProto,
-			agreement.RestInsecureSkipVerify: c.restAPIInsecureSkipVerify,
+			agreement.RestPort:               strconv.Itoa(cfg.RestAPIPort),
+			agreement.RestProtocol:           cfg.RestAPIProto,
+			agreement.RestInsecureSkipVerify: cfg.RestAPIInsecureSkipVerify,
 		},
 		pluginWorkQueue: make(chan worker.PluginRequest, 999),
 		taskWorkQueue:   make(chan worker.TaskRequest, 999),
 		workerQuitChan:  make(chan struct{}),
 		workerWaitGroup: &sync.WaitGroup{},
-		config:          c,
+		config:          cfg,
 	}
 
 	tribe.broadcasts = &memberlist.TransmitLimitedQueue{
@@ -148,26 +127,26 @@ func New(c *config) (*tribe, error) {
 	}
 
 	//configure delegates
-	c.MemberlistConfig.Delegate = &delegate{tribe: tribe}
-	c.MemberlistConfig.Events = &memberDelegate{tribe: tribe}
+	cfg.MemberlistConfig.Delegate = &delegate{tribe: tribe}
+	cfg.MemberlistConfig.Events = &memberDelegate{tribe: tribe}
 
-	ml, err := memberlist.Create(c.MemberlistConfig)
+	ml, err := memberlist.Create(cfg.MemberlistConfig)
 	if err != nil {
 		logger.Error(err)
 		return nil, err
 	}
 	tribe.memberlist = ml
 
-	if c.seed != "" {
-		_, err := ml.Join([]string{c.seed})
+	if cfg.Seed != "" {
+		_, err := ml.Join([]string{cfg.Seed})
 		if err != nil {
 			logger.WithFields(log.Fields{
-				"seed": c.seed,
+				"seed": cfg.Seed,
 			}).Error(errMemberlistJoin)
 			return nil, errMemberlistJoin
 		}
 		logger.WithFields(log.Fields{
-			"seed": c.seed,
+			"seed": cfg.Seed,
 		}).Infoln("tribe started")
 		return tribe, nil
 	}

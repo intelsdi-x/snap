@@ -21,17 +21,22 @@ package control
 
 import (
 	"testing"
+	"time"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/pkg/globalconfig"
+	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+type mockConfig struct {
+	Control *Config
+}
+
 func TestPluginConfig(t *testing.T) {
 	Convey("Given a plugin config", t, func() {
-		cfg := NewConfig()
+		cfg := GetDefaultConfig()
 		So(cfg, ShouldNotBeNil)
 		Convey("with an entry for ALL plugins", func() {
 			cfg.Plugins.All.AddItem("gvar", ctypes.ConfigValueBool{Value: true})
@@ -59,10 +64,13 @@ func TestPluginConfig(t *testing.T) {
 	})
 
 	Convey("Provided a config in JSON we are able to unmarshal it into a valid config", t, func() {
-		cfg := NewConfig()
+		config := &mockConfig{
+			Control: GetDefaultConfig(),
+		}
 		path := "../examples/configs/snap-config-sample.json"
-		b, config := globalconfig.Read(path)
-		cfg.LoadConfig(b, config)
+		err := cfgfile.Read(path, &config)
+		So(err, ShouldBeNil)
+		cfg := config.Control
 		So(cfg.Plugins, ShouldNotBeNil)
 		So(cfg.Plugins.All, ShouldNotBeNil)
 		So(cfg.Plugins.All.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
@@ -107,6 +115,153 @@ func TestPluginConfig(t *testing.T) {
 				So(c.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "new password"})
 			})
 
+		})
+	})
+}
+
+func TestControlConfigJSON(t *testing.T) {
+	config := &mockConfig{
+		Control: GetDefaultConfig(),
+	}
+	path := "../examples/configs/snap-config-sample.json"
+	err := cfgfile.Read(path, &config)
+	var cfg *Config
+	if err == nil {
+		cfg = config.Control
+	}
+	Convey("Provided a valid config in JSON", t, func() {
+		Convey("An error should not be returned when unmarshalling the config", func() {
+			So(err, ShouldBeNil)
+		})
+		Convey("AutoDiscoverPath should be set to /some/directory/with/plugins", func() {
+			So(cfg.AutoDiscoverPath, ShouldEqual, "/some/directory/with/plugins")
+		})
+		Convey("CacheExpiration should be set to 750ms", func() {
+			So(cfg.CacheExpiration.Duration, ShouldResemble, 750*time.Millisecond)
+		})
+		Convey("MaxRunningPlugins should be set to 1", func() {
+			So(cfg.MaxRunningPlugins, ShouldEqual, 1)
+		})
+		Convey("KeyringPaths should be set to /some/path/with/keyring/files", func() {
+			So(cfg.KeyringPaths, ShouldEqual, "/some/path/with/keyring/files")
+		})
+		Convey("PluginTrust should be set to 0", func() {
+			So(cfg.PluginTrust, ShouldEqual, 0)
+		})
+		Convey("Plugins section of control configuration should not be nil", func() {
+			So(cfg.Plugins, ShouldNotBeNil)
+		})
+		Convey("Plugins.All section should not be nil", func() {
+			So(cfg.Plugins.All, ShouldNotBeNil)
+		})
+		Convey("A password should be configured for all plugins", func() {
+			So(cfg.Plugins.All.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
+		})
+		Convey("Plugins.Collector section should not be nil", func() {
+			So(cfg.Plugins.Collector, ShouldNotBeNil)
+		})
+		Convey("Plugins.Collector should have config for pcm collector plugin", func() {
+			So(cfg.Plugins.Collector.Plugins["pcm"], ShouldNotBeNil)
+		})
+		Convey("Config for pcm should set path to pcm binary to /usr/local/pcm/bin", func() {
+			So(cfg.Plugins.Collector.Plugins["pcm"].Table()["path"], ShouldResemble, ctypes.ConfigValueStr{Value: "/usr/local/pcm/bin"})
+		})
+		Convey("Config for pcm plugin at version 1 should set user to john", func() {
+			So(cfg.Plugins.Collector.Plugins["pcm"].Versions[1].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
+		})
+		Convey("Plugins.Processor section should not be nil", func() {
+			So(cfg.Plugins.Processor, ShouldNotBeNil)
+		})
+		Convey("Movingaverage processor plugin should have user set to jane", func() {
+			So(cfg.Plugins.Processor.Plugins["movingaverage"].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
+		})
+		Convey("Plugins.Publisher should not be nil", func() {
+			So(cfg.Plugins.Publisher, ShouldNotBeNil)
+		})
+	})
+
+}
+
+func TestControlConfigYaml(t *testing.T) {
+	config := &mockConfig{
+		Control: GetDefaultConfig(),
+	}
+	path := "../examples/configs/snap-config-sample.yaml"
+	err := cfgfile.Read(path, &config)
+	var cfg *Config
+	if err == nil {
+		cfg = config.Control
+	}
+	Convey("Provided a valid config in YAML", t, func() {
+		Convey("An error should not be returned when unmarshalling the config", func() {
+			So(err, ShouldBeNil)
+		})
+		Convey("AutoDiscoverPath should be set to /some/directory/with/plugins", func() {
+			So(cfg.AutoDiscoverPath, ShouldEqual, "/some/directory/with/plugins")
+		})
+		Convey("CacheExpiration should be set to 750ms", func() {
+			So(cfg.CacheExpiration.Duration, ShouldResemble, 750*time.Millisecond)
+		})
+		Convey("MaxRunningPlugins should be set to 1", func() {
+			So(cfg.MaxRunningPlugins, ShouldEqual, 1)
+		})
+		Convey("KeyringPaths should be set to /some/path/with/keyring/files", func() {
+			So(cfg.KeyringPaths, ShouldEqual, "/some/path/with/keyring/files")
+		})
+		Convey("PluginTrust should be set to 0", func() {
+			So(cfg.PluginTrust, ShouldEqual, 0)
+		})
+		Convey("Plugins section of control configuration should not be nil", func() {
+			So(cfg.Plugins, ShouldNotBeNil)
+		})
+		Convey("Plugins.All section should not be nil", func() {
+			So(cfg.Plugins.All, ShouldNotBeNil)
+		})
+		Convey("A password should be configured for all plugins", func() {
+			So(cfg.Plugins.All.Table()["password"], ShouldResemble, ctypes.ConfigValueStr{Value: "p@ssw0rd"})
+		})
+		Convey("Plugins.Collector section should not be nil", func() {
+			So(cfg.Plugins.Collector, ShouldNotBeNil)
+		})
+		Convey("Plugins.Collector should have config for pcm collector plugin", func() {
+			So(cfg.Plugins.Collector.Plugins["pcm"], ShouldNotBeNil)
+		})
+		Convey("Config for pcm should set path to pcm binary to /usr/local/pcm/bin", func() {
+			So(cfg.Plugins.Collector.Plugins["pcm"].Table()["path"], ShouldResemble, ctypes.ConfigValueStr{Value: "/usr/local/pcm/bin"})
+		})
+		Convey("Config for pcm plugin at version 1 should set user to john", func() {
+			So(cfg.Plugins.Collector.Plugins["pcm"].Versions[1].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
+		})
+		Convey("Plugins.Processor section should not be nil", func() {
+			So(cfg.Plugins.Processor, ShouldNotBeNil)
+		})
+		Convey("Movingaverage processor plugin should have user set to jane", func() {
+			So(cfg.Plugins.Processor.Plugins["movingaverage"].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
+		})
+		Convey("Plugins.Publisher should not be nil", func() {
+			So(cfg.Plugins.Publisher, ShouldNotBeNil)
+		})
+	})
+
+}
+
+func TestControlDefaultConfig(t *testing.T) {
+	cfg := GetDefaultConfig()
+	Convey("Provided a default config", t, func() {
+		Convey("AutoDiscoverPath should be empty", func() {
+			So(cfg.AutoDiscoverPath, ShouldEqual, "")
+		})
+		Convey("CacheExpiration should equal 500ms", func() {
+			So(cfg.CacheExpiration.Duration, ShouldEqual, 500*time.Millisecond)
+		})
+		Convey("MaxRunningPlugins should equal 3", func() {
+			So(cfg.MaxRunningPlugins, ShouldEqual, 3)
+		})
+		Convey("KeyringPaths should be empty", func() {
+			So(cfg.KeyringPaths, ShouldEqual, "")
+		})
+		Convey("PluginTrust should equal 1", func() {
+			So(cfg.PluginTrust, ShouldEqual, 1)
 		})
 	})
 }
