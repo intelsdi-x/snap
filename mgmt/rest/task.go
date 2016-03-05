@@ -20,6 +20,7 @@ limitations under the License.
 package rest
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -28,6 +29,9 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 
@@ -35,6 +39,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
 	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -75,51 +80,56 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-
-	sch, err := makeSchedule(tr.Schedule)
+	sch, err := json.Marshal(tr.Schedule)
 	if err != nil {
-		respond(500, rbody.FromError(err), w)
+		respond(404, rbody.FromError(err), w)
 		return
 	}
-
-	var opts []core.TaskOption
-	if tr.Deadline != "" {
-		dl, err := time.ParseDuration(tr.Deadline)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-			return
-		}
-		opts = append(opts, core.TaskDeadlineDuration(dl))
+	wm, err := json.Marshal(tr.Workflow)
+	if err != nil {
+		respond(404, rbody.FromError(err), w)
+		return
 	}
-
-	if tr.Name != "" {
-		opts = append(opts, core.SetTaskName(tr.Name))
+	arg := &rpc.CreateTaskArg{
+		ScheduleJson: sch,
+		WmapJson:     wm,
+		Start:        tr.Start,
+		Opts: &rpc.CreateTaskOpts{
+			Deadline: tr.Deadline,
+			TaskName: tr.Name,
+		},
 	}
-	opts = append(opts, core.OptionStopOnFailure(10))
-
-	task, errs := s.mt.CreateTask(sch, tr.Workflow, tr.Start, opts...)
-	if errs != nil && len(errs.Errors()) != 0 {
+	t, err := s.mt.CreateTask(context.Background(), arg)
+	if err != nil {
+		respond(404, rbody.FromError(err), w)
+		return
+	}
+	if t.Errors != nil && len(t.Errors) > 0 {
 		var errMsg string
-		for _, e := range errs.Errors() {
-			errMsg = errMsg + e.Error() + " -- "
+		for _, e := range t.Errors {
+			errMsg = errMsg + e.ErrorString + " -- "
 		}
 		respond(500, rbody.FromError(errors.New(errMsg[:len(errMsg)-4])), w)
 		return
 	}
 
-	taskB := rbody.AddSchedulerTaskFromTask(task)
-	taskB.Href = taskURI(r.Host, task)
+	taskB := rbody.AddSchedulerTaskFromTask(t.Task)
+	taskB.Href = taskURI(r.Host, t.Task)
 	respond(201, taskB, w)
 }
 
 func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	sts := s.mt.GetTasks()
+	reply, err := s.mt.GetTasks(context.Background(), &rpc.Empty{})
+	if err != nil {
+		respond(404, rbody.FromError(err), w)
+		return
+	}
 
 	tasks := &rbody.ScheduledTaskListReturned{}
-	tasks.ScheduledTasks = make([]rbody.ScheduledTask, len(sts))
+	tasks.ScheduledTasks = make([]rbody.ScheduledTask, len(reply.Tasks))
 
 	i := 0
-	for _, t := range sts {
+	for _, t := range reply.Tasks {
 		tasks.ScheduledTasks[i] = *rbody.SchedulerTaskFromTask(t)
 		tasks.ScheduledTasks[i].Href = taskURI(r.Host, t)
 		i++
@@ -130,9 +140,9 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 func (s *Server) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	t, err1 := s.mt.GetTask(id)
-	if err1 != nil {
-		respond(404, rbody.FromError(err1), w)
+	t, err := s.mt.GetTask(context.Background(), &rpc.GetTaskArg{Id: id})
+	if err != nil {
+		respond(404, rbody.FromError(err), w)
 		return
 	}
 	task := &rbody.ScheduledTaskReturned{}
@@ -153,17 +163,10 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	logger.WithFields(log.Fields{
 		"task-id": id,
 	}).Debug("request to watch task")
-	tw := &TaskWatchHandler{
-		alive: true,
-		mChan: make(chan rbody.StreamedTaskEvent),
-	}
-	tc, err1 := s.mt.WatchTask(id, tw)
-	if err1 != nil {
-		if strings.Contains(err1.Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromError(err1), w)
-			return
-		}
-		respond(500, rbody.FromError(err1), w)
+
+	stream, err := s.mt.WatchTask(context.Background(), &rpc.WatchTaskArg{Id: id})
+	if err != nil {
+		respond(404, rbody.FromError(err), w)
 		return
 	}
 
@@ -182,7 +185,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	}
 	// send initial stream open event
 	so := rbody.StreamedTaskEvent{
-		EventType: rbody.TaskWatchStreamOpen,
+		EventType: rpc.Watch_TASK_STREAM_OPEN,
 		Message:   "Stream opened",
 	}
 	fmt.Fprintf(w, "%s\n", so.ToJSON())
@@ -190,62 +193,63 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 
 	// Get a channel for if the client notifies us it is closing the connection
 	n := w.(http.CloseNotifier).CloseNotify()
+
 	t := time.Now()
 	for {
-		// Write to the ResponseWriter
 		select {
-		case e := <-tw.mChan:
-			logger.WithFields(log.Fields{
-				"task-id":            id,
-				"task-watcher-event": e.EventType,
-			}).Debug("new event")
-			switch e.EventType {
-			case rbody.TaskWatchMetricEvent, rbody.TaskWatchTaskStarted:
-				// The client can decide to stop receiving on the stream on Task Stopped.
-				// We write the event to the buffer
-				fmt.Fprintf(w, "%s\n", e.ToJSON())
-			case rbody.TaskWatchTaskDisabled, rbody.TaskWatchTaskStopped:
-				// A disabled task should end the streaming and close the connection
-				fmt.Fprintf(w, "%s\n", e.ToJSON())
-				// Flush since we are sending nothing new
-				flusher.Flush()
-				// Close out watcher removing it from the scheduler
-				tc.Close()
-				// exit since this client is no longer listening
-				respond(200, &rbody.ScheduledTaskWatchingEnded{}, w)
-			}
-			// If we are at least above our minimum buffer time we flush to send
-			if time.Now().Sub(t).Seconds() > StreamingBufferWindow {
-				flusher.Flush()
-				t = time.Now()
-			}
 		case <-n:
-			logger.WithFields(log.Fields{
-				"task-id": id,
-			}).Debug("client disconnecting")
-			// Flush since we are sending nothing new
-			flusher.Flush()
-			// Close out watcher removing it from the scheduler
-			tc.Close()
-			// exit since this client is no longer listening
 			respond(200, &rbody.ScheduledTaskWatchingEnded{}, w)
+			return
+		default:
+			msg, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				se := rbody.StreamedTaskEvent{
+					EventType: rpc.Watch_ERROR,
+					Message:   grpc.ErrorDesc(err),
+				}
+				fmt.Fprintf(w, "%s\n", se.ToJSON())
+				flusher.Flush()
+				break
+			}
+			if time.Now().Sub(t).Seconds() < StreamingBufferWindow {
+				break
+			}
+			t = time.Now()
+			switch msg.EventType {
+			case rpc.Watch_METRICS_COLLECTED, rpc.Watch_TASK_STARTED:
+				logger.WithField("msg_type", msg.EventType.String()).Debug(msg.ToJson())
+				fmt.Fprintf(w, "%s\n", msg.ToJson())
+				flusher.Flush()
+			case rpc.Watch_TASK_DISABLED, rpc.Watch_TASK_STOPPED:
+				logger.WithField("msg_type", msg.EventType.String()).Debug(msg.ToJson())
+				fmt.Fprintf(w, "%s\n", msg.ToJson())
+				flusher.Flush()
+			}
 		}
 	}
 }
 
 func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	errs := s.mt.StartTask(id)
-	if errs != nil {
-		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromSnapErrors(errs), w)
+	reply, err := s.mt.StartTask(context.Background(), &rpc.StartTaskArg{Id: id})
+	if err != nil {
+		respond(404, rbody.FromError(err), w)
+		return
+	}
+
+	if reply.Errors != nil {
+		if strings.Contains(reply.Errors[0].ErrorString, ErrTaskNotFound.Error()) {
+			respond(404, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
 			return
 		}
-		if strings.Contains(errs[0].Error(), ErrTaskDisabledNotRunnable.Error()) {
-			respond(409, rbody.FromSnapErrors(errs), w)
+		if strings.Contains(reply.Errors[0].ErrorString, ErrTaskDisabledNotRunnable.Error()) {
+			respond(404, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
 			return
 		}
-		respond(500, rbody.FromSnapErrors(errs), w)
+		respond(500, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
 		return
 	}
 	// TODO should return resource
@@ -254,13 +258,17 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 
 func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	errs := s.mt.StopTask(id)
-	if errs != nil {
-		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromSnapErrors(errs), w)
+	reply, err := s.mt.StopTask(context.Background(), &rpc.StopTaskArg{Id: id})
+	if err != nil {
+		respond(404, rbody.FromError(errors.New(grpc.ErrorDesc(err))), w)
+		return
+	}
+	if reply.Errors != nil {
+		if strings.Contains(reply.Errors[0].Error(), ErrTaskNotFound.Error()) {
+			respond(404, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
 			return
 		}
-		respond(500, rbody.FromSnapErrors(errs), w)
+		respond(500, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
 		return
 	}
 	respond(200, &rbody.ScheduledTaskStopped{ID: id}, w)
@@ -268,13 +276,13 @@ func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 
 func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	err := s.mt.RemoveTask(id)
+	_, err := s.mt.RemoveTask(context.Background(), &rpc.RemoveTaskArg{Id: id})
 	if err != nil {
 		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromError(err), w)
+			respond(404, rbody.FromError(errors.New(grpc.ErrorDesc(err))), w)
 			return
 		}
-		respond(500, rbody.FromError(err), w)
+		respond(500, rbody.FromError(errors.New(grpc.ErrorDesc(err))), w)
 		return
 	}
 	respond(200, &rbody.ScheduledTaskRemoved{ID: id}, w)
@@ -283,13 +291,13 @@ func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter
 //enableTask changes the task state from Disabled to Stopped
 func (s *Server) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	tsk, err := s.mt.EnableTask(id)
+	tsk, err := s.mt.EnableTask(context.Background(), &rpc.EnableTaskArg{Id: id})
 	if err != nil {
 		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromError(err), w)
+			respond(404, rbody.FromError(errors.New(grpc.ErrorDesc(err))), w)
 			return
 		}
-		respond(500, rbody.FromError(err), w)
+		respond(500, rbody.FromError(errors.New(grpc.ErrorDesc(err))), w)
 		return
 	}
 	task := &rbody.ScheduledTaskEnabled{}
@@ -304,93 +312,6 @@ func marshalTask(body io.ReadCloser) (*request.TaskCreationRequest, error) {
 		return nil, err
 	}
 	return &tr, nil
-}
-
-func makeSchedule(s request.Schedule) (cschedule.Schedule, error) {
-	switch s.Type {
-	case "simple":
-		d, err := time.ParseDuration(s.Interval)
-		if err != nil {
-			return nil, err
-		}
-		sch := cschedule.NewSimpleSchedule(d)
-
-		err = sch.Validate()
-		if err != nil {
-			return nil, err
-		}
-		return sch, nil
-	case "windowed":
-		d, err := time.ParseDuration(s.Interval)
-		if err != nil {
-			return nil, err
-		}
-
-		var start, stop *time.Time
-		if s.StartTimestamp != nil {
-			t := time.Unix(*s.StartTimestamp, 0)
-			start = &t
-		}
-		if s.StopTimestamp != nil {
-			t := time.Unix(*s.StopTimestamp, 0)
-			stop = &t
-		}
-		sch := cschedule.NewWindowedSchedule(
-			d,
-			start,
-			stop,
-		)
-
-		err = sch.Validate()
-		if err != nil {
-			return nil, err
-		}
-		return sch, nil
-	default:
-		return nil, errors.New("unknown schedule type " + s.Type)
-	}
-}
-
-type TaskWatchHandler struct {
-	streamCount int
-	alive       bool
-	mChan       chan rbody.StreamedTaskEvent
-}
-
-func (t *TaskWatchHandler) CatchCollection(m []core.Metric) {
-	sm := make([]rbody.StreamedMetric, len(m))
-	for i := range m {
-		sm[i] = rbody.StreamedMetric{
-			Namespace: core.JoinNamespace(m[i].Namespace()),
-			Data:      m[i].Data(),
-			Source:    m[i].Source(),
-			Timestamp: m[i].Timestamp(),
-		}
-	}
-	t.mChan <- rbody.StreamedTaskEvent{
-		EventType: rbody.TaskWatchMetricEvent,
-		Message:   "",
-		Event:     sm,
-	}
-}
-
-func (t *TaskWatchHandler) CatchTaskStarted() {
-	t.mChan <- rbody.StreamedTaskEvent{
-		EventType: rbody.TaskWatchTaskStarted,
-	}
-}
-
-func (t *TaskWatchHandler) CatchTaskStopped() {
-	t.mChan <- rbody.StreamedTaskEvent{
-		EventType: rbody.TaskWatchTaskStopped,
-	}
-}
-
-func (t *TaskWatchHandler) CatchTaskDisabled(why string) {
-	t.mChan <- rbody.StreamedTaskEvent{
-		EventType: rbody.TaskWatchTaskDisabled,
-		Message:   why,
-	}
 }
 
 func taskURI(host string, t core.Task) string {

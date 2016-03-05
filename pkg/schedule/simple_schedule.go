@@ -1,12 +1,15 @@
 package schedule
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"time"
 )
 
 // SimpleSchedule is a schedule that only implements an endless repeating interval
 type SimpleSchedule struct {
-	Interval time.Duration
+	Interval time.Duration `json:"interval"`
 	state    ScheduleState
 }
 
@@ -15,6 +18,36 @@ func NewSimpleSchedule(i time.Duration) *SimpleSchedule {
 	return &SimpleSchedule{
 		Interval: i,
 	}
+}
+
+func (s *SimpleSchedule) UnmarshalJSON(data []byte) error {
+	t := map[string]interface{}{}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	if err := dec.Decode(&t); err != nil {
+		return err
+	}
+
+	if v, ok := t["interval"]; ok {
+		switch typ := v.(type) {
+		case string:
+			dur, err := time.ParseDuration(typ)
+			if err != nil {
+				return err
+			}
+			s.Interval = dur
+		default:
+			return errors.New("Unsupported interval value")
+		}
+	}
+	return nil
+}
+
+func (s *SimpleSchedule) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Interval string `json:"interval"`
+	}{
+		Interval: s.Interval.String(),
+	})
 }
 
 // GetState returns the schedule state

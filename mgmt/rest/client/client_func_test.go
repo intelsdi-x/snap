@@ -24,10 +24,14 @@ package client
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"google.golang.org/grpc"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
@@ -35,13 +39,14 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
 	// Change to set the REST API logging to debug
-	LOG_LEVEL = log.FatalLevel
+	LOG_LEVEL = log.ErrorLevel
 
 	SNAP_PATH         = os.Getenv("SNAP_PATH")
 	MOCK_PLUGIN_PATH1 = []string{SNAP_PATH + "/plugin/snap-collector-mock1"}
@@ -77,12 +82,17 @@ func startAPI() string {
 	r, _ := rest.New(false, "", "")
 	c := control.New()
 	c.Start()
-	s := scheduler.New()
+	l, _ := net.Listen("tcp", ":0")
+	defer l.Close()
+	s := scheduler.New(scheduler.ListenPortOption(strconv.Itoa(l.Addr().(*net.TCPAddr).Port)))
+	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), grpc.WithInsecure())
+	So(err, ShouldBeNil)
+	client := rpc.NewTaskManagerClient(conn)
 	s.SetMetricManager(c)
 	s.Start()
 	r.BindConfigManager(c.Config)
 	r.BindMetricManager(c)
-	r.BindTaskManager(s)
+	r.BindTaskManager(client)
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
 		err, ok := <-ch
@@ -133,11 +143,10 @@ func TestSnapClient(t *testing.T) {
 				So(m.Err, ShouldBeNil)
 				So(m.Len(), ShouldEqual, 0)
 			})
-			Convey("load directory error", func() {
-				p := c.LoadPlugin(DIRECTORY_PATH)
-				So(p.Err, ShouldNotBeNil)
-				So(p.LoadedPlugins, ShouldBeEmpty)
-				So(p.Err.Error(), ShouldEqual, "Provided plugin path is a directory not file")
+			Convey("RemoveTask", func() {
+				t1 := c.RemoveTask(uuid)
+				So(t1.Err, ShouldNotBeNil)
+				So(t1.Err.Error(), ShouldContainSubstring, fmt.Sprintf("Task not found: ID(%s)", uuid))
 			})
 			Convey("unknown task", func() {
 				Convey("GetTask/GetTasks", func() {
@@ -397,7 +406,7 @@ func TestSnapClient(t *testing.T) {
 						rest.StreamingBufferWindow = 0.01
 
 						type ea struct {
-							events []string
+							events []rpc.Watch_EventType
 							sync.Mutex
 						}
 
@@ -424,87 +433,86 @@ func TestSnapClient(t *testing.T) {
 						<-wait
 						So(r.Err.Error(), ShouldEqual, "Task not found: ID(1)")
 					})
-					Convey("event stream", func() {
+					Convey("event stream", func(c2 C) {
 						rest.StreamingBufferWindow = 0.01
 						sch := &Schedule{Type: "simple", Interval: "100ms"}
 						tf := c.CreateTask(sch, wf, "baron", "", false)
 
 						type ea struct {
-							events []string
-							sync.Mutex
+							events []rpc.Watch_EventType
 						}
 
 						a := new(ea)
 						r := c.WatchTask(tf.ID)
+						So(r.Err, ShouldBeNil)
 						wait := make(chan struct{})
+						timer := time.NewTimer(2 * time.Second)
 						go func() {
 							for {
 								select {
 								case e := <-r.EventChan:
-									a.Lock()
+									c2.So(e.EventType, ShouldNotBeNil)
 									a.events = append(a.events, e.EventType)
-									if len(a.events) == 5 {
+									if len(a.events) > 5 {
 										r.Close()
 									}
-									a.Unlock()
 								case <-r.DoneChan:
 									close(wait)
 									return
+								case <-timer.C:
+									r.Close()
 								}
 							}
 						}()
 						startResp := c.StartTask(tf.ID)
 						So(startResp.Err, ShouldBeNil)
 						<-wait
-						a.Lock()
-						So(len(a.events), ShouldEqual, 5)
-						a.Unlock()
-						So(a.events[0], ShouldEqual, "task-started")
+						So(len(a.events), ShouldBeGreaterThanOrEqualTo, 5)
 						for x := 2; x <= 4; x++ {
-							So(a.events[x], ShouldEqual, "metric-event")
+							So(a.events[x], ShouldEqual, rpc.Watch_METRICS_COLLECTED)
 						}
 					})
 				})
 			})
-		})
-		Convey("UnloadPlugin", func() {
-			Convey("unload unknown plugin", func() {
-				p := c.UnloadPlugin("not a type", "foo", 3)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "plugin not found")
-			})
-			Convey("unload one of multiple", func() {
-				p1 := c.GetPlugins(false)
-				So(p1.Err, ShouldBeNil)
-				So(len(p1.LoadedPlugins), ShouldEqual, 3)
+			Convey("UnloadPlugin", func() {
+				Convey("unload unknown plugin", func() {
+					p := c.UnloadPlugin("not a type", "foo", 3)
+					So(p.Err, ShouldNotBeNil)
+					So(p.Err.Error(), ShouldEqual, "plugin not found")
+				})
+				Convey("unload one of multiple", func() {
+					p1 := c.GetPlugins(false)
+					So(p1.Err, ShouldBeNil)
+					So(len(p1.LoadedPlugins), ShouldEqual, 3)
 
-				p2 := c.UnloadPlugin("collector", "mock", 2)
-				So(p2.Err, ShouldBeNil)
-				So(p2.Name, ShouldEqual, "mock")
-				So(p2.Version, ShouldEqual, 2)
-				So(p2.Type, ShouldEqual, "collector")
+					p2 := c.UnloadPlugin("collector", "mock", 2)
+					So(p2.Err, ShouldBeNil)
+					So(p2.Name, ShouldEqual, "mock")
+					So(p2.Version, ShouldEqual, 2)
+					So(p2.Type, ShouldEqual, "collector")
 
-				p3 := c.UnloadPlugin("publisher", "file", 3)
-				So(p3.Err, ShouldBeNil)
-				So(p3.Name, ShouldEqual, "file")
-				So(p3.Version, ShouldEqual, 3)
-				So(p3.Type, ShouldEqual, "publisher")
-			})
-			Convey("unload when only one plugin loaded", func() {
-				p1 := c.GetPlugins(false)
-				So(p1.Err, ShouldBeNil)
-				So(len(p1.LoadedPlugins), ShouldEqual, 1)
-				So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock")
+					p3 := c.UnloadPlugin("publisher", "file", 3)
+					So(p3.Err, ShouldBeNil)
+					So(p3.Name, ShouldEqual, "file")
+					So(p3.Version, ShouldEqual, 3)
+					So(p3.Type, ShouldEqual, "publisher")
+				})
+				Convey("unload when only one plugin loaded", func() {
+					p1 := c.GetPlugins(false)
+					So(p1.Err, ShouldBeNil)
+					So(len(p1.LoadedPlugins), ShouldEqual, 1)
+					So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock")
 
-				p2 := c.UnloadPlugin("collector", "mock", 1)
-				So(p2.Err, ShouldBeNil)
-				So(p2.Name, ShouldEqual, "mock")
-				So(p2.Version, ShouldEqual, 1)
-				So(p2.Type, ShouldEqual, "collector")
+					p2 := c.UnloadPlugin("collector", "mock", 1)
+					So(p2.Err, ShouldBeNil)
+					So(p2.Name, ShouldEqual, "mock")
+					So(p2.Version, ShouldEqual, 1)
+					So(p2.Type, ShouldEqual, "collector")
 
-				p3 := c.GetPlugins(false)
-				So(p3.Err, ShouldBeNil)
-				So(len(p3.LoadedPlugins), ShouldEqual, 0)
+					p3 := c.GetPlugins(false)
+					So(p3.Err, ShouldBeNil)
+					So(len(p3.LoadedPlugins), ShouldEqual, 0)
+				})
 			})
 		})
 	})

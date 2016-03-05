@@ -30,11 +30,15 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
+
+	"google.golang.org/grpc"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -45,6 +49,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
 	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -104,7 +109,7 @@ func getStreamingAPIResponse(resp *http.Response) *rbody.APIResponse {
 }
 
 type watchTaskResult struct {
-	eventChan chan string
+	eventChan chan rpc.Watch_EventType
 	doneChan  chan struct{}
 	killChan  chan struct{}
 }
@@ -120,7 +125,7 @@ func watchTask(id string, port int) *watchTaskResult {
 	}
 
 	r := &watchTaskResult{
-		eventChan: make(chan string),
+		eventChan: make(chan rpc.Watch_EventType),
 		doneChan:  make(chan struct{}),
 		killChan:  make(chan struct{}),
 	}
@@ -138,15 +143,12 @@ func watchTask(id string, port int) *watchTaskResult {
 				if err != nil {
 					log.Fatal(err)
 					r.close()
-					return
 				}
 				switch ste.EventType {
-				case rbody.TaskWatchTaskDisabled:
+				case rpc.Watch_TASK_DISABLED, rpc.Watch_TASK_STOPPED:
 					r.eventChan <- ste.EventType
 					r.close()
-					return
-				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
-					log.Info(ste.EventType)
+				case rpc.Watch_TASK_STARTED, rpc.Watch_METRICS_COLLECTED:
 					r.eventChan <- ste.EventType
 				}
 			}
@@ -439,11 +441,16 @@ func startAPI(opts ...interface{}) *restAPIInstance {
 	}
 	c := control.New(controlOpts...)
 	c.Start()
-	s := scheduler.New()
+	l, _ := net.Listen("tcp", ":0")
+	defer l.Close()
+	s := scheduler.New(scheduler.ListenPortOption(strconv.Itoa(l.Addr().(*net.TCPAddr).Port)))
 	s.SetMetricManager(c)
 	s.Start()
+	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), grpc.WithInsecure())
+	So(err, ShouldBeNil)
+	client := rpc.NewTaskManagerClient(conn)
 	r.BindMetricManager(c)
-	r.BindTaskManager(s)
+	r.BindTaskManager(client)
 	r.BindConfigManager(c.Config)
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
@@ -584,14 +591,14 @@ func TestPluginRestCalls(t *testing.T) {
 		})
 
 		Convey("Enable task - put - /v1/tasks/:id/enable", func() {
-			Convey("Enable a running task", func(c C) {
+			Convey("Enable a running task", func() {
 				r := startAPI()
 				port := r.port
 
 				uploadPlugin(MOCK_PLUGIN_PATH2, port)
 				uploadPlugin(FILE_PLUGIN_PATH, port)
 
-				r1 := createTask("1.json", "yeti", "1s", true, port)
+				r1 := createTask("1.json", "yeti", "200ms", true, port)
 				So(r1.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
 				plr1 := r1.Body.(*rbody.AddScheduledTask)
 
@@ -605,7 +612,41 @@ func TestPluginRestCalls(t *testing.T) {
 				r4 := enableTask(id, port)
 				So(r4.Body, ShouldHaveSameTypeAs, new(rbody.Error))
 				plr4 := r4.Body.(*rbody.Error)
-				So(plr4.ErrorMessage, ShouldEqual, "Task must be disabled")
+				So(plr4.ErrorMessage, ShouldContainSubstring, "Task must be disabled")
+
+				r5 := getTask(id, port)
+				So(r5.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskReturned))
+				So(r5.Body.(*rbody.ScheduledTaskReturned).State, ShouldResemble, "Running")
+
+				Convey("watches a task", func(c C) {
+					r6 := watchTask(id, port)
+					So(r6, ShouldNotBeNil)
+					metrics_collected := 0
+					go func() {
+						for {
+							select {
+							case <-r6.eventChan:
+								metrics_collected++
+								if metrics_collected > 1 {
+									r7 := stopTask(id, port)
+									c.So(r7, ShouldNotBeNil)
+									c.So(r7.Meta, ShouldNotBeNil)
+									c.So(r7.Meta.Code, ShouldEqual, 200)
+									c.So(r7.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStopped))
+									r8 := removeTask(id, port)
+									c.So(r8, ShouldNotBeNil)
+									c.So(r8.Meta.Code, ShouldEqual, 200)
+									c.So(r8.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskRemoved))
+									close(r6.doneChan)
+								}
+							case <-r6.doneChan:
+								return
+							}
+						}
+					}()
+					<-r6.doneChan
+					So(metrics_collected, ShouldBeGreaterThanOrEqualTo, 2)
+				})
 			})
 		})
 	})

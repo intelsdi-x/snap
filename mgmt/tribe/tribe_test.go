@@ -51,25 +51,27 @@ func (m *mockTaskManager) RemoveTaskTribe(id string) error             { return 
 
 type mockTask struct{}
 
-func (t *mockTask) ID() string                                { return "" }
-func (t *mockTask) State() core.TaskState                     { return core.TaskSpinning }
-func (t *mockTask) HitCount() uint                            { return 0 }
-func (t *mockTask) GetName() string                           { return "" }
-func (t *mockTask) SetName(string)                            { return }
-func (t *mockTask) SetID(string)                              { return }
-func (t *mockTask) MissedCount() uint                         { return 0 }
-func (t *mockTask) FailedCount() uint                         { return 0 }
-func (t *mockTask) LastFailureMessage() string                { return "" }
-func (t *mockTask) LastRunTime() *time.Time                   { return nil }
-func (t *mockTask) CreationTime() *time.Time                  { return nil }
-func (t *mockTask) DeadlineDuration() time.Duration           { return 0 }
-func (t *mockTask) SetDeadlineDuration(time.Duration)         { return }
-func (t *mockTask) SetTaskID(id string)                       { return }
-func (t *mockTask) SetStopOnFailure(uint)                     { return }
-func (t *mockTask) GetStopOnFailure() uint                    { return 0 }
-func (t *mockTask) Option(...core.TaskOption) core.TaskOption { return core.TaskDeadlineDuration(0) }
-func (t *mockTask) WMap() *wmap.WorkflowMap                   { return nil }
-func (t *mockTask) Schedule() schedule.Schedule               { return nil }
+func (t *mockTask) ID() string                        { return "" }
+func (t *mockTask) State() core.TaskState             { return core.TaskSpinning }
+func (t *mockTask) HitCount() uint                    { return 0 }
+func (t *mockTask) GetName() string                   { return "" }
+func (t *mockTask) SetName(string)                    { return }
+func (t *mockTask) SetID(string)                      { return }
+func (t *mockTask) MissedCount() uint                 { return 0 }
+func (t *mockTask) FailedCount() uint                 { return 0 }
+func (t *mockTask) LastFailureMessage() string        { return "" }
+func (t *mockTask) LastRunTime() *time.Time           { return nil }
+func (t *mockTask) CreationTime() *time.Time          { return nil }
+func (t *mockTask) DeadlineDuration() time.Duration   { return 0 }
+func (t *mockTask) SetDeadlineDuration(time.Duration) { return }
+func (t *mockTask) SetTaskID(id string)               { return }
+func (t *mockTask) SetStopOnFailure(uint)             { return }
+func (t *mockTask) GetStopOnFailure() uint            { return 0 }
+func (t *mockTask) Option(...core.TaskOption) core.TaskOption {
+	return core.TaskDeadlineDurationOption(0)
+}
+func (t *mockTask) WMap() *wmap.WorkflowMap     { return nil }
+func (t *mockTask) Schedule() schedule.Schedule { return nil }
 
 func TestTribeFullStateSync(t *testing.T) {
 	log.SetLevel(log.DebugLevel)

@@ -30,6 +30,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -39,6 +41,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 )
 
 func getPort() int {
@@ -178,14 +181,18 @@ func startTribes(count int) []int {
 			seed = fmt.Sprintf("%s:%d", "127.0.0.1", tribePort)
 		}
 		t, err := tribe.New(conf)
-		if err != nil {
-			panic(err)
-		}
-
+		So(err, ShouldBeNil)
 		c := control.New()
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
-		s := scheduler.New()
+		l, _ := net.Listen("tcp", ":0")
+		defer l.Close()
+		s := scheduler.New(scheduler.ListenPortOption(strconv.Itoa(l.Addr().(*net.TCPAddr).Port)))
+		conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), grpc.WithInsecure())
+		if err != nil {
+			panic(err)
+		}
+		client := rpc.NewTaskManagerClient(conn)
 		s.SetMetricManager(c)
 		s.RegisterEventHandler("tribe", t)
 		s.Start()
@@ -194,7 +201,7 @@ func startTribes(count int) []int {
 		t.Start()
 		r, _ := rest.New(false, "", "")
 		r.BindMetricManager(c)
-		r.BindTaskManager(s)
+		r.BindTaskManager(client)
 		r.BindTribeManager(t)
 		r.Start(":" + strconv.Itoa(mgtPort))
 		wg.Add(1)
