@@ -85,7 +85,10 @@ type job interface {
 	Errors() []error
 	StartTime() time.Time
 	Deadline() time.Time
+	Name() string
+	Version() int
 	Type() jobType
+	TypeString() string
 	TaskID() string
 	Run()
 }
@@ -94,6 +97,8 @@ type jobType int
 
 type coreJob struct {
 	sync.Mutex
+	name      string
+	version   int
 	taskID    string
 	jtype     jobType
 	deadline  time.Time
@@ -101,9 +106,11 @@ type coreJob struct {
 	errors    []error
 }
 
-func newCoreJob(t jobType, deadline time.Time, taskID string) *coreJob {
+func newCoreJob(t jobType, deadline time.Time, taskID string, name string, version int) *coreJob {
 	return &coreJob{
 		jtype:     t,
+		name:      name,
+		version:   version,
 		deadline:  deadline,
 		taskID:    taskID,
 		errors:    make([]error, 0),
@@ -119,8 +126,30 @@ func (c *coreJob) Deadline() time.Time {
 	return c.deadline
 }
 
+func (c *coreJob) Name() string {
+	return c.name
+}
+
+func (c *coreJob) Version() int {
+	return c.version
+}
+
 func (c *coreJob) Type() jobType {
 	return c.jtype
+}
+
+func (c *coreJob) TypeString() string {
+	switch c.jtype {
+	case collectJobType:
+		return "collector"
+
+	case processJobType:
+		return "processor"
+
+	case publishJobType:
+		return "publisher"
+	}
+	return "unknown"
 }
 
 func (c *coreJob) AddErrors(errs ...error) {
@@ -150,7 +179,7 @@ func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.D
 		collector:      collector,
 		metricTypes:    metricTypes,
 		metrics:        []core.Metric{},
-		coreJob:        newCoreJob(collectJobType, time.Now().Add(deadlineDuration), taskID),
+		coreJob:        newCoreJob(collectJobType, time.Now().Add(deadlineDuration), taskID, "", 0),
 		configDataTree: cdt,
 	}
 }
@@ -236,14 +265,12 @@ type processJob struct {
 
 func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, processor processesMetrics, taskID string) job {
 	return &processJob{
-		parentJob:     parentJob,
-		pluginName:    pluginName,
-		pluginVersion: pluginVersion,
-		metrics:       []core.Metric{},
-		coreJob:       newCoreJob(processJobType, parentJob.Deadline(), taskID),
-		config:        config,
-		processor:     processor,
-		contentType:   contentType,
+		parentJob:   parentJob,
+		metrics:     []core.Metric{},
+		coreJob:     newCoreJob(processJobType, parentJob.Deadline(), taskID, pluginName, pluginVersion),
+		config:      config,
+		processor:   processor,
+		contentType: contentType,
 	}
 }
 
@@ -253,8 +280,8 @@ func (p *processJob) Run() {
 		"block":          "run",
 		"job-type":       "processor",
 		"content-type":   p.contentType,
-		"plugin-name":    p.pluginName,
-		"plugin-version": p.pluginVersion,
+		"plugin-name":    p.name,
+		"plugin-version": p.version,
 		"plugin-config":  p.config,
 	}).Debug("starting processor job")
 
@@ -283,8 +310,8 @@ func (p *processJob) Run() {
 						"block":          "run",
 						"job-type":       "processor",
 						"content-type":   p.contentType,
-						"plugin-name":    p.pluginName,
-						"plugin-version": p.pluginVersion,
+						"plugin-name":    p.name,
+						"plugin-version": p.version,
 						"plugin-config":  p.config,
 						"error":          e.Error(),
 					}).Error("error with processor job")
@@ -298,8 +325,8 @@ func (p *processJob) Run() {
 				"block":          "run",
 				"job-type":       "processor",
 				"content-type":   p.contentType,
-				"plugin-name":    p.pluginName,
-				"plugin-version": p.pluginVersion,
+				"plugin-name":    p.name,
+				"plugin-version": p.version,
 				"plugin-config":  p.config,
 			}).Fatal("unsupported content type")
 			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
@@ -310,8 +337,8 @@ func (p *processJob) Run() {
 			"block":           "run",
 			"job-type":        "processor",
 			"content-type":    p.contentType,
-			"plugin-name":     p.pluginName,
-			"plugin-version":  p.pluginVersion,
+			"plugin-name":     p.name,
+			"plugin-version":  p.version,
 			"plugin-config":   p.config,
 			"parent-job-type": p.parentJob.Type(),
 		}).Fatal("unsupported parent job type")
@@ -321,23 +348,19 @@ func (p *processJob) Run() {
 
 type publisherJob struct {
 	*coreJob
-	parentJob     job
-	publisher     publishesMetrics
-	pluginName    string
-	pluginVersion int
-	config        map[string]ctypes.ConfigValue
-	contentType   string
+	parentJob   job
+	publisher   publishesMetrics
+	config      map[string]ctypes.ConfigValue
+	contentType string
 }
 
 func newPublishJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, publisher publishesMetrics, taskID string) job {
 	return &publisherJob{
-		parentJob:     parentJob,
-		publisher:     publisher,
-		pluginName:    pluginName,
-		pluginVersion: pluginVersion,
-		coreJob:       newCoreJob(publishJobType, parentJob.Deadline(), taskID),
-		config:        config,
-		contentType:   contentType,
+		parentJob:   parentJob,
+		publisher:   publisher,
+		coreJob:     newCoreJob(publishJobType, parentJob.Deadline(), taskID, pluginName, pluginVersion),
+		config:      config,
+		contentType: contentType,
 	}
 }
 
@@ -347,8 +370,8 @@ func (p *publisherJob) Run() {
 		"block":          "run",
 		"job-type":       "publisher",
 		"content-type":   p.contentType,
-		"plugin-name":    p.pluginName,
-		"plugin-version": p.pluginVersion,
+		"plugin-name":    p.name,
+		"plugin-version": p.version,
 		"plugin-config":  p.config,
 	}).Debug("starting publisher job")
 	var buf bytes.Buffer
@@ -368,7 +391,7 @@ func (p *publisherJob) Run() {
 				}
 			}
 			enc.Encode(metrics)
-			errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config, p.taskID)
+			errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.name, p.version, p.config, p.taskID)
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{
@@ -376,8 +399,8 @@ func (p *publisherJob) Run() {
 						"block":          "run",
 						"job-type":       "publisher",
 						"content-type":   p.contentType,
-						"plugin-name":    p.pluginName,
-						"plugin-version": p.pluginVersion,
+						"plugin-name":    p.name,
+						"plugin-version": p.version,
 						"plugin-config":  p.config,
 						"error":          e.Error(),
 					}).Error("error with publisher job")
@@ -390,16 +413,16 @@ func (p *publisherJob) Run() {
 				"block":          "run",
 				"job-type":       "publisher",
 				"content-type":   p.contentType,
-				"plugin-name":    p.pluginName,
-				"plugin-version": p.pluginVersion,
+				"plugin-name":    p.name,
+				"plugin-version": p.version,
 				"plugin-config":  p.config,
 			}).Fatal("unsupported content type")
-			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
+			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
 		}
 	case processJobType:
 		switch p.contentType {
 		case plugin.SnapGOBContentType:
-			errs := p.publisher.PublishMetrics(p.contentType, p.parentJob.(*processJob).content, p.pluginName, p.pluginVersion, p.config, p.taskID)
+			errs := p.publisher.PublishMetrics(p.contentType, p.parentJob.(*processJob).content, p.name, p.version, p.config, p.taskID)
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{
@@ -407,8 +430,8 @@ func (p *publisherJob) Run() {
 						"block":          "run",
 						"job-type":       "publisher",
 						"content-type":   p.contentType,
-						"plugin-name":    p.pluginName,
-						"plugin-version": p.pluginVersion,
+						"plugin-name":    p.name,
+						"plugin-version": p.version,
 						"plugin-config":  p.config,
 						"error":          e.Error(),
 					}).Error("error with publisher job")
@@ -422,8 +445,8 @@ func (p *publisherJob) Run() {
 			"block":           "run",
 			"job-type":        "publisher",
 			"content-type":    p.contentType,
-			"plugin-name":     p.pluginName,
-			"plugin-version":  p.pluginVersion,
+			"plugin-name":     p.name,
+			"plugin-version":  p.version,
 			"plugin-config":   p.config,
 			"parent-job-type": p.parentJob.Type(),
 		}).Fatal("unsupported parent job type")
