@@ -111,10 +111,7 @@ type managesWork interface {
 // The MetricManager must be started before it can be used.
 func New(opts ...workManagerOption) *scheduler {
 	s := &scheduler{
-		tasks: newTaskCollection(),
-		// logger: log.WithFields(log.Fields{
-		// 	"_module": "scheduler",
-		// }),
+		tasks:           newTaskCollection(),
 		eventManager:    gomit.NewEventController(),
 		taskWatcherColl: newTaskWatcherCollection(),
 	}
