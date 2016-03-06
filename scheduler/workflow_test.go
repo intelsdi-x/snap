@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sync"
 	"testing"
 	"time"
 
@@ -127,6 +128,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 
 // The mocks below are here for testing work submission
 type Mock1 struct {
+	sync.Mutex
 	count      int
 	errorIndex int
 	delay      time.Duration
@@ -168,6 +170,10 @@ func (m *Mock1) Complete([]error) {
 }
 
 func (m *Mock1) IsComplete() bool {
+	return false
+}
+
+func (m *Mock1) IsError() bool {
 	return false
 }
 
