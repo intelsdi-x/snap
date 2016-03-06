@@ -37,6 +37,11 @@ import (
 )
 
 var (
+	// logger for the scheduler
+	schedulerLogger = log.WithFields(log.Fields{
+		"_module": "scheduler",
+	})
+
 	// HandlerRegistrationName registers a handler with the event manager
 	HandlerRegistrationName = "scheduler"
 
@@ -93,7 +98,6 @@ type scheduler struct {
 	metricManager   managesMetrics
 	tasks           *taskCollection
 	state           schedulerState
-	logger          *log.Entry
 	eventManager    *gomit.EventController
 	taskWatcherColl *taskWatcherCollection
 }
@@ -108,9 +112,9 @@ type managesWork interface {
 func New(opts ...workManagerOption) *scheduler {
 	s := &scheduler{
 		tasks: newTaskCollection(),
-		logger: log.WithFields(log.Fields{
-			"_module": "scheduler",
-		}),
+		// logger: log.WithFields(log.Fields{
+		// 	"_module": "scheduler",
+		// }),
 		eventManager:    gomit.NewEventController(),
 		taskWatcherColl: newTaskWatcherCollection(),
 	}
@@ -150,7 +154,7 @@ func (s *scheduler) CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowM
 }
 
 func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, source string, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
-	logger := s.logger.WithFields(log.Fields{
+	logger := schedulerLogger.WithFields(log.Fields{
 		"_block": "create-task",
 		"source": source,
 	})
@@ -244,7 +248,7 @@ func (s *scheduler) RemoveTaskTribe(id string) error {
 }
 
 func (s *scheduler) removeTask(id, source string) error {
-	logger := s.logger.WithFields(log.Fields{
+	logger := schedulerLogger.WithFields(log.Fields{
 		"_block": "remove-task",
 		"source": source,
 	})
@@ -276,7 +280,7 @@ func (s *scheduler) GetTasks() map[string]core.Task {
 func (s *scheduler) GetTask(id string) (core.Task, error) {
 	t, err := s.getTask(id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		schedulerLogger.WithFields(log.Fields{
 			"_block":  "get-task",
 			"_error":  ErrTaskNotFound,
 			"task-id": id,
@@ -296,13 +300,13 @@ func (s *scheduler) StartTaskTribe(id string) []serror.SnapError {
 }
 
 func (s *scheduler) startTask(id, source string) []serror.SnapError {
-	logger := s.logger.WithFields(log.Fields{
+	logger := schedulerLogger.WithFields(log.Fields{
 		"_block": "start-task",
 		"source": source,
 	})
 	t, err := s.getTask(id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		schedulerLogger.WithFields(log.Fields{
 			"_block":  "start-task",
 			"_error":  ErrTaskNotFound,
 			"task-id": id,
@@ -367,7 +371,7 @@ func (s *scheduler) StopTaskTribe(id string) []serror.SnapError {
 }
 
 func (s *scheduler) stopTask(id, source string) []serror.SnapError {
-	logger := s.logger.WithFields(log.Fields{
+	logger := schedulerLogger.WithFields(log.Fields{
 		"_block": "stop-task",
 		"source": source,
 	})
@@ -416,7 +420,7 @@ func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 func (s *scheduler) EnableTask(id string) (core.Task, error) {
 	t, e := s.getTask(id)
 	if e != nil {
-		s.logger.WithFields(log.Fields{
+		schedulerLogger.WithFields(log.Fields{
 			"_block":  "enable-task",
 			"_error":  ErrTaskNotFound,
 			"task-id": id,
@@ -426,14 +430,14 @@ func (s *scheduler) EnableTask(id string) (core.Task, error) {
 
 	err := t.Enable()
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		schedulerLogger.WithFields(log.Fields{
 			"_block":  "enable-task",
 			"_error":  err.Error(),
 			"task-id": id,
 		}).Error("error enabling task")
 		return nil, err
 	}
-	s.logger.WithFields(log.Fields{
+	schedulerLogger.WithFields(log.Fields{
 		"_block":     "enable-task",
 		"task-id":    t.ID(),
 		"task-state": t.State(),
@@ -444,14 +448,14 @@ func (s *scheduler) EnableTask(id string) (core.Task, error) {
 // Start starts the scheduler
 func (s *scheduler) Start() error {
 	if s.metricManager == nil {
-		s.logger.WithFields(log.Fields{
+		schedulerLogger.WithFields(log.Fields{
 			"_block": "start-scheduler",
 			"_error": ErrMetricManagerNotSet.Error(),
 		}).Error("error on scheduler start")
 		return ErrMetricManagerNotSet
 	}
 	s.state = schedulerStarted
-	s.logger.WithFields(log.Fields{
+	schedulerLogger.WithFields(log.Fields{
 		"_block": "start-scheduler",
 	}).Info("scheduler started")
 	return nil
@@ -464,7 +468,7 @@ func (s *scheduler) Stop() {
 		// Kill ensure another task can't turn it back on while we are shutting down
 		t.Kill()
 	}
-	s.logger.WithFields(log.Fields{
+	schedulerLogger.WithFields(log.Fields{
 		"_block": "stop-scheduler",
 	}).Info("scheduler stopped")
 }
@@ -472,7 +476,7 @@ func (s *scheduler) Stop() {
 // Set metricManager for scheduler
 func (s *scheduler) SetMetricManager(mm managesMetrics) {
 	s.metricManager = mm
-	s.logger.WithFields(log.Fields{
+	schedulerLogger.WithFields(log.Fields{
 		"_block": "set-metric-manager",
 	}).Debug("metric manager linked")
 }
@@ -481,7 +485,7 @@ func (s *scheduler) SetMetricManager(mm managesMetrics) {
 func (s *scheduler) WatchTask(id string, tw core.TaskWatcherHandler) (core.TaskWatcherCloser, error) {
 	task, err := s.getTask(id)
 	if err != nil {
-		s.logger.WithFields(log.Fields{
+		schedulerLogger.WithFields(log.Fields{
 			"_block":  "watch-task",
 			"_error":  ErrTaskNotFound,
 			"task-id": id,
