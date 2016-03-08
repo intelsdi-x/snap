@@ -131,7 +131,6 @@ type Mock1 struct {
 	sync.Mutex
 	count      int
 	errorIndex int
-	delay      time.Duration
 	queue      map[string]int
 }
 
@@ -142,7 +141,6 @@ func (m *Mock1) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric,
 func (m *Mock1) Work(j job) queuedJob {
 	m.Lock()
 	defer m.Unlock()
-	time.Sleep(m.delay)
 	m.queue[j.TypeString()]++
 	return m
 }
@@ -253,7 +251,6 @@ func TestWorkJobs(t *testing.T) {
 			m3 := &Mock1{queue: make(map[string]int)}
 			// make the 13th job fail
 			m3.errorIndex = 13
-			m3.delay = time.Millisecond * 100
 			pj := newCollectorJob(nil, time.Second*1, m3, nil, "")
 			prs := make([]*processNode, 0)
 			pus := make([]*publishNode, 0)
