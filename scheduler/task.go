@@ -43,7 +43,7 @@ const (
 )
 
 var (
-	schedulerLogger = log.WithField("_module", "scheduler-task")
+	taskLogger = schedulerLogger.WithField("_module", "scheduler-task")
 
 	// ErrTaskNotFound - The error message for task not found
 	ErrTaskNotFound = errors.New("Task not found")
@@ -256,7 +256,7 @@ func (t *task) Schedule() schedule.Schedule {
 func (t *task) spin() {
 	var consecutiveFailures uint
 	for {
-		schedulerLogger.Debug("task spin loop")
+		taskLogger.Debug("task spin loop")
 		// Start go routine to wait on schedule
 		go t.waitForSchedule()
 		// wait here on
@@ -273,7 +273,7 @@ func (t *task) spin() {
 				t.fire()
 				if t.lastFailureTime == t.lastFireTime {
 					consecutiveFailures++
-					schedulerLogger.WithFields(log.Fields{
+					taskLogger.WithFields(log.Fields{
 						"_block":                    "spin",
 						"task-id":                   t.id,
 						"task-name":                 t.name,
@@ -285,7 +285,7 @@ func (t *task) spin() {
 					consecutiveFailures = 0
 				}
 				if consecutiveFailures >= t.stopOnFailure {
-					schedulerLogger.WithFields(log.Fields{
+					taskLogger.WithFields(log.Fields{
 						"_block":               "spin",
 						"task-id":              t.id,
 						"task-name":            t.name,
@@ -348,6 +348,16 @@ func (t *task) waitForSchedule() {
 	}
 }
 
+// RecordFailure updates the failed runs and last failure properties
+func (t *task) RecordFailure(e []error) {
+	// We synchronize this update to ensure it is atomic
+	t.Lock()
+	defer t.Unlock()
+	t.failedRuns++
+	t.lastFailureTime = t.lastFireTime
+	t.lastFailureMessage = e[len(e)-1].Error()
+}
+
 type taskCollection struct {
 	*sync.Mutex
 
@@ -383,7 +393,7 @@ func (t *taskCollection) add(task *task) error {
 		//If we don't already have this task in the collection save it
 		t.table[task.id] = task
 	} else {
-		schedulerLogger.WithFields(log.Fields{
+		taskLogger.WithFields(log.Fields{
 			"_module": "scheduler-taskCollection",
 			"_block":  "add",
 			"task id": task.id,
@@ -401,7 +411,7 @@ func (t *taskCollection) remove(task *task) error {
 	defer t.Unlock()
 	if _, ok := t.table[task.id]; ok {
 		if task.state != core.TaskStopped {
-			schedulerLogger.WithFields(log.Fields{
+			taskLogger.WithFields(log.Fields{
 				"_block":  "remove",
 				"task id": task.id,
 			}).Error(ErrTaskNotStopped)
@@ -409,7 +419,7 @@ func (t *taskCollection) remove(task *task) error {
 		}
 		delete(t.table, task.id)
 	} else {
-		schedulerLogger.WithFields(log.Fields{
+		taskLogger.WithFields(log.Fields{
 			"_block":  "remove",
 			"task id": task.id,
 		}).Error(ErrTaskNotFound)
