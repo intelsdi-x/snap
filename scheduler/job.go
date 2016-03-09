@@ -253,14 +253,12 @@ func (c *collectorJob) Run() {
 
 type processJob struct {
 	*coreJob
-	processor     processesMetrics
-	parentJob     job
-	metrics       []core.Metric
-	pluginName    string
-	pluginVersion int
-	config        map[string]ctypes.ConfigValue
-	contentType   string
-	content       []byte
+	processor   processesMetrics
+	parentJob   job
+	metrics     []core.Metric
+	config      map[string]ctypes.ConfigValue
+	contentType string
+	content     []byte
 }
 
 func newProcessJob(parentJob job, pluginName string, pluginVersion int, contentType string, config map[string]ctypes.ConfigValue, processor processesMetrics, taskID string) job {
@@ -302,7 +300,7 @@ func (p *processJob) Run() {
 				}
 			}
 			enc.Encode(metrics)
-			_, content, errs := p.processor.ProcessMetrics(p.contentType, buf.Bytes(), p.pluginName, p.pluginVersion, p.config, p.taskID)
+			_, content, errs := p.processor.ProcessMetrics(p.contentType, buf.Bytes(), p.name, p.version, p.config, p.taskID)
 			if errs != nil {
 				for _, e := range errs {
 					log.WithFields(log.Fields{
@@ -329,7 +327,7 @@ func (p *processJob) Run() {
 				"plugin-version": p.version,
 				"plugin-config":  p.config,
 			}).Fatal("unsupported content type")
-			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.pluginName, p.pluginVersion, p.contentType))
+			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
 		}
 	default:
 		log.WithFields(log.Fields{
