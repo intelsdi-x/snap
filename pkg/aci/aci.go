@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package with helper functions to handle extraction and validation of ACI Images.
 package aci
 
 import (

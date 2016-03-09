@@ -17,6 +17,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Package control_event contains controller events.
+
+Example event structs:
+- LoadPluginEvent
+- UnloadPluginEvent
+
+Example events:
+- MetricSubscribed
+- MetricUnsubscribed
+*/
 package control_event
 
 const (

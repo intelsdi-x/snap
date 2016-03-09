@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ctypes defines differnt kinds of ConfigTypes like Int, Float, Bool, Str.
 package ctypes
 
 import "encoding/json"
