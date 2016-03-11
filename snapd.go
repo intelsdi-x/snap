@@ -201,6 +201,7 @@ func main() {
 		flRestKey,
 		flRestAuth,
 	}
+	app.Flags = append(app.Flags, scheduler.Flags...)
 	app.Flags = append(app.Flags, tribe.Flags...)
 
 	app.Action = action
@@ -585,6 +586,13 @@ func setIntVal(field int, ctx *cli.Context, flagName string) int {
 	return field
 }
 
+func setUIntVal(field uint, ctx *cli.Context, flagName string) uint {
+	if ctx.IsSet(flagName) {
+		field = uint(ctx.Int(flagName))
+	}
+	return field
+}
+
 func setDurationVal(field time.Duration, ctx *cli.Context, flagName string) time.Duration {
 	if ctx.IsSet(flagName) {
 		field = ctx.Duration(flagName)
@@ -615,6 +623,9 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.RestAPI.RestKey = setStringVal(cfg.RestAPI.RestKey, ctx, "rest-key")
 	cfg.RestAPI.RestAuth = setBoolVal(cfg.RestAPI.RestAuth, ctx, "rest-auth")
 	cfg.RestAPI.RestAuthPassword = setStringVal(cfg.RestAPI.RestAuthPassword, ctx, "rest-auth-pwd")
+	// next for the scheduler related flags
+	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
+	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")
 	// and finally for the tribe-related flags
 	cfg.Tribe.Name = setStringVal(cfg.Tribe.Name, ctx, "tribe-node-name")
 	cfg.Tribe.Enable = setBoolVal(cfg.Tribe.Enable, ctx, "tribe")
