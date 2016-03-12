@@ -199,8 +199,6 @@ func main() {
 }
 
 func action(ctx *cli.Context) {
-	log.Info("Starting snapd (version: ", gitversion, ")")
-
 	fcfg := globalconfig.NewConfig()
 	ccfg := control.NewConfig()
 	fpath := ctx.String("config")
@@ -210,10 +208,6 @@ func action(ctx *cli.Context) {
 		ccfg.LoadConfig(b, cfg)
 	}
 
-	// Get flag values
-	disableAPI := globalconfig.GetFlagBool(ctx, fcfg.Flags.DisableAPI, "disable-api")
-	apiPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.APIPort, "api-port")
-	logLevel := globalconfig.GetFlagInt(ctx, fcfg.Flags.LogLevel, "log-level")
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.
 	logPath := globalconfig.GetFlagString(ctx, fcfg.Flags.LogPath, "log-path")
@@ -226,13 +220,20 @@ func action(ctx *cli.Context) {
 			log.Fatal("log path provided must be a directory")
 		}
 
-		file, err := os.OpenFile(fmt.Sprintf("%s/snap.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		file, err := os.OpenFile(fmt.Sprintf("%s/snapd.log", logPath), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer file.Close()
-		// log.SetOutput
+		log.SetOutput(file)
 	}
+
+	log.Info("Starting snapd (version: ", gitversion, ")")
+
+	// Get flag values
+	disableAPI := globalconfig.GetFlagBool(ctx, fcfg.Flags.DisableAPI, "disable-api")
+	apiPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.APIPort, "api-port")
+	logLevel := globalconfig.GetFlagInt(ctx, fcfg.Flags.LogLevel, "log-level")
 	maxProcs := globalconfig.GetFlagInt(ctx, fcfg.Flags.MaxProcs, "max-procs")
 	autodiscoverPath := globalconfig.GetFlagString(ctx, fcfg.Flags.AutodiscoverPath, "auto-discover")
 	maxRunning := globalconfig.GetFlagInt(ctx, fcfg.Flags.MaxRunning, "max-running-plugins")
