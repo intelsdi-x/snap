@@ -114,11 +114,11 @@ func (l *lru) AllCacheMisses() uint64 {
 }
 
 // CacheHits returns the cache hits for a given metric namespace and version.
-func (l *lru) CacheHits(ns string, version int, _ string) (uint64, error) {
-	return l.cacheHits(ns, version)
+func (l *lru) CacheHits(mt core.Metric, _ string) (uint64, error) {
+	return l.cacheHits(mt)
 }
 
 // CacheMisses returns the cache misses for a given metric namespace and version.
-func (l *lru) CacheMisses(ns string, version int, _ string) (uint64, error) {
-	return l.cacheMisses(ns, version)
+func (l *lru) CacheMisses(mt core.Metric, _ string) (uint64, error) {
+	return l.cacheMisses(mt)
 }
