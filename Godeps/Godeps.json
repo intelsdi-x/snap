@@ -123,6 +123,10 @@
 		{
 			"ImportPath": "github.com/vrischmann/jsonutil",
 			"Rev": "694784f9315ee9fc763c1d30f28753cba21307aa"
+		},
+		{
+			"ImportPath": "github.com/robfig/cron",
+			"Rev": "32d9c273155a0506d27cf73dd1246e86a470997e"
 		}
 	]
 }
