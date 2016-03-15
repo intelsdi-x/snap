@@ -144,6 +144,14 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 				return
 			default:
 				line, _ := reader.ReadBytes('\n')
+				sline := string(line)
+				if sline == "" || sline == "\n" {
+					continue
+				}
+				if strings.HasPrefix(sline, "data:") {
+					sline = strings.TrimPrefix(sline, "data:")
+					line = []byte(sline)
+				}
 				ste := &rbody.StreamedTaskEvent{}
 				err := json.Unmarshal(line, ste)
 				if err != nil {

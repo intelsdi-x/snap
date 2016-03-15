@@ -185,7 +185,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 		EventType: rbody.TaskWatchStreamOpen,
 		Message:   "Stream opened",
 	}
-	fmt.Fprintf(w, "%s\n", so.ToJSON())
+	fmt.Fprintf(w, "data: %s\n\n", so.ToJSON())
 	flusher.Flush()
 
 	// Get a channel for if the client notifies us it is closing the connection
@@ -203,10 +203,10 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 			case rbody.TaskWatchMetricEvent, rbody.TaskWatchTaskStarted:
 				// The client can decide to stop receiving on the stream on Task Stopped.
 				// We write the event to the buffer
-				fmt.Fprintf(w, "%s\n", e.ToJSON())
+				fmt.Fprintf(w, "data: %s\n\n", e.ToJSON())
 			case rbody.TaskWatchTaskDisabled, rbody.TaskWatchTaskStopped:
 				// A disabled task should end the streaming and close the connection
-				fmt.Fprintf(w, "%s\n", e.ToJSON())
+				fmt.Fprintf(w, "data: %s\n\n", e.ToJSON())
 				// Flush since we are sending nothing new
 				flusher.Flush()
 				// Close out watcher removing it from the scheduler
