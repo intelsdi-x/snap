@@ -74,6 +74,7 @@ type task struct {
 	deadlineDuration   time.Duration
 	hitCount           uint
 	missedIntervals    uint
+	failureMutex       sync.Mutex
 	failedRuns         uint
 	lastFailureMessage string
 	lastFailureTime    time.Time
@@ -351,8 +352,8 @@ func (t *task) waitForSchedule() {
 // RecordFailure updates the failed runs and last failure properties
 func (t *task) RecordFailure(e []error) {
 	// We synchronize this update to ensure it is atomic
-	t.Lock()
-	defer t.Unlock()
+	t.failureMutex.Lock()
+	defer t.failureMutex.Unlock()
 	t.failedRuns++
 	t.lastFailureTime = t.lastFireTime
 	t.lastFailureMessage = e[len(e)-1].Error()
