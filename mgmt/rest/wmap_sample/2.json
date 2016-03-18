@@ -1,7 +1,0 @@
-{
-    "collect": {
-        "metrics": {                
-            "/psutil/load/load1": {}
-        }
-    }
-}
