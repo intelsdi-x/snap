@@ -78,8 +78,8 @@ func listMetrics(ctx *cli.Context) {
 }
 
 func getMetric(ctx *cli.Context) {
-	if !ctx.IsSet("metric-namespace") || !ctx.IsSet("metric-version") {
-		fmt.Println("namespace and version are required")
+	if !ctx.IsSet("metric-namespace") {
+		fmt.Println("namespace is required")
 		fmt.Println("")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
 		return
