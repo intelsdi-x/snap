@@ -126,7 +126,7 @@ var (
 	// metric
 	flMetricVersion = cli.IntFlag{
 		Name:  "metric-version, v",
-		Usage: "The metric version",
+		Usage: "The metric version. Default (0) is latest",
 	}
 	flMetricNamespace = cli.StringFlag{
 		Name:  "metric-namespace, m",
