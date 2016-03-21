@@ -37,9 +37,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/snap/control"
+	crpc "github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/rpc"
 )
@@ -685,10 +687,14 @@ func startTribes(count int, seed string) ([]int, int) {
 			panic(err)
 		}
 
-		c := control.New()
+		l, _ := net.Listen("tcp", ":0")
+		controlPort := l.Addr().(*net.TCPAddr).Port
+		l.Close()
+		c := control.New(control.ListenPort(controlPort))
+
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
-		l, _ := net.Listen("tcp", ":0")
+		l, _ = net.Listen("tcp", ":0")
 		s := scheduler.New(scheduler.ListenPortOption(l.Addr().(*net.TCPAddr).Port))
 		l.Close()
 		s.SetMetricManager(c)
@@ -704,7 +710,11 @@ func startTribes(count int, seed string) ([]int, int) {
 		}
 		client := rpc.NewTaskManagerClient(conn)
 		r.BindTaskManager(client)
-		r.BindMetricManager(c)
+
+		connection, _ := rpcutil.GetClientConnection(control.DefaultListenAddress, controlPort, "", "")
+		controlClient := crpc.NewMetricManagerClient(connection)
+		r.BindMetricManager(controlClient)
+
 		r.BindTribeManager(t)
 		r.Start(":" + strconv.Itoa(mgtPort))
 		wg.Add(1)

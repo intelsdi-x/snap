@@ -206,6 +206,7 @@ func main() {
 	}
 	app.Flags = append(app.Flags, tribe.Flags...)
 	app.Flags = append(app.Flags, scheduler.Flags...)
+	app.Flags = append(app.Flags, control.Flags...)
 
 	app.Action = action
 	app.Run(os.Args)
@@ -270,11 +271,15 @@ func action(ctx *cli.Context) {
 	rootKeyPath := globalconfig.GetFlagString(ctx, fcfg.Flags.RootKeyPath, "root-key")
 	schedulerAddr := globalconfig.GetFlagString(ctx, fcfg.Flags.SchedulerAddr, "scheduler-addr")
 	schedulerPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.SchedulerPort, "scheduler-port")
+	controlAddr := globalconfig.GetFlagString(ctx, fcfg.Flags.ControlAddr, "control-addr")
+	controlPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.ControlPort, "control-port")
 
 	controlOpts := []control.PluginControlOpt{
 		control.MaxRunningPlugins(maxRunning),
 		control.CacheExpiration(cache),
 		control.OptSetConfig(ccfg),
+		control.ListenAddress(controlAddr),
+		control.ListenPort(controlPort),
 	}
 
 	// Set Max Processors for snapd.
@@ -452,7 +457,6 @@ func action(ctx *cli.Context) {
 	if autodiscoverPath != "" {
 		log.Info("auto discover path is enabled")
 		paths := filepath.SplitList(autodiscoverPath)
-		c.SetAutodiscoverPaths(paths)
 		for _, p := range paths {
 			fullPath, err := filepath.Abs(p)
 			if err != nil {
@@ -531,7 +535,11 @@ func action(ctx *cli.Context) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		r.BindMetricManager(c)
+		controlClient, err := control.NewClient(controlAddr, controlPort, rootCertPath, rootKeyPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.BindMetricManager(controlClient)
 		r.BindConfigManager(c.Config)
 		client, err := scheduler.NewClient(schedulerAddr, schedulerPort, rootCertPath, rootKeyPath)
 		if err != nil {

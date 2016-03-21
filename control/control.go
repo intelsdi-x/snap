@@ -24,16 +24,20 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
@@ -41,7 +45,9 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/aci"
+	"github.com/intelsdi-x/snap/pkg/netutil"
 	"github.com/intelsdi-x/snap/pkg/psigning"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 )
 
 const (
@@ -66,22 +72,32 @@ var (
 
 type executablePlugins []plugin.ExecutablePlugin
 
+const (
+	DefaultListenPort int = 8082
+)
+
+var (
+	DefaultListenAddress    string = netutil.GetIP()
+	HandlerREgistrationName        = "control"
+)
+
 type pluginControl struct {
 	// TODO, going to need coordination on changing of these
 	RunningPlugins executablePlugins
 	Started        bool
 	Config         *config
 
-	autodiscoverPaths []string
-	eventManager      *gomit.EventController
+	eventManager *gomit.EventController
 
 	pluginManager  managesPlugins
 	metricCatalog  catalogsMetrics
 	pluginRunner   runsPlugins
 	signingManager managesSigning
 
-	pluginTrust  int
-	keyringFiles []string
+	pluginTrust   int
+	keyringFiles  []string
+	listenAddress string
+	listenPort    int
 }
 
 type runsPlugins interface {
@@ -100,6 +116,7 @@ type managesPlugins interface {
 	teardown()
 	get(string) (*loadedPlugin, error)
 	all() map[string]*loadedPlugin
+	Get(string, int, string) (*loadedPlugin, error)
 	LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, serror.SnapError)
 	UnloadPlugin(core.Plugin) (*loadedPlugin, serror.SnapError)
 	SetMetricCatalog(catalogsMetrics)
@@ -150,10 +167,25 @@ func OptSetConfig(cfg *config) PluginControlOpt {
 	}
 }
 
+func ListenAddress(a string) PluginControlOpt {
+	return func(c *pluginControl) {
+		c.listenAddress = a
+	}
+}
+
+func ListenPort(p int) PluginControlOpt {
+	return func(c *pluginControl) {
+		c.listenPort = p
+	}
+}
+
 // New returns a new pluginControl instance
 func New(opts ...PluginControlOpt) *pluginControl {
 
-	c := &pluginControl{}
+	c := &pluginControl{
+		listenAddress: DefaultListenAddress,
+		listenPort:    DefaultListenPort,
+	}
 	c.Config = NewConfig()
 	// Initialize components
 	//
@@ -226,6 +258,21 @@ func (p *pluginControl) Start() error {
 	controlLogger.WithFields(log.Fields{
 		"_block": "start",
 	}).Info("control started")
+	lis, err := net.Listen("tcp", fmt.Sprintf("%v:%v", p.listenAddress, p.listenPort))
+	if err != nil {
+		controlLogger.WithField("error", err.Error()).Error("Failed to listen in control")
+		return err
+	}
+
+	opts := []grpc.ServerOption{}
+	grpcServer := grpc.NewServer(opts...)
+	rpc.RegisterMetricManagerServer(grpcServer, &controlProxy{p})
+	go func() {
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			controlLogger.Fatal(err)
+		}
+	}()
 	return nil
 }
 
@@ -924,14 +971,6 @@ func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int
 	return lp.Meta.AcceptedContentTypes, lp.Meta.ReturnedContentTypes, nil
 }
 
-func (p *pluginControl) SetAutodiscoverPaths(paths []string) {
-	p.autodiscoverPaths = paths
-}
-
-func (p *pluginControl) GetAutodiscoverPaths() []string {
-	return p.autodiscoverPaths
-}
-
 func (p *pluginControl) SetPluginTrustLevel(trust int) {
 	p.pluginTrust = trust
 }
@@ -960,7 +999,6 @@ func (r *requestedPlugin) Config() *cdata.ConfigDataNode {
 
 // ------------------- helper struct and function for grouping metrics types ------
 
-// just a tuple of loadedPlugin and metricType slice
 type pluginMetricTypes struct {
 	plugin      *loadedPlugin
 	metricTypes []core.Metric
@@ -997,4 +1035,15 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 		pmts[key] = pmt
 	}
 	return pmts, nil
+}
+
+// NewClient returns a control Client. If valid caCertPath and caKeyPAth values are
+// provided, the returned client will be secured (tls). If caCertPath and caKeyPath are
+// empty values the client returned will not be secure.
+func NewClient(addr string, port int, caCertPath, caKeyPath string) (rpc.MetricManagerClient, error) {
+	conn, err := rpcutil.GetClientConnection(addr, port, caCertPath, caKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	return rpc.NewMetricManagerClient(conn), nil
 }

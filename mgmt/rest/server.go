@@ -37,6 +37,7 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
 
+	crpc "github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/serror"
@@ -57,15 +58,15 @@ var (
 )
 
 type managesMetrics interface {
-	MetricCatalog() ([]core.CatalogedMetric, error)
-	FetchMetrics([]string, int) ([]core.CatalogedMetric, error)
-	GetMetricVersions([]string) ([]core.CatalogedMetric, error)
-	GetMetric([]string, int) (core.CatalogedMetric, error)
-	Load(*core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError)
-	Unload(core.Plugin) (core.CatalogedPlugin, serror.SnapError)
-	PluginCatalog() core.PluginCatalog
-	AvailablePlugins() []core.AvailablePlugin
-	GetAutodiscoverPaths() []string
+	Load(context.Context, *crpc.PluginRequest, ...grpc.CallOption) (*crpc.PluginReply, error)
+	MetricCatalog(context.Context, *crpc.EmptyRequest, ...grpc.CallOption) (*crpc.MetricCatalogReply, error)
+	FetchMetrics(context.Context, *crpc.FetchMetricsRequest, ...grpc.CallOption) (*crpc.MetricCatalogReply, error)
+	GetMetricVersions(context.Context, *crpc.GetMetricVersionsRequest, ...grpc.CallOption) (*crpc.MetricCatalogReply, error)
+	GetMetric(context.Context, *crpc.FetchMetricsRequest, ...grpc.CallOption) (*crpc.MetricReply, error)
+	Unload(context.Context, *crpc.UnloadPluginRequest, ...grpc.CallOption) (*crpc.PluginReply, error)
+	PluginCatalog(context.Context, *crpc.EmptyRequest, ...grpc.CallOption) (*crpc.PluginCatalogReply, error)
+	AvailablePlugins(context.Context, *crpc.EmptyRequest, ...grpc.CallOption) (*crpc.AvailablePluginsReply, error)
+	GetPlugin(context.Context, *crpc.GetPluginRequest, ...grpc.CallOption) (*crpc.GetPluginReply, error)
 }
 
 type managesTasks interface {

@@ -36,10 +36,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/snap/control"
+	crpc "github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/rpc"
 )
@@ -185,10 +187,13 @@ func startTribes(count int) ([]int, error) {
 		if err != nil {
 			return nil, err
 		}
-		c := control.New()
+		l, _ := net.Listen("tcp", ":0")
+		controlPort := l.Addr().(*net.TCPAddr).Port
+		l.Close()
+		c := control.New(control.ListenPort(controlPort))
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
-		l, _ := net.Listen("tcp", ":0")
+		l, _ = net.Listen("tcp", ":0")
 		defer l.Close()
 		s := scheduler.New(scheduler.ListenPortOption(l.Addr().(*net.TCPAddr).Port))
 		conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), grpc.WithInsecure())
@@ -203,7 +208,11 @@ func startTribes(count int) ([]int, error) {
 		t.SetTaskManager(s)
 		t.Start()
 		r, _ := rest.New(false, "", "")
-		r.BindMetricManager(c)
+
+		connection, err := rpcutil.GetClientConnection(control.DefaultListenAddress, controlPort, "", "")
+		controlClient := crpc.NewMetricManagerClient(connection)
+		r.BindMetricManager(controlClient)
+
 		r.BindTaskManager(client)
 		r.BindTribeManager(t)
 		r.Start(":" + strconv.Itoa(mgtPort))

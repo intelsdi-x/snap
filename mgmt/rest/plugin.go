@@ -29,17 +29,16 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	"golang.org/x/net/context"
+
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/control"
+	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
@@ -76,13 +75,14 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 	if strings.HasPrefix(mediaType, "multipart/") {
-		var pluginPath string
+		var pluginName string
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		lp := &rbody.PluginsLoaded{}
 		lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
 		mr := multipart.NewReader(r.Body, params["boundary"])
-		var i int
+		var pluginFile []byte
+		i := 0
 		for {
 			var b []byte
 			p, err := mr.NextPart()
@@ -111,6 +111,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 					respond(500, rbody.FromError(err), w)
 					return
 				}
+
 			}
 
 			// A little sanity checking for files being passed into the API server.
@@ -128,10 +129,9 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 					respond(500, rbody.FromError(e), w)
 					return
 				}
-				if pluginPath, err = writeFile(p.FileName(), b); err != nil {
-					respond(500, rbody.FromError(err), w)
-					return
-				}
+				// Get filename, bytes, and checksum for plugin to pass over gRPC to load
+				pluginName = p.FileName()
+				pluginFile = b
 				checkSum = sha256.Sum256(b)
 			case i == 1:
 				if filepath.Ext(p.FileName()) == ".asc" {
@@ -148,68 +148,38 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			}
 			i++
 		}
-		rp, err := core.NewRequestedPlugin(pluginPath)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-			return
+		restLogger.Info("Loading plugin: ", pluginName)
+		arg := &rpc.PluginRequest{
+			Name:       pluginName,
+			CheckSum:   checkSum[:],
+			Signature:  signature,
+			PluginFile: pluginFile,
 		}
-		// Sanity check, verify the checkSum on the file sent is the same
-		// as after it is written to disk.
-		if rp.CheckSum() != checkSum {
-			e := errors.New("Error: CheckSum mismatch on requested plugin to load")
-			respond(500, rbody.FromError(e), w)
-			return
-		}
-		rp.SetSignature(signature)
-		restLogger.Info("Loading plugin: ", rp.Path())
-		pl, err := s.mm.Load(rp)
+		reply, err := s.mm.Load(context.Background(), arg)
 		if err != nil {
-			var ec int
-			restLogger.Error(err)
-			restLogger.Debugf("Removing file (%s)", rp.Path())
-			err2 := os.RemoveAll(filepath.Dir(rp.Path()))
-			if err2 != nil {
-				restLogger.Error(err2)
-			}
-			rb := rbody.FromError(err)
-			switch rb.ResponseBodyMessage() {
-			case PluginAlreadyLoaded:
-				ec = 409
+			var code int
+			switch err.Error() {
+			case control.ErrPluginAlreadyLoaded.Error():
+				code = 409
 			default:
-				ec = 500
+				code = 500
 			}
-			respond(ec, rb, w)
+			respond(code, rbody.FromError(err), w)
 			return
 		}
-		lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(r.Host, pl))
+		plugin := rpc.ReplyToLoadedPlugin(reply)
+		loadedPlugin := rbody.LoadedPlugin{
+			Name:            plugin.Name,
+			Version:         plugin.Version,
+			Type:            plugin.TypeName,
+			Signed:          plugin.IsSigned,
+			Status:          plugin.Status,
+			LoadedTimestamp: plugin.LoadedTimestamp.Unix(),
+			Href:            catalogedPluginURI(r.Host, plugin),
+		}
+		lp.LoadedPlugins = append(lp.LoadedPlugins, loadedPlugin)
 		respond(201, lp, w)
 	}
-}
-
-func writeFile(filename string, b []byte) (string, error) {
-	// Create temporary directory
-	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		return "", err
-	}
-	f, err := os.Create(path.Join(dir, filename))
-	if err != nil {
-		return "", err
-	}
-	n, err := f.Write(b)
-	log.Debugf("wrote %v to %v", n, f.Name())
-	if err != nil {
-		return "", err
-	}
-	if runtime.GOOS != "windows" {
-		err = f.Chmod(0700)
-		if err != nil {
-			return "", err
-		}
-	}
-	// Close before load
-	f.Close()
-	return f.Name(), nil
 }
 
 func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -241,20 +211,23 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
-	up, se := s.mm.Unload(&plugin{
-		name:       plName,
-		version:    int(plVersion),
-		pluginType: plType,
-	})
-	if se != nil {
-		se.SetFields(f)
-		respond(500, rbody.FromSnapError(se), w)
+
+	restLogger.Info("Unloading plugin: ", plName, plVersion, plType)
+	arg := &rpc.UnloadPluginRequest{
+		Name:       plName,
+		Version:    int32(plVersion),
+		PluginType: plType,
+	}
+	reply, err := s.mm.Unload(context.Background(), arg)
+	//rpc error
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
 		return
 	}
 	pr := &rbody.PluginUnloaded{
-		Name:    up.Name(),
-		Version: up.Version(),
-		Type:    up.TypeName(),
+		Name:    reply.Name,
+		Version: int(reply.Version),
+		Type:    reply.TypeName,
 	}
 	respond(200, pr, w)
 }
@@ -271,40 +244,45 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 	plugins := new(rbody.PluginList)
 
 	// Cache the catalog here to avoid multiple reads
-	plCatalog := s.mm.PluginCatalog()
-	plugins.LoadedPlugins = make([]rbody.LoadedPlugin, len(plCatalog))
-	for i, p := range s.mm.PluginCatalog() {
-		plugins.LoadedPlugins[i] = *catalogedPluginToLoaded(r.Host, p)
+	restLogger.Info("Getting plugin catalog")
+	arg := &rpc.EmptyRequest{}
+	reply, err := s.mm.PluginCatalog(context.Background(), arg)
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
 	}
-
+	plugins.LoadedPlugins = make([]rbody.LoadedPlugin, len(reply.Plugins))
+	for idx, plugin := range reply.Plugins {
+		lp := rpc.ReplyToLoadedPlugin(plugin)
+		plugins.LoadedPlugins[idx] = rbody.LoadedPlugin{
+			Name:            lp.Name,
+			Version:         int(lp.Version),
+			Type:            lp.TypeName,
+			Signed:          lp.IsSigned,
+			Status:          lp.Status,
+			LoadedTimestamp: lp.LoadedTimestamp.Unix(),
+			Href:            catalogedPluginURI(r.Host, lp),
+		}
+	}
 	if detail {
-		aPlugins := s.mm.AvailablePlugins()
-		plugins.AvailablePlugins = make([]rbody.AvailablePlugin, len(aPlugins))
-		for i, p := range aPlugins {
+		reply, err := s.mm.AvailablePlugins(context.Background(), arg)
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+		}
+		plugins.AvailablePlugins = make([]rbody.AvailablePlugin, len(reply.Plugins))
+		for i, plugin := range reply.Plugins {
+			p := rpc.ReplyToAvailablePlugin(plugin)
 			plugins.AvailablePlugins[i] = rbody.AvailablePlugin{
-				Name:             p.Name(),
-				Version:          p.Version(),
-				Type:             p.TypeName(),
-				HitCount:         p.HitCount(),
-				LastHitTimestamp: p.LastHit().Unix(),
-				ID:               p.ID(),
+				Name:             p.Name,
+				Version:          p.Version,
+				Type:             p.TypeName,
+				HitCount:         p.HitCount,
+				LastHitTimestamp: p.LastHit.Unix(),
+				ID:               p.ID,
 			}
 		}
 	}
 
 	respond(200, plugins, w)
-}
-
-func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) *rbody.LoadedPlugin {
-	return &rbody.LoadedPlugin{
-		Name:            c.Name(),
-		Version:         c.Version(),
-		Type:            c.TypeName(),
-		Signed:          c.IsSigned(),
-		Status:          c.Status(),
-		LoadedTimestamp: c.LoadedTimestamp().Unix(),
-		Href:            catalogedPluginURI(host, c),
-	}
 }
 
 func (s *Server) getPluginsByType(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -342,28 +320,22 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		respond(400, rbody.FromSnapError(se), w)
 		return
 	}
-
-	pluginCatalog := s.mm.PluginCatalog()
-	var plugin core.CatalogedPlugin
-	for _, item := range pluginCatalog {
-		if item.Name() == plName &&
-			item.Version() == int(plVersion) &&
-			item.TypeName() == plType {
-			plugin = item
-			break
-		}
-	}
-	if plugin == nil {
-		se := serror.New(ErrPluginNotFound, f)
-		respond(404, rbody.FromSnapError(se), w)
-		return
-	}
-
 	rd := r.FormValue("download")
-	d, _ := strconv.ParseBool(rd)
+	plDownload, _ := strconv.ParseBool(rd)
+	arg := &rpc.GetPluginRequest{
+		Name:     plName,
+		Version:  int32(plVersion),
+		Type:     plType,
+		Download: plDownload,
+	}
+	reply, err := s.mm.GetPlugin(context.Background(), arg)
+	if err != nil {
+		respond(404, rbody.FromError(err), w)
+	}
+	lp := rpc.ReplyToLoadedPlugin(reply.Plugin)
 	var configPolicy []rbody.PolicyTable
-	if plugin.TypeName() == "processor" || plugin.TypeName() == "publisher" {
-		rules := plugin.Policy().Get([]string{""}).RulesAsTable()
+	if plType == "processor" || plType == "publisher" {
+		rules := lp.ConfigPolicy.Get([]string{""}).RulesAsTable()
 		configPolicy = make([]rbody.PolicyTable, 0, len(rules))
 		for _, r := range rules {
 			configPolicy = append(configPolicy, rbody.PolicyTable{
@@ -380,21 +352,14 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		configPolicy = nil
 	}
 
-	if d {
-		b, err := ioutil.ReadFile(plugin.PluginPath())
-		if err != nil {
-			f["plugin-path"] = plugin.PluginPath()
-			se := serror.New(err, f)
-			respond(500, rbody.FromSnapError(se), w)
-			return
-		}
+	if plDownload {
 
 		w.Header().Set("Content-Encoding", "gzip")
 		gz := gzip.NewWriter(w)
 		defer gz.Close()
-		_, err = gz.Write(b)
+		_, err := gz.Write(reply.PluginBytes)
 		if err != nil {
-			f["plugin-path"] = plugin.PluginPath()
+			//f["plugin-path"] = plugin.PluginPath()
 			se := serror.New(err, f)
 			respond(500, rbody.FromSnapError(se), w)
 			return
@@ -402,19 +367,19 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		return
 	} else {
 		pluginRet := &rbody.PluginReturned{
-			Name:            plugin.Name(),
-			Version:         plugin.Version(),
-			Type:            plugin.TypeName(),
-			Signed:          plugin.IsSigned(),
-			Status:          plugin.Status(),
-			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
-			Href:            catalogedPluginURI(r.Host, plugin),
+			Name:            lp.Name,
+			Version:         int(lp.Version),
+			Type:            lp.TypeName,
+			Signed:          lp.IsSigned,
+			Status:          lp.Status,
+			LoadedTimestamp: lp.LoadedTimestamp.Unix(),
+			Href:            catalogedPluginURI(r.Host, lp),
 			ConfigPolicy:    configPolicy,
 		}
 		respond(200, pluginRet, w)
 	}
 }
 
-func catalogedPluginURI(host string, c core.CatalogedPlugin) string {
-	return fmt.Sprintf("%s://%s/v1/plugins/%s/%s/%d", protocolPrefix, host, c.TypeName(), c.Name(), c.Version())
+func catalogedPluginURI(host string, c rpc.LoadedPlugin) string {
+	return fmt.Sprintf("%s://%s/v1/plugins/%s/%s/%d", protocolPrefix, host, c.TypeName, c.Name, c.Version)
 }

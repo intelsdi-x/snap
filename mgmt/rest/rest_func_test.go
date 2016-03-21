@@ -34,20 +34,19 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
-
-	"google.golang.org/grpc"
 
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/control"
+	crpc "github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -439,18 +438,30 @@ func startAPI(opts ...interface{}) *restAPIInstance {
 			controlOpts = append(controlOpts, t)
 		}
 	}
+
+	l, _ := net.Listen("tcp", ":0")
+	controlPort := l.Addr().(*net.TCPAddr).Port
+	controlOpts = append(controlOpts, control.ListenPort(controlPort))
+	l.Close()
+
 	c := control.New(controlOpts...)
 	c.Start()
-	l, _ := net.Listen("tcp", ":0")
-	s := scheduler.New(scheduler.ListenPortOption(l.Addr().(*net.TCPAddr).Port))
+
+	l, _ = net.Listen("tcp", ":0")
+	schedulerPort := l.Addr().(*net.TCPAddr).Port
+	s := scheduler.New(scheduler.ListenPortOption(schedulerPort))
 	s.SetMetricManager(c)
 	l.Close()
 	s.Start()
-	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), grpc.WithInsecure())
+	conn, err := rpcutil.GetClientConnection(scheduler.DefaultListenAddr, schedulerPort, "", "")
 	So(err, ShouldBeNil)
 	client := rpc.NewTaskManagerClient(conn)
-	r.BindMetricManager(c)
 	r.BindTaskManager(client)
+
+	connection, _ := rpcutil.GetClientConnection(control.DefaultListenAddress, controlPort, "", "")
+	controlClient := crpc.NewMetricManagerClient(connection)
+	r.BindMetricManager(controlClient)
+
 	r.BindConfigManager(c.Config)
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.

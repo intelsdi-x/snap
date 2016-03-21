@@ -37,7 +37,9 @@ import (
 	"github.com/pborman/uuid"
 
 	"github.com/intelsdi-x/snap/control"
+	crpc "github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/mgmt/rest"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -80,21 +82,30 @@ func startAPI() (string, error) {
 	rest.StreamingBufferWindow = 0.01
 	log.SetLevel(LOG_LEVEL)
 	r, _ := rest.New(false, "", "")
-	c := control.New()
-	c.Start()
+
 	l, _ := net.Listen("tcp", ":0")
+	controlPort := l.Addr().(*net.TCPAddr).Port
+	l.Close()
+	c := control.New(control.ListenPort(controlPort))
+
+	c.Start()
+	l, _ = net.Listen("tcp", ":0")
 	s := scheduler.New(scheduler.ListenPortOption(l.Addr().(*net.TCPAddr).Port))
 	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), grpc.WithInsecure())
 	if err != nil {
 		return "", err
 	}
 	client := rpc.NewTaskManagerClient(conn)
-	s.SetMetricManager(c)
 	l.Close()
+	r.BindTaskManager(client)
+
+	connection, _ := rpcutil.GetClientConnection(control.DefaultListenAddress, controlPort, "", "")
+	controlClient := crpc.NewMetricManagerClient(connection)
+	r.BindMetricManager(controlClient)
+	s.SetMetricManager(c)
 	s.Start()
 	r.BindConfigManager(c.Config)
-	r.BindMetricManager(c)
-	r.BindTaskManager(client)
+
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
 		err, ok := <-ch
@@ -208,7 +219,7 @@ func TestSnapClient(t *testing.T) {
 			Convey("plugin already loaded", func() {
 				p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
 				So(p1.Err, ShouldNotBeNil)
-				So(p1.Err.Error(), ShouldEqual, "plugin is already loaded")
+				So(p1.Err.Error(), ShouldContainSubstring, "plugin is already loaded")
 			})
 		})
 	})
@@ -476,7 +487,7 @@ func TestSnapClient(t *testing.T) {
 		Convey("unload unknown plugin", func() {
 			p := c.UnloadPlugin("not a type", "foo", 3)
 			So(p.Err, ShouldNotBeNil)
-			So(p.Err.Error(), ShouldEqual, "plugin not found")
+			So(p.Err.Error(), ShouldContainSubstring, "plugin not found")
 		})
 		Convey("unload one of multiple", func() {
 			p1 := c.GetPlugins(false)

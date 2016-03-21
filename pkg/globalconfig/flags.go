@@ -57,6 +57,8 @@ type flagConfig struct {
 	RootKeyPath      *string `json:"root-key"`
 	SchedulerPort    *int    `json:"scheduler-port"`
 	SchedulerAddr    *string `json:"scheduler-addr"`
+	ControlAddr      *string `json:"control-addr"`
+	ControlPort      *int    `json:"control-port"`
 }
 
 // NewConfig returns a reference to a global config type for the snap daemon
