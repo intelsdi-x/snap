@@ -25,12 +25,23 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/vrischmann/jsonutil"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
+)
+
+// default configuration values
+const (
+	defaultMaxRunningPlugins int           = 3
+	defaultPluginTrust       int           = 1
+	defaultAutoDiscoverPath  string        = ""
+	defaultKeyringPaths      string        = ""
+	defaultCacheExpiration   time.Duration = 500 * time.Millisecond
 )
 
 type pluginConfig struct {
@@ -51,15 +62,25 @@ type pluginConfigItem struct {
 	Versions map[int]*cdata.ConfigDataNode `json:"versions"`
 }
 
-type config struct {
-	Plugins *pluginConfig `json:"plugins"`
+// holds the configuration passed in through the SNAP config file
+type Config struct {
+	MaxRunningPlugins int               `json:"max_running_plugins,omitempty"yaml:"max_running_plugins,omitempty"`
+	PluginTrust       int               `json:"plugin_trust_level,omitempty"yaml:"plugin_trust_level,omitempty"`
+	AutoDiscoverPath  string            `json:"auto_discover_path,omitempty"yaml:"auto_discover_path,omitempty"`
+	KeyringPaths      string            `json:"keyring_paths,omitempty"yaml:"keyring_paths,omitempty"`
+	CacheExpiration   jsonutil.Duration `json:"cache_expiration,omitempty"yaml:"cache_expiration,omitempty"`
+	Plugins           *pluginConfig     `json:"plugins,omitempty"yaml:"plugins,omitempty"`
 }
 
-// NewConfig returns a reference to a global config type for the snap daemon
-// by using a newly created empty plugin config.
-func NewConfig() *config {
-	return &config{
-		Plugins: newPluginConfig(),
+// get the default snapd configuration
+func GetDefaultConfig() *Config {
+	return &Config{
+		MaxRunningPlugins: defaultMaxRunningPlugins,
+		PluginTrust:       defaultPluginTrust,
+		AutoDiscoverPath:  defaultAutoDiscoverPath,
+		KeyringPaths:      defaultKeyringPaths,
+		CacheExpiration:   jsonutil.Duration{defaultCacheExpiration},
+		Plugins:           newPluginConfig(),
 	}
 }
 
@@ -80,48 +101,35 @@ func newPluginConfig() *pluginConfig {
 	}
 }
 
-func (p *config) LoadConfig(b []byte, cfg map[string]interface{}) {
-	if _, ok := cfg["plugins"]; ok {
-		err := json.Unmarshal(b, p)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"block":   "LoadConfig",
-				"_module": "control-config",
-				"error":   err.Error(),
-			}).Fatal("invalid config")
-		}
-	}
-}
-
-func (p *config) GetPluginConfigDataNode(pluginType core.PluginType, name string, ver int) cdata.ConfigDataNode {
+func (p *Config) GetPluginConfigDataNode(pluginType core.PluginType, name string, ver int) cdata.ConfigDataNode {
 	return *p.Plugins.getPluginConfigDataNode(pluginType, name, ver)
 }
 
-func (p *config) MergePluginConfigDataNode(pluginType core.PluginType, name string, ver int, cdn *cdata.ConfigDataNode) cdata.ConfigDataNode {
+func (p *Config) MergePluginConfigDataNode(pluginType core.PluginType, name string, ver int, cdn *cdata.ConfigDataNode) cdata.ConfigDataNode {
 	p.Plugins.mergePluginConfigDataNode(pluginType, name, ver, cdn)
 	return *p.Plugins.getPluginConfigDataNode(pluginType, name, ver)
 }
 
-func (p *config) MergePluginConfigDataNodeAll(cdn *cdata.ConfigDataNode) cdata.ConfigDataNode {
+func (p *Config) MergePluginConfigDataNodeAll(cdn *cdata.ConfigDataNode) cdata.ConfigDataNode {
 	p.Plugins.mergePluginConfigDataNodeAll(cdn)
 	return *p.Plugins.All
 }
 
-func (p *config) DeletePluginConfigDataNodeField(pluginType core.PluginType, name string, ver int, fields ...string) cdata.ConfigDataNode {
+func (p *Config) DeletePluginConfigDataNodeField(pluginType core.PluginType, name string, ver int, fields ...string) cdata.ConfigDataNode {
 	for _, field := range fields {
 		p.Plugins.deletePluginConfigDataNodeField(pluginType, name, ver, field)
 	}
 	return *p.Plugins.getPluginConfigDataNode(pluginType, name, ver)
 }
 
-func (p *config) DeletePluginConfigDataNodeFieldAll(fields ...string) cdata.ConfigDataNode {
+func (p *Config) DeletePluginConfigDataNodeFieldAll(fields ...string) cdata.ConfigDataNode {
 	for _, field := range fields {
 		p.Plugins.deletePluginConfigDataNodeFieldAll(field)
 	}
 	return *p.Plugins.All
 }
 
-func (p *config) GetPluginConfigDataNodeAll() cdata.ConfigDataNode {
+func (p *Config) GetPluginConfigDataNodeAll() cdata.ConfigDataNode {
 	return *p.Plugins.All
 }
 

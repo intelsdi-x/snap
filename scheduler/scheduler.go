@@ -109,7 +109,23 @@ type managesWork interface {
 // New returns an instance of the scheduler
 // The MetricManager must be set before the scheduler can be started.
 // The MetricManager must be started before it can be used.
-func New(opts ...workManagerOption) *scheduler {
+func New(cfg *Config) *scheduler {
+	schedulerLogger.WithFields(log.Fields{
+		"_block": "New",
+		"value":  cfg.WorkManagerQueueSize,
+	}).Info("Setting work manager queue size")
+	schedulerLogger.WithFields(log.Fields{
+		"_block": "New",
+		"value":  cfg.WorkManagerPoolSize,
+	}).Info("Setting work manager pool size")
+	opts := []workManagerOption{
+		CollectQSizeOption(cfg.WorkManagerQueueSize),
+		CollectWkrSizeOption(cfg.WorkManagerPoolSize),
+		PublishQSizeOption(cfg.WorkManagerQueueSize),
+		PublishWkrSizeOption(cfg.WorkManagerPoolSize),
+		ProcessQSizeOption(cfg.WorkManagerQueueSize),
+		ProcessWkrSizeOption(cfg.WorkManagerPoolSize),
+	}
 	s := &scheduler{
 		tasks:           newTaskCollection(),
 		eventManager:    gomit.NewEventController(),

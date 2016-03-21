@@ -74,9 +74,9 @@ func TestCollectPublishWorkflow(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	Convey("Given a started plugin control", t, func() {
 
-		c := control.New()
+		c := control.New(control.GetDefaultConfig())
 		c.Start()
-		s := New()
+		s := New(GetDefaultConfig())
 		s.SetMetricManager(c)
 		Convey("create a workflow", func() {
 			rp, err := core.NewRequestedPlugin(snap_collector_mock2_path)

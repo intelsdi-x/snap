@@ -1,59 +1,81 @@
 {
-    "flags": {
-        "log-level": 1,
-        "plugin-trust": 0,
-        "auto-discover": "build/plugin",
-        "rest-auth": true,
-        "rest-auth-pwd": "example"
-    },    
-    "plugins": {
-        "all": {
-            "password": "p@ssw0rd"
-        },
-        "collector": {
+    "log_level": 2,
+    "log_path": "/some/log/dir",
+    "gomaxprocs": 2,
+    "control": {
+        "auto_discover_path": "/some/directory/with/plugins",
+        "cache_expiration": "750ms",
+        "max_running_plugins": 1,
+        "keyring_paths": "/some/path/with/keyring/files",
+        "plugin_trust_level": 0,
+        "plugins": {
             "all": {
-                "user": "jane"
+                "password": "p@ssw0rd"
             },
-            "pcm": {
-                "all": {
-                    "path": "/usr/local/pcm/bin"
-                },
-                "versions": {
-                    "1": {
-                        "user": "john",
-                        "someint": 1234,
-                        "somefloat": 3.14,
-                        "somebool": true
-                    }
-                }
-            },
-            "psutil": {
-                "all": {
-                    "path": "/usr/local/bin/psutil"
-                }
-            }
-
-        },
-        "publisher": {
-            "influxdb": {
-                "all": {
-                    "server": "xyz.local",
-                    "password": "$password"
-                }
-            }
-        },
-        "processor": {
-            "movingaverage" : {
+            "collector": {
                 "all": {
                     "user": "jane"
                 },
-                "versions": {
-                    "1": {
-                        "user": "tiffany",
-                        "password": "new password"
+                "pcm": {
+                    "all": {
+                        "path": "/usr/local/pcm/bin"
+                    },
+                    "versions": {
+                        "1": {
+                            "user": "john",
+                            "someint": 1234,
+                            "somefloat": 3.14,
+                            "somebool": true
+                        }
+                    }
+                },
+                "psutil": {
+                    "all": {
+                        "path": "/usr/local/bin/psutil"
+                    }
+                }
+            },
+            "publisher": {
+                "influxdb": {
+                    "all": {
+                        "server": "xyz.local",
+                        "password": "$password"
+                    }
+                }
+            },
+            "processor": {
+                "movingaverage": {
+                    "all": {
+                        "user": "jane"
+                    },
+                    "versions": {
+                        "1": {
+                            "user": "tiffany",
+                            "password": "new password"
+                        }
                     }
                 }
             }
         }
+    },
+    "scheduler": {
+        "work_manager_queue_size": 10,
+        "work_manager_pool_size": 2
+    },
+    "restapi": {
+        "enable": true,
+        "https": true,
+        "rest_auth": true,
+        "rest_auth_password": "changeme",
+        "rest_certificate": "/path/to/cert/file",
+        "rest_key": "/path/to/private/key",
+        "port": 8282
+    },
+    "tribe": {
+        "enable": true,
+        "bind_addr": "127.0.0.1",
+        "bind_port": 16000,
+        "name": "localhost",
+        "seed": "1.1.1.1:16000"
     }
 }

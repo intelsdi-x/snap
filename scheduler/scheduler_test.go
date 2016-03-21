@@ -163,7 +163,7 @@ func TestScheduler(t *testing.T) {
 		c.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.gob"})
 		c.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"snap.json", "snap.gob"})
 		c.setAcceptedContentType("file", core.PublisherPluginType, -1, []string{"snap.json"})
-		s := New()
+		s := New(GetDefaultConfig())
 		s.SetMetricManager(c)
 		w := wmap.NewWorkflowMap()
 		// Collection node
@@ -224,7 +224,7 @@ func TestScheduler(t *testing.T) {
 		})
 
 		Convey("returns an error when scheduler started and MetricManager is not set", func() {
-			s1 := New()
+			s1 := New(GetDefaultConfig())
 			err := s1.Start()
 			So(err, ShouldNotBeNil)
 			fmt.Printf("%v", err)
@@ -243,7 +243,7 @@ func TestScheduler(t *testing.T) {
 
 		// TODO NICK
 		Convey("returns an error when a schedule does not validate", func() {
-			s1 := New()
+			s1 := New(GetDefaultConfig())
 			s1.Start()
 			_, err := s1.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
 			So(err, ShouldNotBeNil)
@@ -329,7 +329,7 @@ func TestScheduler(t *testing.T) {
 	})
 	Convey("Stop()", t, func() {
 		Convey("Should set scheduler state to SchedulerStopped", func() {
-			scheduler := New()
+			scheduler := New(GetDefaultConfig())
 			c := new(mockMetricManager)
 			scheduler.metricManager = c
 			scheduler.Start()
@@ -339,7 +339,7 @@ func TestScheduler(t *testing.T) {
 	})
 	Convey("SetMetricManager()", t, func() {
 		Convey("Should set metricManager for scheduler", func() {
-			scheduler := New()
+			scheduler := New(GetDefaultConfig())
 			c := new(mockMetricManager)
 			scheduler.SetMetricManager(c)
 			So(scheduler.metricManager, ShouldEqual, c)

@@ -70,7 +70,7 @@ type pluginControl struct {
 	// TODO, going to need coordination on changing of these
 	RunningPlugins executablePlugins
 	Started        bool
-	Config         *config
+	Config         *Config
 
 	autodiscoverPaths []string
 	eventManager      *gomit.EventController
@@ -143,7 +143,7 @@ func CacheExpiration(t time.Duration) PluginControlOpt {
 }
 
 // OptSetConfig sets the plugin control configuration.
-func OptSetConfig(cfg *config) PluginControlOpt {
+func OptSetConfig(cfg *Config) PluginControlOpt {
 	return func(c *pluginControl) {
 		c.Config = cfg
 		c.pluginManager.SetPluginConfig(cfg.Plugins)
@@ -151,10 +151,15 @@ func OptSetConfig(cfg *config) PluginControlOpt {
 }
 
 // New returns a new pluginControl instance
-func New(opts ...PluginControlOpt) *pluginControl {
-
+func New(cfg *Config) *pluginControl {
+	// construct a slice of options from the input configuration
+	opts := []PluginControlOpt{
+		MaxRunningPlugins(cfg.MaxRunningPlugins),
+		CacheExpiration(cfg.CacheExpiration.Duration),
+		OptSetConfig(cfg),
+	}
 	c := &pluginControl{}
-	c.Config = NewConfig()
+	c.Config = cfg
 	// Initialize components
 	//
 	// Event Manager

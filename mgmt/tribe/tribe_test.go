@@ -71,6 +71,17 @@ func (t *mockTask) Option(...core.TaskOption) core.TaskOption { return core.Task
 func (t *mockTask) WMap() *wmap.WorkflowMap                   { return nil }
 func (t *mockTask) Schedule() schedule.Schedule               { return nil }
 
+func getTestConfig() *Config {
+	cfg := GetDefaultConfig()
+	cfg.BindAddr = "127.0.0.1"
+	cfg.BindPort = getAvailablePort()
+	cfg.RestAPIPort = getAvailablePort()
+	cfg.MemberlistConfig.PushPullInterval = 200 * time.Millisecond
+	cfg.MemberlistConfig.GossipInterval = 300 * time.Second
+	cfg.MemberlistConfig.GossipNodes = 0
+	return cfg
+}
+
 func TestTribeFullStateSync(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 	tribes := []*tribe{}
@@ -79,10 +90,8 @@ func TestTribeFullStateSync(t *testing.T) {
 	plugin1 := agreement.Plugin{Name_: "plugin1", Version_: 1, Type_: core.ProcessorPluginType}
 	task1 := agreement.Task{ID: uuid.New()}
 	Convey("Tribe members are started", t, func() {
-		conf := DefaultConfig("seed", "127.0.0.1", getAvailablePort(), "", getAvailablePort())
-		conf.MemberlistConfig.PushPullInterval = 200 * time.Millisecond
-		conf.MemberlistConfig.GossipInterval = 300 * time.Second
-		conf.MemberlistConfig.GossipNodes = 0
+		conf := getTestConfig()
+		conf.Name = "seed"
 		seed, err := New(conf)
 		So(seed, ShouldNotBeNil)
 		So(err, ShouldBeNil)
@@ -90,9 +99,9 @@ func TestTribeFullStateSync(t *testing.T) {
 		seed.SetTaskManager(taskManager)
 		tribes = append(tribes, seed)
 		for i := 1; i < numOfTribes; i++ {
-			conf = DefaultConfig(fmt.Sprintf("member-%v", i), "127.0.0.1", getAvailablePort(), fmt.Sprintf("%v:%v", "127.0.0.1", seed.memberlist.LocalNode().Port), getAvailablePort())
-			conf.MemberlistConfig.GossipInterval = 300 * time.Second
-			conf.MemberlistConfig.GossipNodes = 0
+			conf := getTestConfig()
+			conf.Name = fmt.Sprintf("member-%v", i)
+			conf.Seed = fmt.Sprintf("%v:%v", "127.0.0.1", seed.memberlist.LocalNode().Port)
 			tr, err := New(conf)
 			taskManager := &mockTaskManager{}
 			tr.SetTaskManager(taskManager)
@@ -181,10 +190,8 @@ func TestTribeFullStateSyncOnJoin(t *testing.T) {
 	task1 := agreement.Task{ID: uuid.New()}
 	task2 := agreement.Task{ID: uuid.New()}
 	Convey("A seed is started", t, func() {
-		conf := DefaultConfig("seed", "127.0.0.1", getAvailablePort(), "", getAvailablePort())
-		conf.MemberlistConfig.PushPullInterval = 200 * time.Millisecond
-		conf.MemberlistConfig.GossipInterval = 300 * time.Second
-		conf.MemberlistConfig.GossipNodes = 0
+		conf := getTestConfig()
+		conf.Name = "seed"
 		seed, err := New(conf)
 		So(seed, ShouldNotBeNil)
 		So(err, ShouldBeNil)
@@ -204,10 +211,9 @@ func TestTribeFullStateSyncOnJoin(t *testing.T) {
 			So(len(seed.members[seed.memberlist.LocalNode().Name].TaskAgreements[agreement1].Tasks), ShouldEqual, 2)
 			Convey("members are added", func() {
 				for i := 1; i < numOfTribes; i++ {
-					conf := DefaultConfig(fmt.Sprintf("member-%v", i), "127.0.0.1", getAvailablePort(), fmt.Sprintf("%v:%v", "127.0.0.1", seed.memberlist.LocalNode().Port), getAvailablePort())
-					conf.MemberlistConfig.GossipInterval = 300 * time.Second
-					conf.MemberlistConfig.PushPullInterval = 200 * time.Millisecond
-					conf.MemberlistConfig.GossipNodes = 0
+					conf := getTestConfig()
+					conf.Name = fmt.Sprintf("member-%v", i)
+					conf.Seed = fmt.Sprintf("%v:%v", "127.0.0.1", seed.memberlist.LocalNode().Port)
 					tr, err := New(conf)
 					taskManager := &mockTaskManager{}
 					tr.SetTaskManager(taskManager)
@@ -764,7 +770,9 @@ func TestTribePluginAgreement(t *testing.T) {
 
 				Convey("Membership increases as members join", func(c C) {
 					seed := fmt.Sprintf("%v:%v", tribes[0].memberlist.LocalNode().Addr, tribes[0].memberlist.LocalNode().Port)
-					conf := DefaultConfig(fmt.Sprintf("member-%d", numOfTribes+1), "127.0.0.1", getAvailablePort(), seed, getAvailablePort())
+					conf := getTestConfig()
+					conf.Name = fmt.Sprintf("member-%d", numOfTribes+1)
+					conf.Seed = seed
 					tr, err := New(conf)
 					if err != nil {
 						So(err, ShouldBeNil)
@@ -1068,7 +1076,12 @@ func getTribes(numOfTribes int, seedTribe *tribe) []*tribe {
 		// if i > 0 && seedTribe == nil {
 		// 	seed = fmt.Sprintf("127.0.0.1:%d", seedPort)
 		// }
-		conf := DefaultConfig(fmt.Sprintf("member-%v", i), "127.0.0.1", port, seed, getAvailablePort())
+		conf := GetDefaultConfig()
+		conf.Name = fmt.Sprintf("member-%v", i)
+		conf.BindAddr = "127.0.0.1"
+		conf.BindPort = port
+		conf.Seed = seed
+		conf.RestAPIPort = getAvailablePort()
 		conf.MemberlistConfig.RetransmitMult = conf.MemberlistConfig.RetransmitMult * 2
 		tr, err := New(conf)
 		taskManager := &mockTaskManager{}

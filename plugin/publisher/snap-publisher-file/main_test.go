@@ -48,7 +48,7 @@ func TestFilePublisherLoad(t *testing.T) {
 		//
 		//TODO cannot test this locally. We need AMQP and integration tests.
 		SkipConvey("ensure plugin loads and responds", t, func() {
-			c := control.New()
+			c := control.New(control.GetDefaultConfig())
 			c.Start()
 			rp, _ := core.NewRequestedPlugin(PluginPath)
 			_, err := c.Load(rp)

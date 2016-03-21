@@ -33,6 +33,7 @@ import (
 
 	"github.com/pborman/uuid"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/vrischmann/jsonutil"
 
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control/plugin"
@@ -106,7 +107,7 @@ func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, serror.SnapE
 
 func TestPluginControlGenerateArgs(t *testing.T) {
 	Convey("pluginControl.Start", t, func() {
-		c := New()
+		c := New(GetDefaultConfig())
 		Convey("starts successfully", func() {
 			err := c.Start()
 			So(c.Started, ShouldBeTrue)
@@ -123,7 +124,7 @@ func TestPluginControlGenerateArgs(t *testing.T) {
 
 func TestSwapPlugin(t *testing.T) {
 	if SnapPath != "" {
-		c := New()
+		c := New(GetDefaultConfig())
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
 		lpe := newListenToPluginEvent()
@@ -313,7 +314,7 @@ func TestLoad(t *testing.T) {
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
 	if SnapPath != "" {
-		c := New()
+		c := New(GetDefaultConfig())
 
 		// Testing trying to load before starting pluginControl
 		Convey("pluginControl before being started", t, func() {
@@ -367,7 +368,7 @@ func TestLoad(t *testing.T) {
 func TestLoadWithSignedPlugins(t *testing.T) {
 	if SnapPath != "" {
 		Convey("pluginControl.Load should successufully load a signed plugin with trust enabled", t, func() {
-			c := New()
+			c := New(GetDefaultConfig())
 			c.pluginTrust = PluginTrustEnabled
 			c.signingManager = &mocksigningManager{signed: true}
 			lpe := newListenToPluginEvent()
@@ -383,7 +384,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 		})
 		Convey("pluginControl.Load should successfully load unsigned plugin when trust level set to warning", t, func() {
-			c := New()
+			c := New(GetDefaultConfig())
 			c.pluginTrust = PluginTrustWarn
 			c.signingManager = &mocksigningManager{signed: false}
 			lpe := newListenToPluginEvent()
@@ -398,7 +399,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 		})
 		Convey("pluginControl.Load returns error with trust enabled and signing not validated", t, func() {
-			c := New()
+			c := New(GetDefaultConfig())
 			c.pluginTrust = PluginTrustEnabled
 			c.signingManager = &mocksigningManager{signed: false}
 			c.Start()
@@ -418,7 +419,7 @@ func TestUnload(t *testing.T) {
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
 	if SnapPath != "" {
-		c := New()
+		c := New(GetDefaultConfig())
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestUnload", lpe)
 		c.Start()
@@ -481,7 +482,7 @@ func TestUnload(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	Convey("pluginControl.Stop", t, func() {
-		c := New()
+		c := New(GetDefaultConfig())
 		lps := newLoadedPlugins()
 		err := lps.add(&loadedPlugin{
 			Type: plugin.CollectorPluginType,
@@ -505,7 +506,7 @@ func TestStop(t *testing.T) {
 func TestPluginCatalog(t *testing.T) {
 	ts := time.Now()
 
-	c := New()
+	c := New(GetDefaultConfig())
 
 	// We need our own plugin manager to drop mock
 	// loaded plugins into.  Aribitrarily adding
@@ -704,7 +705,7 @@ func (m *mockCDProc) HasRules() bool {
 
 func TestExportedMetricCatalog(t *testing.T) {
 	Convey(".MetricCatalog()", t, func() {
-		c := New()
+		c := New(GetDefaultConfig())
 		lp := &loadedPlugin{}
 		mt := newMetricType([]string{"foo", "bar"}, time.Now(), lp)
 		c.metricCatalog.Add(mt)
@@ -725,7 +726,7 @@ func TestExportedMetricCatalog(t *testing.T) {
 
 func TestMetricExists(t *testing.T) {
 	Convey("MetricExists()", t, func() {
-		c := New()
+		c := New(GetDefaultConfig())
 		c.metricCatalog = &mc{}
 		So(c.MetricExists([]string{"hi"}, -1), ShouldEqual, false)
 	})
@@ -780,7 +781,7 @@ func (m MockMetricType) Tags() map[string]string { return nil }
 
 func TestMetricConfig(t *testing.T) {
 	Convey("required config provided by task", t, func() {
-		c := New()
+		c := New(GetDefaultConfig())
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
@@ -806,9 +807,9 @@ func TestMetricConfig(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	})
 	Convey("nil config provided by task", t, func() {
-		config := NewConfig()
+		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
-		c := New(OptSetConfig(config))
+		c := New(config)
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
@@ -829,9 +830,9 @@ func TestMetricConfig(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	})
 	Convey("required config provided by global plugin config", t, func() {
-		config := NewConfig()
+		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
-		c := New(OptSetConfig(config))
+		c := New(config)
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
@@ -855,9 +856,9 @@ func TestMetricConfig(t *testing.T) {
 
 func TestRoutingCachingStrategy(t *testing.T) {
 	Convey("Given loaded plugins that use sticky routing", t, func() {
-		config := NewConfig()
+		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
-		c := New(OptSetConfig(config))
+		c := New(config)
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
@@ -891,10 +892,10 @@ func TestRoutingCachingStrategy(t *testing.T) {
 				err = c.pluginRunner.runPlugin(lp.Details)
 				So(err, ShouldBeNil)
 			}
-			// The cache ttl should be 100ms which is what the plugin exposed (no system default was provided)
+			// The cache ttl should be 500ms. The system default is 500ms, but the plugin exposed 100ms which is less than the system default.
 			ttl, err := pool.CacheTTL(tasks[0])
 			So(err, ShouldBeNil)
-			So(ttl, ShouldResemble, 100*time.Millisecond)
+			So(ttl, ShouldResemble, 500*time.Millisecond)
 			So(pool.Strategy(), ShouldHaveSameTypeAs, strategy.NewSticky(ttl))
 			So(pool.Count(), ShouldEqual, len(tasks))
 			So(pool.SubscriptionCount(), ShouldEqual, len(tasks))
@@ -913,7 +914,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 	})
 
 	Convey("Given loaded plugins that use least-recently-used routing", t, func() {
-		c := New()
+		c := New(GetDefaultConfig())
 		c.Start()
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(
 			optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}),
@@ -981,9 +982,10 @@ func TestRoutingCachingStrategy(t *testing.T) {
 
 func TestCollectDynamicMetrics(t *testing.T) {
 	Convey("given a plugin using the native client", t, func() {
-		config := NewConfig()
+		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
-		c := New(OptSetConfig(config), CacheExpiration(time.Second*1))
+		config.CacheExpiration = jsonutil.Duration{time.Second * 1}
+		c := New(config)
 		c.Start()
 		So(strategy.GlobalCacheExpiration, ShouldResemble, time.Second*1)
 		lpe := newListenToPluginEvent()
@@ -1111,7 +1113,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 func TestFailedPlugin(t *testing.T) {
 	Convey("given a loaded plugin", t, func() {
 		// Create controller
-		c := New()
+		c := New(GetDefaultConfig())
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TEST", lpe)
@@ -1184,9 +1186,9 @@ func TestCollectMetrics(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		config := NewConfig()
+		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
-		c := New(OptSetConfig(config))
+		c := New(config)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		lpe := newListenToPluginEvent()
@@ -1263,7 +1265,7 @@ func TestCollectMetrics(t *testing.T) {
 		plugin.PingTimeoutLimit = 1
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 		// Create controller
-		c := New()
+		c := New(GetDefaultConfig())
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		load(c, PluginPath)
@@ -1306,8 +1308,7 @@ func TestPublishMetrics(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		config := NewConfig()
-		c := New(OptSetConfig(config))
+		c := New(GetDefaultConfig())
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestPublishMetrics", lpe)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
@@ -1326,7 +1327,7 @@ func TestPublishMetrics(t *testing.T) {
 
 		Convey("Subscribe to file publisher with good config", func() {
 			n := cdata.NewNode()
-			config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/snap-TestPublishMetrics.out"}))
+			c.Config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/snap-TestPublishMetrics.out"}))
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:3")
 			So(errp, ShouldBeNil)
 			pool.Subscribe("1", strategy.UnboundSubscriptionType)
@@ -1360,7 +1361,7 @@ func TestProcessMetrics(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		c := New()
+		c := New(GetDefaultConfig())
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestProcessMetrics", lpe)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
