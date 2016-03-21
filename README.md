@@ -23,7 +23,7 @@ limitations under the License.
 [![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap)
 [![Go Report Card](http://goreportcard.com/badge/intelsdi-x/snap)](http://goreportcard.com/report/intelsdi-x/snap)
 
-<img src="https://cloud.githubusercontent.com/assets/12282848/11570134/809832de-99aa-11e5-852a-cf599c1d893b.jpg" width="50%">
+<img src="https://cloud.githubusercontent.com/assets/1744971/13930753/6f676b34-ef5d-11e5-97be-8503562cd5fe.png" width="50%">
 
 Here are blog posts related to ***snap*** by the team:
 
