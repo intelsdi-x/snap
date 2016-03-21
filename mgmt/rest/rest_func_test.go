@@ -453,9 +453,13 @@ func startAPI(cfg *mockConfig) *restAPIInstance {
 	// Start a REST API to talk to
 	log.SetLevel(LOG_LEVEL)
 	r, _ := New(cfg.RestAPI)
+	l, _ := net.Listen("tcp", ":0")
+	l.Close()
+	cfg.Control.ListenPort = l.Addr().(*net.TCPAddr).Port
 	c := control.New(cfg.Control)
 	c.Start()
-	l, _ := net.Listen("tcp", ":0")
+	controlClient, err := control.NewClient(c.Config.ListenAddr, c.Config.ListenPort)
+	l, _ = net.Listen("tcp", ":0")
 	l.Close()
 	cfg.Scheduler.ListenPort = l.Addr().(*net.TCPAddr).Port
 	s := scheduler.New(cfg.Scheduler)
@@ -465,8 +469,10 @@ func startAPI(cfg *mockConfig) *restAPIInstance {
 	if err != nil {
 		panic(err)
 	}
-	r.BindMetricManager(c)
 	r.BindTaskManager(client)
+
+	r.BindMetricManager(controlClient)
+
 	r.BindConfigManager(c.Config)
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.

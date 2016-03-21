@@ -37,6 +37,8 @@ import (
 
 // default configuration values
 const (
+	defaultListenAddr        string        = "127.0.0.1"
+	defaultListenPort        int           = 8082
 	defaultMaxRunningPlugins int           = 3
 	defaultPluginTrust       int           = 1
 	defaultAutoDiscoverPath  string        = ""
@@ -70,11 +72,15 @@ type Config struct {
 	KeyringPaths      string            `json:"keyring_paths,omitempty"yaml:"keyring_paths,omitempty"`
 	CacheExpiration   jsonutil.Duration `json:"cache_expiration,omitempty"yaml:"cache_expiration,omitempty"`
 	Plugins           *pluginConfig     `json:"plugins,omitempty"yaml:"plugins,omitempty"`
+	ListenAddr        string            `json:"listen_addr,omitempty"yaml:"listen_addr,omitempty"`
+	ListenPort        int               `json:"listen_port,omitempty"yaml:"listen_port,omitempty"`
 }
 
 // get the default snapd configuration
 func GetDefaultConfig() *Config {
 	return &Config{
+		ListenAddr:        defaultListenAddr,
+		ListenPort:        defaultListenPort,
 		MaxRunningPlugins: defaultMaxRunningPlugins,
 		PluginTrust:       defaultPluginTrust,
 		AutoDiscoverPath:  defaultAutoDiscoverPath,

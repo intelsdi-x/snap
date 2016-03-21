@@ -687,11 +687,19 @@ func startTribes(count int, seed string) ([]int, int) {
 			panic(err)
 		}
 
-		c := control.New(control.GetDefaultConfig())
+		ccfg := control.GetDefaultConfig()
+		l, _ := net.Listen("tcp", ":0")
+		l.Close()
+		ccfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+		c := control.New(ccfg)
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
+		controlClient, err := control.NewClient(c.Config.ListenAddr, c.Config.ListenPort)
+		if err != nil {
+			panic(err)
+		}
 		scfg := scheduler.GetDefaultConfig()
-		l, _ := net.Listen("tcp", ":0")
+		l, _ = net.Listen("tcp", ":0")
 		l.Close()
 		scfg.ListenPort = l.Addr().(*net.TCPAddr).Port
 		s := scheduler.New(scfg)
@@ -707,7 +715,9 @@ func startTribes(count int, seed string) ([]int, int) {
 			panic(err)
 		}
 		r.BindTaskManager(client)
-		r.BindMetricManager(c)
+
+		r.BindMetricManager(controlClient)
+
 		r.BindTribeManager(t)
 		r.Start(":" + strconv.Itoa(mgtPort))
 		wg.Add(1)

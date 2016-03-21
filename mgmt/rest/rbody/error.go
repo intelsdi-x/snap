@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/intelsdi-x/snap/core/serror"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -60,7 +61,7 @@ func FromSnapErrors(errs []serror.SnapError) *Error {
 }
 
 func FromError(err error) *Error {
-	e := &Error{ErrorMessage: err.Error(), Fields: make(map[string]string)}
+	e := &Error{ErrorMessage: grpc.ErrorDesc(err), Fields: make(map[string]string)}
 	return e
 }
 

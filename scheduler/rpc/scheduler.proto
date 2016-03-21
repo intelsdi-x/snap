@@ -19,14 +19,15 @@ limitations under the License.
 
 syntax = "proto3";
 package rpc;
+import "github.com/intelsdi-x/snap/internal/common/common.proto";
 
 service TaskManager {
     rpc CreateTask(CreateTaskArg) returns (CreateTaskReply) {}
     rpc GetTask(GetTaskArg) returns (Task) {}
-    rpc GetTasks(Empty) returns (GetTasksReply) {}
+    rpc GetTasks(common.Empty) returns (GetTasksReply) {}
     rpc StartTask(StartTaskArg) returns (StartTaskReply) {}
     rpc StopTask(StopTaskArg) returns (StopTaskReply) {}
-    rpc RemoveTask(RemoveTaskArg) returns (Empty) {}
+    rpc RemoveTask(RemoveTaskArg) returns (common.Empty) {}
     rpc EnableTask(EnableTaskArg) returns (Task) {}
     rpc WatchTask(WatchTaskArg) returns (stream Watch) {}
 }
@@ -108,7 +109,7 @@ message Metric {
     string source = 5;
     repeated Label labels = 6;
     map<string, string> tags = 7;
-    Time Timestamp = 8;
+    common.Time Timestamp = 8;
 }
 
 message Label {
@@ -124,23 +125,14 @@ message Task {
     uint64 misses = 5;
     uint64 failed = 6;
     string last_failure = 7;
-    Time time_last_run = 8;
-    Time time_created = 9;
+    common.Time time_last_run = 8;
+    common.Time time_created = 9;
     string deadline = 10;
-    string wmap_json = 11;
+    bytes wmap_json = 11;
     uint64 stop_on_fail = 12;
-    string schedule_json = 13;
 }
 
 message SnapError {
     string error_string = 1;
     map<string, string> error_fields = 2;
-}
-
-message Time {
-    int64 sec = 1;
-    int64 nsec = 2;
-}
-
-message Empty {
-}
+} 

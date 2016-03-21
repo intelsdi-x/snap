@@ -77,10 +77,18 @@ func startAPI() (string, error) {
 	rest.StreamingBufferWindow = 0.01
 	log.SetLevel(LOG_LEVEL)
 	r, _ := rest.New(rest.GetDefaultConfig())
-	c := control.New(control.GetDefaultConfig())
-	c.Start()
-	scfg := scheduler.GetDefaultConfig()
+	ccfg := control.GetDefaultConfig()
 	l, _ := net.Listen("tcp", ":0")
+	l.Close()
+	ccfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+	c := control.New(ccfg)
+	c.Start()
+	controlClient, err := control.NewClient(c.Config.ListenAddr, c.Config.ListenPort)
+	if err != nil {
+		return "", err
+	}
+	scfg := scheduler.GetDefaultConfig()
+	l, _ = net.Listen("tcp", ":0")
 	l.Close()
 	scfg.ListenPort = l.Addr().(*net.TCPAddr).Port
 	s := scheduler.New(scfg)
@@ -90,9 +98,12 @@ func startAPI() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	s.SetMetricManager(c)
+	s.Start()
 	r.BindConfigManager(c.Config)
-	r.BindMetricManager(c)
+	r.BindMetricManager(controlClient)
 	r.BindTaskManager(client)
+
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
 		err, ok := <-ch
@@ -206,7 +217,7 @@ func TestSnapClient(t *testing.T) {
 			Convey("plugin already loaded", func() {
 				p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
 				So(p1.Err, ShouldNotBeNil)
-				So(p1.Err.Error(), ShouldEqual, "plugin is already loaded")
+				So(p1.Err.Error(), ShouldContainSubstring, "plugin is already loaded")
 			})
 		})
 	})
@@ -476,7 +487,7 @@ func TestSnapClient(t *testing.T) {
 		Convey("unload unknown plugin", func() {
 			p := c.UnloadPlugin("not a type", "foo", 3)
 			So(p.Err, ShouldNotBeNil)
-			So(p.Err.Error(), ShouldEqual, "plugin not found")
+			So(p.Err.Error(), ShouldContainSubstring, "plugin not found")
 		})
 		Convey("unload one of multiple", func() {
 			p1 := c.GetPlugins(false)

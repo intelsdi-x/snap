@@ -37,9 +37,11 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
 
+	crpc "github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/scheduler/rpc"
@@ -79,25 +81,25 @@ type Config struct {
 }
 
 type managesMetrics interface {
-	MetricCatalog() ([]core.CatalogedMetric, error)
-	FetchMetrics([]string, int) ([]core.CatalogedMetric, error)
-	GetMetricVersions([]string) ([]core.CatalogedMetric, error)
-	GetMetric([]string, int) (core.CatalogedMetric, error)
-	Load(*core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError)
-	Unload(core.Plugin) (core.CatalogedPlugin, serror.SnapError)
-	PluginCatalog() core.PluginCatalog
-	AvailablePlugins() []core.AvailablePlugin
-	GetAutodiscoverPaths() []string
+	Load(context.Context, *crpc.PluginRequest, ...grpc.CallOption) (*crpc.PluginReply, error)
+	MetricCatalog(context.Context, *common.Empty, ...grpc.CallOption) (*crpc.MetricCatalogReply, error)
+	FetchMetrics(context.Context, *crpc.FetchMetricsRequest, ...grpc.CallOption) (*crpc.MetricCatalogReply, error)
+	GetMetricVersions(context.Context, *crpc.GetMetricVersionsRequest, ...grpc.CallOption) (*crpc.MetricCatalogReply, error)
+	GetMetric(context.Context, *crpc.FetchMetricsRequest, ...grpc.CallOption) (*crpc.MetricReply, error)
+	Unload(context.Context, *crpc.UnloadPluginRequest, ...grpc.CallOption) (*crpc.PluginReply, error)
+	PluginCatalog(context.Context, *common.Empty, ...grpc.CallOption) (*crpc.PluginCatalogReply, error)
+	AvailablePlugins(context.Context, *common.Empty, ...grpc.CallOption) (*crpc.AvailablePluginsReply, error)
+	GetPlugin(context.Context, *crpc.GetPluginRequest, ...grpc.CallOption) (*crpc.GetPluginReply, error)
 }
 
 type managesTasks interface {
 	CreateTask(context.Context, *rpc.CreateTaskArg, ...grpc.CallOption) (*rpc.CreateTaskReply, error)
-	GetTasks(context.Context, *rpc.Empty, ...grpc.CallOption) (*rpc.GetTasksReply, error)
+	GetTasks(context.Context, *common.Empty, ...grpc.CallOption) (*rpc.GetTasksReply, error)
 	WatchTask(context.Context, *rpc.WatchTaskArg, ...grpc.CallOption) (rpc.TaskManager_WatchTaskClient, error)
 	GetTask(context.Context, *rpc.GetTaskArg, ...grpc.CallOption) (*rpc.Task, error)
 	StartTask(context.Context, *rpc.StartTaskArg, ...grpc.CallOption) (*rpc.StartTaskReply, error)
 	StopTask(context.Context, *rpc.StopTaskArg, ...grpc.CallOption) (*rpc.StopTaskReply, error)
-	RemoveTask(context.Context, *rpc.RemoveTaskArg, ...grpc.CallOption) (*rpc.Empty, error)
+	RemoveTask(context.Context, *rpc.RemoveTaskArg, ...grpc.CallOption) (*common.Empty, error)
 	EnableTask(context.Context, *rpc.EnableTaskArg, ...grpc.CallOption) (*rpc.Task, error)
 }
 

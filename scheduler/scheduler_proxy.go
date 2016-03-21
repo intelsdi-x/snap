@@ -28,6 +28,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -45,7 +46,7 @@ func (s *schedulerProxy) GetTask(ctx context.Context, arg *rpc.GetTaskArg) (*rpc
 	return rpc.NewTask(task)
 }
 
-func (s *schedulerProxy) GetTasks(ctx context.Context, arg *rpc.Empty) (*rpc.GetTasksReply, error) {
+func (s *schedulerProxy) GetTasks(ctx context.Context, arg *common.Empty) (*rpc.GetTasksReply, error) {
 	tasks := s.scheduler.GetTasks()
 	reply := &rpc.GetTasksReply{Tasks: make(map[string]*rpc.Task)}
 	for id, task := range tasks {
@@ -68,8 +69,8 @@ func (s *schedulerProxy) StopTask(ctx context.Context, arg *rpc.StopTaskArg) (*r
 	return &rpc.StopTaskReply{Errors: rpc.NewErrors(errs)}, nil
 }
 
-func (s *schedulerProxy) RemoveTask(ctx context.Context, arg *rpc.RemoveTaskArg) (*rpc.Empty, error) {
-	return &rpc.Empty{}, s.scheduler.RemoveTask(arg.Id)
+func (s *schedulerProxy) RemoveTask(ctx context.Context, arg *rpc.RemoveTaskArg) (*common.Empty, error) {
+	return &common.Empty{}, s.scheduler.RemoveTask(arg.Id)
 }
 
 func (s *schedulerProxy) EnableTask(ctx context.Context, arg *rpc.EnableTaskArg) (*rpc.Task, error) {

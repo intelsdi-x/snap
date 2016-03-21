@@ -30,6 +30,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
@@ -37,19 +38,18 @@ import (
 func NewTask(t core.Task) (*Task, error) {
 	wmap, err := t.WMap().ToJson()
 	tsk := &Task{
-		Id:           t.ID(),
-		TaskState:    uint64(t.State()),
-		Name:         t.GetName(),
-		Hit:          uint64(t.HitCount()),
-		Misses:       uint64(t.MissedCount()),
-		Failed:       uint64(t.FailedCount()),
-		LastFailure:  t.LastFailureMessage(),
-		TimeLastRun:  &Time{Sec: t.LastRunTime().Unix(), Nsec: int64(t.LastRunTime().Nanosecond())},
-		TimeCreated:  &Time{Sec: t.CreationTime().Unix(), Nsec: int64(t.CreationTime().Nanosecond())},
-		Deadline:     t.DeadlineDuration().String(),
-		WmapJson:     string(wmap),
-		StopOnFail:   uint64(t.GetStopOnFailure()),
-		ScheduleJson: "{}",
+		Id:          t.ID(),
+		TaskState:   uint64(t.State()),
+		Name:        t.GetName(),
+		Hit:         uint64(t.HitCount()),
+		Misses:      uint64(t.MissedCount()),
+		Failed:      uint64(t.FailedCount()),
+		LastFailure: t.LastFailureMessage(),
+		TimeLastRun: &common.Time{Sec: t.LastRunTime().Unix(), Nsec: int64(t.LastRunTime().Nanosecond())},
+		TimeCreated: &common.Time{Sec: t.CreationTime().Unix(), Nsec: int64(t.CreationTime().Nanosecond())},
+		Deadline:    t.DeadlineDuration().String(),
+		WmapJson:    wmap,
+		StopOnFail:  uint64(t.GetStopOnFailure()),
 	}
 	return tsk, err
 }
@@ -137,7 +137,7 @@ func (t *Task) State() core.TaskState {
 
 func (t *Task) WMap() *wmap.WorkflowMap {
 	wm := wmap.NewWorkflowMap()
-	json.Unmarshal([]byte(t.WmapJson), wm)
+	json.Unmarshal(t.WmapJson, wm)
 	return wm
 }
 
@@ -180,7 +180,7 @@ func NewMetrics(ms []core.Metric) []*Metric {
 			Version:   uint64(m.Version()),
 			Source:    m.Source(),
 			Tags:      m.Tags(),
-			Timestamp: &Time{
+			Timestamp: &common.Time{
 				Sec:  m.Timestamp().Unix(),
 				Nsec: int64(m.Timestamp().Nanosecond()),
 			},

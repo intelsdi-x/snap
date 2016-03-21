@@ -86,7 +86,6 @@ func newLoadedPlugins() *loadedPlugins {
 func (l *loadedPlugins) add(lp *loadedPlugin) serror.SnapError {
 	l.Lock()
 	defer l.Unlock()
-
 	if _, exists := l.table[lp.Key()]; exists {
 		return serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
 			"plugin-name":    lp.Meta.Name,
@@ -167,13 +166,13 @@ type pluginDetails struct {
 }
 
 type loadedPlugin struct {
-	Meta         plugin.PluginMeta
-	Details      *pluginDetails
-	Type         plugin.PluginType
-	State        pluginState
-	Token        string
-	LoadedTime   time.Time
-	ConfigPolicy *cpolicy.ConfigPolicy
+	Meta         plugin.PluginMeta     `json:"meta"`
+	Details      *pluginDetails        `json:"details"`
+	Type         plugin.PluginType     `json:"type"`
+	State        pluginState           `json:"state"`
+	Token        string                `json:"token"`
+	LoadedTime   time.Time             `json:"loaded_time"`
+	ConfigPolicy *cpolicy.ConfigPolicy `json:"policy"`
 }
 
 // Name returns plugin name
@@ -533,6 +532,10 @@ func (p *pluginManager) teardown() {
 			}).Warn("error removing plugin in teardown:", err)
 		}
 	}
+}
+
+func (p *pluginManager) Get(name string, version int, typeName string) (*loadedPlugin, error) {
+	return p.get(fmt.Sprintf("%s:%s:%d", typeName, name, version))
 }
 
 func (p *pluginManager) get(key string) (*loadedPlugin, error) {
