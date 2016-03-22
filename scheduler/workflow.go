@@ -341,7 +341,7 @@ func (s *schedulerWorkflow) StateString() string {
 	return WorkflowStateLookup[s.state]
 }
 
-// workJobs takes a slice of proccess and publish nodes and submits jobs for each for a task.
+// workJobs takes a slice of process and publish nodes and submits jobs for each for a task.
 // It then iterates down any process nodes to submit their child node jobs for the task
 func workJobs(prs []*processNode, pus []*publishNode, t *task, pj job) {
 	// optimize for no jobs

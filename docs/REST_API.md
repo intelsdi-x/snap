@@ -185,7 +185,7 @@ _**Example Response**_
 {
   "meta": {
     "code": 200,
-    "message": "Plugin successfuly unloaded (mockv1)",
+    "message": "Plugin successfully unloaded (mockv1)",
     "type": "plugin_unloaded",
     "version": 1
   },

@@ -180,7 +180,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	if resp == nil {
-		e := errors.New("no reponse object returned from plugin")
+		e := errors.New("no response object returned from plugin")
 		runnerLog.WithFields(log.Fields{
 			"_block": "start-plugin",
 			"error":  e.Error(),
