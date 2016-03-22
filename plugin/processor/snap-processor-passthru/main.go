@@ -28,5 +28,5 @@ import (
 
 func main() {
 	meta := passthru.Meta()
-	plugin.Start(meta, passthru.NewPassthruPublisher(), os.Args[1])
+	plugin.Start(meta, passthru.NewPassthruProcessor(), os.Args[1])
 }

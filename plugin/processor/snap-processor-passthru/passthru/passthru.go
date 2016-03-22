@@ -41,7 +41,7 @@ func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.SnapGOBContentType}, []string{plugin.SnapGOBContentType})
 }
 
-func NewPassthruPublisher() *passthruProcessor {
+func NewPassthruProcessor() *passthruProcessor {
 	return &passthruProcessor{}
 }
 
