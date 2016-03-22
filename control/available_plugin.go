@@ -411,7 +411,7 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 	p.(*availablePlugin).hitCount++
 	p.(*availablePlugin).lastHitTime = time.Now()
 
-	return metrics, nil
+	return results, nil
 }
 
 func (ap *availablePlugins) publishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
