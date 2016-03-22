@@ -15,3 +15,4 @@ Design Notes:
 * graphics for site can be found in snap repo > gh-pages branch > [img](https://github.com/sarahhan88/snap/tree/gh-pages/img) folder
 * buttons use intel blue #0071C5
 * snap font: London Between
+
