@@ -192,24 +192,27 @@
 
         <h5 class = "subheader">
           <ul class = "disc"> 
-            <li> Bare metal, including Intel specific platform metrics (Node, DCM, NIC, SMARTS, Ethtool, OSv)</li>
-            <li> Operating Environments and existing telemetry (Docker, libvirt, psutil, Collectd)</li>
+            <li> Bare metal, including Intel specific platform metrics (CPU, NIC, BMC, SMARTS)</li>
+            <li> Operating Environments and existing telemetry (Docker, libvirt, psutil)</li>
             <li> Application services and adjacencies (Ceph, HAProxy, Etcd, Facter, MySQL, Apache)</li>
-            <li> Priority services and other third party plugins </li>
         </ul></h5>
       </div>
     </div>
 
     <div class = "row">
       <div class="large-10 columns">
-        <h4 class = ""> Filter, alter or append metadata as many times as you need via plugins for:</h4>
+        <h4 class = ""> Filter, alter or append metadata via plugins for:</h4>
 
         <h5 class = "subheader">
           <ul class = "disc"> 
             <li> Filtering (Moving Averages)</li>
             <li> Normalization </li>
             <li> Encryption for all or part of the data set</li>
-            <li> Injection of remote requires for tokens </li>
+            <li> Injection of metadata </li>
+            <ul>
+              <li> Tokens</li>
+              <li> Tenant IDs</li> 
+            </ul>
         </ul></h5>
       </div>
     </div>
@@ -217,13 +220,13 @@
 
     <div class = "row">
       <div class="large-10 columns">
-        <h4 class = ""> Publish data as many times as you need via plugins for:</h4>
+        <h4 class = ""> Publish data via plugins for:</h4>
 
         <h5 class = "subheader">
           <ul class = "disc"> 
             <li> Dashboard Tools  (Graphite, Grafana, Riemann)</li>
             <li> Queues and Logs (RabbitMQ, Kafka, File)</li>
-            <li> Databases (PostgresSQL, InfluxDB, OpenTSDB, MySQL, HANA)</li>
+            <li> Databases (PostgreSQL, InfluxDB, OpenTSDB, SAP HANA)</li>
         </ul></h5>
       </div>
     </div>
