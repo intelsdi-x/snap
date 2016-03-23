@@ -365,6 +365,7 @@ func (t *TaskWatchHandler) CatchCollection(m []core.Metric) {
 			Data:      m[i].Data(),
 			Source:    m[i].Source(),
 			Timestamp: m[i].Timestamp(),
+			Tags:      m[i].Tags(),
 		}
 	}
 	t.mChan <- rbody.StreamedTaskEvent{

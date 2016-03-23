@@ -250,10 +250,11 @@ func (s *StreamedTaskEvent) ToJSON() string {
 }
 
 type StreamedMetric struct {
-	Namespace string      `json:"namespace"`
-	Data      interface{} `json:"data"`
-	Source    string      `json:"source"`
-	Timestamp time.Time   `json:"timestamp"`
+	Namespace string            `json:"namespace"`
+	Data      interface{}       `json:"data"`
+	Source    string            `json:"source"`
+	Timestamp time.Time         `json:"timestamp"`
+	Tags      map[string]string `json:"tags"`
 }
 
 type StreamedMetrics []StreamedMetric
