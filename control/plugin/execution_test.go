@@ -153,7 +153,7 @@ func TestWaitForPluginResponse(t *testing.T) {
 			})
 		})
 
-		Convey("called with PluginExecutor that exits immediately without returning a reponse", func() {
+		Convey("called with PluginExecutor that exits immediately without returning a response", func() {
 			mockExecutor := new(MockPluginExecutor)
 			mockExecutor.WaitTime = time.Millisecond * 100
 			mockExecutor.WaitError = errors.New("Exit 127")

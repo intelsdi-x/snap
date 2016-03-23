@@ -87,7 +87,7 @@ func TestTrie(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(dd[0].Namespace(), ShouldResemble, []string{"d", "a", "n", "b", "a", "r"})
 		})
-		Convey("Mulitple versions", func() {
+		Convey("Multiple versions", func() {
 			lp := new(loadedPlugin)
 			lp.Meta.Version = 1
 			mt := newMetricType([]string{"intel", "foo"}, time.Now(), lp)

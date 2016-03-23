@@ -58,7 +58,7 @@ type PluginUnloaded struct {
 }
 
 func (u *PluginUnloaded) ResponseBodyMessage() string {
-	return fmt.Sprintf("Plugin successfuly unloaded (%sv%d)", u.Name, u.Version)
+	return fmt.Sprintf("Plugin successfully unloaded (%sv%d)", u.Name, u.Version)
 }
 
 func (u *PluginUnloaded) ResponseBodyType() string {

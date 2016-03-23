@@ -491,7 +491,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						exPlugin.NilResponse = true // set to not response
 						ap, e := r.startPlugin(exPlugin)
 
-						So(e, ShouldResemble, errors.New("no reponse object returned from plugin"))
+						So(e, ShouldResemble, errors.New("no response object returned from plugin"))
 						So(ap, ShouldBeNil)
 					})
 
