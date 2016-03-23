@@ -22,7 +22,7 @@ The header contains a version, used to differentiate between versions of the tas
 
 #### Schedule
 
-The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  __snap__ is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, __snap__ has a simple schedule which is described above, and a window schedule.  The window schedule adds a start and stop time.  For more on tasks, visit [`SNAPCTL.md`](docs/SNAPCTL.md).
+The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  __snap__ is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, __snap__ has a simple schedule which is described above, and a window schedule.  The window schedule adds a start and stop time.  For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
 
 ### The Workflow
 
