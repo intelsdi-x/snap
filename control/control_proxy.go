@@ -29,9 +29,9 @@ import (
 	"runtime"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/prometheus/common/log"
 	"golang.org/x/net/context"
 )
 
