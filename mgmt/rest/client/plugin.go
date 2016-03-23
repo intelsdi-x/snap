@@ -20,8 +20,10 @@ limitations under the License.
 package client
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/intelsdi-x/snap/core/serror"
@@ -78,6 +80,50 @@ func (c *Client) UnloadPlugin(pluginType, name string, version int) *UnloadPlugi
 	return r
 }
 
+// SwapPlugin swaps two plugins with the same type and name e.g. collector:mock:1 with collector:mock:2
+func (c *Client) SwapPlugin(loadPath []string, unloadType, unloadName string, unloadVersion int) *SwapPluginsResult {
+	r := &SwapPluginsResult{}
+
+	// Check if plugin you are trying to unload is loaded
+	rp := c.GetPlugin(unloadType, unloadName, unloadVersion)
+	if rp.Err != nil {
+		r.Err = fmt.Errorf("%v %v:%v:%v", rp.Err.Error(), unloadType, unloadName, unloadVersion)
+		return r
+	}
+	// Load plugin
+	lp := c.LoadPlugin(loadPath)
+	if lp.Err != nil {
+		r.Err = errors.New(lp.Err.Error())
+		return r
+	}
+	lpr := lp.LoadedPlugins[0].LoadedPlugin
+
+	// Make sure both plugins have the same type and name before unloading. If not, rollback.
+	if lpr.Type != unloadType || lpr.Name != unloadName {
+		up := c.UnloadPlugin(lpr.Type, lpr.Name, lpr.Version)
+		if up.Err != nil {
+			r.Err = errors.New("Plugins do not have the same type and name. Failed to rollback after error.")
+			return r
+		}
+		r.Err = errors.New("Plugins do not have the same type and name.")
+		return r
+	}
+	// Unload plugin
+	up := c.UnloadPlugin(unloadType, unloadName, unloadVersion)
+	if up.Err != nil {
+		r.Err = up.Err
+		up2 := c.UnloadPlugin(lpr.Type, lpr.Name, lpr.Version)
+		if up2.Err != nil {
+			r.Err = errors.New("Failed to rollback after error unloading plugin.")
+		}
+		return r
+	}
+	upr := up.PluginUnloaded
+	r.LoadedPlugin = lp.LoadedPlugins[0]
+	r.UnloadedPlugin = upr
+	return r
+}
+
 // GetPlugins returns the loaded and available plugins through an HTTP GET request.
 // By specifying the details flag to tweak output info. An error returns if it failed.
 func (c *Client) GetPlugins(details bool) *GetPluginsResult {
@@ -112,6 +158,39 @@ func (c *Client) GetPlugins(details bool) *GetPluginsResult {
 	return r
 }
 
+// GetPlugin returns the requested plugin through an HTTP GET request. An error returns if it failed.
+func (c *Client) GetPlugin(typ, name string, ver int) *GetPluginResult {
+	r := &GetPluginResult{}
+
+	path := "/plugins/" + typ + "/" + name + "/" + strconv.Itoa(ver)
+
+	resp, err := c.do("GET", path, ContentTypeJSON)
+	if err != nil {
+		r.Err = err
+		return r
+	}
+
+	switch resp.Meta.Type {
+	// TODO change this to concrete const type when Joel adds it
+	case rbody.PluginReturnedType:
+		// Success
+		b := resp.Body.(*rbody.PluginReturned)
+		r.ReturnedPlugin = ReturnedPlugin{b}
+		return r
+	case rbody.ErrorType:
+		r.Err = resp.Body.(*rbody.Error)
+	default:
+		r.Err = ErrAPIResponseMetaType
+	}
+	return r
+}
+
+// GetPluginResult
+type GetPluginResult struct {
+	ReturnedPlugin ReturnedPlugin
+	Err            error
+}
+
 // GetPluginsResult is the response from snap/client on a GetPlugins call.
 type GetPluginsResult struct {
 	LoadedPlugins    []LoadedPlugin
@@ -131,6 +210,12 @@ type UnloadPluginResult struct {
 	Err error
 }
 
+type SwapPluginsResult struct {
+	LoadedPlugin   LoadedPlugin
+	UnloadedPlugin *rbody.PluginUnloaded
+	Err            error
+}
+
 // We wrap this so we can provide some functionality (like LoadedTime)
 type LoadedPlugin struct {
 	*rbody.LoadedPlugin
@@ -144,6 +229,11 @@ func (l *LoadedPlugin) LoadedTime() time.Time {
 // The wrapper for AvailablePlugin struct defined inside rbody package.
 type AvailablePlugin struct {
 	*rbody.AvailablePlugin
+}
+
+// The wrapper for ReturnedPlugin struct defined inside rbody package.
+type ReturnedPlugin struct {
+	*rbody.PluginReturned
 }
 
 func convertLoadedPlugins(r []rbody.LoadedPlugin) []LoadedPlugin {

@@ -113,6 +113,17 @@ var (
 					},
 				},
 				{
+					Name:   "swap",
+					Usage:  "swap <load_plugin_path> <unload_plugin_type>:<unload_plugin_name>:<unload_plugin_version> or swap <load_plugin_path> -t <unload_plugin_type> -n <unload_plugin_name> -v <unload_plugin_version>",
+					Action: swapPlugins,
+					Flags: []cli.Flag{
+						flPluginAsc,
+						flPluginType,
+						flPluginName,
+						flPluginVersion,
+					},
+				},
+				{
 					Name:   "list",
 					Usage:  "list",
 					Action: listPlugins,
