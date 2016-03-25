@@ -28,11 +28,11 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
-	"github.com/prometheus/common/log"
 )
 
 func NewTask(t core.Task) (*Task, error) {

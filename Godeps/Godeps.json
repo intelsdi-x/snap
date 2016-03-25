@@ -90,10 +90,6 @@
 			"ImportPath": "github.com/pborman/uuid",
 			"Rev": "ca53cad383cad2479bbba7f7a1a05797ec1386e4"
 		},
-		{
-			"ImportPath": "github.com/prometheus/common/log",
-			"Rev": "812a28da713128def9aad06a32fbcdb7685d13f4"
-		},
         {
             "ImportPath": "github.com/smartystreets/assertions",
 			"Comment": "1.5.0-412-g443d812",
