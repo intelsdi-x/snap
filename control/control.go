@@ -979,26 +979,32 @@ func (p *pluginMetricTypes) Count() int {
 func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (map[string]pluginMetricTypes, serror.SnapError) {
 	pmts := make(map[string]pluginMetricTypes)
 	// For each plugin type select a matching available plugin to call
-	for _, mt := range metricTypes {
-		version := mt.Version()
+	for _, incomingmt := range metricTypes {
+		version := incomingmt.Version()
 		if version == 0 {
 			// If the version is not provided we will choose the latest
 			version = -1
 		}
-
-		lp, err := cat.GetPlugin(mt.Namespace(), version)
+		catalogedmt, err := cat.Get(incomingmt.Namespace(), version)
 		if err != nil {
 			return nil, serror.New(err)
 		}
-		// if loaded plugin is nil, we have failed.  return error
-		if lp == nil {
-			return nil, serror.New(errorMetricNotFound(mt.Namespace()))
+		returnedmt := plugin.PluginMetricType{
+			Namespace_:          incomingmt.Namespace(),
+			LastAdvertisedTime_: catalogedmt.LastAdvertisedTime(),
+			Version_:            incomingmt.Version(),
+			Tags_:               catalogedmt.Tags(),
+			Labels_:             catalogedmt.Labels(),
+			Config_:             incomingmt.Config(),
 		}
-
+		lp := catalogedmt.Plugin
+		if lp == nil {
+			return nil, serror.New(errorMetricNotFound(incomingmt.Namespace()))
+		}
 		key := lp.Key()
 		pmt, _ := pmts[key]
 		pmt.plugin = lp
-		pmt.metricTypes = append(pmt.metricTypes, mt)
+		pmt.metricTypes = append(pmt.metricTypes, returnedmt)
 		pmts[key] = pmt
 	}
 	return pmts, nil
