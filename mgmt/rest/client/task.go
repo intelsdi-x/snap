@@ -30,6 +30,7 @@ import (
 
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -149,13 +150,16 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 				if err != nil {
 					r.Err = err
 					r.Close()
-					return
 				}
 				switch ste.EventType {
-				case rbody.TaskWatchTaskDisabled:
+				case rpc.Watch_ERROR:
+					r.Err = errors.New(ste.Message)
 					r.EventChan <- ste
 					r.Close()
-				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
+				case rpc.Watch_TASK_DISABLED:
+					r.EventChan <- ste
+					r.Close()
+				case rpc.Watch_TASK_STOPPED, rpc.Watch_TASK_STARTED, rpc.Watch_METRICS_COLLECTED:
 					r.EventChan <- ste
 				}
 			}
@@ -287,7 +291,7 @@ type CreateTaskResult struct {
 	Err error
 }
 
-// WatchTaskResult is the response from snap/client on a WatchTask call.
+// WatchTasksResult is the response from snap/client on a WatchTask call.
 type WatchTasksResult struct {
 	count     int
 	Err       error
@@ -295,6 +299,7 @@ type WatchTasksResult struct {
 	DoneChan  chan struct{}
 }
 
+// Close closes the done channel
 func (w *WatchTasksResult) Close() {
 	close(w.DoneChan)
 }
@@ -329,7 +334,7 @@ type RemoveTasksResult struct {
 	Err error
 }
 
-// EnableTasksResult is the response from snap/client on a EnableTask call.
+// EnableTaskResult is the response from snap/client on a EnableTask call.
 type EnableTaskResult struct {
 	*rbody.ScheduledTaskEnabled
 	Err error

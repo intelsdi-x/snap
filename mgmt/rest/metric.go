@@ -25,19 +25,61 @@ import (
 	"sort"
 	"strconv"
 
+	"golang.org/x/net/context"
+
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	mets, err := s.mm.MetricCatalog()
+	arg := &common.Empty{}
+	reply, err := s.mm.MetricCatalog(context.Background(), arg)
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	respondWithMetrics(r.Host, mets, w)
+	metricResponse(r.Host, rpc.ReplyToMetrics(reply.Metrics), w)
+}
+
+func metricResponse(host string, metrics []rpc.Metric, w http.ResponseWriter) {
+	b := rbody.NewMetricsReturned()
+
+	for _, met := range metrics {
+		// Merge policy with new policy here because metric.ConfigPolicy will have
+		// a nil mutex. Merging gives us a usable mutex so RulesAsTable doesn't Panic.
+		rt := met.ConfigPolicy.RulesAsTable()
+		policies := make([]rbody.PolicyTable, 0, len(rt))
+		for _, r := range rt {
+			policies = append(policies, rbody.PolicyTable{
+				Name:     r.Name,
+				Type:     r.Type,
+				Default:  r.Default,
+				Required: r.Required,
+				Minimum:  r.Minimum,
+				Maximum:  r.Maximum,
+			})
+		}
+		b = append(b, rbody.Metric{
+			Namespace:               core.JoinNamespace(met.Namespace),
+			Version:                 met.Version,
+			LastAdvertisedTimestamp: met.LastAdvertisedTime.Unix(),
+			Policy:                  policies,
+			Href:                    catalogedMetricURI(host, met),
+		})
+	}
+	sort.Sort(b)
+	// If a single metric use rbody.MetricReturned because that is what the cli expects
+	if len(b) == 1 {
+		single := &rbody.MetricReturned{}
+		single.Metric = &b[0]
+		respond(200, single, w)
+	} else {
+		respond(200, b, w)
+	}
 }
 
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -71,24 +113,31 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 				return
 			}
 		}
-
-		mets, err := s.mm.FetchMetrics(ns[:len(ns)-1], ver)
+		arg := &rpc.FetchMetricsRequest{
+			Namespace: ns[:len(ns)-1],
+			Version:   int32(ver),
+		}
+		reply, err := s.mm.FetchMetrics(context.Background(), arg)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mets, w)
+		metricResponse(r.Host, rpc.ReplyToMetrics(reply.Metrics), w)
 		return
 	}
 
 	// If no version was given, get all that fall at this namespace.
 	if v == "" {
-		mts, err := s.mm.GetMetricVersions(ns)
+		arg := &rpc.GetMetricVersionsRequest{
+			Namespace: ns,
+		}
+		reply, err := s.mm.GetMetricVersions(context.Background(), arg)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
+
 			return
 		}
-		respondWithMetrics(r.Host, mts, w)
+		metricResponse(r.Host, rpc.ReplyToMetrics(reply.Metrics), w)
 		return
 	}
 
@@ -98,64 +147,17 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		respond(400, rbody.FromError(err), w)
 		return
 	}
-	mt, err := s.mm.GetMetric(ns, ver)
+	arg := &rpc.FetchMetricsRequest{
+		Namespace: ns,
+		Version:   int32(ver),
+	}
+	reply, err := s.mm.GetMetric(context.Background(), arg)
 	if err != nil {
 		respond(404, rbody.FromError(err), w)
-		return
 	}
-
-	b := &rbody.MetricReturned{}
-	mb := &rbody.Metric{
-		Namespace:               core.JoinNamespace(mt.Namespace()),
-		Version:                 mt.Version(),
-		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
-		Href: catalogedMetricURI(r.Host, mt),
-	}
-	rt := mt.Policy().RulesAsTable()
-	policies := make([]rbody.PolicyTable, 0, len(rt))
-	for _, r := range rt {
-		policies = append(policies, rbody.PolicyTable{
-			Name:     r.Name,
-			Type:     r.Type,
-			Default:  r.Default,
-			Required: r.Required,
-			Minimum:  r.Minimum,
-			Maximum:  r.Maximum,
-		})
-	}
-	mb.Policy = policies
-	b.Metric = mb
-	respond(200, b, w)
+	metricResponse(r.Host, rpc.ReplyToMetrics([]*rpc.MetricReply{reply}), w)
 }
 
-func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.ResponseWriter) {
-	b := rbody.NewMetricsReturned()
-
-	for _, met := range mets {
-		rt := met.Policy().RulesAsTable()
-		policies := make([]rbody.PolicyTable, 0, len(rt))
-		for _, r := range rt {
-			policies = append(policies, rbody.PolicyTable{
-				Name:     r.Name,
-				Type:     r.Type,
-				Default:  r.Default,
-				Required: r.Required,
-				Minimum:  r.Minimum,
-				Maximum:  r.Maximum,
-			})
-		}
-		b = append(b, rbody.Metric{
-			Namespace:               core.JoinNamespace(met.Namespace()),
-			Version:                 met.Version(),
-			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
-			Policy:                  policies,
-			Href:                    catalogedMetricURI(host, met),
-		})
-	}
-	sort.Sort(b)
-	respond(200, b, w)
-}
-
-func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace()), mt.Version())
+func catalogedMetricURI(host string, mt rpc.Metric) string {
+	return fmt.Sprintf("%s://%s/v1/metrics%s?ver%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace), mt.Version)
 }

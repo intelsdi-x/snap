@@ -30,15 +30,20 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/snap/control"
+	crpc "github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 )
 
 func getPort() int {
@@ -91,11 +96,12 @@ func getMembers(port int) *rbody.APIResponse {
 
 func TestSnapClientTribe(t *testing.T) {
 	numOfTribes := 4
-	ports := startTribes(numOfTribes)
-	c, err := client.New(fmt.Sprintf("http://localhost:%d", ports[0]), "v1", true)
+	ports, err := startTribes(numOfTribes)
+	c, err2 := client.New(fmt.Sprintf("http://localhost:%d", ports[0]), "v1", true)
 
 	Convey("REST API functional V1 - TRIBE", t, func() {
 		So(err, ShouldBeNil)
+		So(err2, ShouldBeNil)
 
 		Convey("Get global membership", func() {
 			resp := c.ListMembers()
@@ -163,7 +169,7 @@ func TestSnapClientTribe(t *testing.T) {
 	})
 }
 
-func startTribes(count int) []int {
+func startTribes(count int) ([]int, error) {
 	seed := ""
 	var wg sync.WaitGroup
 	var mgtPorts []int
@@ -179,13 +185,22 @@ func startTribes(count int) []int {
 		}
 		t, err := tribe.New(conf)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
-
-		c := control.New()
+		l, _ := net.Listen("tcp", ":0")
+		controlPort := l.Addr().(*net.TCPAddr).Port
+		l.Close()
+		c := control.New(control.ListenPort(controlPort))
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
-		s := scheduler.New()
+		l, _ = net.Listen("tcp", ":0")
+		defer l.Close()
+		s := scheduler.New(scheduler.ListenPortOption(l.Addr().(*net.TCPAddr).Port))
+		conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), grpc.WithInsecure())
+		if err != nil {
+			panic(err)
+		}
+		client := rpc.NewTaskManagerClient(conn)
 		s.SetMetricManager(c)
 		s.RegisterEventHandler("tribe", t)
 		s.Start()
@@ -193,8 +208,12 @@ func startTribes(count int) []int {
 		t.SetTaskManager(s)
 		t.Start()
 		r, _ := rest.New(false, "", "")
-		r.BindMetricManager(c)
-		r.BindTaskManager(s)
+
+		connection, err := rpcutil.GetClientConnection(control.DefaultListenAddress, controlPort, "", "")
+		controlClient := crpc.NewMetricManagerClient(connection)
+		r.BindMetricManager(controlClient)
+
+		r.BindTaskManager(client)
 		r.BindTribeManager(t)
 		r.Start(":" + strconv.Itoa(mgtPort))
 		wg.Add(1)
@@ -222,5 +241,5 @@ func startTribes(count int) []int {
 	for idx, port := range mgtPorts {
 		uris[idx] = port
 	}
-	return uris
+	return uris, nil
 }

@@ -31,14 +31,19 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/snap/control"
+	crpc "github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	"github.com/intelsdi-x/snap/scheduler"
+	"github.com/intelsdi-x/snap/scheduler/rpc"
 )
 
 func getMembers(port int) *rbody.APIResponse {
@@ -682,10 +687,16 @@ func startTribes(count int, seed string) ([]int, int) {
 			panic(err)
 		}
 
-		c := control.New()
+		l, _ := net.Listen("tcp", ":0")
+		controlPort := l.Addr().(*net.TCPAddr).Port
+		l.Close()
+		c := control.New(control.ListenPort(controlPort))
+
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
-		s := scheduler.New()
+		l, _ = net.Listen("tcp", ":0")
+		s := scheduler.New(scheduler.ListenPortOption(l.Addr().(*net.TCPAddr).Port))
+		l.Close()
 		s.SetMetricManager(c)
 		s.RegisterEventHandler("tribe", t)
 		s.Start()
@@ -693,8 +704,17 @@ func startTribes(count int, seed string) ([]int, int) {
 		t.SetTaskManager(s)
 		t.Start()
 		r, _ := New(false, "", "")
-		r.BindMetricManager(c)
-		r.BindTaskManager(s)
+		conn, err := grpc.Dial(fmt.Sprintf("%v:%v", scheduler.DefaultListenAddr, strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), grpc.WithInsecure())
+		if err != nil {
+			panic(err)
+		}
+		client := rpc.NewTaskManagerClient(conn)
+		r.BindTaskManager(client)
+
+		connection, _ := rpcutil.GetClientConnection(control.DefaultListenAddress, controlPort, "", "")
+		controlClient := crpc.NewMetricManagerClient(connection)
+		r.BindMetricManager(controlClient)
+
 		r.BindTribeManager(t)
 		r.Start(":" + strconv.Itoa(mgtPort))
 		wg.Add(1)

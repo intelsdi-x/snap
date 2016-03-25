@@ -392,7 +392,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		runnerLog.WithFields(log.Fields{
 			"_block": "handle-events",
 			"event":  v.Namespace(),
-		}).Info("Nothing to do for this event")
+		}).Debug("Nothing to do for this event")
 	}
 }
 

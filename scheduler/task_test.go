@@ -59,7 +59,7 @@ func TestTask(t *testing.T) {
 
 		Convey("Task specified-name test", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
-			task := newTask(sch, wf, newWorkManager(), c, emitter, core.SetTaskName("My name is unique"))
+			task := newTask(sch, wf, newWorkManager(), c, emitter, core.SetTaskNameOption("My name is unique"))
 			task.Spin()
 			So(task.GetName(), ShouldResemble, "My name is unique")
 
@@ -74,12 +74,12 @@ func TestTask(t *testing.T) {
 
 		Convey("Task deadline duration test", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
-			task := newTask(sch, wf, newWorkManager(), c, emitter, core.TaskDeadlineDuration(20*time.Second))
+			task := newTask(sch, wf, newWorkManager(), c, emitter, core.TaskDeadlineDurationOption(20*time.Second))
 			task.Spin()
 			So(task.deadlineDuration, ShouldEqual, 20*time.Second)
-			task.Option(core.TaskDeadlineDuration(20 * time.Second))
+			task.Option(core.TaskDeadlineDurationOption(20 * time.Second))
 
-			So(core.TaskDeadlineDuration(2*time.Second), ShouldNotBeEmpty)
+			So(core.TaskDeadlineDurationOption(2*time.Second), ShouldNotBeEmpty)
 
 		})
 

@@ -131,6 +131,10 @@ func (p *RequestedPlugin) SetSignature(data []byte) {
 	p.signature = data
 }
 
+func (p *RequestedPlugin) SetCheckSum(sum [32]byte) {
+	p.checkSum = sum
+}
+
 func (p *RequestedPlugin) generateCheckSum() error {
 	var b []byte
 	var err error

@@ -123,6 +123,16 @@ var (
 		Name:  "rest-auth",
 		Usage: "Enables snap's REST API authentication",
 	}
+	flRootCertPath = cli.StringFlag{
+		Name:   "root-cert",
+		Usage:  "A path to a root certificate (CA) to use for securing RPC communication",
+		EnvVar: "SNAP_CERT_PATH",
+	}
+	flRootKeyPath = cli.StringFlag{
+		Name:   "root-key",
+		Usage:  "A path to a root key (CA) to use for securing RPC communication",
+		EnvVar: "SNAP_KEY_PATH",
+	}
 
 	gitversion  string
 	coreModules []coreModule
@@ -191,8 +201,12 @@ func main() {
 		flRestHTTPS,
 		flRestKey,
 		flRestAuth,
+		flRootCertPath,
+		flRootKeyPath,
 	}
 	app.Flags = append(app.Flags, tribe.Flags...)
+	app.Flags = append(app.Flags, scheduler.Flags...)
+	app.Flags = append(app.Flags, control.Flags...)
 
 	app.Action = action
 	app.Run(os.Args)
@@ -253,11 +267,19 @@ func action(ctx *cli.Context) {
 	restCert := globalconfig.GetFlagString(ctx, fcfg.Flags.RestCert, "rest-cert")
 	restAuth := globalconfig.GetFlagBool(ctx, fcfg.Flags.RestAuth, "rest-auth")
 	restAuthPwd := globalconfig.GetFlagString(ctx, fcfg.Flags.RestAuthPwd, "rest-auth-pwd")
+	rootCertPath := globalconfig.GetFlagString(ctx, fcfg.Flags.RootCertPath, "root-cert")
+	rootKeyPath := globalconfig.GetFlagString(ctx, fcfg.Flags.RootKeyPath, "root-key")
+	schedulerAddr := globalconfig.GetFlagString(ctx, fcfg.Flags.SchedulerAddr, "scheduler-addr")
+	schedulerPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.SchedulerPort, "scheduler-port")
+	controlAddr := globalconfig.GetFlagString(ctx, fcfg.Flags.ControlAddr, "control-addr")
+	controlPort := globalconfig.GetFlagInt(ctx, fcfg.Flags.ControlPort, "control-port")
 
 	controlOpts := []control.PluginControlOpt{
 		control.MaxRunningPlugins(maxRunning),
 		control.CacheExpiration(cache),
 		control.OptSetConfig(ccfg),
+		control.ListenAddress(controlAddr),
+		control.ListenPort(controlPort),
 	}
 
 	// Set Max Processors for snapd.
@@ -273,14 +295,27 @@ func action(ctx *cli.Context) {
 	coreModules = []coreModule{}
 
 	coreModules = append(coreModules, c)
-	s := scheduler.New(
+
+	schedulerOpts := []scheduler.SchedulerOption{
 		scheduler.CollectQSizeOption(defaultQueueSize),
 		scheduler.CollectWkrSizeOption(defaultPoolSize),
 		scheduler.PublishQSizeOption(defaultQueueSize),
 		scheduler.PublishWkrSizeOption(defaultPoolSize),
 		scheduler.ProcessQSizeOption(defaultQueueSize),
 		scheduler.ProcessWkrSizeOption(defaultPoolSize),
-	)
+		scheduler.ListenAddressOption(schedulerAddr),
+		scheduler.ListenPortOption(schedulerPort),
+	}
+
+	if rootCertPath != "" || rootKeyPath != "" {
+		if rootCertPath == "" || rootKeyPath == "" {
+			log.Fatal("Both root-cert and root-key are required")
+		}
+		schedulerOpts = append(schedulerOpts, scheduler.TlsCAKeyPathOption(rootKeyPath))
+		schedulerOpts = append(schedulerOpts, scheduler.TlsCAPathOption(rootCertPath))
+	}
+
+	s := scheduler.New(schedulerOpts...)
 	s.SetMetricManager(c)
 	coreModules = append(coreModules, s)
 
@@ -422,7 +457,6 @@ func action(ctx *cli.Context) {
 	if autodiscoverPath != "" {
 		log.Info("auto discover path is enabled")
 		paths := filepath.SplitList(autodiscoverPath)
-		c.SetAutodiscoverPaths(paths)
 		for _, p := range paths {
 			fullPath, err := filepath.Abs(p)
 			if err != nil {
@@ -501,9 +535,17 @@ func action(ctx *cli.Context) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		r.BindMetricManager(c)
+		controlClient, err := control.NewClient(controlAddr, controlPort, rootCertPath, rootKeyPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.BindMetricManager(controlClient)
 		r.BindConfigManager(c.Config)
-		r.BindTaskManager(s)
+		client, err := scheduler.NewClient(schedulerAddr, schedulerPort, rootCertPath, rootKeyPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.BindTaskManager(client)
 		//Rest Authentication
 		if restAuth {
 			log.Info("REST API authentication is enabled")

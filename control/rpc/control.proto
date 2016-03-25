@@ -1,0 +1,114 @@
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2015 Intel Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+syntax = "proto3";
+
+package rpc;
+import "github.com/intelsdi-x/snap/internal/common/common.proto";
+
+
+service MetricManager {
+	rpc Load(PluginRequest) returns (PluginReply) {}
+	rpc MetricCatalog(common.Empty) returns (MetricCatalogReply) {}
+	rpc FetchMetrics(FetchMetricsRequest) returns (MetricCatalogReply) {}
+	rpc GetMetricVersions(GetMetricVersionsRequest) returns (MetricCatalogReply) {}
+	rpc GetMetric(FetchMetricsRequest) returns (MetricReply) {}
+	rpc Unload(UnloadPluginRequest) returns (PluginReply) {}
+	rpc PluginCatalog(common.Empty) returns (PluginCatalogReply) {}
+	rpc AvailablePlugins(common.Empty) returns (AvailablePluginsReply) {}
+	rpc GetPlugin(GetPluginRequest) returns (GetPluginReply) {}
+}
+
+message AvailablePluginReply {
+	string Name = 1;
+	int64 Version = 2;
+	string TypeName = 3;
+	bool IsSigned = 4;
+	int64 HitCount = 5;
+	uint32 ID = 6;
+	Time LastHitTimestamp = 7;
+}
+
+message AvailablePluginsReply {
+	repeated AvailablePluginReply Plugins = 1;
+}
+
+message PluginReply {
+	string Name = 1;
+	int64 Version = 2;
+	string TypeName = 3;
+	bool IsSigned = 4;
+	string Status = 5;
+	Time LoadedTimestamp = 6;
+	bytes ConfigPolicy = 7;
+}
+
+message PluginCatalogReply {
+	repeated PluginReply Plugins = 1;
+}
+
+message MetricReply {
+	repeated string Namespace = 1;
+	int64 Version = 2;
+	Time LastAdvertisedTime = 3;
+	bytes ConfigPolicy = 4;
+}
+
+message MetricCatalogReply {
+	repeated MetricReply Metrics = 1;
+}
+
+message GetPluginRequest {
+	string Name = 1;
+	int32 Version = 2;
+	string Type = 3;
+	bool Download = 4;
+}
+
+message GetPluginReply {
+	PluginReply Plugin = 1;
+	bytes PluginBytes = 2;
+}
+
+message PluginRequest {
+	string Name = 1;
+	bytes CheckSum = 2;
+	bytes Signature = 3;
+	bytes PluginFile = 4;
+}
+
+message FetchMetricsRequest {
+	repeated string Namespace = 1;
+	int32 Version = 2;
+}
+
+message GetMetricVersionsRequest {
+	repeated string Namespace = 1;
+}
+
+message UnloadPluginRequest{
+	string Name = 1;
+	int32 Version = 2;
+	string PluginType = 3;
+}
+
+message Time{
+	int64 Sec = 1;
+	int64 Nsec = 2;
+}
+
