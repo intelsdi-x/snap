@@ -207,6 +207,12 @@ func (t *task) Spin() {
 	// We need to lock long enough to change state
 	t.Lock()
 	defer t.Unlock()
+	// Reset the lastFireTime at each Spin.
+	// This ensures misses are tracked only forward of the point
+	// in time that a task starts spinning. E.g. stopping a task,
+	// waiting a period of time, and starting the task won't show
+	// misses for the interval while stopped.
+	t.lastFireTime = time.Now()
 	if t.state == core.TaskStopped {
 		t.state = core.TaskSpinning
 		t.killChan = make(chan struct{})
