@@ -28,9 +28,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/pkg/promise"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -48,6 +50,36 @@ var (
 
 type MockMetricType struct {
 	namespace []string
+}
+
+type mockPluginEvent struct {
+	LoadedPluginName      string
+	LoadedPluginVersion   int
+	UnloadedPluginName    string
+	UnloadedPluginVersion int
+	PluginType            int
+	EventNamespace        string
+}
+
+type listenToPluginEvent struct {
+	plugin *mockPluginEvent
+	done   chan struct{}
+}
+
+func newListenToPluginEvent() *listenToPluginEvent {
+	return &listenToPluginEvent{
+		done: make(chan struct{}),
+	}
+}
+
+func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
+	go func() {
+		switch e.Body.(type) {
+		case *control_event.LoadPluginEvent:
+			l.done <- struct{}{}
+		default:
+		}
+	}()
 }
 
 func (m MockMetricType) Namespace() []string {
@@ -109,6 +141,68 @@ func TestCollectPublishWorkflow(t *testing.T) {
 
 			pr.Add(pu)
 			w.CollectNode.Add(pr)
+
+			Convey("Start scheduler", func() {
+				err := s.Start()
+				So(err, ShouldBeNil)
+				Convey("Create task", func() {
+					t, err := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*500), w, false)
+					So(err.Errors(), ShouldBeEmpty)
+					So(t, ShouldNotBeNil)
+					t.(*task).Spin()
+					time.Sleep(3 * time.Second)
+
+				})
+			})
+		})
+	})
+}
+
+func TestProcessChainingWorkflow(t *testing.T) {
+	log.SetLevel(log.FatalLevel)
+	Convey("Given a started plugin control", t, func() {
+
+		c := control.New(control.GetDefaultConfig())
+		c.Start()
+		s := New(GetDefaultConfig())
+		s.SetMetricManager(c)
+		Convey("create a workflow with chained processors", func() {
+			lpe := newListenToPluginEvent()
+			c.RegisterEventHandler("Control.PluginLoaded", lpe)
+			rp, err := core.NewRequestedPlugin(snap_collector_mock2_path)
+			So(err, ShouldBeNil)
+			_, err = c.Load(rp)
+			So(err, ShouldBeNil)
+			<-lpe.done
+			rp2, err := core.NewRequestedPlugin(snap_publisher_file_path)
+			So(err, ShouldBeNil)
+			_, err = c.Load(rp2)
+			So(err, ShouldBeNil)
+			<-lpe.done
+			rp3, err := core.NewRequestedPlugin(snap_processor_passthru_path)
+			So(err, ShouldBeNil)
+			_, err = c.Load(rp3)
+			So(err, ShouldBeNil)
+			<-lpe.done
+
+			metrics, err2 := c.MetricCatalog()
+			So(err2, ShouldBeNil)
+			So(metrics, ShouldNotBeEmpty)
+
+			w := wmap.NewWorkflowMap()
+			w.CollectNode.AddMetric("/intel/mock/foo", 2)
+			w.CollectNode.AddConfigItem("/intel/mock/foo", "password", "secret")
+
+			pu := wmap.NewPublishNode("file", 3)
+			pu.AddConfigItem("file", "/tmp/snap-TestCollectPublishWorkflow.out")
+
+			pr1 := wmap.NewProcessNode("passthru", 1)
+
+			pr2 := wmap.NewProcessNode("passthru", 1)
+
+			pr2.Add(pu)
+			pr1.Add(pr2)
+			w.CollectNode.Add(pr1)
 
 			Convey("Start scheduler", func() {
 				err := s.Start()
