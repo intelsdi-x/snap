@@ -31,6 +31,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
@@ -45,8 +46,8 @@ func NewTask(t core.Task) (*Task, error) {
 		Misses:      uint64(t.MissedCount()),
 		Failed:      uint64(t.FailedCount()),
 		LastFailure: t.LastFailureMessage(),
-		TimeLastRun: &Time{Sec: t.LastRunTime().Unix(), Nsec: int64(t.LastRunTime().Nanosecond())},
-		TimeCreated: &Time{Sec: t.CreationTime().Unix(), Nsec: int64(t.CreationTime().Nanosecond())},
+		TimeLastRun: &common.Time{Sec: t.LastRunTime().Unix(), Nsec: int64(t.LastRunTime().Nanosecond())},
+		TimeCreated: &common.Time{Sec: t.CreationTime().Unix(), Nsec: int64(t.CreationTime().Nanosecond())},
 		Deadline:    t.DeadlineDuration().String(),
 		WmapJson:    wmap,
 		StopOnFail:  uint64(t.GetStopOnFailure()),
@@ -180,7 +181,7 @@ func NewMetrics(ms []core.Metric) []*Metric {
 			Version:   uint64(m.Version()),
 			Source:    m.Source(),
 			Tags:      m.Tags(),
-			Timestamp: &Time{
+			Timestamp: &common.Time{
 				Sec:  m.Timestamp().Unix(),
 				Nsec: int64(m.Timestamp().Nanosecond()),
 			},

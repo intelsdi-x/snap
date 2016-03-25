@@ -31,11 +31,12 @@ import (
 
 	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	arg := &rpc.EmptyRequest{}
+	arg := &common.Empty{}
 	reply, err := s.mm.MetricCatalog(context.Background(), arg)
 	if err != nil {
 		respond(500, rbody.FromError(err), w)

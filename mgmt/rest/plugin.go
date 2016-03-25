@@ -40,6 +40,7 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
@@ -245,7 +246,7 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 
 	// Cache the catalog here to avoid multiple reads
 	restLogger.Info("Getting plugin catalog")
-	arg := &rpc.EmptyRequest{}
+	arg := &common.Empty{}
 	reply, err := s.mm.PluginCatalog(context.Background(), arg)
 	if err != nil {
 		respond(500, rbody.FromError(err), w)

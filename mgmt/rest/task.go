@@ -36,6 +36,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/request"
 	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
@@ -119,7 +120,7 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 }
 
 func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	reply, err := s.mt.GetTasks(context.Background(), &rpc.Empty{})
+	reply, err := s.mt.GetTasks(context.Background(), &common.Empty{})
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
 		return

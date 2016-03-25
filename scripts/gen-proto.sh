@@ -17,9 +17,27 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-proto_files=("../control/rpc/control.proto" "../scheduler/rpc/scheduler.proto")
-proto_paths=("../control/rpc" "../scheduler/rpc")
-pb_go_files=("../control/rpc/control.pb.go" "../scheduler/rpc/scheduler.pb.go")
+echo "Checking for proto"
+if ! which protoc > /dev/null 
+then
+	echo "Error: protoc not installed" >&2
+	exit 1
+fi
+
+if ! protoc --version | grep 'libprotoc 3\.' > /dev/null
+then
+	echo "Error: this project requires protobuf 3" >&2
+	exit 1
+fi
+
+if ! which protoc-gen-go > /dev/null
+then
+	echo "Error: protoc-gen-go not installed. try : go get github.com/golang/protobuf/protoc-gen-go" >&2
+	exit 1
+fi
+
+proto_files=("control/rpc/control.proto" "scheduler/rpc/scheduler.proto")
+pb_go_files=("control/rpc/control.pb.go" "scheduler/rpc/scheduler.pb.go")
 
 license='/*
 http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -41,11 +59,17 @@ limitations under the License.
 */
 '
 echo "Generating pb.go files"
+common_path="src/github.com/intelsdi-x/snap"
+#generate common
+echo "Generating common proto files"
+protoc --go_out=plugins.grpc:src/ --proto_path=src/ "$common_path"/internal/common/*.proto
+#generate all others
+
 for i in "${!proto_files[@]}"
 do
-	path="${proto_paths[$i]}"
 	file="${proto_files[$i]}"
 	pb="${pb_go_files[$i]}"
-	protoc --go_out=plugins=grpc:"$path" --proto_path="$path" "$file"
-	echo "$license" | cat - "$pb" > temp && mv temp "$pb"
+	echo "Generating $pb"
+	protoc --go_out=plugins=grpc:src/ --proto_path=src/ "$common_path"/"$file"
+	echo "$license" | cat - "$common_path"/"$pb" > temp && mv temp "$common_path"/"$pb"
 done

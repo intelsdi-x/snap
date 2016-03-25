@@ -19,17 +19,18 @@ limitations under the License.
 syntax = "proto3";
 
 package rpc;
+import "github.com/intelsdi-x/snap/internal/common/common.proto";
 
 
 service MetricManager {
 	rpc Load(PluginRequest) returns (PluginReply) {}
-	rpc MetricCatalog(EmptyRequest) returns (MetricCatalogReply) {}
+	rpc MetricCatalog(common.Empty) returns (MetricCatalogReply) {}
 	rpc FetchMetrics(FetchMetricsRequest) returns (MetricCatalogReply) {}
 	rpc GetMetricVersions(GetMetricVersionsRequest) returns (MetricCatalogReply) {}
 	rpc GetMetric(FetchMetricsRequest) returns (MetricReply) {}
 	rpc Unload(UnloadPluginRequest) returns (PluginReply) {}
-	rpc PluginCatalog(EmptyRequest) returns (PluginCatalogReply) {}
-	rpc AvailablePlugins(EmptyRequest) returns (AvailablePluginsReply) {}
+	rpc PluginCatalog(common.Empty) returns (PluginCatalogReply) {}
+	rpc AvailablePlugins(common.Empty) returns (AvailablePluginsReply) {}
 	rpc GetPlugin(GetPluginRequest) returns (GetPluginReply) {}
 }
 
@@ -89,9 +90,6 @@ message PluginRequest {
 	bytes CheckSum = 2;
 	bytes Signature = 3;
 	bytes PluginFile = 4;
-}
-
-message EmptyRequest{
 }
 
 message FetchMetricsRequest {

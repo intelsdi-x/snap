@@ -32,6 +32,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/internal/common"
 	"golang.org/x/net/context"
 )
 
@@ -70,7 +71,7 @@ func (pc *controlProxy) Load(ctx context.Context, arg *rpc.PluginRequest) (*rpc.
 	return reply, nil
 }
 
-func (pc *controlProxy) MetricCatalog(ctx context.Context, _ *rpc.EmptyRequest) (*rpc.MetricCatalogReply, error) {
+func (pc *controlProxy) MetricCatalog(ctx context.Context, _ *common.Empty) (*rpc.MetricCatalogReply, error) {
 	mets, err := pc.control.MetricCatalog()
 	if err != nil {
 		return nil, err
@@ -115,7 +116,7 @@ func (pc *controlProxy) Unload(ctx context.Context, arg *rpc.UnloadPluginRequest
 	return reply, nil
 }
 
-func (pc *controlProxy) PluginCatalog(ctx context.Context, _ *rpc.EmptyRequest) (*rpc.PluginCatalogReply, error) {
+func (pc *controlProxy) PluginCatalog(ctx context.Context, _ *common.Empty) (*rpc.PluginCatalogReply, error) {
 	plugins := pc.control.PluginCatalog()
 	reply := catalogPluginsToReply(plugins)
 	return reply, nil
@@ -139,7 +140,7 @@ func (pc *controlProxy) GetPlugin(ctx context.Context, arg *rpc.GetPluginRequest
 	return reply, nil
 }
 
-func (pc *controlProxy) AvailablePlugins(ctx context.Context, _ *rpc.EmptyRequest) (*rpc.AvailablePluginsReply, error) {
+func (pc *controlProxy) AvailablePlugins(ctx context.Context, _ *common.Empty) (*rpc.AvailablePluginsReply, error) {
 	aPlugins := pc.control.AvailablePlugins()
 	reply := availablePluginToReply(aPlugins)
 	return reply, nil
