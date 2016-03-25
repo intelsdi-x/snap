@@ -28,6 +28,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/intelsdi-x/snap/control/rpc"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -66,7 +67,7 @@ func TestControlProxy(t *testing.T) {
 			So(plugin.TypeName, ShouldEqual, "collector")
 			So(plugin.IsSigned, ShouldEqual, false)
 			Convey("Listing all loaded plugins", func() {
-				r, err := client.PluginCatalog(context.Background(), &rpc.EmptyRequest{})
+				r, err := client.PluginCatalog(context.Background(), &common.Empty{})
 				So(err, ShouldBeNil)
 				Convey("Should contain the plugin that is loaded", func() {
 					loadedPlugin := rpc.ReplyToLoadedPlugin(r.Plugins[0])
@@ -115,7 +116,7 @@ func TestControlProxy(t *testing.T) {
 				})
 			})
 			Convey("Getting Metric catalog", func() {
-				r, err := client.MetricCatalog(context.Background(), &rpc.EmptyRequest{})
+				r, err := client.MetricCatalog(context.Background(), &common.Empty{})
 				So(err, ShouldBeNil)
 				metrics := rpc.ReplyToMetrics(r.Metrics)
 				Convey("Should show metrics", func() {
@@ -230,7 +231,7 @@ func TestControlProxy(t *testing.T) {
 			})
 			Convey("Listing Available plugins", func() {
 				Convey("Should return no plugins when none are available", func() {
-					arg := &rpc.EmptyRequest{}
+					arg := &common.Empty{}
 					r, err := client.AvailablePlugins(context.Background(), arg)
 					So(err, ShouldBeNil)
 					So(len(r.Plugins), ShouldEqual, 0)
