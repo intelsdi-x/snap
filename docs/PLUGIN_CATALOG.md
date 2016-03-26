@@ -58,8 +58,10 @@ These plugins are in planned/active development. This list is useful if you want
 | Apache | Collector | Collects metrics from the Apache Webserver for mod_status| [snap-plugin-collector-apache](https://github.com/intelsdi-x/snap-plugin-collector-apache) | [@tiffanyfj](https://github.com/tiffanyfj) |
  |
 | Elasticsearch | Collector | Collects metrics from Elasticsearch cluster | [snap-plugin-collector-elasticsearch](https://github.com/intelsdi-x/snap-plugin-collector-elasticsearch) | [@candysmurf](https://github.com/candysmurf) |
+| Cassandra | Collector | Collects metrics from Cassandra cluster | [snap-plugin-collector-cassandra](https://github.com/intelsdi-x/snap-plugin-collector-cassandra) | [@candysmurf](https://github.com/candysmurf) |
 | HEKA | Publisher | Publishes snap metrics into heka via TCP | [snap-plugin-publisher-heka](https://github.com/intelsdi-x/snap-plugin-publisher-heka) | [@candysmurf](https://github.com/candysmurf) |
 |Graphite | Publisher | Publishes snap metrics to graphite | [snap-plugin-publisher-graphite](https://github.com/intelsdi-x/snap-plugin-publisher-graphite) | [@ircody](https://github.com/ircody) |
+| Cassandra | Publisher | Publishes snap metrics into Cassandra | [snap-plugin-publisher-cassandra](https://github.com/intelsdi-x/snap-plugin-publisher-cassandra) | [@candysmurf](https://github.com/candysmurf) |
 
 ## Wish List
 This is a wish list of plugins for snap. If you see one here and want to start on it please let us know.
