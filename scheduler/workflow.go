@@ -231,8 +231,7 @@ type wfContentTypes map[string]map[string][]string
 
 // BindPluginContentTypes
 func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes) error {
-	bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.SnapGOBContentType})
-	return nil
+	return bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.SnapGOBContentType})
 }
 
 func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPluginContentTypes, lct []string) error {
@@ -271,7 +270,9 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPl
 			}
 		}
 		//continue the walk down the nodes
-		bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, mm, rct)
+		if err := bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, mm, rct); err != nil {
+			return err
+		}
 	}
 	for _, pu := range pus {
 		act, _, err := mm.GetPluginContentTypes(pu.Name(), core.PublisherPluginType, pu.Version())

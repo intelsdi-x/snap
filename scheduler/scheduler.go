@@ -201,14 +201,20 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 		return nil, te
 	}
 
-	// Bind plugin content type selections in workflow
-	err = wf.BindPluginContentTypes(s.metricManager)
-
 	// validate plugins and metrics
 	mts, plugins := s.gatherMetricsAndPlugins(wf)
 	errs := s.metricManager.ValidateDeps(mts, plugins)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
+		return nil, te
+	}
+
+	// Bind plugin content type selections in workflow
+	err = wf.BindPluginContentTypes(s.metricManager)
+	if err != nil {
+		te.errs = append(te.errs, serror.New(err))
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error("unable to bind plugin content types")
 		return nil, te
 	}
 
