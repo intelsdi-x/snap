@@ -286,16 +286,17 @@ func (p *processJob) Run() {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 
-	switch p.parentJob.Type() {
-	case collectJobType:
+	switch pt := p.parentJob.(type) {
+	case *collectorJob:
 		switch p.contentType {
 		case plugin.SnapGOBContentType:
-			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
-			for i, m := range p.parentJob.(*collectorJob).metrics {
-				switch mt := m.(type) {
-				case plugin.PluginMetricType:
+			metrics := make([]plugin.PluginMetricType, len(pt.metrics))
+			for i, m := range pt.metrics {
+				if mt, ok := m.(plugin.PluginMetricType); ok {
 					metrics[i] = mt
-				default:
+				} else {
+					// TODO; add a log statement and return an error
+					// (instead of panicking)
 					panic("unsupported type")
 				}
 			}
@@ -318,6 +319,44 @@ func (p *processJob) Run() {
 			}
 			p.content = content
 		default:
+			// TODO; change log from Fatal to Error and return an error
+			// (instead of panicking)
+			log.WithFields(log.Fields{
+				"_module":        "scheduler-job",
+				"block":          "run",
+				"job-type":       "processor",
+				"content-type":   p.contentType,
+				"plugin-name":    p.name,
+				"plugin-version": p.version,
+				"plugin-config":  p.config,
+			}).Fatal("unsupported content type")
+			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
+		}
+	case *processJob:
+		// TODO: Remove switch statement and rely on processor to catch errors in type
+		// (separation of concerns; remove content-type definition from the framework?)
+		switch p.contentType {
+		case plugin.SnapGOBContentType:
+			_, content, errs := p.processor.ProcessMetrics(p.contentType, pt.content, p.name, p.version, p.config, p.taskID)
+			if errs != nil {
+				for _, e := range errs {
+					log.WithFields(log.Fields{
+						"_module":        "scheduler-job",
+						"block":          "run",
+						"job-type":       "processor",
+						"content-type":   p.contentType,
+						"plugin-name":    p.name,
+						"plugin-version": p.version,
+						"plugin-config":  p.config,
+						"error":          e.Error(),
+					}).Error("error with processor job")
+				}
+				p.AddErrors(errs...)
+			}
+			p.content = content
+		default:
+			// TODO; change log from Fatal to Error and return an error
+			// (instead of panicking)
 			log.WithFields(log.Fields{
 				"_module":        "scheduler-job",
 				"block":          "run",
@@ -330,6 +369,8 @@ func (p *processJob) Run() {
 			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
 		}
 	default:
+		// TODO; change log from Fatal to Error and return an error
+		// (instead of panicking)
 		log.WithFields(log.Fields{
 			"_module":         "scheduler-job",
 			"block":           "run",
@@ -418,6 +459,8 @@ func (p *publisherJob) Run() {
 			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
 		}
 	case processJobType:
+		// TODO: Remove switch statement and rely on publisher to catch errors in type
+		// (separation of concerns; remove content-type definition from the framework?)
 		switch p.contentType {
 		case plugin.SnapGOBContentType:
 			errs := p.publisher.PublishMetrics(p.contentType, p.parentJob.(*processJob).content, p.name, p.version, p.config, p.taskID)
