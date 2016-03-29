@@ -260,16 +260,16 @@ func newNativeClient(address string, timeout time.Duration, t plugin.PluginType,
 }
 
 func init() {
-	gob.Register(*(&ctypes.ConfigValueStr{}))
-	gob.Register(*(&ctypes.ConfigValueInt{}))
-	gob.Register(*(&ctypes.ConfigValueFloat{}))
-	gob.Register(*(&ctypes.ConfigValueBool{}))
+	gob.RegisterName("conf_value_string", *(&ctypes.ConfigValueStr{}))
+	gob.RegisterName("conf_value_int", *(&ctypes.ConfigValueInt{}))
+	gob.RegisterName("conf_value_float", *(&ctypes.ConfigValueFloat{}))
+	gob.RegisterName("conf_value_bool", *(&ctypes.ConfigValueBool{}))
 
-	gob.Register(cpolicy.NewPolicyNode())
-	gob.Register(&cdata.ConfigDataNode{})
-	gob.Register(&cpolicy.StringRule{})
-	gob.Register(&cpolicy.IntRule{})
-	gob.Register(&cpolicy.FloatRule{})
+	gob.RegisterName("conf_policy_node", cpolicy.NewPolicyNode())
+	gob.RegisterName("conf_data_node", &cdata.ConfigDataNode{})
+	gob.RegisterName("conf_policy_string", &cpolicy.StringRule{})
+	gob.RegisterName("conf_policy_int", &cpolicy.IntRule{})
+	gob.RegisterName("conf_policy_float", &cpolicy.FloatRule{})
 }
 
 func upcaseInitial(str string) string {
