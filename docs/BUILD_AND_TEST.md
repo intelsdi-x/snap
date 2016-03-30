@@ -15,6 +15,7 @@ To build snap you'll need:
         git remote add origin git@github.com:<yourGithubID>/snap.git
         ```
         To push to your fork later, either do a `git push origin master` or do `git checkout -b <someBranchName>` then you can do `git push`.
+
 ## Build
 In the /snap directory there's a `Makefile` that builds all dependencies and snap.
 To get dependencies and build snap just run:  
