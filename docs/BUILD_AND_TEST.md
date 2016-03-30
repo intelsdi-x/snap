@@ -3,17 +3,13 @@
 ## Getting Started
 To build snap you'll need:
 * [Golang >= 1.4](https://golang.org)
+    * Golang should be [downloaded](https://golang.org/dl/), and (installed](https://golang.org/doc/install)
+      The below instructions assume that the GOPATH environment variable has been set.
     * An option to look into is using the [go version manager (gvm)](https://github.com/moovweb/gvm) if you want to easily switch between Go versions.
 * [GNU Make](https://www.gnu.org/software/make/)
 * [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 * snap:
-    * Set your `$GOPATH` environment variable.
-
-    ```
-    export GOPATH=$HOME/work`
-    ```
-
     * Install snap into your `$GOPATH`.
 
     ```
