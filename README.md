@@ -126,7 +126,7 @@ $ <snapBinPath>/snapd --tribe
 All other nodes who join will need to select any existing member of the cluster.
 
 ```
-$ <snapBinPath>/snapd --tribe-seed <ip or name of another tribe member>
+$ <snapBinPath>/snapd --tribe --tribe-seed <ip or name of another tribe member>
 ```
 
 Checkout the [tribe doc](docs/TRIBE.md) for more info.
