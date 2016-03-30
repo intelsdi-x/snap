@@ -30,10 +30,13 @@ To build snap you'll need:
 
 ## Build
 
-In order to run the make command, you must first configure go and install
-godeps:
+Godeps is a dependency for running the make task(s) required for the build process. If it is not already installed,
+install it into your GOPATH and ensure that its built executables are in your PATH.
 
 ```
+# first check to see if it is installed
+which godep
+# install it if necessary
 export PATH=$GOPATH/bin/
 go get github.com/tools/godep
 ```
