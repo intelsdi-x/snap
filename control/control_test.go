@@ -1418,3 +1418,158 @@ func TestProcessMetrics(t *testing.T) {
 
 	})
 }
+
+func TestMetricRolloverToNewVersion(t *testing.T) {
+	Convey("Given a metric that is being collected at v1", t, func() {
+		c := New(GetDefaultConfig())
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("TestMetricRolloverToNewVersion", lpe)
+		c.Start()
+		rp, err := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-collector-mock1"))
+		So(err, ShouldBeNil)
+		fmt.Println("before load mock1")
+		_, err = c.Load(rp)
+		So(err, ShouldBeNil)
+		fmt.Println("after load mock1")
+		select {
+		case <-lpe.done:
+		case <-time.After(10 * time.Second):
+			panic("error")
+		}
+		fmt.Println("after done loading mocok 1 event")
+		So(len(c.pluginManager.all()), ShouldEqual, 1)
+		lp, err2 := c.pluginManager.get("collector:mock:1")
+		So(err2, ShouldBeNil)
+		So(lp.Name(), ShouldResemble, "mock")
+		//Subscribe deps to create pools.
+		metric := MockMetricType{
+			namespace: []string{"intel", "mock", "foo"},
+			cfg:       cdata.NewNode(),
+			ver:       0,
+		}
+		fmt.Println("before sub deps")
+		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
+		So(serr, ShouldBeNil)
+		// collect metrics as a sanity check that everything is setup correctly
+		fmt.Println("collectMetrics")
+		_, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		So(errs, ShouldBeNil)
+		fmt.Println("after collect metrics")
+		//So(len(mts), ShouldEqual, 1)
+		// ensure the data coming back is from v1. V1's data is type string
+		//_, ok := mts[0].Data().(string)
+		//So(ok, ShouldEqual, true)
+		Convey("Loading v2 of that plugin should move subscriptions to newer version", func() {
+			// Load version snap-collector-mock2
+			rp, err := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-collector-mock2"))
+			_, err = c.Load(rp)
+			So(err, ShouldBeNil)
+			// Wait for plugin load event to be done
+			select {
+			case <-lpe.done:
+			case <-time.After(10 * time.Second):
+				panic("error")
+			}
+			select {
+			case <-lpe.done:
+			case <-time.After(10 * time.Second):
+				panic("error")
+			}
+			select {
+			case <-lpe.done:
+			case <-time.After(10 * time.Second):
+				panic("error")
+			}
+			// wait for subscription event
+			// Check for subscription movement.
+			// Give some time for subscription to be moved.
+			var pool1 strategy.Pool
+			var errp error
+
+			pool1, errp = c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			So(errp, ShouldBeNil)
+			So(pool1.SubscriptionCount(), ShouldEqual, 0)
+
+			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			So(errp, ShouldBeNil)
+			So(pool2.SubscriptionCount(), ShouldEqual, 1)
+
+			//	mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			//	So(len(mts), ShouldEqual, 1)
+
+			// ensure the data coming back is from v2, V2's data is type int
+			//	_, ok = mts[0].Data().(int)
+			//	So(ok, ShouldEqual, true)
+		})
+	})
+}
+
+/*
+func TestMetricRolloverToOlderVersion(t *testing.T) {
+	Convey("Given a metric that is being collected at v2", t, func() {
+		c := New(GetDefaultConfig())
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("TestMetricRolloverToOlderVersion", lpe)
+		c.Start()
+		_, err := load(c, path.Join(SnapPath, "plugin", "snap-collector-mock2"))
+		So(err, ShouldBeNil)
+		<-lpe.done
+		So(len(c.pluginManager.all()), ShouldEqual, 1)
+		lp, err2 := c.pluginManager.get("collector:mock:2")
+		So(err2, ShouldBeNil)
+		So(lp.Name(), ShouldResemble, "mock")
+		//Subscribe deps to create pools.
+		metric := MockMetricType{
+			namespace: []string{"intel", "mock", "foo"},
+			cfg:       cdata.NewNode(),
+			ver:       0,
+		}
+		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
+		So(serr, ShouldBeNil)
+		// collect metrics as a sanity check that everything is setup correctly
+		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		So(errs, ShouldBeNil)
+		So(len(mts), ShouldEqual, 1)
+		// ensure the data coming back is from v2. V2's data is type int
+		_, ok := mts[0].Data().(int)
+		So(ok, ShouldEqual, true)
+		// grab plugin for mock v2
+		pc := c.PluginCatalog()
+		mockv2 := pc[0]
+		Convey("Loading v1 of that plugin and unloading v2 should move subscriptions to older version", func() {
+			// Load version snap-collector-mock2
+			_, err = load(c, path.Join(SnapPath, "plugin", "snap-collector-mock1"))
+			So(err, ShouldBeNil)
+			// Wait for plugin load event to be done
+			<-lpe.done
+
+			_, err = c.Unload(mockv2)
+			So(err, ShouldBeNil)
+			// wait for unload event
+			<-lpe.done
+			// wait for PluginSubscription event
+			<-lpe.done
+			<-lpe.done
+			// Check for subscription movement.
+			// Give some time for subscription to be moved.
+			var pool1 strategy.Pool
+			var errp error
+			ap := c.pluginRunner.AvailablePlugins()
+			pool1, errp = ap.getOrCreatePool("collector:mock:2")
+			So(errp, ShouldBeNil)
+			So(pool1.SubscriptionCount(), ShouldEqual, 0)
+
+			pool2, errp := ap.getOrCreatePool("collector:mock:1")
+			So(errp, ShouldBeNil)
+			So(pool2.SubscriptionCount(), ShouldEqual, 1)
+
+			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			So(len(mts), ShouldEqual, 1)
+
+			// ensure the data coming back is from v1, V1's data is type string
+			_, ok = mts[0].Data().(string)
+			So(ok, ShouldEqual, true)
+		})
+	})
+
+}*/

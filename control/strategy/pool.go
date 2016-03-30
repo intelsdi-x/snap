@@ -140,7 +140,7 @@ func NewPool(key string, plugins ...AvailablePlugin) (Pool, error) {
 		RWMutex:          &sync.RWMutex{},
 		version:          ver,
 		key:              key,
-		subs:             map[string]*subscription{},
+		subs:             make(map[string]*subscription),
 		plugins:          make(map[uint32]AvailablePlugin),
 		max:              MaximumRunningPlugins,
 		concurrencyCount: 1,
@@ -378,7 +378,8 @@ func (p *pool) MoveSubscriptions(to Pool) []subscription {
 	defer p.Unlock()
 
 	for task, sub := range p.subs {
-		if sub.SubType == UnboundSubscriptionType && to.(*pool).version > p.version {
+		// ensure that this sub was not bound to this pool specifically before moving
+		if sub.SubType == UnboundSubscriptionType {
 			subs = append(subs, *sub)
 			to.Subscribe(task, UnboundSubscriptionType)
 			delete(p.subs, task)

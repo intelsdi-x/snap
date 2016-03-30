@@ -368,6 +368,12 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 	if pool == nil {
 		return nil, serror.New(ErrPoolNotFound, map[string]interface{}{"pool-key": pluginKey})
 	}
+	// If the strategy is nil but the pool exists we likely are waiting on the pool to be fully initialized
+	// because of a plugin load/unload event that is currently being processed. Prevents panic from using nil
+	// RoutingAndCaching.
+	if pool.Strategy() == nil {
+		return nil, errors.New("Plugin strategy not set")
+	}
 
 	metricsToCollect, metricsFromCache := pool.CheckCache(metricTypes, taskID)
 
