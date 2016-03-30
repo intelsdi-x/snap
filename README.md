@@ -99,7 +99,9 @@ Snap deploys as a binary, which makes requirements quite simple. We've tested on
 You can get the pre-built binaries for your OS and architecture at snap's [GitHub Releases](https://github.com/intelsdi-x/snap/releases) page. This isn't the comprehensive list of plugins, but they will help you get started. Right now, snap only supports Linux and OS X (Darwin).
 
 #### Building snap
-If you're looking for the bleeding edge of snap, you can build it by getting the `master` branch using `go get github.com/intelsdi-x/snap`. Otherwise you can just use the binaries. To build snap from source, you will need [Golang >= 1.4](https://golang.org) and [GNU Make](https://www.gnu.org/software/make/). For more on building snap check out [BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
+
+If you're looking for the bleeding edge of snap, you can build it by getting the `master` branch using `go get github.com/intelsdi-x/snap`.
+Otherwise you can build the binaries from source. To build snap from source, you will need [Golang >= 1.4](https://golang.org) and [GNU Make](https://www.gnu.org/software/make/). For more on building snap check out [BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md). Golang can be downloaded [here](https://golang.org/dl/).
 
 ### Running snap
 
