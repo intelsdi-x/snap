@@ -46,8 +46,9 @@ func TestConfigPolicyNode(t *testing.T) {
 
 		r1, _ := NewStringRule("username", true)
 		r2, _ := NewStringRule("password", true)
+		r3, _ := NewBoolRule("nova", false)
 
-		n.Add(r1, r2)
+		n.Add(r1, r2, r3)
 
 		_, pe := n.Process(m)
 
@@ -66,8 +67,9 @@ func TestConfigPolicyNode(t *testing.T) {
 		r1, _ := NewStringRule("username", true)
 		r2, _ := NewStringRule("password", true)
 		r3, _ := NewIntegerRule("port", true)
+		r4, _ := NewIntegerRule("port", true)
 
-		n.Add(r1, r2, r3)
+		n.Add(r1, r2, r3, r4)
 
 		_, pe := n.Process(m)
 
@@ -85,17 +87,20 @@ func TestConfigPolicyNode(t *testing.T) {
 		m["username"] = ctypes.ConfigValueStr{Value: "root"}
 		m["password"] = ctypes.ConfigValueStr{Value: "password"}
 		m["port"] = ctypes.ConfigValueStr{Value: "8080"}
+		m["nova"] = ctypes.ConfigValueStr{Value: "true"}
 
 		r1, _ := NewStringRule("username", true)
 		r2, _ := NewStringRule("password", true)
 		r3, _ := NewIntegerRule("port", true)
+		r4, _ := NewBoolRule("nova", true)
 
-		n.Add(r1, r2, r3)
+		n.Add(r1, r2, r3, r4)
 
 		_, pe := n.Process(m)
 
-		So(len(pe.Errors()), ShouldEqual, 1)
+		So(len(pe.Errors()), ShouldEqual, 2)
 		So(errorsMsg(pe.Errors()), ShouldContain, "type mismatch (port wanted type 'integer' but provided type 'string')")
+		So(errorsMsg(pe.Errors()), ShouldContain, "type mismatch (nova wanted type 'bool' but provided type 'string')")
 	})
 
 	Convey("adds defaults to only missing values that should have them", t, func() {
@@ -108,14 +113,16 @@ func TestConfigPolicyNode(t *testing.T) {
 		r1, _ := NewStringRule("username", false, "root")
 		r2, _ := NewStringRule("password", true)
 		r3, _ := NewIntegerRule("port", false, 8080)
+		r4, _ := NewBoolRule("nova", false, true)
 
-		n.Add(r1, r2, r3)
+		n.Add(r1, r2, r3, r4)
 
 		m2, pe := n.Process(m)
 
 		So(len(pe.Errors()), ShouldEqual, 0)
 		So((*m2)["username"].(*ctypes.ConfigValueStr).Value, ShouldEqual, "root")
 		So((*m2)["port"].(*ctypes.ConfigValueInt).Value, ShouldEqual, 8080)
+		So((*m2)["nova"].(*ctypes.ConfigValueBool).Value, ShouldEqual, true)
 	})
 
 	Convey("defaults don't fix missing values on required", t, func() {
