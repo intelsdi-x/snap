@@ -6,22 +6,49 @@ To build snap you'll need:
     * An option to look into is using the [go version manager (gvm)](https://github.com/moovweb/gvm) if you want to easily switch between Go versions.
 * [GNU Make](https://www.gnu.org/software/make/)
 * [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+
 * snap:
-    * `go get github.com/intelsdi-x/snap`. This will put snap in your `$GOPATH`.
-    * Fork the repository
-    * `cd` into your /intelsdi-x/snap directory on your machine and do the following to set your fork as the origin and make a branch on your fork
-        ```
-        git remote rename origin upstream
-        git remote add origin git@github.com:<yourGithubID>/snap.git
-        ```
-        To push to your fork later, either do a `git push origin master` or do `git checkout -b <someBranchName>` then you can do `git push`.
+    * Set your `$GOPATH` environment variable.
+
+    ```
+    export GOPATH=$HOME/work`
+    ```
+
+    * Install snap into your `$GOPATH`.
+
+    ```
+    go get github.com/intelsdi-x/snap`.
+    ```
+
+    * `cd` into `$GOPATH/src/github.com/intelsdi-x/snap` and set your fork as a remote repository.
+
+    ```
+    git remote rename origin upstream
+    ```
+
+    ```
+    git remote add origin git@github.com:<yourGithubID>/snap.git
+    ```
+
+    * To push to your fork later, either do a `git push origin master` or do `git checkout -b <someBranchName>` then you can do `git push`.
 
 ## Build
+
+In order to run the make command, you must first configure go and install
+godeps:
+
+```
+export PATH=$GOPATH/bin/
+go get github.com/tools/godep
+```
+
 In the /snap directory there's a `Makefile` that builds all dependencies and snap.
 To get dependencies and build snap just run:  
+
 ```
 make
 ```
+
 It runs the following `make deps` and `make all` commands.
 
 Alternatively, you can run `make` with any of the following targets:
