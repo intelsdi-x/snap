@@ -2,8 +2,6 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 
 ## Maintained plugins
 
-### Intel®
-
 | Name  | Type  | Description | Link | Download |
 | :---- | :---- | :---------- | :--- | :------- |
 | CEPH | Collector | Collects from CEPH cluster | [snap-plugin-collector-ceph](https://github.com/intelsdi-x/snap-plugin-collector-ceph) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-ceph)
@@ -27,38 +25,34 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | PostgreSQL | Publisher | Writes to PostgreSQL Database | [snap-plugin-publisher-postgresql](https://github.com/intelsdi-x/snap-plugin-publisher-postgresql) | [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-publisher-postgresql)&nbsp;&#124;&nbsp;[Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-publisher-postgresql)
 | RabbitMQ | Publisher | Writes to RabbitMQ | [snap-plugin-publisher-rabbitmq](https://github.com/intelsdi-x/snap-plugin-publisher-rabbitmq) | [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-collector-rabbitmq)&nbsp;&#124;&nbsp;[Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-rabbitmq)
 | Riemann | Publisher | Writes to Riemann monitoring system | [snap-plugin-publisher-riemann](https://github.com/intelsdi-x/snap-plugin-publisher-riemann) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-publisher-riemann)&nbsp;&#124;&nbsp;[Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-publisher-riemann)
+| Nova | Collector | Collect from Nova/Libvirt | [snap-plugin-collector-nova](https://github.com/intelsdi-x/snap-plugin-publisher-riemann) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-nova)
+| Meminfo | Collector | Collects memory related metrics from Linux procfs | [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-meminfo)
+| Interface | Collector | Collects network interfaces metrics from Linux procfs | [snap-plugin-collector-interface](https://github.com/intelsdi-x/snap-plugin-collector-interface) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-interface)
+| Swap | Collector | Collects swap related metrics from Linux procfs | [snap-plugin-collector-swap](https://github.com/intelsdi-x/snap-plugin-collector-swap) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-swap)
+| Load | Collector | Collects plaform load metrics from Linux procfs | [snap-plugin-collector-load](https://github.com/intelsdi-x/snap-plugin-collector-load) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-load)
+| Df | Collector | Collects disk space metrics from ```df``` Linux tool | [snap-plugin-collector-df](https://github.com/intelsdi-x/snap-plugin-collector-df) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-df)
+| HAProxy | Collector | Collects metrics from HAProxy | [snap-plugin-collector-haproxy](https://github.com/intelsdi-x/snap-plugin-collector-haproxy) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-haproxy)
+| Processes | Collector | Collects processes metrics from Linux procfs | [snap-plugin-collector-processes](https://github.com/intelsdi-x/snap-plugin-collector-processes) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-processes)
+| Users | Collector | Collects users related metrics from Linux utmp | [snap-plugin-collector-users](https://github.com/intelsdi-x/snap-plugin-collector-users) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-users)
+| MySQL | Collector | Collects metrics from MySQL DB | [snap-plugin-collector-mysql](https://github.com/intelsdi-x/snap-plugin-collector-mysql) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-publisher-mysql) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-publisher-mysql)
+| CPU | Collector | Collects CPU metrics from Linux procfs | [snap-plugin-collector-cpu](https://github.com/intelsdi-x/snap-plugin-collector-cpu) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-cpu)
+| DBI | Collector | Collects metrics from SQL DBs using go's "sql" package | [snap-plugin-collector-dbi](https://github.com/intelsdi-x/snap-plugin-collector-dbi) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-dbi)
+| Apache | Collector | Collects metrics from the Apache Webserver for mod_status| [snap-plugin-collector-apache](https://github.com/intelsdi-x/snap-plugin-collector-apache) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-apache)
+|Graphite | Publisher | Publishes snap metrics to graphite | [snap-plugin-publisher-graphite](https://github.com/intelsdi-x/snap-plugin-publisher-graphite) | [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-publisher-graphite) &#124; [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-publisher-graphite)
 
-### Third-party
-
-TBD
 
 ## Committed plugins
 These plugins are in planned/active development. This list is useful if you want to reach out and contribute to the development.
 
 | Name  | Type  | Description | Link | Authors |
 | :---- | :---- | :---------- | :--- | :------ |
-| Nova | Collector | Collect from Nova/Libvirt | -| [@sandlbn](https://github.com/sandlbn) |
 | Open vSwitch | Collector | Collect Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
 | NFS Client | Collector | Collect NFS client counters and RPC data | [snap-plugin-collector-nfsclient](https://github.com/intelsdi-x/snap-plugin-collector-nfsclient) | [@thomastaylor312](https://github.com/thomastaylor312) |
 | Disk | Collector | Collects disk related metrics from Linux procfs | [snap-plugin-collector-disk](https://github.com/intelsdi-x/snap-plugin-collector-disk) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
-| Swap | Collector | Collects swap related metrics from Linux procfs | [snap-plugin-collector-swap](https://github.com/intelsdi-x/snap-plugin-collector-swap) | [@andrzej-k](https://github.com/andrzej-k) |
-| Meminfo | Collector | Collects memory related metrics from Linux procfs | [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo) | [@marcin-krolik](https://github.com/marcin-krolik) |
-| Load | Collector | Collects plaform load metrics from Linux procfs | [snap-plugin-collector-load](https://github.com/intelsdi-x/snap-plugin-collector-load) | [@marcin-krolik](https://github.com/marcin-krolik) |
-| Interface | Collector | Collects network interfaces metrics from Linux procfs | [snap-plugin-collector-interface](https://github.com/intelsdi-x/snap-plugin-collector-interface) | [@marcin-krolik](https://github.com/marcin-krolik) |
-| Df | Collector | Collects disk space metrics from ```df``` Linux tool | [snap-plugin-collector-df](https://github.com/intelsdi-x/snap-plugin-collector-df) | [@PatrykMatyjasek](https://github.com/PatrykMatyjasek) |
-| HAProxy | Collector | Collects metrics from HAProxy | [snap-plugin-collector-haproxy](https://github.com/intelsdi-x/snap-plugin-collector-haproxy) | [@marcin-krolik](https://github.com/marcin-krolik) |
 | Etcd | Collector | Collects metrics from Etcd's `/metrics` endpoint. | [snap-plugin-collector-etcd](https://github.com/intelsdi-x/snap-plugin-collector-etcd) | [@danielscottt](https://github.com/danielscottt) |
-| Processes | Collector | Collects processes metrics from Linux procfs | [snap-plugin-collector-processes](https://github.com/intelsdi-x/snap-plugin-collector-processes) | [@marcin-krolik](https://github.com/marcin-krolik) |
-| Users | Collector | Collects users related metrics from Linux utmp | [snap-plugin-collector-users](https://github.com/intelsdi-x/snap-plugin-collector-users) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
-| MySQL | Collector | Collects metrics from MySQL DB | [snap-plugin-collector-mysql](https://github.com/intelsdi-x/snap-plugin-collector-mysql) | [@lmroz](https://github.com/lmroz) |
-| CPU | Collector | Collects CPU metrics from Linux procfs | [snap-plugin-collector-cpu](https://github.com/intelsdi-x/snap-plugin-collector-cpu) | [@katarzyna-z](https://github.com/katarzyna-z) |
-| DBI | Collector | Collects metrics from SQL DBs using go's "sql" package | [snap-plugin-collector-dbi](https://github.com/intelsdi-x/snap-plugin-collector-dbi) | [@IzabellaRaulin](https://github.com/IzabellaRaulin) |
-| Apache | Collector | Collects metrics from the Apache Webserver for mod_status| [snap-plugin-collector-apache](https://github.com/intelsdi-x/snap-plugin-collector-apache) | [@tiffanyfj](https://github.com/tiffanyfj) |
- |
 | Elasticsearch | Collector | Collects metrics from Elasticsearch cluster | [snap-plugin-collector-elasticsearch](https://github.com/intelsdi-x/snap-plugin-collector-elasticsearch) | [@candysmurf](https://github.com/candysmurf) |
 | Cassandra | Collector | Collects metrics from Cassandra cluster | [snap-plugin-collector-cassandra](https://github.com/intelsdi-x/snap-plugin-collector-cassandra) | [@candysmurf](https://github.com/candysmurf) |
 | HEKA | Publisher | Publishes snap metrics into heka via TCP | [snap-plugin-publisher-heka](https://github.com/intelsdi-x/snap-plugin-publisher-heka) | [@candysmurf](https://github.com/candysmurf) |
-|Graphite | Publisher | Publishes snap metrics to graphite | [snap-plugin-publisher-graphite](https://github.com/intelsdi-x/snap-plugin-publisher-graphite) | [@ircody](https://github.com/ircody) |
 | Cassandra | Publisher | Publishes snap metrics into Cassandra | [snap-plugin-publisher-cassandra](https://github.com/intelsdi-x/snap-plugin-publisher-cassandra) | [@candysmurf](https://github.com/candysmurf) |
 
 ## Wish List
