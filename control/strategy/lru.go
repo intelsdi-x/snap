@@ -52,25 +52,25 @@ func (l *lru) CacheTTL(taskID string) (time.Duration, error) {
 }
 
 // Select selects an available plugin using the least-recently-used strategy.
-func (l *lru) Select(spa []SelectablePlugin, _ string) (SelectablePlugin, error) {
+func (l *lru) Select(aps []AvailablePlugin, _ string) (AvailablePlugin, error) {
 	t := time.Now()
 	index := -1
-	for i, sp := range spa {
+	for i, ap := range aps {
 		// look for the least recently used
-		if sp.LastHit().Before(t) || index == -1 {
+		if ap.LastHit().Before(t) || index == -1 {
 			index = i
-			t = sp.LastHit()
+			t = ap.LastHit()
 		}
 	}
 	if index > -1 {
 		l.logger.WithFields(log.Fields{
 			"block":     "select",
 			"strategy":  l.String(),
-			"pool size": len(spa),
-			"index":     spa[index].String(),
-			"hitcount":  spa[index].HitCount(),
+			"pool size": len(aps),
+			"index":     aps[index].String(),
+			"hitcount":  aps[index].HitCount(),
 		}).Debug("plugin selected")
-		return spa[index], nil
+		return aps[index], nil
 	}
 	l.logger.WithFields(log.Fields{
 		"block":    "select",
@@ -82,12 +82,12 @@ func (l *lru) Select(spa []SelectablePlugin, _ string) (SelectablePlugin, error)
 
 // Remove selects a plugin
 // Since there is no state to cleanup we only need to return the selected plugin
-func (l *lru) Remove(sp []SelectablePlugin, taskID string) (SelectablePlugin, error) {
-	p, err := l.Select(sp, taskID)
+func (l *lru) Remove(aps []AvailablePlugin, taskID string) (AvailablePlugin, error) {
+	ap, err := l.Select(aps, taskID)
 	if err != nil {
 		return nil, err
 	}
-	return p, nil
+	return ap, nil
 }
 
 // checkCache checks the cache for metric types.

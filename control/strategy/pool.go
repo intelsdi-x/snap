@@ -20,6 +20,8 @@ limitations under the License.
 package strategy
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"strconv"
 	"strings"
@@ -31,6 +33,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 )
 
@@ -47,6 +50,7 @@ var (
 	// This defines the maximum running instances of a loaded plugin.
 	// It is initialized at runtime via the cli.
 	MaximumRunningPlugins = 3
+	ErrStrategyUnknown    = errors.New("Provided RoutingAndCaching strategy unknown") // TODO - remove?
 )
 
 var (
@@ -62,11 +66,11 @@ type Pool interface {
 	Insert(a AvailablePlugin) error
 	Kill(id uint32, reason string)
 	MoveSubscriptions(to Pool) []subscription
-	Plugins() map[uint32]AvailablePlugin
+	Plugins() MapAvailablePlugin
 	RLock()
 	RUnlock()
 	SelectAndKill(taskID, reason string)
-	SelectAP(taskID string) (SelectablePlugin, serror.SnapError)
+	SelectAP(opts SelectorValues) (AvailablePlugin, serror.SnapError)
 	Strategy() RoutingAndCaching
 	Subscribe(taskID string, subType SubscriptionType)
 	SubscriptionCount() int
@@ -87,6 +91,11 @@ type AvailablePlugin interface {
 	SetID(id uint32)
 	String() string
 	Type() plugin.PluginType
+}
+
+type SelectorValues struct {
+	Task   string
+	Config map[string]ctypes.ConfigValue
 }
 
 type subscription struct {
@@ -112,7 +121,7 @@ type pool struct {
 	// The plugins in the pool.
 	// the primary key is an increasing --> uint from
 	// snapd epoch (`service snapd start`).
-	plugins    map[uint32]AvailablePlugin
+	plugins    MapAvailablePlugin
 	pidCounter uint32
 
 	// The max size which this pool may grow.
@@ -140,8 +149,8 @@ func NewPool(key string, plugins ...AvailablePlugin) (Pool, error) {
 		RWMutex:          &sync.RWMutex{},
 		version:          ver,
 		key:              key,
-		subs:             make(map[string]*subscription),
-		plugins:          make(map[uint32]AvailablePlugin),
+		subs:             map[string]*subscription{},
+		plugins:          MapAvailablePlugin{},
 		max:              MaximumRunningPlugins,
 		concurrencyCount: 1,
 	}
@@ -161,7 +170,7 @@ func (p *pool) Version() int {
 }
 
 // Plugins returns a map of plugin ids to the AvailablePlugin
-func (p *pool) Plugins() map[uint32]AvailablePlugin {
+func (p *pool) Plugins() MapAvailablePlugin {
 	return p.plugins
 }
 
@@ -227,6 +236,9 @@ func (p *pool) applyPluginMeta(a AvailablePlugin) error {
 	case plugin.StickyRouting:
 		p.RoutingAndCaching = NewSticky(cacheTTL)
 		p.concurrencyCount = 1
+	case plugin.ConfigRouting:
+		p.RoutingAndCaching = NewConfigBased(cacheTTL)
+		p.concurrencyCount = 3
 	default:
 		return ErrBadStrategy
 	}
@@ -292,25 +304,25 @@ func (p *pool) Kill(id uint32, reason string) {
 }
 
 // SelectAndKill selects, kills and removes the available plugin from the pool
-func (p *pool) SelectAndKill(taskID, reason string) {
-	sp := make([]SelectablePlugin, p.Count())
-	i := 0
-	for _, plg := range p.plugins {
-		sp[i] = plg
-		i++
-	}
-	rp, err := p.Remove(sp, taskID)
+func (p *pool) SelectAndKill(id, reason string) {
+	//sp := make([]SelectablePlugin, p.Count())
+	//i := 0
+	//for _, plg := range p.plugins {
+	//	sp[i] = plg
+	//	i++
+	//}
+	rp, err := p.Remove(p.plugins.Values(), id)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"_block": "selectAndKill",
-			"taskID": taskID,
+			"taskID": id,
 			"reason": reason,
 		}).Error(err)
 	}
 	if err := rp.Kill(reason); err != nil {
 		log.WithFields(log.Fields{
 			"_block": "selectAndKill",
-			"taskID": taskID,
+			"taskID": id,
 			"reason": reason,
 		}).Error(err)
 	}
@@ -347,21 +359,45 @@ func (p *pool) SubscriptionCount() int {
 }
 
 // SelectAP selects an available plugin from the pool
-func (p *pool) SelectAP(taskID string) (SelectablePlugin, serror.SnapError) {
+func (p *pool) SelectAP(opts SelectorValues) (AvailablePlugin, serror.SnapError) {
 	p.RLock()
 	defer p.RUnlock()
 
-	sp := make([]SelectablePlugin, p.Count())
-	i := 0
-	for _, plg := range p.plugins {
-		sp[i] = plg
-		i++
-	}
-	sap, err := p.Select(sp, taskID)
-	if err != nil || sap == nil {
+	selector, err := func(opts SelectorValues) (string, error) {
+		var e error
+		s := ""
+		switch p.Strategy().String() {
+		case "least-recently-used":
+			s = "lru"
+		case "sticky":
+			s = opts.Task
+		case "config-based":
+			s = idFromCfg(opts.Config)
+		default:
+			e = ErrBadStrategy
+		}
+		return s, e
+	}(opts)
+
+	if err != nil {
 		return nil, serror.New(err)
 	}
-	return sap, nil
+	aps := p.plugins.Values()
+	ap, err := p.Select(aps, selector)
+	if err != nil || ap == nil {
+		return nil, serror.New(err)
+	}
+	return ap, nil
+}
+
+func idFromCfg(cfg map[string]ctypes.ConfigValue) string {
+	var buff bytes.Buffer
+	enc := gob.NewEncoder(&buff)
+	err := enc.Encode(cfg)
+	if err != nil {
+		return ""
+	}
+	return string(buff.Bytes())
 }
 
 // generatePID returns the next available pid for the pool
@@ -373,15 +409,11 @@ func (p *pool) generatePID() uint32 {
 // MoveSubscriptions moves subscriptions to another pool
 func (p *pool) MoveSubscriptions(to Pool) []subscription {
 	var subs []subscription
-	// If attempting to move between the same pool
-	// bail to prevent deadlock.
-	if to.(*pool) == p {
-		return []subscription{}
-	}
+
 	p.Lock()
 	defer p.Unlock()
+
 	for task, sub := range p.subs {
-		// ensure that this sub was not bound to this pool specifically before moving
 		if sub.SubType == UnboundSubscriptionType {
 			subs = append(subs, *sub)
 			to.Subscribe(task, UnboundSubscriptionType)

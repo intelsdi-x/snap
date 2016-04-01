@@ -28,27 +28,70 @@ import (
 	"github.com/intelsdi-x/snap/core"
 )
 
+type MapAvailablePlugin map[uint32]AvailablePlugin
+
 var (
 	ErrCouldNotSelect = errors.New("could not select a plugin")
 )
 
-type SelectablePlugin interface {
-	HitCount() int
-	LastHit() time.Time
-	String() string
-	Kill(r string) error
-	ID() uint32
-}
-
 type RoutingAndCaching interface {
-	Select(selectablePlugins []SelectablePlugin, taskID string) (SelectablePlugin, error)
-	Remove(selectablePlugins []SelectablePlugin, taskID string) (SelectablePlugin, error)
-	CheckCache(metrics []core.Metric, taskID string) ([]core.Metric, []core.Metric)
-	UpdateCache(metrics []core.Metric, taskID string)
-	CacheHits(ns string, ver int, taskID string) (uint64, error)
-	CacheMisses(ns string, ver int, taskID string) (uint64, error)
+	Select(availablePlugins []AvailablePlugin, id string) (AvailablePlugin, error)
+	Remove(availablePlugins []AvailablePlugin, id string) (AvailablePlugin, error)
+	CheckCache(metrics []core.Metric, id string) ([]core.Metric, []core.Metric)
+	UpdateCache(metrics []core.Metric, id string)
+	CacheHits(ns string, ver int, id string) (uint64, error)
+	CacheMisses(ns string, ver int, id string) (uint64, error)
 	AllCacheHits() uint64
 	AllCacheMisses() uint64
 	CacheTTL(taskID string) (time.Duration, error)
 	String() string
+}
+
+func (sm MapAvailablePlugin) AddMap(m map[uint32]AvailablePlugin) {
+	if sm.Size() == 0 {
+		sm = m
+	} else {
+		for k, v := range m {
+			sm[k] = v
+		}
+	}
+}
+
+// RemoveAll deletes all key/value pairs from map
+func (sm MapAvailablePlugin) RemoveAll() {
+	sm = map[uint32]AvailablePlugin{}
+}
+
+// Size return number of key/value pairs
+func (sm MapAvailablePlugin) Size() int {
+	return len(sm)
+}
+
+// Empty checks if map contains any key/value pair
+func (sm MapAvailablePlugin) Empty() bool {
+	return len(sm) == 0
+}
+
+// Keys returns slice of map keys
+func (sm MapAvailablePlugin) Keys() []uint32 {
+	keys := []uint32{}
+	for k := range sm {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Values returns slice of map values
+func (sm MapAvailablePlugin) Values() []AvailablePlugin {
+	values := []AvailablePlugin{}
+	for _, v := range sm {
+		values = append(values, v)
+	}
+	return values
+}
+
+// HasKey checks if key exists in map
+func (sm MapAvailablePlugin) HasKey(key uint32) bool {
+	_, found := sm[key]
+	return found
 }
