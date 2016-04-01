@@ -577,6 +577,8 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []se
 	// types.
 	colPlugins := make(map[string]*loadedPlugin)
 	for _, mt := range mts {
+		// If the version provided is <1 we will get the latest
+		// plugin for the given metric.
 		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 		if err != nil {
 			serrs = append(serrs, serror.New(err, map[string]interface{}{
@@ -585,16 +587,8 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []se
 			}))
 			continue
 		}
-		// if the metric subscription is to version -1, we need to carry
-		// that forward in the subscription.
-		if mt.Version() < 1 {
-			// make a copy of the loadedPlugin and overwrite the version.
-			npl := *m.Plugin
-			npl.Meta.Version = -1
-			colPlugins[npl.Key()] = &npl
-		} else {
-			colPlugins[m.Plugin.Key()] = m.Plugin
-		}
+
+		colPlugins[m.Plugin.Key()] = m.Plugin
 	}
 	if len(serrs) > 0 {
 		return plugins, serrs

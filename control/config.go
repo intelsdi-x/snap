@@ -84,6 +84,19 @@ func GetDefaultConfig() *Config {
 	}
 }
 
+// NewPluginsConfig returns a map of *pluginConfigItems where the key is the plugin name.
+func NewPluginsConfig() map[string]*pluginConfigItem {
+	return map[string]*pluginConfigItem{}
+}
+
+// NewPluginConfigItem returns a *pluginConfigItem.
+func NewPluginConfigItem() *pluginConfigItem {
+	return &pluginConfigItem{
+		cdata.NewNode(),
+		map[int]*cdata.ConfigDataNode{},
+	}
+}
+
 func newPluginTypeConfigItem() *pluginTypeConfigItem {
 	return &pluginTypeConfigItem{
 		make(map[string]*pluginConfigItem),
