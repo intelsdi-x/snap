@@ -259,26 +259,31 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 	respond(200, pr, w)
 }
 
-func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	var detail bool
-	// make this a function because DRY
 	for k := range r.URL.Query() {
 		if k == "details" {
 			detail = true
 		}
 	}
+	plName := params.ByName("name")
+	plType := params.ByName("type")
+	respond(200, getPlugins(s.mm, detail, r.Host, plName, plType), w)
+}
 
-	plugins := new(rbody.PluginList)
+func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType string) *rbody.PluginList {
 
-	// Cache the catalog here to avoid multiple reads
-	plCatalog := s.mm.PluginCatalog()
+	plCatalog := mm.PluginCatalog()
+
+	plugins := rbody.PluginList{}
+
 	plugins.LoadedPlugins = make([]rbody.LoadedPlugin, len(plCatalog))
-	for i, p := range s.mm.PluginCatalog() {
-		plugins.LoadedPlugins[i] = *catalogedPluginToLoaded(r.Host, p)
+	for i, p := range plCatalog {
+		plugins.LoadedPlugins[i] = *catalogedPluginToLoaded(h, p)
 	}
 
 	if detail {
-		aPlugins := s.mm.AvailablePlugins()
+		aPlugins := mm.AvailablePlugins()
 		plugins.AvailablePlugins = make([]rbody.AvailablePlugin, len(aPlugins))
 		for i, p := range aPlugins {
 			plugins.AvailablePlugins[i] = rbody.AvailablePlugin{
@@ -292,7 +297,41 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, _ httprouter
 		}
 	}
 
-	respond(200, plugins, w)
+	filteredPlugins := rbody.PluginList{}
+
+	if plName != "" {
+		for _, p := range plugins.LoadedPlugins {
+			if p.Name == plName {
+				filteredPlugins.LoadedPlugins = append(filteredPlugins.LoadedPlugins, p)
+			}
+		}
+		for _, p := range plugins.AvailablePlugins {
+			if p.Name == plName {
+				filteredPlugins.AvailablePlugins = append(filteredPlugins.AvailablePlugins, p)
+			}
+		}
+		// update plugins so that further filters consider previous filters
+		plugins = filteredPlugins
+	}
+
+	filteredPlugins = rbody.PluginList{}
+
+	if plType != "" {
+		for _, p := range plugins.LoadedPlugins {
+			if p.Type == plType {
+				filteredPlugins.LoadedPlugins = append(filteredPlugins.LoadedPlugins, p)
+			}
+		}
+		for _, p := range plugins.AvailablePlugins {
+			if p.Type == plType {
+				filteredPlugins.AvailablePlugins = append(filteredPlugins.AvailablePlugins, p)
+			}
+		}
+		// filter based on type
+		plugins = filteredPlugins
+	}
+
+	return &plugins
 }
 
 func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) *rbody.LoadedPlugin {
@@ -305,12 +344,6 @@ func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) *rbody.LoadedP
 		LoadedTimestamp: c.LoadedTimestamp().Unix(),
 		Href:            catalogedPluginURI(host, c),
 	}
-}
-
-func (s *Server) getPluginsByType(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-}
-
-func (s *Server) getPluginsByName(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 }
 
 func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

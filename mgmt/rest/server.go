@@ -284,8 +284,8 @@ func (s *Server) BindConfigManager(c managesConfig) {
 func (s *Server) addRoutes() {
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
-	s.r.GET("/v1/plugins/:type", s.getPluginsByType)
-	s.r.GET("/v1/plugins/:type/:name", s.getPluginsByName)
+	s.r.GET("/v1/plugins/:type", s.getPlugins)
+	s.r.GET("/v1/plugins/:type/:name", s.getPlugins)
 	s.r.GET("/v1/plugins/:type/:name/:version", s.getPlugin)
 	s.r.POST("/v1/plugins", s.loadPlugin)
 	s.r.DELETE("/v1/plugins/:type/:name/:version", s.unloadPlugin)
