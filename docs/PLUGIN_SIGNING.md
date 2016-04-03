@@ -71,7 +71,7 @@ INFO[0000] adding keyring file: /Users/tiffany/.gnupg/secring.gpg
 INFO[0000] adding keyring file: /Users/tiffany/.gnupg/trustdb.gpg
 ```
 ```
-$ $SNAP plugin load build/plugin/snap-collector-mock1 -a build/plugin/snap-collector-mock1.asc
+$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-collector-mock1 -a build/plugin/snap-collector-mock1.asc
 Plugin loaded
 Name: mock
 Version: 1
