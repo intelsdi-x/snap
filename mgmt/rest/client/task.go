@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2015,2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import (
 )
 
 type Schedule struct {
-	// Type specifies the type of the schedule. Currently,the type of "simple" and "windowed" are supported.
+	// Type specifies the type of the schedule. Currently, the type of "simple", "windowed" and "cron" are supported.
 	Type string
 	// Interval specifies the time duration.
 	Interval string

@@ -22,7 +22,20 @@ The header contains a version, used to differentiate between versions of the tas
 
 #### Schedule
 
-The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  __snap__ is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, __snap__ has a simple schedule which is described above, and a window schedule.  The window schedule adds a start and stop time.  For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
+The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  __snap__ is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, __snap__ has three schedules:
+- **simple schedule** which is described above, 
+- **window schedule** which adds a start and stop time,
+- **cron schedule** which supports cron-like entries in ```interval``` field, like in this example (workflow will fire every hour on the half hour):
+```
+    "version": 1,
+    "schedule": {
+        "type": "cron",
+        "interval" : "0 30 * * * *"
+    },
+```
+More on cron expressions can be found here: https://godoc.org/github.com/robfig/cron
+
+For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
 
 ### The Workflow
 

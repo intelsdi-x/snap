@@ -53,7 +53,7 @@ create      There are two ways to create a task.
 
                --task-manifest, -t          File path for task manifest to use for task creation.
 			   --workflow-manifest, -w      File path for workflow manifest to use for task creation
-			   --interval, -i               Interval for the task schedule [ex: 250ms, 1s, 30m]
+			   --interval, -i               Interval for the task schedule [ex (simple schedule): 250ms, 1s, 30m (cron schedule): "0 * * * * *"]
 			   --start-date                 Start date for the task schedule [defaults to today]
 			   --start-time                 Start time for the task schedule [defaults to now]
 			   --stop-date                  Stop date for the task schedule [defaults to today]

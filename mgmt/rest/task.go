@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2015,2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -342,6 +342,17 @@ func makeSchedule(s request.Schedule) (cschedule.Schedule, error) {
 		)
 
 		err = sch.Validate()
+		if err != nil {
+			return nil, err
+		}
+		return sch, nil
+	case "cron":
+		if s.Interval == "" {
+			return nil, errors.New("missing cron entry ")
+		}
+		sch := cschedule.NewCronSchedule(s.Interval)
+
+		err := sch.Validate()
 		if err != nil {
 			return nil, err
 		}

@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2015,2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ var (
 
 	flTaskSchedInterval = cli.StringFlag{
 		Name:  "interval, i",
-		Usage: "Interval for the task schedule [ex: 250ms, 1s, 30m]",
+		Usage: "Interval for the task schedule [ex (simple schedule): 250ms, 1s, 30m (cron schedule): \"0 * * * * *\"]",
 	}
 
 	flTaskSchedStartTime = cli.StringFlag{

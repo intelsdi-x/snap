@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2015,2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
+	"github.com/robfig/cron"
 
 	"github.com/ghodss/yaml"
 )
@@ -192,11 +193,17 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 	// Get the task name
 	name := ctx.String("name")
 	// Get the interval
+	isCron := false
 	i := ctx.String("interval")
 	_, err := time.ParseDuration(i)
 	if err != nil {
-		fmt.Printf("Bad interval format:\n%v\n", err)
-		os.Exit(1)
+		// try interpreting interval as cron entry
+		_, e := cron.Parse(i)
+		if e != nil {
+			fmt.Printf("Bad interval format:\nfor simple schedule: %v\nfor cron schedule: %v\n", err, e)
+			os.Exit(1)
+		}
+		isCron = true
 	}
 
 	// Deadline for a task
@@ -206,7 +213,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 	// None of these mean it is a simple schedule
 	if !ctx.IsSet("start-date") && !ctx.IsSet("start-time") && !ctx.IsSet("stop-date") && !ctx.IsSet("stop-time") {
 		// Check if duration was set
-		if ctx.IsSet("duration") {
+		if ctx.IsSet("duration") && !isCron {
 			d, err := time.ParseDuration(ctx.String("duration"))
 			if err != nil {
 				fmt.Printf("Bad duration format:\n%v\n", err)
@@ -222,8 +229,13 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 			}
 		} else {
 			// No start or stop and no duration == simple schedule
+			t := "simple"
+			if isCron {
+				// It's a cron schedule, ignore "duration" if set
+				t = "cron"
+			}
 			sch = &client.Schedule{
-				Type:     "simple",
+				Type:     t,
 				Interval: i,
 			}
 		}
