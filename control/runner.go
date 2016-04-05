@@ -349,6 +349,8 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		r.availablePlugins.Lock()
 		delete(r.availablePlugins.table, k)
 		r.availablePlugins.Unlock()
+		pool.RLock()
+		defer pool.RUnlock()
 		if len(subs) != 0 {
 			runnerLog.WithFields(log.Fields{
 				"_block":         "subscribe-pool",
@@ -385,6 +387,10 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		// need to moved to the loaded version if it's version is greater than the currently
 		// available plugin.
 		var pool strategy.Pool
+		//k := fmt.Sprintf("%v:%v:%v", core.PluginType(v.Type).String(), v.Name, -1)
+		//pool, _ = r.availablePlugins.getPool(k)
+		fmt.Println("\n\none")
+		fmt.Println()
 		r.availablePlugins.RLock()
 		currentHighestVersion := -1
 		for key, p := range r.availablePlugins.pools() {
@@ -416,7 +422,12 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				}
 			}
 		}
+		fmt.Println("\n\ntwo")
+		fmt.Println()
 		r.availablePlugins.RUnlock()
+
+		fmt.Println("\n\nthree")
+		fmt.Println()
 		// now check to see if anything was put where pool points.
 		// if not, there are no older pools whose subscriptions need to be
 		// moved.
@@ -434,12 +445,19 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		if err != nil {
 			return
 		}
+		fmt.Println("\n\nfour")
+		fmt.Println()
 		newPool, err := r.availablePlugins.getOrCreatePool(plugin.Key())
 		if err != nil {
 			return
 		}
+
+		fmt.Println("\n\nfive")
+		fmt.Println()
 		// Move subscriptions to the new, higher versioned pool
 		subs := pool.MoveSubscriptions(newPool)
+		fmt.Println("\n\nsix")
+		fmt.Println()
 		if newPool.Eligible() {
 			e := r.restartPlugin(plugin.Key())
 			if e != nil {
@@ -448,8 +466,23 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				}).Error(err.Error())
 				return
 			}
+			runnerLog.WithFields(log.Fields{
+				"_block": "pool eligible",
+			}).Info("starting plugin")
+			fmt.Println("\n\neleventy-ten")
+			fmt.Println()
 		}
+
+		fmt.Println("\n\nseven")
+		fmt.Println()
+		pool.RLock()
+		fmt.Println("\n\neight")
+		fmt.Println()
+		defer pool.RUnlock()
+
 		if len(subs) != 0 {
+			fmt.Println("\n\nnine")
+			fmt.Println()
 			runnerLog.WithFields(log.Fields{
 				"_block":         "subscribe-pool",
 				"event":          v.Namespace(),
@@ -458,7 +491,9 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				"plugin-type":    core.PluginType(v.Type).String(),
 			}).Info("pool with subscriptions to move found")
 			for _, sub := range subs {
-				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
+				fmt.Println("\n\nten")
+				fmt.Println()
+				/*r.emitter.Emit(&control_event.PluginSubscriptionEvent{
 					PluginName:       v.Name,
 					PluginVersion:    v.Version,
 					TaskId:           sub.TaskID,
@@ -470,7 +505,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 					PluginVersion: pool.Version(),
 					TaskId:        sub.TaskID,
 					PluginType:    v.Type,
-				})
+				})*/
 				r.emitter.Emit(&control_event.MovePluginSubscriptionEvent{
 					PluginName:      v.Name,
 					PreviousVersion: pool.Version(),

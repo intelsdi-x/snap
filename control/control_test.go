@@ -256,40 +256,47 @@ func newListenToPluginEvent() *listenToPluginEvent {
 }
 
 func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
-	go func() {
-		switch v := e.Body.(type) {
-		case *control_event.RestartedAvailablePluginEvent:
-			l.plugin.EventNamespace = v.Namespace()
-			l.done <- struct{}{}
-		case *control_event.MaxPluginRestartsExceededEvent:
-			l.plugin.EventNamespace = v.Namespace()
-			l.done <- struct{}{}
-		case *control_event.DeadAvailablePluginEvent:
-			l.plugin.EventNamespace = v.Namespace()
-			l.done <- struct{}{}
-		case *control_event.LoadPluginEvent:
-			l.plugin.LoadedPluginName = v.Name
-			l.plugin.LoadedPluginVersion = v.Version
-			l.plugin.PluginType = v.Type
-			l.done <- struct{}{}
-		case *control_event.UnloadPluginEvent:
-			l.plugin.UnloadedPluginName = v.Name
-			l.plugin.UnloadedPluginVersion = v.Version
-			l.plugin.PluginType = v.Type
-			l.done <- struct{}{}
-		case *control_event.SwapPluginsEvent:
-			l.plugin.LoadedPluginName = v.LoadedPluginName
-			l.plugin.LoadedPluginVersion = v.LoadedPluginVersion
-			l.plugin.UnloadedPluginName = v.UnloadedPluginName
-			l.plugin.UnloadedPluginVersion = v.UnloadedPluginVersion
-			l.plugin.PluginType = v.PluginType
-			l.done <- struct{}{}
-		case *control_event.PluginSubscriptionEvent:
-			l.done <- struct{}{}
-		default:
-			fmt.Println("Got an event you're not handling")
-		}
-	}()
+	switch v := e.Body.(type) {
+	case *control_event.RestartedAvailablePluginEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.MaxPluginRestartsExceededEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.DeadAvailablePluginEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.LoadPluginEvent:
+		l.plugin.LoadedPluginName = v.Name
+		l.plugin.LoadedPluginVersion = v.Version
+		l.plugin.PluginType = v.Type
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.UnloadPluginEvent:
+		l.plugin.UnloadedPluginName = v.Name
+		l.plugin.UnloadedPluginVersion = v.Version
+		l.plugin.PluginType = v.Type
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.SwapPluginsEvent:
+		l.plugin.LoadedPluginName = v.LoadedPluginName
+		l.plugin.LoadedPluginVersion = v.LoadedPluginVersion
+		l.plugin.UnloadedPluginName = v.UnloadedPluginName
+		l.plugin.UnloadedPluginVersion = v.UnloadedPluginVersion
+		l.plugin.PluginType = v.PluginType
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.MovePluginSubscriptionEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.PluginSubscriptionEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	default:
+		fmt.Println("Got an event you're not handling")
+		fmt.Println(v.Namespace())
+	}
+	fmt.Println("\nEVENT:", l.plugin.EventNamespace)
 }
 
 var (
@@ -1433,8 +1440,8 @@ func TestMetricRolloverToNewVersion(t *testing.T) {
 		fmt.Println("after load mock1")
 		select {
 		case <-lpe.done:
-		case <-time.After(10 * time.Second):
-			panic("error")
+		case <-time.After(2 * time.Second):
+			t.FailNow()
 		}
 		fmt.Println("after done loading mocok 1 event")
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
@@ -1447,40 +1454,47 @@ func TestMetricRolloverToNewVersion(t *testing.T) {
 			cfg:       cdata.NewNode(),
 			ver:       0,
 		}
+		So(metric.Version(), ShouldEqual, 0)
 		fmt.Println("before sub deps")
 		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
 		So(serr, ShouldBeNil)
+
+		select {
+		// Wait for plugin subscription event
+		case <-lpe.done:
+		case <-time.After(2 * time.Second):
+			t.FailNow()
+		}
 		// collect metrics as a sanity check that everything is setup correctly
 		fmt.Println("collectMetrics")
-		_, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
 		So(errs, ShouldBeNil)
 		fmt.Println("after collect metrics")
-		//So(len(mts), ShouldEqual, 1)
+		So(len(mts), ShouldEqual, 1)
 		// ensure the data coming back is from v1. V1's data is type string
-		//_, ok := mts[0].Data().(string)
-		//So(ok, ShouldEqual, true)
+		_, ok := mts[0].Data().(string)
+		So(ok, ShouldEqual, true)
 		Convey("Loading v2 of that plugin should move subscriptions to newer version", func() {
 			// Load version snap-collector-mock2
 			rp, err := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-collector-mock2"))
 			_, err = c.Load(rp)
 			So(err, ShouldBeNil)
+			select {
 			// Wait for plugin load event to be done
-			select {
 			case <-lpe.done:
-			case <-time.After(10 * time.Second):
-				panic("error")
+			case <-time.After(2 * time.Second):
+				fmt.Println("\n\n Failing while waiting for plugin load")
+				fmt.Println()
+				t.FailNow()
 			}
 			select {
+			// Wait on subscriptionMovedEvent
 			case <-lpe.done:
-			case <-time.After(10 * time.Second):
-				panic("error")
+			case <-time.After(2 * time.Second):
+				fmt.Println("\n\n Failing while waiting for subscription move")
+				fmt.Println()
+				t.FailNow()
 			}
-			select {
-			case <-lpe.done:
-			case <-time.After(10 * time.Second):
-				panic("error")
-			}
-			// wait for subscription event
 			// Check for subscription movement.
 			// Give some time for subscription to be moved.
 			var pool1 strategy.Pool
@@ -1494,12 +1508,12 @@ func TestMetricRolloverToNewVersion(t *testing.T) {
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
-			//	mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
-			//	So(len(mts), ShouldEqual, 1)
+			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			So(len(mts), ShouldEqual, 1)
 
 			// ensure the data coming back is from v2, V2's data is type int
-			//	_, ok = mts[0].Data().(int)
-			//	So(ok, ShouldEqual, true)
+			_, ok = mts[0].Data().(int)
+			So(ok, ShouldEqual, true)
 		})
 	})
 }

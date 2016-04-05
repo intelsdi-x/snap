@@ -107,7 +107,7 @@ func TestAvailablePlugins(t *testing.T) {
 				Version: 1,
 			},
 			Type:          plugin.CollectorPluginType,
-			ListenAddress: "localhost:",
+			ListenAddress: "localhadasfost:",
 		}
 		ap, err := newAvailablePlugin(resp, nil, nil)
 		So(ap, ShouldBeNil)

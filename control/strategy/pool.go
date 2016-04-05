@@ -21,6 +21,7 @@ package strategy
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -249,6 +250,8 @@ func (p *pool) Subscribe(taskID string, subType subscriptionType) {
 			Version: p.version,
 		}
 	}
+	fmt.Println("\n\n In subscribe subtype: ", subType)
+	fmt.Println()
 }
 
 // unsubscribe removes a subscription from the pool.
@@ -374,10 +377,18 @@ func (p *pool) generatePID() uint32 {
 func (p *pool) MoveSubscriptions(to Pool) []subscription {
 	var subs []subscription
 
+	if to.(*pool) == p {
+		panic("omg")
+	}
 	p.Lock()
 	defer p.Unlock()
-
+	fmt.Println("\n\nAll My subs: ", p.subs)
+	fmt.Println()
+	fmt.Println("\n\b to subs", to.Count())
+	fmt.Println()
 	for task, sub := range p.subs {
+		fmt.Println("\n\nType:", sub.SubType, "\nVersion:", sub.Version, "\nTaskID:", sub.TaskID)
+		fmt.Println()
 		// ensure that this sub was not bound to this pool specifically before moving
 		if sub.SubType == UnboundSubscriptionType {
 			subs = append(subs, *sub)
@@ -385,6 +396,8 @@ func (p *pool) MoveSubscriptions(to Pool) []subscription {
 			delete(p.subs, task)
 		}
 	}
+	fmt.Println("\n\b to subs after", to.Count())
+	fmt.Println()
 	return subs
 }
 
