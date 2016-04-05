@@ -122,11 +122,11 @@ func (t *taskWatcherCollection) handleMetricCollected(taskID string, m []core.Me
 		return
 	}
 	// Walk all watchers for a task ID
-	for i, v := range t.coll[taskID] {
+	for _, v := range t.coll[taskID] {
 		// Check if they have a catcher assigned
 		watcherLog.WithFields(log.Fields{
 			"task-id":         taskID,
-			"task-watcher-id": i,
+			"task-watcher-id": v.id,
 		}).Debug("calling taskwatcher collection func")
 		// Call the catcher
 		v.handler.CatchCollection(m)
@@ -145,11 +145,11 @@ func (t *taskWatcherCollection) handleTaskStarted(taskID string) {
 		return
 	}
 	// Walk all watchers for a task ID
-	for i, v := range t.coll[taskID] {
+	for _, v := range t.coll[taskID] {
 		// Check if they have a catcher assigned
 		watcherLog.WithFields(log.Fields{
 			"task-id":         taskID,
-			"task-watcher-id": i,
+			"task-watcher-id": v.id,
 		}).Debug("calling taskwatcher task started func")
 		// Call the catcher
 		v.handler.CatchTaskStarted()
@@ -168,11 +168,11 @@ func (t *taskWatcherCollection) handleTaskStopped(taskID string) {
 		return
 	}
 	// Walk all watchers for a task ID
-	for i, v := range t.coll[taskID] {
+	for _, v := range t.coll[taskID] {
 		// Check if they have a catcher assigned
 		watcherLog.WithFields(log.Fields{
 			"task-id":         taskID,
-			"task-watcher-id": i,
+			"task-watcher-id": v.id,
 		}).Debug("calling taskwatcher task stopped func")
 		// Call the catcher
 		v.handler.CatchTaskStopped()
@@ -191,11 +191,11 @@ func (t *taskWatcherCollection) handleTaskDisabled(taskID string, why string) {
 		return
 	}
 	// Walk all watchers for a task ID
-	for i, v := range t.coll[taskID] {
+	for _, v := range t.coll[taskID] {
 		// Check if they have a catcher assigned
 		watcherLog.WithFields(log.Fields{
 			"task-id":         taskID,
-			"task-watcher-id": i,
+			"task-watcher-id": v.id,
 		}).Debug("calling taskwatcher task disabled func")
 		// Call the catcher
 		v.handler.CatchTaskDisabled(why)
