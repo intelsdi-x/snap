@@ -279,10 +279,11 @@ Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on a
     <td width="125"><a href="https://github.com/mjbrender"><sub>@mjbrender</sub><img src="https://avatars.githubusercontent.com/u/1744971" width="100" alt="@mjbrender"></a></td>
     <td width="125"><a href="https://github.com/nqn"><sub>@nqn</sub><img src="https://avatars.githubusercontent.com/u/897374" width="100" alt="@nqn"></a></td>
     <td width="125"><a href="https://github.com/tiffanyfj"><sub>@tiffanyfj</sub><img src="https://avatars.githubusercontent.com/u/12282848" width="100" alt="@tiffanyfj"></a></td>
+    <td width="125"><a href="https://github.com/IzabellaRaulin"><sub>@IzabellaRaulin</sub><img src="https://avatars0.githubusercontent.com/u/11335874" width="100" alt="@IzabellaRaulin"></a></td>
   </tr>
 </table>
 
-We're also looking for new maintainers from the community. Please let us know if you would like to become one by opening an Issue titled "interested in becoming a maintainer." We are currently working on a more official process.
+We're also looking to have maintainers from the community. Please let us know if you would like to become one by opening an Issue titled "interested in becoming a maintainer." We are currently working on a more official process.
 
 ## Thank You
 And **thank you!** Your contribution, through code and participation, is incredibly important to us.
