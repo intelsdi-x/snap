@@ -35,6 +35,7 @@ import (
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/promise"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -262,6 +263,10 @@ type Mock1 struct {
 }
 
 func (m *Mock1) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error) {
+	return nil, nil
+}
+
+func (m *Mock1) ExpandWildcards([]string) ([][]string, serror.SnapError) {
 	return nil, nil
 }
 

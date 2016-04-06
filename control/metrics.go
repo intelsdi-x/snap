@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2015-2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ package control
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +39,14 @@ import (
 var (
 	errMetricNotFound   = errors.New("metric not found")
 	errNegativeSubCount = serror.New(errors.New("subscription count cannot be < 0"))
+	notAllowedChars     = map[string][]string{
+		"brackets":     {"(", ")", "[", "]", "{", "}"},
+		"spaces":       {" "},
+		"punctuations": {".", ",", ";", "?", "!"},
+		"slashes":      {"|", "\\", "/"},
+		"carets":       {"^"},
+		"quotations":   {"\"", "`", "'"},
+	}
 )
 
 func errorMetricNotFound(ns []string, ver ...int) error {
@@ -45,6 +54,26 @@ func errorMetricNotFound(ns []string, ver ...int) error {
 		return fmt.Errorf("Metric not found: %s (version: %d)", core.JoinNamespace(ns), ver[0])
 	}
 	return fmt.Errorf("Metric not found: %s", core.JoinNamespace(ns))
+}
+
+func errorMetricContainsNotAllowedChars(ns []string) error {
+	return fmt.Errorf("Metric namespace %s contains not allowed characters. Avoid using %s", ns, listNotAllowedChars())
+}
+
+func errorMetricEndsWithAsterisk(ns []string) error {
+	return fmt.Errorf("Metric namespace %s ends with an asterisk is not allowed", ns)
+}
+
+// listNotAllowedChars returns list of not allowed characters in metric's namespace as a string
+// which is used in construct errorMetricContainsNotAllowedChars as a recommendation
+// exemplary output: "brackets [( ) [ ] { }], spaces [ ], punctuations [. , ; ? !], slashes [| \ /], carets [^], quotations [" ` ']"
+func listNotAllowedChars() string {
+	var result string
+	for groupName, chars := range notAllowedChars {
+		result += fmt.Sprintf(" %s %s,", groupName, chars)
+	}
+	// trim the comma in the end
+	return strings.TrimSuffix(result, ",")
 }
 
 type metricCatalogItem struct {
@@ -160,23 +189,166 @@ func (m *metricType) Timestamp() time.Time {
 }
 
 type metricCatalog struct {
-	tree        *MTTrie
-	mutex       *sync.Mutex
-	keys        []string
+	tree  *MTTrie
+	mutex *sync.Mutex
+	keys  []string
+
+	// mKeys holds requested metric's keys which can include wildcards and matched to them the cataloged keys
+	mKeys       map[string][]string
 	currentIter int
 }
 
 func newMetricCatalog() *metricCatalog {
-	var k []string
 	return &metricCatalog{
 		tree:        NewMTTrie(),
 		mutex:       &sync.Mutex{},
 		currentIter: 0,
-		keys:        k,
+		keys:        []string{},
+		mKeys:       make(map[string][]string),
 	}
 }
 
+func (mc *metricCatalog) Keys() []string {
+	return mc.keys
+}
+
+// matchedNamespaces retrieves all matched items stored in mKey map under the key 'wkey' and converts them to namespaces
+func (mc *metricCatalog) matchedNamespaces(wkey string) ([][]string, error) {
+	// mkeys means matched metrics keys
+	mkeys := mc.mKeys[wkey]
+
+	if len(mkeys) == 0 {
+		return nil, errorMetricNotFound(getMetricNamespace(wkey))
+	}
+
+	// convert matched keys to a slice of namespaces
+	return convertKeysToNamespaces(mkeys), nil
+}
+
+// GetQueriedNamespaces returns all matched metrics namespaces for query 'ns' which can contain
+// an asterisk or tuple (refer to query support)
+func (mc *metricCatalog) GetQueriedNamespaces(ns []string) ([][]string, error) {
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
+
+	// get metric key (might contain wildcard(s))
+	wkey := getMetricKey(ns)
+
+	return mc.matchedNamespaces(wkey)
+}
+
+// MatchQuery matches given 'ns' which could contain an asterisk or a tuple and add them to matching map under key 'ns'
+// The matched metrics namespaces are also returned (as a [][]string)
+func (mc *metricCatalog) MatchQuery(ns []string) ([][]string, error) {
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
+
+	// get metric key (might contain wildcard(s))
+	wkey := getMetricKey(ns)
+
+	// adding matched namespaces to map
+	mc.addItemToMatchingMap(wkey)
+
+	return mc.matchedNamespaces(wkey)
+}
+
+func convertKeysToNamespaces(keys []string) [][]string {
+	// nss is a slice of slices which holds metrics namespaces
+	nss := [][]string{}
+	for _, key := range keys {
+		ns := getMetricNamespace(key)
+		if len(ns) != 0 {
+			nss = append(nss, ns)
+		}
+	}
+	return nss
+}
+
+// addItemToMatchingMap adds `wkey` to matching map (or updates if `wkey` exists) with corresponding cataloged keys as a content;
+// if this 'wkey' does not match to any cataloged keys, it will be removed from matching map
+func (mc *metricCatalog) addItemToMatchingMap(wkey string) {
+	matchedKeys := []string{}
+
+	// wkey contains `.` which should not be interpreted as regexp tokens, but as a single character
+	exp := strings.Replace(wkey, ".", "[.]", -1)
+
+	// change `*` into regexp `.*` which matches any characters
+	exp = strings.Replace(exp, "*", ".*", -1)
+
+	regex := regexp.MustCompile("^" + exp + "$")
+	for _, key := range mc.keys {
+		match := regex.FindStringSubmatch(key)
+		if match == nil {
+			continue
+		}
+		matchedKeys = appendIfMissing(matchedKeys, key)
+	}
+	if len(matchedKeys) == 0 {
+		mc.removeItemFromMatchingMap(wkey)
+	} else {
+		mc.mKeys[wkey] = matchedKeys
+	}
+}
+
+// removeItemFromMatchingMap removes `wkey` from matching map
+func (mc *metricCatalog) removeItemFromMatchingMap(wkey string) {
+	if _, exist := mc.mKeys[wkey]; exist {
+		delete(mc.mKeys, wkey)
+	}
+}
+
+// updateMatchingMap updates the contents of matching map
+func (mc *metricCatalog) updateMatchingMap() {
+	for wkey := range mc.mKeys {
+		// add (or update if exist) item `wkey'
+		mc.addItemToMatchingMap(wkey)
+	}
+}
+
+// removeMatchedKey iterates over all items in the mKey and removes `key` from its content
+func (mc *metricCatalog) removeMatchedKey(key string) {
+	for wkey, mkeys := range mc.mKeys {
+		for index, mkey := range mkeys {
+			if mkey == key {
+				// remove this key from slice
+				mc.mKeys[wkey] = append(mkeys[:index], mkeys[index+1:]...)
+			}
+		}
+		// if no matched key left, remove this item from map
+		if len(mc.mKeys[wkey]) == 0 {
+			mc.removeItemFromMatchingMap(wkey)
+		}
+	}
+}
+
+// validateMetricNamespace validates metric namespace in terms of containing not allowed characters and ending with an asterisk
+func validateMetricNamespace(ns []string) error {
+	name := strings.Join(ns, "")
+	for _, chars := range notAllowedChars {
+		for _, ch := range chars {
+			if strings.ContainsAny(name, ch) {
+				return errorMetricContainsNotAllowedChars(ns)
+			}
+		}
+	}
+	// plugin should NOT advertise metrics ending with a wildcard
+	if strings.HasSuffix(name, "*") {
+		return errorMetricEndsWithAsterisk(ns)
+	}
+
+	return nil
+}
+
 func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) error {
+	if err := validateMetricNamespace(mt.Namespace()); err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "add-loaded-metric-type",
+			"error":   fmt.Errorf("Metric namespace %s contains not allowed characters", mt.Namespace()),
+		}).Error("error adding loaded metric type")
+		return err
+	}
 	if lp.ConfigPolicy == nil {
 		err := errors.New("Config policy is nil")
 		log.WithFields(log.Fields{
@@ -187,7 +359,6 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) e
 		}).Error("error adding loaded metric type")
 		return err
 	}
-
 	newMt := metricType{
 		Plugin:             lp,
 		namespace:          mt.Namespace(),
@@ -201,10 +372,14 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) e
 	return nil
 }
 
+// RmUnloadedPluginMetrics removes plugin metrics which was unloaded,
+// consequently cataloged metrics are changed, so matching map is being updated too
 func (mc *metricCatalog) RmUnloadedPluginMetrics(lp *loadedPlugin) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 	mc.tree.DeleteByPlugin(lp)
+	// update the contents of matching map (mKeys)
+	mc.updateMatchingMap()
 }
 
 // Add adds a metricType
@@ -213,6 +388,8 @@ func (mc *metricCatalog) Add(m *metricType) {
 	defer mc.mutex.Unlock()
 
 	key := getMetricKey(m.Namespace())
+
+	// adding key as a cataloged keys (mc.keys)
 	mc.keys = appendIfMissing(mc.keys, key)
 
 	mc.tree.Add(m)
@@ -237,7 +414,6 @@ func (mc *metricCatalog) GetVersions(ns []string) ([]*metricType, error) {
 func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
-
 	mtsi, err := mc.tree.Fetch(ns)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -251,10 +427,16 @@ func (mc *metricCatalog) Fetch(ns []string) ([]*metricType, error) {
 	return mtsi, nil
 }
 
+// Remove removes a metricType from the catalog and from matching map
 func (mc *metricCatalog) Remove(ns []string) {
 	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
+
 	mc.tree.Remove(ns)
-	mc.mutex.Unlock()
+
+	// remove all items from map mKey mapped for this 'ns'
+	key := getMetricKey(ns)
+	mc.removeMatchedKey(key)
 }
 
 // Item returns the current metricType in the collection.  The method Next()
@@ -375,14 +557,18 @@ func (mc *metricCatalog) getVersions(ns []string) ([]*metricType, error) {
 		}).Error("error getting plugin version")
 		return nil, err
 	}
-	if mts == nil {
-		return nil, errMetricNotFound
+	if len(mts) == 0 {
+		return nil, errorMetricNotFound(ns)
 	}
 	return mts, nil
 }
 
 func getMetricKey(metric []string) string {
 	return strings.Join(metric, ".")
+}
+
+func getMetricNamespace(key string) []string {
+	return strings.Split(key, ".")
 }
 
 func getLatest(c []*metricType) *metricType {

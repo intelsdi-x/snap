@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2015-2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -107,6 +107,14 @@ func (m *mockMetricManager) SubscribeDeps(taskID string, mts []core.Metric, prs 
 
 func (m *mockMetricManager) UnsubscribeDeps(taskID string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
 	return nil
+}
+
+func (m *mockMetricManager) MatchQueryToNamespaces([]string) ([][]string, serror.SnapError) {
+	return nil, nil
+}
+
+func (m *mockMetricManager) ExpandWildcards([]string) ([][]string, serror.SnapError) {
+	return nil, nil
 }
 
 type mockMetricManagerError struct {

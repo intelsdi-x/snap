@@ -41,7 +41,7 @@ Communication between snap and plugins uses RPC either through HTTP or TCP proto
 
 Before starting writing snap plugins, check out the [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) to see if any suit your needs. If not, you need to reference the plugin packages that defines the type of structures and interfaces inside snap and then write plugin endpoints to implement the defined interfaces.
 
-### Naming, Files, and Directory    
+### Plugin Naming, Files, and Directory    
 snap supports three type of plugins. They are collectors, processors, and publishers.  The plugin project name should use the following format:  
 >snap-plugin-[type]-[name]
 
@@ -60,6 +60,33 @@ snap-plugin-[type]-[name]
  |--main.go
  |--main_test.go
 ```
+
+### Metric Naming
+A plugin should **NOT** advertise metrics which namespaces contain:
+
+##### a) the following characters in a namespace:
+    - spaces
+    - brackets: `()[]{}`
+    - slashes:  `| \ /`
+    - carets:   `^`
+    - quotations:   `" ' \``
+    - other punctuations: `. , ; ? !`
+
+##### b) a wildcard in the end
+
+Example:
+
+Unacceptable metric namespace| Why |  Proposal
+----------|-----------|-----------
+/intel/foo/\* | a wildcard in the end | /intel/foo/\*/bar <br/> /intel/foo/\*/baz
+/intel/mock/bar(no) | not allowed characters | /intel/mock/bar_no
+/intel/mock/bar("no") | not allowed characters | /intel/mock/bar_no
+/intel/mock/bar^no | not allowed characters | /intel/mock/bar_no
+/intel/mock/bar.no | not allowed characters | /intel/mock/bar_no
+/intel/mock/bar!? | not allowed characters | /intel/mock/bar
+
+snap validates the metrics exposed by plugin and, if validation failed, return an error and not load the plugin.
+
 ### Mandatory packages
 There are three mandatory packages that every plugin must use. Other than those three packages, you can use other packages as necessary. There is no danger of colliding dependencies as plugins are separated processes. The mandatory packages are:
 ```

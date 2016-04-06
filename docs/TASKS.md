@@ -64,7 +64,20 @@ The workflow is a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph) wh
 
 #### collect
 
-The collect section describes which metrics to collect.  Metrics can be enumerated explicitly via a concrete _namespace_, or a wildcard (`*`) can be used<sup>2</sup>.  The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
+The collect section describes which metrics to collect. Metrics can be enumerated explicitly via:
+ - a concrete _namespace_
+ - a wildcard, `*`
+ - a tuple, `(m1|m2|m3)`
+ 
+The tuple begins and ends with brackets and items inside are separeted by vertical bar. It works like logical `or`, so it gives an error only if none of these metrics can be collected.
+
+Metrics declared in task manifest | Collected metrics
+----------|----------|-----------
+/intel/mock/\* |  /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz
+/intel/mock/(foo\|bar) |  /intel/mock/foo <br/> /intel/mock/bar <br/>
+/intel/mock/\*/baz |  /intel/mock/\*/baz
+
+The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
 
 ```yaml
 ---
