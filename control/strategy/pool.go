@@ -21,6 +21,7 @@ package strategy
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -140,7 +141,7 @@ func NewPool(key string, plugins ...AvailablePlugin) (Pool, error) {
 		RWMutex:          &sync.RWMutex{},
 		version:          ver,
 		key:              key,
-		subs:             map[string]*subscription{},
+		subs:             make(map[string]*subscription),
 		plugins:          make(map[uint32]AvailablePlugin),
 		max:              MaximumRunningPlugins,
 		concurrencyCount: 1,
@@ -249,6 +250,8 @@ func (p *pool) Subscribe(taskID string, subType subscriptionType) {
 			Version: p.version,
 		}
 	}
+	fmt.Println("\n\n In subscribe subtype: ", subType)
+	fmt.Println()
 }
 
 // unsubscribe removes a subscription from the pool.
@@ -374,16 +377,27 @@ func (p *pool) generatePID() uint32 {
 func (p *pool) MoveSubscriptions(to Pool) []subscription {
 	var subs []subscription
 
+	if to.(*pool) == p {
+		panic("omg")
+	}
 	p.Lock()
 	defer p.Unlock()
-
+	fmt.Println("\n\nAll My subs: ", p.subs)
+	fmt.Println()
+	fmt.Println("\n\b to subs", to.Count())
+	fmt.Println()
 	for task, sub := range p.subs {
-		if sub.SubType == UnboundSubscriptionType && to.(*pool).version > p.version {
+		fmt.Println("\n\nType:", sub.SubType, "\nVersion:", sub.Version, "\nTaskID:", sub.TaskID)
+		fmt.Println()
+		// ensure that this sub was not bound to this pool specifically before moving
+		if sub.SubType == UnboundSubscriptionType {
 			subs = append(subs, *sub)
 			to.Subscribe(task, UnboundSubscriptionType)
 			delete(p.subs, task)
 		}
 	}
+	fmt.Println("\n\b to subs after", to.Count())
+	fmt.Println()
 	return subs
 }
 

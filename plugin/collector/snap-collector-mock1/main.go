@@ -35,7 +35,7 @@ func main() {
 
 	// Define metadata about Plugin
 	meta := mock.Meta()
-	meta.RPCType = plugin.JSONRPC
+	//meta.RPCType = plugin.JSONRPC
 
 	// Start a collector
 	plugin.Start(meta, new(mock.Mock), os.Args[1])

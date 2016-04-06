@@ -594,7 +594,7 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []se
 		plugins []core.Plugin
 		serrs   []serror.SnapError
 	)
-
+	fmt.Printf("\n\nSearchForMe: %v", mts)
 	// here we resolve and retrieve plugins for each metric type.
 	// if the incoming metric type version is < 1, we treat that as
 	// latest as with plugins.  The following two loops create a set
@@ -620,26 +620,37 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]core.Plugin, []se
 	}
 
 	for _, lp := range colPlugins {
+		fmt.Println("\n\nKey--", lp.Key())
+		fmt.Println()
 		plugins = append(plugins, lp)
 	}
-
+	if len(plugins) == 0 {
+		serrs = append(serrs, serror.New(errors.New("something bad happened")))
+		return nil, serrs
+	}
 	return plugins, nil
 }
 
 func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
 	var serrs []serror.SnapError
-
+	fmt.Println("\n\nsomething")
+	for _, v := range mts {
+		fmt.Println("METRIC:", v.Version())
+	}
 	collectors, errs := p.gatherCollectors(mts)
 	if len(errs) > 0 {
 		serrs = append(serrs)
 	}
 	plugins = append(plugins, collectors...)
-
+	fmt.Println("\n\n Sub deps len collectors", len(collectors), "len plugins", len(plugins))
+	fmt.Println()
 	for _, sub := range plugins {
 		// pools are created statically, not with keys like "publisher:foo:-1"
 		// here we check to see if the version of the incoming plugin is -1, and
 		// if it is, we look up the latest in loaded plugins, and use that key to
 		// create the pool.
+		fmt.Println("\n\n sub deps Version: ", sub.Version())
+		fmt.Println()
 		if sub.Version() < 1 {
 			latest, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", sub.TypeName(), sub.Name(), sub.Version()))
 			if err != nil {
