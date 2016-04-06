@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2015-2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,6 +58,195 @@ func TestMetricType(t *testing.T) {
 			So(mt.LastAdvertisedTime(), ShouldHaveSameTypeAs, ts)
 			So(mt.LastAdvertisedTime(), ShouldResemble, ts)
 		})
+	})
+	Convey("metricType.Key()", t, func() {
+		Convey("returns the key for the metricType", func() {
+			ts := time.Now()
+			lp := new(loadedPlugin)
+			mt := newMetricType([]string{"foo", "bar"}, ts, lp)
+			key := mt.Key()
+			So(key, ShouldEqual, "/foo/bar/0")
+		})
+		Convey("returns the key for the queried version", func() {
+			ts := time.Now()
+			lp2 := new(loadedPlugin)
+			lp2.Meta.Version = 2
+			mt := newMetricType([]string{"foo", "bar"}, ts, lp2)
+			key := mt.Key()
+			So(key, ShouldEqual, "/foo/bar/2")
+		})
+	})
+}
+
+func TestMetricMatching(t *testing.T) {
+	Convey("metricCatalog.MatchQuery()", t, func() {
+		Convey("verify query support for static metrics", func() {
+			mc := newMetricCatalog()
+			ns := [][]string{
+				{"mock", "foo", "bar"},
+				{"mock", "foo", "baz"},
+				{"mock", "asdf", "bar"},
+				{"mock", "asdf", "baz"},
+				{"mock", "test", "1"},
+				{"mock", "test", "2"},
+				{"mock", "test", "3"},
+				{"mock", "test", "4"},
+			}
+			lp := new(loadedPlugin)
+			ts := time.Now()
+			mt := []*metricType{
+				newMetricType(ns[0], ts, lp),
+				newMetricType(ns[1], ts, lp),
+				newMetricType(ns[2], ts, lp),
+				newMetricType(ns[3], ts, lp),
+				newMetricType(ns[4], ts, lp),
+				newMetricType(ns[5], ts, lp),
+				newMetricType(ns[6], ts, lp),
+				newMetricType(ns[7], ts, lp),
+			}
+
+			for _, v := range mt {
+				mc.Add(v)
+			}
+			Convey("match /mock/foo/*", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "foo", "*"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 2)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "foo", "bar"},
+					{"mock", "foo", "baz"},
+				})
+
+			})
+			Convey("match /mock/test/*", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "test", "*"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 4)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "test", "1"},
+					{"mock", "test", "2"},
+					{"mock", "test", "3"},
+					{"mock", "test", "4"},
+				})
+			})
+			Convey("match /mock/*/bar", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "*", "bar"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 2)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "foo", "bar"},
+					{"mock", "asdf", "bar"},
+				})
+			})
+			Convey("match /mock/*", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "*"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, len(ns))
+				So(nss, ShouldResemble, ns)
+			})
+			Convey("match /mock/(foo|asdf)/baz", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "(foo|asdf)", "baz"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 2)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "foo", "baz"},
+					{"mock", "asdf", "baz"},
+				})
+			})
+			Convey("match /mock/test/(1|2|3)", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "test", "(1|2|3)"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 3)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "test", "1"},
+					{"mock", "test", "2"},
+					{"mock", "test", "3"},
+				})
+			})
+			Convey("invalid matching", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "not", "exist", "metric"})
+				So(err, ShouldNotBeNil)
+				So(nss, ShouldBeEmpty)
+				So(err.Error(), ShouldContainSubstring, "Metric not found:")
+			})
+		})
+		Convey("verify query support for dynamic metrics", func() {
+			mc := newMetricCatalog()
+			ns := [][]string{
+				{"mock", "cgroups", "*", "bar"},
+				{"mock", "cgroups", "*", "baz"},
+				{"mock", "cgroups", "*", "in"},
+				{"mock", "cgroups", "*", "out"},
+				{"mock", "cgroups", "*", "test", "1"},
+				{"mock", "cgroups", "*", "test", "2"},
+				{"mock", "cgroups", "*", "test", "3"},
+				{"mock", "cgroups", "*", "test", "4"},
+			}
+			lp := new(loadedPlugin)
+			ts := time.Now()
+			mt := []*metricType{
+				newMetricType(ns[0], ts, lp),
+				newMetricType(ns[1], ts, lp),
+				newMetricType(ns[2], ts, lp),
+				newMetricType(ns[3], ts, lp),
+				newMetricType(ns[4], ts, lp),
+				newMetricType(ns[5], ts, lp),
+				newMetricType(ns[6], ts, lp),
+				newMetricType(ns[7], ts, lp),
+			}
+
+			for _, v := range mt {
+				mc.Add(v)
+			}
+			// check if metrics were added to metric catalog
+			So(len(mc.Keys()), ShouldEqual, len(ns))
+
+			Convey("match /mock/cgroups/*", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, len(ns))
+				So(nss, ShouldResemble, ns)
+			})
+			Convey("match /mock/cgroups/*/bar", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*", "bar"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 1)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "cgroups", "*", "bar"},
+				})
+			})
+			Convey("match /mock/cgroups/*/(bar|baz)", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*", "(bar|baz)"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 2)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "cgroups", "*", "bar"},
+					{"mock", "cgroups", "*", "baz"},
+				})
+			})
+			Convey("match /mock/cgroups/*/test/*", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*", "test", "*"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 4)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "cgroups", "*", "test", "1"},
+					{"mock", "cgroups", "*", "test", "2"},
+					{"mock", "cgroups", "*", "test", "3"},
+					{"mock", "cgroups", "*", "test", "4"},
+				})
+			})
+			Convey("match /mock/cgroups/*/test/(1|2|3)", func() {
+				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*", "test", "(1|2|3)"})
+				So(err, ShouldBeNil)
+				So(len(nss), ShouldEqual, 3)
+				So(nss, ShouldResemble, [][]string{
+					{"mock", "cgroups", "*", "test", "1"},
+					{"mock", "cgroups", "*", "test", "2"},
+					{"mock", "cgroups", "*", "test", "3"},
+				})
+			})
+		})
+
 	})
 }
 
@@ -152,18 +341,6 @@ func TestMetricCatalog(t *testing.T) {
 			//So(mc.Table()["foo.bar"], ShouldResemble, []*metricType{mt})
 		})
 	})
-	Convey("metricCatalog.Remove()", t, func() {
-		Convey("removes a metricType from the catalog", func() {
-			ns := []string{"test"}
-			mt := newMetricType(ns, time.Now(), new(loadedPlugin))
-			mc := newMetricCatalog()
-			mc.Add(mt)
-			mc.Remove(ns)
-			_mt, err := mc.Get(ns, -1)
-			So(_mt, ShouldBeNil)
-			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-		})
-	})
 	Convey("metricCatalog.Next()", t, func() {
 		ns := []string{"test"}
 		mt := newMetricType(ns, time.Now(), new(loadedPlugin))
@@ -215,6 +392,59 @@ func TestMetricCatalog(t *testing.T) {
 			key, item := mc.Item()
 			So(key, ShouldEqual, getMetricKey(ns[2]))
 			So(item, ShouldResemble, []*metricType{mt[2]})
+		})
+	})
+
+	Convey("metricCatalog.Remove()", t, func() {
+		mc := newMetricCatalog()
+		ts := time.Now()
+		nss := [][]string{
+			{"mock", "test", "1"},
+			{"mock", "test", "2"},
+			{"mock", "test", "3"},
+			{"mock", "cgroups", "*", "in"},
+			{"mock", "cgroups", "*", "out"},
+		}
+		Convey("removes a metricType from the catalog", func() {
+			// adding metrics to the catalog
+			mt := []*metricType{}
+			for i, ns := range nss {
+				mt = append(mt, newMetricType(ns, ts, new(loadedPlugin)))
+				mc.Add(mt[i])
+			}
+			Convey("validate adding metrics to the catalog", func() {
+				for _, ns := range nss {
+					// check if metric is in metric catalog
+					_mt, err := mc.Get(ns, -1)
+					So(_mt, ShouldNotBeEmpty)
+					So(err, ShouldBeNil)
+				}
+			})
+
+			// remove a single metric from the catalog
+			mc.Remove(nss[0])
+
+			Convey("validate removing a single metric from the catalog", func() {
+				_mt, err := mc.Get([]string{"mock", "test", "1"}, -1)
+				So(_mt, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+
+			})
+
+			// remove the rest metrics from the catalog
+			for _, ns := range nss[1:] {
+				mc.Remove(ns)
+			}
+
+			Convey("validate removing all metrics from the catalog", func() {
+				for _, ns := range nss {
+					// check if metric is in metric catalog
+					_mt, err := mc.Get(ns, -1)
+					So(_mt, ShouldBeNil)
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldContainSubstring, "Metric not found:")
+				}
+			})
 		})
 	})
 }
@@ -305,5 +535,25 @@ func TestSubscriptionCount(t *testing.T) {
 		So(m.SubscriptionCount(), ShouldEqual, 3)
 		m.Unsubscribe()
 		So(m.SubscriptionCount(), ShouldEqual, 2)
+	})
+}
+
+func TestMetricNamespaceValidation(t *testing.T) {
+	Convey("validateMetricNamespace()", t, func() {
+		Convey("validation passes", func() {
+			ns := []string{"mock", "foo", "bar"}
+			err := validateMetricNamespace(ns)
+			So(err, ShouldBeNil)
+		})
+		Convey("contains not allowed characters", func() {
+			ns := []string{"mock", "foo", "(bar)"}
+			err := validateMetricNamespace(ns)
+			So(err, ShouldNotBeNil)
+		})
+		Convey("contains unacceptable wildcardat at the end", func() {
+			ns := []string{"mock", "foo", "*"}
+			err := validateMetricNamespace(ns)
+			So(err, ShouldNotBeNil)
+		})
 	})
 }

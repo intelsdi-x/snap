@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2015-2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -216,18 +216,30 @@ func (c *collectorJob) Run() {
 		"job-type":     "collector",
 		"metric-count": len(c.metricTypes),
 	}).Debug("starting collector job")
-	metrics := make([]core.Metric, len(c.metricTypes))
-	for i, rmt := range c.metricTypes {
-		config := c.configDataTree.Get(rmt.Namespace())
-		if config == nil {
-			config = cdata.NewNode()
+
+	metrics := []core.Metric{}
+	for _, rmt := range c.metricTypes {
+		nss, err := c.collector.ExpandWildcards(rmt.Namespace())
+		if err != nil {
+			// use metric directly from the workflow
+			nss = [][]string{rmt.Namespace()}
 		}
-		metrics[i] = &metric{
-			namespace: rmt.Namespace(),
-			version:   rmt.Version(),
-			config:    config,
+
+		for _, ns := range nss {
+			config := c.configDataTree.Get(ns)
+
+			if config == nil {
+				config = cdata.NewNode()
+			}
+			metric := &metric{
+				namespace: ns,
+				version:   rmt.Version(),
+				config:    config,
+			}
+			metrics = append(metrics, metric)
 		}
 	}
+
 	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline(), c.TaskID())
 
 	log.WithFields(log.Fields{

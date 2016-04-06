@@ -391,7 +391,7 @@ func (t *taskCollection) Get(id string) *task {
 }
 
 // Add given a reference to a task adds it to the collection of tasks.  An
-// error is returned if the task alredy exists in the collection.
+// error is returned if the task already exists in the collection.
 func (t *taskCollection) add(task *task) error {
 	t.Lock()
 	defer t.Unlock()
