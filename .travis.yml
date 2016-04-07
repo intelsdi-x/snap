@@ -1,7 +1,6 @@
 sudo: false
 language: go
 go:
-- 1.4.3
 - 1.5.3
 - 1.6
 before_install:
@@ -9,7 +8,6 @@ before_install:
 - go get github.com/tools/godep
 - go get github.com/axw/gocov/gocov
 - go get github.com/mattn/goveralls
-- go get golang.org/x/tools/cmd/vet
 - go get golang.org/x/tools/cmd/goimports
 - go get github.com/smartystreets/goconvey/convey
 - if [ ! -d $SNAP_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $SNAP_SOURCE; fi # CI for forks not from intelsdi-x
