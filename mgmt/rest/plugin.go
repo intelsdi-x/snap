@@ -293,6 +293,7 @@ func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType 
 				HitCount:         p.HitCount(),
 				LastHitTimestamp: p.LastHit().Unix(),
 				ID:               p.ID(),
+				Href:             pluginURI(h, p),
 			}
 		}
 	}
@@ -342,7 +343,7 @@ func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) *rbody.LoadedP
 		Signed:          c.IsSigned(),
 		Status:          c.Status(),
 		LoadedTimestamp: c.LoadedTimestamp().Unix(),
-		Href:            catalogedPluginURI(host, c),
+		Href:            pluginURI(host, c),
 	}
 }
 
@@ -441,13 +442,13 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 			Signed:          plugin.IsSigned(),
 			Status:          plugin.Status(),
 			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
-			Href:            catalogedPluginURI(r.Host, plugin),
+			Href:            pluginURI(r.Host, plugin),
 			ConfigPolicy:    configPolicy,
 		}
 		respond(200, pluginRet, w)
 	}
 }
 
-func catalogedPluginURI(host string, c core.CatalogedPlugin) string {
+func pluginURI(host string, c core.Plugin) string {
 	return fmt.Sprintf("%s://%s/v1/plugins/%s/%s/%d", protocolPrefix, host, c.TypeName(), c.Name(), c.Version())
 }
