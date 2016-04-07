@@ -22,7 +22,7 @@ limitations under the License.
 This example includes configuring and starting influxdb (a time series database) and grafana (a metrics dashboard).
 
 The example:
-  - Starts containers for Influxdb and Grafana (using Dockwer)
+  - Starts containers for Influxdb and Grafana (using Docker)
   - Starts snapd
   - Gets, loads and starts snap plugins
   - Creates and starts a task that collects from psutil and publishes to InfluxDB
