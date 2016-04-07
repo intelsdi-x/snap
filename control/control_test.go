@@ -31,6 +31,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/vrischmann/jsonutil"
@@ -256,40 +257,48 @@ func newListenToPluginEvent() *listenToPluginEvent {
 }
 
 func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
-	go func() {
-		switch v := e.Body.(type) {
-		case *control_event.RestartedAvailablePluginEvent:
-			l.plugin.EventNamespace = v.Namespace()
-			l.done <- struct{}{}
-		case *control_event.MaxPluginRestartsExceededEvent:
-			l.plugin.EventNamespace = v.Namespace()
-			l.done <- struct{}{}
-		case *control_event.DeadAvailablePluginEvent:
-			l.plugin.EventNamespace = v.Namespace()
-			l.done <- struct{}{}
-		case *control_event.LoadPluginEvent:
-			l.plugin.LoadedPluginName = v.Name
-			l.plugin.LoadedPluginVersion = v.Version
-			l.plugin.PluginType = v.Type
-			l.done <- struct{}{}
-		case *control_event.UnloadPluginEvent:
-			l.plugin.UnloadedPluginName = v.Name
-			l.plugin.UnloadedPluginVersion = v.Version
-			l.plugin.PluginType = v.Type
-			l.done <- struct{}{}
-		case *control_event.SwapPluginsEvent:
-			l.plugin.LoadedPluginName = v.LoadedPluginName
-			l.plugin.LoadedPluginVersion = v.LoadedPluginVersion
-			l.plugin.UnloadedPluginName = v.UnloadedPluginName
-			l.plugin.UnloadedPluginVersion = v.UnloadedPluginVersion
-			l.plugin.PluginType = v.PluginType
-			l.done <- struct{}{}
-		case *control_event.PluginSubscriptionEvent:
-			l.done <- struct{}{}
-		default:
-			fmt.Println("Got an event you're not handling")
-		}
-	}()
+	switch v := e.Body.(type) {
+	case *control_event.RestartedAvailablePluginEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.MaxPluginRestartsExceededEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.DeadAvailablePluginEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.LoadPluginEvent:
+		l.plugin.LoadedPluginName = v.Name
+		l.plugin.LoadedPluginVersion = v.Version
+		l.plugin.PluginType = v.Type
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.UnloadPluginEvent:
+		l.plugin.UnloadedPluginName = v.Name
+		l.plugin.UnloadedPluginVersion = v.Version
+		l.plugin.PluginType = v.Type
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.SwapPluginsEvent:
+		l.plugin.LoadedPluginName = v.LoadedPluginName
+		l.plugin.LoadedPluginVersion = v.LoadedPluginVersion
+		l.plugin.UnloadedPluginName = v.UnloadedPluginName
+		l.plugin.UnloadedPluginVersion = v.UnloadedPluginVersion
+		l.plugin.PluginType = v.PluginType
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.MovePluginSubscriptionEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	case *control_event.PluginSubscriptionEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	default:
+		controlLogger.WithFields(log.Fields{
+			"event:": v.Namespace(),
+			"_block": "HandleGomit",
+		}).Info("Unhandled Event")
+	}
 }
 
 var (
@@ -1414,7 +1423,7 @@ func TestGatherCollectors(t *testing.T) {
 			plgs, errs := c.gatherCollectors(m)
 			So(errs, ShouldBeNil)
 			So(plgs, ShouldNotBeEmpty)
-			So(plgs[0].Version(), ShouldEqual, 1)
+			So(plgs[0].plugin.Version(), ShouldEqual, 1)
 		})
 		Convey("it gathers the queried version of plugin", func() {
 			Convey("the version is available", func() {
@@ -1428,7 +1437,7 @@ func TestGatherCollectors(t *testing.T) {
 				plgs, errs := c.gatherCollectors(m)
 				So(errs, ShouldBeNil)
 				So(plgs, ShouldNotBeEmpty)
-				So(plgs[0].Version(), ShouldEqual, v)
+				So(plgs[0].plugin.Version(), ShouldEqual, v)
 			})
 			Convey("the version is not available", func() {
 				m := []core.Metric{
@@ -1587,4 +1596,157 @@ func TestProcessMetrics(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 	})
+}
+
+type listenToPluginSubscriptionEvent struct {
+	plugin *mockPluginEvent
+	done   chan struct{}
+}
+
+func newListenToPluginSubscriptionEvent() *listenToPluginSubscriptionEvent {
+	return &listenToPluginSubscriptionEvent{
+		done:   make(chan struct{}),
+		plugin: &mockPluginEvent{},
+	}
+}
+
+func (l *listenToPluginSubscriptionEvent) HandleGomitEvent(e gomit.Event) {
+	switch v := e.Body.(type) {
+	case *control_event.MovePluginSubscriptionEvent:
+		l.plugin.EventNamespace = v.Namespace()
+		l.done <- struct{}{}
+	default:
+		controlLogger.WithFields(log.Fields{
+			"event:": v.Namespace(),
+			"_block": "HandleGomit",
+		}).Info("Unhandled Event")
+	}
+}
+func TestMetricSubscriptionToNewVersion(t *testing.T) {
+	Convey("Given a metric that is being collected at v1", t, func() {
+		c := New(GetDefaultConfig())
+		lpe := newListenToPluginSubscriptionEvent()
+		c.eventManager.RegisterHandler("TestMetricSubscriptionToNewVersion", lpe)
+		c.Start()
+		_, err := load(c, path.Join(SnapPath, "plugin", "snap-collector-mock1"))
+		So(err, ShouldBeNil)
+		So(len(c.pluginManager.all()), ShouldEqual, 1)
+		lp, err2 := c.pluginManager.get("collector:mock:1")
+		So(err2, ShouldBeNil)
+		So(lp.Name(), ShouldResemble, "mock")
+		//Subscribe deps to create pools.
+		metric := MockMetricType{
+			namespace: []string{"intel", "mock", "foo"},
+			cfg:       cdata.NewNode(),
+			ver:       0,
+		}
+		So(metric.Version(), ShouldEqual, 0)
+		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
+		So(serr, ShouldBeNil)
+		// collect metrics as a sanity check that everything is setup correctly
+		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		So(errs, ShouldBeNil)
+		So(len(mts), ShouldEqual, 1)
+		// ensure the data coming back is from v1. V1's data is type string
+		_, ok := mts[0].Data().(string)
+		So(ok, ShouldEqual, true)
+		Convey("Loading v2 of that plugin should move subscriptions to newer version", func() {
+			// Load version snap-collector-mock2
+			_, err := load(c, path.Join(SnapPath, "plugin", "snap-collector-mock2"))
+			So(err, ShouldBeNil)
+			select {
+			// Wait on subscriptionMovedEvent
+			case <-lpe.done:
+			case <-time.After(10 * time.Second):
+				fmt.Println("timeout waiting for move subscription event")
+				So(false, ShouldEqual, true)
+			}
+			// Check for subscription movement.
+			// Give some time for subscription to be moved.
+			var pool1 strategy.Pool
+			var errp error
+
+			pool1, errp = c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			So(errp, ShouldBeNil)
+			So(pool1.SubscriptionCount(), ShouldEqual, 0)
+
+			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			So(errp, ShouldBeNil)
+			So(pool2.SubscriptionCount(), ShouldEqual, 1)
+
+			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			So(len(mts), ShouldEqual, 1)
+
+			// ensure the data coming back is from v2, V2's data is type int
+			_, ok = mts[0].Data().(int)
+			So(ok, ShouldEqual, true)
+		})
+	})
+}
+
+func TestMetricSubscriptionToOlderVersion(t *testing.T) {
+	Convey("Given a metric that is being collected at v2", t, func() {
+		c := New(GetDefaultConfig())
+		lpe := newListenToPluginSubscriptionEvent()
+		c.eventManager.RegisterHandler("TestMetricSubscriptionToOlderVersion", lpe)
+		c.Start()
+		_, err := load(c, path.Join(SnapPath, "plugin", "snap-collector-mock2"))
+		So(err, ShouldBeNil)
+		So(len(c.pluginManager.all()), ShouldEqual, 1)
+		lp, err2 := c.pluginManager.get("collector:mock:2")
+		So(err2, ShouldBeNil)
+		So(lp.Name(), ShouldResemble, "mock")
+		//Subscribe deps to create pools.
+		metric := MockMetricType{
+			namespace: []string{"intel", "mock", "foo"},
+			cfg:       cdata.NewNode(),
+			ver:       0,
+		}
+		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
+		So(serr, ShouldBeNil)
+		// collect metrics as a sanity check that everything is setup correctly
+		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		So(errs, ShouldBeNil)
+		So(len(mts), ShouldEqual, 1)
+		// ensure the data coming back is from v2. V2's data is type int
+		_, ok := mts[0].Data().(int)
+		So(ok, ShouldEqual, true)
+		// grab plugin for mock v2
+		pc := c.PluginCatalog()
+		mockv2 := pc[0]
+		Convey("Loading v1 of that plugin and unloading v2 should move subscriptions to older version", func() {
+			// Load version snap-collector-mock2
+			_, err = load(c, path.Join(SnapPath, "plugin", "snap-collector-mock1"))
+			So(err, ShouldBeNil)
+			_, err = c.Unload(mockv2)
+			So(err, ShouldBeNil)
+			select {
+			// Wait on subscriptionMovedEvent
+			case <-lpe.done:
+			case <-time.After(10 * time.Second):
+				fmt.Println("Timeout waiting for move subscription event")
+				So(false, ShouldEqual, true)
+			}
+			// Check for subscription movement.
+			// Give some time for subscription to be moved.
+			var pool1 strategy.Pool
+			var errp error
+			ap := c.pluginRunner.AvailablePlugins()
+			pool1, errp = ap.getOrCreatePool("collector:mock:2")
+			So(errp, ShouldBeNil)
+			So(pool1.SubscriptionCount(), ShouldEqual, 0)
+
+			pool2, errp := ap.getOrCreatePool("collector:mock:1")
+			So(errp, ShouldBeNil)
+			So(pool2.SubscriptionCount(), ShouldEqual, 1)
+
+			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			So(len(mts), ShouldEqual, 1)
+
+			// ensure the data coming back is from v1, V1's data is type string
+			_, ok = mts[0].Data().(string)
+			So(ok, ShouldEqual, true)
+		})
+	})
+
 }

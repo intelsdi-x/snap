@@ -34,11 +34,11 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 )
 
-type subscriptionType int
+type SubscriptionType int
 
 const (
 	// this subscription is bound to an explicit version
-	BoundSubscriptionType subscriptionType = iota
+	BoundSubscriptionType SubscriptionType = iota
 	// this subscription is akin to "latest" and must be moved if a newer version is loaded.
 	UnboundSubscriptionType
 )
@@ -68,7 +68,7 @@ type Pool interface {
 	SelectAndKill(taskID, reason string)
 	SelectAP(taskID string) (SelectablePlugin, serror.SnapError)
 	Strategy() RoutingAndCaching
-	Subscribe(taskID string, subType subscriptionType)
+	Subscribe(taskID string, subType SubscriptionType)
 	SubscriptionCount() int
 	Unsubscribe(taskID string)
 	Version() int
@@ -90,7 +90,7 @@ type AvailablePlugin interface {
 }
 
 type subscription struct {
-	SubType subscriptionType
+	SubType SubscriptionType
 	Version int
 	TaskID  string
 }
@@ -140,7 +140,7 @@ func NewPool(key string, plugins ...AvailablePlugin) (Pool, error) {
 		RWMutex:          &sync.RWMutex{},
 		version:          ver,
 		key:              key,
-		subs:             map[string]*subscription{},
+		subs:             make(map[string]*subscription),
 		plugins:          make(map[uint32]AvailablePlugin),
 		max:              MaximumRunningPlugins,
 		concurrencyCount: 1,
@@ -236,7 +236,7 @@ func (p *pool) applyPluginMeta(a AvailablePlugin) error {
 
 // subscribe adds a subscription to the pool.
 // Using subscribe is idempotent.
-func (p *pool) Subscribe(taskID string, subType subscriptionType) {
+func (p *pool) Subscribe(taskID string, subType SubscriptionType) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -373,12 +373,16 @@ func (p *pool) generatePID() uint32 {
 // MoveSubscriptions moves subscriptions to another pool
 func (p *pool) MoveSubscriptions(to Pool) []subscription {
 	var subs []subscription
-
+	// If attempting to move between the same pool
+	// bail to prevent deadlock.
+	if to.(*pool) == p {
+		return []subscription{}
+	}
 	p.Lock()
 	defer p.Unlock()
-
 	for task, sub := range p.subs {
-		if sub.SubType == UnboundSubscriptionType && to.(*pool).version > p.version {
+		// ensure that this sub was not bound to this pool specifically before moving
+		if sub.SubType == UnboundSubscriptionType {
 			subs = append(subs, *sub)
 			to.Subscribe(task, UnboundSubscriptionType)
 			delete(p.subs, task)
