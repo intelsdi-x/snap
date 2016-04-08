@@ -21,8 +21,9 @@
 # 1. gofmt         (http://golang.org/cmd/gofmt/)
 # 2. goimports     (https://github.com/bradfitz/goimports)
 # 3. golint        (https://github.com/golang/lint)
-# 4. race detector (http://blog.golang.org/race-detector)
-# 5. test coverage (http://blog.golang.org/cover)
+# 4. go vet        (http://golang.org/cmd/vet)
+# 5. race detector (http://blog.golang.org/race-detector)
+# 6. test coverage (http://blog.golang.org/cover)
 
 # If the following plugins don't exist, exit
 [ -f $SNAP_PATH/plugin/snap-collector-mock1 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock1 does not exist. Run make to build it.' ; exit 1; }
