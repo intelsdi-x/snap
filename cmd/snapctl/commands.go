@@ -117,6 +117,21 @@ var (
 						flRunning,
 					},
 				},
+				{
+					Name: "config",
+					Subcommands: []cli.Command{
+						{
+							Name:   "get",
+							Usage:  "get <plugin_type>:<plugin_name>:<plugin_version> or get -t <plugin_type> -n <plugin_name> -v <plugin_version>",
+							Action: getConfig,
+							Flags: []cli.Flag{
+								flPluginName,
+								flPluginType,
+								flPluginVersion,
+							},
+						},
+					},
+				},
 			},
 		},
 		{
@@ -195,22 +210,6 @@ var (
 					Name:   "members",
 					Usage:  "members <agreement_name>",
 					Action: agreementMembers,
-				},
-			},
-		},
-		{
-			Name:  "plugin-config",
-			Usage: tribeWarning,
-			Subcommands: []cli.Command{
-				{
-					Name:   "get",
-					Usage:  "get <plugin_type>:<plugin_name>:<plugin_version> or get -t <plugin_type> -n <plugin_version> -v <plugin_version>",
-					Action: getConfig,
-					Flags: []cli.Flag{
-						flPluginName,
-						flPluginType,
-						flPluginVersion,
-					},
 				},
 			},
 		},
