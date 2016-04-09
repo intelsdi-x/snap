@@ -31,7 +31,7 @@ import (
 func main() {
 	// Provided:
 	//   the definition of the plugin metadata
-	//   the implementation satfiying plugin.CollectorPlugin
+	//   the implementation satisfying plugin.CollectorPlugin
 
 	// Define metadata about Plugin
 	meta := mock.Meta()
