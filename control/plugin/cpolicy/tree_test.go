@@ -76,13 +76,15 @@ func TestConfigPolicy(t *testing.T) {
 			cpn1 := NewPolicyNode()
 			r11, _ := NewStringRule("password", true)
 			r12, _ := NewIntegerRule("port", true)
-			cpn1.Add(r11, r12)
+			r13, _ := NewBoolRule("nova", true)
+			cpn1.Add(r11, r12, r13)
 			ns1 := []string{"one", "two", "potato"}
 
 			cpn2 := NewPolicyNode()
 			r21, _ := NewStringRule("password", true)
 			r22, _ := NewFloatRule("rate", true)
-			cpn2.Add(r21, r22)
+			r23, _ := NewBoolRule("nova", true)
+			cpn2.Add(r21, r22, r23)
 			ns2 := []string{"one", "two", "grapefruit"}
 
 			cpn3 := NewPolicyNode()
@@ -107,6 +109,7 @@ func TestConfigPolicy(t *testing.T) {
 				So(gc.rules["password"], ShouldBeNil)
 				So(gc.rules["port"], ShouldBeNil)
 				So(gc.rules["rate"], ShouldBeNil)
+				So(gc.rules["nova"], ShouldBeNil)
 			})
 
 			Convey("potato is correct", func() {
@@ -115,6 +118,7 @@ func TestConfigPolicy(t *testing.T) {
 
 				So(gc.rules["username"].Required(), ShouldEqual, false)
 				So(gc.rules["password"].Required(), ShouldEqual, true)
+				So(gc.rules["nova"].Required(), ShouldEqual, true)
 				So(gc.rules["port"], ShouldNotBeNil)
 				So(gc.rules["rate"], ShouldBeNil)
 			})
@@ -125,6 +129,7 @@ func TestConfigPolicy(t *testing.T) {
 
 				So(gc.rules["username"].Required(), ShouldEqual, false)
 				So(gc.rules["password"].Required(), ShouldEqual, true)
+				So(gc.rules["nova"].Required(), ShouldEqual, true)
 				So(gc.rules["port"], ShouldBeNil)
 				So(gc.rules["rate"], ShouldNotBeNil)
 			})

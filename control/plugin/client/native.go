@@ -270,6 +270,7 @@ func init() {
 	gob.RegisterName("conf_policy_string", &cpolicy.StringRule{})
 	gob.RegisterName("conf_policy_int", &cpolicy.IntRule{})
 	gob.RegisterName("conf_policy_float", &cpolicy.FloatRule{})
+	gob.RegisterName("conf_policy_bool", &cpolicy.BoolRule{})
 }
 
 func upcaseInitial(str string) string {

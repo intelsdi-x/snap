@@ -245,6 +245,14 @@ func addRulesToConfigPolicyNode(rules map[string]interface{}, cpn *ConfigPolicyN
 				}
 
 				cpn.Add(r)
+			case "bool":
+				r, _ := NewBoolRule(k, req)
+				if d, ok := rule["default"]; ok {
+					def, _ := d.(bool)
+					r.default_ = &def
+				}
+
+				cpn.Add(r)
 			case "float":
 				r, _ := NewFloatRule(k, req)
 				if d, ok := rule["default"]; ok {
