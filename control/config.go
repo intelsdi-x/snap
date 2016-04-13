@@ -30,9 +30,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/vrischmann/jsonutil"
 
+	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 )
 
 // default configuration values
@@ -487,4 +489,13 @@ func unmarshalPluginConfig(typ string, p *pluginConfig, t map[string]interface{}
 		}
 	}
 	return nil
+}
+
+// NewConfigClient reeturns a config client
+func NewConfigClient(addr string, port int) (rpc.ConfigManagerClient, error) {
+	conn, err := rpcutil.GetClientConnection(addr, port)
+	if err != nil {
+		return nil, err
+	}
+	return rpc.NewConfigManagerClient(conn), nil
 }
