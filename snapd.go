@@ -455,7 +455,11 @@ func action(ctx *cli.Context) {
 			log.Fatal(err)
 		}
 		r.BindMetricManager(controlClient)
-		r.BindConfigManager(c.Config)
+		configClient, err := control.NewConfigClient(cfg.Control.ListenAddr, cfg.Control.ListenPort)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.BindConfigManager(configClient)
 		client, err := scheduler.NewClient(cfg.Scheduler.ListenAddr, cfg.Scheduler.ListenPort)
 		if err != nil {
 			log.Fatal(err)

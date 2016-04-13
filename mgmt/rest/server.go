@@ -38,8 +38,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	crpc "github.com/intelsdi-x/snap/control/rpc"
-	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
@@ -115,12 +113,12 @@ type managesTribe interface {
 }
 
 type managesConfig interface {
-	GetPluginConfigDataNode(core.PluginType, string, int) cdata.ConfigDataNode
-	GetPluginConfigDataNodeAll() cdata.ConfigDataNode
-	MergePluginConfigDataNode(pluginType core.PluginType, name string, ver int, cdn *cdata.ConfigDataNode) cdata.ConfigDataNode
-	MergePluginConfigDataNodeAll(cdn *cdata.ConfigDataNode) cdata.ConfigDataNode
-	DeletePluginConfigDataNodeField(pluginType core.PluginType, name string, ver int, fields ...string) cdata.ConfigDataNode
-	DeletePluginConfigDataNodeFieldAll(fields ...string) cdata.ConfigDataNode
+	GetPluginConfigDataNode(context.Context, *crpc.ConfigDataNodeRequest, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
+	GetPluginConfigDataNodeAll(context.Context, *common.Empty, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
+	MergePluginConfigDataNode(context.Context, *crpc.MergeConfigDataNodeRequest, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
+	MergePluginConfigDataNodeAll(context.Context, *crpc.ConfigDataNode, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
+	DeletePluginConfigDataNodeField(context.Context, *crpc.DeleteConfigDataNodeFieldRequest, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
+	DeletePluginConfigDataNodeFieldAll(context.Context, *crpc.DeleteConfigDataNodeFieldAllRequest, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
 }
 
 type Server struct {

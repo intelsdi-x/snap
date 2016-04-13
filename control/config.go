@@ -491,7 +491,7 @@ func unmarshalPluginConfig(typ string, p *pluginConfig, t map[string]interface{}
 	return nil
 }
 
-// NewConfigClient reeturns a config client
+// NewConfigClient returns a config grpc client
 func NewConfigClient(addr string, port int) (rpc.ConfigManagerClient, error) {
 	conn, err := rpcutil.GetClientConnection(addr, port)
 	if err != nil {

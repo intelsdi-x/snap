@@ -100,9 +100,13 @@ func startAPI() (string, error) {
 	}
 	s.SetMetricManager(c)
 	s.Start()
-	r.BindConfigManager(c.Config)
 	r.BindMetricManager(controlClient)
 	r.BindTaskManager(client)
+	configClient, err := control.NewConfigClient(c.Config.ListenAddr, c.Config.ListenPort)
+	if err != nil {
+		return "", err
+	}
+	r.BindConfigManager(configClient)
 
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
