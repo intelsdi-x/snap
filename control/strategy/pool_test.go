@@ -19,6 +19,7 @@ limitations under the License.
 package strategy
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -161,24 +162,44 @@ func TestPoolEligibility(t *testing.T) {
 				{plugin.CollectorPluginType, plugin.StickyRouting, 999, 0, false, false},
 				{plugin.CollectorPluginType, plugin.StickyRouting, 999, 1, false, false},
 				{plugin.CollectorPluginType, plugin.StickyRouting, 999, 2, false, true},
+				{plugin.CollectorPluginType, plugin.StickyRouting, 999, 3, false, true},
+				{plugin.CollectorPluginType, plugin.StickyRouting, 999, 4, false, false},
 				{plugin.CollectorPluginType, plugin.StickyRouting, 999, 2, true, false},
+
+				{plugin.CollectorPluginType, plugin.ConfigRouting, 999, 0, false, false},
+				{plugin.CollectorPluginType, plugin.ConfigRouting, 999, 1, false, false},
+				{plugin.CollectorPluginType, plugin.ConfigRouting, 999, 2, false, false},
+				{plugin.CollectorPluginType, plugin.ConfigRouting, 999, 3, false, false},
+				{plugin.CollectorPluginType, plugin.ConfigRouting, 999, 4, false, true},
+				{plugin.CollectorPluginType, plugin.ConfigRouting, 999, 5, false, true},
+				{plugin.CollectorPluginType, plugin.ConfigRouting, 999, 4, true, false},
 			}
 			Convey("Then new pool eligibility is defined", func() {
 				for i, tc := range tcs {
-					plg.
-						WithPluginType(tc.PlgType).
+					plg.WithPluginType(tc.PlgType).
 						WithStrategy(tc.Strategy).
 						WithExclusive(tc.Exclusiveness).
 						WithConCount(tc.Concurrency).
 						WithID(uint32(i))
+
 					pool, _ := NewPool(plg.String(), plg)
 
 					for j := 0; j < tc.Subscriptions; j++ {
 						pool.Subscribe(strconv.Itoa(j), BoundSubscriptionType)
 					}
-					So(pool.SubscriptionCount(), ShouldEqual, tc.Subscriptions)
-					So(pool.Eligible(), ShouldEqual, tc.Expected)
 
+					Convey(fmt.Sprintf(
+						"{strategy = %s, concurreny = %d, subscriptions = %d, exclusiveness = %v, count = %d}",
+						tc.Strategy.String(),
+						tc.Concurrency,
+						tc.Subscriptions,
+						tc.Exclusiveness,
+						pool.Count(),
+					),
+						func() {
+							So(pool.SubscriptionCount(), ShouldEqual, tc.Subscriptions)
+							So(pool.Eligible(), ShouldEqual, tc.Expected)
+						})
 				}
 			})
 		})

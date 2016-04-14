@@ -47,40 +47,6 @@ type RoutingAndCaching interface {
 	String() string
 }
 
-func (sm MapAvailablePlugin) AddMap(m map[uint32]AvailablePlugin) {
-	if sm.Size() == 0 {
-		sm = m
-	} else {
-		for k, v := range m {
-			sm[k] = v
-		}
-	}
-}
-
-// RemoveAll deletes all key/value pairs from map
-func (sm MapAvailablePlugin) RemoveAll() {
-	sm = map[uint32]AvailablePlugin{}
-}
-
-// Size return number of key/value pairs
-func (sm MapAvailablePlugin) Size() int {
-	return len(sm)
-}
-
-// Empty checks if map contains any key/value pair
-func (sm MapAvailablePlugin) Empty() bool {
-	return len(sm) == 0
-}
-
-// Keys returns slice of map keys
-func (sm MapAvailablePlugin) Keys() []uint32 {
-	keys := []uint32{}
-	for k := range sm {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
 // Values returns slice of map values
 func (sm MapAvailablePlugin) Values() []AvailablePlugin {
 	values := []AvailablePlugin{}
@@ -88,10 +54,4 @@ func (sm MapAvailablePlugin) Values() []AvailablePlugin {
 		values = append(values, v)
 	}
 	return values
-}
-
-// HasKey checks if key exists in map
-func (sm MapAvailablePlugin) HasKey(key uint32) bool {
-	_, found := sm[key]
-	return found
 }

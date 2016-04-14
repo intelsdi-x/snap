@@ -50,7 +50,6 @@ var (
 	// This defines the maximum running instances of a loaded plugin.
 	// It is initialized at runtime via the cli.
 	MaximumRunningPlugins = 3
-	ErrStrategyUnknown    = errors.New("Provided RoutingAndCaching strategy unknown") // TODO - remove?
 )
 
 var (
@@ -70,7 +69,7 @@ type Pool interface {
 	RLock()
 	RUnlock()
 	SelectAndKill(taskID, reason string)
-	SelectAP(opts SelectorValues) (AvailablePlugin, serror.SnapError)
+	SelectAP(taskID string, configID map[string]ctypes.ConfigValue) (AvailablePlugin, serror.SnapError)
 	Strategy() RoutingAndCaching
 	Subscribe(taskID string, subType SubscriptionType)
 	SubscriptionCount() int
@@ -91,11 +90,6 @@ type AvailablePlugin interface {
 	SetID(id uint32)
 	String() string
 	Type() plugin.PluginType
-}
-
-type SelectorValues struct {
-	Task   string
-	Config map[string]ctypes.ConfigValue
 }
 
 type subscription struct {
@@ -359,32 +353,26 @@ func (p *pool) SubscriptionCount() int {
 }
 
 // SelectAP selects an available plugin from the pool
-func (p *pool) SelectAP(opts SelectorValues) (AvailablePlugin, serror.SnapError) {
+func (p *pool) SelectAP(taskID string, config map[string]ctypes.ConfigValue) (AvailablePlugin, serror.SnapError) {
 	p.RLock()
 	defer p.RUnlock()
 
-	selector, err := func(opts SelectorValues) (string, error) {
-		var e error
-		s := ""
-		switch p.Strategy().String() {
-		case "least-recently-used":
-			s = "lru"
-		case "sticky":
-			s = opts.Task
-		case "config-based":
-			s = idFromCfg(opts.Config)
-		default:
-			e = ErrBadStrategy
-		}
-		return s, e
-	}(opts)
-
-	if err != nil {
-		return nil, serror.New(err)
-	}
 	aps := p.plugins.Values()
-	ap, err := p.Select(aps, selector)
-	if err != nil || ap == nil {
+
+	var id string
+	switch p.Strategy().String() {
+	case "least-recently-used":
+		id = ""
+	case "sticky":
+		id = taskID
+	case "config-based":
+		id = idFromCfg(config)
+	default:
+		return nil, serror.New(ErrBadStrategy)
+	}
+
+	ap, err := p.Select(aps, id)
+	if err != nil {
 		return nil, serror.New(err)
 	}
 	return ap, nil
@@ -409,11 +397,16 @@ func (p *pool) generatePID() uint32 {
 // MoveSubscriptions moves subscriptions to another pool
 func (p *pool) MoveSubscriptions(to Pool) []subscription {
 	var subs []subscription
-
+	// If attempting to move between the same pool
+	// bail to prevent deadlock.
+	if to.(*pool) == p {
+		return []subscription{}
+	}
 	p.Lock()
 	defer p.Unlock()
 
 	for task, sub := range p.subs {
+		// ensure that this sub was not bound to this pool specifically before moving
 		if sub.SubType == UnboundSubscriptionType {
 			subs = append(subs, *sub)
 			to.Subscribe(task, UnboundSubscriptionType)

@@ -386,14 +386,10 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 	if config != nil {
 		cfg = config.Table()
 	}
-	opts := strategy.SelectorValues{
-		Task:   taskID,
-		Config: cfg,
-	}
 
 	pool.RLock()
 	defer pool.RUnlock()
-	p, serr := pool.SelectAP(opts)
+	p, serr := pool.SelectAP(taskID, cfg)
 	if serr != nil {
 		return nil, serr
 	}
@@ -445,12 +441,7 @@ func (ap *availablePlugins) publishMetrics(contentType string, content []byte, p
 	pool.RLock()
 	defer pool.RUnlock()
 
-	opts := strategy.SelectorValues{
-		Task:   taskID,
-		Config: config,
-	}
-
-	p, err := pool.SelectAP(opts)
+	p, err := pool.SelectAP(taskID, config)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -481,13 +472,10 @@ func (ap *availablePlugins) processMetrics(contentType string, content []byte, p
 	if pool == nil {
 		return "", nil, []error{serror.New(ErrPoolNotFound, map[string]interface{}{"pool-key": key})}
 	}
-	opts := strategy.SelectorValues{
-		Task:   taskID,
-		Config: config,
-	}
+
 	pool.RLock()
 	defer pool.RUnlock()
-	p, err := pool.SelectAP(opts)
+	p, err := pool.SelectAP(taskID, config)
 	if err != nil {
 		errs = append(errs, err)
 		return "", nil, errs
