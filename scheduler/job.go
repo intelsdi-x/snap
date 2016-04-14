@@ -307,9 +307,17 @@ func (p *processJob) Run() {
 				if mt, ok := m.(plugin.PluginMetricType); ok {
 					metrics[i] = mt
 				} else {
-					// TODO; add a log statement and return an error
-					// (instead of panicking)
-					panic("unsupported type")
+					log.WithFields(log.Fields{
+						"_module":        "scheduler-job",
+						"block":          "run",
+						"job-type":       "processor",
+						"content-type":   p.contentType,
+						"plugin-name":    p.name,
+						"plugin-version": p.version,
+						"plugin-config":  p.config,
+						"error":          m,
+					}).Error("unsupported metric type")
+					p.AddErrors(fmt.Errorf("unsupported metric type. {%v}", m))
 				}
 			}
 			enc.Encode(metrics)
@@ -331,8 +339,6 @@ func (p *processJob) Run() {
 			}
 			p.content = content
 		default:
-			// TODO; change log from Fatal to Error and return an error
-			// (instead of panicking)
 			log.WithFields(log.Fields{
 				"_module":        "scheduler-job",
 				"block":          "run",
@@ -341,9 +347,10 @@ func (p *processJob) Run() {
 				"plugin-name":    p.name,
 				"plugin-version": p.version,
 				"plugin-config":  p.config,
-			}).Fatal("unsupported content type")
-			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
+			}).Error("unsupported content type")
+			p.AddErrors(fmt.Errorf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
 		}
+
 	case *processJob:
 		// TODO: Remove switch statement and rely on processor to catch errors in type
 		// (separation of concerns; remove content-type definition from the framework?)
@@ -367,8 +374,6 @@ func (p *processJob) Run() {
 			}
 			p.content = content
 		default:
-			// TODO; change log from Fatal to Error and return an error
-			// (instead of panicking)
 			log.WithFields(log.Fields{
 				"_module":        "scheduler-job",
 				"block":          "run",
@@ -377,12 +382,10 @@ func (p *processJob) Run() {
 				"plugin-name":    p.name,
 				"plugin-version": p.version,
 				"plugin-config":  p.config,
-			}).Fatal("unsupported content type")
-			panic(fmt.Sprintf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
+			}).Error("unsupported content type")
+			p.AddErrors(fmt.Errorf("unsupported content type. {plugin name: %s version: %v content-type: '%v'}", p.name, p.version, p.contentType))
 		}
 	default:
-		// TODO; change log from Fatal to Error and return an error
-		// (instead of panicking)
 		log.WithFields(log.Fields{
 			"_module":         "scheduler-job",
 			"block":           "run",
@@ -392,8 +395,8 @@ func (p *processJob) Run() {
 			"plugin-version":  p.version,
 			"plugin-config":   p.config,
 			"parent-job-type": p.parentJob.Type(),
-		}).Fatal("unsupported parent job type")
-		panic("unsupported parent job type")
+		}).Error("unsupported parent job type")
+		p.AddErrors(fmt.Errorf("unsupported parent job type {%v}", p.parentJob.Type()))
 	}
 }
 
