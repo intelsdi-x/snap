@@ -44,6 +44,12 @@ func TestSchedulerConfigJSON(t *testing.T) {
 		Convey("An error should not be returned when unmarshalling the config", func() {
 			So(err, ShouldBeNil)
 		})
+		Convey("ListenAddr should equal 0.0.0.0", func() {
+			So(cfg.ListenAddr, ShouldEqual, "0.0.0.0")
+		})
+		Convey("ListenPort should equal 10081", func() {
+			So(cfg.ListenPort, ShouldEqual, 10081)
+		})
 		Convey("WorkManagerQueueSize should equal 10", func() {
 			So(cfg.WorkManagerQueueSize, ShouldEqual, 10)
 		})
@@ -68,6 +74,12 @@ func TestSchedulerConfigYaml(t *testing.T) {
 		Convey("An error should not be returned when unmarshalling the config", func() {
 			So(err, ShouldBeNil)
 		})
+		Convey("ListenAddr should equal 0.0.0.0", func() {
+			So(cfg.ListenAddr, ShouldEqual, "0.0.0.0")
+		})
+		Convey("ListenPort should equal 10081", func() {
+			So(cfg.ListenPort, ShouldEqual, 10081)
+		})
 		Convey("WorkManagerQueueSize should equal 10", func() {
 			So(cfg.WorkManagerQueueSize, ShouldEqual, 10)
 		})
@@ -81,6 +93,12 @@ func TestSchedulerConfigYaml(t *testing.T) {
 func TestSchedulerDefaultConfig(t *testing.T) {
 	cfg := GetDefaultConfig()
 	Convey("Provided a default config", t, func() {
+		Convey("ListenAddr should equal 127.0.0.1", func() {
+			So(cfg.ListenAddr, ShouldEqual, "127.0.0.1")
+		})
+		Convey("ListenPort should equal 10081", func() {
+			So(cfg.ListenPort, ShouldEqual, 8081)
+		})
 		Convey("WorkManagerQueueSize should equal 25", func() {
 			So(cfg.WorkManagerQueueSize, ShouldEqual, 25)
 		})

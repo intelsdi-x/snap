@@ -69,12 +69,13 @@ func (m *MockPluginManagerBadSwap) LoadPlugin(*pluginDetails, gomit.Emitter) (*l
 func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, serror.SnapError) {
 	return nil, serror.New(errors.New("fake"))
 }
-func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error) { return nil, nil }
-func (m *MockPluginManagerBadSwap) teardown()                         {}
-func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)     {}
-func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)  {}
-func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)          {}
-func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg    { return plugin.Arg{} }
+func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error)              { return nil, nil }
+func (m *MockPluginManagerBadSwap) Get(string, int, string) (*loadedPlugin, error) { return nil, nil }
+func (m *MockPluginManagerBadSwap) teardown()                                      {}
+func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)                  {}
+func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)               {}
+func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)                       {}
+func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg                 { return plugin.Arg{} }
 
 func (m *MockPluginManagerBadSwap) all() map[string]*loadedPlugin {
 	return m.loadedPlugins.table

@@ -1,6 +1,9 @@
 package schedule
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -12,9 +15,9 @@ var (
 
 // WindowedSchedule is a schedule that waits on an interval within a specific time window
 type WindowedSchedule struct {
-	Interval  time.Duration
-	StartTime *time.Time
-	StopTime  *time.Time
+	Interval  time.Duration `json:"interval"`
+	StartTime *time.Time    `json:"start_time"`
+	StopTime  *time.Time    `json:"stop_time"`
 	state     ScheduleState
 }
 
@@ -112,6 +115,67 @@ func (w *WindowedSchedule) Wait(last time.Time) Response {
 		missed:   m,
 		lastTime: time.Now(),
 	}
+}
+
+func (w *WindowedSchedule) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Interval  string     `json:"interval"`
+		StartTime *time.Time `json:"start_time"`
+		StopTime  *time.Time `json:"stop_time"`
+		Type      string     `json:"type"`
+	}{
+		Interval:  w.Interval.String(),
+		StartTime: w.StartTime,
+		StopTime:  w.StopTime,
+		Type:      "windowed",
+	})
+}
+
+func (w *WindowedSchedule) UnmarshalJSON(data []byte) error {
+	t := map[string]interface{}{}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	if err := dec.Decode(&t); err != nil {
+		return err
+	}
+
+	if v, ok := t["interval"]; ok {
+		switch typ := v.(type) {
+		case string:
+			dur, err := time.ParseDuration(typ)
+			if err != nil {
+				return err
+			}
+			w.Interval = dur
+		default:
+			return errors.New("Unsupported interval value")
+		}
+	}
+	if v, ok := t["start_time"]; ok {
+		switch typ := v.(type) {
+		case string:
+			start, err := time.Parse(time.RFC3339, typ)
+			if err != nil {
+				return err
+			}
+			w.StartTime = &start
+		default:
+			return errors.New("Unsupported start time value")
+		}
+	}
+	if v, ok := t["stop_time"]; ok {
+		switch typ := v.(type) {
+		case string:
+			stop, err := time.Parse(time.RFC3339, typ)
+			if err != nil {
+				return err
+			}
+			w.StopTime = &stop
+		default:
+			return errors.New("Unsupported stop time value")
+		}
+	}
+
+	return nil
 }
 
 // WindowedScheduleResponse is the response from SimpleSchedule

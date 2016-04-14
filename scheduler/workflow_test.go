@@ -22,6 +22,7 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path"
 	"sync"
@@ -124,15 +125,19 @@ func (m MockMetricType) Data() interface{} {
 func TestCollectPublishWorkflow(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	Convey("Given a started plugin control", t, func() {
-		cfg := control.GetDefaultConfig()
-		cfg.Plugins.Collector.Plugins = control.NewPluginsConfig()
-		cfg.Plugins.Collector.Plugins["mock"] = control.NewPluginConfigItem()
-		cfg.Plugins.Collector.Plugins["mock"].Versions = map[int]*cdata.ConfigDataNode{}
-		cfg.Plugins.Collector.Plugins["mock"].Versions[1] = cdata.NewNode()
-		cfg.Plugins.Collector.Plugins["mock"].Versions[1].AddItem("test", ctypes.ConfigValueBool{Value: true})
-		c := control.New(cfg)
+		ccfg := control.GetDefaultConfig()
+		ccfg.Plugins.Collector.Plugins = control.NewPluginsConfig()
+		ccfg.Plugins.Collector.Plugins["mock"] = control.NewPluginConfigItem()
+		ccfg.Plugins.Collector.Plugins["mock"].Versions = map[int]*cdata.ConfigDataNode{}
+		ccfg.Plugins.Collector.Plugins["mock"].Versions[1] = cdata.NewNode()
+		ccfg.Plugins.Collector.Plugins["mock"].Versions[1].AddItem("test", ctypes.ConfigValueBool{Value: true})
+		c := control.New(ccfg)
 		c.Start()
-		s := New(GetDefaultConfig())
+		cfg := GetDefaultConfig()
+		l, _ := net.Listen("tcp", ":0")
+		l.Close()
+		cfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+		s := New(cfg)
 		s.SetMetricManager(c)
 		Convey("create a workflow", func() {
 			rp, err := core.NewRequestedPlugin(snap_collector_mock2_path)
@@ -193,10 +198,13 @@ func TestCollectPublishWorkflow(t *testing.T) {
 func TestProcessChainingWorkflow(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	Convey("Given a started plugin control", t, func() {
-
 		c := control.New(control.GetDefaultConfig())
 		c.Start()
-		s := New(GetDefaultConfig())
+		cfg := GetDefaultConfig()
+		l, _ := net.Listen("tcp", ":0")
+		l.Close()
+		cfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+		s := New(cfg)
 		s.SetMetricManager(c)
 		Convey("create a workflow with chained processors", func() {
 			lpe := newEventListener()

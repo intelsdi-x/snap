@@ -61,11 +61,6 @@ var (
 		Usage:  "Set max cores to use for snap Agent. Default is 1 core.",
 		EnvVar: "GOMAXPROCS",
 	}
-	flNumberOfPLs = cli.IntFlag{
-		Name:   "max-running-plugins, m",
-		Usage:  "The maximum number of instances of a loaded plugin to run",
-		EnvVar: "SNAP_MAX_PLUGINS",
-	}
 	// plugin
 	flLogPath = cli.StringFlag{
 		Name:   "log-path, o",
@@ -76,21 +71,6 @@ var (
 		Name:   "log-level, l",
 		Usage:  "1-5 (Debug, Info, Warning, Error, Fatal)",
 		EnvVar: "SNAP_LOG_LEVEL",
-	}
-	flAutoDiscover = cli.StringFlag{
-		Name:   "auto-discover, a",
-		Usage:  "Auto discover paths separated by colons.",
-		EnvVar: "SNAP_AUTODISCOVER_PATH",
-	}
-	flPluginTrust = cli.IntFlag{
-		Name:   "plugin-trust, t",
-		Usage:  "0-2 (Disabled, Enabled, Warning)",
-		EnvVar: "SNAP_TRUST_LEVEL",
-	}
-	flKeyringPaths = cli.StringFlag{
-		Name:   "keyring-paths, k",
-		Usage:  "Keyring paths for signing verification separated by colons",
-		EnvVar: "SNAP_KEYRING_PATHS",
 	}
 	flCache = cli.DurationFlag{
 		Name:   "cache-expiration",
@@ -190,17 +170,13 @@ func main() {
 		flLogLevel,
 		flLogPath,
 		flMaxProcs,
-		flAutoDiscover,
-		flNumberOfPLs,
-		flCache,
-		flPluginTrust,
-		flKeyringPaths,
 		flRestCert,
 		flConfig,
 		flRestHTTPS,
 		flRestKey,
 		flRestAuth,
 	}
+	app.Flags = append(app.Flags, control.Flags...)
 	app.Flags = append(app.Flags, scheduler.Flags...)
 	app.Flags = append(app.Flags, tribe.Flags...)
 
@@ -396,7 +372,6 @@ func action(ctx *cli.Context) {
 	if cfg.Control.AutoDiscoverPath != "" {
 		log.Info("auto discover path is enabled")
 		paths := filepath.SplitList(cfg.Control.AutoDiscoverPath)
-		c.SetAutodiscoverPaths(paths)
 		for _, p := range paths {
 			fullPath, err := filepath.Abs(p)
 			if err != nil {
@@ -475,9 +450,17 @@ func action(ctx *cli.Context) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		r.BindMetricManager(c)
+		controlClient, err := control.NewClient(cfg.Control.ListenAddr, cfg.Control.ListenPort)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.BindMetricManager(controlClient)
 		r.BindConfigManager(c.Config)
-		r.BindTaskManager(s)
+		client, err := scheduler.NewClient(cfg.Scheduler.ListenAddr, cfg.Scheduler.ListenPort)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.BindTaskManager(client)
 		//Rest Authentication
 		if cfg.RestAPI.RestAuth {
 			log.Info("REST API authentication is enabled")
@@ -615,6 +598,8 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.Control.AutoDiscoverPath = setStringVal(cfg.Control.AutoDiscoverPath, ctx, "auto-discover")
 	cfg.Control.KeyringPaths = setStringVal(cfg.Control.KeyringPaths, ctx, "keyring-paths")
 	cfg.Control.CacheExpiration = jsonutil.Duration{setDurationVal(cfg.Control.CacheExpiration.Duration, ctx, "cache-expiration")}
+	cfg.Control.ListenAddr = setStringVal(cfg.Control.ListenAddr, ctx, "control-listen-addr")
+	cfg.Control.ListenPort = setIntVal(cfg.Control.ListenPort, ctx, "control-listen-port")
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")
@@ -626,6 +611,8 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	// next for the scheduler related flags
 	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
 	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")
+	cfg.Scheduler.ListenAddr = setStringVal(cfg.Scheduler.ListenAddr, ctx, "scheduler-listen-addr")
+	cfg.Scheduler.ListenPort = setIntVal(cfg.Scheduler.ListenPort, ctx, "scheduler-listen-port")
 	// and finally for the tribe-related flags
 	cfg.Tribe.Name = setStringVal(cfg.Tribe.Name, ctx, "tribe-node-name")
 	cfg.Tribe.Enable = setBoolVal(cfg.Tribe.Enable, ctx, "tribe")

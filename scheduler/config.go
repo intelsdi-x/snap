@@ -21,19 +21,25 @@ package scheduler
 
 // default configuration values
 const (
-	defaultWorkManagerQueueSize uint = 25
-	defaultWorkManagerPoolSize  uint = 4
+	defaultListenAddr           string = "127.0.0.1"
+	defaultListenPort           int    = 8081
+	defaultWorkManagerQueueSize uint   = 25
+	defaultWorkManagerPoolSize  uint   = 4
 )
 
 // holds the configuration passed in through the SNAP config file
 type Config struct {
-	WorkManagerQueueSize uint `json:"work_manager_queue_size,omitempty"yaml:"work_manager_queue_size,omitempty"`
-	WorkManagerPoolSize  uint `json:"work_manager_pool_size,omitempty"yaml:"work_manager_pool_size,omitempty"`
+	ListenAddr           string `json:"listen_addr,omitempty"yaml:"listen_addr,omitempty"`
+	ListenPort           int    `json:"listen_port,omitempty"yaml:"listen_port,omitempty"`
+	WorkManagerQueueSize uint   `json:"work_manager_queue_size,omitempty"yaml:"work_manager_queue_size,omitempty"`
+	WorkManagerPoolSize  uint   `json:"work_manager_pool_size,omitempty"yaml:"work_manager_pool_size,omitempty"`
 }
 
 // get the default snapd configuration
 func GetDefaultConfig() *Config {
 	return &Config{
+		ListenAddr:           defaultListenAddr,
+		ListenPort:           defaultListenPort,
 		WorkManagerQueueSize: defaultWorkManagerQueueSize,
 		WorkManagerPoolSize:  defaultWorkManagerPoolSize,
 	}

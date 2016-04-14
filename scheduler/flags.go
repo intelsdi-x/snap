@@ -34,6 +34,18 @@ var (
 		EnvVar: "WORK_MANAGER_POOL_SIZE",
 	}
 
+	flSchedulerRpcPort = cli.IntFlag{
+		Name:   "scheduler-listen-port",
+		Usage:  "Port the scheduler internally communicates over",
+		EnvVar: "SNAP_SCHEDULER_PORT",
+	}
+
+	flSchedulerRpcAddr = cli.StringFlag{
+		Name:   "scheduler-listen-addr",
+		Usage:  "Addr the scheduler internally communicates over",
+		EnvVar: "SNAP_SCHEDULER_ADDR",
+	}
+
 	// Flags consumed by snapd
-	Flags = []cli.Flag{flSchedulerQueueSize, flSchedulerPoolSize}
+	Flags = []cli.Flag{flSchedulerQueueSize, flSchedulerPoolSize, flSchedulerRpcPort, flSchedulerRpcAddr}
 )

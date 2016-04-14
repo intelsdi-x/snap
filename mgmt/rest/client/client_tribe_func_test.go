@@ -91,11 +91,12 @@ func getMembers(port int) *rbody.APIResponse {
 
 func TestSnapClientTribe(t *testing.T) {
 	numOfTribes := 4
-	ports := startTribes(numOfTribes)
-	c, err := client.New(fmt.Sprintf("http://localhost:%d", ports[0]), "v1", true)
+	ports, err := startTribes(numOfTribes)
+	c, err2 := client.New(fmt.Sprintf("http://localhost:%d", ports[0]), "v1", true)
 
 	Convey("REST API functional V1 - TRIBE", t, func() {
 		So(err, ShouldBeNil)
+		So(err2, ShouldBeNil)
 
 		Convey("Get global membership", func() {
 			resp := c.ListMembers()
@@ -163,7 +164,7 @@ func TestSnapClientTribe(t *testing.T) {
 	})
 }
 
-func startTribes(count int) []int {
+func startTribes(count int) ([]int, error) {
 	seed := ""
 	var wg sync.WaitGroup
 	var mgtPorts []int
@@ -184,22 +185,37 @@ func startTribes(count int) []int {
 		}
 		t, err := tribe.New(conf)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
-
-		c := control.New(control.GetDefaultConfig())
+		ccfg := control.GetDefaultConfig()
+		l, _ := net.Listen("tcp", ":0")
+		l.Close()
+		ccfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+		c := control.New(ccfg)
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
-		s := scheduler.New(scheduler.GetDefaultConfig())
+		controlClient, err := control.NewClient(c.Config.ListenAddr, c.Config.ListenPort)
+		if err != nil {
+			panic(err)
+		}
+		scfg := scheduler.GetDefaultConfig()
+		l, _ = net.Listen("tcp", ":0")
+		l.Close()
+		scfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+		s := scheduler.New(scfg)
 		s.SetMetricManager(c)
 		s.RegisterEventHandler("tribe", t)
 		s.Start()
+		client, err := scheduler.NewClient(s.Config().ListenAddr, s.Config().ListenPort)
+		if err != nil {
+			panic(err)
+		}
 		t.SetPluginCatalog(c)
 		t.SetTaskManager(s)
 		t.Start()
 		r, _ := rest.New(rest.GetDefaultConfig())
-		r.BindMetricManager(c)
-		r.BindTaskManager(s)
+		r.BindMetricManager(controlClient)
+		r.BindTaskManager(client)
 		r.BindTribeManager(t)
 		r.Start(":" + strconv.Itoa(mgtPort))
 		wg.Add(1)
@@ -227,5 +243,5 @@ func startTribes(count int) []int {
 	for idx, port := range mgtPorts {
 		uris[idx] = port
 	}
-	return uris
+	return uris, nil
 }

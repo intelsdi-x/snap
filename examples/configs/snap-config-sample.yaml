@@ -25,6 +25,14 @@ control:
   # expiring collection results from collect plugins. Default value is 500ms
   cache_expiration: 750ms
 
+  # listen_addr is the bind address for the control rpc server. Default address
+  # is 127.0.0.1
+  listen_addr: 0.0.0.0
+
+  # listen_port is the bind port for the control rpc server. Default port is
+  # 8082.
+  listen_port: 10082
+  
   # max_running_plugins sets the size of the available plugin pool for each
   # plugin loaded in the system. Default value is 3
   max_running_plugins: 1
@@ -80,6 +88,14 @@ control:
 # scheduler configuration settings contains all settings for scheduler
 # module
 scheduler:
+  # listen_addr is the bind address for the scheduler rpc server. Default address
+  # is 127.0.0.1
+  listen_addr: 0.0.0.0
+
+  # listen_port is the bind port for the scheduler rpc server. Default port is
+  # 8081.
+  listen_port: 10081
+
   # work_manager_queue_size sets the size of the worker queue inside snapd scheduler.
   # Default value is 25.
   work_manager_queue_size: 10

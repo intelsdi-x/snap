@@ -20,83 +20,90 @@ limitations under the License.
 package rest
 
 import (
+	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
-	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/control/rpc"
+	"github.com/intelsdi-x/snap/internal/common"
 	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
-type MockLoadedPlugin struct {
-	MyName string
-	MyType string
+func mockPluginReply(name, typeName string, version int64) *rpc.PluginReply {
+	cp, _ := json.Marshal(cpolicy.New())
+	return &rpc.PluginReply{
+		Name:            name,
+		TypeName:        typeName,
+		Version:         version,
+		IsSigned:        false,
+		Status:          "loaded",
+		LoadedTimestamp: &common.Time{Sec: 0, Nsec: 0},
+		ConfigPolicy:    cp,
+	}
 }
 
-func (m MockLoadedPlugin) Name() string       { return m.MyName }
-func (m MockLoadedPlugin) TypeName() string   { return m.MyType }
-func (m MockLoadedPlugin) Version() int       { return 0 }
-func (m MockLoadedPlugin) Plugin() string     { return "" }
-func (m MockLoadedPlugin) IsSigned() bool     { return false }
-func (m MockLoadedPlugin) Status() string     { return "" }
-func (m MockLoadedPlugin) PluginPath() string { return "" }
-func (m MockLoadedPlugin) LoadedTimestamp() *time.Time {
-	now := time.Now()
-	return &now
+func mockAvailablePluginReply(name, typeName string, version int64) *rpc.AvailablePluginReply {
+	return &rpc.AvailablePluginReply{
+		Name:             name,
+		TypeName:         typeName,
+		Version:          version,
+		IsSigned:         false,
+		HitCount:         0,
+		ID:               0,
+		LastHitTimestamp: &common.Time{Sec: 0, Nsec: 0},
+	}
 }
-func (m MockLoadedPlugin) Policy() *cpolicy.ConfigPolicy { return nil }
-
-// have my mock object also support AvailablePlugin
-func (m MockLoadedPlugin) HitCount() int { return 0 }
-func (m MockLoadedPlugin) LastHit() time.Time {
-	return time.Now()
-}
-func (m MockLoadedPlugin) ID() uint32 { return 0 }
 
 type MockManagesMetrics struct{}
 
-func (m MockManagesMetrics) MetricCatalog() ([]core.CatalogedMetric, error) {
+func (m MockManagesMetrics) MetricCatalog(context.Context, *common.Empty, ...grpc.CallOption) (*rpc.MetricCatalogReply, error) {
 	return nil, nil
 }
-func (m MockManagesMetrics) FetchMetrics([]string, int) ([]core.CatalogedMetric, error) {
+func (m MockManagesMetrics) FetchMetrics(context.Context, *rpc.FetchMetricsRequest, ...grpc.CallOption) (*rpc.MetricCatalogReply, error) {
 	return nil, nil
 }
-func (m MockManagesMetrics) GetMetricVersions([]string) ([]core.CatalogedMetric, error) {
+func (m MockManagesMetrics) GetMetricVersions(context.Context, *rpc.GetMetricVersionsRequest, ...grpc.CallOption) (*rpc.MetricCatalogReply, error) {
 	return nil, nil
 }
-func (m MockManagesMetrics) GetMetric([]string, int) (core.CatalogedMetric, error) {
+func (m MockManagesMetrics) GetMetric(context.Context, *rpc.FetchMetricsRequest, ...grpc.CallOption) (*rpc.MetricReply, error) {
 	return nil, nil
 }
-func (m MockManagesMetrics) Load(*core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError) {
+func (m MockManagesMetrics) Load(context.Context, *rpc.PluginRequest, ...grpc.CallOption) (*rpc.PluginReply, error) {
 	return nil, nil
 }
-func (m MockManagesMetrics) Unload(core.Plugin) (core.CatalogedPlugin, serror.SnapError) {
+func (m MockManagesMetrics) Unload(context.Context, *rpc.UnloadPluginRequest, ...grpc.CallOption) (*rpc.PluginReply, error) {
 	return nil, nil
 }
 
-func (m MockManagesMetrics) PluginCatalog() core.PluginCatalog {
-	return []core.CatalogedPlugin{
-		MockLoadedPlugin{MyName: "foo", MyType: "collector"},
-		MockLoadedPlugin{MyName: "bar", MyType: "publisher"},
-		MockLoadedPlugin{MyName: "foo", MyType: "collector"},
-		MockLoadedPlugin{MyName: "baz", MyType: "publisher"},
-		MockLoadedPlugin{MyName: "foo", MyType: "processor"},
-		MockLoadedPlugin{MyName: "foobar", MyType: "processor"},
-	}
+func (m MockManagesMetrics) PluginCatalog(context.Context, *common.Empty, ...grpc.CallOption) (*rpc.PluginCatalogReply, error) {
+	return &rpc.PluginCatalogReply{
+		Plugins: []*rpc.PluginReply{
+			mockPluginReply("foo", "collector", 1),
+			mockPluginReply("bar", "publisher", 1),
+			mockPluginReply("foo", "collector", 2),
+			mockPluginReply("baz", "publisher", 1),
+			mockPluginReply("foo", "processor", 1),
+			mockPluginReply("foobar", "processor", 1),
+		},
+	}, nil
 }
-func (m MockManagesMetrics) AvailablePlugins() []core.AvailablePlugin {
-	return []core.AvailablePlugin{
-		MockLoadedPlugin{MyName: "foo", MyType: "collector"},
-		MockLoadedPlugin{MyName: "bar", MyType: "publisher"},
-		MockLoadedPlugin{MyName: "foo", MyType: "collector"},
-		MockLoadedPlugin{MyName: "baz", MyType: "publisher"},
-		MockLoadedPlugin{MyName: "foo", MyType: "processor"},
-		MockLoadedPlugin{MyName: "foobar", MyType: "processor"},
-	}
+func (m MockManagesMetrics) AvailablePlugins(context.Context, *common.Empty, ...grpc.CallOption) (*rpc.AvailablePluginsReply, error) {
+	return &rpc.AvailablePluginsReply{
+		Plugins: []*rpc.AvailablePluginReply{
+			mockAvailablePluginReply("foo", "collector", 1),
+			mockAvailablePluginReply("bar", "publisher", 1),
+			mockAvailablePluginReply("foo", "collector", 2),
+			mockAvailablePluginReply("baz", "publisher", 1),
+			mockAvailablePluginReply("foo", "processor", 1),
+			mockAvailablePluginReply("foobar", "processor", 1),
+		},
+	}, nil
 }
-func (m MockManagesMetrics) GetAutodiscoverPaths() []string {
-	return nil
+
+func (m MockManagesMetrics) GetPlugin(context.Context, *rpc.GetPluginRequest, ...grpc.CallOption) (*rpc.GetPluginReply, error) {
+	return nil, nil
 }
 
 func TestGetPlugins(t *testing.T) {
@@ -108,28 +115,28 @@ func TestGetPlugins(t *testing.T) {
 			Convey("Get All plugins", func() {
 				plName := ""
 				plType := ""
-				plugins := getPlugins(mm, detail, host, plName, plType)
+				plugins, _ := getPlugins(mm, detail, host, plName, plType)
 				So(len(plugins.LoadedPlugins), ShouldEqual, 6)
 				So(len(plugins.AvailablePlugins), ShouldEqual, 0)
 			})
 			Convey("Filter plugins by Type", func() {
 				plName := ""
 				plType := "publisher"
-				plugins := getPlugins(mm, detail, host, plName, plType)
+				plugins, _ := getPlugins(mm, detail, host, plName, plType)
 				So(len(plugins.LoadedPlugins), ShouldEqual, 2)
 				So(len(plugins.AvailablePlugins), ShouldEqual, 0)
 			})
 			Convey("Filter plugins by Type and Name", func() {
 				plName := "foo"
 				plType := "processor"
-				plugins := getPlugins(mm, detail, host, plName, plType)
+				plugins, _ := getPlugins(mm, detail, host, plName, plType)
 				So(len(plugins.LoadedPlugins), ShouldEqual, 1)
 				So(len(plugins.AvailablePlugins), ShouldEqual, 0)
 			})
 			Convey("Filter plugins by Type and Name expect duplicates", func() {
 				plName := "foo"
 				plType := "collector"
-				plugins := getPlugins(mm, detail, host, plName, plType)
+				plugins, _ := getPlugins(mm, detail, host, plName, plType)
 				So(len(plugins.LoadedPlugins), ShouldEqual, 2)
 				So(len(plugins.AvailablePlugins), ShouldEqual, 0)
 			})
@@ -139,28 +146,28 @@ func TestGetPlugins(t *testing.T) {
 			Convey("Get All plugins", func() {
 				plName := ""
 				plType := ""
-				plugins := getPlugins(mm, detail, host, plName, plType)
+				plugins, _ := getPlugins(mm, detail, host, plName, plType)
 				So(len(plugins.LoadedPlugins), ShouldEqual, 6)
 				So(len(plugins.AvailablePlugins), ShouldEqual, 6)
 			})
 			Convey("Filter plugins by Type", func() {
 				plName := ""
 				plType := "publisher"
-				plugins := getPlugins(mm, detail, host, plName, plType)
+				plugins, _ := getPlugins(mm, detail, host, plName, plType)
 				So(len(plugins.LoadedPlugins), ShouldEqual, 2)
 				So(len(plugins.AvailablePlugins), ShouldEqual, 2)
 			})
 			Convey("Filter plugins by Type and Name", func() {
 				plName := "foo"
 				plType := "processor"
-				plugins := getPlugins(mm, detail, host, plName, plType)
+				plugins, _ := getPlugins(mm, detail, host, plName, plType)
 				So(len(plugins.LoadedPlugins), ShouldEqual, 1)
 				So(len(plugins.AvailablePlugins), ShouldEqual, 1)
 			})
 			Convey("Filter plugins by Type and Name expect duplicates", func() {
 				plName := "foo"
 				plType := "collector"
-				plugins := getPlugins(mm, detail, host, plName, plType)
+				plugins, _ := getPlugins(mm, detail, host, plName, plType)
 				So(len(plugins.LoadedPlugins), ShouldEqual, 2)
 				So(len(plugins.AvailablePlugins), ShouldEqual, 2)
 			})

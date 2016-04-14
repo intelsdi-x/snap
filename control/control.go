@@ -24,16 +24,20 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
@@ -42,6 +46,7 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/aci"
 	"github.com/intelsdi-x/snap/pkg/psigning"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 )
 
 const (
@@ -73,8 +78,7 @@ type pluginControl struct {
 	Started        bool
 	Config         *Config
 
-	autodiscoverPaths []string
-	eventManager      *gomit.EventController
+	eventManager *gomit.EventController
 
 	pluginManager  managesPlugins
 	metricCatalog  catalogsMetrics
@@ -101,6 +105,7 @@ type managesPlugins interface {
 	teardown()
 	get(string) (*loadedPlugin, error)
 	all() map[string]*loadedPlugin
+	Get(string, int, string) (*loadedPlugin, error)
 	LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, serror.SnapError)
 	UnloadPlugin(core.Plugin) (*loadedPlugin, serror.SnapError)
 	SetMetricCatalog(catalogsMetrics)
@@ -219,6 +224,15 @@ func New(cfg *Config) *pluginControl {
 	return c
 }
 
+// NewClient returns a control RPC Client.
+func NewClient(addr string, port int) (rpc.MetricManagerClient, error) {
+	conn, err := rpcutil.GetClientConnection(addr, port)
+	if err != nil {
+		return nil, err
+	}
+	return rpc.NewMetricManagerClient(conn), nil
+}
+
 func (p *pluginControl) Name() string {
 	return "control"
 }
@@ -234,6 +248,21 @@ func (p *pluginControl) Start() error {
 	controlLogger.WithFields(log.Fields{
 		"_block": "start",
 	}).Info("control started")
+	lis, err := net.Listen("tcp", fmt.Sprintf("%v:%v", p.Config.ListenAddr, p.Config.ListenPort))
+	if err != nil {
+		controlLogger.WithField("error", err.Error()).Error("Failed to listen in control")
+		return err
+	}
+
+	opts := []grpc.ServerOption{}
+	grpcServer := grpc.NewServer(opts...)
+	rpc.RegisterMetricManagerServer(grpcServer, &controlProxy{p})
+	go func() {
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			controlLogger.Fatal(err)
+		}
+	}()
 	return nil
 }
 
@@ -984,14 +1013,6 @@ func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int
 		return nil, nil, err
 	}
 	return lp.Meta.AcceptedContentTypes, lp.Meta.ReturnedContentTypes, nil
-}
-
-func (p *pluginControl) SetAutodiscoverPaths(paths []string) {
-	p.autodiscoverPaths = paths
-}
-
-func (p *pluginControl) GetAutodiscoverPaths() []string {
-	return p.autodiscoverPaths
 }
 
 func (p *pluginControl) SetPluginTrustLevel(trust int) {

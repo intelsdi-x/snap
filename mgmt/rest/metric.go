@@ -25,19 +25,29 @@ import (
 	"sort"
 	"strconv"
 
+	"golang.org/x/net/context"
+
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	mets, err := s.mm.MetricCatalog()
+	arg := &common.Empty{}
+	reply, err := s.mm.MetricCatalog(context.Background(), arg)
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	respondWithMetrics(r.Host, mets, w)
+	metrics, err := rpc.ReplyToMetrics(reply.Metrics)
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
+		return
+	}
+	respondWithMetrics(r.Host, metrics, w)
 }
 
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -71,24 +81,42 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 				return
 			}
 		}
-
-		mets, err := s.mm.FetchMetrics(ns[:len(ns)-1], ver)
+		arg := &rpc.FetchMetricsRequest{
+			Namespace: ns[:len(ns)-1],
+			Version:   int32(ver),
+		}
+		reply, err := s.mm.FetchMetrics(context.Background(), arg)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mets, w)
+		metrics, err := rpc.ReplyToMetrics(reply.Metrics)
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+			return
+		}
+		respondWithMetrics(r.Host, metrics, w)
 		return
 	}
 
 	// If no version was given, get all that fall at this namespace.
 	if v == "" {
-		mts, err := s.mm.GetMetricVersions(ns)
+		arg := &rpc.GetMetricVersionsRequest{
+			Namespace: ns,
+		}
+		reply, err := s.mm.GetMetricVersions(context.Background(), arg)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
+
 			return
 		}
-		respondWithMetrics(r.Host, mts, w)
+		metrics, err := rpc.ReplyToMetrics(reply.Metrics)
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+			return
+		}
+
+		respondWithMetrics(r.Host, metrics, w)
 		return
 	}
 
@@ -98,20 +126,27 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		respond(400, rbody.FromError(err), w)
 		return
 	}
-	mt, err := s.mm.GetMetric(ns, ver)
+	arg := &rpc.FetchMetricsRequest{
+		Namespace: ns,
+		Version:   int32(ver),
+	}
+	reply, err := s.mm.GetMetric(context.Background(), arg)
 	if err != nil {
 		respond(404, rbody.FromError(err), w)
 		return
 	}
-
+	mt, err := rpc.ReplyToMetric(reply)
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
+	}
 	b := &rbody.MetricReturned{}
 	mb := &rbody.Metric{
-		Namespace:               core.JoinNamespace(mt.Namespace()),
-		Version:                 mt.Version(),
-		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
+		Namespace:               core.JoinNamespace(mt.Namespace),
+		Version:                 mt.Version,
+		LastAdvertisedTimestamp: mt.LastAdvertisedTime.Unix(),
 		Href: catalogedMetricURI(r.Host, mt),
 	}
-	rt := mt.Policy().RulesAsTable()
+	rt := mt.ConfigPolicy.RulesAsTable()
 	policies := make([]rbody.PolicyTable, 0, len(rt))
 	for _, r := range rt {
 		policies = append(policies, rbody.PolicyTable{
@@ -128,11 +163,11 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	respond(200, b, w)
 }
 
-func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.ResponseWriter) {
+func respondWithMetrics(host string, mets []*rpc.Metric, w http.ResponseWriter) {
 	b := rbody.NewMetricsReturned()
 
 	for _, met := range mets {
-		rt := met.Policy().RulesAsTable()
+		rt := met.ConfigPolicy.RulesAsTable()
 		policies := make([]rbody.PolicyTable, 0, len(rt))
 		for _, r := range rt {
 			policies = append(policies, rbody.PolicyTable{
@@ -145,9 +180,9 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 			})
 		}
 		b = append(b, rbody.Metric{
-			Namespace:               core.JoinNamespace(met.Namespace()),
-			Version:                 met.Version(),
-			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
+			Namespace:               core.JoinNamespace(met.Namespace),
+			Version:                 met.Version,
+			LastAdvertisedTimestamp: met.LastAdvertisedTime.Unix(),
 			Policy:                  policies,
 			Href:                    catalogedMetricURI(host, met),
 		})
@@ -156,6 +191,6 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 	respond(200, b, w)
 }
 
-func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace()), mt.Version())
+func catalogedMetricURI(host string, mt *rpc.Metric) string {
+	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace), mt.Version)
 }
