@@ -1,26 +1,54 @@
  
 # Build and Test
 ## Getting Started
+
 To build snap you'll need:
+
 * [Golang >= 1.4](https://golang.org)
+    * Golang should be [downloaded](https://golang.org/dl/), and [installed](https://golang.org/doc/install)
+      The below instructions assume that the GOPATH environment variable has been set.
     * An option to look into is using the [go version manager (gvm)](https://github.com/moovweb/gvm) if you want to easily switch between Go versions.
 * [GNU Make](https://www.gnu.org/software/make/)
 * [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 * snap:
-    * `go get github.com/intelsdi-x/snap`. This will put snap in your `$GOPATH`.
-    * Fork the repository
-    * `cd` into your /intelsdi-x/snap directory on your machine and do the following to set your fork as the origin and make a branch on your fork
-        ```
-        git remote rename origin upstream
-        git remote add origin git@github.com:<yourGithubID>/snap.git
-        ```
-        To push to your fork later, either do a `git push origin master` or do `git checkout -b <someBranchName>` then you can do `git push`.
+    * Install snap into your `$GOPATH`.
+
+    ```
+    go get github.com/intelsdi-x/snap`.
+    ```
+
+    * `cd` into `$GOPATH/src/github.com/intelsdi-x/snap` and set your fork as a remote repository.
+
+    ```
+    git remote rename origin upstream
+    ```
+
+    ```
+    git remote add origin git@github.com:<yourGithubID>/snap.git
+    ```
+
+    * To push to your fork later, either do a `git push origin master` or do `git checkout -b <someBranchName>` then you can do `git push`.
+
 ## Build
+
+Godeps is a dependency for running the make task(s) required for the build process. If it is not already installed,
+install it into your GOPATH and ensure that its built executables are in your PATH.
+
+```
+# first check to see if it is installed
+which godep
+# install it if necessary
+export PATH=$GOPATH/bin/
+go get github.com/tools/godep
+```
+
 In the /snap directory there's a `Makefile` that builds all dependencies and snap.
 To get dependencies and build snap just run:  
+
 ```
 make
 ```
+
 It runs the following `make deps` and `make all` commands.
 
 Alternatively, you can run `make` with any of the following targets:
