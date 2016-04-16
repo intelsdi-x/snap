@@ -487,7 +487,7 @@ func (p *pluginControl) ValidateDeps(mts []core.Metric, plugins []core.Subscribe
 		if err != nil {
 			return []serror.SnapError{serror.New(err)}
 		}
-		plg.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(typ, plg.Name(), plg.Version()))
+		plg.Config().ReverseMerge(p.Config.Plugins.getPluginConfigDataNode(typ, plg.Name(), plg.Version()))
 		errs := p.validatePluginSubscription(plg)
 		if len(errs) > 0 {
 			serrs = append(serrs, errs...)
@@ -563,7 +563,7 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 
 	// merge global plugin config
 	if m.config != nil {
-		m.config.Merge(p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version()))
+		m.config.ReverseMerge(p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version()))
 	} else {
 		m.config = p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version())
 	}
@@ -914,7 +914,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 		// merge global plugin config into the config for the metric
 		for _, mt := range pmt.metricTypes {
 			if mt.Config() != nil {
-				mt.Config().Merge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, pmt.plugin.Name(), pmt.plugin.Version()))
+				mt.Config().ReverseMerge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, pmt.plugin.Name(), pmt.plugin.Version()))
 			}
 		}
 
@@ -957,21 +957,33 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 // PublishMetrics
 func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	// merge global plugin config into the config for this request
+	// without over-writing the task specific config
 	cfg := p.Config.Plugins.getPluginConfigDataNode(core.PublisherPluginType, pluginName, pluginVersion).Table()
+	merged := make(map[string]ctypes.ConfigValue)
 	for k, v := range cfg {
-		config[k] = v
+		merged[k] = v
 	}
-	return p.pluginRunner.AvailablePlugins().publishMetrics(contentType, content, pluginName, pluginVersion, config, taskID)
+	for k, v := range config {
+		merged[k] = v
+	}
+
+	return p.pluginRunner.AvailablePlugins().publishMetrics(contentType, content, pluginName, pluginVersion, merged, taskID)
 }
 
 // ProcessMetrics
 func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
 	// merge global plugin config into the config for this request
+	// without over-writing the task specific config
 	cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, pluginName, pluginVersion).Table()
+	merged := make(map[string]ctypes.ConfigValue)
 	for k, v := range cfg {
-		config[k] = v
+		merged[k] = v
 	}
-	return p.pluginRunner.AvailablePlugins().processMetrics(contentType, content, pluginName, pluginVersion, config, taskID)
+	for k, v := range config {
+		merged[k] = v
+	}
+
+	return p.pluginRunner.AvailablePlugins().processMetrics(contentType, content, pluginName, pluginVersion, merged, taskID)
 }
 
 // GetPluginContentTypes returns accepted and returned content types for the

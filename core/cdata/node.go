@@ -140,6 +140,26 @@ func (c ConfigDataNode) Merge(n ctree.Node) ctree.Node {
 	return c
 }
 
+// Merges a ConfigDataNode with this one but does not overwrite any
+// conflicting values. Any conflicts are decided by the callers value.
+func (c *ConfigDataNode) ReverseMerge(n ctree.Node) ctree.Node {
+	cd := n.(*ConfigDataNode)
+	new_table := make(map[string]ctypes.ConfigValue)
+	// Lock here since we are modifying c.table
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	t := cd.Table()
+	t2 := c.table
+	for k, v := range t {
+		new_table[k] = v
+	}
+	for k, v := range t2 {
+		new_table[k] = v
+	}
+	c.table = new_table
+	return c
+}
+
 // Deletes a field in ConfigDataNode. If the field does not exist Delete is
 // considered a no-op
 func (c ConfigDataNode) DeleteItem(k string) {
