@@ -142,6 +142,8 @@ func (s *Server) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 }
 
 func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	s.wg.Add(1)
+	defer s.wg.Done()
 	logger := log.WithFields(log.Fields{
 		"_module": "api",
 		"_block":  "watch-task",
@@ -229,6 +231,18 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 			tc.Close()
 			// exit since this client is no longer listening
 			respond(200, &rbody.ScheduledTaskWatchingEnded{}, w)
+			return
+		case <-s.killChan:
+			logger.WithFields(log.Fields{
+				"task-id": id,
+			}).Debug("snapd exiting; disconnecting client")
+			// Flush since we are sending nothing new
+			flusher.Flush()
+			// Close out watcher removing it from the scheduler
+			tc.Close()
+			// exit since this client is no longer listening
+			respond(200, &rbody.ScheduledTaskWatchingEnded{}, w)
+			return
 		}
 	}
 }

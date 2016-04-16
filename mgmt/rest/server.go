@@ -28,6 +28,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -120,27 +121,31 @@ type managesConfig interface {
 }
 
 type Server struct {
-	mm      managesMetrics
-	mt      managesTasks
-	tr      managesTribe
-	mc      managesConfig
-	n       *negroni.Negroni
-	r       *httprouter.Router
-	tls     *tls
-	auth    bool
-	authpwd string
-	addr    net.Addr
-	err     chan error
+	mm         managesMetrics
+	mt         managesTasks
+	tr         managesTribe
+	mc         managesConfig
+	n          *negroni.Negroni
+	r          *httprouter.Router
+	tls        *tls
+	auth       bool
+	authpwd    string
+	addrString string
+	addr       net.Addr
+	wg         sync.WaitGroup
+	killChan   chan struct{}
+	err        chan error
 }
 
-// func New(https bool, cpath, kpath string) (*Server, error) {
+// New creates a REST API server with a given config
 func New(cfg *Config) (*Server, error) {
 	// pull a few parameters from the configuration passed in by snapd
 	https := cfg.HTTPS
 	cpath := cfg.RestCertificate
 	kpath := cfg.RestKey
 	s := &Server{
-		err: make(chan error),
+		err:      make(chan error),
+		killChan: make(chan struct{}),
 	}
 	if https {
 		var err error
@@ -163,7 +168,7 @@ func New(cfg *Config) (*Server, error) {
 	return s, nil
 }
 
-// get the default snapd configuration
+// GetDefaultConfig gets the default snapd configuration
 func GetDefaultConfig() *Config {
 	return &Config{
 		Enable:           defaultEnable,
@@ -204,9 +209,26 @@ func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next ht
 	}
 }
 
-func (s *Server) Start(addrString string) {
+func (s *Server) Name() string {
+	return "REST"
+}
+
+func (s *Server) SetAddress(addrString string) {
+	s.addrString = addrString
+}
+
+func (s *Server) Start() error {
 	s.addRoutes()
-	s.run(addrString)
+	s.run(s.addrString)
+	restLogger.WithFields(log.Fields{
+		"_block": "start",
+	}).Info("REST started")
+	return nil
+}
+
+func (s *Server) Stop() {
+	close(s.killChan)
+	s.wg.Wait()
 }
 
 func (s *Server) Err() <-chan error {

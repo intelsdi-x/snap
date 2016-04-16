@@ -701,7 +701,8 @@ func startTribes(count int, seed string) ([]int, int) {
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
 		r.BindTribeManager(t)
-		r.Start(":" + strconv.Itoa(mgtPort))
+		r.SetAddress(":" + strconv.Itoa(mgtPort))
+		r.Start()
 		wg.Add(1)
 		timer := time.After(10 * time.Second)
 		go func(port int) {
