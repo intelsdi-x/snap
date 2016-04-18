@@ -83,7 +83,7 @@ func getTestConfig() *Config {
 }
 
 func TestTribeFullStateSync(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.WarnLevel)
 	tribes := []*tribe{}
 	numOfTribes := 5
 	agreement1 := "agreement1"

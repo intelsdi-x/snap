@@ -57,14 +57,14 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 		if c, ok := mts[i].Config().Table()["panic"]; ok && c.(ctypes.ConfigValueBool).Value {
 			panic("Opps!")
 		}
-		if mts[i].Namespace()[2] == "*" {
+		if mts[i].Namespace()[2].Value == "*" {
 			hostname, _ := os.Hostname()
 			for j := 0; j < 10; j++ {
 				v := fmt.Sprintf("host%d", j)
 				data := randInt(65, 90)
 				mt := plugin.PluginMetricType{
 					Data_:      data,
-					Namespace_: []string{"intel", "mock", v, "baz"},
+					Namespace_: core.NewNamespace([]string{"intel", "mock", v, "baz"}),
 					Source_:    hostname,
 					Timestamp_: time.Now(),
 					Labels_:    mts[i].Labels(),
@@ -90,12 +90,12 @@ func (f *Mock) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetri
 		return mts, fmt.Errorf("testing")
 	}
 	if _, ok := cfg.Table()["test"]; ok {
-		mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "test"}})
+		mts = append(mts, plugin.PluginMetricType{Namespace_: core.NewNamespace([]string{"intel", "mock", "test"})})
 	}
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "foo"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "bar"}})
+	mts = append(mts, plugin.PluginMetricType{Namespace_: core.NewNamespace([]string{"intel", "mock", "foo"})})
+	mts = append(mts, plugin.PluginMetricType{Namespace_: core.NewNamespace([]string{"intel", "mock", "bar"})})
 	mts = append(mts, plugin.PluginMetricType{
-		Namespace_: []string{"intel", "mock", "*", "baz"},
+		Namespace_: core.NewNamespace([]string{"intel", "mock", "*", "baz"}),
 		Labels_:    []core.Label{{Index: 2, Name: "host"}},
 	})
 	return mts, nil

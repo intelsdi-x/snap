@@ -59,13 +59,13 @@ type MockManagesMetrics struct{}
 func (m MockManagesMetrics) MetricCatalog() ([]core.CatalogedMetric, error) {
 	return nil, nil
 }
-func (m MockManagesMetrics) FetchMetrics([]string, int) ([]core.CatalogedMetric, error) {
+func (m MockManagesMetrics) FetchMetrics(core.Namespace, int) ([]core.CatalogedMetric, error) {
 	return nil, nil
 }
-func (m MockManagesMetrics) GetMetricVersions([]string) ([]core.CatalogedMetric, error) {
+func (m MockManagesMetrics) GetMetricVersions(core.Namespace) ([]core.CatalogedMetric, error) {
 	return nil, nil
 }
-func (m MockManagesMetrics) GetMetric([]string, int) (core.CatalogedMetric, error) {
+func (m MockManagesMetrics) GetMetric(core.Namespace, int) (core.CatalogedMetric, error) {
 	return nil, nil
 }
 func (m MockManagesMetrics) Load(*core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError) {

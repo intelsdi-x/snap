@@ -105,7 +105,7 @@ func (m *MTTrie) DeleteByPlugin(lp *loadedPlugin) {
 
 // RemoveMetric removes a specific metric by namespace and version from the tree
 func (m *MTTrie) RemoveMetric(mt metricType) {
-	a, _ := m.find(mt.Namespace())
+	a, _ := m.find(mt.Namespace().Strings())
 	if a != nil {
 		for v, x := range a.mts {
 			if mt.Version() == x.Version() {
@@ -120,7 +120,7 @@ func (m *MTTrie) RemoveMetric(mt metricType) {
 // given MetricType
 func (mtt *mttNode) Add(mt *metricType) {
 	ns := mt.Namespace()
-	node, index := mtt.walk(ns)
+	node, index := mtt.walk(ns.Strings())
 	if index == len(ns) {
 		if node.mts == nil {
 			node.mts = make(map[int]*metricType)
@@ -134,8 +134,8 @@ func (mtt *mttNode) Add(mt *metricType) {
 		if node.children == nil {
 			node.children = make(map[string]*mttNode)
 		}
-		node.children[n] = &mttNode{}
-		node = node.children[n]
+		node.children[n.Value] = &mttNode{}
+		node = node.children[n.Value]
 	}
 	node.mts = make(map[int]*metricType)
 	node.mts[mt.Version()] = mt

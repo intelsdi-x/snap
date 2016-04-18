@@ -74,7 +74,7 @@ type managesMetrics interface {
 	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []serror.SnapError
 	SubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
 	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
-	MatchQueryToNamespaces([]string) ([][]string, serror.SnapError)
+	MatchQueryToNamespaces(core.Namespace) ([]core.Namespace, serror.SnapError)
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -83,7 +83,7 @@ type managesPluginContentTypes interface {
 }
 
 type collectsMetrics interface {
-	ExpandWildcards([]string) ([][]string, serror.SnapError)
+	ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError)
 	CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error)
 }
 
@@ -594,14 +594,14 @@ func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) ([]core.Metri
 		nss, err := s.metricManager.MatchQueryToNamespaces(m.Namespace())
 		if err != nil {
 			// use metric directly from the workflow
-			nss = [][]string{m.Namespace()}
+			nss = []core.Namespace{m.Namespace()}
 		}
 
 		for _, ns := range nss {
 			mts = append(mts, &metric{
 				namespace: ns,
 				version:   m.Version(),
-				config:    wf.configTree.Get(ns),
+				config:    wf.configTree.Get(ns.Strings()),
 			})
 		}
 	}

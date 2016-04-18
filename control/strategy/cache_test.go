@@ -35,7 +35,7 @@ func TestCache(t *testing.T) {
 	Convey("puts and gets a metric", t, func() {
 		mc := NewCache(GlobalCacheExpiration)
 		foo := &plugin.PluginMetricType{
-			Namespace_: []string{"foo", "bar"},
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 		}
 
 		mc.put("/foo/bar", 1, foo)
@@ -59,7 +59,7 @@ func TestCache(t *testing.T) {
 
 		mc := NewCache(400 * time.Millisecond)
 		foo := &plugin.PluginMetricType{
-			Namespace_: []string{"foo", "bar"},
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 		}
 		mc.put("/foo/bar", 1, foo)
 		chrono.Chrono.Forward(401 * time.Millisecond)
@@ -71,7 +71,7 @@ func TestCache(t *testing.T) {
 		Convey("ticks hit count when a cache entry is hit", func() {
 			mc := NewCache(400 * time.Millisecond)
 			foo := &plugin.PluginMetricType{
-				Namespace_: []string{"foo", "bar"},
+				Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			}
 			mc.put("/foo/bar", 1, foo)
 			mc.get("/foo/bar", 1)
@@ -85,7 +85,7 @@ func TestCache(t *testing.T) {
 
 			mc := NewCache(400 * time.Millisecond)
 			foo := &plugin.PluginMetricType{
-				Namespace_: []string{"foo", "bar"},
+				Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			}
 
 			mc.put("/foo/bar", 1, foo)
@@ -101,7 +101,7 @@ func TestCache(t *testing.T) {
 
 			mc := NewCache(GlobalCacheExpiration)
 			foo := &plugin.PluginMetricType{
-				Namespace_: []string{"foo", "bar"},
+				Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			}
 			mc.put("/foo/bar", 1, foo)
 			chrono.Chrono.Forward(301 * time.Millisecond)
@@ -118,10 +118,10 @@ func TestCache(t *testing.T) {
 
 		mc := NewCache(GlobalCacheExpiration)
 		foo := &plugin.PluginMetricType{
-			Namespace_: []string{"foo", "bar"},
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 		}
 		baz := &plugin.PluginMetricType{
-			Namespace_: []string{"foo", "baz"},
+			Namespace_: core.NewNamespace([]string{"foo", "baz"}),
 		}
 		metricList := []core.Metric{foo, baz}
 		mc.updateCache(metricList)
@@ -133,7 +133,7 @@ func TestCache(t *testing.T) {
 		})
 		Convey("they should be retrievable via checkCache", func() {
 			nonCached := &plugin.PluginMetricType{
-				Namespace_: []string{"foo", "fooer"},
+				Namespace_: core.NewNamespace([]string{"foo", "fooer"}),
 			}
 			metricList = append(metricList, nonCached)
 			toCollect, fromCache := mc.checkCache(metricList)
@@ -155,12 +155,12 @@ func TestCache(t *testing.T) {
 		chrono.Chrono.Pause()
 		mc := NewCache(GlobalCacheExpiration)
 		v1 := plugin.PluginMetricType{
-			Namespace_: []string{"foo", "bar"},
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			Version_:   1,
 			Labels_:    []core.Label{{Index: 1, Name: "Hostname"}},
 		}
 		v2 := plugin.PluginMetricType{
-			Namespace_: []string{"foo", "Baz"},
+			Namespace_: core.NewNamespace([]string{"foo", "Baz"}),
 			Version_:   2,
 			Labels_:    []core.Label{{Index: 1, Name: "Hostname"}},
 		}
@@ -169,7 +169,7 @@ func TestCache(t *testing.T) {
 		Convey("Should be cached separately", func() {
 			Convey("so only 1 should be returned from the cache", func() {
 				starMetric := &plugin.PluginMetricType{
-					Namespace_: []string{"foo", "*"},
+					Namespace_: core.NewNamespace([]string{"foo", "*"}),
 					Version_:   2,
 				}
 				// Check /foo/* with both versions

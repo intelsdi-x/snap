@@ -68,7 +68,7 @@ func (p *passthruProcessor) Process(contentType string, content []byte, config m
 		}
 
 		for idx, m := range metrics {
-			if m.Namespace()[0] == "foo" {
+			if m.Namespace()[0].Value == "foo" {
 				logger.Print("found foo metric")
 				metrics[idx].Data_ = 2
 			}

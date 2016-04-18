@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/ctypes"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -36,7 +37,7 @@ import (
 func TestFilePublish(t *testing.T) {
 	var buf bytes.Buffer
 	metrics := []plugin.PluginMetricType{
-		*plugin.NewPluginMetricType([]string{"foo"}, time.Now(), "", nil, nil, 99),
+		*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), "", nil, nil, 99),
 	}
 	config := make(map[string]ctypes.ConfigValue)
 	enc := gob.NewEncoder(&buf)

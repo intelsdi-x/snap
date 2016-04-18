@@ -91,7 +91,7 @@ func NewPluginConfigType() PluginConfigType {
 // Converted to core.MetricType before being used within modules.
 type PluginMetricType struct {
 	// Namespace is the identifier for a metric.
-	Namespace_ []string `json:"namespace"`
+	Namespace_ []core.NamespaceElement `json:"namespace"`
 
 	// Last advertised time is the last time the snap agent was told about
 	// a metric.
@@ -118,7 +118,7 @@ type PluginMetricType struct {
 }
 
 // // PluginMetricType Constructor
-func NewPluginMetricType(namespace []string, timestamp time.Time, source string, tags map[string]string, labels []core.Label, data interface{}) *PluginMetricType {
+func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, source string, tags map[string]string, labels []core.Label, data interface{}) *PluginMetricType {
 	return &PluginMetricType{
 		Namespace_: namespace,
 		Tags_:      tags,
@@ -130,7 +130,7 @@ func NewPluginMetricType(namespace []string, timestamp time.Time, source string,
 }
 
 // Returns the namespace.
-func (p PluginMetricType) Namespace() []string {
+func (p PluginMetricType) Namespace() core.Namespace {
 	return p.Namespace_
 }
 

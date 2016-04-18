@@ -160,10 +160,10 @@ func (c *cache) updateCache(mts []core.Metric) {
 			c.put(core.JoinNamespace(mt.Namespace()), mt.Version(), mt)
 		} else {
 			// collect the dynamic query results so we can cache
-			ns := make([]string, len(mt.Namespace()))
+			ns := make([]core.NamespaceElement, len(mt.Namespace()))
 			copy(ns, mt.Namespace())
 			for _, label := range mt.Labels() {
-				ns[label.Index] = "*"
+				ns[label.Index] = core.NewNamespaceElement("*")
 			}
 			key := fmt.Sprintf("%v:%v", core.JoinNamespace(ns), mt.Version())
 			if _, ok := dc[key]; !ok {

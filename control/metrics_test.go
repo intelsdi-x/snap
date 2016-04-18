@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -31,13 +32,13 @@ import (
 func TestMetricType(t *testing.T) {
 	Convey("newMetricType()", t, func() {
 		Convey("returns a metricType", func() {
-			mt := newMetricType([]string{"test"}, time.Now(), new(loadedPlugin))
+			mt := newMetricType(core.NewNamespace([]string{"test"}), time.Now(), new(loadedPlugin))
 			So(mt, ShouldHaveSameTypeAs, new(metricType))
 		})
 	})
 	Convey("metricType.Namespace()", t, func() {
 		Convey("returns the namespace of a metricType", func() {
-			ns := []string{"test"}
+			ns := core.NewNamespace([]string{"test"})
 			mt := newMetricType(ns, time.Now(), new(loadedPlugin))
 			So(mt.Namespace(), ShouldHaveSameTypeAs, ns)
 			So(mt.Namespace(), ShouldResemble, ns)
@@ -45,7 +46,7 @@ func TestMetricType(t *testing.T) {
 	})
 	Convey("metricType.Version()", t, func() {
 		Convey("returns the namespace of a metricType", func() {
-			ns := []string{"test"}
+			ns := core.NewNamespace([]string{"test"})
 			lp := &loadedPlugin{Meta: plugin.PluginMeta{Version: 1}}
 			mt := newMetricType(ns, time.Now(), lp)
 			So(mt.Version(), ShouldEqual, 1)
@@ -54,7 +55,7 @@ func TestMetricType(t *testing.T) {
 	Convey("metricType.LastAdvertisedTimestamp()", t, func() {
 		Convey("returns the LastAdvertisedTimestamp for the metricType", func() {
 			ts := time.Now()
-			mt := newMetricType([]string{"test"}, ts, new(loadedPlugin))
+			mt := newMetricType(core.NewNamespace([]string{"test"}), ts, new(loadedPlugin))
 			So(mt.LastAdvertisedTime(), ShouldHaveSameTypeAs, ts)
 			So(mt.LastAdvertisedTime(), ShouldResemble, ts)
 		})
@@ -63,7 +64,7 @@ func TestMetricType(t *testing.T) {
 		Convey("returns the key for the metricType", func() {
 			ts := time.Now()
 			lp := new(loadedPlugin)
-			mt := newMetricType([]string{"foo", "bar"}, ts, lp)
+			mt := newMetricType(core.NewNamespace([]string{"foo", "bar"}), ts, lp)
 			key := mt.Key()
 			So(key, ShouldEqual, "/foo/bar/0")
 		})
@@ -71,7 +72,7 @@ func TestMetricType(t *testing.T) {
 			ts := time.Now()
 			lp2 := new(loadedPlugin)
 			lp2.Meta.Version = 2
-			mt := newMetricType([]string{"foo", "bar"}, ts, lp2)
+			mt := newMetricType(core.NewNamespace([]string{"foo", "bar"}), ts, lp2)
 			key := mt.Key()
 			So(key, ShouldEqual, "/foo/bar/2")
 		})
@@ -82,15 +83,15 @@ func TestMetricMatching(t *testing.T) {
 	Convey("metricCatalog.MatchQuery()", t, func() {
 		Convey("verify query support for static metrics", func() {
 			mc := newMetricCatalog()
-			ns := [][]string{
-				{"mock", "foo", "bar"},
-				{"mock", "foo", "baz"},
-				{"mock", "asdf", "bar"},
-				{"mock", "asdf", "baz"},
-				{"mock", "test", "1"},
-				{"mock", "test", "2"},
-				{"mock", "test", "3"},
-				{"mock", "test", "4"},
+			ns := []core.Namespace{
+				core.NewNamespace([]string{"mock", "foo", "bar"}),
+				core.NewNamespace([]string{"mock", "foo", "baz"}),
+				core.NewNamespace([]string{"mock", "asdf", "bar"}),
+				core.NewNamespace([]string{"mock", "asdf", "baz"}),
+				core.NewNamespace([]string{"mock", "test", "1"}),
+				core.NewNamespace([]string{"mock", "test", "2"}),
+				core.NewNamespace([]string{"mock", "test", "3"}),
+				core.NewNamespace([]string{"mock", "test", "4"}),
 			}
 			lp := new(loadedPlugin)
 			ts := time.Now()
@@ -109,62 +110,62 @@ func TestMetricMatching(t *testing.T) {
 				mc.Add(v)
 			}
 			Convey("match /mock/foo/*", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "foo", "*"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "foo", "*"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 2)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "foo", "bar"},
-					{"mock", "foo", "baz"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "foo", "bar"}),
+					core.NewNamespace([]string{"mock", "foo", "baz"}),
 				})
 
 			})
 			Convey("match /mock/test/*", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "test", "*"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "test", "*"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 4)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "test", "1"},
-					{"mock", "test", "2"},
-					{"mock", "test", "3"},
-					{"mock", "test", "4"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "test", "1"}),
+					core.NewNamespace([]string{"mock", "test", "2"}),
+					core.NewNamespace([]string{"mock", "test", "3"}),
+					core.NewNamespace([]string{"mock", "test", "4"}),
 				})
 			})
 			Convey("match /mock/*/bar", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "*", "bar"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "*", "bar"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 2)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "foo", "bar"},
-					{"mock", "asdf", "bar"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "foo", "bar"}),
+					core.NewNamespace([]string{"mock", "asdf", "bar"}),
 				})
 			})
 			Convey("match /mock/*", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "*"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "*"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, len(ns))
 				So(nss, ShouldResemble, ns)
 			})
 			Convey("match /mock/(foo|asdf)/baz", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "(foo|asdf)", "baz"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "(foo|asdf)", "baz"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 2)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "foo", "baz"},
-					{"mock", "asdf", "baz"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "foo", "baz"}),
+					core.NewNamespace([]string{"mock", "asdf", "baz"}),
 				})
 			})
 			Convey("match /mock/test/(1|2|3)", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "test", "(1|2|3)"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "test", "(1|2|3)"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 3)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "test", "1"},
-					{"mock", "test", "2"},
-					{"mock", "test", "3"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "test", "1"}),
+					core.NewNamespace([]string{"mock", "test", "2"}),
+					core.NewNamespace([]string{"mock", "test", "3"}),
 				})
 			})
 			Convey("invalid matching", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "not", "exist", "metric"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "not", "exist", "metric"}))
 				So(err, ShouldNotBeNil)
 				So(nss, ShouldBeEmpty)
 				So(err.Error(), ShouldContainSubstring, "Metric not found:")
@@ -172,15 +173,15 @@ func TestMetricMatching(t *testing.T) {
 		})
 		Convey("verify query support for dynamic metrics", func() {
 			mc := newMetricCatalog()
-			ns := [][]string{
-				{"mock", "cgroups", "*", "bar"},
-				{"mock", "cgroups", "*", "baz"},
-				{"mock", "cgroups", "*", "in"},
-				{"mock", "cgroups", "*", "out"},
-				{"mock", "cgroups", "*", "test", "1"},
-				{"mock", "cgroups", "*", "test", "2"},
-				{"mock", "cgroups", "*", "test", "3"},
-				{"mock", "cgroups", "*", "test", "4"},
+			ns := []core.Namespace{
+				core.NewNamespace([]string{"mock", "cgroups", "*", "bar"}),
+				core.NewNamespace([]string{"mock", "cgroups", "*", "baz"}),
+				core.NewNamespace([]string{"mock", "cgroups", "*", "in"}),
+				core.NewNamespace([]string{"mock", "cgroups", "*", "out"}),
+				core.NewNamespace([]string{"mock", "cgroups", "*", "test", "1"}),
+				core.NewNamespace([]string{"mock", "cgroups", "*", "test", "2"}),
+				core.NewNamespace([]string{"mock", "cgroups", "*", "test", "3"}),
+				core.NewNamespace([]string{"mock", "cgroups", "*", "test", "4"}),
 			}
 			lp := new(loadedPlugin)
 			ts := time.Now()
@@ -202,47 +203,47 @@ func TestMetricMatching(t *testing.T) {
 			So(len(mc.Keys()), ShouldEqual, len(ns))
 
 			Convey("match /mock/cgroups/*", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "cgroups", "*"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, len(ns))
 				So(nss, ShouldResemble, ns)
 			})
 			Convey("match /mock/cgroups/*/bar", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*", "bar"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "cgroups", "*", "bar"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 1)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "cgroups", "*", "bar"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "cgroups", "*", "bar"}),
 				})
 			})
 			Convey("match /mock/cgroups/*/(bar|baz)", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*", "(bar|baz)"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "cgroups", "*", "(bar|baz)"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 2)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "cgroups", "*", "bar"},
-					{"mock", "cgroups", "*", "baz"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "cgroups", "*", "bar"}),
+					core.NewNamespace([]string{"mock", "cgroups", "*", "baz"}),
 				})
 			})
 			Convey("match /mock/cgroups/*/test/*", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*", "test", "*"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "cgroups", "*", "test", "*"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 4)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "cgroups", "*", "test", "1"},
-					{"mock", "cgroups", "*", "test", "2"},
-					{"mock", "cgroups", "*", "test", "3"},
-					{"mock", "cgroups", "*", "test", "4"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "cgroups", "*", "test", "1"}),
+					core.NewNamespace([]string{"mock", "cgroups", "*", "test", "2"}),
+					core.NewNamespace([]string{"mock", "cgroups", "*", "test", "3"}),
+					core.NewNamespace([]string{"mock", "cgroups", "*", "test", "4"}),
 				})
 			})
 			Convey("match /mock/cgroups/*/test/(1|2|3)", func() {
-				nss, err := mc.MatchQuery([]string{"mock", "cgroups", "*", "test", "(1|2|3)"})
+				nss, err := mc.MatchQuery(core.NewNamespace([]string{"mock", "cgroups", "*", "test", "(1|2|3)"}))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 3)
-				So(nss, ShouldResemble, [][]string{
-					{"mock", "cgroups", "*", "test", "1"},
-					{"mock", "cgroups", "*", "test", "2"},
-					{"mock", "cgroups", "*", "test", "3"},
+				So(nss, ShouldResemble, []core.Namespace{
+					core.NewNamespace([]string{"mock", "cgroups", "*", "test", "1"}),
+					core.NewNamespace([]string{"mock", "cgroups", "*", "test", "2"}),
+					core.NewNamespace([]string{"mock", "cgroups", "*", "test", "3"}),
 				})
 			})
 		})
@@ -259,7 +260,7 @@ func TestMetricCatalog(t *testing.T) {
 	})
 	Convey("metricCatalog.Add()", t, func() {
 		Convey("adds a metricType to the metricCatalog", func() {
-			ns := []string{"test"}
+			ns := core.NewNamespace([]string{"test"})
 			mt := newMetricType(ns, time.Now(), new(loadedPlugin))
 			mc := newMetricCatalog()
 			mc.Add(mt)
@@ -272,10 +273,10 @@ func TestMetricCatalog(t *testing.T) {
 		mc := newMetricCatalog()
 		ts := time.Now()
 		Convey("add multiple metricTypes and get them back", func() {
-			ns := [][]string{
-				{"test1"},
-				{"test2"},
-				{"test3"},
+			ns := []core.Namespace{
+				core.NewNamespace([]string{"test1"}),
+				core.NewNamespace([]string{"test2"}),
+				core.NewNamespace([]string{"test3"}),
 			}
 			lp := new(loadedPlugin)
 			mt := []*metricType{
@@ -297,11 +298,11 @@ func TestMetricCatalog(t *testing.T) {
 			lp2.Meta.Version = 2
 			lp35 := new(loadedPlugin)
 			lp35.Meta.Version = 35
-			m2 := newMetricType([]string{"foo", "bar"}, ts, lp2)
+			m2 := newMetricType(core.NewNamespace([]string{"foo", "bar"}), ts, lp2)
 			mc.Add(m2)
-			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
+			m35 := newMetricType(core.NewNamespace([]string{"foo", "bar"}), ts, lp35)
 			mc.Add(m35)
-			m, err := mc.Get([]string{"foo", "bar"}, -1)
+			m, err := mc.Get(core.NewNamespace([]string{"foo", "bar"}), -1)
 			So(err, ShouldBeNil)
 			So(m, ShouldEqual, m35)
 		})
@@ -310,11 +311,11 @@ func TestMetricCatalog(t *testing.T) {
 			lp2.Meta.Version = 2
 			lp35 := new(loadedPlugin)
 			lp35.Meta.Version = 35
-			m2 := newMetricType([]string{"foo", "bar"}, ts, lp2)
+			m2 := newMetricType(core.NewNamespace([]string{"foo", "bar"}), ts, lp2)
 			mc.Add(m2)
-			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
+			m35 := newMetricType(core.NewNamespace([]string{"foo", "bar"}), ts, lp35)
 			mc.Add(m35)
-			m, err := mc.Get([]string{"foo", "bar"}, 2)
+			m, err := mc.Get(core.NewNamespace([]string{"foo", "bar"}), 2)
 			So(err, ShouldBeNil)
 			So(m, ShouldEqual, m2)
 		})
@@ -323,18 +324,18 @@ func TestMetricCatalog(t *testing.T) {
 			lp2.Meta.Version = 2
 			lp35 := new(loadedPlugin)
 			lp35.Meta.Version = 35
-			m2 := newMetricType([]string{"foo", "bar"}, ts, lp2)
+			m2 := newMetricType(core.NewNamespace([]string{"foo", "bar"}), ts, lp2)
 			mc.Add(m2)
-			m35 := newMetricType([]string{"foo", "bar"}, ts, lp35)
+			m35 := newMetricType(core.NewNamespace([]string{"foo", "bar"}), ts, lp35)
 			mc.Add(m35)
-			_, err := mc.Get([]string{"foo", "bar"}, 7)
+			_, err := mc.Get(core.NewNamespace([]string{"foo", "bar"}), 7)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
 		})
 	})
 	Convey("metricCatalog.Table()", t, func() {
 		Convey("returns a copy of the table", func() {
 			mc := newMetricCatalog()
-			mt := newMetricType([]string{"foo", "bar"}, time.Now(), &loadedPlugin{})
+			mt := newMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), &loadedPlugin{})
 			mc.Add(mt)
 			//TODO test tree
 			//So(mc.Table(), ShouldHaveSameTypeAs, map[string][]*metricType{})
@@ -342,7 +343,7 @@ func TestMetricCatalog(t *testing.T) {
 		})
 	})
 	Convey("metricCatalog.Next()", t, func() {
-		ns := []string{"test"}
+		ns := core.NewNamespace([]string{"test"})
 		mt := newMetricType(ns, time.Now(), new(loadedPlugin))
 		mc := newMetricCatalog()
 		Convey("returns false on empty table", func() {
@@ -356,10 +357,10 @@ func TestMetricCatalog(t *testing.T) {
 		})
 	})
 	Convey("metricCatalog.Item()", t, func() {
-		ns := [][]string{
-			{"test1"},
-			{"test2"},
-			{"test3"},
+		ns := []core.Namespace{
+			core.NewNamespace([]string{"test1"}),
+			core.NewNamespace([]string{"test2"}),
+			core.NewNamespace([]string{"test3"}),
 		}
 		lp := new(loadedPlugin)
 		t := time.Now()
@@ -398,12 +399,12 @@ func TestMetricCatalog(t *testing.T) {
 	Convey("metricCatalog.Remove()", t, func() {
 		mc := newMetricCatalog()
 		ts := time.Now()
-		nss := [][]string{
-			{"mock", "test", "1"},
-			{"mock", "test", "2"},
-			{"mock", "test", "3"},
-			{"mock", "cgroups", "*", "in"},
-			{"mock", "cgroups", "*", "out"},
+		nss := []core.Namespace{
+			core.NewNamespace([]string{"mock", "test", "1"}),
+			core.NewNamespace([]string{"mock", "test", "2"}),
+			core.NewNamespace([]string{"mock", "test", "3"}),
+			core.NewNamespace([]string{"mock", "cgroups", "*", "in"}),
+			core.NewNamespace([]string{"mock", "cgroups", "*", "out"}),
 		}
 		Convey("removes a metricType from the catalog", func() {
 			// adding metrics to the catalog
@@ -425,7 +426,7 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Remove(nss[0])
 
 			Convey("validate removing a single metric from the catalog", func() {
-				_mt, err := mc.Get([]string{"mock", "test", "1"}, -1)
+				_mt, err := mc.Get(core.NewNamespace([]string{"mock", "test", "1"}), -1)
 				So(_mt, ShouldBeNil)
 				So(err, ShouldNotBeNil)
 
@@ -450,10 +451,10 @@ func TestMetricCatalog(t *testing.T) {
 }
 
 func TestSubscribe(t *testing.T) {
-	ns := [][]string{
-		{"test1"},
-		{"test2"},
-		{"test3"},
+	ns := []core.Namespace{
+		core.NewNamespace([]string{"test1"}),
+		core.NewNamespace([]string{"test2"}),
+		core.NewNamespace([]string{"test3"}),
 	}
 	lp := new(loadedPlugin)
 	ts := time.Now()
@@ -476,7 +477,7 @@ func TestSubscribe(t *testing.T) {
 		Convey("then it gets correctly increments the count", func() {
 			err := mc.Subscribe([]string{"test1"}, -1)
 			So(err, ShouldBeNil)
-			m, err2 := mc.Get([]string{"test1"}, -1)
+			m, err2 := mc.Get(core.NewNamespace([]string{"test1"}), -1)
 			So(err2, ShouldBeNil)
 			So(m.subscriptions, ShouldEqual, 1)
 		})
@@ -484,10 +485,10 @@ func TestSubscribe(t *testing.T) {
 }
 
 func TestUnsubscribe(t *testing.T) {
-	ns := [][]string{
-		{"test1"},
-		{"test2"},
-		{"test3"},
+	ns := []core.Namespace{
+		core.NewNamespace([]string{"test1"}),
+		core.NewNamespace([]string{"test2"}),
+		core.NewNamespace([]string{"test3"}),
 	}
 	lp := new(loadedPlugin)
 	ts := time.Now()
@@ -506,7 +507,7 @@ func TestUnsubscribe(t *testing.T) {
 			So(err, ShouldBeNil)
 			err1 := mc.Unsubscribe([]string{"test1"}, -1)
 			So(err1, ShouldBeNil)
-			m, err2 := mc.Get([]string{"test1"}, -1)
+			m, err2 := mc.Get(core.NewNamespace([]string{"test1"}), -1)
 			So(err2, ShouldBeNil)
 			So(m.subscriptions, ShouldEqual, 0)
 		})
@@ -526,7 +527,7 @@ func TestUnsubscribe(t *testing.T) {
 }
 
 func TestSubscriptionCount(t *testing.T) {
-	m := newMetricType([]string{"test"}, time.Now(), &loadedPlugin{})
+	m := newMetricType(core.NewNamespace([]string{"test"}), time.Now(), &loadedPlugin{})
 	Convey("it returns the subscription count", t, func() {
 		m.Subscribe()
 		So(m.SubscriptionCount(), ShouldEqual, 1)
@@ -541,17 +542,17 @@ func TestSubscriptionCount(t *testing.T) {
 func TestMetricNamespaceValidation(t *testing.T) {
 	Convey("validateMetricNamespace()", t, func() {
 		Convey("validation passes", func() {
-			ns := []string{"mock", "foo", "bar"}
+			ns := core.NewNamespace([]string{"mock", "foo", "bar"})
 			err := validateMetricNamespace(ns)
 			So(err, ShouldBeNil)
 		})
 		Convey("contains not allowed characters", func() {
-			ns := []string{"mock", "foo", "(bar)"}
+			ns := core.NewNamespace([]string{"mock", "foo", "(bar)"})
 			err := validateMetricNamespace(ns)
 			So(err, ShouldNotBeNil)
 		})
 		Convey("contains unacceptable wildcardat at the end", func() {
-			ns := []string{"mock", "foo", "*"}
+			ns := core.NewNamespace([]string{"mock", "foo", "*"})
 			err := validateMetricNamespace(ns)
 			So(err, ShouldNotBeNil)
 		})

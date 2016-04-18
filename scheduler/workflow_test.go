@@ -266,7 +266,7 @@ func (m *Mock1) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric,
 	return nil, nil
 }
 
-func (m *Mock1) ExpandWildcards([]string) ([][]string, serror.SnapError) {
+func (m *Mock1) ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError) {
 	return nil, nil
 }
 

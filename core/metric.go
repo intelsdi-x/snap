@@ -20,7 +20,6 @@ limitations under the License.
 package core
 
 import (
-	"strings"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
@@ -44,9 +43,37 @@ type Metric interface {
 	Timestamp() time.Time
 }
 
+type Namespace []NamespaceElement
+
+func (n Namespace) Strings() []string {
+	st := make([]string, len(n))
+	for i, j := range n {
+		st[i] = j.Value
+	}
+	return st
+}
+
+type NamespaceElement struct {
+	Value       string
+	Description string
+	Name        string
+}
+
+func NewNamespaceElement(e string) NamespaceElement {
+	return NamespaceElement{Value: e}
+}
+
+func NewNamespace(ns []string) Namespace {
+	n := make([]NamespaceElement, len(ns))
+	for i, ns := range ns {
+		n[i] = NamespaceElement{Value: ns}
+	}
+	return n
+}
+
 // RequestedMetric is a metric requested for collection
 type RequestedMetric interface {
-	Namespace() []string
+	Namespace() Namespace
 	Version() int
 }
 
@@ -56,6 +83,27 @@ type CatalogedMetric interface {
 	Policy() *cpolicy.ConfigPolicyNode
 }
 
-func JoinNamespace(ns []string) string {
-	return "/" + strings.Join(ns, "/")
+func JoinNamespace(ns Namespace) string {
+	n := ""
+	for i, x := range ns {
+		if i == 0 {
+			n = "/"
+		}
+		n += x.Value
+		if i != len(ns)-1 {
+			n += "/"
+		}
+	}
+	return n
+}
+
+func GenerateKey(ns Namespace) string {
+	n := ""
+	for i, x := range ns {
+		n += x.Value
+		if i < len(ns)-1 {
+			n += "."
+		}
+	}
+	return n
 }

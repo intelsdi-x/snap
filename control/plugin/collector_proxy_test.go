@@ -37,8 +37,8 @@ type mockPlugin struct {
 }
 
 var mockPluginMetricType []PluginMetricType = []PluginMetricType{
-	*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-	*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, 2),
+	*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), "", nil, nil, 1),
+	*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), "", nil, nil, 2),
 }
 
 func (p *mockPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, error) {
@@ -107,7 +107,7 @@ func TestCollectorProxy(t *testing.T) {
 			var mtr GetMetricTypesReply
 			err := c.Session.Decode(reply, &mtr)
 			So(err, ShouldBeNil)
-			So(mtr.PluginMetricTypes[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+			So(mtr.PluginMetricTypes[0].Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))
 
 		})
 		Convey("Get error in Get Metric Type", func() {
@@ -130,7 +130,7 @@ func TestCollectorProxy(t *testing.T) {
 			c.CollectMetrics(out, &reply)
 			var mtr CollectMetricsReply
 			err = c.Session.Decode(reply, &mtr)
-			So(mtr.PluginMetrics[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+			So(mtr.PluginMetrics[0].Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))
 			So(mtr.PluginMetrics[0].Labels(), ShouldNotBeNil)
 			So(mtr.PluginMetrics[0].Labels()[0].Name, ShouldEqual, "test")
 			So(mtr.PluginMetrics[0].Tags(), ShouldNotBeNil)

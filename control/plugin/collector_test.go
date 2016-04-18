@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/core"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -40,7 +41,7 @@ func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetricType, e
 
 func (c *MockPlugin) GetMetricTypes(_ PluginConfigType) ([]PluginMetricType, error) {
 	return []PluginMetricType{
-		{Namespace_: []string{"foo", "bar"}},
+		{Namespace_: core.NewNamespace([]string{"foo", "bar"})},
 	}, nil
 }
 

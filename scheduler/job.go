@@ -185,12 +185,12 @@ func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.D
 }
 
 type metric struct {
-	namespace []string
+	namespace core.Namespace
 	version   int
 	config    *cdata.ConfigDataNode
 }
 
-func (m *metric) Namespace() []string {
+func (m *metric) Namespace() core.Namespace {
 	return m.namespace
 }
 
@@ -222,11 +222,11 @@ func (c *collectorJob) Run() {
 		nss, err := c.collector.ExpandWildcards(rmt.Namespace())
 		if err != nil {
 			// use metric directly from the workflow
-			nss = [][]string{rmt.Namespace()}
+			nss = []core.Namespace{rmt.Namespace()}
 		}
 
 		for _, ns := range nss {
-			config := c.configDataTree.Get(ns)
+			config := c.configDataTree.Get(ns.Strings())
 
 			if config == nil {
 				config = cdata.NewNode()
