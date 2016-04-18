@@ -8,6 +8,12 @@
       /foo/bar:
         user: "root"
         password: "drowssap"
+    tags:
+      /foo/bar:
+        tag1: "val1"
+        tag2: "val2"
+      /foo/baz:
+        tag3: "val3"
     process:
       -
         plugin_name: "floor"

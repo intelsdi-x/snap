@@ -49,7 +49,24 @@ var (
 		"carets":       {"^"},
 		"quotations":   {"\"", "`", "'"},
 	}
+
+	hostnameReader hostnamer
 )
+
+// hostnameReader, hostnamer created for mocking
+func init() {
+	hostnameReader = &hostnameReaderType{}
+}
+
+type hostnamer interface {
+	Hostname() (name string, err error)
+}
+
+type hostnameReaderType struct{}
+
+func (h *hostnameReaderType) Hostname() (name string, err error) {
+	return os.Hostname()
+}
 
 func errorMetricNotFound(ns string, ver ...int) error {
 	if len(ver) > 0 {
@@ -598,13 +615,13 @@ func getVersion(c []*metricType, ver int) (*metricType, error) {
 	return nil, errMetricNotFound
 }
 
-func addStandardTags(m core.Metric) core.Metric {
-	hostname, err := os.Hostname()
+func addStandardAndWorkflowTags(m core.Metric, allTags map[string]map[string]string) core.Metric {
+	hostname, err := hostnameReader.Hostname()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"_module": "control",
 			"_file":   "metrics.go,",
-			"_block":  "addStandardTags",
+			"_block":  "addStandardAndWorkflowTags",
 			"error":   err.Error(),
 		}).Error("Unable to determine hostname")
 	}
@@ -612,7 +629,17 @@ func addStandardTags(m core.Metric) core.Metric {
 	if tags == nil {
 		tags = map[string]string{}
 	}
+	// apply tags from workflow
+	for ns, nsTags := range allTags {
+		if strings.HasPrefix(m.Namespace().String(), ns) {
+			for k, v := range nsTags {
+				tags[k] = v
+			}
+		}
+	}
+	// apply standard tag
 	tags[core.STD_TAG_PLUGIN_RUNNING_ON] = hostname
+
 	metric := plugin.MetricType{
 		Namespace_:          m.Namespace(),
 		Version_:            m.Version(),

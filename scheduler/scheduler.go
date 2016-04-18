@@ -22,7 +22,6 @@ package scheduler
 import (
 	"errors"
 	"fmt"
-	// "strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -84,7 +83,7 @@ type managesPluginContentTypes interface {
 
 type collectsMetrics interface {
 	ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError)
-	CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error)
+	CollectMetrics([]core.Metric, time.Time, string, map[string]map[string]string) ([]core.Metric, []error)
 }
 
 type publishesMetrics interface {
@@ -204,6 +203,7 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	}
 
 	// validate plugins and metrics
+
 	mts, plugins := s.gatherMetricsAndPlugins(wf)
 	errs := s.metricManager.ValidateDeps(mts, plugins)
 	if len(errs) > 0 {

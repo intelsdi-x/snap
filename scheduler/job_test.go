@@ -36,7 +36,7 @@ import (
 
 type mockCollector struct{}
 
-func (m *mockCollector) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error) {
+func (m *mockCollector) CollectMetrics([]core.Metric, time.Time, string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }
 
@@ -47,39 +47,41 @@ func (m *mockCollector) ExpandWildcards(core.Namespace) ([]core.Namespace, serro
 func TestCollectorJob(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	cdt := cdata.NewTree()
+	//TODO: kromar do something with tags?
+	tags := map[string]map[string]string{}
 	Convey("newCollectorJob()", t, func() {
 		Convey("it returns an init-ed collectorJob", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			So(cj, ShouldHaveSameTypeAs, &collectorJob{})
 		})
 	})
 	Convey("StartTime()", t, func() {
 		Convey("it should return the job starttime", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			So(cj.StartTime(), ShouldHaveSameTypeAs, time.Now())
 		})
 	})
 	Convey("Deadline()", t, func() {
 		Convey("it should return the job daedline", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			So(cj.Deadline(), ShouldResemble, cj.(*collectorJob).deadline)
 		})
 	})
 	Convey("Type()", t, func() {
 		Convey("it should return the job type", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			So(cj.Type(), ShouldEqual, collectJobType)
 		})
 	})
 	Convey("Errors()", t, func() {
 		Convey("it should return the errors from the job", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			So(cj.Errors(), ShouldResemble, []error{})
 		})
 	})
 	Convey("AddErrors()", t, func() {
 		Convey("it should append errors to the job", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			So(cj.Errors(), ShouldResemble, []error{})
 
 			e1 := errors.New("1")
@@ -94,7 +96,7 @@ func TestCollectorJob(t *testing.T) {
 	})
 	Convey("Run()", t, func() {
 		Convey("it should complete without errors", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			cj.(*collectorJob).Run()
 			So(cj.Errors(), ShouldResemble, []error{})
 		})
@@ -104,16 +106,17 @@ func TestCollectorJob(t *testing.T) {
 func TestQueuedJob(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	cdt := cdata.NewTree()
+	tags := map[string]map[string]string{}
 	Convey("Job()", t, func() {
 		Convey("it should return the underlying job", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			qj := newQueuedJob(cj)
 			So(qj.Job(), ShouldEqual, cj)
 		})
 	})
 	Convey("Promise()", t, func() {
 		Convey("it should return the underlying promise", func() {
-			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid")
+			cj := newCollectorJob([]core.RequestedMetric{}, defaultDeadline, &mockCollector{}, cdt, "taskid", tags)
 			qj := newQueuedJob(cj)
 			So(qj.Promise().IsComplete(), ShouldBeFalse)
 		})

@@ -897,7 +897,19 @@ func (p *pluginControl) MetricExists(mns core.Namespace, ver int) bool {
 // CollectMetrics is a blocking call to collector plugins returning a collection
 // of metrics and errors.  If an error is encountered no metrics will be
 // returned.
-func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.Time, taskID string) (metrics []core.Metric, errs []error) {
+func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.Time, taskID string, allTags map[string]map[string]string) (metrics []core.Metric, errs []error) {
+	for ns, nsTags := range allTags {
+		for k, v := range nsTags {
+			log.WithFields(log.Fields{
+				"_module": "control",
+				"block":   "CollectMetrics",
+				"type":    "pluginCollector",
+				"ns":      ns,
+				"tag-key": k,
+				"tag-val": v,
+			}).Debug("Tags in CollectMetrics")
+		}
+	}
 
 	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
 	if err != nil {
@@ -936,7 +948,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 			// plugin authors to inadvertently overwrite or not pass along the data
 			// passed to CollectMetrics so we will help them out here.
 			for i := range m {
-				m[i] = addStandardTags(m[i])
+				m[i] = addStandardAndWorkflowTags(m[i], allTags)
 			}
 			metrics = append(metrics, m...)
 			wg.Done()

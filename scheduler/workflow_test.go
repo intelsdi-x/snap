@@ -264,7 +264,7 @@ type Mock1 struct {
 	queue      map[string]int
 }
 
-func (m *Mock1) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error) {
+func (m *Mock1) CollectMetrics([]core.Metric, time.Time, string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }
 
@@ -324,7 +324,7 @@ func TestWorkJobs(t *testing.T) {
 	Convey("Test speed and concurrency of TestWorkJobs\n", t, func() {
 		Convey("submit multiple jobs\n", func() {
 			m1 := &Mock1{queue: make(map[string]int)}
-			pj := newCollectorJob(nil, time.Second*1, m1, nil, "")
+			pj := newCollectorJob(nil, time.Second*1, m1, nil, "", nil)
 			prs := make([]*processNode, 0)
 			pus := make([]*publishNode, 0)
 			counter := 0
@@ -344,7 +344,7 @@ func TestWorkJobs(t *testing.T) {
 		})
 		Convey("submit multiple jobs with nesting", func() {
 			m2 := &Mock1{queue: make(map[string]int)}
-			pj := newCollectorJob(nil, time.Second*1, m2, nil, "")
+			pj := newCollectorJob(nil, time.Second*1, m2, nil, "", nil)
 			prs := make([]*processNode, 0)
 			pus := make([]*publishNode, 0)
 			counter := 0
@@ -385,7 +385,7 @@ func TestWorkJobs(t *testing.T) {
 			m3 := &Mock1{queue: make(map[string]int)}
 			// make the 13th job fail
 			m3.errorIndex = 13
-			pj := newCollectorJob(nil, time.Second*1, m3, nil, "")
+			pj := newCollectorJob(nil, time.Second*1, m3, nil, "", nil)
 			prs := make([]*processNode, 0)
 			pus := make([]*publishNode, 0)
 			counter := 0

@@ -172,15 +172,24 @@ type collectorJob struct {
 	metricTypes    []core.RequestedMetric
 	metrics        []core.Metric
 	configDataTree *cdata.ConfigDataTree
+	tags           map[string]map[string]string
 }
 
-func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.Duration, collector collectsMetrics, cdt *cdata.ConfigDataTree, taskID string) job {
+func newCollectorJob(
+	metricTypes []core.RequestedMetric,
+	deadlineDuration time.Duration,
+	collector collectsMetrics,
+	cdt *cdata.ConfigDataTree,
+	taskID string,
+	tags map[string]map[string]string,
+) job {
 	return &collectorJob{
 		collector:      collector,
 		metricTypes:    metricTypes,
 		metrics:        []core.Metric{},
 		coreJob:        newCoreJob(collectJobType, time.Now().Add(deadlineDuration), taskID, "", 0),
 		configDataTree: cdt,
+		tags:           tags,
 	}
 }
 
@@ -217,6 +226,19 @@ func (c *collectorJob) Run() {
 		"metric-count": len(c.metricTypes),
 	}).Debug("starting collector job")
 
+	for ns, tags := range c.tags {
+		for k, v := range tags {
+			log.WithFields(log.Fields{
+				"_module":  "scheduler-job",
+				"block":    "run",
+				"job-type": "collector",
+				"ns":       ns,
+				"tag-key":  k,
+				"tag-val":  v,
+			}).Debug("Tags sent to collectorJob")
+		}
+	}
+
 	metrics := []core.Metric{}
 	for _, rmt := range c.metricTypes {
 		nss, err := c.collector.ExpandWildcards(rmt.Namespace())
@@ -231,6 +253,7 @@ func (c *collectorJob) Run() {
 			if config == nil {
 				config = cdata.NewNode()
 			}
+
 			metric := &metric{
 				namespace: ns,
 				version:   rmt.Version(),
@@ -240,7 +263,7 @@ func (c *collectorJob) Run() {
 		}
 	}
 
-	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline(), c.TaskID())
+	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline(), c.TaskID(), c.tags)
 
 	log.WithFields(log.Fields{
 		"_module":      "scheduler-job",

@@ -407,7 +407,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			}
 
 			//Add standard tags
-			nmt = addStandardTags(nmt)
+			nmt = addStandardAndWorkflowTags(nmt, nil)
 
 			if err := p.metricCatalog.AddLoadedMetricType(lPlugin, nmt); err != nil {
 				pmLogger.WithFields(log.Fields{
