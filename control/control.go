@@ -257,6 +257,7 @@ func (p *pluginControl) Start() error {
 	opts := []grpc.ServerOption{}
 	grpcServer := grpc.NewServer(opts...)
 	rpc.RegisterMetricManagerServer(grpcServer, &controlProxy{p})
+	rpc.RegisterConfigManagerServer(grpcServer, &configProxy{p.Config})
 	go func() {
 		err := grpcServer.Serve(lis)
 		if err != nil {

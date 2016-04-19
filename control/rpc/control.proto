@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -106,3 +106,33 @@ message UnloadPluginRequest{
 	int32 Version = 2;
 	string PluginType = 3;
 }
+
+service ConfigManager{
+	rpc GetPluginConfigDataNode(ConfigDataNodeRequest) returns (common.ConfigMap) {}
+	rpc GetPluginConfigDataNodeAll(common.Empty) returns (common.ConfigMap) {}
+	rpc MergePluginConfigDataNode(MergeConfigDataNodeRequest) returns (common.ConfigMap) {}
+	rpc MergePluginConfigDataNodeAll(common.ConfigMap) returns (common.ConfigMap) {}
+	rpc DeletePluginConfigDataNodeField(DeleteConfigDataNodeFieldRequest) returns (common.ConfigMap) {}
+	rpc DeletePluginConfigDataNodeFieldAll(DeleteConfigDataNodeFieldAllRequest) returns (common.ConfigMap) {}
+}
+
+message ConfigDataNodeRequest{
+	int32 PluginType = 1;
+	string Name = 2;
+	int64 Version = 3;
+}
+
+message MergeConfigDataNodeRequest{
+	common.ConfigMap Config = 1;
+	ConfigDataNodeRequest Request = 2;
+}
+
+message DeleteConfigDataNodeFieldRequest{
+	ConfigDataNodeRequest Request = 1;
+	repeated string Fields = 2;
+}
+
+message DeleteConfigDataNodeFieldAllRequest{
+	repeated string Fields = 1;
+}
+

@@ -472,8 +472,11 @@ func startAPI(cfg *mockConfig) *restAPIInstance {
 	r.BindTaskManager(client)
 
 	r.BindMetricManager(controlClient)
-
-	r.BindConfigManager(c.Config)
+	configClient, err := control.NewConfigClient(c.Config.ListenAddr, c.Config.ListenPort)
+	if err != nil {
+		panic(err)
+	}
+	r.BindConfigManager(configClient)
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or just return if the channel closes.
 		err, ok := <-ch

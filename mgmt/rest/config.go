@@ -23,8 +23,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"golang.org/x/net/context"
+
+	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/julienschmidt/httprouter"
 )
@@ -33,8 +37,13 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 	var err error
 	styp := p.ByName("type")
 	if styp == "" {
-		cdn := s.mc.GetPluginConfigDataNodeAll()
-		item := &rbody.PluginConfigItem{ConfigDataNode: cdn}
+		cfg, err := s.mc.GetPluginConfigDataNodeAll(context.Background(), &common.Empty{})
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+			return
+		}
+		cdn := common.ConfigMapToConfig(cfg)
+		item := &rbody.PluginConfigItem{ConfigDataNode: *cdn}
 		respond(200, item, w)
 		return
 	}
@@ -56,9 +65,19 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 	} else {
 		iver = -2
 	}
+	arg := &rpc.ConfigDataNodeRequest{
+		PluginType: int32(typ),
+		Name:       name,
+		Version:    int64(iver),
+	}
+	cfg, err := s.mc.GetPluginConfigDataNode(context.Background(), arg)
+	if err != nil {
+		respond(500, rbody.FromError(err), w)
+		return
+	}
 
-	cdn := s.mc.GetPluginConfigDataNode(typ, name, iver)
-	item := &rbody.PluginConfigItem{ConfigDataNode: cdn}
+	cdn := common.ConfigMapToConfig(cfg)
+	item := &rbody.PluginConfigItem{ConfigDataNode: *cdn}
 	respond(200, item, w)
 }
 
@@ -92,15 +111,35 @@ func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, 
 		respond(400, rbody.FromError(err), w)
 		return
 	}
-
-	var res cdata.ConfigDataNode
+	var res *cdata.ConfigDataNode
 	if styp == "" {
-		res = s.mc.DeletePluginConfigDataNodeFieldAll(src...)
+		arg := &rpc.DeleteConfigDataNodeFieldAllRequest{
+			Fields: src,
+		}
+		cfg, err := s.mc.DeletePluginConfigDataNodeFieldAll(context.Background(), arg)
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+			return
+		}
+		res = common.ConfigMapToConfig(cfg)
 	} else {
-		res = s.mc.DeletePluginConfigDataNodeField(typ, name, iver, src...)
+		arg := &rpc.DeleteConfigDataNodeFieldRequest{
+			Request: &rpc.ConfigDataNodeRequest{
+				PluginType: int32(typ),
+				Name:       name,
+				Version:    int64(iver),
+			},
+			Fields: src,
+		}
+		cfg, err := s.mc.DeletePluginConfigDataNodeField(context.Background(), arg)
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+			return
+		}
+		res = common.ConfigMapToConfig(cfg)
 	}
 
-	item := &rbody.DeletePluginConfigItem{ConfigDataNode: res}
+	item := &rbody.DeletePluginConfigItem{ConfigDataNode: *res}
 	respond(200, item, w)
 }
 
@@ -134,15 +173,33 @@ func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 		respond(400, rbody.FromError(err), w)
 		return
 	}
-
-	var res cdata.ConfigDataNode
+	var res *cdata.ConfigDataNode
 	if styp == "" {
-		res = s.mc.MergePluginConfigDataNodeAll(src)
+		arg := common.ConfigToConfigMap(src)
+		cfg, err := s.mc.MergePluginConfigDataNodeAll(context.Background(), arg)
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+			return
+		}
+		res = common.ConfigMapToConfig(cfg)
 	} else {
-		res = s.mc.MergePluginConfigDataNode(typ, name, iver, src)
+		arg := &rpc.MergeConfigDataNodeRequest{
+			Config: common.ConfigToConfigMap(src),
+			Request: &rpc.ConfigDataNodeRequest{
+				PluginType: int32(typ),
+				Name:       name,
+				Version:    int64(iver),
+			},
+		}
+		cfg, err := s.mc.MergePluginConfigDataNode(context.Background(), arg)
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+			return
+		}
+		res = common.ConfigMapToConfig(cfg)
 	}
 
-	item := &rbody.SetPluginConfigItem{ConfigDataNode: res}
+	item := &rbody.SetPluginConfigItem{ConfigDataNode: *res}
 	respond(200, item, w)
 }
 
