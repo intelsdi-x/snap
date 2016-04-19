@@ -111,20 +111,28 @@ func (s *schedulerProxy) CreateTask(ctx context.Context, arg *rpc.CreateTaskArg)
 	var w *wmap.WorkflowMap
 	var sch schedule.Schedule
 
-	json.Unmarshal(arg.WmapJson, &w)
+	if err := json.Unmarshal(arg.WmapJson, &w); err != nil {
+		return nil, err
+	}
 
 	st := struct {
 		Type string `json:"type"`
 	}{}
-	json.Unmarshal(arg.ScheduleJson, &st)
+	if err := json.Unmarshal(arg.ScheduleJson, &st); err != nil {
+		return nil, err
+	}
 	switch st.Type {
 	case "simple":
 		var simpleSch *schedule.SimpleSchedule
-		json.Unmarshal(arg.ScheduleJson, &simpleSch)
+		if err := json.Unmarshal(arg.ScheduleJson, &simpleSch); err != nil {
+			return nil, err
+		}
 		sch = simpleSch
 	case "windowed":
 		var windowedSch *schedule.WindowedSchedule
-		json.Unmarshal(arg.ScheduleJson, &windowedSch)
+		if err := json.Unmarshal(arg.ScheduleJson, &windowedSch); err != nil {
+			return nil, err
+		}
 		sch = windowedSch
 	default:
 		return nil, errors.New("unknown schedule type " + st.Type)
