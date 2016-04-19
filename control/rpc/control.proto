@@ -108,16 +108,12 @@ message UnloadPluginRequest{
 }
 
 service ConfigManager{
-	rpc GetPluginConfigDataNode(ConfigDataNodeRequest) returns (ConfigDataNode) {}
-	rpc GetPluginConfigDataNodeAll(common.Empty) returns (ConfigDataNode) {}
-	rpc MergePluginConfigDataNode(MergeConfigDataNodeRequest) returns (ConfigDataNode) {}
-	rpc MergePluginConfigDataNodeAll(ConfigDataNode) returns (ConfigDataNode) {}
-	rpc DeletePluginConfigDataNodeField(DeleteConfigDataNodeFieldRequest) returns (ConfigDataNode) {}
-	rpc DeletePluginConfigDataNodeFieldAll(DeleteConfigDataNodeFieldAllRequest) returns (ConfigDataNode) {}
-}
-
-message ConfigDataNode{
-	bytes Node = 1;
+	rpc GetPluginConfigDataNode(ConfigDataNodeRequest) returns (common.ConfigMap) {}
+	rpc GetPluginConfigDataNodeAll(common.Empty) returns (common.ConfigMap) {}
+	rpc MergePluginConfigDataNode(MergeConfigDataNodeRequest) returns (common.ConfigMap) {}
+	rpc MergePluginConfigDataNodeAll(common.ConfigMap) returns (common.ConfigMap) {}
+	rpc DeletePluginConfigDataNodeField(DeleteConfigDataNodeFieldRequest) returns (common.ConfigMap) {}
+	rpc DeletePluginConfigDataNodeFieldAll(DeleteConfigDataNodeFieldAllRequest) returns (common.ConfigMap) {}
 }
 
 message ConfigDataNodeRequest{
@@ -127,7 +123,7 @@ message ConfigDataNodeRequest{
 }
 
 message MergeConfigDataNodeRequest{
-	ConfigDataNode DataNode = 1;
+	common.ConfigMap Config = 1;
 	ConfigDataNodeRequest Request = 2;
 }
 

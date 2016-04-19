@@ -20,7 +20,6 @@ limitations under the License.
 package rest
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -43,11 +42,7 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 			respond(500, rbody.FromError(err), w)
 			return
 		}
-		cdn := cdata.NewNode()
-		err = cdn.UnmarshalJSON(cfg.Node)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-		}
+		cdn := common.ConfigMapToConfig(cfg)
 		item := &rbody.PluginConfigItem{ConfigDataNode: *cdn}
 		respond(200, item, w)
 		return
@@ -80,13 +75,8 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	cdn := cdata.NewNode()
-	err = cdn.UnmarshalJSON(cfg.Node)
-	if err != nil {
-		respond(500, rbody.FromError(err), w)
-		return
-	}
 
+	cdn := common.ConfigMapToConfig(cfg)
 	item := &rbody.PluginConfigItem{ConfigDataNode: *cdn}
 	respond(200, item, w)
 }
@@ -131,12 +121,7 @@ func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, 
 			respond(500, rbody.FromError(err), w)
 			return
 		}
-		res = cdata.NewNode()
-		err = res.UnmarshalJSON(cfg.Node)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-			return
-		}
+		res = common.ConfigMapToConfig(cfg)
 	} else {
 		arg := &rpc.DeleteConfigDataNodeFieldRequest{
 			Request: &rpc.ConfigDataNodeRequest{
@@ -151,12 +136,7 @@ func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, 
 			respond(500, rbody.FromError(err), w)
 			return
 		}
-		res = cdata.NewNode()
-		err = res.UnmarshalJSON(cfg.Node)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-			return
-		}
+		res = common.ConfigMapToConfig(cfg)
 	}
 
 	item := &rbody.DeletePluginConfigItem{ConfigDataNode: *res}
@@ -193,32 +173,18 @@ func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 		respond(400, rbody.FromError(err), w)
 		return
 	}
-	nBytes, err := json.Marshal(src)
-	if err != nil {
-		respond(500, rbody.FromError(err), w)
-		return
-	}
 	var res *cdata.ConfigDataNode
 	if styp == "" {
-		arg := &rpc.ConfigDataNode{
-			Node: nBytes,
-		}
+		arg := common.ConfigToConfigMap(src)
 		cfg, err := s.mc.MergePluginConfigDataNodeAll(context.Background(), arg)
 		if err != nil {
 			respond(500, rbody.FromError(err), w)
 			return
 		}
-		res = cdata.NewNode()
-		err = res.UnmarshalJSON(cfg.Node)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-			return
-		}
+		res = common.ConfigMapToConfig(cfg)
 	} else {
 		arg := &rpc.MergeConfigDataNodeRequest{
-			DataNode: &rpc.ConfigDataNode{
-				Node: nBytes,
-			},
+			Config: common.ConfigToConfigMap(src),
 			Request: &rpc.ConfigDataNodeRequest{
 				PluginType: int32(typ),
 				Name:       name,
@@ -230,12 +196,7 @@ func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 			respond(500, rbody.FromError(err), w)
 			return
 		}
-		res = cdata.NewNode()
-		err = res.UnmarshalJSON(cfg.Node)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-			return
-		}
+		res = common.ConfigMapToConfig(cfg)
 	}
 
 	item := &rbody.SetPluginConfigItem{ConfigDataNode: *res}

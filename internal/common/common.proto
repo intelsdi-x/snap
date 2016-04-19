@@ -27,3 +27,10 @@ message Time{
 
 message Empty{
 }
+
+message ConfigMap {
+	map<string, int64> IntMap = 1;
+	map<string, string> StringMap = 2;
+	map<string, double> FloatMap = 3; 
+	map<string, bool> BoolMap = 4;
+}

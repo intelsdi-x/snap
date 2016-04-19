@@ -113,12 +113,12 @@ type managesTribe interface {
 }
 
 type managesConfig interface {
-	GetPluginConfigDataNode(context.Context, *crpc.ConfigDataNodeRequest, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
-	GetPluginConfigDataNodeAll(context.Context, *common.Empty, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
-	MergePluginConfigDataNode(context.Context, *crpc.MergeConfigDataNodeRequest, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
-	MergePluginConfigDataNodeAll(context.Context, *crpc.ConfigDataNode, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
-	DeletePluginConfigDataNodeField(context.Context, *crpc.DeleteConfigDataNodeFieldRequest, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
-	DeletePluginConfigDataNodeFieldAll(context.Context, *crpc.DeleteConfigDataNodeFieldAllRequest, ...grpc.CallOption) (*crpc.ConfigDataNode, error)
+	GetPluginConfigDataNode(context.Context, *crpc.ConfigDataNodeRequest, ...grpc.CallOption) (*common.ConfigMap, error)
+	GetPluginConfigDataNodeAll(context.Context, *common.Empty, ...grpc.CallOption) (*common.ConfigMap, error)
+	MergePluginConfigDataNode(context.Context, *crpc.MergeConfigDataNodeRequest, ...grpc.CallOption) (*common.ConfigMap, error)
+	MergePluginConfigDataNodeAll(context.Context, *common.ConfigMap, ...grpc.CallOption) (*common.ConfigMap, error)
+	DeletePluginConfigDataNodeField(context.Context, *crpc.DeleteConfigDataNodeFieldRequest, ...grpc.CallOption) (*common.ConfigMap, error)
+	DeletePluginConfigDataNodeFieldAll(context.Context, *crpc.DeleteConfigDataNodeFieldAllRequest, ...grpc.CallOption) (*common.ConfigMap, error)
 }
 
 type Server struct {

@@ -20,7 +20,6 @@ limitations under the License.
 package control
 
 import (
-	"encoding/json"
 	"net"
 	"testing"
 
@@ -63,8 +62,7 @@ func TestConfigProxy(t *testing.T) {
 			}
 			cfg, err := configClient.GetPluginConfigDataNode(context.Background(), arg2)
 			So(err, ShouldBeNil)
-			c := cdata.NewNode()
-			c.UnmarshalJSON(cfg.Node)
+			c := common.ConfigMapToConfig(cfg)
 			val, ok := c.Table()["password"]
 			So(ok, ShouldEqual, true)
 			So(val.(ctypes.ConfigValueStr).Value, ShouldEqual, "testval1")
@@ -73,8 +71,7 @@ func TestConfigProxy(t *testing.T) {
 				cfg, err := configClient.GetPluginConfigDataNodeAll(context.Background(), &common.Empty{})
 				So(err, ShouldBeNil)
 				So(cfg, ShouldNotBeNil)
-				c := cdata.NewNode()
-				err = c.UnmarshalJSON(cfg.Node)
+				c := common.ConfigMapToConfig(cfg)
 				So(err, ShouldBeNil)
 				val, ok := c.Table()["password"]
 				So(ok, ShouldEqual, true)
@@ -84,13 +81,8 @@ func TestConfigProxy(t *testing.T) {
 		Convey("Adding a config to a specific plugin", func() {
 			node := cdata.NewNode()
 			node.AddItem("test", ctypes.ConfigValueStr{Value: "this is a test"})
-			nbytes, err := json.Marshal(node)
-			So(err, ShouldBeNil)
-
 			request := &rpc.MergeConfigDataNodeRequest{
-				DataNode: &rpc.ConfigDataNode{
-					Node: nbytes,
-				},
+				Config: common.ConfigToConfigMap(node),
 				Request: &rpc.ConfigDataNodeRequest{
 					PluginType: 0,
 					Name:       "snap-test-plugin",
@@ -126,11 +118,7 @@ func TestConfigProxy(t *testing.T) {
 		Convey("Adding a config to all plugins", func() {
 			node := cdata.NewNode()
 			node.AddItem("test", ctypes.ConfigValueStr{Value: "this is a test"})
-			nbytes, err := json.Marshal(node)
-			So(err, ShouldBeNil)
-			req := &rpc.ConfigDataNode{
-				Node: nbytes,
-			}
+			req := common.ConfigToConfigMap(node)
 			_, err = configClient.MergePluginConfigDataNodeAll(context.Background(), req)
 			So(err, ShouldBeNil)
 			config := control.Config.GetPluginConfigDataNodeAll()
