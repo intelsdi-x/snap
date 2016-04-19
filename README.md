@@ -25,10 +25,6 @@ limitations under the License.
 
 <img src="https://cloud.githubusercontent.com/assets/1744971/13930753/6f676b34-ef5d-11e5-97be-8503562cd5fe.png" width="50%">
 
-Here are blog posts related to ***snap*** by the team:
-
-* Nickapedia.com - [What if collecting data center telemetry was a snap?](http://nickapedia.com/2015/12/02/what-if-collecting-data-center-telemetry-was-a-snap/)
-
 ----
 
 1. [Overview](#overview)
@@ -36,7 +32,7 @@ Here are blog posts related to ***snap*** by the team:
   * [In Active Development](#in-active-development)
   * [System Requirements](#system-requirements)
   * [Installation](#installation)
-  * [Running snap](#running-snap)
+  * [Running Snap](#running-snap)
   * [Load Plugins](#load-plugins)
   * [Running Tasks](#running-tasks)
   * [Building Tasks](#building-tasks)
@@ -55,12 +51,14 @@ Here are blog posts related to ***snap*** by the team:
 
 ## Overview
 
-**snap** is a framework for enabling the gathering of telemetry from systems. The goals of this project are to:
+![workflow-collect-process-publish](https://cloud.githubusercontent.com/assets/1744971/14644683/be49a6b6-0607-11e6-8621-14f7b54e2192.png)
+
+**Snap** is an open telemetry framework designed to simplify the collection, processing and publishing of system data through a single API. The goals of this project are to:
 
 * Empower systems to expose a consistent set of telemetry data
 * Simplify telemetry ingestion across ubiquitous storage systems
 * Improve the deployment model, packaging and flexibility for collecting telemetry
-* Allow flexible processing of telemetry data on agent (e.g. machine learning)
+* Allow flexible processing of telemetry data on agent (e.g. filtering and decoration)
 * Provide powerful clustered control of telemetry workflows across small or large clusters
 
 The key features of snap are:
@@ -98,10 +96,10 @@ Snap deploys as a binary, which makes requirements quite simple. We've tested on
 
 You can get the pre-built binaries for your OS and architecture at snap's [GitHub Releases](https://github.com/intelsdi-x/snap/releases) page. This isn't the comprehensive list of plugins, but they will help you get started. Right now, snap only supports Linux and OS X (Darwin).
 
-#### Building snap
-If you're looking for the bleeding edge of snap, you can build it by getting the `master` branch using `go get github.com/intelsdi-x/snap`. Otherwise you can just use the binaries. To build snap from source, you will need [Golang >= 1.4](https://golang.org) and [GNU Make](https://www.gnu.org/software/make/). For more on building snap check out [BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
+#### Building Snap
+If you're looking for the bleeding edge of snap, you can build it by getting the `master` branch using `go get github.com/intelsdi-x/snap`. Otherwise you can just use the binaries. To build snap from source, you will need [Golang >= 1.5](https://golang.org) and [GNU Make](https://www.gnu.org/software/make/). For more on building snap check out [BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
 
-### Running snap
+### Running Snap
 
 Start a standalone snap agent (snapd):
 
@@ -214,8 +212,17 @@ Documentation for snap will be kept in this repository for now in the `docs/` di
 * [plugin signing](docs/PLUGIN_SIGNING.md)
 * [tribe](docs/TRIBE.md)
 
+
+Here are blog posts related to ***snap*** by the team:
+
+* [What if collecting data center telemetry was a snap?](http://nickapedia.com/2015/12/02/what-if-collecting-data-center-telemetry-was-a-snap/) by @lynxbat
+* [My How-to for the Snap Telemetry Framework](https://medium.com/intel-sdi/my-how-to-for-the-snap-telemetry-framework-e3bb641bc740#.6f5nk543t) by @mjbrender
+* [Snap's first GUI is Grafana!](https://medium.com/intel-sdi/snap-first-gui-is-grafana-40bb92df2660#.rgsnfx3w1) by @mjbrender
+* [Adding a global configuration to snap](https://medium.com/intel-sdi/adding-a-global-configuration-to-snap-b95d8fd8b5e0#.hq3cqgt6t) by @tjmcs1
+
+
 ### Examples
-There are interesting examples of using snap in every plugin repository. For the full list of plugins, review the [plugin catalog](docs/PLUGIN_CATALOG.md). There is an [Examples](examples/README.md) package that demonstrates snap configurations and usages.
+There are interesting examples of using snap in every plugin repository. For the full list of plugins, review the [plugin catalog](docs/PLUGIN_CATALOG.md). There are also [Examples](examples/README.md) that demonstrates snap configurations and usages.
 
 ### Roadmap
 We have a few known features we want to take on from here while we remain open for feedback after public release. They are:
@@ -232,6 +239,7 @@ This repository is one of **many** projects in the **snap framework**. Discuss y
 
 * Through GitHub Issues. Issues is our home for **all** needs: Q&A on everything - installation, request for events, integrations, bug issues, futures. [Open up an Issue](https://github.com/intelsdi-x/snap/issues) and know there's no wrong question for us.
 * We also have a [Gitter channel](https://gitter.im/intelsdi-x/snap) opened up on this repository that threads directly into our engineering team Slack (thanks to [Sameroom](https://sameroom.io/)).
+* Submit a blog post on your use of snap to [our Medium.com publication](https://medium.com/intel-sdi)
 
 The full project lives here, at http://github.com/intelsdi-x/snap.
 
@@ -240,7 +248,7 @@ We encourage contribution from the community. **snap** needs:
 
 * _Feedback_: try it and tell us about it through issues, blog posts or Twitter
 * _Contributors_: We need plugins, schedules, testing, and more
-* _Integrations_: **snap** can feasibly publish to almost any destination. We need publishing plugins for [Ceilometer](https://wiki.openstack.org/wiki/Ceilometer), [vROPs](http://www.vmware.com/products/vrealize-operations), and more. See [the plugin catalog](./docs/PLUGIN_CATALOG.md#wish-list) for the full list
+* _Integrations_: **snap** can feasibly publish to almost any destination by [authoring a plugin](#author-a-plugin)
 
 To contribute to the snap framework, see [our CONTRIBUTING file](CONTRIBUTING.md). To give back to a specific plugin, open an issue on its repository.
 
@@ -251,7 +259,7 @@ The power of snap comes from its open architecture. Add to the ecosystem by buil
 * Recommendations to make effective, well-designed plugins are in [PLUGIN_BEST_PRACTICES.md](docs/PLUGIN_BEST_PRACTICES.md)
 
 ## License
-snap is Open Source software released under the Apache 2.0 [License](LICENSE).
+Snap is Open Source software released under the Apache 2.0 [License](LICENSE).
 
 ## Contributors
 ### Initial Authors
