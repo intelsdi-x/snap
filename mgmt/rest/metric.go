@@ -106,7 +106,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 
 	b := &rbody.MetricReturned{}
 	mb := &rbody.Metric{
-		Namespace:               core.JoinNamespace(mt.Namespace()),
+		Namespace:               mt.Namespace().String(),
 		Version:                 mt.Version(),
 		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
 		Href: catalogedMetricURI(r.Host, mt),
@@ -145,7 +145,7 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 			})
 		}
 		b = append(b, rbody.Metric{
-			Namespace:               core.JoinNamespace(met.Namespace()),
+			Namespace:               met.Namespace().String(),
 			Version:                 met.Version(),
 			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
 			Policy:                  policies,
@@ -157,5 +157,5 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 }
 
 func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace()), mt.Version())
+	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, mt.Namespace().String(), mt.Version())
 }

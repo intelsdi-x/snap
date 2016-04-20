@@ -37,8 +37,8 @@ type mockPlugin struct {
 }
 
 var mockPluginMetricType []PluginMetricType = []PluginMetricType{
-	*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), "", nil, nil, 1),
-	*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), "", nil, nil, 2),
+	*NewPluginMetricType(core.NewNamespace([]string{"foo"}).AddDynamicElement("test", "something dynamic here").AddStaticElement("bar"), time.Now(), "", nil, 1),
+	*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), "", nil, 2),
 }
 
 func (p *mockPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, error) {
@@ -47,8 +47,9 @@ func (p *mockPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, e
 
 func (p *mockPlugin) CollectMetrics(mockPluginMetricTypes []PluginMetricType) ([]PluginMetricType, error) {
 	for i := range mockPluginMetricTypes {
-		mockPluginMetricTypes[i].Labels_ = []core.Label{{Index: 0, Name: "test"}}
-		mockPluginMetricTypes[i].Tags_ = map[string]string{"key": "value"}
+		if mockPluginMetricTypes[i].Namespace().String() == "/foo/*/bar" {
+			mockPluginMetricTypes[i].Namespace_[1].Value = "test"
+		}
 	}
 	return mockPluginMetricTypes, nil
 }
@@ -107,7 +108,7 @@ func TestCollectorProxy(t *testing.T) {
 			var mtr GetMetricTypesReply
 			err := c.Session.Decode(reply, &mtr)
 			So(err, ShouldBeNil)
-			So(mtr.PluginMetricTypes[0].Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))
+			So(mtr.PluginMetricTypes[0].Namespace().String(), ShouldResemble, "/foo/*/bar")
 
 		})
 		Convey("Get error in Get Metric Type", func() {
@@ -130,11 +131,8 @@ func TestCollectorProxy(t *testing.T) {
 			c.CollectMetrics(out, &reply)
 			var mtr CollectMetricsReply
 			err = c.Session.Decode(reply, &mtr)
-			So(mtr.PluginMetrics[0].Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))
-			So(mtr.PluginMetrics[0].Labels(), ShouldNotBeNil)
-			So(mtr.PluginMetrics[0].Labels()[0].Name, ShouldEqual, "test")
-			So(mtr.PluginMetrics[0].Tags(), ShouldNotBeNil)
-			So(mtr.PluginMetrics[0].Tags()["key"], ShouldEqual, "value")
+			So(mtr.PluginMetrics[0].Namespace().String(), ShouldResemble, "/foo/test/bar")
+			So(mtr.PluginMetrics[0].Namespace()[1].Name, ShouldEqual, "test")
 
 			Convey("Get error in Collect Metric ", func() {
 				args := CollectMetricsArgs{

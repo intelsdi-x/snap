@@ -126,7 +126,7 @@ func (c *cache) put(ns string, version int, m interface{}) {
 
 func (c *cache) checkCache(mts []core.Metric) (metricsToCollect []core.Metric, fromCache []core.Metric) {
 	for _, mt := range mts {
-		if m := c.get(core.JoinNamespace(mt.Namespace()), mt.Version()); m != nil {
+		if m := c.get(mt.Namespace().String(), mt.Version()); m != nil {
 			switch metric := m.(type) {
 			case core.Metric:
 				fromCache = append(fromCache, metric)
@@ -155,17 +155,13 @@ type listMetricInfo struct {
 func (c *cache) updateCache(mts []core.Metric) {
 	dc := map[string]listMetricInfo{}
 	for _, mt := range mts {
-		if mt.Labels() == nil {
+		isDynamic, _ := mt.Namespace().IsDynamic()
+		if isDynamic == false {
 			// cache the individual metric
-			c.put(core.JoinNamespace(mt.Namespace()), mt.Version(), mt)
+			c.put(mt.Namespace().String(), mt.Version(), mt)
 		} else {
 			// collect the dynamic query results so we can cache
-			ns := make([]core.NamespaceElement, len(mt.Namespace()))
-			copy(ns, mt.Namespace())
-			for _, label := range mt.Labels() {
-				ns[label.Index] = core.NewNamespaceElement("*")
-			}
-			key := fmt.Sprintf("%v:%v", core.JoinNamespace(ns), mt.Version())
+			key := fmt.Sprintf("%v:%v", mt.Namespace().String(), mt.Version())
 			if _, ok := dc[key]; !ok {
 				dc[key] = listMetricInfo{
 					metrics: []core.Metric{},
@@ -173,7 +169,7 @@ func (c *cache) updateCache(mts []core.Metric) {
 			}
 			var tmp = dc[key]
 			tmp.metrics = append(dc[key].metrics, mt)
-			tmp.namespace = core.JoinNamespace(ns)
+			tmp.namespace = mt.Namespace().String()
 			tmp.version = mt.Version()
 			dc[key] = tmp
 		}

@@ -60,14 +60,14 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 		if mts[i].Namespace()[2].Value == "*" {
 			hostname, _ := os.Hostname()
 			for j := 0; j < 10; j++ {
-				v := fmt.Sprintf("host%d", j)
+				ns := mts[i].Namespace()
+				ns[2].Value = fmt.Sprintf("host%d", j)
 				data := randInt(65, 90)
 				mt := plugin.PluginMetricType{
 					Data_:      data,
-					Namespace_: core.NewNamespace([]string{"intel", "mock", v, "baz"}),
+					Namespace_: ns,
 					Source_:    hostname,
 					Timestamp_: time.Now(),
-					Labels_:    mts[i].Labels(),
 					Version_:   mts[i].Version(),
 				}
 				metrics = append(metrics, mt)
@@ -94,10 +94,9 @@ func (f *Mock) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetri
 	}
 	mts = append(mts, plugin.PluginMetricType{Namespace_: core.NewNamespace([]string{"intel", "mock", "foo"})})
 	mts = append(mts, plugin.PluginMetricType{Namespace_: core.NewNamespace([]string{"intel", "mock", "bar"})})
-	mts = append(mts, plugin.PluginMetricType{
-		Namespace_: core.NewNamespace([]string{"intel", "mock", "*", "baz"}),
-		Labels_:    []core.Label{{Index: 2, Name: "host"}},
-	})
+	mts = append(mts, plugin.PluginMetricType{Namespace_: core.NewNamespace([]string{"intel", "mock"}).
+		AddDynamicElement("host", "name of the host").
+		AddStaticElement("baz")})
 	return mts, nil
 }
 

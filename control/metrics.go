@@ -49,18 +49,18 @@ var (
 	}
 )
 
-func errorMetricNotFound(ns []string, ver ...int) error {
+func errorMetricNotFound(ns string, ver ...int) error {
 	if len(ver) > 0 {
-		return fmt.Errorf("Metric not found: %s (version: %d)", "/"+strings.Join(ns, "/"), ver[0])
+		return fmt.Errorf("Metric not found: %s (version: %d)", ns, ver[0])
 	}
-	return fmt.Errorf("Metric not found: %s", "/"+strings.Join(ns, "/"))
+	return fmt.Errorf("Metric not found: %s", ns)
 }
 
-func errorMetricContainsNotAllowedChars(ns []string) error {
+func errorMetricContainsNotAllowedChars(ns string) error {
 	return fmt.Errorf("Metric namespace %s contains not allowed characters. Avoid using %s", ns, listNotAllowedChars())
 }
 
-func errorMetricEndsWithAsterisk(ns []string) error {
+func errorMetricEndsWithAsterisk(ns string) error {
 	return fmt.Errorf("Metric namespace %s ends with an asterisk is not allowed", ns)
 }
 
@@ -99,7 +99,6 @@ type metricType struct {
 	config             *cdata.ConfigDataNode
 	data               interface{}
 	source             string
-	labels             []core.Label
 	tags               map[string]string
 	timestamp          time.Time
 }
@@ -127,7 +126,7 @@ func (m *metricType) Namespace() core.Namespace {
 }
 
 func (m *metricType) NamespaceAsString() string {
-	return core.JoinNamespace(m.Namespace())
+	return m.Namespace().String()
 }
 
 func (m *metricType) Data() interface{} {
@@ -180,10 +179,6 @@ func (m *metricType) Tags() map[string]string {
 	return m.tags
 }
 
-func (m *metricType) Labels() []core.Label {
-	return m.labels
-}
-
 func (m *metricType) Timestamp() time.Time {
 	return m.timestamp
 }
@@ -218,7 +213,7 @@ func (mc *metricCatalog) matchedNamespaces(wkey string) ([]core.Namespace, error
 	mkeys := mc.mKeys[wkey]
 
 	if len(mkeys) == 0 {
-		return nil, errorMetricNotFound(getMetricNamespace(wkey).Strings())
+		return nil, errorMetricNotFound(getMetricNamespace(wkey).String())
 	}
 
 	// convert matched keys to a slice of namespaces
@@ -232,19 +227,19 @@ func (mc *metricCatalog) GetQueriedNamespaces(ns core.Namespace) ([]core.Namespa
 	defer mc.mutex.Unlock()
 
 	// get metric key (might contain wildcard(s))
-	wkey := getMetricKey(ns)
+	wkey := ns.Key()
 
 	return mc.matchedNamespaces(wkey)
 }
 
 // MatchQuery matches given 'ns' which could contain an asterisk or a tuple and add them to matching map under key 'ns'
-// The matched metrics namespaces are also returned (as a [][]string)
+// The matched metrics namespaces are also returned (as a []core.Namespace)
 func (mc *metricCatalog) MatchQuery(ns core.Namespace) ([]core.Namespace, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
 	// get metric key (might contain wildcard(s))
-	wkey := getMetricKey(ns)
+	wkey := ns.Key()
 
 	// adding matched namespaces to map
 	mc.addItemToMatchingMap(wkey)
@@ -331,13 +326,13 @@ func validateMetricNamespace(ns core.Namespace) error {
 	for _, chars := range notAllowedChars {
 		for _, ch := range chars {
 			if strings.ContainsAny(name, ch) {
-				return errorMetricContainsNotAllowedChars(ns.Strings())
+				return errorMetricContainsNotAllowedChars(ns.String())
 			}
 		}
 	}
 	// plugin should NOT advertise metrics ending with a wildcard
 	if strings.HasSuffix(name, "*") {
-		return errorMetricEndsWithAsterisk(ns.Strings())
+		return errorMetricEndsWithAsterisk(ns.String())
 	}
 
 	return nil
@@ -369,7 +364,6 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) e
 		version:            mt.Version(),
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
 		tags:               mt.Tags(),
-		labels:             mt.Labels(),
 		policy:             lp.ConfigPolicy.Get(mt.Namespace().Strings()),
 	}
 	mc.Add(&newMt)
@@ -391,7 +385,7 @@ func (mc *metricCatalog) Add(m *metricType) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
-	key := getMetricKey(m.Namespace())
+	key := m.Namespace().Key()
 
 	// adding key as a cataloged keys (mc.keys)
 	mc.keys = appendIfMissing(mc.keys, key)
@@ -411,14 +405,18 @@ func (mc *metricCatalog) Get(ns core.Namespace, version int) (*metricType, error
 func (mc *metricCatalog) GetVersions(ns core.Namespace) ([]*metricType, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
-	return mc.getVersions(ns.Strings())
+	return mc.getVersions(strings.Split(ns.String(), "/"))
 }
 
 // Fetch transactionally retrieves all metrics which fall under namespace ns
 func (mc *metricCatalog) Fetch(ns core.Namespace) ([]*metricType, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
-	mtsi, err := mc.tree.Fetch(ns.Strings())
+	var nss []string
+	if ns.String() != "" {
+		nss = ns.Strings()
+	}
+	mtsi, err := mc.tree.Fetch(nss)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"_module": "control",
@@ -439,7 +437,7 @@ func (mc *metricCatalog) Remove(ns core.Namespace) {
 	mc.tree.Remove(ns.Strings())
 
 	// remove all items from map mKey mapped for this 'ns'
-	key := getMetricKey(ns)
+	key := ns.Key()
 	mc.removeMatchedKey(key)
 }
 
@@ -542,7 +540,7 @@ func (mc *metricCatalog) get(ns []string, ver int) (*metricType, error) {
 				"_block":  "get",
 				"error":   err,
 			}).Error("error getting plugin version")
-			return nil, errorMetricNotFound(ns, ver)
+			return nil, errorMetricNotFound("/"+strings.Join(ns, "/"), ver)
 		}
 		return l, nil
 	}
@@ -562,13 +560,9 @@ func (mc *metricCatalog) getVersions(ns []string) ([]*metricType, error) {
 		return nil, err
 	}
 	if len(mts) == 0 {
-		return nil, errorMetricNotFound(ns)
+		return nil, errorMetricNotFound("/" + strings.Join(ns, "/"))
 	}
 	return mts, nil
-}
-
-func getMetricKey(metric core.Namespace) string {
-	return core.GenerateKey(metric)
 }
 
 func getMetricNamespace(key string) core.Namespace {

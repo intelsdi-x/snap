@@ -78,7 +78,7 @@ func (m *mockCollectorProxy) CollectMetrics(args []byte, reply *[]byte) error {
 	}
 	var mts []plugin.PluginMetricType
 	for _, i := range dargs.PluginMetricTypes {
-		p := plugin.NewPluginMetricType(i.Namespace(), time.Now(), "", nil, nil, rand.Intn(100))
+		p := plugin.NewPluginMetricType(i.Namespace(), time.Now(), "", nil, rand.Intn(100))
 		p.Config_ = i.Config()
 		mts = append(mts, *p)
 	}
@@ -302,7 +302,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 		})
 
 		Convey("Process metrics", func() {
-			pmt := plugin.NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), "", nil, nil, 1)
+			pmt := plugin.NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), "", nil, 1)
 			b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
 			contentType, content, err := p.Process(plugin.SnapJSONContentType, b, nil)
 			So(contentType, ShouldResemble, plugin.SnapJSONContentType)
@@ -342,7 +342,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 		})
 
 		Convey("Publish metrics", func() {
-			pmt := plugin.NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), "", nil, nil, 1)
+			pmt := plugin.NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), "", nil, 1)
 			b, _ := json.Marshal([]plugin.PluginMetricType{*pmt})
 			err := p.Publish(plugin.SnapJSONContentType, b, nil)
 			So(err, ShouldBeNil)

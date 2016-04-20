@@ -143,7 +143,6 @@ func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, e
 			LastAdvertisedTime_: mt.LastAdvertisedTime(),
 			Version_:            mt.Version(),
 			Tags_:               mt.Tags(),
-			Labels_:             mt.Labels(),
 			Config_:             mt.Config(),
 		}
 	}

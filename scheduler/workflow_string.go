@@ -21,7 +21,6 @@ package scheduler
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/intelsdi-x/snap/core"
 )
@@ -46,7 +45,7 @@ func (s *schedulerWorkflow) String() string {
 func metricString(pad string, rm []core.RequestedMetric) string {
 	var out string
 	for _, m := range rm {
-		out += fmt.Sprintf("%sMetric: %s\n", pad, strings.Join(m.Namespace().Strings(), "/"))
+		out += fmt.Sprintf("%sMetric: %s\n", pad, m.Namespace().String())
 		out += fmt.Sprintf("%s  Version: %d\n", pad, m.Version())
 	}
 	return out

@@ -542,7 +542,7 @@ func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, 
 
 	if err != nil {
 		serrs = append(serrs, serror.New(err, map[string]interface{}{
-			"name":    core.JoinNamespace(mt.Namespace()),
+			"name":    mt.Namespace().String(),
 			"version": mt.Version(),
 		}))
 		return serrs
@@ -611,7 +611,7 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]gatheredPlugin, [
 		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
 		if err != nil {
 			serrs = append(serrs, serror.New(err, map[string]interface{}{
-				"name":    core.JoinNamespace(mt.Namespace()),
+				"name":    mt.Namespace().String(),
 				"version": mt.Version(),
 			}))
 			continue
@@ -1059,16 +1059,15 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 			return nil, serror.New(err)
 		}
 		returnedmt := plugin.PluginMetricType{
-			Namespace_:          incomingmt.Namespace(),
+			Namespace_:          catalogedmt.Namespace(),
 			LastAdvertisedTime_: catalogedmt.LastAdvertisedTime(),
 			Version_:            incomingmt.Version(),
 			Tags_:               catalogedmt.Tags(),
-			Labels_:             catalogedmt.Labels(),
 			Config_:             incomingmt.Config(),
 		}
 		lp := catalogedmt.Plugin
 		if lp == nil {
-			return nil, serror.New(errorMetricNotFound(incomingmt.Namespace().Strings()))
+			return nil, serror.New(errorMetricNotFound(incomingmt.Namespace().String()))
 		}
 		key := lp.Key()
 		pmt, _ := pmts[key]

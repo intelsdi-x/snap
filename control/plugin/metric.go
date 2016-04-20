@@ -105,9 +105,6 @@ type PluginMetricType struct {
 
 	Data_ interface{} `json:"data"`
 
-	// labels are pulled from dynamic metrics to provide context for the metric
-	Labels_ []core.Label `json:"labels"`
-
 	Tags_ map[string]string `json:"tags"`
 
 	// The source of the metric (host, IP, etc).
@@ -118,11 +115,10 @@ type PluginMetricType struct {
 }
 
 // // PluginMetricType Constructor
-func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, source string, tags map[string]string, labels []core.Label, data interface{}) *PluginMetricType {
+func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, source string, tags map[string]string, data interface{}) *PluginMetricType {
 	return &PluginMetricType{
 		Namespace_: namespace,
 		Tags_:      tags,
-		Labels_:    labels,
 		Data_:      data,
 		Timestamp_: timestamp,
 		Source_:    source,
@@ -152,11 +148,6 @@ func (p PluginMetricType) Config() *cdata.ConfigDataNode {
 // Tags returns the map of  tags for this metric
 func (p PluginMetricType) Tags() map[string]string {
 	return p.Tags_
-}
-
-// Labels returns the array of labels for this metric
-func (p PluginMetricType) Labels() []core.Label {
-	return p.Labels_
 }
 
 // returns the timestamp of when the metric was collected

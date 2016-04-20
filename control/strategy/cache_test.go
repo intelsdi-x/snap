@@ -126,9 +126,9 @@ func TestCache(t *testing.T) {
 		metricList := []core.Metric{foo, baz}
 		mc.updateCache(metricList)
 		Convey("they should be retrievable via get", func() {
-			ret := mc.get(core.JoinNamespace(foo.Namespace()), foo.Version())
+			ret := mc.get(foo.Namespace().String(), foo.Version())
 			So(ret, ShouldEqual, foo)
-			ret = mc.get(core.JoinNamespace(baz.Namespace()), baz.Version())
+			ret = mc.get(baz.Namespace().String(), baz.Version())
 			So(ret, ShouldEqual, baz)
 		})
 		Convey("they should be retrievable via checkCache", func() {
@@ -157,19 +157,17 @@ func TestCache(t *testing.T) {
 		v1 := plugin.PluginMetricType{
 			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			Version_:   1,
-			Labels_:    []core.Label{{Index: 1, Name: "Hostname"}},
 		}
 		v2 := plugin.PluginMetricType{
-			Namespace_: core.NewNamespace([]string{"foo", "Baz"}),
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			Version_:   2,
-			Labels_:    []core.Label{{Index: 1, Name: "Hostname"}},
 		}
 		metricList := []core.Metric{v1, v2}
 		mc.updateCache(metricList)
 		Convey("Should be cached separately", func() {
 			Convey("so only 1 should be returned from the cache", func() {
 				starMetric := &plugin.PluginMetricType{
-					Namespace_: core.NewNamespace([]string{"foo", "*"}),
+					Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 					Version_:   2,
 				}
 				// Check /foo/* with both versions

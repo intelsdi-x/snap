@@ -154,7 +154,6 @@ func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, er
 			LastAdvertisedTime_: mt.LastAdvertisedTime(),
 			Version_:            mt.Version(),
 			Tags_:               mt.Tags(),
-			Labels_:             mt.Labels(),
 			Config_:             mt.Config(),
 		}
 	}

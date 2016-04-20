@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -62,8 +61,6 @@ func (m mockMetricType) Data() interface{} { return nil }
 func (m mockMetricType) Source() string { return "" }
 
 func (m mockMetricType) Tags() map[string]string { return nil }
-
-func (m mockMetricType) Labels() []core.Label { return nil }
 
 func (m mockMetricType) Timestamp() time.Time { return time.Time{} }
 

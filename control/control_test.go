@@ -638,19 +638,19 @@ func (m *mc) Get(ns core.Namespace, ver int) (*metricType, error) {
 			policy: &mockCDProc{},
 		}, nil
 	}
-	return nil, serror.New(errorMetricNotFound(ns.Strings()))
+	return nil, serror.New(errorMetricNotFound(ns.String()))
 }
 
 func (m *mc) Subscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
-		return serror.New(errorMetricNotFound(ns))
+		return serror.New(errorMetricNotFound("/" + strings.Join(ns, "/")))
 	}
 	return nil
 }
 
 func (m *mc) Unsubscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
-		return serror.New(errorMetricNotFound(ns))
+		return serror.New(errorMetricNotFound("/" + strings.Join(ns, "/")))
 	}
 	if ns[0] == "neg" {
 		return errNegativeSubCount
@@ -793,7 +793,6 @@ func (m MockMetricType) Data() interface{} {
 	return nil
 }
 
-func (m MockMetricType) Labels() []core.Label    { return nil }
 func (m MockMetricType) Tags() map[string]string { return nil }
 
 func TestMetricConfig(t *testing.T) {
@@ -1075,13 +1074,13 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			// pool should be the global cache expiration
 			So(ttl, ShouldEqual, strategy.GlobalCacheExpiration)
 			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
-			hits, err := pool.CacheHits(core.JoinNamespace(m.namespace), 2, taskID)
+			hits, err := pool.CacheHits(m.namespace.String(), 2, taskID)
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 0)
 			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 10)
 			mts, errs = c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
-			hits, err = pool.CacheHits(core.JoinNamespace(m.namespace), 2, taskID)
+			hits, err = pool.CacheHits(m.namespace.String(), 2, taskID)
 			So(err, ShouldBeNil)
 
 			// todo resolve problem with caching for dynamic metrics
@@ -1114,7 +1113,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(ttl, ShouldEqual, 1100*time.Millisecond)
 				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New())
-				hits, err := pool.CacheHits(core.JoinNamespace(jsonm.namespace), jsonm.version, taskID)
+				hits, err := pool.CacheHits(jsonm.namespace.String(), jsonm.version, taskID)
 				So(pool.SubscriptionCount(), ShouldEqual, 1)
 				So(pool.Strategy, ShouldNotBeNil)
 				So(len(mts), ShouldBeGreaterThan, 0)
@@ -1123,7 +1122,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				So(errs, ShouldBeNil)
 				So(len(mts), ShouldEqual, 10)
 				mts, errs = c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New())
-				hits, err = pool.CacheHits(core.JoinNamespace(m.namespace), 1, taskID)
+				hits, err = pool.CacheHits(m.namespace.String(), 1, taskID)
 				So(err, ShouldBeNil)
 
 				// todo resolve problem with caching for dynamic metrics
@@ -1516,7 +1515,7 @@ func TestPublishMetrics(t *testing.T) {
 
 			Convey("Publish to file", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), "", nil, nil, 1),
+					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), "", nil, 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1569,7 +1568,7 @@ func TestProcessMetrics(t *testing.T) {
 
 			Convey("process metrics", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), "", nil, nil, 1),
+					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), "", nil, 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1741,6 +1740,7 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
 			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			So(errs, ShouldBeEmpty)
 			So(len(mts), ShouldEqual, 1)
 
 			// ensure the data coming back is from v1, V1's data is type string
