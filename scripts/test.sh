@@ -20,9 +20,9 @@
 # The script does automatic checking on a Go package and its sub-packages, including:
 # 1. gofmt         (http://golang.org/cmd/gofmt/)
 # 2. goimports     (https://github.com/bradfitz/goimports)
-# 3. golint        (https://github.com/golang/lint)
-# 4. go vet        (http://golang.org/cmd/vet)
-# 5. race detector (http://blog.golang.org/race-detector)
+# 3. golint        (https://github.com/golang/lint) (disabled)
+# 4. go vet        (http://golang.org/cmd/vet) (disabled)
+# 5. race detector (http://blog.golang.org/race-detector) (disabled)
 # 6. test coverage (http://blog.golang.org/cover)
 
 # If the following plugins don't exist, exit
@@ -32,7 +32,7 @@
 [ -f $SNAP_PATH/plugin/snap-publisher-file ] || { echo 'Error: $SNAP_PATH/plugin/snap-publisher-file does not exist. Run make to build it.' ; exit 1; }
 
 TEST_DIRS="cmd/ control/ core/ mgmt/ pkg/ snapd.go scheduler/"
-VET_DIRS="./cmd/... ./control/... ./core/... ./mgmt/... ./pkg/... ./scheduler/... ."
+# VET_DIRS="./cmd/... ./control/... ./core/... ./mgmt/... ./pkg/... ./scheduler/... ."
 
 set -e
 
@@ -61,8 +61,13 @@ test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"
 # echo "golint"
 # golint ./...
 
-echo "go vet"
-go vet $VET_DIRS
+# Disabling running go vet currently due to the inconsistency in it's reported
+# outputs depending on whether the project was pulled down via 'go get' or 'git clone'.
+# We will look to re-enable go vet checking when we can provide consistency in outputs
+# no matter how a developer gets the project.
+#echo "go vet"
+#go vet $VET_DIRS
+
 # go test -race ./... - Lets disable for now
 
 # Run test coverage on each subdirectories and merge the coverage profile.
