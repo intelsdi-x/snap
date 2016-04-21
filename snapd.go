@@ -40,6 +40,7 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
@@ -229,9 +230,14 @@ func action(ctx *cli.Context) {
 
 	coreModules = []coreModule{}
 
+	controlClient, err := control.NewClient(cfg.Control.ListenAddr, cfg.Control.ListenPort)
+	if err != nil {
+		log.Fatal(err)
+	}
 	coreModules = append(coreModules, c)
 	s := scheduler.New(cfg.Scheduler)
-	s.SetMetricManager(c)
+	cproxy := controlproxy.New(controlClient)
+	s.SetMetricManager(cproxy)
 	coreModules = append(coreModules, s)
 
 	// Auth requested and not provided as part of config

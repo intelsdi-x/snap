@@ -61,12 +61,12 @@ func (s *schedulerProxy) GetTasks(ctx context.Context, arg *common.Empty) (*rpc.
 
 func (s *schedulerProxy) StartTask(ctx context.Context, arg *rpc.StartTaskArg) (*rpc.StartTaskReply, error) {
 	errs := s.scheduler.StartTask(arg.Id)
-	return &rpc.StartTaskReply{Errors: rpc.NewErrors(errs)}, nil
+	return &rpc.StartTaskReply{Errors: common.NewErrors(errs)}, nil
 }
 
 func (s *schedulerProxy) StopTask(ctx context.Context, arg *rpc.StopTaskArg) (*rpc.StopTaskReply, error) {
 	errs := s.scheduler.StopTask(arg.Id)
-	return &rpc.StopTaskReply{Errors: rpc.NewErrors(errs)}, nil
+	return &rpc.StopTaskReply{Errors: common.NewErrors(errs)}, nil
 }
 
 func (s *schedulerProxy) RemoveTask(ctx context.Context, arg *rpc.RemoveTaskArg) (*common.Empty, error) {
@@ -161,7 +161,7 @@ func (s *schedulerProxy) CreateTask(ctx context.Context, arg *rpc.CreateTaskArg)
 	reply := &rpc.CreateTaskReply{}
 	t, errs := s.scheduler.CreateTask(sch, w, arg.Start, opts...)
 	if errs != nil {
-		reply.Errors = rpc.NewErrors(errs.Errors())
+		reply.Errors = common.NewErrors(errs.Errors())
 	}
 	if t != nil {
 		task, err := rpc.NewTask(t)
@@ -186,7 +186,7 @@ func newTaskWatchHandler() *taskWatchHandler {
 func (t *taskWatchHandler) CatchCollection(m []core.Metric) {
 	t.mChan <- &rpc.Watch{
 		EventType: rpc.Watch_METRICS_COLLECTED,
-		Events:    rpc.NewMetrics(m),
+		Events:    common.NewMetrics(m),
 	}
 }
 

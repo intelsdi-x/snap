@@ -23,13 +23,11 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"strconv"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/internal/common"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -52,37 +50,6 @@ func NewTask(t core.Task) (*Task, error) {
 		StopOnFail:  uint64(t.GetStopOnFailure()),
 	}
 	return tsk, err
-}
-
-type SnapErrors []*SnapError
-
-func ConvertSnapErrors(s []*SnapError) []serror.SnapError {
-	rerrs := make([]serror.SnapError, len(s))
-	for i, err := range s {
-		rerrs[i] = serror.New(errors.New(err.ErrorString), err.Fields())
-	}
-	return rerrs
-}
-
-func NewErrors(errs []serror.SnapError) []*SnapError {
-	errors := make([]*SnapError, len(errs))
-	for i, err := range errs {
-		fields := make(map[string]string)
-		for k, v := range err.Fields() {
-			switch t := v.(type) {
-			case string:
-				fields[k] = t
-			case int:
-				fields[k] = strconv.Itoa(t)
-			case float64:
-				fields[k] = strconv.FormatFloat(t, 'f', -1, 64)
-			default:
-				log.Errorf("Unexpected type %v\n", t)
-			}
-		}
-		errors[i] = &SnapError{ErrorFields: fields, ErrorString: err.Error()}
-	}
-	return errors
 }
 
 func (t *Task) ID() string {
@@ -158,72 +125,6 @@ func (t *Task) SetName(_ string) {
 }
 
 func (t *Task) SetStopOnFailure(_ uint) {
-}
-
-func (s *SnapError) Error() string {
-	return s.ErrorString
-}
-
-func (s *SnapError) Fields() map[string]interface{} {
-	fields := make(map[string]interface{}, len(s.ErrorFields))
-	for key, value := range s.ErrorFields {
-		fields[key] = value
-	}
-	return fields
-}
-
-func NewMetrics(ms []core.Metric) []*Metric {
-	metrics := make([]*Metric, len(ms))
-	for i, m := range ms {
-		metrics[i] = &Metric{
-			Namespace: m.Namespace(),
-			Version:   uint64(m.Version()),
-			Source:    m.Source(),
-			Tags:      m.Tags(),
-			Timestamp: &common.Time{
-				Sec:  m.Timestamp().Unix(),
-				Nsec: int64(m.Timestamp().Nanosecond()),
-			},
-		}
-		metrics[i].Labels = make([]*Label, len(m.Labels()))
-		for y, label := range m.Labels() {
-			metrics[i].Labels[y] = &Label{
-				Index: uint64(label.Index),
-				Name:  label.Name,
-			}
-		}
-		var b bytes.Buffer
-		enc := gob.NewEncoder(&b)
-		switch t := m.Data().(type) {
-		case string:
-			enc.Encode(t)
-			metrics[i].Data = b.Bytes()
-			metrics[i].DataType = "string"
-		case float64:
-			enc.Encode(t)
-			metrics[i].Data = b.Bytes()
-			metrics[i].DataType = "float64"
-		case float32:
-			enc.Encode(t)
-			metrics[i].Data = b.Bytes()
-			metrics[i].DataType = "float32"
-		case int32:
-			enc.Encode(t)
-			metrics[i].Data = b.Bytes()
-			metrics[i].DataType = "int32"
-		case int:
-			enc.Encode(t)
-			metrics[i].Data = b.Bytes()
-			metrics[i].DataType = "int"
-		case int64:
-			enc.Encode(t)
-			metrics[i].Data = b.Bytes()
-			metrics[i].DataType = "int64"
-		default:
-			panic(t)
-		}
-	}
-	return metrics
 }
 
 func (w *Watch) ToJSON() string {

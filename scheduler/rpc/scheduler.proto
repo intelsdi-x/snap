@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyrighr 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ message CreateTaskOpts {
 
 message CreateTaskReply {
     Task task = 1;
-    repeated SnapError errors = 2;
+    repeated common.SnapError errors = 2;
 }
 
 message GetTaskArg {
@@ -64,7 +64,7 @@ message StartTaskArg {
 }
 
 message StartTaskReply {
-    repeated SnapError errors = 1;
+    repeated common.SnapError errors = 1;
 }
 
 message StopTaskArg {
@@ -72,7 +72,7 @@ message StopTaskArg {
 }
 
 message StopTaskReply {
-    repeated SnapError errors = 1;
+    repeated common.SnapError errors = 1;
 }
 
 message RemoveTaskArg {
@@ -98,23 +98,7 @@ message Watch {
     }
     EventType event_type = 1;
     string message = 2;
-    repeated Metric events = 3;
-}
-
-message Metric {
-    repeated string namespace = 1;
-    bytes data = 2;
-    string data_type = 3;
-    uint64 version = 4;
-    string source = 5;
-    repeated Label labels = 6;
-    map<string, string> tags = 7;
-    common.Time Timestamp = 8;
-}
-
-message Label {
-    uint64 index = 1;
-    string name = 2;
+    repeated common.Metric events = 3;
 }
 
 message Task {
@@ -132,7 +116,3 @@ message Task {
     uint64 stop_on_fail = 12;
 }
 
-message SnapError {
-    string error_string = 1;
-    map<string, string> error_fields = 2;
-} 

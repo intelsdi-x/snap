@@ -256,7 +256,7 @@ func (p *pluginControl) Start() error {
 
 	opts := []grpc.ServerOption{}
 	grpcServer := grpc.NewServer(opts...)
-	rpc.RegisterMetricManagerServer(grpcServer, &controlProxy{p})
+	rpc.RegisterMetricManagerServer(grpcServer, &ControlGRPCServer{p})
 	rpc.RegisterConfigManagerServer(grpcServer, &configProxy{p.Config})
 	go func() {
 		err := grpcServer.Serve(lis)
@@ -673,9 +673,8 @@ func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins 
 	var serrs []serror.SnapError
 	collectors, errs := p.gatherCollectors(mts)
 	if len(errs) > 0 {
-		serrs = append(serrs)
+		serrs = append(serrs, errs...)
 	}
-
 	for _, gc := range collectors {
 		pool, err := p.pluginRunner.AvailablePlugins().getOrCreatePool(fmt.Sprintf("%s:%s:%d", gc.plugin.TypeName(), gc.plugin.Name(), gc.plugin.Version()))
 		if err != nil {
