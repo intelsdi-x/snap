@@ -643,7 +643,7 @@ func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins 
 	var serrs []serror.SnapError
 	collectors, errs := p.gatherCollectors(mts)
 	if len(errs) > 0 {
-		serrs = append(serrs)
+		serrs = append(serrs, errs...)
 	}
 
 	for _, gc := range collectors {
