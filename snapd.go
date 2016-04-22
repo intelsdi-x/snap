@@ -289,6 +289,38 @@ func action(ctx *cli.Context) {
 		tr = t
 	}
 
+	//Setup RESTful API if it was enabled in the configuration
+	if cfg.RestAPI.Enable {
+		r, err := rest.New(cfg.RestAPI)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.BindMetricManager(c)
+		r.BindConfigManager(c.Config)
+		r.BindTaskManager(s)
+
+		//Rest Authentication
+		if cfg.RestAPI.RestAuth {
+			log.Info("REST API authentication is enabled")
+			r.SetAPIAuth(cfg.RestAPI.RestAuth)
+			log.Info("REST API authentication password is set")
+			r.SetAPIAuthPwd(cfg.RestAPI.RestAuthPassword)
+			if !cfg.RestAPI.HTTPS {
+				log.Warning("Using REST API authentication without HTTPS enabled.")
+			}
+		}
+
+		if tr != nil {
+			r.BindTribeManager(tr)
+		}
+		go monitorErrors(r.Err())
+		r.SetAddress(fmt.Sprintf(":%d", cfg.RestAPI.Port))
+		coreModules = append(coreModules, r)
+		log.Info("REST API is enabled")
+	} else {
+		log.Info("REST API is disabled")
+	}
+
 	// Set interrupt handling so we can die gracefully.
 	startInterruptHandling(coreModules...)
 
@@ -467,36 +499,6 @@ func action(ctx *cli.Context) {
 		}
 	} else {
 		log.Info("auto discover path is disabled")
-	}
-
-	//Setup RESTful API if it was enbled in th configuration
-	if cfg.RestAPI.Enable {
-		r, err := rest.New(cfg.RestAPI)
-		if err != nil {
-			log.Fatal(err)
-		}
-		r.BindMetricManager(c)
-		r.BindConfigManager(c.Config)
-		r.BindTaskManager(s)
-		//Rest Authentication
-		if cfg.RestAPI.RestAuth {
-			log.Info("REST API authentication is enabled")
-			r.SetAPIAuth(cfg.RestAPI.RestAuth)
-			log.Info("REST API authentication password is set")
-			r.SetAPIAuthPwd(cfg.RestAPI.RestAuthPassword)
-			if !cfg.RestAPI.HTTPS {
-				log.Warning("Using REST API authentication without HTTPS enabled.")
-			}
-		}
-
-		if tr != nil {
-			r.BindTribeManager(tr)
-		}
-		go monitorErrors(r.Err())
-		r.Start(fmt.Sprintf(":%d", cfg.RestAPI.Port))
-		log.Info("REST API is enabled")
-	} else {
-		log.Info("REST API is disabled")
 	}
 
 	log.WithFields(
