@@ -63,6 +63,9 @@ type pluginConfigItem struct {
 }
 
 // holds the configuration passed in through the SNAP config file
+//   Note: if this struct is modified, then the switch statement in the
+//         UnmarshalJSON method in this same file needs to be modified to
+//         match the field mapping that is defined here
 type Config struct {
 	MaxRunningPlugins int               `json:"max_running_plugins,omitempty"yaml:"max_running_plugins,omitempty"`
 	PluginTrust       int               `json:"plugin_trust_level,omitempty"yaml:"plugin_trust_level,omitempty"`
@@ -82,6 +85,49 @@ func GetDefaultConfig() *Config {
 		CacheExpiration:   jsonutil.Duration{defaultCacheExpiration},
 		Plugins:           newPluginConfig(),
 	}
+}
+
+// UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
+// at github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
+func (c *Config) UnmarshalJSON(data []byte) error {
+	// construct a map of strings to json.RawMessages (to defer the parsing of individual
+	// fields from the unmarshalled interface until later) and unmarshal the input
+	// byte array into that map
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	// loop through the individual map elements, parse each in turn, and set
+	// the appropriate field in this configuration
+	for k, v := range t {
+		switch k {
+		case "max_running_plugins":
+			if err := json.Unmarshal(v, &(c.MaxRunningPlugins)); err != nil {
+				return err
+			}
+		case "plugin_trust_level":
+			if err := json.Unmarshal(v, &(c.PluginTrust)); err != nil {
+				return err
+			}
+		case "auto_discover_path":
+			if err := json.Unmarshal(v, &(c.AutoDiscoverPath)); err != nil {
+				return err
+			}
+		case "keyring_paths":
+			if err := json.Unmarshal(v, &(c.KeyringPaths)); err != nil {
+				return err
+			}
+		case "cache_expiration":
+			if err := json.Unmarshal(v, &(c.CacheExpiration)); err != nil {
+				return err
+			}
+		case "plugins":
+			if err := json.Unmarshal(v, c.Plugins); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // NewPluginsConfig returns a map of *pluginConfigItems where the key is the plugin name.
