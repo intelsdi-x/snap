@@ -210,6 +210,11 @@ func main() {
 
 func action(ctx *cli.Context) {
 	// get default configuration
+	defCfg := getDefaultConfig()
+
+	// and create a second copy of that configuration for use when
+	// merging with the configuration read from the configuration
+	// file
 	cfg := getDefaultConfig()
 
 	// read config file
@@ -219,7 +224,7 @@ func action(ctx *cli.Context) {
 	// to the configuration that we have built so far, overriding the
 	// values that may have already been set (if any) for the
 	// same variables in that configuration
-	applyCmdLineFlags(cfg, ctx)
+	applyCmdLineFlags(defCfg, cfg, ctx)
 
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.
@@ -604,7 +609,7 @@ func setDurationVal(field time.Duration, ctx *cli.Context, flagName string) time
 
 // Apply the command line flags set (if any) to override the values
 // in the input configuration
-func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
+func applyCmdLineFlags(defCfg *Config, cfg *Config, ctx *cli.Context) {
 	invertBoolean := true
 	// apply any command line flags that might have been set, first for the
 	// snapd-related flags
@@ -612,12 +617,18 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.LogLevel = setIntVal(cfg.LogLevel, ctx, "log-level")
 	cfg.LogPath = setStringVal(cfg.LogPath, ctx, "log-path")
 	// next for the flags related to the control package
+	if cfg.Control == nil {
+		cfg.Control = defCfg.Control
+	}
 	cfg.Control.MaxRunningPlugins = setIntVal(cfg.Control.MaxRunningPlugins, ctx, "max-running-plugins")
 	cfg.Control.PluginTrust = setIntVal(cfg.Control.PluginTrust, ctx, "plugin-trust")
 	cfg.Control.AutoDiscoverPath = setStringVal(cfg.Control.AutoDiscoverPath, ctx, "auto-discover")
 	cfg.Control.KeyringPaths = setStringVal(cfg.Control.KeyringPaths, ctx, "keyring-paths")
 	cfg.Control.CacheExpiration = jsonutil.Duration{setDurationVal(cfg.Control.CacheExpiration.Duration, ctx, "cache-expiration")}
 	// next for the RESTful server related flags
+	if cfg.RestAPI == nil {
+		cfg.RestAPI = defCfg.RestAPI
+	}
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")
 	cfg.RestAPI.HTTPS = setBoolVal(cfg.RestAPI.HTTPS, ctx, "rest-https")
@@ -626,9 +637,15 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.RestAPI.RestAuth = setBoolVal(cfg.RestAPI.RestAuth, ctx, "rest-auth")
 	cfg.RestAPI.RestAuthPassword = setStringVal(cfg.RestAPI.RestAuthPassword, ctx, "rest-auth-pwd")
 	// next for the scheduler related flags
+	if cfg.Scheduler == nil {
+		cfg.Scheduler = defCfg.Scheduler
+	}
 	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
 	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")
 	// and finally for the tribe-related flags
+	if cfg.Tribe == nil {
+		cfg.Tribe = defCfg.Tribe
+	}
 	cfg.Tribe.Name = setStringVal(cfg.Tribe.Name, ctx, "tribe-node-name")
 	cfg.Tribe.Enable = setBoolVal(cfg.Tribe.Enable, ctx, "tribe")
 	cfg.Tribe.BindAddr = setStringVal(cfg.Tribe.BindAddr, ctx, "tribe-addr")
