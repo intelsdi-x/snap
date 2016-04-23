@@ -773,6 +773,10 @@ func (m MockMetricType) Source() string {
 	return ""
 }
 
+func (m MockMetricType) Description() string {
+	return ""
+}
+
 func (m MockMetricType) LastAdvertisedTime() time.Time {
 	return time.Now()
 }

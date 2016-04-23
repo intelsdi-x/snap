@@ -107,6 +107,10 @@ type PluginMetricType struct {
 
 	Tags_ map[string]string `json:"tags"`
 
+	// A (long) description for the metric.  The description is stored on the
+	// metric catalog and not sent through  collect -> process -> publish.
+	Description_ string `json:"description"`
+
 	// The source of the metric (host, IP, etc).
 	Source_ string `json:"source"`
 
@@ -160,8 +164,14 @@ func (p PluginMetricType) Source() string {
 	return p.Source_
 }
 
+// returns the data for the metric
 func (p PluginMetricType) Data() interface{} {
 	return p.Data_
+}
+
+// returns the description of the metric
+func (p PluginMetricType) Description() string {
+	return p.Description_
 }
 
 func (p *PluginMetricType) AddData(data interface{}) {

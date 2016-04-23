@@ -385,6 +385,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 					config:             nmt.Config(),
 					data:               nmt.Data(),
 					tags:               nmt.Tags(),
+					description:        nmt.Description(),
 				}
 			}
 			// We quit and throw an error on bad metric versions (<1)

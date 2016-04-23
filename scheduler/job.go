@@ -203,6 +203,7 @@ func (m *metric) Version() int {
 }
 
 func (m *metric) Data() interface{}             { return nil }
+func (m *metric) Description() string           { return "" }
 func (m *metric) Tags() map[string]string       { return nil }
 func (m *metric) LastAdvertisedTime() time.Time { return time.Unix(0, 0) }
 func (m *metric) Source() string                { return "" }

@@ -101,6 +101,7 @@ type metricType struct {
 	source             string
 	tags               map[string]string
 	timestamp          time.Time
+	description        string
 }
 
 type processesConfigData interface {
@@ -181,6 +182,10 @@ func (m *metricType) Tags() map[string]string {
 
 func (m *metricType) Timestamp() time.Time {
 	return m.timestamp
+}
+
+func (m *metricType) Description() string {
+	return m.description
 }
 
 type metricCatalog struct {
@@ -365,6 +370,7 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) e
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
 		tags:               mt.Tags(),
 		policy:             lp.ConfigPolicy.Get(mt.Namespace().Strings()),
+		description:        mt.Description(),
 	}
 	mc.Add(&newMt)
 	return nil

@@ -262,6 +262,7 @@ func TestMetricCatalog(t *testing.T) {
 		Convey("adds a metricType to the metricCatalog", func() {
 			ns := core.NewNamespace([]string{"test"})
 			mt := newMetricType(ns, time.Now(), new(loadedPlugin))
+			mt.description = "some description"
 			mc := newMetricCatalog()
 			mc.Add(mt)
 			_mt, err := mc.Get(ns, -1)

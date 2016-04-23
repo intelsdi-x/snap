@@ -36,6 +36,7 @@ type Metric interface {
 	Source() string
 	Tags() map[string]string
 	Timestamp() time.Time
+	Description() string
 }
 
 type Namespace []NamespaceElement

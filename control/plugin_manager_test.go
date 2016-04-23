@@ -131,6 +131,7 @@ func TestLoadPlugin(t *testing.T) {
 				mts, err := p.metricCatalog.Fetch(core.NewNamespace([]string{}))
 				So(err, ShouldBeNil)
 				So(len(mts), ShouldBeGreaterThan, 2)
+				So(mts[0].Description(), ShouldResemble, "mock description")
 			})
 
 			Convey("for a plugin requiring a config an incomplete config will result in a load failure", func() {
