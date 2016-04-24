@@ -20,6 +20,8 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -210,11 +212,6 @@ func main() {
 
 func action(ctx *cli.Context) {
 	// get default configuration
-	defCfg := getDefaultConfig()
-
-	// and create a second copy of that configuration for use when
-	// merging with the configuration read from the configuration
-	// file
 	cfg := getDefaultConfig()
 
 	// read config file
@@ -224,7 +221,7 @@ func action(ctx *cli.Context) {
 	// to the configuration that we have built so far, overriding the
 	// values that may have already been set (if any) for the
 	// same variables in that configuration
-	applyCmdLineFlags(defCfg, cfg, ctx)
+	applyCmdLineFlags(cfg, ctx)
 
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.
@@ -609,7 +606,7 @@ func setDurationVal(field time.Duration, ctx *cli.Context, flagName string) time
 
 // Apply the command line flags set (if any) to override the values
 // in the input configuration
-func applyCmdLineFlags(defCfg *Config, cfg *Config, ctx *cli.Context) {
+func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	invertBoolean := true
 	// apply any command line flags that might have been set, first for the
 	// snapd-related flags
@@ -617,18 +614,12 @@ func applyCmdLineFlags(defCfg *Config, cfg *Config, ctx *cli.Context) {
 	cfg.LogLevel = setIntVal(cfg.LogLevel, ctx, "log-level")
 	cfg.LogPath = setStringVal(cfg.LogPath, ctx, "log-path")
 	// next for the flags related to the control package
-	if cfg.Control == nil {
-		cfg.Control = defCfg.Control
-	}
 	cfg.Control.MaxRunningPlugins = setIntVal(cfg.Control.MaxRunningPlugins, ctx, "max-running-plugins")
 	cfg.Control.PluginTrust = setIntVal(cfg.Control.PluginTrust, ctx, "plugin-trust")
 	cfg.Control.AutoDiscoverPath = setStringVal(cfg.Control.AutoDiscoverPath, ctx, "auto-discover")
 	cfg.Control.KeyringPaths = setStringVal(cfg.Control.KeyringPaths, ctx, "keyring-paths")
 	cfg.Control.CacheExpiration = jsonutil.Duration{setDurationVal(cfg.Control.CacheExpiration.Duration, ctx, "cache-expiration")}
 	// next for the RESTful server related flags
-	if cfg.RestAPI == nil {
-		cfg.RestAPI = defCfg.RestAPI
-	}
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")
 	cfg.RestAPI.HTTPS = setBoolVal(cfg.RestAPI.HTTPS, ctx, "rest-https")
@@ -637,15 +628,9 @@ func applyCmdLineFlags(defCfg *Config, cfg *Config, ctx *cli.Context) {
 	cfg.RestAPI.RestAuth = setBoolVal(cfg.RestAPI.RestAuth, ctx, "rest-auth")
 	cfg.RestAPI.RestAuthPassword = setStringVal(cfg.RestAPI.RestAuthPassword, ctx, "rest-auth-pwd")
 	// next for the scheduler related flags
-	if cfg.Scheduler == nil {
-		cfg.Scheduler = defCfg.Scheduler
-	}
 	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
 	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")
 	// and finally for the tribe-related flags
-	if cfg.Tribe == nil {
-		cfg.Tribe = defCfg.Tribe
-	}
 	cfg.Tribe.Name = setStringVal(cfg.Tribe.Name, ctx, "tribe-node-name")
 	cfg.Tribe.Enable = setBoolVal(cfg.Tribe.Enable, ctx, "tribe")
 	cfg.Tribe.BindAddr = setStringVal(cfg.Tribe.BindAddr, ctx, "tribe-addr")
@@ -717,6 +702,107 @@ func setMaxProcs(maxProcs int) {
 				"real maxprocs":  actualNumProcs,
 			}).Warning("not using given maxprocs")
 	}
+}
+
+// UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
+// at github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
+func (c *Config) UnmarshalJSON(data []byte) error {
+	t := map[string]interface{}{}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	if err := dec.Decode(&t); err != nil {
+		return err
+	}
+	// if a 'log_level' value was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["log_level"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return err
+			}
+			c.LogLevel = int(tmpVal)
+		} else {
+			return fmt.Errorf("Error parsing 'log_level' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// if a 'gomaxprocs' value was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["gomaxprocs"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return err
+			}
+			c.GoMaxProcs = int(tmpVal)
+		} else {
+			return fmt.Errorf("Error parsing 'gomaxprocs' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// if a 'log_path' value was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["log_path"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.LogPath = str
+		} else {
+			return fmt.Errorf("Error parsing 'log_path' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// if a 'control' section was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["control"]; ok && v != nil {
+		if cfg, ok := v.(map[string]interface{}); ok {
+			config, err := control.NewConfig(cfg)
+			if err != nil {
+				return err
+			}
+			c.Control = config
+		} else {
+			return fmt.Errorf("Error parsing 'control' from config; expected 'map[string]interface{}' but found '%T'", v)
+		}
+	}
+	// if a 'scheduler' section was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["scheduler"]; ok && v != nil {
+		if cfg, ok := v.(map[string]interface{}); ok {
+			config, err := scheduler.NewConfig(cfg)
+			if err != nil {
+				return err
+			}
+			c.Scheduler = config
+		} else {
+			return fmt.Errorf("Error parsing 'scheduler' from config; expected 'map[string]interface{}' but found '%T'", v)
+		}
+	}
+
+	// if a 'restapi' section was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["restapi"]; ok && v != nil {
+		if cfg, ok := v.(map[string]interface{}); ok {
+			config, err := rest.NewConfig(cfg)
+			if err != nil {
+				return err
+			}
+			c.RestAPI = config
+		} else {
+			return fmt.Errorf("Error parsing 'restapi' from config; expected 'map[string]interface{}' but found '%T'", v)
+		}
+	}
+	// if a 'tribe' section was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["tribe"]; ok && v != nil {
+		if cfg, ok := v.(map[string]interface{}); ok {
+			config, err := tribe.NewConfig(cfg)
+			if err != nil {
+				return err
+			}
+			c.Tribe = config
+		} else {
+			return fmt.Errorf("Error parsing 'tribe' from config; expected 'map[string]interface{}' but found '%T'", v)
+		}
+	}
+	// return a nil (no error)
+	return nil
 }
 
 func startModule(m coreModule) error {
