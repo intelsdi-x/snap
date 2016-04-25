@@ -1064,6 +1064,7 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 			Version_:            incomingmt.Version(),
 			Tags_:               catalogedmt.Tags(),
 			Config_:             incomingmt.Config(),
+			Unit_:               catalogedmt.Unit(),
 		}
 		lp := catalogedmt.Plugin
 		if lp == nil {

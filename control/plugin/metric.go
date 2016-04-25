@@ -105,7 +105,14 @@ type PluginMetricType struct {
 
 	Data_ interface{} `json:"data"`
 
+	// Tags are key value pairs that can be added by the framework or any
+	// plugin along the collect -> process -> publish pipeline.
 	Tags_ map[string]string `json:"tags"`
+
+	// Unit represents the unit of magnitude of the measured quantity.
+	// See http://metrics20.org/spec/#units as a guideline for this
+	// field.
+	Unit_ string
 
 	// A (long) description for the metric.  The description is stored on the
 	// metric catalog and not sent through  collect -> process -> publish.
@@ -116,12 +123,13 @@ type PluginMetricType struct {
 }
 
 // // PluginMetricType Constructor
-func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, tags map[string]string, data interface{}) *PluginMetricType {
+func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, tags map[string]string, unit string, data interface{}) *PluginMetricType {
 	return &PluginMetricType{
 		Namespace_: namespace,
 		Tags_:      tags,
 		Data_:      data,
 		Timestamp_: timestamp,
+		Unit_:      unit,
 	}
 }
 
@@ -163,6 +171,11 @@ func (p PluginMetricType) Data() interface{} {
 // returns the description of the metric
 func (p PluginMetricType) Description() string {
 	return p.Description_
+}
+
+// returns the metrics unit
+func (p PluginMetricType) Unit() string {
+	return p.Unit_
 }
 
 func (p *PluginMetricType) AddData(data interface{}) {

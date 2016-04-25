@@ -773,6 +773,10 @@ func (m MockMetricType) Description() string {
 	return ""
 }
 
+func (m MockMetricType) Unit() string {
+	return ""
+}
+
 func (m MockMetricType) LastAdvertisedTime() time.Time {
 	return time.Now()
 }
@@ -1515,7 +1519,7 @@ func TestPublishMetrics(t *testing.T) {
 
 			Convey("Publish to file", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, 1),
+					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1568,7 +1572,7 @@ func TestProcessMetrics(t *testing.T) {
 
 			Convey("process metrics", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, 1),
+					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)

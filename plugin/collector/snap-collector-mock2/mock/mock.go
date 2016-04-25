@@ -66,6 +66,7 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 					Namespace_: ns,
 					Timestamp_: time.Now(),
 					Version_:   mts[i].Version(),
+					Unit_:      mts[i].Unit(),
 				}
 				metrics = append(metrics, mt)
 			}
@@ -89,21 +90,25 @@ func (f *Mock) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetri
 		mts = append(mts, plugin.PluginMetricType{
 			Namespace_:   core.NewNamespace([]string{"intel", "mock", "test"}),
 			Description_: "mock description",
+			Unit_:        "mock unit",
 		})
 	}
 	mts = append(mts, plugin.PluginMetricType{
 		Namespace_:   core.NewNamespace([]string{"intel", "mock", "foo"}),
 		Description_: "mock description",
+		Unit_:        "mock unit",
 	})
 	mts = append(mts, plugin.PluginMetricType{
 		Namespace_:   core.NewNamespace([]string{"intel", "mock", "bar"}),
 		Description_: "mock description",
+		Unit_:        "mock unit",
 	})
 	mts = append(mts, plugin.PluginMetricType{
 		Namespace_: core.NewNamespace([]string{"intel", "mock"}).
 			AddDynamicElement("host", "name of the host").
 			AddStaticElement("baz"),
 		Description_: "mock description",
+		Unit_:        "mock unit",
 	})
 	return mts, nil
 }

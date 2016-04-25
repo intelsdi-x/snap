@@ -32,8 +32,8 @@ import (
 func TestMetric(t *testing.T) {
 	Convey("error on invalid snap content type", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, 2),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", 2),
 		}
 		a, c, e := MarshalPluginMetricTypes("foo", m)
 		m[0].Version_ = 1
@@ -61,8 +61,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("marshall using snap.* default to snap.gob", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "2"),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("snap.*", m)
 		So(e, ShouldBeNil)
@@ -83,8 +83,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("marshall using snap.gob", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "2"),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("snap.gob", m)
 		So(e, ShouldBeNil)
@@ -111,8 +111,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("marshall using snap.json", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "2"),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
@@ -139,8 +139,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("error on unmarshall using bad content type", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "2"),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
@@ -156,8 +156,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("swap from snap.gob to snap.json", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "2"),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("snap.gob", m)
 		So(e, ShouldBeNil)
@@ -180,8 +180,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("swap from snap.json to snap.*", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "2"),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
@@ -204,8 +204,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("swap from snap.json to snap.gob", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "2"),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
@@ -228,8 +228,8 @@ func TestMetric(t *testing.T) {
 
 	Convey("error on bad content type to swap", t, func() {
 		m := []PluginMetricType{
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, 1),
-			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "2"),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewPluginMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
 		a, c, e := MarshalPluginMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
