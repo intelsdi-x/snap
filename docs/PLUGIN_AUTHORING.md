@@ -140,7 +140,7 @@ func Meta() *plugin.PluginMeta {
 ```
 
 ## Logging and debugging
-snap uses [logrus](http://github.com/Sirupsen/logrus) to log. Your plugins can use it, or any standard Go log package. Each plugin has its log file. If no logging directory is specified, logs are in the /tmp directory of the running machine. INFO is the logging level for the release version of plugins. Loggers are excellent resources for debugging. You can also use Go GDB to debug.
+snap uses [logrus](http://github.com/Sirupsen/logrus) to log. Your plugins can use it, or any standard Go log package. Each plugin has its log file. If no logging directory is specified, logs are in the /tmp directory of the running machine. INFO is the logging level for the release version of plugins. Loggers are excellent resources for debugging. You can also use Go GDB or [delve](https://github.com/derekparker/delve) to debug.
 
 ## Building and running the tests
 While developing a plugin, unit and integration tests need to be performed. snap uses [goconvery](http://github.com/smartystreets/goconvey/convey) for unit tests. You are welcome to use it or any other unit test framework. For the integration tests, you have to set up $SNAP_PATH and some necessary direct, or indirect dependencies. Using Docker container for integration tests is an effective testing strategy. Integration tests may define an input workflow. Refer to a sample [integration test input](https://github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json).
