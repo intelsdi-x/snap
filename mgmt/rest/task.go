@@ -374,7 +374,6 @@ func (t *TaskWatchHandler) CatchCollection(m []core.Metric) {
 		sm[i] = rbody.StreamedMetric{
 			Namespace: m[i].Namespace().String(),
 			Data:      m[i].Data(),
-			Source:    m[i].Source(),
 			Timestamp: m[i].Timestamp(),
 			Tags:      m[i].Tags(),
 		}

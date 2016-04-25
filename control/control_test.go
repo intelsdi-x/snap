@@ -769,10 +769,6 @@ func (m MockMetricType) Namespace() core.Namespace {
 	return m.namespace
 }
 
-func (m MockMetricType) Source() string {
-	return ""
-}
-
 func (m MockMetricType) Description() string {
 	return ""
 }
@@ -1519,7 +1515,7 @@ func TestPublishMetrics(t *testing.T) {
 
 			Convey("Publish to file", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), "", nil, 1),
+					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1572,7 +1568,7 @@ func TestProcessMetrics(t *testing.T) {
 
 			Convey("process metrics", func() {
 				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), "", nil, 1),
+					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)

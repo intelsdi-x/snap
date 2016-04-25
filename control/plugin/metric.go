@@ -111,21 +111,17 @@ type PluginMetricType struct {
 	// metric catalog and not sent through  collect -> process -> publish.
 	Description_ string `json:"description"`
 
-	// The source of the metric (host, IP, etc).
-	Source_ string `json:"source"`
-
 	// The timestamp from when the metric was created.
 	Timestamp_ time.Time `json:"timestamp"`
 }
 
 // // PluginMetricType Constructor
-func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, source string, tags map[string]string, data interface{}) *PluginMetricType {
+func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, tags map[string]string, data interface{}) *PluginMetricType {
 	return &PluginMetricType{
 		Namespace_: namespace,
 		Tags_:      tags,
 		Data_:      data,
 		Timestamp_: timestamp,
-		Source_:    source,
 	}
 }
 
@@ -157,11 +153,6 @@ func (p PluginMetricType) Tags() map[string]string {
 // returns the timestamp of when the metric was collected
 func (p PluginMetricType) Timestamp() time.Time {
 	return p.Timestamp_
-}
-
-// returns the source of the metric
-func (p PluginMetricType) Source() string {
-	return p.Source_
 }
 
 // returns the data for the metric

@@ -58,8 +58,6 @@ func (m mockMetricType) Config() *cdata.ConfigDataNode { return nil }
 
 func (m mockMetricType) Data() interface{} { return nil }
 
-func (m mockMetricType) Source() string { return "" }
-
 func (m mockMetricType) Tags() map[string]string { return nil }
 
 func (m mockMetricType) Timestamp() time.Time { return time.Time{} }

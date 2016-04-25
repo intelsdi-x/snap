@@ -98,7 +98,6 @@ type metricType struct {
 	policy             processesConfigData
 	config             *cdata.ConfigDataNode
 	data               interface{}
-	source             string
 	tags               map[string]string
 	timestamp          time.Time
 	description        string
@@ -170,10 +169,6 @@ func (m *metricType) Config() *cdata.ConfigDataNode {
 
 func (m *metricType) Policy() *cpolicy.ConfigPolicyNode {
 	return m.policy.(*cpolicy.ConfigPolicyNode)
-}
-
-func (m *metricType) Source() string {
-	return m.source
 }
 
 func (m *metricType) Tags() map[string]string {

@@ -252,7 +252,6 @@ func (s *StreamedTaskEvent) ToJSON() string {
 type StreamedMetric struct {
 	Namespace string            `json:"namespace"`
 	Data      interface{}       `json:"data"`
-	Source    string            `json:"source"`
 	Timestamp time.Time         `json:"timestamp"`
 	Tags      map[string]string `json:"tags"`
 }
@@ -264,7 +263,7 @@ func (s StreamedMetrics) Len() int {
 }
 
 func (s StreamedMetrics) Less(i, j int) bool {
-	return fmt.Sprintf("%s:%s", s[i].Source, s[i].Namespace) < fmt.Sprintf("%s:%s", s[j].Source, s[j].Namespace)
+	return fmt.Sprintf("%s", s[i].Namespace) < fmt.Sprintf("%s", s[j].Namespace)
 }
 
 func (s StreamedMetrics) Swap(i, j int) {

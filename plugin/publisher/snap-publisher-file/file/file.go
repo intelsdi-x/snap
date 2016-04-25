@@ -73,11 +73,7 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 	}
 	w := bufio.NewWriter(file)
 	for _, m := range metrics {
-		source := m.Source()
-		if source == "" {
-			source = "unknown"
-		}
-		w.WriteString(fmt.Sprintf("%v|%v|%v|%v\n", m.Timestamp(), m.Namespace(), m.Data(), source))
+		w.WriteString(fmt.Sprintf("%v|%v|%v\n", m.Timestamp(), m.Namespace(), m.Data()))
 	}
 	w.Flush()
 

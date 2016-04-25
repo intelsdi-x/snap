@@ -22,7 +22,6 @@ package mock
 import (
 	"fmt"
 	"math/rand"
-	"os"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin"
@@ -51,7 +50,6 @@ type Mock struct {
 func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
 	metrics := []plugin.PluginMetricType{}
 	rand.Seed(time.Now().UTC().UnixNano())
-	hostname, _ := os.Hostname()
 	for i, p := range mts {
 		if mts[i].Namespace()[2].Value == "*" {
 			for j := 0; j < 10; j++ {
@@ -62,7 +60,6 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 				mt := plugin.PluginMetricType{
 					Data_:      data,
 					Namespace_: ns,
-					Source_:    hostname,
 					Timestamp_: time.Now(),
 					Version_:   mts[i].Version(),
 				}
@@ -75,7 +72,6 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 				p.Data_ = fmt.Sprintf("The mock collected data! config data: user=%s password=%s", p.Config().Table()["user"], p.Config().Table()["password"])
 			}
 			p.Timestamp_ = time.Now()
-			p.Source_ = hostname
 			metrics = append(metrics, p)
 		}
 	}

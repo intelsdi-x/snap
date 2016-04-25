@@ -33,7 +33,6 @@ type Metric interface {
 	Config() *cdata.ConfigDataNode
 	LastAdvertisedTime() time.Time
 	Data() interface{}
-	Source() string
 	Tags() map[string]string
 	Timestamp() time.Time
 	Description() string
