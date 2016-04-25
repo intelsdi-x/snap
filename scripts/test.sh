@@ -25,6 +25,15 @@
 # 5. race detector (http://blog.golang.org/race-detector) (disabled)
 # 6. test coverage (http://blog.golang.org/cover)
 
+if [[ $# -ne 1 ]]; then
+	echo "ERROR; missing SNAP_TEST_TYPE (Usage: $0 SNAP_TEST_TYPE)"
+	exit -2
+elif [[ “$1” != “legacy” && "$1" != "small" && “$1” != “medium” && “$1” != “large” ]]; then
+	echo "Error; invalid SNAP_TEST_TYPE (value must be one of 'legacy', 'small', 'medium', or 'large'; received $1)"
+	exit -1
+fi
+SNAP_TEST_TYPE=$1
+
 # If the following plugins don't exist, exit
 [ -f $SNAP_PATH/plugin/snap-collector-mock1 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock1 does not exist. Run make to build it.' ; exit 1; }
 [ -f $SNAP_PATH/plugin/snap-collector-mock2 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock2 does not exist. Run make to build it.' ; exit 1; }
@@ -71,19 +80,22 @@ test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"
 # go test -race ./... - Lets disable for now
 
 # Run test coverage on each subdirectories and merge the coverage profile.
-echo "mode: count" > profile.cov
+echo "mode: count ($SNAP_TEST_TYPE)" > profile-$SNAP_TEST_TYPE.cov
+echo ""
+echo "====================   $SNAP_TEST_TYPE    ===================="
 
 # Standard go tooling behavior is to ignore dirs with leading underscors
 for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -not -path './examples/*' -not -path './scripts/*' -type d);
 do
 	if ls $dir/*.go &> /dev/null; then
-	    go test -covermode=count -coverprofile=$dir/profile.tmp $dir
+	    go test -tags=$SNAP_TEST_TYPE -covermode=count -coverprofile=$dir/profile.tmp $dir
 	    if [ -f $dir/profile.tmp ]
 	    then
-	        cat $dir/profile.tmp | tail -n +2 >> profile.cov
+	        cat $dir/profile.tmp | tail -n +2 >> profile-$SNAP_TEST_TYPE.cov
 	        rm $dir/profile.tmp
 	    fi
 	fi
 done
 
-go tool cover -func profile.cov
+go tool cover -func profile-$SNAP_TEST_TYPE.cov
+echo "==================== end $SNAP_TEST_TYPE  ===================="

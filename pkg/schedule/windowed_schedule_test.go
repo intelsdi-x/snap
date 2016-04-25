@@ -1,3 +1,5 @@
+// +build legacy
+
 package schedule
 
 import (

@@ -1,3 +1,5 @@
+// +build legacy
+
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
@@ -60,10 +62,10 @@ func writeYaml(tc testConfig) string {
 	if err != nil {
 		panic(err)
 	}
-	if _, err := f.Write(b); err != nil {
+	if _, err = f.Write(b); err != nil {
 		panic(err)
 	}
-	if err := f.Close(); err != nil {
+	if err = f.Close(); err != nil {
 		panic(err)
 	}
 	fp, err := filepath.Abs(f.Name())
@@ -82,10 +84,10 @@ func writeJson(tc testConfig) string {
 	if err != nil {
 		panic(err)
 	}
-	if _, err := f.Write(b); err != nil {
+	if _, err = f.Write(b); err != nil {
 		panic(err)
 	}
-	if err := f.Close(); err != nil {
+	if err = f.Close(); err != nil {
 		panic(err)
 	}
 	fp, err := filepath.Abs(f.Name())

@@ -31,41 +31,37 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-// Read an input configuration file, parsing it (as YAML or JSON)
-// into the input 'interface{}'', v
-func Read(path string, v interface{}, schema string) []serror.SnapError {
-	// read bytes from file
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return []serror.SnapError{serror.New(err)}
-	}
-	// convert from YAML to JSON (remember, JSON is actually valid YAML)
-	jb, err := yaml.YAMLToJSON(b)
-	if err != nil {
-		return []serror.SnapError{serror.New(fmt.Errorf("error converting YAML to JSON: %v", err))}
-	}
-	// validate the resulting JSON against the input the schema
-	if errors := ValidateSchema(schema, string(jb)); errors != nil {
-		// if invalid, construct (and return?) a SnapError from the errors identified
-		// during schema validation
-		return errors
-	}
-	// if valid, parse the JSON byte-stream (above)
-	if parseErr := json.Unmarshal(jb, v); parseErr != nil {
-		// remove any YAML-specific prefix that might have been added by then
-		// yaml.Unmarshal() method or JSON-specific prefix that might have been
-		// added if the resulting JSON string could not be marshalled into our
-		// input interface correctly (note, if there is no match to either of
-		// these prefixes then the error message will be passed through unchanged)
-		tmpErr := strings.TrimPrefix(parseErr.Error(), "error converting YAML to JSON: yaml: ")
-		errRet := strings.TrimPrefix(tmpErr, "error unmarshaling JSON: json: ")
-		return []serror.SnapError{serror.New(fmt.Errorf("Error while parsing configuration file: %v", errRet))}
-	}
-	return nil
+// we're wrapping a function from the underlying io/ioutil package here so
+// that it's easier to mock when we define our *small* tests for this package...
+// first, define an interface for reading a file (by path)
+type reader interface {
+	ReadFile(s string) ([]byte, error)
 }
 
-// Validate the configuration (JSON) string against the input schema
-func ValidateSchema(schema, cfg string) []serror.SnapError {
+// then define a type (struct) that will implement the ReadFile method
+type cfgReaderType struct{}
+
+// then define the implementation for that type; it simply calls the
+// underlying ioutil.Readfile() method and returns the result
+func (r *cfgReaderType) ReadFile(s string) ([]byte, error) {
+	return ioutil.ReadFile(s)
+}
+
+// then define a private variable that is of type reader (interface)
+var cfgReader reader
+
+// now, to make things even more testable, do the same for the process of
+// validating the schema; first, create an interface to wrap the underlying
+// method that will be used to validate the schema
+type schemaValidator interface {
+	ValidateSchema(schema, cfg string) []serror.SnapError
+}
+
+// then, define a type (struct) that will validate the underlying schema
+type schemaValidatorType struct{}
+
+// and define an implementation for that type that performs the schema validation
+func (r *schemaValidatorType) ValidateSchema(schema, cfg string) []serror.SnapError {
 	schemaLoader := gojsonschema.NewStringLoader(schema)
 	testDoc := gojsonschema.NewStringLoader(cfg)
 	result, err := gojsonschema.Validate(schemaLoader, testDoc)
@@ -89,4 +85,46 @@ func ValidateSchema(schema, cfg string) []serror.SnapError {
 		serrors = append(serrors, serr)
 	}
 	return serrors
+}
+
+// then define a private variable that is of type reader (interface)
+var cfgValidator schemaValidator
+
+// and finally, initialize to set the instance of that variable
+func init() {
+	cfgReader = &cfgReaderType{}
+	cfgValidator = &schemaValidatorType{}
+}
+
+// Read an input configuration file, parsing it (as YAML or JSON)
+// into the input 'interface{}', v
+func Read(path string, v interface{}, schema string) []serror.SnapError {
+	// read bytes from file
+	b, err := cfgReader.ReadFile(path)
+	if err != nil {
+		return []serror.SnapError{serror.New(err)}
+	}
+	// convert from YAML to JSON (remember, JSON is actually valid YAML)
+	jb, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		return []serror.SnapError{serror.New(fmt.Errorf("error converting YAML to JSON: %v", err))}
+	}
+	// validate the resulting JSON against the input the schema
+	if errors := cfgValidator.ValidateSchema(schema, string(jb)); errors != nil {
+		// if invalid, construct (and return?) a SnapError from the errors identified
+		// during schema validation
+		return errors
+	}
+	// if valid, parse the JSON byte-stream (above)
+	if parseErr := json.Unmarshal(jb, v); parseErr != nil {
+		// remove any YAML-specific prefix that might have been added by then
+		// yaml.Unmarshal() method or JSON-specific prefix that might have been
+		// added if the resulting JSON string could not be marshalled into our
+		// input interface correctly (note, if there is no match to either of
+		// these prefixes then the error message will be passed through unchanged)
+		tmpErr := strings.TrimPrefix(parseErr.Error(), "error converting YAML to JSON: yaml: ")
+		errRet := strings.TrimPrefix(tmpErr, "error unmarshaling JSON: json: ")
+		return []serror.SnapError{serror.New(fmt.Errorf("Error while parsing configuration file: %v", errRet))}
+	}
+	return nil
 }
