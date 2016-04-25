@@ -219,25 +219,40 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 		return nil, te
 	}
 
+	// Create the task object
+	task, err := newTask(sch, wf, s.workManager, s.metricManager, s.eventManager, opts...)
+	if err != nil {
+		te.errs = append(te.errs, serror.New(err))
+		f := buildErrorsLog(te.Errors(), logger)
+		f.Error("Unable to create task")
+		return nil, te
+	}
+
 	// validate plugins and metrics
-	mts, plugins := s.gatherMetricsAndPlugins(wf)
+	mts, plugins, clients := s.gatherMetricsAndPlugins(wf)
+	// Validates local deps
 	errs := s.metricManager.ValidateDeps(mts, plugins)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
 		return nil, te
 	}
+	// Validates remote deps
+	for k := range clients {
+		errs := task.RemoteManagers.Get(k).ValidateDeps([]core.Metric{}, clients[k])
+		if len(errs) > 0 {
+			te.errs = append(te.errs, errs...)
+			return nil, te
+		}
+	}
 
 	// Bind plugin content type selections in workflow
-	err = wf.BindPluginContentTypes(s.metricManager)
+	err = wf.BindPluginContentTypes(s.metricManager, &task.RemoteManagers)
 	if err != nil {
 		te.errs = append(te.errs, serror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
 		f.Error("unable to bind plugin content types")
 		return nil, te
 	}
-
-	// Create the task object
-	task := newTask(sch, wf, s.workManager, s.metricManager, s.eventManager, opts...)
 
 	// Add task to taskCollection
 	if err := s.tasks.add(task); err != nil {
@@ -341,6 +356,7 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 		"_block": "start-task",
 		"source": source,
 	})
+
 	t, err := s.getTask(id)
 	if err != nil {
 		schedulerLogger.WithFields(log.Fields{
@@ -371,7 +387,7 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 		}
 	}
 
-	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
+	mts, plugins, clients := s.gatherMetricsAndPlugins(t.workflow)
 	cps := returnCorePlugin(plugins)
 	serrs := s.metricManager.SubscribeDeps(t.ID(), mts, cps)
 	if len(serrs) > 0 {
@@ -383,6 +399,22 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 			"_error":  errs,
 		}).Error("task failed to start due to dependencies")
 		return errs
+	}
+
+	taskToPlugin := make(map[string][]core.Plugin)
+	for k := range clients {
+		cps := returnCorePlugin(clients[k])
+		taskToPlugin[k] = cps
+		errs := t.RemoteManagers.Get(k).SubscribeDeps(t.ID(), []core.Metric{}, cps)
+		// If there are errors with subscribing any deps, go through and unsubscribe all other
+		// deps that may have already been subscribed then return the errors.
+		if len(errs) > 0 {
+			for key, val := range taskToPlugin {
+				uerrs := t.RemoteManagers.Get(key).UnsubscribeDeps(t.ID(), []core.Metric{}, val)
+				errs = append(errs, uerrs...)
+			}
+			return errs
+		}
 	}
 
 	event := &scheduler_event.TaskStartedEvent{
@@ -433,11 +465,17 @@ func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 		}
 	}
 
-	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
+	mts, plugins, clients := s.gatherMetricsAndPlugins(t.workflow)
 	cps := returnCorePlugin(plugins)
 	errs := s.metricManager.UnsubscribeDeps(t.ID(), mts, cps)
 	if len(errs) > 0 {
 		return errs
+	}
+	for k := range clients {
+		errs := t.RemoteManagers.Get(k).UnsubscribeDeps(t.ID(), []core.Metric{}, returnCorePlugin(clients[k]))
+		if len(errs) > 0 {
+			return errs
+		}
 	}
 
 	event := &scheduler_event.TaskStoppedEvent{
@@ -601,9 +639,12 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 		}).Debug("event received")
 		// We need to unsubscribe from deps when a task goes disabled
 		task, _ := s.getTask(v.TaskID)
-		mts, plugins := s.gatherMetricsAndPlugins(task.workflow)
+		mts, plugins, clients := s.gatherMetricsAndPlugins(task.workflow)
 		cps := returnCorePlugin(plugins)
 		s.metricManager.UnsubscribeDeps(task.ID(), mts, cps)
+		for k := range clients {
+			task.RemoteManagers.Get(k).UnsubscribeDeps(task.ID(), []core.Metric{}, cps)
+		}
 		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
 	default:
 		log.WithFields(log.Fields{
@@ -622,7 +663,7 @@ func (s *scheduler) getTask(id string) (*task, error) {
 	return task, nil
 }
 
-func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
+func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin, map[string][]core.SubscribedPlugin) {
 	var (
 		mts     []core.Metric
 		plugins []core.SubscribedPlugin
@@ -643,18 +684,37 @@ func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) ([]core.Metri
 			})
 		}
 	}
-	s.walkWorkflow(wf.processNodes, wf.publishNodes, &plugins)
+	clients := make(map[string][]core.SubscribedPlugin)
+	s.walkWorkflow(wf.processNodes, wf.publishNodes, &plugins, clients)
 
-	return mts, plugins
+	return mts, plugins, clients
 }
 
-func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, plugins *[]core.SubscribedPlugin) {
+func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, plugins *[]core.SubscribedPlugin, clients map[string][]core.SubscribedPlugin) {
 	for _, pr := range prnodes {
-		*plugins = append(*plugins, pr)
-		s.walkWorkflow(pr.ProcessNodes, pr.PublishNodes, plugins)
+		// If a hostname is set add it to client map, otherwise add it to (local) plugins slice
+		if pr.Target != "" {
+			if _, ok := clients[pr.Target]; ok {
+				clients[pr.Target] = append(clients[pr.Target], pr)
+			} else {
+				clients[pr.Target] = []core.SubscribedPlugin{pr}
+			}
+		} else {
+			*plugins = append(*plugins, pr)
+		}
+		s.walkWorkflow(pr.ProcessNodes, pr.PublishNodes, plugins, clients)
 	}
 	for _, pb := range pbnodes {
-		*plugins = append(*plugins, pb)
+		// If a hostname is set add it to client map, otherwise add it to (local) plugins slice
+		if pb.Target != "" {
+			if _, ok := clients[pb.Target]; ok {
+				clients[pb.Target] = append(clients[pb.Target], pb)
+			} else {
+				clients[pb.Target] = []core.SubscribedPlugin{pb}
+			}
+		} else {
+			*plugins = append(*plugins, pb)
+		}
 	}
 }
 

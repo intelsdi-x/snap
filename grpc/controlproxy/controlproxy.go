@@ -58,7 +58,7 @@ func (c ControlProxy) ExpandWildcards(namespace []string) ([][]string, serror.Sn
 func (c ControlProxy) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	req := GetPubProcReq(contentType, content, pluginName, pluginVersion, config, taskID)
 	reply, err := c.Client.PublishMetrics(context.Background(), req)
-	errs := make([]error, 0)
+	var errs []error
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -71,7 +71,7 @@ func (c ControlProxy) PublishMetrics(contentType string, content []byte, pluginN
 func (c ControlProxy) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
 	req := GetPubProcReq(contentType, content, pluginName, pluginVersion, config, taskID)
 	reply, err := c.Client.ProcessMetrics(context.Background(), req)
-	errs := make([]error, 0)
+	var errs []error
 	if err != nil {
 		errs = append(errs, err)
 		return "", nil, errs
@@ -91,7 +91,7 @@ func (c ControlProxy) CollectMetrics(mts []core.Metric, deadline time.Time, task
 		TaskID: taskID,
 	}
 	reply, err := c.Client.CollectMetrics(context.Background(), req)
-	errs := make([]error, 0)
+	var errs []error
 	if err != nil {
 		errs = append(errs, err)
 		return nil, errs

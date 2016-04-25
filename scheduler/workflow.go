@@ -137,6 +137,7 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 			name:         p.Name,
 			version:      p.Version,
 			config:       cdn,
+			Target:       p.Target,
 			ProcessNodes: prC,
 			PublishNodes: puC,
 		}
@@ -161,6 +162,7 @@ func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error
 			name:    p.Name,
 			version: p.Version,
 			config:  cdn,
+			Target:  p.Target,
 		}
 	}
 	return puNodes, nil
@@ -183,6 +185,7 @@ type processNode struct {
 	name               string
 	version            int
 	config             *cdata.ConfigDataNode
+	Target             string
 	ProcessNodes       []*processNode
 	PublishNodes       []*publishNode
 	InboundContentType string
@@ -208,6 +211,7 @@ type publishNode struct {
 	name               string
 	version            int
 	config             *cdata.ConfigDataNode
+	Target             string
 	InboundContentType string
 }
 
@@ -230,12 +234,18 @@ func (p *publishNode) TypeName() string {
 type wfContentTypes map[string]map[string][]string
 
 // BindPluginContentTypes
-func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes) error {
-	return bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.SnapGOBContentType})
+func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes, clients *managers) error {
+	return bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.SnapGOBContentType}, clients)
 }
 
-func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPluginContentTypes, lct []string) error {
+func bindPluginContentTypes(pus []*publishNode, prs []*processNode, local managesPluginContentTypes, lct []string, clients *managers) error {
 	for _, pr := range prs {
+		var mm managesPluginContentTypes
+		if pr.Target != "" {
+			mm = clients.Get(pr.Target)
+		} else {
+			mm = local
+		}
 		act, rct, err := mm.GetPluginContentTypes(pr.Name(), core.ProcessorPluginType, pr.Version())
 		if err != nil {
 			return err
@@ -270,11 +280,17 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPl
 			}
 		}
 		//continue the walk down the nodes
-		if err := bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, mm, rct); err != nil {
+		if err := bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, local, rct, clients); err != nil {
 			return err
 		}
 	}
 	for _, pu := range pus {
+		var mm managesPluginContentTypes
+		if pu.Target != "" {
+			mm = clients.Get(pu.Target)
+		} else {
+			mm = local
+		}
 		act, _, err := mm.GetPluginContentTypes(pu.Name(), core.PublisherPluginType, pu.Version())
 		if err != nil {
 			return err
@@ -389,7 +405,12 @@ func submitProcessJob(pj job, t *task, wg *sync.WaitGroup, pr *processNode) {
 	// Decrement the waitgroup
 	defer wg.Done()
 	// Create a new process job
-	j := newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.metricsManager, t.id)
+	var j job
+	if pr.Target != "" {
+		j = newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.RemoteManagers.Get(pr.Target), t.id)
+	} else {
+		j = newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.metricsManager, t.id)
+	}
 	workflowLogger.WithFields(log.Fields{
 		"_block":           "submit-process-job",
 		"task-id":          t.id,
@@ -431,7 +452,12 @@ func submitPublishJob(pj job, t *task, wg *sync.WaitGroup, pu *publishNode) {
 	// Decrement the waitgroup
 	defer wg.Done()
 	// Create a new process job
-	j := newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.metricsManager, t.id)
+	var j job
+	if pu.Target != "" {
+		j = newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.RemoteManagers.Get(pu.Target), t.id)
+	} else {
+		j = newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.metricsManager, t.id)
+	}
 	workflowLogger.WithFields(log.Fields{
 		"_block":           "submit-publish-job",
 		"task-id":          t.id,

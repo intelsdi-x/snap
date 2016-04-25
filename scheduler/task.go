@@ -22,6 +22,8 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -29,8 +31,10 @@ import (
 	"github.com/intelsdi-x/gomit"
 	"github.com/pborman/uuid"
 
+	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
@@ -80,10 +84,11 @@ type task struct {
 	lastFailureTime    time.Time
 	stopOnFailure      uint
 	eventEmitter       gomit.Emitter
+	RemoteManagers     managers
 }
 
 //NewTask creates a Task
-func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm managesMetrics, emitter gomit.Emitter, opts ...core.TaskOption) *task {
+func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm managesMetrics, emitter gomit.Emitter, opts ...core.TaskOption) (*task, error) {
 
 	//Task would always be given a default name.
 	//However if a user want to change this name, she can pass optional arguments, in form of core.TaskOption
@@ -110,7 +115,12 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 	for _, opt := range opts {
 		opt(task)
 	}
-	return task
+	task.RemoteManagers = newManagers()
+	err := createTaskClients(&task.RemoteManagers, wf)
+	if err != nil {
+		return nil, err
+	}
+	return task, nil
 }
 
 // Option sets the options specified.
@@ -444,4 +454,55 @@ func (t *taskCollection) Table() map[string]*task {
 		tasks[id] = t
 	}
 	return tasks
+}
+
+// createTaskClients walks the workflowmap and creates clients for this task
+// remoteManagers so that nodes that require proxy request can make them.
+func createTaskClients(mgrs *managers, wf *schedulerWorkflow) error {
+	return walkWorkflow(wf.processNodes, wf.publishNodes, mgrs)
+}
+
+func walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, mgrs *managers) error {
+	for _, pr := range prnodes {
+		if pr.Target != "" {
+			host, port, err := net.SplitHostPort(pr.Target)
+			if err != nil {
+				return err
+			}
+			p, err := strconv.Atoi(port)
+			if err != nil {
+				return err
+			}
+			controlClient, err := control.NewClient(host, p)
+			if err != nil {
+				return err
+			}
+			proxy := controlproxy.New(controlClient)
+			mgrs.Add(pr.Target, proxy)
+		}
+		err := walkWorkflow(pr.ProcessNodes, pr.PublishNodes, mgrs)
+		if err != nil {
+			return err
+		}
+
+	}
+	for _, pu := range pbnodes {
+		if pu.Target != "" {
+			host, port, err := net.SplitHostPort(pu.Target)
+			if err != nil {
+				return err
+			}
+			p, err := strconv.Atoi(port)
+			if err != nil {
+				return err
+			}
+			controlClient, err := control.NewClient(host, p)
+			if err != nil {
+				return err
+			}
+			proxy := controlproxy.New(controlClient)
+			mgrs.Add(pu.Target, proxy)
+		}
+	}
+	return nil
 }
