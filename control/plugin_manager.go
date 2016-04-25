@@ -405,6 +405,10 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 				}).Error("received metric with bad version")
 				return nil, serror.New(err)
 			}
+
+			//Add standard tags
+			nmt = addStandardTags(nmt)
+
 			if err := p.metricCatalog.AddLoadedMetricType(lPlugin, nmt); err != nil {
 				pmLogger.WithFields(log.Fields{
 					"_block":           "load-plugin",

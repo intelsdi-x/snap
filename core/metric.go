@@ -27,6 +27,12 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 )
 
+var (
+	// Standard Tags are in added to the metric by the framework on plugin load.
+	// STD_TAG_PLUGIN_RUNNING_ON describes where the plugin is running (hostname).
+	STD_TAG_PLUGIN_RUNNING_ON = "plugin_running_on"
+)
+
 // Metric represents a snap metric collected or to be collected
 type Metric interface {
 	RequestedMetric

@@ -133,6 +133,8 @@ func TestLoadPlugin(t *testing.T) {
 				So(len(mts), ShouldBeGreaterThan, 2)
 				So(mts[0].Description(), ShouldResemble, "mock description")
 				So(mts[0].Unit(), ShouldResemble, "mock unit")
+				So(mts[0].Tags(), ShouldContainKey, "plugin_running_on")
+				So(mts[0].Tags()["plugin_running_on"], ShouldNotResemble, "")
 			})
 
 			Convey("for a plugin requiring a config an incomplete config will result in a load failure", func() {

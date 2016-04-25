@@ -22,6 +22,7 @@ package control
 import (
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -602,4 +603,32 @@ func getVersion(c []*metricType, ver int) (*metricType, error) {
 		}
 	}
 	return nil, errMetricNotFound
+}
+
+func addStandardTags(m core.Metric) core.Metric {
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "addStandardTags",
+			"error":   err.Error(),
+		}).Error("Unable to determine hostname")
+	}
+	tags := m.Tags()
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	tags[core.STD_TAG_PLUGIN_RUNNING_ON] = hostname
+	metric := &metricType{
+		namespace:          m.Namespace(),
+		version:            m.Version(),
+		lastAdvertisedTime: m.LastAdvertisedTime(),
+		config:             m.Config(),
+		data:               m.Data(),
+		tags:               tags,
+		description:        m.Description(),
+		unit:               m.Unit(),
+	}
+	return metric
 }
