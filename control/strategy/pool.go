@@ -299,12 +299,6 @@ func (p *pool) Kill(id uint32, reason string) {
 
 // SelectAndKill selects, kills and removes the available plugin from the pool
 func (p *pool) SelectAndKill(id, reason string) {
-	//sp := make([]SelectablePlugin, p.Count())
-	//i := 0
-	//for _, plg := range p.plugins {
-	//	sp[i] = plg
-	//	i++
-	//}
 	rp, err := p.Remove(p.plugins.Values(), id)
 	if err != nil {
 		log.WithFields(log.Fields{
