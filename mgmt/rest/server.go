@@ -27,6 +27,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -179,6 +180,84 @@ func GetDefaultConfig() *Config {
 		RestAuth:         defaultAuth,
 		RestAuthPassword: defaultAuthPassword,
 	}
+}
+
+// construct a new rest Config from a hash map
+func NewConfig(configMap map[string]interface{}) (*Config, error) {
+	c := GetDefaultConfig()
+	// set the Enable value (if it was included in the input hash map)
+	if v, ok := configMap["enable"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			boolVal, err := strconv.ParseBool(str)
+			if err != nil {
+				return nil, err
+			}
+			c.Enable = boolVal
+		} else {
+			return nil, fmt.Errorf("Error parsing 'enable' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the Port value (if it was included in the input hash map)
+	if v, ok := configMap["port"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return nil, err
+			}
+			c.Port = int(tmpVal)
+		} else {
+			return nil, fmt.Errorf("Error parsing 'port' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// set the HTTPS value (if it was included in the input hash map)
+	if v, ok := configMap["https"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			boolVal, err := strconv.ParseBool(str)
+			if err != nil {
+				return nil, err
+			}
+			c.HTTPS = boolVal
+		} else {
+			return nil, fmt.Errorf("Error parsing 'https' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the RestCertificate value (if it was included in the input hash map)
+	if v, ok := configMap["rest_certificate"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.RestCertificate = str
+		} else {
+			return nil, fmt.Errorf("Error parsing 'rest_certificate' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the RestKey value (if it was included in the input hash map)
+	if v, ok := configMap["rest_key"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.RestKey = str
+		} else {
+			return nil, fmt.Errorf("Error parsing 'rest_key' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the RestAuth value (if it was included in the input hash map)
+	if v, ok := configMap["rest_auth"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			boolVal, err := strconv.ParseBool(str)
+			if err != nil {
+				return nil, err
+			}
+			c.RestAuth = boolVal
+		} else {
+			return nil, fmt.Errorf("Error parsing 'rest_auth' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the RestAuthPassword value (if it was included in the input hash map)
+	if v, ok := configMap["rest_auth_password"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.RestAuthPassword = str
+		} else {
+			return nil, fmt.Errorf("Error parsing 'rest_auth_password' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	return c, nil
 }
 
 // SetAPIAuth sets API authentication to enabled or disabled

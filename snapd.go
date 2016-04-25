@@ -20,6 +20,8 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -700,6 +702,107 @@ func setMaxProcs(maxProcs int) {
 				"real maxprocs":  actualNumProcs,
 			}).Warning("not using given maxprocs")
 	}
+}
+
+// UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
+// at github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
+func (c *Config) UnmarshalJSON(data []byte) error {
+	t := map[string]interface{}{}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	if err := dec.Decode(&t); err != nil {
+		return err
+	}
+	// if a 'log_level' value was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["log_level"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return err
+			}
+			c.LogLevel = int(tmpVal)
+		} else {
+			return fmt.Errorf("Error parsing 'log_level' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// if a 'gomaxprocs' value was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["gomaxprocs"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return err
+			}
+			c.GoMaxProcs = int(tmpVal)
+		} else {
+			return fmt.Errorf("Error parsing 'gomaxprocs' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// if a 'log_path' value was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["log_path"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.LogPath = str
+		} else {
+			return fmt.Errorf("Error parsing 'log_path' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// if a 'control' section was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["control"]; ok && v != nil {
+		if cfg, ok := v.(map[string]interface{}); ok {
+			config, err := control.NewConfig(cfg)
+			if err != nil {
+				return err
+			}
+			c.Control = config
+		} else {
+			return fmt.Errorf("Error parsing 'control' from config; expected 'map[string]interface{}' but found '%T'", v)
+		}
+	}
+	// if a 'scheduler' section was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["scheduler"]; ok && v != nil {
+		if cfg, ok := v.(map[string]interface{}); ok {
+			config, err := scheduler.NewConfig(cfg)
+			if err != nil {
+				return err
+			}
+			c.Scheduler = config
+		} else {
+			return fmt.Errorf("Error parsing 'scheduler' from config; expected 'map[string]interface{}' but found '%T'", v)
+		}
+	}
+
+	// if a 'restapi' section was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["restapi"]; ok && v != nil {
+		if cfg, ok := v.(map[string]interface{}); ok {
+			config, err := rest.NewConfig(cfg)
+			if err != nil {
+				return err
+			}
+			c.RestAPI = config
+		} else {
+			return fmt.Errorf("Error parsing 'restapi' from config; expected 'map[string]interface{}' but found '%T'", v)
+		}
+	}
+	// if a 'tribe' section was included, then retrieve it and set the appropriate field
+	// in our Config object
+	if v, ok := t["tribe"]; ok && v != nil {
+		if cfg, ok := v.(map[string]interface{}); ok {
+			config, err := tribe.NewConfig(cfg)
+			if err != nil {
+				return err
+			}
+			c.Tribe = config
+		} else {
+			return fmt.Errorf("Error parsing 'tribe' from config; expected 'map[string]interface{}' but found '%T'", v)
+		}
+	}
+	// return a nil (no error)
+	return nil
 }
 
 func startModule(m coreModule) error {

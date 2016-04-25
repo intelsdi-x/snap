@@ -84,6 +84,77 @@ func GetDefaultConfig() *Config {
 	}
 }
 
+// construct a new control Config from a hash map
+func NewConfig(configMap map[string]interface{}) (*Config, error) {
+	c := GetDefaultConfig()
+	// set the MaxRunningPlugins value (if it was included in the input hash map)
+	if v, ok := configMap["max_running_plugins"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return nil, err
+			}
+			c.MaxRunningPlugins = int(tmpVal)
+		} else {
+			return nil, fmt.Errorf("Error parsing 'max_running_plugins' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// set the PluginTrust value (if it was included in the input hash map)
+	if v, ok := configMap["plugin_trust_level"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return nil, err
+			}
+			c.PluginTrust = int(tmpVal)
+		} else {
+			return nil, fmt.Errorf("Error parsing 'plugin_trust_level' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// set the AutoDiscoverPath value (if it was included in the input hash map)
+	if v, ok := configMap["auto_discover_path"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.AutoDiscoverPath = str
+		} else {
+			return nil, fmt.Errorf("Error parsing 'auto_discover_path' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the KeyringPaths value (if it was included in the input hash map)
+	if v, ok := configMap["keyring_paths"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.KeyringPaths = str
+		} else {
+			return nil, fmt.Errorf("Error parsing 'keyring_paths' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the CacheExpiration value (if it was included in the input hash map)
+	if v, ok := configMap["cache_expiration"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			tmpVal, err := time.ParseDuration(str)
+			if err != nil {
+				return nil, err
+			}
+			c.CacheExpiration = jsonutil.Duration{tmpVal}
+		} else {
+			return nil, fmt.Errorf("Error parsing 'cache_expiration' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the Plugins value (if it was included in the input hash map)
+	if v, ok := configMap["plugins"]; ok && v != nil {
+		jv, err := json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		cdn := newPluginConfig()
+		err = cdn.UnmarshalJSON(jv)
+		if err != nil {
+			return nil, err
+		}
+		c.Plugins = cdn
+	}
+	return c, nil
+}
+
 // NewPluginsConfig returns a map of *pluginConfigItems where the key is the plugin name.
 func NewPluginsConfig() map[string]*pluginConfigItem {
 	return map[string]*pluginConfigItem{}

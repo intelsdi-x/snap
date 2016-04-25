@@ -20,8 +20,11 @@ limitations under the License.
 package tribe
 
 import (
+	"encoding/json"
+	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -71,6 +74,60 @@ func GetDefaultConfig() *Config {
 		RestAPIPort:               defaultRestAPIPort,
 		RestAPIInsecureSkipVerify: defaultRestAPIInsecureSkipVerify,
 	}
+}
+
+// construct a new tribe Config from a hash map
+func NewConfig(configMap map[string]interface{}) (*Config, error) {
+	c := GetDefaultConfig()
+	// set the Name value (if it was included in the input hash map)
+	if v, ok := configMap["name"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.Name = str
+		} else {
+			return nil, fmt.Errorf("Error parsing 'name' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the Enable value (if it was included in the input hash map)
+	if v, ok := configMap["enable"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			boolVal, err := strconv.ParseBool(str)
+			if err != nil {
+				return nil, err
+			}
+			c.Enable = boolVal
+		} else {
+			return nil, fmt.Errorf("Error parsing 'enable' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the BindAddr value (if it was included in the input hash map)
+	if v, ok := configMap["bind_addr"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.BindAddr = str
+		} else {
+			return nil, fmt.Errorf("Error parsing 'bind_addr' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	// set the BindPort value (if it was included in the input hash map)
+	if v, ok := configMap["bind_port"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return nil, err
+			}
+			c.BindPort = int(tmpVal)
+		} else {
+			return nil, fmt.Errorf("Error parsing 'bind_port' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// set the Seed value (if it was included in the input hash map)
+	if v, ok := configMap["seed"]; ok && v != nil {
+		if str, ok := v.(string); ok {
+			c.Seed = str
+		} else {
+			return nil, fmt.Errorf("Error parsing 'seed' from config; expected 'string' but found '%T'", v)
+		}
+	}
+	return c, nil
 }
 
 func getHostname() string {

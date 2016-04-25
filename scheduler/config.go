@@ -19,6 +19,11 @@ limitations under the License.
 
 package scheduler
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // default configuration values
 const (
 	defaultWorkManagerQueueSize uint = 25
@@ -37,4 +42,34 @@ func GetDefaultConfig() *Config {
 		WorkManagerQueueSize: defaultWorkManagerQueueSize,
 		WorkManagerPoolSize:  defaultWorkManagerPoolSize,
 	}
+}
+
+// construct a new scheduler Config from a hash map
+func NewConfig(configMap map[string]interface{}) (*Config, error) {
+	c := GetDefaultConfig()
+	// set the WorkManagerQueueSize value (if it was included in the input hash map)
+	if v, ok := configMap["work_manager_queue_size"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return nil, err
+			}
+			c.WorkManagerQueueSize = uint(tmpVal)
+		} else {
+			return nil, fmt.Errorf("Error parsing 'work_manager_queue_size' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	// set the WorkManagerPoolSize value (if it was included in the input hash map)
+	if v, ok := configMap["work_manager_pool_size"]; ok && v != nil {
+		if val, ok := v.(json.Number); ok {
+			tmpVal, err := val.Int64()
+			if err != nil {
+				return nil, err
+			}
+			c.WorkManagerPoolSize = uint(tmpVal)
+		} else {
+			return nil, fmt.Errorf("Error parsing 'work_manager_pool_size' from config; expected 'json.Number' but found '%T'", v)
+		}
+	}
+	return c, nil
 }
