@@ -357,7 +357,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	if resp.Type == plugin.CollectorPluginType {
 		colClient := ap.client.(client.PluginCollectorClient)
 
-		cfg := plugin.PluginConfigType{
+		cfg := plugin.ConfigType{
 			ConfigDataNode: p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version),
 		}
 

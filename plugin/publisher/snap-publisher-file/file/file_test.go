@@ -36,8 +36,8 @@ import (
 
 func TestFilePublish(t *testing.T) {
 	var buf bytes.Buffer
-	metrics := []plugin.PluginMetricType{
-		*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 99),
+	metrics := []plugin.MetricType{
+		*plugin.NewMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 99),
 	}
 	config := make(map[string]ctypes.ConfigValue)
 	enc := gob.NewEncoder(&buf)

@@ -46,11 +46,11 @@ const (
 	// SnapProtoBuff = "snap.pb" // TO BE IMPLEMENTED
 )
 
-type PluginConfigType struct {
+type ConfigType struct {
 	*cdata.ConfigDataNode
 }
 
-func (p *PluginConfigType) UnmarshalJSON(data []byte) error {
+func (p *ConfigType) UnmarshalJSON(data []byte) error {
 	cdn := cdata.NewNode()
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
@@ -61,7 +61,7 @@ func (p *PluginConfigType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (p PluginConfigType) GobEncode() ([]byte, error) {
+func (p ConfigType) GobEncode() ([]byte, error) {
 	w := new(bytes.Buffer)
 	encoder := gob.NewEncoder(w)
 	if err := encoder.Encode(p.ConfigDataNode); err != nil {
@@ -70,7 +70,7 @@ func (p PluginConfigType) GobEncode() ([]byte, error) {
 	return w.Bytes(), nil
 }
 
-func (p *PluginConfigType) GobDecode(data []byte) error {
+func (p *ConfigType) GobDecode(data []byte) error {
 	cdn := cdata.NewNode()
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	if err := decoder.Decode(cdn); err != nil {
@@ -81,15 +81,15 @@ func (p *PluginConfigType) GobDecode(data []byte) error {
 	return nil
 }
 
-func NewPluginConfigType() PluginConfigType {
-	return PluginConfigType{
+func NewPluginConfigType() ConfigType {
+	return ConfigType{
 		ConfigDataNode: cdata.NewNode(),
 	}
 }
 
 // Represents a metric type. Only used within plugins and across plugin calls.
 // Converted to core.MetricType before being used within modules.
-type PluginMetricType struct {
+type MetricType struct {
 	// Namespace is the identifier for a metric.
 	Namespace_ []core.NamespaceElement `json:"namespace"`
 
@@ -122,9 +122,9 @@ type PluginMetricType struct {
 	Timestamp_ time.Time `json:"timestamp"`
 }
 
-// // PluginMetricType Constructor
-func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, tags map[string]string, unit string, data interface{}) *PluginMetricType {
-	return &PluginMetricType{
+// NewMetricType returns a Constructor
+func NewMetricType(namespace core.Namespace, timestamp time.Time, tags map[string]string, unit string, data interface{}) *MetricType {
+	return &MetricType{
 		Namespace_: namespace,
 		Tags_:      tags,
 		Data_:      data,
@@ -134,56 +134,56 @@ func NewPluginMetricType(namespace core.Namespace, timestamp time.Time, tags map
 }
 
 // Returns the namespace.
-func (p PluginMetricType) Namespace() core.Namespace {
+func (p MetricType) Namespace() core.Namespace {
 	return p.Namespace_
 }
 
 // Returns the last time this metric type was received from the plugin.
-func (p PluginMetricType) LastAdvertisedTime() time.Time {
+func (p MetricType) LastAdvertisedTime() time.Time {
 	return p.LastAdvertisedTime_
 }
 
 // Returns the namespace.
-func (p PluginMetricType) Version() int {
+func (p MetricType) Version() int {
 	return p.Version_
 }
 
 // Config returns the map of config data for this metric
-func (p PluginMetricType) Config() *cdata.ConfigDataNode {
+func (p MetricType) Config() *cdata.ConfigDataNode {
 	return p.Config_
 }
 
 // Tags returns the map of  tags for this metric
-func (p PluginMetricType) Tags() map[string]string {
+func (p MetricType) Tags() map[string]string {
 	return p.Tags_
 }
 
 // returns the timestamp of when the metric was collected
-func (p PluginMetricType) Timestamp() time.Time {
+func (p MetricType) Timestamp() time.Time {
 	return p.Timestamp_
 }
 
 // returns the data for the metric
-func (p PluginMetricType) Data() interface{} {
+func (p MetricType) Data() interface{} {
 	return p.Data_
 }
 
 // returns the description of the metric
-func (p PluginMetricType) Description() string {
+func (p MetricType) Description() string {
 	return p.Description_
 }
 
 // returns the metrics unit
-func (p PluginMetricType) Unit() string {
+func (p MetricType) Unit() string {
 	return p.Unit_
 }
 
-func (p *PluginMetricType) AddData(data interface{}) {
+func (p *MetricType) AddData(data interface{}) {
 	p.Data_ = data
 }
 
-// MarshalMetricTypes returns a []byte containing a serialized version of []PluginMetricType using the content type provided.
-func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([]byte, string, error) {
+// MarshalMetricTypes returns a []byte containing a serialized version of []MetricType using the content type provided.
+func MarshalMetricTypes(contentType string, metrics []MetricType) ([]byte, string, error) {
 	// If we have an empty slice we return an error
 	if len(metrics) == 0 {
 		es := fmt.Sprintf("attempt to marshall empty slice of metrics: %s", contentType)
@@ -235,11 +235,11 @@ func MarshalPluginMetricTypes(contentType string, metrics []PluginMetricType) ([
 	}
 }
 
-// UnmarshallPluginMetricTypes takes a content type and []byte payload and returns a []PluginMetricType
-func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMetricType, error) {
+// UnmarshallMetricTypes takes a content type and []byte payload and returns a []MetricType
+func UnmarshallMetricTypes(contentType string, payload []byte) ([]MetricType, error) {
 	switch contentType {
 	case SnapGOBContentType:
-		var metrics []PluginMetricType
+		var metrics []MetricType
 		r := bytes.NewBuffer(payload)
 		err := gob.NewDecoder(r).Decode(&metrics)
 		if err != nil {
@@ -252,7 +252,7 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 		}
 		return metrics, nil
 	case SnapJSONContentType:
-		var metrics []PluginMetricType
+		var metrics []MetricType
 		err := json.Unmarshal(payload, &metrics)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -275,9 +275,9 @@ func UnmarshallPluginMetricTypes(contentType string, payload []byte) ([]PluginMe
 	}
 }
 
-// SwapPluginMetricContentType swaps a payload with one content type to another one.
-func SwapPluginMetricContentType(contentType, requestedContentType string, payload []byte) ([]byte, string, error) {
-	metrics, err1 := UnmarshallPluginMetricTypes(contentType, payload)
+// SwapMetricContentType swaps a payload with one content type to another one.
+func SwapMetricContentType(contentType, requestedContentType string, payload []byte) ([]byte, string, error) {
+	metrics, err1 := UnmarshallMetricTypes(contentType, payload)
 	if err1 != nil {
 		log.WithFields(log.Fields{
 			"_module": "control-plugin",
@@ -286,7 +286,7 @@ func SwapPluginMetricContentType(contentType, requestedContentType string, paylo
 		}).Error("error while swaping")
 		return nil, "", err1
 	}
-	newPayload, newContentType, err2 := MarshalPluginMetricTypes(requestedContentType, metrics)
+	newPayload, newContentType, err2 := MarshalMetricTypes(requestedContentType, metrics)
 	if err2 != nil {
 		log.WithFields(log.Fields{
 			"_module": "control-plugin",

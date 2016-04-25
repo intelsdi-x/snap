@@ -302,9 +302,9 @@ func (p *processJob) Run() {
 	case *collectorJob:
 		switch p.contentType {
 		case plugin.SnapGOBContentType:
-			metrics := make([]plugin.PluginMetricType, len(pt.metrics))
+			metrics := make([]plugin.MetricType, len(pt.metrics))
 			for i, m := range pt.metrics {
-				if mt, ok := m.(plugin.PluginMetricType); ok {
+				if mt, ok := m.(plugin.MetricType); ok {
 					metrics[i] = mt
 				} else {
 					// TODO; add a log statement and return an error
@@ -432,10 +432,10 @@ func (p *publisherJob) Run() {
 	case collectJobType:
 		switch p.contentType {
 		case plugin.SnapGOBContentType:
-			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
+			metrics := make([]plugin.MetricType, len(p.parentJob.(*collectorJob).metrics))
 			for i, m := range p.parentJob.(*collectorJob).metrics {
 				switch mt := m.(type) {
-				case plugin.PluginMetricType:
+				case plugin.MetricType:
 					metrics[i] = mt
 				default:
 					panic("unsupported type")

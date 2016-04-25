@@ -1035,20 +1035,20 @@ func (r *requestedPlugin) Config() *cdata.ConfigDataNode {
 // ------------------- helper struct and function for grouping metrics types ------
 
 // just a tuple of loadedPlugin and metricType slice
-type pluginMetricTypes struct {
+type metricTypes struct {
 	plugin      *loadedPlugin
 	metricTypes []core.Metric
 }
 
-func (p *pluginMetricTypes) Count() int {
+func (p *metricTypes) Count() int {
 	return len(p.metricTypes)
 }
 
 // groupMetricTypesByPlugin groups metricTypes by a plugin.Key() and returns appropriate structure
-func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (map[string]pluginMetricTypes, serror.SnapError) {
-	pmts := make(map[string]pluginMetricTypes)
+func groupMetricTypesByPlugin(cat catalogsMetrics, mts []core.Metric) (map[string]metricTypes, serror.SnapError) {
+	pmts := make(map[string]metricTypes)
 	// For each plugin type select a matching available plugin to call
-	for _, incomingmt := range metricTypes {
+	for _, incomingmt := range mts {
 		version := incomingmt.Version()
 		if version == 0 {
 			// If the version is not provided we will choose the latest
@@ -1058,7 +1058,7 @@ func groupMetricTypesByPlugin(cat catalogsMetrics, metricTypes []core.Metric) (m
 		if err != nil {
 			return nil, serror.New(err)
 		}
-		returnedmt := plugin.PluginMetricType{
+		returnedmt := plugin.MetricType{
 			Namespace_:          catalogedmt.Namespace(),
 			LastAdvertisedTime_: catalogedmt.LastAdvertisedTime(),
 			Version_:            incomingmt.Version(),

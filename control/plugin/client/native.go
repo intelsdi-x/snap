@@ -129,16 +129,16 @@ func (p *PluginNativeClient) Process(contentType string, content []byte, config 
 }
 
 func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {
-	// Convert core.MetricType slice into plugin.PluginMetricType slice as we have
+	// Convert core.MetricType slice into plugin.nMetricType slice as we have
 	// to send structs over RPC
 	var results []core.Metric
 	if len(mts) == 0 {
 		return nil, errors.New("no metrics to collect")
 	}
 
-	metricsToCollect := make([]plugin.PluginMetricType, len(mts))
+	metricsToCollect := make([]plugin.MetricType, len(mts))
 	for idx, mt := range mts {
-		metricsToCollect[idx] = plugin.PluginMetricType{
+		metricsToCollect[idx] = plugin.MetricType{
 			Namespace_:          mt.Namespace(),
 			LastAdvertisedTime_: mt.LastAdvertisedTime(),
 			Version_:            mt.Version(),
@@ -147,7 +147,7 @@ func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, e
 		}
 	}
 
-	args := plugin.CollectMetricsArgs{PluginMetricTypes: metricsToCollect}
+	args := plugin.CollectMetricsArgs{MetricTypes: metricsToCollect}
 
 	out, err := p.encoder.Encode(args)
 	if err != nil {
@@ -176,7 +176,7 @@ func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, e
 	return results, nil
 }
 
-func (p *PluginNativeClient) GetMetricTypes(config plugin.PluginConfigType) ([]core.Metric, error) {
+func (p *PluginNativeClient) GetMetricTypes(config plugin.ConfigType) ([]core.Metric, error) {
 	var reply []byte
 
 	args := plugin.GetMetricTypesArgs{PluginConfig: config}
@@ -198,8 +198,8 @@ func (p *PluginNativeClient) GetMetricTypes(config plugin.PluginConfigType) ([]c
 		return nil, err
 	}
 
-	retMetricTypes := make([]core.Metric, len(r.PluginMetricTypes))
-	for i, mt := range r.PluginMetricTypes {
+	retMetricTypes := make([]core.Metric, len(r.MetricTypes))
+	for i, mt := range r.MetricTypes {
 		// Set the advertised time
 		mt.LastAdvertisedTime_ = time.Now()
 		retMetricTypes[i] = mt

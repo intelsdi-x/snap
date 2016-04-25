@@ -35,12 +35,12 @@ func (f *MockPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	return &cpolicy.ConfigPolicy{}, nil
 }
 
-func (f *MockPlugin) CollectMetrics(_ []PluginMetricType) ([]PluginMetricType, error) {
-	return []PluginMetricType{}, nil
+func (f *MockPlugin) CollectMetrics(_ []MetricType) ([]MetricType, error) {
+	return []MetricType{}, nil
 }
 
-func (c *MockPlugin) GetMetricTypes(_ PluginConfigType) ([]PluginMetricType, error) {
-	return []PluginMetricType{
+func (c *MockPlugin) GetMetricTypes(_ ConfigType) ([]MetricType, error) {
+	return []MetricType{
 		{Namespace_: core.NewNamespace([]string{"foo", "bar"})},
 	}, nil
 }

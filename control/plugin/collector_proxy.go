@@ -28,22 +28,22 @@ import (
 
 // Arguments passed to CollectMetrics() for a Collector implementation
 type CollectMetricsArgs struct {
-	PluginMetricTypes []PluginMetricType
+	MetricTypes []MetricType
 }
 
 // Reply assigned by a Collector implementation using CollectMetrics()
 type CollectMetricsReply struct {
-	PluginMetrics []PluginMetricType
+	PluginMetrics []MetricType
 }
 
 // GetMetricTypesArgs args passed to GetMetricTypes
 type GetMetricTypesArgs struct {
-	PluginConfig PluginConfigType
+	PluginConfig ConfigType
 }
 
 // GetMetricTypesReply assigned by GetMetricTypes() implementation
 type GetMetricTypesReply struct {
-	PluginMetricTypes []PluginMetricType
+	MetricTypes []MetricType
 }
 
 type collectorPluginProxy struct {
@@ -58,7 +58,7 @@ func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error 
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()
 
-	dargs := &GetMetricTypesArgs{PluginConfig: PluginConfigType{ConfigDataNode: cdata.NewNode()}}
+	dargs := &GetMetricTypesArgs{PluginConfig: ConfigType{ConfigDataNode: cdata.NewNode()}}
 	c.Session.Decode(args, dargs)
 
 	mts, err := c.Plugin.GetMetricTypes(dargs.PluginConfig)
@@ -66,7 +66,7 @@ func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error 
 		return errors.New(fmt.Sprintf("GetMetricTypes call error : %s", err.Error()))
 	}
 
-	r := GetMetricTypesReply{PluginMetricTypes: mts}
+	r := GetMetricTypesReply{MetricTypes: mts}
 	*reply, err = c.Session.Encode(r)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (c *collectorPluginProxy) CollectMetrics(args []byte, reply *[]byte) error 
 	dargs := &CollectMetricsArgs{}
 	c.Session.Decode(args, dargs)
 
-	ms, err := c.Plugin.CollectMetrics(dargs.PluginMetricTypes)
+	ms, err := c.Plugin.CollectMetrics(dargs.MetricTypes)
 	if err != nil {
 		return errors.New(fmt.Sprintf("CollectMetrics call error : %s", err.Error()))
 	}

@@ -39,12 +39,12 @@ func TestPluginType(t *testing.T) {
 func TestMetricType(t *testing.T) {
 	Convey("MetricType", t, func() {
 		now := time.Now()
-		m := &PluginMetricType{
+		m := &MetricType{
 			Namespace_:          core.NewNamespace([]string{"foo", "bar"}),
 			LastAdvertisedTime_: now,
 		}
 		Convey("New", func() {
-			So(m, ShouldHaveSameTypeAs, &PluginMetricType{})
+			So(m, ShouldHaveSameTypeAs, &MetricType{})
 		})
 		Convey("Get Namespace", func() {
 			So(m.Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))

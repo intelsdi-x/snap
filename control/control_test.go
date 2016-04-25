@@ -1518,8 +1518,8 @@ func TestPublishMetrics(t *testing.T) {
 			time.Sleep(2500 * time.Millisecond)
 
 			Convey("Publish to file", func() {
-				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 1),
+				metrics := []plugin.MetricType{
+					*plugin.NewMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1571,8 +1571,8 @@ func TestProcessMetrics(t *testing.T) {
 			time.Sleep(2500 * time.Millisecond)
 
 			Convey("process metrics", func() {
-				metrics := []plugin.PluginMetricType{
-					*plugin.NewPluginMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 1),
+				metrics := []plugin.MetricType{
+					*plugin.NewMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1580,7 +1580,7 @@ func TestProcessMetrics(t *testing.T) {
 				contentType := plugin.SnapGOBContentType
 				_, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table(), uuid.New())
 				So(errs, ShouldBeEmpty)
-				mts := []plugin.PluginMetricType{}
+				mts := []plugin.MetricType{}
 				dec := gob.NewDecoder(bytes.NewBuffer(ct))
 				err := dec.Decode(&mts)
 				So(err, ShouldBeNil)
@@ -1590,7 +1590,7 @@ func TestProcessMetrics(t *testing.T) {
 		})
 
 		Convey("Count()", func() {
-			pmt := &pluginMetricTypes{}
+			pmt := &metricTypes{}
 			count := pmt.Count()
 			So(count, ShouldResemble, 0)
 

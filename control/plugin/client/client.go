@@ -38,7 +38,7 @@ type PluginClient interface {
 type PluginCollectorClient interface {
 	PluginClient
 	CollectMetrics([]core.Metric) ([]core.Metric, error)
-	GetMetricTypes(plugin.PluginConfigType) ([]core.Metric, error)
+	GetMetricTypes(plugin.ConfigType) ([]core.Metric, error)
 }
 
 // PluginProcessorClient A client providing processor specific plugin method calls.

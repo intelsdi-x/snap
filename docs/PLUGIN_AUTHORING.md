@@ -98,8 +98,8 @@ github.com/intelsdi-x/snap/core/ctypes
 A snap collector plugin collects telemetry data by communicating with the snap daemon. To confine to collector plugin interfaces and metric types defined in snap,  a collector plugin must implement the following methods:
 ```
 GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
-CollectMetrics([]PluginMetricType) ([]PluginMetricType, error)
-GetMetricTypes(PluginConfigType) ([]PluginMetricType, error)
+CollectMetrics([]MetricType) ([]MetricType, error)
+GetMetricTypes(ConfigType) ([]MetricType, error)
 ```
 ### Writing a processor plugin
 A snap processor plugin allows filtering, aggregation, transformation, etc of collected telemetry data. To complaint with processor plugin interfaces defined in snap,  a processor plugin must implement the following methods:

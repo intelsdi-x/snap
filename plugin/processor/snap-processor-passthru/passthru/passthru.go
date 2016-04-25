@@ -59,8 +59,8 @@ func (p *passthruProcessor) Process(contentType string, content []byte, config m
 	// The following block is for testing config see.. control_test.go
 	if _, ok := config["test"]; ok {
 		logger.Print("test configuration found")
-		var metrics []plugin.PluginMetricType
-		//Decodes the content into pluginMetricType
+		var metrics []plugin.MetricType
+		//Decodes the content into MetricType
 		dec := gob.NewDecoder(bytes.NewBuffer(content))
 		if err := dec.Decode(&metrics); err != nil {
 			logger.Printf("Error decoding: error=%v content=%v", err, content)

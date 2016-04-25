@@ -45,13 +45,13 @@ type Mock struct {
 }
 
 // CollectMetrics collects metrics for testing
-func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
+func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, error) {
 	for _, p := range mts {
 		log.Printf("collecting %+v\n", p)
 	}
 
 	rand.Seed(time.Now().UTC().UnixNano())
-	metrics := []plugin.PluginMetricType{}
+	metrics := []plugin.MetricType{}
 	for i := range mts {
 		if c, ok := mts[i].Config().Table()["panic"]; ok && c.(ctypes.ConfigValueBool).Value {
 			panic("Opps!")
@@ -61,7 +61,7 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 				ns := mts[i].Namespace()
 				ns[2].Value = fmt.Sprintf("host%d", j)
 				data := randInt(65, 90)
-				mt := plugin.PluginMetricType{
+				mt := plugin.MetricType{
 					Data_:      data,
 					Namespace_: ns,
 					Timestamp_: time.Now(),
@@ -81,29 +81,29 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 }
 
 //GetMetricTypes returns metric types for testing
-func (f *Mock) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetricType, error) {
-	mts := []plugin.PluginMetricType{}
+func (f *Mock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error) {
+	mts := []plugin.MetricType{}
 	if _, ok := cfg.Table()["test-fail"]; ok {
 		return mts, fmt.Errorf("testing")
 	}
 	if _, ok := cfg.Table()["test"]; ok {
-		mts = append(mts, plugin.PluginMetricType{
+		mts = append(mts, plugin.MetricType{
 			Namespace_:   core.NewNamespace([]string{"intel", "mock", "test"}),
 			Description_: "mock description",
 			Unit_:        "mock unit",
 		})
 	}
-	mts = append(mts, plugin.PluginMetricType{
+	mts = append(mts, plugin.MetricType{
 		Namespace_:   core.NewNamespace([]string{"intel", "mock", "foo"}),
 		Description_: "mock description",
 		Unit_:        "mock unit",
 	})
-	mts = append(mts, plugin.PluginMetricType{
+	mts = append(mts, plugin.MetricType{
 		Namespace_:   core.NewNamespace([]string{"intel", "mock", "bar"}),
 		Description_: "mock description",
 		Unit_:        "mock unit",
 	})
-	mts = append(mts, plugin.PluginMetricType{
+	mts = append(mts, plugin.MetricType{
 		Namespace_: core.NewNamespace([]string{"intel", "mock"}).
 			AddDynamicElement("host", "name of the host").
 			AddStaticElement("baz"),
