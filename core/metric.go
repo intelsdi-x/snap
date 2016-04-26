@@ -50,11 +50,8 @@ type Namespace []NamespaceElement
 // String returns the string representation of the namespace with "/" joining
 // the elements of the namespace.  A leading "/" is added.
 func (n Namespace) String() string {
-	ns := ""
+	ns := "/"
 	for i, x := range n {
-		if i == 0 {
-			ns = "/"
-		}
 		ns += x.Value
 		if i != len(n)-1 {
 			ns += "/"
@@ -72,14 +69,7 @@ func (n Namespace) Strings() []string {
 // Key returns a string representation of the namespace with "." joining
 // the elements of the namespace.
 func (n Namespace) Key() string {
-	ns := ""
-	for i, x := range n {
-		ns += x.Value
-		if i < len(n)-1 {
-			ns += "."
-		}
-	}
-	return ns
+	return strings.Join(n.Strings(), ".")
 }
 
 // IsDynamic returns true if there is any element of the namespace which is
