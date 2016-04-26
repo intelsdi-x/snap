@@ -438,7 +438,7 @@ func (p *publisherJob) Run() {
 				case plugin.MetricType:
 					metrics[i] = mt
 				default:
-					panic("unsupported type")
+					panic(fmt.Sprintf("unsupported type %T", mt))
 				}
 			}
 			enc.Encode(metrics)

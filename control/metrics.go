@@ -30,6 +30,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
@@ -619,15 +620,16 @@ func addStandardTags(m core.Metric) core.Metric {
 		tags = map[string]string{}
 	}
 	tags[core.STD_TAG_PLUGIN_RUNNING_ON] = hostname
-	metric := &metricType{
-		namespace:          m.Namespace(),
-		version:            m.Version(),
-		lastAdvertisedTime: m.LastAdvertisedTime(),
-		config:             m.Config(),
-		data:               m.Data(),
-		tags:               tags,
-		description:        m.Description(),
-		unit:               m.Unit(),
+	metric := plugin.MetricType{
+		Namespace_:          m.Namespace(),
+		Version_:            m.Version(),
+		LastAdvertisedTime_: m.LastAdvertisedTime(),
+		Config_:             m.Config(),
+		Data_:               m.Data(),
+		Tags_:               tags,
+		Description_:        m.Description(),
+		Unit_:               m.Unit(),
+		Timestamp_:          m.Timestamp(),
 	}
 	return metric
 }
