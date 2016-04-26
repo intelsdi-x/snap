@@ -232,7 +232,6 @@ func (p *pool) applyPluginMeta(a AvailablePlugin) error {
 		p.concurrencyCount = 1
 	case plugin.ConfigRouting:
 		p.RoutingAndCaching = NewConfigBased(cacheTTL)
-		p.concurrencyCount = 3
 	default:
 		return ErrBadStrategy
 	}

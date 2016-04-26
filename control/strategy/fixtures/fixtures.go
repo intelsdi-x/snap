@@ -181,34 +181,3 @@ func (m MockAvailablePlugin) Name() string {
 func (m MockAvailablePlugin) Version() int {
 	return m.version
 }
-
-/*
-func NewMockMetricType(ns string) MockMetricType {
-	return MockMetricType{
-		namespace: strings.Split(ns, "/"),
-	}
-}
-
-type MockMetricType struct {
-	namespace []string
-}
-
-func (m MockMetricType) Namespace() []string { return m.namespace }
-
-func (m MockMetricType) LastAdvertisedTime() time.Time { return time.Now() }
-
-func (m MockMetricType) Version() int { return 1 }
-
-func (m MockMetricType) Config() *cdata.ConfigDataNode { return nil }
-
-func (m MockMetricType) Data() interface{} { return nil }
-
-func (m MockMetricType) Source() string { return "" }
-
-func (m MockMetricType) Tags() map[string]string { return nil }
-
-func (m MockMetricType) Labels() []core.Label { return nil }
-
-func (m MockMetricType) Timestamp() time.Time { return time.Time{} }
-
-*/

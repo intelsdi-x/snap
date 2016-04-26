@@ -27,14 +27,14 @@ import (
 )
 
 func TestConfigBasedRouter(t *testing.T) {
-	Convey("Given a sticky router", t, func() {
+	Convey("Given a config router", t, func() {
 		router := NewConfigBased(100 * time.Millisecond)
 		So(router, ShouldNotBeNil)
 		So(router.String(), ShouldResemble, "config-based")
 		Convey("Select a plugin when they are available", func() {
 			p1 := NewMockAvailablePlugin().WithName("p1")
 			p2 := NewMockAvailablePlugin().WithName("p2")
-			// select a plugin, for task1,  given a task and two available plugins
+			// select a plugin, for cfg1,  given a config and two available plugins
 			sp1, err := router.Select([]AvailablePlugin{p1, p2}, "cfg1")
 			So(err, ShouldBeNil)
 			So(sp1, ShouldNotBeNil)
@@ -42,13 +42,19 @@ func TestConfigBasedRouter(t *testing.T) {
 			// change the order of the plugins provided to the select
 			sp2, err := router.Select([]AvailablePlugin{p2, p1}, "cfg1")
 			So(err, ShouldBeNil)
-			So(sp1, ShouldNotBeNil)
+			So(sp2, ShouldNotBeNil)
 			So(sp2, ShouldEqual, p1)
-			// select the other (last) available plugin for task2
+			// select the other (last) available plugin for cfg2
 			sp3, err := router.Select([]AvailablePlugin{p2, p1}, "cfg2")
 			So(err, ShouldBeNil)
 			So(sp3, ShouldNotBeNil)
 			So(sp3, ShouldEqual, p2)
+			Convey("Select a plugin when there are NONE available", func() {
+				plugins := []AvailablePlugin{p1, p2}
+				sp, err := router.Select(plugins, "cfg3")
+				So(sp, ShouldBeNil)
+				So(err, ShouldEqual, ErrCouldNotSelect)
+			})
 		})
 
 	})
