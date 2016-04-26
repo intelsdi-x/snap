@@ -324,7 +324,6 @@ func (mc *metricCatalog) removeMatchedKey(key string) {
 
 // validateMetricNamespace validates metric namespace in terms of containing not allowed characters and ending with an asterisk
 func validateMetricNamespace(ns core.Namespace) error {
-	// name := strings.Join(ns, "")
 	name := ""
 	for _, i := range ns {
 		name += i.Value
@@ -421,7 +420,7 @@ func (mc *metricCatalog) Fetch(ns core.Namespace) ([]*metricType, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 	var nss []string
-	if ns.String() != "" {
+	if ns.String() != "/" {
 		nss = ns.Strings()
 	}
 	mtsi, err := mc.tree.Fetch(nss)
