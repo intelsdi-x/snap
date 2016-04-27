@@ -935,7 +935,7 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 			// Reapply standard tags after collection as a precaution.  It is common for
 			// plugin authors to inadvertently overwrite or not pass along the data
 			// passed to CollectMetrics so we will help them out here.
-			for i, _ := range m {
+			for i := range m {
 				m[i] = addStandardTags(m[i])
 			}
 			metrics = append(metrics, m...)

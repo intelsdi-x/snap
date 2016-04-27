@@ -123,117 +123,117 @@ func TestPluginControlGenerateArgs(t *testing.T) {
 	})
 }
 
-// func TestSwapPlugin(t *testing.T) {
-// 	if SnapPath != "" {
-// 		c := New(GetDefaultConfig())
-// 		c.Start()
-// 		time.Sleep(100 * time.Millisecond)
-// 		lpe := newListenToPluginEvent()
-// 		c.eventManager.RegisterHandler("Control.PluginsSwapped", lpe)
+func TestSwapPlugin(t *testing.T) {
+	if SnapPath != "" {
+		c := New(GetDefaultConfig())
+		c.Start()
+		time.Sleep(100 * time.Millisecond)
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginsSwapped", lpe)
 
-// 		_, e := load(c, PluginPath)
-// 		Convey("Loading first plugin", t, func() {
-// 			Convey("Should not error", func() {
-// 				So(e, ShouldBeNil)
-// 			})
-// 		})
-// 		// Travis optimization: If for some reason we can not load
-// 		// the plugin three times, we will fail the test immediately
-// 		// as we wait on a channel to be closed before proceeding with
-// 		// additional tests. If the plugin never loads, the channel will not
-// 		// close and just hang the test indefinitely.
-// 		if e != nil {
-// 			t.FailNow()
-// 		}
-// 		<-lpe.done
-// 		Convey("First plugin in catalog", t, func() {
-// 			Convey("Should have name mock", func() {
-// 				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
-// 			})
-// 		})
-// 		mock1Path := strings.Replace(PluginPath, "snap-collector-mock2", "snap-collector-mock1", 1)
-// 		mockRP, mErr := core.NewRequestedPlugin(mock1Path)
-// 		Convey("Loading a plugin should not error", t, func() {
-// 			So(mErr, ShouldBeNil)
-// 		})
-// 		err := c.SwapPlugins(mockRP, c.PluginCatalog()[0])
-// 		Convey("Swapping plugins", t, func() {
-// 			Convey("Should not error", func() {
-// 				So(err, ShouldBeNil)
-// 			})
-// 		})
-// 		if err != nil {
-// 			t.FailNow()
-// 		}
-// 		<-lpe.done
+		_, e := load(c, PluginPath)
+		Convey("Loading first plugin", t, func() {
+			Convey("Should not error", func() {
+				So(e, ShouldBeNil)
+			})
+		})
+		// Travis optimization: If for some reason we can not load
+		// the plugin three times, we will fail the test immediately
+		// as we wait on a channel to be closed before proceeding with
+		// additional tests. If the plugin never loads, the channel will not
+		// close and just hang the test indefinitely.
+		if e != nil {
+			t.FailNow()
+		}
+		<-lpe.done
+		Convey("First plugin in catalog", t, func() {
+			Convey("Should have name mock", func() {
+				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
+			})
+		})
+		mock1Path := strings.Replace(PluginPath, "snap-collector-mock2", "snap-collector-mock1", 1)
+		mockRP, mErr := core.NewRequestedPlugin(mock1Path)
+		Convey("Loading a plugin should not error", t, func() {
+			So(mErr, ShouldBeNil)
+		})
+		err := c.SwapPlugins(mockRP, c.PluginCatalog()[0])
+		Convey("Swapping plugins", t, func() {
+			Convey("Should not error", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+		if err != nil {
+			t.FailNow()
+		}
+		<-lpe.done
 
-// 		// Swap plugin that was loaded with a different version of the plugin
-// 		Convey("Swapping plugins", t, func() {
-// 			Convey("Should generate a swapped plugins event", func() {
-// 				Convey("So first plugin in catalog after swap should have name mock", func() {
-// 					So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
-// 				})
-// 				Convey("So swapped plugins event should show loaded plugin name as mock", func() {
-// 					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock")
-// 				})
-// 				Convey("So swapped plugins event should show loaded plugin version as 1", func() {
-// 					So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
-// 				})
-// 				Convey("So swapped plugins event should show unloaded plugin name as mock", func() {
-// 					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock")
-// 				})
-// 				Convey("So swapped plugins event should show unloaded plugin version as 2", func() {
-// 					So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
-// 				})
-// 				Convey("So swapped plugins event should show plugin type as collector", func() {
-// 					So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
-// 				})
-// 			})
-// 		})
+		// Swap plugin that was loaded with a different version of the plugin
+		Convey("Swapping plugins", t, func() {
+			Convey("Should generate a swapped plugins event", func() {
+				Convey("So first plugin in catalog after swap should have name mock", func() {
+					So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
+				})
+				Convey("So swapped plugins event should show loaded plugin name as mock", func() {
+					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock")
+				})
+				Convey("So swapped plugins event should show loaded plugin version as 1", func() {
+					So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
+				})
+				Convey("So swapped plugins event should show unloaded plugin name as mock", func() {
+					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock")
+				})
+				Convey("So swapped plugins event should show unloaded plugin version as 2", func() {
+					So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
+				})
+				Convey("So swapped plugins event should show plugin type as collector", func() {
+					So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
+				})
+			})
+		})
 
-// 		// Swap plugin with a different type of plugin
-// 		Convey("First plugin in catalog", t, func() {
-// 			Convey("Should have name mock", func() {
-// 				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
-// 			})
-// 		})
+		// Swap plugin with a different type of plugin
+		Convey("First plugin in catalog", t, func() {
+			Convey("Should have name mock", func() {
+				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
+			})
+		})
 
-// 		filePath := strings.Replace(PluginPath, "snap-collector-mock2", "snap-publisher-file", 1)
-// 		fileRP, pErr := core.NewRequestedPlugin(filePath)
-// 		Convey("Loading a plugin should not error", t, func() {
-// 			So(pErr, ShouldBeNil)
-// 		})
-// 		err = c.SwapPlugins(fileRP, c.PluginCatalog()[0])
-// 		Convey("Swapping mock and file plugins", t, func() {
-// 			Convey("Should error", func() {
-// 				So(err, ShouldNotBeNil)
-// 			})
-// 		})
+		filePath := strings.Replace(PluginPath, "snap-collector-mock2", "snap-publisher-file", 1)
+		fileRP, pErr := core.NewRequestedPlugin(filePath)
+		Convey("Loading a plugin should not error", t, func() {
+			So(pErr, ShouldBeNil)
+		})
+		err = c.SwapPlugins(fileRP, c.PluginCatalog()[0])
+		Convey("Swapping mock and file plugins", t, func() {
+			Convey("Should error", func() {
+				So(err, ShouldNotBeNil)
+			})
+		})
 
-// 		//
-// 		// TODO: Write a proper rollback test as previous test was not testing rollback
-// 		//
+		//
+		// TODO: Write a proper rollback test as previous test was not testing rollback
+		//
 
-// 		// Rollback will throw an error if a plugin can not unload
+		// Rollback will throw an error if a plugin can not unload
 
-// 		Convey("Rollback failure returns error", t, func() {
-// 			lp := c.PluginCatalog()[0]
-// 			pm := new(MockPluginManagerBadSwap)
-// 			pm.ExistingPlugin = lp
-// 			c.pluginManager = pm
+		Convey("Rollback failure returns error", t, func() {
+			lp := c.PluginCatalog()[0]
+			pm := new(MockPluginManagerBadSwap)
+			pm.ExistingPlugin = lp
+			c.pluginManager = pm
 
-// 			mockRP, mErr := core.NewRequestedPlugin(mock1Path)
-// 			So(mErr, ShouldBeNil)
-// 			err := c.SwapPlugins(mockRP, lp)
-// 			Convey("So err should be received if rollback fails", func() {
-// 				So(err, ShouldNotBeNil)
-// 			})
-// 		})
+			mockRP, mErr := core.NewRequestedPlugin(mock1Path)
+			So(mErr, ShouldBeNil)
+			err := c.SwapPlugins(mockRP, lp)
+			Convey("So err should be received if rollback fails", func() {
+				So(err, ShouldNotBeNil)
+			})
+		})
 
-// 		c.Stop()
-// 		time.Sleep(100 * time.Millisecond)
-// 	}
-// }
+		c.Stop()
+		time.Sleep(100 * time.Millisecond)
+	}
+}
 
 type mockPluginEvent struct {
 	LoadedPluginName      string
@@ -960,7 +960,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		metric, err := c.metricCatalog.Get(core.NewNamespace([]string{"intel", "mock", "foo"}), 1)
 		metric.config = cdata.NewNode()
 		So(err, ShouldBeNil)
-		So(metric.NamespaceAsString(), ShouldResemble, "/intel/mock/foo")
+		So(metric.Namespace().String(), ShouldResemble, "/intel/mock/foo")
 		So(err, ShouldBeNil)
 		<-lpe.done
 		Convey("Start the plugins", func() {
@@ -1074,8 +1074,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(err, ShouldBeNil)
 			ttl, err = pool.CacheTTL(taskID)
 			So(err, ShouldBeNil)
-			// The minimum TTL advertised by the plugin is 100ms therefore the TTL for the
-			// pool should be the global cache expiration
+			// The minimum TTL advertised by the plugin is 100ms therefore the TTL for th			// pool should be the global cache expiration
 			So(ttl, ShouldEqual, strategy.GlobalCacheExpiration)
 			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
 			hits, err := pool.CacheHits(m.namespace.String(), 2, taskID)

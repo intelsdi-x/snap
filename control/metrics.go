@@ -121,15 +121,11 @@ func newMetricType(ns core.Namespace, last time.Time, plugin *loadedPlugin) *met
 }
 
 func (m *metricType) Key() string {
-	return fmt.Sprintf("%s/%d", m.NamespaceAsString(), m.Version())
+	return fmt.Sprintf("%s/%d", m.Namespace().String(), m.Version())
 }
 
 func (m *metricType) Namespace() core.Namespace {
 	return m.namespace
-}
-
-func (m *metricType) NamespaceAsString() string {
-	return m.Namespace().String()
 }
 
 func (m *metricType) Data() interface{} {
