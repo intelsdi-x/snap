@@ -20,10 +20,10 @@ limitations under the License.
 package plugin
 
 import (
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	. "github.com/smartystreets/goconvey/convey"
@@ -31,11 +31,11 @@ import (
 
 func TestMetric(t *testing.T) {
 	Convey("error on invalid snap content type", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, 2),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", 2),
 		}
-		a, c, e := MarshalPluginMetricTypes("foo", m)
+		a, c, e := MarshalMetricTypes("foo", m)
 		m[0].Version_ = 1
 		m[0].AddData(3)
 		configNewNode := cdata.NewNode()
@@ -51,8 +51,8 @@ func TestMetric(t *testing.T) {
 	})
 
 	Convey("error on empty metric slice", t, func() {
-		m := []PluginMetricType{}
-		a, c, e := MarshalPluginMetricTypes("foo", m)
+		m := []MetricType{}
+		a, c, e := MarshalMetricTypes("foo", m)
 		So(e, ShouldNotBeNil)
 		So(e.Error(), ShouldEqual, "attempt to marshall empty slice of metrics: foo")
 		So(a, ShouldBeNil)
@@ -60,184 +60,184 @@ func TestMetric(t *testing.T) {
 	})
 
 	Convey("marshall using snap.* default to snap.gob", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
-		a, c, e := MarshalPluginMetricTypes("snap.*", m)
+		a, c, e := MarshalMetricTypes("snap.*", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
 		So(c, ShouldEqual, "snap.gob")
 
 		Convey("unmarshal snap.gob", func() {
-			m, e = UnmarshallPluginMetricTypes("snap.gob", a)
+			m, e = UnmarshallMetricTypes("snap.gob", a)
 			So(e, ShouldBeNil)
-			So(strings.Join(m[0].Namespace(), "/"), ShouldResemble, "foo/bar")
+			So(m[0].Namespace().String(), ShouldResemble, "/foo/bar")
 			So(m[0].Data(), ShouldResemble, 1)
-			So(strings.Join(m[1].Namespace(), "/"), ShouldResemble, "foo/baz")
+			So(m[1].Namespace().String(), ShouldResemble, "/foo/baz")
 			So(m[1].Data(), ShouldResemble, "2")
 		})
 
 	})
 
 	Convey("marshall using snap.gob", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
-		a, c, e := MarshalPluginMetricTypes("snap.gob", m)
+		a, c, e := MarshalMetricTypes("snap.gob", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
 		So(c, ShouldEqual, "snap.gob")
 
 		Convey("unmarshal snap.gob", func() {
-			m, e = UnmarshallPluginMetricTypes("snap.gob", a)
+			m, e = UnmarshallMetricTypes("snap.gob", a)
 			So(e, ShouldBeNil)
-			So(strings.Join(m[0].Namespace(), "/"), ShouldResemble, "foo/bar")
+			So(m[0].Namespace().String(), ShouldResemble, "/foo/bar")
 			So(m[0].Data(), ShouldResemble, 1)
-			So(strings.Join(m[1].Namespace(), "/"), ShouldResemble, "foo/baz")
+			So(m[1].Namespace().String(), ShouldResemble, "/foo/baz")
 			So(m[1].Data(), ShouldResemble, "2")
 		})
 
 		Convey("error on bad corrupt data", func() {
 			a = []byte{1, 0, 1, 1, 1, 1, 1, 0, 0, 1}
-			m, e = UnmarshallPluginMetricTypes("snap.gob", a)
+			m, e = UnmarshallMetricTypes("snap.gob", a)
 			So(e, ShouldNotBeNil)
-			So(e.Error(), ShouldResemble, "gob: decoding into local type *[]plugin.PluginMetricType, received remote type unknown type")
+			So(e.Error(), ShouldResemble, "gob: decoding into local type *[]plugin.MetricType, received remote type unknown type")
 		})
 	})
 
 	Convey("marshall using snap.json", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
-		a, c, e := MarshalPluginMetricTypes("snap.json", m)
+		a, c, e := MarshalMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
 		So(c, ShouldEqual, "snap.json")
 
 		Convey("unmarshal snap.json", func() {
-			m, e = UnmarshallPluginMetricTypes("snap.json", a)
+			m, e = UnmarshallMetricTypes("snap.json", a)
 			So(e, ShouldBeNil)
-			So(strings.Join(m[0].Namespace(), "/"), ShouldResemble, "foo/bar")
+			So(m[0].Namespace().String(), ShouldResemble, "/foo/bar")
 			So(m[0].Data(), ShouldResemble, float64(1))
-			So(strings.Join(m[1].Namespace(), "/"), ShouldResemble, "foo/baz")
+			So(m[1].Namespace().String(), ShouldResemble, "/foo/baz")
 			So(m[1].Data(), ShouldResemble, "2")
 		})
 
 		Convey("error on bad corrupt data", func() {
 			a = []byte{1, 0, 1, 1, 1, 1, 1, 0, 0, 1}
-			m, e = UnmarshallPluginMetricTypes("snap.json", a)
+			m, e = UnmarshallMetricTypes("snap.json", a)
 			So(e, ShouldNotBeNil)
 			So(e.Error(), ShouldResemble, "invalid character '\\x01' looking for beginning of value")
 		})
 	})
 
 	Convey("error on unmarshall using bad content type", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
-		a, c, e := MarshalPluginMetricTypes("snap.json", m)
+		a, c, e := MarshalMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
 		So(c, ShouldEqual, "snap.json")
 
-		m, e = UnmarshallPluginMetricTypes("snap.wat", a)
+		m, e = UnmarshallMetricTypes("snap.wat", a)
 		So(e, ShouldNotBeNil)
 		So(e.Error(), ShouldEqual, "invalid snap content type for unmarshalling: snap.wat")
 		So(m, ShouldBeNil)
 	})
 
 	Convey("swap from snap.gob to snap.json", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
-		a, c, e := MarshalPluginMetricTypes("snap.gob", m)
+		a, c, e := MarshalMetricTypes("snap.gob", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
 		So(c, ShouldEqual, "snap.gob")
 
-		b, c, e := SwapPluginMetricContentType(c, "snap.json", a)
+		b, c, e := SwapMetricContentType(c, "snap.json", a)
 		So(e, ShouldBeNil)
 		So(c, ShouldResemble, "snap.json")
 		So(b, ShouldNotBeNil)
 
-		m, e = UnmarshallPluginMetricTypes(c, b)
+		m, e = UnmarshallMetricTypes(c, b)
 		So(e, ShouldBeNil)
-		So(strings.Join(m[0].Namespace(), "/"), ShouldResemble, "foo/bar")
+		So(m[0].Namespace().String(), ShouldResemble, "/foo/bar")
 		So(m[0].Data(), ShouldResemble, float64(1))
-		So(strings.Join(m[1].Namespace(), "/"), ShouldResemble, "foo/baz")
+		So(m[1].Namespace().String(), ShouldResemble, "/foo/baz")
 		So(m[1].Data(), ShouldResemble, "2")
 	})
 
 	Convey("swap from snap.json to snap.*", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
-		a, c, e := MarshalPluginMetricTypes("snap.json", m)
+		a, c, e := MarshalMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
 		So(c, ShouldEqual, "snap.json")
 
-		b, c, e := SwapPluginMetricContentType(c, "snap.*", a)
+		b, c, e := SwapMetricContentType(c, "snap.*", a)
 		So(e, ShouldBeNil)
 		So(c, ShouldResemble, "snap.gob")
 		So(b, ShouldNotBeNil)
 
-		m, e = UnmarshallPluginMetricTypes(c, b)
+		m, e = UnmarshallMetricTypes(c, b)
 		So(e, ShouldBeNil)
-		So(strings.Join(m[0].Namespace(), "/"), ShouldResemble, "foo/bar")
+		So(m[0].Namespace().String(), ShouldResemble, "/foo/bar")
 		So(m[0].Data(), ShouldResemble, float64(1))
-		So(strings.Join(m[1].Namespace(), "/"), ShouldResemble, "foo/baz")
+		So(m[1].Namespace().String(), ShouldResemble, "/foo/baz")
 		So(m[1].Data(), ShouldResemble, "2")
 	})
 
 	Convey("swap from snap.json to snap.gob", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
-		a, c, e := MarshalPluginMetricTypes("snap.json", m)
+		a, c, e := MarshalMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
 		So(c, ShouldEqual, "snap.json")
 
-		b, c, e := SwapPluginMetricContentType(c, "snap.gob", a)
+		b, c, e := SwapMetricContentType(c, "snap.gob", a)
 		So(e, ShouldBeNil)
 		So(c, ShouldResemble, "snap.gob")
 		So(b, ShouldNotBeNil)
 
-		m, e = UnmarshallPluginMetricTypes(c, b)
+		m, e = UnmarshallMetricTypes(c, b)
 		So(e, ShouldBeNil)
-		So(strings.Join(m[0].Namespace(), "/"), ShouldResemble, "foo/bar")
+		So(m[0].Namespace().String(), ShouldResemble, "/foo/bar")
 		So(m[0].Data(), ShouldResemble, float64(1))
-		So(strings.Join(m[1].Namespace(), "/"), ShouldResemble, "foo/baz")
+		So(m[1].Namespace().String(), ShouldResemble, "/foo/baz")
 		So(m[1].Data(), ShouldResemble, "2")
 	})
 
 	Convey("error on bad content type to swap", t, func() {
-		m := []PluginMetricType{
-			*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-			*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, "2"),
+		m := []MetricType{
+			*NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1),
+			*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", "2"),
 		}
-		a, c, e := MarshalPluginMetricTypes("snap.json", m)
+		a, c, e := MarshalMetricTypes("snap.json", m)
 		So(e, ShouldBeNil)
 		So(a, ShouldNotBeNil)
 		So(len(a), ShouldBeGreaterThan, 0)
 		So(c, ShouldEqual, "snap.json")
 
-		b, c, e := SwapPluginMetricContentType("snap.wat", "snap.gob", a)
+		b, c, e := SwapMetricContentType("snap.wat", "snap.gob", a)
 		So(e, ShouldNotBeNil)
 		So(e.Error(), ShouldResemble, "invalid snap content type for unmarshalling: snap.wat")
 		So(b, ShouldBeNil)

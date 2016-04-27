@@ -109,11 +109,11 @@ func (m *mockMetricManager) UnsubscribeDeps(taskID string, mts []core.Metric, pr
 	return nil
 }
 
-func (m *mockMetricManager) MatchQueryToNamespaces([]string) ([][]string, serror.SnapError) {
+func (m *mockMetricManager) MatchQueryToNamespaces(core.Namespace) ([]core.Namespace, serror.SnapError) {
 	return nil, nil
 }
 
-func (m *mockMetricManager) ExpandWildcards([]string) ([][]string, serror.SnapError) {
+func (m *mockMetricManager) ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError) {
 	return nil, nil
 }
 

@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin"
@@ -46,36 +45,34 @@ type Mock struct {
 }
 
 // CollectMetrics collects metrics for testing
-func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMetricType, error) {
+func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, error) {
 	for _, p := range mts {
 		log.Printf("collecting %+v\n", p)
 	}
 
 	rand.Seed(time.Now().UTC().UnixNano())
-	metrics := []plugin.PluginMetricType{}
+	metrics := []plugin.MetricType{}
 	for i := range mts {
 		if c, ok := mts[i].Config().Table()["panic"]; ok && c.(ctypes.ConfigValueBool).Value {
 			panic("Opps!")
 		}
-		if mts[i].Namespace()[2] == "*" {
-			hostname, _ := os.Hostname()
+		if mts[i].Namespace()[2].Value == "*" {
 			for j := 0; j < 10; j++ {
-				v := fmt.Sprintf("host%d", j)
+				ns := mts[i].Namespace()
+				ns[2].Value = fmt.Sprintf("host%d", j)
 				data := randInt(65, 90)
-				mt := plugin.PluginMetricType{
+				mt := plugin.MetricType{
 					Data_:      data,
-					Namespace_: []string{"intel", "mock", v, "baz"},
-					Source_:    hostname,
+					Namespace_: ns,
 					Timestamp_: time.Now(),
-					Labels_:    mts[i].Labels(),
 					Version_:   mts[i].Version(),
+					Unit_:      mts[i].Unit(),
 				}
 				metrics = append(metrics, mt)
 			}
 		} else {
 			data := randInt(65, 90)
 			mts[i].Data_ = data
-			mts[i].Source_, _ = os.Hostname()
 			mts[i].Timestamp_ = time.Now()
 			metrics = append(metrics, mts[i])
 		}
@@ -84,19 +81,34 @@ func (f *Mock) CollectMetrics(mts []plugin.PluginMetricType) ([]plugin.PluginMet
 }
 
 //GetMetricTypes returns metric types for testing
-func (f *Mock) GetMetricTypes(cfg plugin.PluginConfigType) ([]plugin.PluginMetricType, error) {
-	mts := []plugin.PluginMetricType{}
+func (f *Mock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error) {
+	mts := []plugin.MetricType{}
 	if _, ok := cfg.Table()["test-fail"]; ok {
 		return mts, fmt.Errorf("testing")
 	}
 	if _, ok := cfg.Table()["test"]; ok {
-		mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "test"}})
+		mts = append(mts, plugin.MetricType{
+			Namespace_:   core.NewNamespace([]string{"intel", "mock", "test"}),
+			Description_: "mock description",
+			Unit_:        "mock unit",
+		})
 	}
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "foo"}})
-	mts = append(mts, plugin.PluginMetricType{Namespace_: []string{"intel", "mock", "bar"}})
-	mts = append(mts, plugin.PluginMetricType{
-		Namespace_: []string{"intel", "mock", "*", "baz"},
-		Labels_:    []core.Label{{Index: 2, Name: "host"}},
+	mts = append(mts, plugin.MetricType{
+		Namespace_:   core.NewNamespace([]string{"intel", "mock", "foo"}),
+		Description_: "mock description",
+		Unit_:        "mock unit",
+	})
+	mts = append(mts, plugin.MetricType{
+		Namespace_:   core.NewNamespace([]string{"intel", "mock", "bar"}),
+		Description_: "mock description",
+		Unit_:        "mock unit",
+	})
+	mts = append(mts, plugin.MetricType{
+		Namespace_: core.NewNamespace([]string{"intel", "mock"}).
+			AddDynamicElement("host", "name of the host").
+			AddStaticElement("baz"),
+		Description_: "mock description",
+		Unit_:        "mock unit",
 	})
 	return mts, nil
 }

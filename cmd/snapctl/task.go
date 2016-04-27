@@ -381,7 +381,7 @@ func watchTask(ctx *cli.Context) {
 	}()
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
-	printFields(w, false, 0, "NAMESPACE", "DATA", "TIMESTAMP", "SOURCE")
+	printFields(w, false, 0, "NAMESPACE", "DATA", "TIMESTAMP")
 	// Loop listening to events
 	for {
 		select {
@@ -395,7 +395,6 @@ func watchTask(ctx *cli.Context) {
 						event.Namespace,
 						event.Data,
 						event.Timestamp,
-						event.Source,
 					)
 				}
 				lines = len(e.Event)

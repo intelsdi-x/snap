@@ -34,8 +34,8 @@ func TestCache(t *testing.T) {
 	GlobalCacheExpiration = time.Duration(300 * time.Millisecond)
 	Convey("puts and gets a metric", t, func() {
 		mc := NewCache(GlobalCacheExpiration)
-		foo := &plugin.PluginMetricType{
-			Namespace_: []string{"foo", "bar"},
+		foo := &plugin.MetricType{
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 		}
 
 		mc.put("/foo/bar", 1, foo)
@@ -58,8 +58,8 @@ func TestCache(t *testing.T) {
 		chrono.Chrono.Pause()
 
 		mc := NewCache(400 * time.Millisecond)
-		foo := &plugin.PluginMetricType{
-			Namespace_: []string{"foo", "bar"},
+		foo := &plugin.MetricType{
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 		}
 		mc.put("/foo/bar", 1, foo)
 		chrono.Chrono.Forward(401 * time.Millisecond)
@@ -70,8 +70,8 @@ func TestCache(t *testing.T) {
 	Convey("hit and miss counts", t, func() {
 		Convey("ticks hit count when a cache entry is hit", func() {
 			mc := NewCache(400 * time.Millisecond)
-			foo := &plugin.PluginMetricType{
-				Namespace_: []string{"foo", "bar"},
+			foo := &plugin.MetricType{
+				Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			}
 			mc.put("/foo/bar", 1, foo)
 			mc.get("/foo/bar", 1)
@@ -84,8 +84,8 @@ func TestCache(t *testing.T) {
 			chrono.Chrono.Pause()
 
 			mc := NewCache(400 * time.Millisecond)
-			foo := &plugin.PluginMetricType{
-				Namespace_: []string{"foo", "bar"},
+			foo := &plugin.MetricType{
+				Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			}
 
 			mc.put("/foo/bar", 1, foo)
@@ -100,8 +100,8 @@ func TestCache(t *testing.T) {
 			chrono.Chrono.Pause()
 
 			mc := NewCache(GlobalCacheExpiration)
-			foo := &plugin.PluginMetricType{
-				Namespace_: []string{"foo", "bar"},
+			foo := &plugin.MetricType{
+				Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			}
 			mc.put("/foo/bar", 1, foo)
 			chrono.Chrono.Forward(301 * time.Millisecond)
@@ -117,23 +117,23 @@ func TestCache(t *testing.T) {
 		chrono.Chrono.Pause()
 
 		mc := NewCache(GlobalCacheExpiration)
-		foo := &plugin.PluginMetricType{
-			Namespace_: []string{"foo", "bar"},
+		foo := &plugin.MetricType{
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 		}
-		baz := &plugin.PluginMetricType{
-			Namespace_: []string{"foo", "baz"},
+		baz := &plugin.MetricType{
+			Namespace_: core.NewNamespace([]string{"foo", "baz"}),
 		}
 		metricList := []core.Metric{foo, baz}
 		mc.updateCache(metricList)
 		Convey("they should be retrievable via get", func() {
-			ret := mc.get(core.JoinNamespace(foo.Namespace()), foo.Version())
+			ret := mc.get(foo.Namespace().String(), foo.Version())
 			So(ret, ShouldEqual, foo)
-			ret = mc.get(core.JoinNamespace(baz.Namespace()), baz.Version())
+			ret = mc.get(baz.Namespace().String(), baz.Version())
 			So(ret, ShouldEqual, baz)
 		})
 		Convey("they should be retrievable via checkCache", func() {
-			nonCached := &plugin.PluginMetricType{
-				Namespace_: []string{"foo", "fooer"},
+			nonCached := &plugin.MetricType{
+				Namespace_: core.NewNamespace([]string{"foo", "fooer"}),
 			}
 			metricList = append(metricList, nonCached)
 			toCollect, fromCache := mc.checkCache(metricList)
@@ -154,22 +154,20 @@ func TestCache(t *testing.T) {
 		defer chrono.Chrono.Continue()
 		chrono.Chrono.Pause()
 		mc := NewCache(GlobalCacheExpiration)
-		v1 := plugin.PluginMetricType{
-			Namespace_: []string{"foo", "bar"},
+		v1 := plugin.MetricType{
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			Version_:   1,
-			Labels_:    []core.Label{{Index: 1, Name: "Hostname"}},
 		}
-		v2 := plugin.PluginMetricType{
-			Namespace_: []string{"foo", "Baz"},
+		v2 := plugin.MetricType{
+			Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 			Version_:   2,
-			Labels_:    []core.Label{{Index: 1, Name: "Hostname"}},
 		}
 		metricList := []core.Metric{v1, v2}
 		mc.updateCache(metricList)
 		Convey("Should be cached separately", func() {
 			Convey("so only 1 should be returned from the cache", func() {
-				starMetric := &plugin.PluginMetricType{
-					Namespace_: []string{"foo", "*"},
+				starMetric := &plugin.MetricType{
+					Namespace_: core.NewNamespace([]string{"foo", "bar"}),
 					Version_:   2,
 				}
 				// Check /foo/* with both versions

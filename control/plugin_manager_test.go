@@ -30,6 +30,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 )
@@ -127,9 +128,13 @@ func TestLoadPlugin(t *testing.T) {
 				So(p.all(), ShouldNotBeEmpty)
 				So(serr, ShouldBeNil)
 				So(len(p.all()), ShouldBeGreaterThan, 0)
-				mts, err := p.metricCatalog.Fetch([]string{})
+				mts, err := p.metricCatalog.Fetch(core.NewNamespace([]string{}))
 				So(err, ShouldBeNil)
 				So(len(mts), ShouldBeGreaterThan, 2)
+				So(mts[0].Description(), ShouldResemble, "mock description")
+				So(mts[0].Unit(), ShouldResemble, "mock unit")
+				So(mts[0].Tags(), ShouldContainKey, "plugin_running_on")
+				So(mts[0].Tags()["plugin_running_on"], ShouldNotResemble, "")
 			})
 
 			Convey("for a plugin requiring a config an incomplete config will result in a load failure", func() {

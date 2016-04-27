@@ -50,7 +50,7 @@ func NewFilePublisher() *filePublisher {
 func (f *filePublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
 	logger := log.New()
 	logger.Println("Publishing started")
-	var metrics []plugin.PluginMetricType
+	var metrics []plugin.MetricType
 
 	switch contentType {
 	case plugin.SnapGOBContentType:
@@ -73,11 +73,7 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 	}
 	w := bufio.NewWriter(file)
 	for _, m := range metrics {
-		source := m.Source()
-		if source == "" {
-			source = "unknown"
-		}
-		w.WriteString(fmt.Sprintf("%v|%v|%v|%v\n", m.Timestamp(), m.Namespace(), m.Data(), source))
+		w.WriteString(fmt.Sprintf("%v|%v|%v\n", m.Timestamp(), m.Namespace(), m.Data()))
 	}
 	w.Flush()
 

@@ -185,12 +185,12 @@ func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.D
 }
 
 type metric struct {
-	namespace []string
+	namespace core.Namespace
 	version   int
 	config    *cdata.ConfigDataNode
 }
 
-func (m *metric) Namespace() []string {
+func (m *metric) Namespace() core.Namespace {
 	return m.namespace
 }
 
@@ -203,10 +203,10 @@ func (m *metric) Version() int {
 }
 
 func (m *metric) Data() interface{}             { return nil }
+func (m *metric) Description() string           { return "" }
+func (m *metric) Unit() string                  { return "" }
 func (m *metric) Tags() map[string]string       { return nil }
-func (m *metric) Labels() []core.Label          { return nil }
 func (m *metric) LastAdvertisedTime() time.Time { return time.Unix(0, 0) }
-func (m *metric) Source() string                { return "" }
 func (m *metric) Timestamp() time.Time          { return time.Unix(0, 0) }
 
 func (c *collectorJob) Run() {
@@ -222,11 +222,11 @@ func (c *collectorJob) Run() {
 		nss, err := c.collector.ExpandWildcards(rmt.Namespace())
 		if err != nil {
 			// use metric directly from the workflow
-			nss = [][]string{rmt.Namespace()}
+			nss = []core.Namespace{rmt.Namespace()}
 		}
 
 		for _, ns := range nss {
-			config := c.configDataTree.Get(ns)
+			config := c.configDataTree.Get(ns.Strings())
 
 			if config == nil {
 				config = cdata.NewNode()
@@ -302,9 +302,9 @@ func (p *processJob) Run() {
 	case *collectorJob:
 		switch p.contentType {
 		case plugin.SnapGOBContentType:
-			metrics := make([]plugin.PluginMetricType, len(pt.metrics))
+			metrics := make([]plugin.MetricType, len(pt.metrics))
 			for i, m := range pt.metrics {
-				if mt, ok := m.(plugin.PluginMetricType); ok {
+				if mt, ok := m.(plugin.MetricType); ok {
 					metrics[i] = mt
 				} else {
 					log.WithFields(log.Fields{
@@ -435,13 +435,13 @@ func (p *publisherJob) Run() {
 	case collectJobType:
 		switch p.contentType {
 		case plugin.SnapGOBContentType:
-			metrics := make([]plugin.PluginMetricType, len(p.parentJob.(*collectorJob).metrics))
+			metrics := make([]plugin.MetricType, len(p.parentJob.(*collectorJob).metrics))
 			for i, m := range p.parentJob.(*collectorJob).metrics {
 				switch mt := m.(type) {
-				case plugin.PluginMetricType:
+				case plugin.MetricType:
 					metrics[i] = mt
 				default:
-					panic("unsupported type")
+					panic(fmt.Sprintf("unsupported type %T", mt))
 				}
 			}
 			enc.Encode(metrics)

@@ -357,7 +357,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	if resp.Type == plugin.CollectorPluginType {
 		colClient := ap.client.(client.PluginCollectorClient)
 
-		cfg := plugin.PluginConfigType{
+		cfg := plugin.ConfigType{
 			ConfigDataNode: p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version),
 		}
 
@@ -385,7 +385,8 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 					config:             nmt.Config(),
 					data:               nmt.Data(),
 					tags:               nmt.Tags(),
-					labels:             nmt.Labels(),
+					description:        nmt.Description(),
+					unit:               nmt.Unit(),
 				}
 			}
 			// We quit and throw an error on bad metric versions (<1)
@@ -404,6 +405,10 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 				}).Error("received metric with bad version")
 				return nil, serror.New(err)
 			}
+
+			//Add standard tags
+			nmt = addStandardTags(nmt)
+
 			if err := p.metricCatalog.AddLoadedMetricType(lPlugin, nmt); err != nil {
 				pmLogger.WithFields(log.Fields{
 					"_block":           "load-plugin",

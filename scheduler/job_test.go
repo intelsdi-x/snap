@@ -38,7 +38,7 @@ func (m *mockCollector) CollectMetrics([]core.Metric, time.Time, string) ([]core
 	return nil, nil
 }
 
-func (m *mockCollector) ExpandWildcards([]string) ([][]string, serror.SnapError) {
+func (m *mockCollector) ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError) {
 	return nil, nil
 }
 

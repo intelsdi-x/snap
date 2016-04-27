@@ -27,10 +27,11 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 )
 
-type Label struct {
-	Index int    `json:"index"`
-	Name  string `json:"name"`
-}
+var (
+	// Standard Tags are in added to the metric by the framework on plugin load.
+	// STD_TAG_PLUGIN_RUNNING_ON describes where the plugin is running (hostname).
+	STD_TAG_PLUGIN_RUNNING_ON = "plugin_running_on"
+)
 
 // Metric represents a snap metric collected or to be collected
 type Metric interface {
@@ -38,15 +39,110 @@ type Metric interface {
 	Config() *cdata.ConfigDataNode
 	LastAdvertisedTime() time.Time
 	Data() interface{}
-	Source() string
-	Labels() []Label
 	Tags() map[string]string
 	Timestamp() time.Time
+	Description() string
+	Unit() string
+}
+
+type Namespace []NamespaceElement
+
+// String returns the string representation of the namespace with "/" joining
+// the elements of the namespace.  A leading "/" is added.
+func (n Namespace) String() string {
+	ns := "/"
+	for i, x := range n {
+		ns += x.Value
+		if i != len(n)-1 {
+			ns += "/"
+		}
+	}
+	return ns
+}
+
+// Strings returns an array of strings that represent the elements of the
+// namespace.
+func (n Namespace) Strings() []string {
+	return strings.Split(strings.TrimPrefix(n.String(), "/"), "/")
+}
+
+// Key returns a string representation of the namespace with "." joining
+// the elements of the namespace.
+func (n Namespace) Key() string {
+	return strings.Join(n.Strings(), ".")
+}
+
+// IsDynamic returns true if there is any element of the namespace which is
+// dynamic.  If the namespace is dynamic the second return value will contain
+// an array of namespace elements (indexes) where there are dynamic namespace
+// elements. A dynamic component of the namespace are those elements that
+// contain variable data.
+func (n Namespace) IsDynamic() (bool, []int) {
+	var idx []int
+	ret := false
+	for i := range n {
+		if n[i].IsDynamic() {
+			ret = true
+			idx = append(idx, i)
+		}
+	}
+	return ret, idx
+}
+
+// NewNamespace takes an array of strings and returns a Namespace.  A Namespace
+// is an array of NamespaceElements.  The provided array of strings is used to
+// set the corresponding Value fields in the array of NamespaceElements.
+func NewNamespace(ns []string) Namespace {
+	n := make([]NamespaceElement, len(ns))
+	for i, ns := range ns {
+		n[i] = NamespaceElement{Value: ns}
+	}
+	return n
+}
+
+// AddDynamicElement adds a dynamic element to the given Namespace.  A dynamic
+// NamespaceElement is defined by having a nonempty Name field.
+func (n Namespace) AddDynamicElement(name, description string) Namespace {
+	nse := NamespaceElement{Name: name, Description: description, Value: "*"}
+	return append(n, nse)
+}
+
+// AddStaticElement adds a static element to the given Namespace.  A static
+// NamespaceElement is defined by having an empty Name field.
+func (n Namespace) AddStaticElement(value string) Namespace {
+	nse := NamespaceElement{Value: value}
+	return append(n, nse)
+}
+
+// NamespaceElement provides meta data related to the namespace.  This is of particular importance when
+// the namespace contains data.
+type NamespaceElement struct {
+	Value       string
+	Description string
+	Name        string
+}
+
+// NewNamespaceElement tasks a string and returns a NamespaceElement where the
+// Value field is set to the provided string argument.
+func NewNamespaceElement(e string) NamespaceElement {
+	if e != "" {
+		return NamespaceElement{Value: e}
+	}
+	return NamespaceElement{}
+}
+
+// IsDynamic returns true if the namespace element contains data.  A namespace
+// element that has a nonempty Name field is considered dynamic.
+func (n *NamespaceElement) IsDynamic() bool {
+	if n.Name != "" {
+		return true
+	}
+	return false
 }
 
 // RequestedMetric is a metric requested for collection
 type RequestedMetric interface {
-	Namespace() []string
+	Namespace() Namespace
 	Version() int
 }
 
@@ -54,8 +150,4 @@ type CatalogedMetric interface {
 	RequestedMetric
 	LastAdvertisedTime() time.Time
 	Policy() *cpolicy.ConfigPolicyNode
-}
-
-func JoinNamespace(ns []string) string {
-	return "/" + strings.Join(ns, "/")
 }

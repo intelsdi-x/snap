@@ -36,21 +36,22 @@ import (
 type mockPlugin struct {
 }
 
-var mockPluginMetricType []PluginMetricType = []PluginMetricType{
-	*NewPluginMetricType([]string{"foo", "bar"}, time.Now(), "", nil, nil, 1),
-	*NewPluginMetricType([]string{"foo", "baz"}, time.Now(), "", nil, nil, 2),
+var mockMetricType = []MetricType{
+	*NewMetricType(core.NewNamespace([]string{"foo"}).AddDynamicElement("test", "something dynamic here").AddStaticElement("bar"), time.Now(), nil, "", 1),
+	*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", 2),
 }
 
-func (p *mockPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, error) {
-	return mockPluginMetricType, nil
+func (p *mockPlugin) GetMetricTypes(cfg ConfigType) ([]MetricType, error) {
+	return mockMetricType, nil
 }
 
-func (p *mockPlugin) CollectMetrics(mockPluginMetricTypes []PluginMetricType) ([]PluginMetricType, error) {
-	for i := range mockPluginMetricTypes {
-		mockPluginMetricTypes[i].Labels_ = []core.Label{{Index: 0, Name: "test"}}
-		mockPluginMetricTypes[i].Tags_ = map[string]string{"key": "value"}
+func (p *mockPlugin) CollectMetrics(mockMetricTypes []MetricType) ([]MetricType, error) {
+	for i := range mockMetricTypes {
+		if mockMetricTypes[i].Namespace().String() == "/foo/*/bar" {
+			mockMetricTypes[i].Namespace_[1].Value = "test"
+		}
 	}
-	return mockPluginMetricTypes, nil
+	return mockMetricTypes, nil
 }
 
 func (p *mockPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
@@ -69,11 +70,11 @@ func (p *mockPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 type mockErrorPlugin struct {
 }
 
-func (p *mockErrorPlugin) GetMetricTypes(cfg PluginConfigType) ([]PluginMetricType, error) {
+func (p *mockErrorPlugin) GetMetricTypes(cfg ConfigType) ([]MetricType, error) {
 	return nil, errors.New("Error in get Metric Type")
 }
 
-func (p *mockErrorPlugin) CollectMetrics(mockPluginMetricType []PluginMetricType) ([]PluginMetricType, error) {
+func (p *mockErrorPlugin) CollectMetrics(_ []MetricType) ([]MetricType, error) {
 	return nil, errors.New("Error in collect Metric")
 }
 
@@ -107,7 +108,7 @@ func TestCollectorProxy(t *testing.T) {
 			var mtr GetMetricTypesReply
 			err := c.Session.Decode(reply, &mtr)
 			So(err, ShouldBeNil)
-			So(mtr.PluginMetricTypes[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+			So(mtr.MetricTypes[0].Namespace().String(), ShouldResemble, "/foo/*/bar")
 
 		})
 		Convey("Get error in Get Metric Type", func() {
@@ -122,7 +123,7 @@ func TestCollectorProxy(t *testing.T) {
 		})
 		Convey("Collect Metric ", func() {
 			args := CollectMetricsArgs{
-				PluginMetricTypes: mockPluginMetricType,
+				MetricTypes: mockMetricType,
 			}
 			out, err := c.Session.Encode(args)
 			So(err, ShouldBeNil)
@@ -130,15 +131,12 @@ func TestCollectorProxy(t *testing.T) {
 			c.CollectMetrics(out, &reply)
 			var mtr CollectMetricsReply
 			err = c.Session.Decode(reply, &mtr)
-			So(mtr.PluginMetrics[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
-			So(mtr.PluginMetrics[0].Labels(), ShouldNotBeNil)
-			So(mtr.PluginMetrics[0].Labels()[0].Name, ShouldEqual, "test")
-			So(mtr.PluginMetrics[0].Tags(), ShouldNotBeNil)
-			So(mtr.PluginMetrics[0].Tags()["key"], ShouldEqual, "value")
+			So(mtr.PluginMetrics[0].Namespace().String(), ShouldResemble, "/foo/test/bar")
+			So(mtr.PluginMetrics[0].Namespace()[1].Name, ShouldEqual, "test")
 
 			Convey("Get error in Collect Metric ", func() {
 				args := CollectMetricsArgs{
-					PluginMetricTypes: mockPluginMetricType,
+					MetricTypes: mockMetricType,
 				}
 				mockErrorPlugin := &mockErrorPlugin{}
 				errC := &collectorPluginProxy{

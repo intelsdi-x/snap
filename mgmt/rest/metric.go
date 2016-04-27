@@ -72,7 +72,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			}
 		}
 
-		mets, err := s.mm.FetchMetrics(ns[:len(ns)-1], ver)
+		mets, err := s.mm.FetchMetrics(core.NewNamespace(ns[:len(ns)-1]), ver)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
@@ -83,7 +83,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 
 	// If no version was given, get all that fall at this namespace.
 	if v == "" {
-		mts, err := s.mm.GetMetricVersions(ns)
+		mts, err := s.mm.GetMetricVersions(core.NewNamespace(ns))
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
@@ -98,7 +98,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		respond(400, rbody.FromError(err), w)
 		return
 	}
-	mt, err := s.mm.GetMetric(ns, ver)
+	mt, err := s.mm.GetMetric(core.NewNamespace(ns), ver)
 	if err != nil {
 		respond(404, rbody.FromError(err), w)
 		return
@@ -106,7 +106,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 
 	b := &rbody.MetricReturned{}
 	mb := &rbody.Metric{
-		Namespace:               core.JoinNamespace(mt.Namespace()),
+		Namespace:               mt.Namespace().String(),
 		Version:                 mt.Version(),
 		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
 		Href: catalogedMetricURI(r.Host, mt),
@@ -145,7 +145,7 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 			})
 		}
 		b = append(b, rbody.Metric{
-			Namespace:               core.JoinNamespace(met.Namespace()),
+			Namespace:               met.Namespace().String(),
 			Version:                 met.Version(),
 			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
 			Policy:                  policies,
@@ -157,5 +157,5 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 }
 
 func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, core.JoinNamespace(mt.Namespace()), mt.Version())
+	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, mt.Namespace().String(), mt.Version())
 }

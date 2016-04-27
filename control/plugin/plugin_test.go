@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdi-x/snap/core"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -38,15 +39,15 @@ func TestPluginType(t *testing.T) {
 func TestMetricType(t *testing.T) {
 	Convey("MetricType", t, func() {
 		now := time.Now()
-		m := &PluginMetricType{
-			Namespace_:          []string{"foo", "bar"},
+		m := &MetricType{
+			Namespace_:          core.NewNamespace([]string{"foo", "bar"}),
 			LastAdvertisedTime_: now,
 		}
 		Convey("New", func() {
-			So(m, ShouldHaveSameTypeAs, &PluginMetricType{})
+			So(m, ShouldHaveSameTypeAs, &MetricType{})
 		})
 		Convey("Get Namespace", func() {
-			So(m.Namespace(), ShouldResemble, []string{"foo", "bar"})
+			So(m.Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))
 		})
 		Convey("Get LastAdvertisedTimestamp", func() {
 			So(m.LastAdvertisedTime().Unix(), ShouldBeGreaterThan, now.Unix()-2)

@@ -147,19 +147,18 @@ func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, er
 		return nil, errors.New("no metrics to collect")
 	}
 
-	metricsToCollect := make([]plugin.PluginMetricType, len(mts))
+	metricsToCollect := make([]plugin.MetricType, len(mts))
 	for idx, mt := range mts {
-		metricsToCollect[idx] = plugin.PluginMetricType{
+		metricsToCollect[idx] = plugin.MetricType{
 			Namespace_:          mt.Namespace(),
 			LastAdvertisedTime_: mt.LastAdvertisedTime(),
 			Version_:            mt.Version(),
 			Tags_:               mt.Tags(),
-			Labels_:             mt.Labels(),
 			Config_:             mt.Config(),
 		}
 	}
 
-	args := &plugin.CollectMetricsArgs{PluginMetricTypes: metricsToCollect}
+	args := &plugin.CollectMetricsArgs{MetricTypes: metricsToCollect}
 
 	out, err := h.encoder.Encode(args)
 	if err != nil {
@@ -195,7 +194,7 @@ func (h *httpJSONRPCClient) CollectMetrics(mts []core.Metric) ([]core.Metric, er
 }
 
 // GetMetricTypes returns metric types that can be collected
-func (h *httpJSONRPCClient) GetMetricTypes(config plugin.PluginConfigType) ([]core.Metric, error) {
+func (h *httpJSONRPCClient) GetMetricTypes(config plugin.ConfigType) ([]core.Metric, error) {
 	args := plugin.GetMetricTypesArgs{PluginConfig: config}
 
 	out, err := h.encoder.Encode(args)
@@ -212,8 +211,8 @@ func (h *httpJSONRPCClient) GetMetricTypes(config plugin.PluginConfigType) ([]co
 	if err != nil {
 		return nil, err
 	}
-	metrics := make([]core.Metric, len(mtr.PluginMetricTypes))
-	for i, mt := range mtr.PluginMetricTypes {
+	metrics := make([]core.Metric, len(mtr.MetricTypes))
+	for i, mt := range mtr.MetricTypes {
 		mt.LastAdvertisedTime_ = time.Now()
 		metrics[i] = mt
 	}
