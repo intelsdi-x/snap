@@ -348,12 +348,11 @@ func (ap *availablePlugins) getPool(key string) (strategy.Pool, serror.SnapError
 				"key": key,
 			})
 		}
-
 		if v < 1 {
 			return ap.findLatestPool(tnv[0], tnv[1])
 		}
 
-		return nil, nil
+		return nil, serror.New(ErrBadKey, map[string]interface{}{"key": key})
 	}
 
 	return pool, nil

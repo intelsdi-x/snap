@@ -32,6 +32,16 @@ service MetricManager {
 	rpc PluginCatalog(common.Empty) returns (PluginCatalogReply) {}
 	rpc AvailablePlugins(common.Empty) returns (AvailablePluginsReply) {}
 	rpc GetPlugin(GetPluginRequest) returns (GetPluginReply) {}
+	// managesMetrics from scheduler
+	rpc GetPluginContentTypes(GetPluginContentTypesRequest) returns (GetPluginContentTypesReply) {}
+	rpc ExpandWildcards(ExpandWildcardsRequest) returns (ExpandWildcardsReply) {}
+	rpc CollectMetrics(CollectMetricsRequest) returns (CollectMetricsReply) {}
+	rpc PublishMetrics(PubProcMetricsRequest) returns (ErrorReply) {}
+	rpc ProcessMetrics(PubProcMetricsRequest) returns (ProcessMetricsReply) {}
+	rpc ValidateDeps(ValidateDepsRequest) returns (ValidateDepsReply) {}
+	rpc SubscribeDeps(SubscribeDepsRequest) returns (SubscribeDepsReply) {}
+	rpc UnsubscribeDeps(SubscribeDepsRequest) returns (SubscribeDepsReply) {}
+	rpc MatchQueryToNamespaces(ExpandWildcardsRequest) returns (ExpandWildcardsReply) {}
 }
 
 message AvailablePluginReply {
@@ -136,3 +146,83 @@ message DeleteConfigDataNodeFieldAllRequest{
 	repeated string Fields = 1;
 }
 
+// managesMetrics from scheduler
+
+message SerrorReply{}
+
+message PubProcMetricsRequest{
+	string ContentType = 1;
+	bytes Content = 2;
+	string PluginName = 3;
+	int64 PluginVersion = 4;
+	common.ConfigMap Config = 5;
+	string TaskId = 6;
+}
+
+message ErrorReply{
+	repeated string Errors = 1;
+}
+
+message ProcessMetricsReply {
+	string ContentType = 1;
+	bytes Content = 2;
+	repeated string Errors = 3;
+}
+
+message GetPluginContentTypesRequest {
+	string Name = 1;
+	int32 PluginType = 2;
+	int32 Version = 3;
+}
+
+message GetPluginContentTypesReply {
+	repeated string AcceptedTypes = 1;
+	repeated string ReturnedTypes = 2;
+	string Error = 3;
+}
+
+message ValidateDepsRequest {
+	repeated common.Metric Metrics = 1;
+	repeated common.SubscribedPlugin Plugins = 2;
+}
+
+message ValidateDepsReply {
+	repeated common.SnapError Errors = 1;
+}
+
+message SubscribeDepsRequest {
+	repeated common.Metric Metrics = 1;
+	repeated common.Plugin Plugins = 2;
+	string TaskId = 3;
+}
+
+message SubscribeDepsReply {
+	repeated common.SnapError Errors = 1;
+}
+
+message CollectMetricsRequest {
+	string TaskID = 1;
+	repeated common.Metric Metrics = 2;
+	common.Time Deadline = 3;
+}
+
+message CollectMetricsReply {
+	repeated common.Metric Metrics = 1;
+	repeated string Errors = 2;
+}
+
+message ExpandWildcardsRequest {
+	repeated string Namespace = 1;
+}
+
+message ArrString {
+	repeated string S = 1;
+}
+
+message ExpandWildcardsReply {
+	repeated ArrString NSS = 1;
+	common.SnapError Error = 2;
+}
+
+
+	 

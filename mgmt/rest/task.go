@@ -247,14 +247,14 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 
 	if reply.Errors != nil {
 		if strings.Contains(reply.Errors[0].ErrorString, ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
+			respond(404, rbody.FromSnapErrors(common.ConvertSnapErrors(reply.Errors)), w)
 			return
 		}
 		if strings.Contains(reply.Errors[0].ErrorString, ErrTaskDisabledNotRunnable.Error()) {
-			respond(409, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
+			respond(409, rbody.FromSnapErrors(common.ConvertSnapErrors(reply.Errors)), w)
 			return
 		}
-		respond(500, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
+		respond(500, rbody.FromSnapErrors(common.ConvertSnapErrors(reply.Errors)), w)
 		return
 	}
 	// TODO should return resource
@@ -269,11 +269,11 @@ func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 		return
 	}
 	if reply.Errors != nil {
-		if strings.Contains(reply.Errors[0].Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
+		if strings.Contains(common.GetError(reply.Errors[0]), ErrTaskNotFound.Error()) {
+			respond(404, rbody.FromSnapErrors(common.ConvertSnapErrors(reply.Errors)), w)
 			return
 		}
-		respond(500, rbody.FromSnapErrors(rpc.ConvertSnapErrors(reply.Errors)), w)
+		respond(500, rbody.FromSnapErrors(common.ConvertSnapErrors(reply.Errors)), w)
 		return
 	}
 	respond(200, &rbody.ScheduledTaskStopped{ID: id}, w)

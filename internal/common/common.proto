@@ -28,9 +28,48 @@ message Time{
 message Empty{
 }
 
+message SnapError {
+    string error_string = 1;
+    map<string, string> error_fields = 2;
+} 
+
+message Label {
+	uint64 index = 1;
+	string name = 2;
+}
+// core.Metric
+message Metric {
+	repeated string Namespace = 1;
+	int64 Version = 2;
+	ConfigMap Config = 3;
+	Time LastAdvertisedTime = 4;
+	bytes Data = 5;
+	string DataType = 6;
+	string Source = 7;
+	repeated Label Labels = 8;
+	map<string, string> Tags = 9;
+	Time Timestamp = 10;
+}
+
+// core.SubscribedPlugin
+message SubscribedPlugin {
+	string TypeName = 1;
+	string Name = 2;
+	int64 Version = 3;
+	ConfigMap Config = 4;
+}
+
 message ConfigMap {
 	map<string, int64> IntMap = 1;
 	map<string, string> StringMap = 2;
-	map<string, double> FloatMap = 3; 
+	// double is float64
+	map<string, double> FloatMap = 3;
 	map<string, bool> BoolMap = 4;
+}
+
+// core.Plugin
+message Plugin {
+	string TypeName = 1;
+	string Name = 2;
+	int64 Version = 3;
 }

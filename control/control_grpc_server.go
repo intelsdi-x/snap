@@ -32,15 +32,17 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/control/rpc"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/internal/common"
 	"golang.org/x/net/context"
 )
 
-type controlProxy struct {
+type ControlGRPCServer struct {
 	control *pluginControl
 }
 
-func (pc *controlProxy) Load(ctx context.Context, arg *rpc.PluginRequest) (*rpc.PluginReply, error) {
+func (pc *ControlGRPCServer) Load(ctx context.Context, arg *rpc.PluginRequest) (*rpc.PluginReply, error) {
 	//Write the file to local disk
 	var localPath string
 	var err error
@@ -69,7 +71,7 @@ func (pc *controlProxy) Load(ctx context.Context, arg *rpc.PluginRequest) (*rpc.
 	return catalogPluginToPluginReply(pl)
 }
 
-func (pc *controlProxy) MetricCatalog(ctx context.Context, _ *common.Empty) (*rpc.MetricCatalogReply, error) {
+func (pc *ControlGRPCServer) MetricCatalog(ctx context.Context, _ *common.Empty) (*rpc.MetricCatalogReply, error) {
 	mets, err := pc.control.MetricCatalog()
 	if err != nil {
 		return nil, err
@@ -77,7 +79,7 @@ func (pc *controlProxy) MetricCatalog(ctx context.Context, _ *common.Empty) (*rp
 	return catalogMetricsToReply(mets)
 }
 
-func (pc *controlProxy) FetchMetrics(ctx context.Context, arg *rpc.FetchMetricsRequest) (*rpc.MetricCatalogReply, error) {
+func (pc *ControlGRPCServer) FetchMetrics(ctx context.Context, arg *rpc.FetchMetricsRequest) (*rpc.MetricCatalogReply, error) {
 	mets, err := pc.control.FetchMetrics(arg.Namespace, int(arg.Version))
 	if err != nil {
 		return nil, err
@@ -85,7 +87,7 @@ func (pc *controlProxy) FetchMetrics(ctx context.Context, arg *rpc.FetchMetricsR
 	return catalogMetricsToReply(mets)
 }
 
-func (pc *controlProxy) GetMetricVersions(ctx context.Context, arg *rpc.GetMetricVersionsRequest) (*rpc.MetricCatalogReply, error) {
+func (pc *ControlGRPCServer) GetMetricVersions(ctx context.Context, arg *rpc.GetMetricVersionsRequest) (*rpc.MetricCatalogReply, error) {
 	mets, err := pc.control.GetMetricVersions(arg.Namespace)
 	if err != nil {
 		return nil, err
@@ -93,7 +95,7 @@ func (pc *controlProxy) GetMetricVersions(ctx context.Context, arg *rpc.GetMetri
 	return catalogMetricsToReply(mets)
 }
 
-func (pc *controlProxy) GetMetric(ctx context.Context, arg *rpc.FetchMetricsRequest) (*rpc.MetricReply, error) {
+func (pc *ControlGRPCServer) GetMetric(ctx context.Context, arg *rpc.FetchMetricsRequest) (*rpc.MetricReply, error) {
 	mets, err := pc.control.GetMetric(arg.Namespace, int(arg.Version))
 	if err != nil {
 		return nil, err
@@ -101,7 +103,7 @@ func (pc *controlProxy) GetMetric(ctx context.Context, arg *rpc.FetchMetricsRequ
 	return catalogMetricToMetricReply(mets)
 }
 
-func (pc *controlProxy) Unload(ctx context.Context, arg *rpc.UnloadPluginRequest) (*rpc.PluginReply, error) {
+func (pc *ControlGRPCServer) Unload(ctx context.Context, arg *rpc.UnloadPluginRequest) (*rpc.PluginReply, error) {
 	pl, err := pc.control.Unload(rpc.NewCatalogedPlugin(arg.Name, int(arg.Version), arg.PluginType))
 	if err != nil {
 		return nil, err
@@ -109,12 +111,12 @@ func (pc *controlProxy) Unload(ctx context.Context, arg *rpc.UnloadPluginRequest
 	return catalogPluginToPluginReply(pl)
 }
 
-func (pc *controlProxy) PluginCatalog(ctx context.Context, _ *common.Empty) (*rpc.PluginCatalogReply, error) {
+func (pc *ControlGRPCServer) PluginCatalog(ctx context.Context, _ *common.Empty) (*rpc.PluginCatalogReply, error) {
 	plugins := pc.control.PluginCatalog()
 	return catalogPluginsToReply(plugins)
 }
 
-func (pc *controlProxy) GetPlugin(ctx context.Context, arg *rpc.GetPluginRequest) (*rpc.GetPluginReply, error) {
+func (pc *ControlGRPCServer) GetPlugin(ctx context.Context, arg *rpc.GetPluginRequest) (*rpc.GetPluginReply, error) {
 	lp, err := pc.control.pluginManager.Get(arg.Name, int(arg.Version), arg.Type)
 	if err != nil {
 		return nil, err
@@ -134,13 +136,115 @@ func (pc *controlProxy) GetPlugin(ctx context.Context, arg *rpc.GetPluginRequest
 	return reply, nil
 }
 
-func (pc *controlProxy) AvailablePlugins(ctx context.Context, _ *common.Empty) (*rpc.AvailablePluginsReply, error) {
+func (pc *ControlGRPCServer) AvailablePlugins(ctx context.Context, _ *common.Empty) (*rpc.AvailablePluginsReply, error) {
 	aPlugins := pc.control.AvailablePlugins()
 	reply := availablePluginToReply(aPlugins)
 	return reply, nil
 }
 
-//--------Utility functions--------------------------------
+// --------- Schedulers managesMetrics implementation ----------
+
+func (pc *ControlGRPCServer) GetPluginContentTypes(ctx context.Context, r *rpc.GetPluginContentTypesRequest) (*rpc.GetPluginContentTypesReply, error) {
+	accepted, returned, err := pc.control.GetPluginContentTypes(r.Name, core.PluginType(int(r.PluginType)), int(r.Version))
+	reply := &rpc.GetPluginContentTypesReply{
+		AcceptedTypes: accepted,
+		ReturnedTypes: returned,
+	}
+	if err == nil {
+		reply.Error = ""
+	} else {
+		reply.Error = err.Error()
+	}
+	return reply, nil
+}
+
+func (pc *ControlGRPCServer) PublishMetrics(ctx context.Context, r *rpc.PubProcMetricsRequest) (*rpc.ErrorReply, error) {
+	errs := pc.control.PublishMetrics(r.ContentType, r.Content, r.PluginName, int(r.PluginVersion), common.ParseConfig(r.Config), r.TaskId)
+	erro := make([]string, len(errs))
+	for i, v := range errs {
+		erro[i] = v.Error()
+	}
+	return &rpc.ErrorReply{Errors: erro}, nil
+}
+
+func (pc *ControlGRPCServer) ProcessMetrics(ctx context.Context, r *rpc.PubProcMetricsRequest) (*rpc.ProcessMetricsReply, error) {
+	contentType, content, errs := pc.control.ProcessMetrics(r.ContentType, r.Content, r.PluginName, int(r.PluginVersion), common.ParseConfig(r.Config), r.TaskId)
+	erro := make([]string, len(errs))
+	for i, v := range errs {
+		erro[i] = v.Error()
+	}
+	reply := &rpc.ProcessMetricsReply{
+		ContentType: contentType,
+		Content:     content,
+		Errors:      erro,
+	}
+	return reply, nil
+}
+
+func (pc *ControlGRPCServer) CollectMetrics(ctx context.Context, r *rpc.CollectMetricsRequest) (*rpc.CollectMetricsReply, error) {
+	metrics := common.ToCoreMetrics(r.Metrics)
+	deadline := time.Unix(r.Deadline.Sec, r.Deadline.Nsec)
+	mts, errs := pc.control.CollectMetrics(metrics, deadline, r.TaskID)
+	var reply *rpc.CollectMetricsReply
+	if mts == nil {
+		reply = &rpc.CollectMetricsReply{
+			Errors: controlproxy.ErrorsToStrings(errs),
+		}
+	} else {
+		reply = &rpc.CollectMetricsReply{
+			Metrics: common.NewMetrics(mts),
+			Errors:  controlproxy.ErrorsToStrings(errs),
+		}
+	}
+	return reply, nil
+}
+
+func (pc *ControlGRPCServer) ExpandWildcards(ctx context.Context, r *rpc.ExpandWildcardsRequest) (*rpc.ExpandWildcardsReply, error) {
+	nss, serr := pc.control.ExpandWildcards(r.Namespace)
+	reply := &rpc.ExpandWildcardsReply{}
+	if nss != nil {
+		reply.NSS = controlproxy.ConvertNSS(nss)
+	}
+	if serr != nil {
+		reply.Error = common.NewErrors([]serror.SnapError{serr})[0]
+	}
+	return reply, nil
+}
+
+func (pc *ControlGRPCServer) ValidateDeps(ctx context.Context, r *rpc.ValidateDepsRequest) (*rpc.ValidateDepsReply, error) {
+	metrics := common.ToCoreMetrics(r.Metrics)
+	plugins := common.ToSubPlugins(r.Plugins)
+	serrors := pc.control.ValidateDeps(metrics, plugins)
+	return &rpc.ValidateDepsReply{Errors: common.NewErrors(serrors)}, nil
+}
+
+func (pc *ControlGRPCServer) SubscribeDeps(ctx context.Context, r *rpc.SubscribeDepsRequest) (*rpc.SubscribeDepsReply, error) {
+	metrics := common.ToCoreMetrics(r.Metrics)
+	plugins := common.MsgToCorePlugins(r.Plugins)
+	serrors := pc.control.SubscribeDeps(r.TaskId, metrics, plugins)
+	return &rpc.SubscribeDepsReply{Errors: common.NewErrors(serrors)}, nil
+}
+
+func (pc *ControlGRPCServer) UnsubscribeDeps(ctx context.Context, r *rpc.SubscribeDepsRequest) (*rpc.SubscribeDepsReply, error) {
+	metrics := common.ToCoreMetrics(r.Metrics)
+	plugins := common.MsgToCorePlugins(r.Plugins)
+	serrors := pc.control.UnsubscribeDeps(r.TaskId, metrics, plugins)
+	return &rpc.SubscribeDepsReply{Errors: common.NewErrors(serrors)}, nil
+}
+
+func (pc *ControlGRPCServer) MatchQueryToNamespaces(ctx context.Context, r *rpc.ExpandWildcardsRequest) (*rpc.ExpandWildcardsReply, error) {
+	nss, serr := pc.control.MatchQueryToNamespaces(r.Namespace)
+	reply := &rpc.ExpandWildcardsReply{}
+	if nss != nil {
+		reply.NSS = controlproxy.ConvertNSS(nss)
+	}
+	if serr != nil {
+		reply.Error = common.NewErrors([]serror.SnapError{serr})[0]
+	}
+	return reply, nil
+}
+
+// ----------- Utility functions ---------------
 
 func catalogMetricsToReply(mets []core.CatalogedMetric) (*rpc.MetricCatalogReply, error) {
 	result := make([]*rpc.MetricReply, 0, len(mets))

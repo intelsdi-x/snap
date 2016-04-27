@@ -21,9 +21,14 @@ package rpc
 
 import (
 	"encoding/json"
+	"errors"
+	"strconv"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/internal/common"
 )
 
 type Metric struct {
@@ -141,4 +146,45 @@ func ReplyToAvailablePlugin(reply *AvailablePluginReply) *AvailablePlugin {
 		ID:       reply.ID,
 		LastHit:  time.Unix(reply.LastHitTimestamp.Sec, reply.LastHitTimestamp.Nsec),
 	}
+}
+
+func ConvertSnapErrors(s []*common.SnapError) []serror.SnapError {
+	rerrs := make([]serror.SnapError, len(s))
+	for i, err := range s {
+		rerrs[i] = serror.New(errors.New(err.ErrorString), getFields(err))
+	}
+	return rerrs
+}
+
+func NewErrors(errs []serror.SnapError) []*common.SnapError {
+	errors := make([]*common.SnapError, len(errs))
+	for i, err := range errs {
+		fields := make(map[string]string)
+		for k, v := range err.Fields() {
+			switch t := v.(type) {
+			case string:
+				fields[k] = t
+			case int:
+				fields[k] = strconv.Itoa(t)
+			case float64:
+				fields[k] = strconv.FormatFloat(t, 'f', -1, 64)
+			default:
+				log.Errorf("Unexpected type %v\n", t)
+			}
+		}
+		errors[i] = &common.SnapError{ErrorFields: fields, ErrorString: err.Error()}
+	}
+	return errors
+}
+
+func getError(s *common.SnapError) string {
+	return s.ErrorString
+}
+
+func getFields(s *common.SnapError) map[string]interface{} {
+	fields := make(map[string]interface{}, len(s.ErrorFields))
+	for key, value := range s.ErrorFields {
+		fields[key] = value
+	}
+	return fields
 }
