@@ -238,7 +238,12 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	}
 	// Validates remote deps
 	for k := range clients {
-		errs := task.RemoteManagers.Get(k).ValidateDeps([]core.Metric{}, clients[k])
+		manager, err := task.RemoteManagers.Get(k)
+		if err != nil {
+			te.errs = append(te.errs, serror.New(err))
+			return nil, te
+		}
+		errs := manager.ValidateDeps([]core.Metric{}, clients[k])
 		if len(errs) > 0 {
 			te.errs = append(te.errs, errs...)
 			return nil, te
@@ -246,7 +251,7 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	}
 
 	// Bind plugin content type selections in workflow
-	err = wf.BindPluginContentTypes(s.metricManager, &task.RemoteManagers)
+	err = wf.BindPluginContentTypes(&task.RemoteManagers)
 	if err != nil {
 		te.errs = append(te.errs, serror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
@@ -405,13 +410,23 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 	for k := range clients {
 		cps := returnCorePlugin(clients[k])
 		taskToPlugin[k] = cps
-		errs := t.RemoteManagers.Get(k).SubscribeDeps(t.ID(), []core.Metric{}, cps)
+		mgr, err := t.RemoteManagers.Get(k)
+		// If we can't get any manager for this, no reason to continue
+		if err != nil {
+			return []serror.SnapError{serror.New(err)}
+		}
+		errs := mgr.SubscribeDeps(t.ID(), []core.Metric{}, cps)
 		// If there are errors with subscribing any deps, go through and unsubscribe all other
 		// deps that may have already been subscribed then return the errors.
 		if len(errs) > 0 {
 			for key, val := range taskToPlugin {
-				uerrs := t.RemoteManagers.Get(key).UnsubscribeDeps(t.ID(), []core.Metric{}, val)
-				errs = append(errs, uerrs...)
+				mgr, err := t.RemoteManagers.Get(key)
+				if err != nil {
+					errs = append(errs, serror.New(err))
+				} else {
+					uerrs := mgr.UnsubscribeDeps(t.ID(), []core.Metric{}, val)
+					errs = append(errs, uerrs...)
+				}
 			}
 			return errs
 		}
@@ -471,11 +486,19 @@ func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 	if len(errs) > 0 {
 		return errs
 	}
+	errs = []serror.SnapError{}
 	for k := range clients {
-		errs := t.RemoteManagers.Get(k).UnsubscribeDeps(t.ID(), []core.Metric{}, returnCorePlugin(clients[k]))
-		if len(errs) > 0 {
-			return errs
+		mgr, err := t.RemoteManagers.Get(k)
+		if err != nil {
+			errs = append(errs, serror.New(err))
 		}
+		uerrs := mgr.UnsubscribeDeps(t.ID(), []core.Metric{}, returnCorePlugin(clients[k]))
+		if len(errs) > 0 {
+			errs = append(errs, uerrs...)
+		}
+	}
+	if len(errs) > 0 {
+		return errs
 	}
 
 	event := &scheduler_event.TaskStoppedEvent{
@@ -643,7 +666,10 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 		cps := returnCorePlugin(plugins)
 		s.metricManager.UnsubscribeDeps(task.ID(), mts, cps)
 		for k := range clients {
-			task.RemoteManagers.Get(k).UnsubscribeDeps(task.ID(), []core.Metric{}, cps)
+			mgr, err := task.RemoteManagers.Get(k)
+			if err == nil {
+				mgr.UnsubscribeDeps(task.ID(), []core.Metric{}, cps)
+			}
 		}
 		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
 	default:

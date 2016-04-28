@@ -19,32 +19,46 @@ limitations under the License.
 
 package scheduler
 
-import "sync"
+import (
+	"errors"
+	"fmt"
+	"sync"
+)
 
 type managers struct {
 	mutex          *sync.RWMutex
+	local          managesMetrics
 	remoteManagers map[string]managesMetrics
 }
 
-func newManagers() managers {
+func newManagers(mm managesMetrics) managers {
 	return managers{
 		mutex:          &sync.RWMutex{},
 		remoteManagers: make(map[string]managesMetrics),
+		local:          mm,
 	}
 }
 
+// Adds the key:value to the remoteManagers map to make them accessible
+// via Get() calls.
 func (m *managers) Add(key string, val managesMetrics) {
 	m.mutex.Lock()
 	m.remoteManagers[key] = val
 	m.mutex.Unlock()
 }
 
-func (m *managers) Get(key string) managesMetrics {
+// Returns the managesMetric instance that maps to given
+// string. If an empty string is given, will instead return
+// the local instance passed in on initializiation.
+func (m *managers) Get(key string) (managesMetrics, error) {
+	if key == "" {
+		return m.local, nil
+	}
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	if val, ok := m.remoteManagers[key]; ok {
-		return val
+		return val, nil
 	} else {
-		return nil
+		return nil, errors.New(fmt.Sprintf("Client not found for: %v", key))
 	}
 }

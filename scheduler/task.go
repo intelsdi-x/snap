@@ -115,7 +115,7 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 	for _, opt := range opts {
 		opt(task)
 	}
-	task.RemoteManagers = newManagers()
+	task.RemoteManagers = newManagers(mm)
 	err := createTaskClients(&task.RemoteManagers, wf)
 	if err != nil {
 		return nil, err

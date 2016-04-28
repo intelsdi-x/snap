@@ -45,7 +45,8 @@ func TestTask(t *testing.T) {
 		So(errs, ShouldBeEmpty)
 		c := &mockMetricManager{}
 		c.setAcceptedContentType("rabbitmq", core.PublisherPluginType, 5, []string{plugin.SnapGOBContentType})
-		err := wf.BindPluginContentTypes(c, nil)
+		mgrs := newManagers(c)
+		err := wf.BindPluginContentTypes(&mgrs)
 		So(err, ShouldBeNil)
 		Convey("task + simple schedule", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)

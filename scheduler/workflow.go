@@ -234,17 +234,15 @@ func (p *publishNode) TypeName() string {
 type wfContentTypes map[string]map[string][]string
 
 // BindPluginContentTypes
-func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes, clients *managers) error {
-	return bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.SnapGOBContentType}, clients)
+func (s *schedulerWorkflow) BindPluginContentTypes(mgrs *managers) error {
+	return bindPluginContentTypes(s.publishNodes, s.processNodes, []string{plugin.SnapGOBContentType}, mgrs)
 }
 
-func bindPluginContentTypes(pus []*publishNode, prs []*processNode, local managesPluginContentTypes, lct []string, clients *managers) error {
+func bindPluginContentTypes(pus []*publishNode, prs []*processNode, lct []string, mgrs *managers) error {
 	for _, pr := range prs {
-		var mm managesPluginContentTypes
-		if pr.Target != "" {
-			mm = clients.Get(pr.Target)
-		} else {
-			mm = local
+		mm, err := mgrs.Get(pr.Target)
+		if err != nil {
+			return err
 		}
 		act, rct, err := mm.GetPluginContentTypes(pr.Name(), core.ProcessorPluginType, pr.Version())
 		if err != nil {
@@ -280,16 +278,14 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, local manage
 			}
 		}
 		//continue the walk down the nodes
-		if err := bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, local, rct, clients); err != nil {
+		if err := bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, rct, mgrs); err != nil {
 			return err
 		}
 	}
 	for _, pu := range pus {
-		var mm managesPluginContentTypes
-		if pu.Target != "" {
-			mm = clients.Get(pu.Target)
-		} else {
-			mm = local
+		mm, err := mgrs.Get(pu.Target)
+		if err != nil {
+			return err
 		}
 		act, _, err := mm.GetPluginContentTypes(pu.Name(), core.PublisherPluginType, pu.Version())
 		if err != nil {
@@ -405,12 +401,20 @@ func submitProcessJob(pj job, t *task, wg *sync.WaitGroup, pr *processNode) {
 	// Decrement the waitgroup
 	defer wg.Done()
 	// Create a new process job
-	var j job
-	if pr.Target != "" {
-		j = newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.RemoteManagers.Get(pr.Target), t.id)
-	} else {
-		j = newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.metricsManager, t.id)
+	mgr, err := t.RemoteManagers.Get(pr.Target)
+	if err != nil {
+		t.RecordFailure([]error{err})
+		workflowLogger.WithFields(log.Fields{
+			"_block":           "submit-prblish-job",
+			"task-id":          t.id,
+			"task-name":        t.name,
+			"prblish-name":     pr.Name(),
+			"prblish-version":  pr.Version(),
+			"parent-node-type": pj.TypeString(),
+		}).Warn("Error getting control instance")
+		return
 	}
+	j := newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), mgr, t.id)
 	workflowLogger.WithFields(log.Fields{
 		"_block":           "submit-process-job",
 		"task-id":          t.id,
@@ -452,12 +456,20 @@ func submitPublishJob(pj job, t *task, wg *sync.WaitGroup, pu *publishNode) {
 	// Decrement the waitgroup
 	defer wg.Done()
 	// Create a new process job
-	var j job
-	if pu.Target != "" {
-		j = newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.RemoteManagers.Get(pu.Target), t.id)
-	} else {
-		j = newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.metricsManager, t.id)
+	mgr, err := t.RemoteManagers.Get(pu.Target)
+	if err != nil {
+		t.RecordFailure([]error{err})
+		workflowLogger.WithFields(log.Fields{
+			"_block":           "submit-publish-job",
+			"task-id":          t.id,
+			"task-name":        t.name,
+			"publish-name":     pu.Name(),
+			"publish-version":  pu.Version(),
+			"parent-node-type": pj.TypeString(),
+		}).Warn("Error getting control instance")
+		return
 	}
+	j := newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), mgr, t.id)
 	workflowLogger.WithFields(log.Fields{
 		"_block":           "submit-publish-job",
 		"task-id":          t.id,
