@@ -88,23 +88,23 @@ func (f *Mock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error
 	}
 	if _, ok := cfg.Table()["test"]; ok {
 		mts = append(mts, plugin.MetricType{
-			Namespace_:   core.NewNamespace([]string{"intel", "mock", "test"}),
+			Namespace_:   core.NewNamespace("intel", "mock", "test"),
 			Description_: "mock description",
 			Unit_:        "mock unit",
 		})
 	}
 	mts = append(mts, plugin.MetricType{
-		Namespace_:   core.NewNamespace([]string{"intel", "mock", "foo"}),
+		Namespace_:   core.NewNamespace("intel", "mock", "foo"),
 		Description_: "mock description",
 		Unit_:        "mock unit",
 	})
 	mts = append(mts, plugin.MetricType{
-		Namespace_:   core.NewNamespace([]string{"intel", "mock", "bar"}),
+		Namespace_:   core.NewNamespace("intel", "mock", "bar"),
 		Description_: "mock description",
 		Unit_:        "mock unit",
 	})
 	mts = append(mts, plugin.MetricType{
-		Namespace_: core.NewNamespace([]string{"intel", "mock"}).
+		Namespace_: core.NewNamespace("intel", "mock").
 			AddDynamicElement("host", "name of the host").
 			AddStaticElement("baz"),
 		Description_: "mock description",

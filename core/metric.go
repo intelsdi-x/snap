@@ -92,7 +92,7 @@ func (n Namespace) IsDynamic() (bool, []int) {
 // NewNamespace takes an array of strings and returns a Namespace.  A Namespace
 // is an array of NamespaceElements.  The provided array of strings is used to
 // set the corresponding Value fields in the array of NamespaceElements.
-func NewNamespace(ns []string) Namespace {
+func NewNamespace(ns ...string) Namespace {
 	n := make([]NamespaceElement, len(ns))
 	for i, ns := range ns {
 		n[i] = NamespaceElement{Value: ns}
@@ -112,6 +112,15 @@ func (n Namespace) AddDynamicElement(name, description string) Namespace {
 func (n Namespace) AddStaticElement(value string) Namespace {
 	nse := NamespaceElement{Value: value}
 	return append(n, nse)
+}
+
+// AddStaticElements adds a static elements to the given Namespace.  A static
+// NamespaceElement is defined by having an empty Name field.
+func (n Namespace) AddStaticElements(values ...string) Namespace {
+	for _, value := range values {
+		n = append(n, NamespaceElement{Value: value})
+	}
+	return n
 }
 
 // NamespaceElement provides meta data related to the namespace.  This is of particular importance when

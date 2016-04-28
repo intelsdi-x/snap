@@ -41,7 +41,7 @@ func (f *MockPlugin) CollectMetrics(_ []MetricType) ([]MetricType, error) {
 
 func (c *MockPlugin) GetMetricTypes(_ ConfigType) ([]MetricType, error) {
 	return []MetricType{
-		{Namespace_: core.NewNamespace([]string{"foo", "bar"})},
+		{Namespace_: core.NewNamespace("foo", "bar")},
 	}, nil
 }
 

@@ -724,13 +724,13 @@ func TestExportedMetricCatalog(t *testing.T) {
 	Convey(".MetricCatalog()", t, func() {
 		c := New(GetDefaultConfig())
 		lp := &loadedPlugin{}
-		mt := newMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), lp)
+		mt := newMetricType(core.NewNamespace("foo", "bar"), time.Now(), lp)
 		c.metricCatalog.Add(mt)
 		Convey("it returns a collection of core.MetricTypes", func() {
 			t, err := c.MetricCatalog()
 			So(err, ShouldBeNil)
 			So(len(t), ShouldEqual, 1)
-			So(t[0].Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))
+			So(t[0].Namespace(), ShouldResemble, core.NewNamespace("foo", "bar"))
 		})
 		Convey("If metric catalog fetch fails", func() {
 			c.metricCatalog = &mc{e: 2}
@@ -745,7 +745,7 @@ func TestMetricExists(t *testing.T) {
 	Convey("MetricExists()", t, func() {
 		c := New(GetDefaultConfig())
 		c.metricCatalog = &mc{}
-		So(c.MetricExists(core.NewNamespace([]string{"hi"}), -1), ShouldEqual, false)
+		So(c.MetricExists(core.NewNamespace("hi"), -1), ShouldEqual, false)
 	})
 }
 
@@ -810,7 +810,7 @@ func TestMetricConfig(t *testing.T) {
 		<-lpe.done
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "foo"}),
+			namespace: core.NewNamespace("intel", "mock", "foo"),
 		}
 
 		Convey("So metric should not be valid without config", func() {
@@ -826,7 +826,7 @@ func TestMetricConfig(t *testing.T) {
 
 		Convey("So metric should not be valid if does not occur in the catalog", func() {
 			m := MockMetricType{
-				namespace: core.NewNamespace([]string{"intel", "mock", "bad"}),
+				namespace: core.NewNamespace("intel", "mock", "bad"),
 			}
 			errs := c.validateMetricTypeSubscription(m, cd)
 			So(errs, ShouldNotBeNil)
@@ -849,7 +849,7 @@ func TestMetricConfig(t *testing.T) {
 		<-lpe.done
 		var cd *cdata.ConfigDataNode
 		m1 := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "foo"}),
+			namespace: core.NewNamespace("intel", "mock", "foo"),
 		}
 
 		Convey("So metric should be valid with config", func() {
@@ -871,7 +871,7 @@ func TestMetricConfig(t *testing.T) {
 		<-lpe.done
 		cd := cdata.NewNode()
 		m1 := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "foo"}),
+			namespace: core.NewNamespace("intel", "mock", "foo"),
 			ver:       1,
 		}
 		errs := c.validateMetricTypeSubscription(m1, cd)
@@ -897,7 +897,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 			t.FailNow()
 		}
 		metric := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "foo"}),
+			namespace: core.NewNamespace("intel", "mock", "foo"),
 			ver:       2,
 			cfg:       cdata.NewNode(),
 		}
@@ -957,7 +957,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		if e != nil {
 			t.FailNow()
 		}
-		metric, err := c.metricCatalog.Get(core.NewNamespace([]string{"intel", "mock", "foo"}), 1)
+		metric, err := c.metricCatalog.Get(core.NewNamespace("intel", "mock", "foo"), 1)
 		metric.config = cdata.NewNode()
 		So(err, ShouldBeNil)
 		So(metric.Namespace().String(), ShouldResemble, "/intel/mock/foo")
@@ -1040,15 +1040,15 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		}
 		<-lpe.done
 		cd := cdata.NewNode()
-		metrics, err := c.metricCatalog.Fetch(core.NewNamespace([]string{}))
+		metrics, err := c.metricCatalog.Fetch(core.NewNamespace())
 		So(err, ShouldBeNil)
 		So(len(metrics), ShouldEqual, 6)
 
-		m, err := c.metricCatalog.Get(core.NewNamespace([]string{"intel", "mock", "*", "baz"}), 2)
+		m, err := c.metricCatalog.Get(core.NewNamespace("intel", "mock", "*", "baz"), 2)
 		So(err, ShouldBeNil)
 		So(m, ShouldNotBeNil)
 
-		jsonm, err := c.metricCatalog.Get(core.NewNamespace([]string{"intel", "mock", "*", "baz"}), 1)
+		jsonm, err := c.metricCatalog.Get(core.NewNamespace("intel", "mock", "*", "baz"), 1)
 		So(err, ShouldBeNil)
 		So(jsonm, ShouldNotBeNil)
 
@@ -1170,7 +1170,7 @@ func TestFailedPlugin(t *testing.T) {
 		cfg.AddItem("panic", ctypes.ConfigValueBool{Value: true})
 		m := []core.Metric{
 			MockMetricType{
-				namespace: core.NewNamespace([]string{"intel", "mock", "foo"}),
+				namespace: core.NewNamespace("intel", "mock", "foo"),
 				cfg:       cfg,
 			},
 		}
@@ -1249,15 +1249,15 @@ func TestCollectMetrics(t *testing.T) {
 
 		m := []core.Metric{}
 		m1 := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "foo"}),
+			namespace: core.NewNamespace("intel", "mock", "foo"),
 			cfg:       cd,
 		}
 		m2 := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "bar"}),
+			namespace: core.NewNamespace("intel", "mock", "bar"),
 			cfg:       cd,
 		}
 		m3 := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "test"}),
+			namespace: core.NewNamespace("intel", "mock", "test"),
 			cfg:       cd,
 		}
 
@@ -1341,34 +1341,34 @@ func TestExpandWildcards(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(mts), ShouldEqual, 4)
 		Convey("expand metric with an asterisk", func() {
-			ns := core.NewNamespace([]string{"intel", "mock", "*"})
+			ns := core.NewNamespace("intel", "mock", "*")
 			c.MatchQueryToNamespaces(ns)
 			nss, err := c.ExpandWildcards(ns)
 			So(err, ShouldBeNil)
 			// "intel/mock/*" should be expanded to all available mock metrics
 			So(len(nss), ShouldEqual, len(mts))
 			So(nss, ShouldResemble, []core.Namespace{
-				core.NewNamespace([]string{"intel", "mock", "test"}),
-				core.NewNamespace([]string{"intel", "mock", "foo"}),
-				core.NewNamespace([]string{"intel", "mock", "bar"}),
-				core.NewNamespace([]string{"intel", "mock", "*", "baz"}),
+				core.NewNamespace("intel", "mock", "test"),
+				core.NewNamespace("intel", "mock", "foo"),
+				core.NewNamespace("intel", "mock", "bar"),
+				core.NewNamespace("intel", "mock", "*", "baz"),
 			})
 		})
 		Convey("expand metric with a tuple", func() {
-			ns := core.NewNamespace([]string{"intel", "mock", "(test|foo|bad)"})
+			ns := core.NewNamespace("intel", "mock", "(test|foo|bad)")
 			c.MatchQueryToNamespaces(ns)
 			nss, err := c.ExpandWildcards(ns)
 			So(err, ShouldBeNil)
 			// '/intel/mock/bad' does not exist in metric catalog and shouldn't be returned
 			So(len(nss), ShouldEqual, 2)
 			So(nss, ShouldResemble, []core.Namespace{
-				core.NewNamespace([]string{"intel", "mock", "test"}),
-				core.NewNamespace([]string{"intel", "mock", "foo"}),
+				core.NewNamespace("intel", "mock", "test"),
+				core.NewNamespace("intel", "mock", "foo"),
 			})
 		})
 		Convey("expanding for dynamic metrics", func() {
 			// if asterisk is acceptable by plugin in this location, leave that
-			ns := core.NewNamespace([]string{"intel", "mock", "*", "baz"})
+			ns := core.NewNamespace("intel", "mock", "*", "baz")
 			c.MatchQueryToNamespaces(ns)
 			nss, err := c.ExpandWildcards(ns)
 			So(err, ShouldBeNil)
@@ -1377,7 +1377,7 @@ func TestExpandWildcards(t *testing.T) {
 		})
 		Convey("expanding for invalid metric name", func() {
 			// if asterisk is acceptable by plugin in this location, leave that
-			ns := core.NewNamespace([]string{"intel", "mock", "invalid", "metric"})
+			ns := core.NewNamespace("intel", "mock", "invalid", "metric")
 			c.MatchQueryToNamespaces(ns)
 			nss, err := c.ExpandWildcards(ns)
 			So(err, ShouldNotBeNil)
@@ -1413,7 +1413,7 @@ func TestGatherCollectors(t *testing.T) {
 		<-lpe.done
 
 		mts, err := c.MetricCatalog()
-		ns := core.NewNamespace([]string{"intel", "mock", "foo"})
+		ns := core.NewNamespace("intel", "mock", "foo")
 		So(err, ShouldBeNil)
 		So(len(mts), ShouldEqual, 4)
 		Convey("it gathers the latest version", func() {
@@ -1518,7 +1518,7 @@ func TestPublishMetrics(t *testing.T) {
 
 			Convey("Publish to file", func() {
 				metrics := []plugin.MetricType{
-					*plugin.NewMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 1),
+					*plugin.NewMetricType(core.NewNamespace("foo"), time.Now(), nil, "", 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1571,7 +1571,7 @@ func TestProcessMetrics(t *testing.T) {
 
 			Convey("process metrics", func() {
 				metrics := []plugin.MetricType{
-					*plugin.NewMetricType(core.NewNamespace([]string{"foo"}), time.Now(), nil, "", 1),
+					*plugin.NewMetricType(core.NewNamespace("foo"), time.Now(), nil, "", 1),
 				}
 				var buf bytes.Buffer
 				enc := gob.NewEncoder(&buf)
@@ -1638,7 +1638,7 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
 		metric := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "foo"}),
+			namespace: core.NewNamespace("intel", "mock", "foo"),
 			cfg:       cdata.NewNode(),
 			ver:       0,
 		}
@@ -1700,7 +1700,7 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
 		metric := MockMetricType{
-			namespace: core.NewNamespace([]string{"intel", "mock", "foo"}),
+			namespace: core.NewNamespace("intel", "mock", "foo"),
 			cfg:       cdata.NewNode(),
 			ver:       0,
 		}

@@ -96,7 +96,7 @@ func (m *mockCollectorProxy) GetMetricTypes(args []byte, reply *[]byte) error {
 
 	pmts := []plugin.MetricType{}
 	pmts = append(pmts, plugin.MetricType{
-		Namespace_: core.NewNamespace([]string{"foo", "bar"}),
+		Namespace_: core.NewNamespace("foo", "bar"),
 		Config_:    dargs.PluginConfig.ConfigDataNode,
 	})
 	*reply, _ = m.e.Encode(plugin.GetMetricTypesReply{MetricTypes: pmts})
@@ -217,7 +217,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 			time.Sleep(500 * time.Millisecond)
 			mts, err := c.CollectMetrics([]core.Metric{
 				&plugin.MetricType{
-					Namespace_: core.NewNamespace([]string{"foo", "bar"}),
+					Namespace_: core.NewNamespace("foo", "bar"),
 					Config_:    cdn,
 				},
 			})
@@ -250,7 +250,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 			time.Sleep(500 * time.Millisecond)
 			mts, err := c.CollectMetrics([]core.Metric{
 				&plugin.MetricType{
-					Namespace_: core.NewNamespace([]string{"foo", "bar"}),
+					Namespace_: core.NewNamespace("foo", "bar"),
 					Config_:    cdn,
 				},
 			})
@@ -302,7 +302,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 		})
 
 		Convey("Process metrics", func() {
-			pmt := plugin.NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1)
+			pmt := plugin.NewMetricType(core.NewNamespace("foo", "bar"), time.Now(), nil, "", 1)
 			b, _ := json.Marshal([]plugin.MetricType{*pmt})
 			contentType, content, err := p.Process(plugin.SnapJSONContentType, b, nil)
 			So(contentType, ShouldResemble, plugin.SnapJSONContentType)
@@ -313,7 +313,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(pmts), ShouldEqual, 1)
 			So(pmts[0].Data(), ShouldEqual, 1)
-			So(pmts[0].Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))
+			So(pmts[0].Namespace(), ShouldResemble, core.NewNamespace("foo", "bar"))
 		})
 	})
 
@@ -342,7 +342,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 		})
 
 		Convey("Publish metrics", func() {
-			pmt := plugin.NewMetricType(core.NewNamespace([]string{"foo", "bar"}), time.Now(), nil, "", 1)
+			pmt := plugin.NewMetricType(core.NewNamespace("foo", "bar"), time.Now(), nil, "", 1)
 			b, _ := json.Marshal([]plugin.MetricType{*pmt})
 			err := p.Publish(plugin.SnapJSONContentType, b, nil)
 			So(err, ShouldBeNil)
