@@ -570,7 +570,7 @@ func (mc *metricCatalog) getVersions(ns []string) ([]*metricType, error) {
 }
 
 func getMetricNamespace(key string) core.Namespace {
-	return core.NewNamespace(strings.Split(key, "."))
+	return core.NewNamespace(strings.Split(key, ".")...)
 }
 
 func getLatest(c []*metricType) *metricType {

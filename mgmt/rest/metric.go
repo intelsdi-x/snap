@@ -72,7 +72,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			}
 		}
 
-		mets, err := s.mm.FetchMetrics(core.NewNamespace(ns[:len(ns)-1]), ver)
+		mets, err := s.mm.FetchMetrics(core.NewNamespace(ns[:len(ns)-1]...), ver)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
@@ -83,7 +83,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 
 	// If no version was given, get all that fall at this namespace.
 	if v == "" {
-		mts, err := s.mm.GetMetricVersions(core.NewNamespace(ns))
+		mts, err := s.mm.GetMetricVersions(core.NewNamespace(ns...))
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
@@ -98,7 +98,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		respond(400, rbody.FromError(err), w)
 		return
 	}
-	mt, err := s.mm.GetMetric(core.NewNamespace(ns), ver)
+	mt, err := s.mm.GetMetric(core.NewNamespace(ns...), ver)
 	if err != nil {
 		respond(404, rbody.FromError(err), w)
 		return

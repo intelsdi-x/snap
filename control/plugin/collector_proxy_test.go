@@ -37,8 +37,8 @@ type mockPlugin struct {
 }
 
 var mockMetricType = []MetricType{
-	*NewMetricType(core.NewNamespace([]string{"foo"}).AddDynamicElement("test", "something dynamic here").AddStaticElement("bar"), time.Now(), nil, "", 1),
-	*NewMetricType(core.NewNamespace([]string{"foo", "baz"}), time.Now(), nil, "", 2),
+	*NewMetricType(core.NewNamespace("foo").AddDynamicElement("test", "something dynamic here").AddStaticElement("bar"), time.Now(), nil, "", 1),
+	*NewMetricType(core.NewNamespace("foo", "baz"), time.Now(), nil, "", 2),
 }
 
 func (p *mockPlugin) GetMetricTypes(cfg ConfigType) ([]MetricType, error) {

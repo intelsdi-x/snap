@@ -87,7 +87,7 @@ func convertCollectionNode(cnode *wmap.CollectWorkflowMapNode, wf *schedulerWork
 	mts := cnode.GetMetrics()
 	wf.metrics = make([]core.RequestedMetric, len(mts))
 	for i, m := range mts {
-		wf.metrics[i] = &metric{namespace: core.NewNamespace(m.Namespace()), version: m.Version()}
+		wf.metrics[i] = &metric{namespace: core.NewNamespace(m.Namespace()...), version: m.Version()}
 	}
 
 	// Get our config data tree

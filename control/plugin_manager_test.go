@@ -128,7 +128,7 @@ func TestLoadPlugin(t *testing.T) {
 				So(p.all(), ShouldNotBeEmpty)
 				So(serr, ShouldBeNil)
 				So(len(p.all()), ShouldBeGreaterThan, 0)
-				mts, err := p.metricCatalog.Fetch(core.NewNamespace([]string{}))
+				mts, err := p.metricCatalog.Fetch(core.NewNamespace())
 				So(err, ShouldBeNil)
 				So(len(mts), ShouldBeGreaterThan, 2)
 				So(mts[0].Description(), ShouldResemble, "mock description")

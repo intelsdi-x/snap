@@ -40,14 +40,14 @@ func TestMetricType(t *testing.T) {
 	Convey("MetricType", t, func() {
 		now := time.Now()
 		m := &MetricType{
-			Namespace_:          core.NewNamespace([]string{"foo", "bar"}),
+			Namespace_:          core.NewNamespace("foo", "bar"),
 			LastAdvertisedTime_: now,
 		}
 		Convey("New", func() {
 			So(m, ShouldHaveSameTypeAs, &MetricType{})
 		})
 		Convey("Get Namespace", func() {
-			So(m.Namespace(), ShouldResemble, core.NewNamespace([]string{"foo", "bar"}))
+			So(m.Namespace(), ShouldResemble, core.NewNamespace("foo", "bar"))
 		})
 		Convey("Get LastAdvertisedTimestamp", func() {
 			So(m.LastAdvertisedTime().Unix(), ShouldBeGreaterThan, now.Unix()-2)
