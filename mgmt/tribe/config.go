@@ -20,6 +20,7 @@ limitations under the License.
 package tribe
 
 import (
+	"encoding/json"
 	"net"
 	"os"
 	"time"
@@ -41,6 +42,9 @@ const (
 )
 
 // holds the configuration passed in through the SNAP config file
+//   Note: if this struct is modified, then the switch statement in the
+//         UnmarshalJSON method in this same file needs to be modified to
+//         match the field mapping that is defined here
 type Config struct {
 	Name                      string             `json:"name,omitempty"yaml:"name,omitempty"`
 	Enable                    bool               `json:"enable,omitempty"yaml:"enable,omitempty"`
@@ -71,6 +75,45 @@ func GetDefaultConfig() *Config {
 		RestAPIPort:               defaultRestAPIPort,
 		RestAPIInsecureSkipVerify: defaultRestAPIInsecureSkipVerify,
 	}
+}
+
+// UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
+// at github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
+func (c *Config) UnmarshalJSON(data []byte) error {
+	// construct a map of strings to json.RawMessages (to defer the parsing of individual
+	// fields from the unmarshalled interface until later) and unmarshal the input
+	// byte array into that map
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	// loop through the individual map elements, parse each in turn, and set
+	// the appropriate field in this configuration
+	for k, v := range t {
+		switch k {
+		case "name":
+			if err := json.Unmarshal(v, &(c.Name)); err != nil {
+				return err
+			}
+		case "enable":
+			if err := json.Unmarshal(v, &(c.Enable)); err != nil {
+				return err
+			}
+		case "bind_addr":
+			if err := json.Unmarshal(v, &(c.BindAddr)); err != nil {
+				return err
+			}
+		case "bind_port":
+			if err := json.Unmarshal(v, &(c.BindPort)); err != nil {
+				return err
+			}
+		case "seed":
+			if err := json.Unmarshal(v, &(c.Seed)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func getHostname() string {

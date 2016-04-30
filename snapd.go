@@ -20,6 +20,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -147,6 +148,9 @@ const (
 )
 
 // holds the configuration passed in through the SNAP config file
+//   Note: if this struct is modified, then the switch statement in the
+//         UnmarshalJSON method in this same file needs to be modified to
+//         match the field mapping that is defined here
 type Config struct {
 	LogLevel   int               `json:"log_level,omitempty"yaml:"log_level,omitempty"`
 	GoMaxProcs int               `json:"gomaxprocs,omitempty"yaml:"gomaxprocs,omitempty"`
@@ -700,6 +704,53 @@ func setMaxProcs(maxProcs int) {
 				"real maxprocs":  actualNumProcs,
 			}).Warning("not using given maxprocs")
 	}
+}
+
+// UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
+// at github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
+func (c *Config) UnmarshalJSON(data []byte) error {
+	// construct a map of strings to json.RawMessages (to defer the parsing of individual
+	// fields from the unmarshalled interface until later), then unmarshal the input
+	// byte array into that map
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	// loop through the individual map elements, parse each in turn, and set
+	// the appropriate field in this configuration
+	for k, v := range t {
+		switch k {
+		case "log_level":
+			if err := json.Unmarshal(v, &(c.LogLevel)); err != nil {
+				return err
+			}
+		case "gomaxprocs":
+			if err := json.Unmarshal(v, &(c.GoMaxProcs)); err != nil {
+				return err
+			}
+		case "log_path":
+			if err := json.Unmarshal(v, &(c.LogPath)); err != nil {
+				return err
+			}
+		case "control":
+			if err := json.Unmarshal(v, c.Control); err != nil {
+				return err
+			}
+		case "restapi":
+			if err := json.Unmarshal(v, c.RestAPI); err != nil {
+				return err
+			}
+		case "scheduler":
+			if err := json.Unmarshal(v, c.Scheduler); err != nil {
+				return err
+			}
+		case "tribe":
+			if err := json.Unmarshal(v, c.Tribe); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func startModule(m coreModule) error {

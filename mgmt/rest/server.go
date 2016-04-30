@@ -67,6 +67,9 @@ var (
 )
 
 // holds the configuration passed in through the SNAP config file
+//   Note: if this struct is modified, then the switch statement in the
+//         UnmarshalJSON method in this same file needs to be modified to
+//         match the field mapping that is defined here
 type Config struct {
 	Enable           bool   `json:"enable,omitempty"yaml:"enable,omitempty"`
 	Port             int    `json:"port,omitempty"yaml:"port,omitempty"`
@@ -179,6 +182,53 @@ func GetDefaultConfig() *Config {
 		RestAuth:         defaultAuth,
 		RestAuthPassword: defaultAuthPassword,
 	}
+}
+
+// UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
+// at github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
+func (c *Config) UnmarshalJSON(data []byte) error {
+	// construct a map of strings to json.RawMessages (to defer the parsing of individual
+	// fields from the unmarshalled interface until later) and unmarshal the input
+	// byte array into that map
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	// loop through the individual map elements, parse each in turn, and set
+	// the appropriate field in this configuration
+	for k, v := range t {
+		switch k {
+		case "enable":
+			if err := json.Unmarshal(v, &(c.Enable)); err != nil {
+				return err
+			}
+		case "port":
+			if err := json.Unmarshal(v, &(c.Port)); err != nil {
+				return err
+			}
+		case "https":
+			if err := json.Unmarshal(v, &(c.HTTPS)); err != nil {
+				return err
+			}
+		case "rest_certificate":
+			if err := json.Unmarshal(v, &(c.RestCertificate)); err != nil {
+				return err
+			}
+		case "rest_key":
+			if err := json.Unmarshal(v, &(c.RestKey)); err != nil {
+				return err
+			}
+		case "rest_auth":
+			if err := json.Unmarshal(v, &(c.RestAuth)); err != nil {
+				return err
+			}
+		case "rest_auth_password":
+			if err := json.Unmarshal(v, &(c.RestAuthPassword)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // SetAPIAuth sets API authentication to enabled or disabled

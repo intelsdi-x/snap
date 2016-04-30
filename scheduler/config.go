@@ -19,6 +19,8 @@ limitations under the License.
 
 package scheduler
 
+import "encoding/json"
+
 // default configuration values
 const (
 	defaultWorkManagerQueueSize uint = 25
@@ -26,6 +28,9 @@ const (
 )
 
 // holds the configuration passed in through the SNAP config file
+//   Note: if this struct is modified, then the switch statement in the
+//         UnmarshalJSON method in this same file needs to be modified to
+//         match the field mapping that is defined here
 type Config struct {
 	WorkManagerQueueSize uint `json:"work_manager_queue_size,omitempty"yaml:"work_manager_queue_size,omitempty"`
 	WorkManagerPoolSize  uint `json:"work_manager_pool_size,omitempty"yaml:"work_manager_pool_size,omitempty"`
@@ -37,4 +42,31 @@ func GetDefaultConfig() *Config {
 		WorkManagerQueueSize: defaultWorkManagerQueueSize,
 		WorkManagerPoolSize:  defaultWorkManagerPoolSize,
 	}
+}
+
+// UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
+// at github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
+func (c *Config) UnmarshalJSON(data []byte) error {
+	// construct a map of strings to json.RawMessages (to defer the parsing of individual
+	// fields from the unmarshalled interface until later) and unmarshal the input
+	// byte array into that map
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	// loop through the individual map elements, parse each in turn, and set
+	// the appropriate field in this configuration
+	for k, v := range t {
+		switch k {
+		case "work_manager_queue_size":
+			if err := json.Unmarshal(v, &(c.WorkManagerQueueSize)); err != nil {
+				return err
+			}
+		case "work_manager_pool_size":
+			if err := json.Unmarshal(v, &(c.WorkManagerPoolSize)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
