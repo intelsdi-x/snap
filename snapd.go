@@ -225,6 +225,10 @@ func action(ctx *cli.Context) {
 	// same variables in that configuration
 	applyCmdLineFlags(cfg, ctx)
 
+	// Switch log level to user defined
+	log.Info("setting log level to: ", l[cfg.LogLevel])
+	log.SetLevel(getLevel(cfg.LogLevel))
+
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.
 	logPath := cfg.LogPath
@@ -510,10 +514,6 @@ func action(ctx *cli.Context) {
 			"block":   "main",
 			"_module": "snapd",
 		}).Info("snapd started")
-
-	// Switch log level to user defined
-	log.Info("setting log level to: ", l[cfg.LogLevel])
-	log.SetLevel(getLevel(cfg.LogLevel))
 
 	select {} //run forever and ever
 }
