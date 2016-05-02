@@ -492,7 +492,7 @@ func action(ctx *cli.Context) {
 							"_block":           "main",
 							"_module":          "snapd",
 							"autodiscoverpath": fullPath,
-							"plugin":           file,
+							"plugin-file-name": file.Name(),
 							"plugin-name":      pl.Name(),
 							"plugin-version":   pl.Version(),
 							"plugin-type":      pl.TypeName(),
