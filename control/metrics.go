@@ -409,18 +409,15 @@ func (mc *metricCatalog) Get(ns core.Namespace, version int) (*metricType, error
 func (mc *metricCatalog) GetVersions(ns core.Namespace) ([]*metricType, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
-	return mc.getVersions(strings.Split(ns.String(), "/"))
+	return mc.getVersions(ns.Strings())
 }
 
 // Fetch transactionally retrieves all metrics which fall under namespace ns
 func (mc *metricCatalog) Fetch(ns core.Namespace) ([]*metricType, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
-	var nss []string
-	if ns.String() != "/" {
-		nss = ns.Strings()
-	}
-	mtsi, err := mc.tree.Fetch(nss)
+
+	mtsi, err := mc.tree.Fetch(ns.Strings())
 	if err != nil {
 		log.WithFields(log.Fields{
 			"_module": "control",

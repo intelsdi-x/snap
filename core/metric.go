@@ -50,20 +50,18 @@ type Namespace []NamespaceElement
 // String returns the string representation of the namespace with "/" joining
 // the elements of the namespace.  A leading "/" is added.
 func (n Namespace) String() string {
-	ns := "/"
-	for i, x := range n {
-		ns += x.Value
-		if i != len(n)-1 {
-			ns += "/"
-		}
-	}
-	return ns
+	ns := n.Strings()
+	return "/" + strings.Join(ns, "/")
 }
 
 // Strings returns an array of strings that represent the elements of the
 // namespace.
 func (n Namespace) Strings() []string {
-	return strings.Split(strings.TrimPrefix(n.String(), "/"), "/")
+	var ns []string
+	for _, namespaceElement := range n {
+		ns = append(ns, namespaceElement.Value)
+	}
+	return ns
 }
 
 // Key returns a string representation of the namespace with "." joining
