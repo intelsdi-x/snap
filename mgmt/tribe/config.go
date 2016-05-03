@@ -21,6 +21,7 @@ package tribe
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"time"
@@ -93,23 +94,23 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		switch k {
 		case "name":
 			if err := json.Unmarshal(v, &(c.Name)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'tribe::name')", err)
 			}
 		case "enable":
 			if err := json.Unmarshal(v, &(c.Enable)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'tribe::enable')", err)
 			}
 		case "bind_addr":
 			if err := json.Unmarshal(v, &(c.BindAddr)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'tribe::bind_addr')", err)
 			}
 		case "bind_port":
 			if err := json.Unmarshal(v, &(c.BindPort)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'tribe::bind_port')", err)
 			}
 		case "seed":
 			if err := json.Unmarshal(v, &(c.Seed)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'tribe::seed')", err)
 			}
 		}
 	}

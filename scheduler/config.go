@@ -19,7 +19,10 @@ limitations under the License.
 
 package scheduler
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // default configuration values
 const (
@@ -60,11 +63,11 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		switch k {
 		case "work_manager_queue_size":
 			if err := json.Unmarshal(v, &(c.WorkManagerQueueSize)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'scheduler::work_manager_queue_size')", err)
 			}
 		case "work_manager_pool_size":
 			if err := json.Unmarshal(v, &(c.WorkManagerPoolSize)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'scheduler::work_manager_pool_size')", err)
 			}
 		}
 	}

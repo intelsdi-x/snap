@@ -103,23 +103,23 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		switch k {
 		case "max_running_plugins":
 			if err := json.Unmarshal(v, &(c.MaxRunningPlugins)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::max_running_plugins')", err)
 			}
 		case "plugin_trust_level":
 			if err := json.Unmarshal(v, &(c.PluginTrust)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::plugin_trust_level')", err)
 			}
 		case "auto_discover_path":
 			if err := json.Unmarshal(v, &(c.AutoDiscoverPath)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::auto_discover_path')", err)
 			}
 		case "keyring_paths":
 			if err := json.Unmarshal(v, &(c.KeyringPaths)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::keyring_paths')", err)
 			}
 		case "cache_expiration":
 			if err := json.Unmarshal(v, &(c.CacheExpiration)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::cache_expiration')", err)
 			}
 		case "plugins":
 			if err := json.Unmarshal(v, c.Plugins); err != nil {

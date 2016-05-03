@@ -722,15 +722,15 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		switch k {
 		case "log_level":
 			if err := json.Unmarshal(v, &(c.LogLevel)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'log_level')", err)
 			}
 		case "gomaxprocs":
 			if err := json.Unmarshal(v, &(c.GoMaxProcs)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'gomaxprocs')", err)
 			}
 		case "log_path":
 			if err := json.Unmarshal(v, &(c.LogPath)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'log_path')", err)
 			}
 		case "control":
 			if err := json.Unmarshal(v, c.Control); err != nil {
