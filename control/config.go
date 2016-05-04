@@ -125,6 +125,8 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, c.Plugins); err != nil {
 				return err
 			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'control'", k)
 		}
 	}
 	return nil

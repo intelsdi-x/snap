@@ -748,6 +748,8 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, c.Tribe); err != nil {
 				return err
 			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in global config file", k)
 		}
 	}
 	return nil

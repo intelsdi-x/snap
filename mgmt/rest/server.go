@@ -226,6 +226,8 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, &(c.RestAuthPassword)); err != nil {
 				return fmt.Errorf("%v (while parsing 'restapi::rest_auth_password')", err)
 			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'restapi'", k)
 		}
 	}
 	return nil

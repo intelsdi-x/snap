@@ -69,6 +69,8 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, &(c.WorkManagerPoolSize)); err != nil {
 				return fmt.Errorf("%v (while parsing 'scheduler::work_manager_pool_size')", err)
 			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'scheduler'", k)
 		}
 	}
 	return nil
