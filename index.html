@@ -9,14 +9,16 @@
     <link rel="stylesheet" href="css/app.css" />
     <link rel="stylesheet" href="design/font-awesome-4.5.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="css/snap.css" />
+    <link rel="stylesheet" href="css/catalog.css" />
   
   </head>
 
 
   <body>
 
-<!--menu bar-->    
 
+<!--menu bar-->    
+<div class= "headerbar">
 <div class="top-bar" id="main-menu">
 
   <div class="top-bar-left">
@@ -29,11 +31,12 @@
     <ul class="menu" data-responsive-menu="drilldown medium-dropdown">
       <li class="menu-text"><a href="https://github.com/intelsdi-x/snap"><i class="fa fa-github-square fa-lg"></i></a></li>
       <li class="menu-text"><a href="https://gitter.im/intelsdi-x/snap">Gitter</a></li>
+      <li class="menu-text"><a href="plugins.html">Plugin Catalog</a></li>
     </ul>
   </div>
 
 </div> 
-
+</div>
 
 
 <section class = "section-bkg">
@@ -279,7 +282,57 @@ Dynamic updates ensure simple and secure bug fixes, security patching, and impro
 
 </section> <!-- end scale-->
 <br><br>
+<hr />
 
+
+
+<section class = "features">
+
+    <div class="row">
+    <br>
+      <div class="large-9 columns end text-left">
+        <h3> Key Features</h3>
+          <h4 class = "subheader"> Discover more about the key features of snap. </h4>
+      </div>
+  </div>
+<br>
+
+
+<div class="row">
+    <div class="small-3 columns">
+    <div class="image-wrapper overlay-fade-in">
+      <img src="img/catalog/API_blue.png" />
+      <div class="image-overlay-content">
+        <a href="https://github.com/intelsdi-x/snap/blob/master/docs/REST_API.md">
+          <h2>full control through REST API on snapd</h2></a>
+      </div>
+    </div>
+    </div>
+    <div class="small-3 columns">
+    <div class="image-wrapper overlay-fade-in">
+      <img src="img/catalog/tribe_blue.png" />
+      <div class="image-overlay-content">
+        <a href="https://github.com/intelsdi-x/snap/blob/master/docs/TRIBE.md">
+        <h2>clustering feature for simple and flexible configuration management</h2></a>
+      </div>
+    </div>
+    </div>
+
+    <div class="small-3 columns end">
+    <div class="image-wrapper overlay-fade-in">
+      <img src="img/catalog/pluginSigning_blue.png" />
+      <div class="image-overlay-content">
+        <a href="https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_SIGNING.md">
+          <h2>plugin validation via plugin signing helps secure your data</h2></a>
+      </div>
+    </div>
+    </div>
+
+</div>
+</section>
+
+<br>
+<br>
 
 <section class = "section-links">
 
@@ -323,10 +376,6 @@ Dynamic updates ensure simple and secure bug fixes, security patching, and impro
     </div>
   </div>
 </footer>
-
-
-
-
 
 
     <script src="js/foundation.js"></script>

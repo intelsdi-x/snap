@@ -379,7 +379,7 @@ body {
   font-weight: normal;
   line-height: 1.5;
   color: #0a0a0a;
-  background: #fefefe;
+  /*background: #fefefe;*/
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale; }
 
@@ -2924,8 +2924,10 @@ table {
       padding: 0.5rem 0.625rem 0.625rem;
       font-weight: bold;
       text-align: left; }
+  /*
   tbody tr:nth-child(even) {
     background-color: #f1f1f1; }
+  */
   tbody th,
   tbody td {
     padding: 0.5rem 0.625rem 0.625rem; }

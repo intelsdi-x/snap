@@ -1,0 +1,127 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snap | Welcome</title>
+    <link rel="stylesheet" href="css/foundation.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="design/font-awesome-4.5.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/snap.css" />
+    <link rel="stylesheet" href="css/catalog.css" />
+    <style></style>
+  </head>
+
+
+  <body>
+
+<!--menu bar-->    
+<div class= "headerbar">
+<div class="top-bar" id="main-menu">
+
+  <div class="top-bar-left">
+    <ul class="dropdown menu" data-dropdown-menu>
+      <li class="menu-text"><a href="index.html"><img src="img/snappy50x40.png"></a></li>
+    </ul>
+  </div>
+
+  <div class="top-bar-right">
+    <ul class="menu" data-responsive-menu="drilldown medium-dropdown">
+      <li class="menu-text"><a href="https://github.com/intelsdi-x/snap"><i class="fa fa-github-square fa-lg"></i></a></li>
+      <li class="menu-text"><a href="https://gitter.im/intelsdi-x/snap">Gitter</a></li>
+      <li class="menu-text"><a href="plugins.html">Plugin Catalog</a></li>
+    </ul>
+  </div>
+</div> 
+</div>
+
+<div class="row offset-for-headerbar">
+<h2 class="text-center"> Plugin Catalog </h2>
+<div class="large-12 columns">
+  <p>Welcome to the Plugin Catalog! </p>
+  <p>Each plugin includes a plugin progress indicator ( <i class="fa fa-star"></i><i class="fa fa-star-half-full"></i><i class="fa fa-star-o"></i> ) with links to github repos ( <i class="fa fa-github"></i> ).</p>
+  <p>Plugins in-progress also include author links ( <i class="fa fa-user"></i> ) in case you have any questions.</p>
+  <p>Please let us know if you see a plugin on our wish list you would like to start.<p>
+<br>
+</div>  
+</div>
+
+
+<div class = "row">
+  <div class = "text-right large-12 columns">
+<p> filter:
+<button id="all" class="red">all</button>
+<button id="b_done" class="blue"><i class="fa fa-star"></i> done</button>
+<button id="b_in-progress" class="blue"> <i class="fa fa-star-half-full"></i> in-progress</button>
+<button id="b_wish" class="blue"> <i class="fa fa-star-o"></i> wish list</button>
+</p>
+</div>
+</div>
+
+    <div class="row">
+      <div class="large-4 columns">
+        <h3 class="text-center"> Collectors </h3>
+      </div>
+
+      <div class="large-4 columns">
+        <h3 class="text-center"> Processors </h3>
+      </div>
+
+      <div class="large-4 columns">
+        <h3 class="text-center"> Publishers </h3>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="large-4 columns column_collect">
+      <div id= "col_01"></div> <br>  
+      </div>
+
+      <div class="large-4 columns column_process">
+      <div id= "col_02"></div> <br>
+      </div>
+
+      <div class="large-4 columns column_publish">
+      <div id= "col_03"></div> <br>
+      </div>
+    </div>
+<br>
+<br>
+
+
+
+<footer class="footer">
+  <div class="row">
+    <div class="small-12 medium-6 medium-push-6 columns">
+
+    </div>
+    <div class="small-12 medium-6 medium-pull-6 columns">
+      <p class="logo hide-for-small-only">snap</p> 
+      <p class="footer-links">     
+      <a href="https://github.com/intelsdi-x/snap"><i class="fa fa-github-square"></i></a>
+      <a href="https://gitter.im/intelsdi-x/snap">gitter</a>
+      <a href="https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md">plugin catalog</a>
+      <a href ="https://github.com/intelsdi-x/snap#documentation">documentation</a>
+      </p>
+      
+    </div>
+  </div>
+</footer>
+
+    <script src="js/catalog/catalog.js"></script>
+    <script src="js/catalog/parsed_plugin_list.js"></script>
+    <script src="js/catalog/parsed_committed_plugin_list.js"></script>
+    <script src="js/catalog/wish_list.js"></script>
+    <script src="js/foundation.js"></script>
+    <script src="js/vendor/jquery.min.js"></script>
+    <script src="js/vendor/what-input.min.js"></script>
+    <script src="js/foundation.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/catalog/toggle_options.js"></script>
+
+<script>
+</script>
+
+  </body>
+  </html>

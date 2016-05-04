@@ -24,8 +24,8 @@
 
 
 .top-bar {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
+  /*padding-top: 1rem;
+  padding-bottom: 1rem;*/
   background: #fff; }
   .top-bar ul {
     background: #fff; }
@@ -77,5 +77,20 @@
   color: #fff;
   font-size: 1.5rem; }
 
+.section-plugin_catalog{
+  background-color: transparent;
+  outline-style: none;
+  
+
+}
+
+.table-border{
+  color: transparent;
+  outline-style: none;
+  outline-width: none;
+}
+.table-striped-background{
+  background-color: transparent;
+}
 
 
