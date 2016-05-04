@@ -39,6 +39,25 @@ type Config struct {
 	WorkManagerPoolSize  uint `json:"work_manager_pool_size,omitempty"yaml:"work_manager_pool_size,omitempty"`
 }
 
+const (
+	CONFIG_CONSTRAINTS = `
+			"scheduler": {
+				"type": ["object", "null"],
+				"properties" : {
+					"work_manager_queue_size" : {
+						"type": "integer",
+						"minimum": 1
+					},
+					"work_manager_pool_size" : {
+						"type": "integer",
+						"minimum": 1
+					}
+				},
+				"additionalProperties": false
+			}
+	`
+)
+
 // get the default snapd configuration
 func GetDefaultConfig() *Config {
 	return &Config{

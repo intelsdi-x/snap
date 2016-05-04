@@ -20,25 +20,38 @@ limitations under the License.
 package cfgfile
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
 	"github.com/ghodss/yaml"
+	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 // Read an input configuration file, parsing it (as YAML or JSON)
 // into the input 'interface{}'', v
-func Read(path string, v interface{}) error {
+func Read(path string, v interface{}, schema string) []serror.SnapError {
 	// read bytes from file
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		return err
+		return []serror.SnapError{serror.New(err)}
 	}
-	// parse the byte-stream read (above); Note that we can parse both JSON
-	// and YAML using the same yaml.Unmarshal() method since a JSON string is
-	// a valid YAML string (but the converse is not true)
-	if parseErr := yaml.Unmarshal(b, v); parseErr != nil {
+	// convert from YAML to JSON (remember, JSON is actually valid YAML)
+	jb, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		return []serror.SnapError{serror.New(fmt.Errorf("error converting YAML to JSON: %v", err))}
+	}
+	// validate the resulting JSON against the input the schema
+	if errors := ValidateSchema(schema, string(jb)); errors != nil {
+		// if invalid, construct (and return?) a SnapError from the errors identified
+		// during schema validation
+		return errors
+	}
+	// if valid, parse the JSON byte-stream (above)
+	if parseErr := json.Unmarshal(jb, v); parseErr != nil {
 		// remove any YAML-specific prefix that might have been added by then
 		// yaml.Unmarshal() method or JSON-specific prefix that might have been
 		// added if the resulting JSON string could not be marshalled into our
@@ -46,7 +59,34 @@ func Read(path string, v interface{}) error {
 		// these prefixes then the error message will be passed through unchanged)
 		tmpErr := strings.TrimPrefix(parseErr.Error(), "error converting YAML to JSON: yaml: ")
 		errRet := strings.TrimPrefix(tmpErr, "error unmarshaling JSON: json: ")
-		return fmt.Errorf("Error while parsing configuration file: %v", errRet)
+		return []serror.SnapError{serror.New(fmt.Errorf("Error while parsing configuration file: %v", errRet))}
 	}
 	return nil
+}
+
+// Validate the configuration (JSON) string against the input schema
+func ValidateSchema(schema, cfg string) []serror.SnapError {
+	schemaLoader := gojsonschema.NewStringLoader(schema)
+	testDoc := gojsonschema.NewStringLoader(cfg)
+	result, err := gojsonschema.Validate(schemaLoader, testDoc)
+	var serrors []serror.SnapError
+	// Check for invalid json
+	if err != nil {
+		serrors = append(serrors, serror.New(err))
+		return serrors
+	}
+	// check if result passes validation
+	if result.Valid() {
+		return nil
+	}
+	for _, err := range result.Errors() {
+		serr := serror.New(errors.New("Validate schema error"))
+		serr.SetFields(map[string]interface{}{
+			"value":       err.Value(),
+			"context":     err.Context().String("::"),
+			"description": err.Description(),
+		})
+		serrors = append(serrors, serr)
+	}
+	return serrors
 }

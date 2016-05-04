@@ -59,6 +59,34 @@ type Config struct {
 	RestAPIInsecureSkipVerify string             `json:"-"yaml:"-"`
 }
 
+const (
+	CONFIG_CONSTRAINTS = `
+			"tribe": {
+				"type": ["object", "null"],
+				"properties": {
+					"enable" : {
+						"type": "boolean"
+					},
+					"bind_addr": {
+						"type": "string"
+					},
+					"bind_port": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 65535
+					},
+					"name": {
+						"type": "string"
+					},
+					"seed": {
+						"type" : "string"
+					}
+				},
+				"additionalProperties": false
+			}
+	`
+)
+
 // get the default snapd configuration
 func GetDefaultConfig() *Config {
 	mlCfg := memberlist.DefaultLANConfig()

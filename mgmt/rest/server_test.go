@@ -35,7 +35,7 @@ func TestRestAPIConfigJSON(t *testing.T) {
 		RestAPI: GetDefaultConfig(),
 	}
 	path := "../../examples/configs/snap-config-sample.json"
-	err := cfgfile.Read(path, &config)
+	err := cfgfile.Read(path, &config, MOCK_CONSTRAINTS)
 	var cfg *Config
 	if err == nil {
 		cfg = config.RestAPI
@@ -74,7 +74,7 @@ func TestRestAPIConfigYaml(t *testing.T) {
 		RestAPI: GetDefaultConfig(),
 	}
 	path := "../../examples/configs/snap-config-sample.yaml"
-	err := cfgfile.Read(path, &config)
+	err := cfgfile.Read(path, &config, MOCK_CONSTRAINTS)
 	var cfg *Config
 	if err == nil {
 		cfg = config.RestAPI

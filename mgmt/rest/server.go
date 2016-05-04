@@ -80,6 +80,40 @@ type Config struct {
 	RestAuthPassword string `json:"rest_auth_password,omitempty"yaml:"rest_auth_password,omitempty"`
 }
 
+const (
+	CONFIG_CONSTRAINTS = `
+			"restapi" : {
+				"type": ["object", "null"],
+				"properties" : {
+					"enable": {
+						"type": "boolean"
+					},
+					"https" : {
+						"type": "boolean"
+					},
+					"rest_auth": {
+						"type": "boolean"
+					},
+					"rest_auth_password": {
+						"type": "string"
+					},
+					"rest_certificate": {
+						"type": "string"
+					},
+					"rest_key" : {
+						"type": "string"
+					},
+					"port" : {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 65535
+					}
+				},
+				"additionalProperties": false
+			}
+	`
+)
+
 type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics(core.Namespace, int) ([]core.CatalogedMetric, error)

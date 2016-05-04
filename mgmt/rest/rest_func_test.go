@@ -64,6 +64,24 @@ var (
 	UploadCount      = 0
 )
 
+const (
+	MOCK_CONSTRAINTS = `{
+		"$schema": "http://json-schema.org/draft-04/schema#",
+		"title": "snapd global config schema",
+		"type": ["object", "null"],
+		"properties": {
+			"control": { "$ref": "#/definitions/control" },
+			"scheduler": { "$ref": "#/definitions/scheduler"},
+			"restapi" : { "$ref": "#/definitions/restapi"},
+			"tribe": { "$ref": "#/definitions/tribe"}
+		},
+		"additionalProperties": true,
+		"definitions": { ` +
+		`"control": {}, "scheduler": {}, ` + CONFIG_CONSTRAINTS + `, "tribe":{}` +
+		`}` +
+		`}`
+)
+
 type restAPIInstance struct {
 	port   int
 	server *Server
@@ -560,7 +578,7 @@ func TestPluginRestCalls(t *testing.T) {
 			})
 			Convey("Plugin config is set at startup", func() {
 				cfg := getDefaultMockConfig()
-				err := cfgfile.Read("../../examples/configs/snap-config-sample.json", &cfg)
+				err := cfgfile.Read("../../examples/configs/snap-config-sample.json", &cfg, MOCK_CONSTRAINTS)
 				So(err, ShouldBeNil)
 				r := startAPI(cfg)
 				port := r.port

@@ -29,6 +29,23 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+const (
+	MOCK_CONSTRAINTS = `{
+		"$schema": "http://json-schema.org/draft-04/schema#",
+		"title": "test schema",
+		"type": ["object", "null"],
+		"properties": {
+			"Foo": {
+				"type": "string"
+			},
+			"Bar": {
+				"type": "string"
+			}
+		}
+	}
+	`
+)
+
 type testConfig struct {
 	Foo string
 	Bar string
@@ -85,7 +102,7 @@ func TestReadConfig(t *testing.T) {
 
 	Convey("Unmarshal yaml file", t, func() {
 		config := testConfig{}
-		err := Read(yamlFile, &config)
+		err := Read(yamlFile, &config, MOCK_CONSTRAINTS)
 		So(err, ShouldBeNil)
 		So(config.Foo, ShouldResemble, "Tom")
 		So(config.Bar, ShouldResemble, "Justin")
@@ -93,7 +110,7 @@ func TestReadConfig(t *testing.T) {
 
 	Convey("Unmarshal json file", t, func() {
 		config := testConfig{}
-		err := Read(jsonFile, &config)
+		err := Read(jsonFile, &config, MOCK_CONSTRAINTS)
 		So(err, ShouldBeNil)
 		So(config.Foo, ShouldResemble, "Tom")
 		So(config.Bar, ShouldResemble, "Justin")

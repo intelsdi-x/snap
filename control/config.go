@@ -75,6 +75,40 @@ type Config struct {
 	Plugins           *pluginConfig     `json:"plugins,omitempty"yaml:"plugins,omitempty"`
 }
 
+const (
+	CONFIG_CONSTRAINTS = `
+			"control" : {
+				"type": ["object", "null"],
+				"properties": {
+					"plugin_trust_level": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 2
+					},
+					"auto_discover_path": {
+						"type": "string"
+					},
+					"cache_expiration": {
+						"type": "string"
+					},
+					"max_running_plugins": {
+						"type": "integer",
+						"minimum": 1
+					},
+					"keyring_paths" : {
+						"type": "string"
+					},
+					"plugins": {
+						"type": ["object", "null"],
+						"properties" : {},
+						"additionalProperties": true
+					}
+				},
+				"additionalProperties": false
+			}
+	`
+)
+
 // get the default snapd configuration
 func GetDefaultConfig() *Config {
 	return &Config{
