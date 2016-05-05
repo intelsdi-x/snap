@@ -54,11 +54,12 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 	metrics := []plugin.MetricType{}
 	for i := range mts {
 		if c, ok := mts[i].Config().Table()["panic"]; ok && c.(ctypes.ConfigValueBool).Value {
-			panic("Opps!")
+			panic("Oops!")
 		}
 		if mts[i].Namespace()[2].Value == "*" {
 			for j := 0; j < 10; j++ {
-				ns := mts[i].Namespace()
+				ns := make([]core.NamespaceElement, len(mts[i].Namespace()))
+				copy(ns, mts[i].Namespace())
 				ns[2].Value = fmt.Sprintf("host%d", j)
 				data := randInt(65, 90)
 				mt := plugin.MetricType{
