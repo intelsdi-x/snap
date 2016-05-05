@@ -26,6 +26,24 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+const (
+	MOCK_CONSTRAINTS = `{
+		"$schema": "http://json-schema.org/draft-04/schema#",
+		"title": "snapd global config schema",
+		"type": ["object", "null"],
+		"properties": {
+			"control": { "$ref": "#/definitions/control" },
+			"scheduler": { "$ref": "#/definitions/scheduler"},
+			"restapi" : { "$ref": "#/definitions/restapi"},
+			"tribe": { "$ref": "#/definitions/tribe"}
+		},
+		"additionalProperties": true,
+		"definitions": { ` +
+		`"control": {}, ` + CONFIG_CONSTRAINTS + `, "restapi": {}, "tribe":{}` +
+		`}` +
+		`}`
+)
+
 type mockConfig struct {
 	Scheduler *Config
 }
@@ -35,7 +53,7 @@ func TestSchedulerConfigJSON(t *testing.T) {
 		Scheduler: GetDefaultConfig(),
 	}
 	path := "../examples/configs/snap-config-sample.json"
-	err := cfgfile.Read(path, &config)
+	err := cfgfile.Read(path, &config, MOCK_CONSTRAINTS)
 	var cfg *Config
 	if err == nil {
 		cfg = config.Scheduler
@@ -59,7 +77,7 @@ func TestSchedulerConfigYaml(t *testing.T) {
 		Scheduler: GetDefaultConfig(),
 	}
 	path := "../examples/configs/snap-config-sample.yaml"
-	err := cfgfile.Read(path, &config)
+	err := cfgfile.Read(path, &config, MOCK_CONSTRAINTS)
 	var cfg *Config
 	if err == nil {
 		cfg = config.Scheduler

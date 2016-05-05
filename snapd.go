@@ -161,6 +161,42 @@ type Config struct {
 	Tribe      *tribe.Config     `json:"tribe,omitempty"yaml:"tribe,omitempty"`
 }
 
+const (
+	CONFIG_CONSTRAINTS = `{
+		"$schema": "http://json-schema.org/draft-04/schema#",
+		"title": "snapd global config schema",
+		"type": ["object", "null"],
+		"properties": {
+			"log_level": {
+				"description": "log verbosity level for snapd. Range between 1: debug, 2: info, 3: warning, 4: error, 5: fatal",
+				"type": "integer",
+				"minimum": 1,
+				"maximum": 5
+			},
+			"log_path": {
+				"description": "path to log file for snapd to use",
+				"type": "string"
+			},
+			"gomaxprocs": {
+				"description": "value to be used for gomaxprocs",
+				"type": "integer",
+				"minimum": 1
+			},
+			"control": { "$ref": "#/definitions/control" },
+			"scheduler": { "$ref": "#/definitions/scheduler"},
+			"restapi" : { "$ref": "#/definitions/restapi"},
+			"tribe": { "$ref": "#/definitions/tribe"}
+		},
+		"additionalProperties": false,
+		"definitions": { ` +
+		control.CONFIG_CONSTRAINTS + `,` +
+		scheduler.CONFIG_CONSTRAINTS + `,` +
+		rest.CONFIG_CONSTRAINTS + `,` +
+		tribe.CONFIG_CONSTRAINTS +
+		`}` +
+		`}`
+)
+
 type coreModule interface {
 	Start() error
 	Stop()
@@ -551,9 +587,12 @@ func readConfig(cfg *Config, fpath string) {
 		path = fpath
 	}
 
-	err := cfgfile.Read(path, &cfg)
-	if err != nil {
-		log.Fatal(err)
+	serrs := cfgfile.Read(path, &cfg, CONFIG_CONSTRAINTS)
+	if serrs != nil {
+		for _, serr := range serrs {
+			log.WithFields(serr.Fields()).Error(serr.Error())
+		}
+		log.Fatal("Errors found while parsing global configuration file")
 	}
 }
 
@@ -722,15 +761,15 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		switch k {
 		case "log_level":
 			if err := json.Unmarshal(v, &(c.LogLevel)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'log_level')", err)
 			}
 		case "gomaxprocs":
 			if err := json.Unmarshal(v, &(c.GoMaxProcs)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'gomaxprocs')", err)
 			}
 		case "log_path":
 			if err := json.Unmarshal(v, &(c.LogPath)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'log_path')", err)
 			}
 		case "control":
 			if err := json.Unmarshal(v, c.Control); err != nil {
@@ -748,6 +787,8 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, c.Tribe); err != nil {
 				return err
 			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in global config file", k)
 		}
 	}
 	return nil

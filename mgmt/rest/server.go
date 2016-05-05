@@ -80,6 +80,40 @@ type Config struct {
 	RestAuthPassword string `json:"rest_auth_password,omitempty"yaml:"rest_auth_password,omitempty"`
 }
 
+const (
+	CONFIG_CONSTRAINTS = `
+			"restapi" : {
+				"type": ["object", "null"],
+				"properties" : {
+					"enable": {
+						"type": "boolean"
+					},
+					"https" : {
+						"type": "boolean"
+					},
+					"rest_auth": {
+						"type": "boolean"
+					},
+					"rest_auth_password": {
+						"type": "string"
+					},
+					"rest_certificate": {
+						"type": "string"
+					},
+					"rest_key" : {
+						"type": "string"
+					},
+					"port" : {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 65535
+					}
+				},
+				"additionalProperties": false
+			}
+	`
+)
+
 type managesMetrics interface {
 	MetricCatalog() ([]core.CatalogedMetric, error)
 	FetchMetrics(core.Namespace, int) ([]core.CatalogedMetric, error)
@@ -200,32 +234,34 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		switch k {
 		case "enable":
 			if err := json.Unmarshal(v, &(c.Enable)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'restapi::enable')", err)
 			}
 		case "port":
 			if err := json.Unmarshal(v, &(c.Port)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'restapi::port')", err)
 			}
 		case "https":
 			if err := json.Unmarshal(v, &(c.HTTPS)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'restapi::https')", err)
 			}
 		case "rest_certificate":
 			if err := json.Unmarshal(v, &(c.RestCertificate)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'restapi::rest_certificate')", err)
 			}
 		case "rest_key":
 			if err := json.Unmarshal(v, &(c.RestKey)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'restapi::rest_key')", err)
 			}
 		case "rest_auth":
 			if err := json.Unmarshal(v, &(c.RestAuth)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'restapi::rest_auth')", err)
 			}
 		case "rest_auth_password":
 			if err := json.Unmarshal(v, &(c.RestAuthPassword)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'restapi::rest_auth_password')", err)
 			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'restapi'", k)
 		}
 	}
 	return nil

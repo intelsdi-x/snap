@@ -75,6 +75,40 @@ type Config struct {
 	Plugins           *pluginConfig     `json:"plugins,omitempty"yaml:"plugins,omitempty"`
 }
 
+const (
+	CONFIG_CONSTRAINTS = `
+			"control" : {
+				"type": ["object", "null"],
+				"properties": {
+					"plugin_trust_level": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 2
+					},
+					"auto_discover_path": {
+						"type": "string"
+					},
+					"cache_expiration": {
+						"type": "string"
+					},
+					"max_running_plugins": {
+						"type": "integer",
+						"minimum": 1
+					},
+					"keyring_paths" : {
+						"type": "string"
+					},
+					"plugins": {
+						"type": ["object", "null"],
+						"properties" : {},
+						"additionalProperties": true
+					}
+				},
+				"additionalProperties": false
+			}
+	`
+)
+
 // get the default snapd configuration
 func GetDefaultConfig() *Config {
 	return &Config{
@@ -103,28 +137,30 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		switch k {
 		case "max_running_plugins":
 			if err := json.Unmarshal(v, &(c.MaxRunningPlugins)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::max_running_plugins')", err)
 			}
 		case "plugin_trust_level":
 			if err := json.Unmarshal(v, &(c.PluginTrust)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::plugin_trust_level')", err)
 			}
 		case "auto_discover_path":
 			if err := json.Unmarshal(v, &(c.AutoDiscoverPath)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::auto_discover_path')", err)
 			}
 		case "keyring_paths":
 			if err := json.Unmarshal(v, &(c.KeyringPaths)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::keyring_paths')", err)
 			}
 		case "cache_expiration":
 			if err := json.Unmarshal(v, &(c.CacheExpiration)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'control::cache_expiration')", err)
 			}
 		case "plugins":
 			if err := json.Unmarshal(v, c.Plugins); err != nil {
 				return err
 			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'control'", k)
 		}
 	}
 	return nil

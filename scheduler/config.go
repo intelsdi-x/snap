@@ -19,7 +19,10 @@ limitations under the License.
 
 package scheduler
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // default configuration values
 const (
@@ -35,6 +38,25 @@ type Config struct {
 	WorkManagerQueueSize uint `json:"work_manager_queue_size,omitempty"yaml:"work_manager_queue_size,omitempty"`
 	WorkManagerPoolSize  uint `json:"work_manager_pool_size,omitempty"yaml:"work_manager_pool_size,omitempty"`
 }
+
+const (
+	CONFIG_CONSTRAINTS = `
+			"scheduler": {
+				"type": ["object", "null"],
+				"properties" : {
+					"work_manager_queue_size" : {
+						"type": "integer",
+						"minimum": 1
+					},
+					"work_manager_pool_size" : {
+						"type": "integer",
+						"minimum": 1
+					}
+				},
+				"additionalProperties": false
+			}
+	`
+)
 
 // get the default snapd configuration
 func GetDefaultConfig() *Config {
@@ -60,12 +82,14 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		switch k {
 		case "work_manager_queue_size":
 			if err := json.Unmarshal(v, &(c.WorkManagerQueueSize)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'scheduler::work_manager_queue_size')", err)
 			}
 		case "work_manager_pool_size":
 			if err := json.Unmarshal(v, &(c.WorkManagerPoolSize)); err != nil {
-				return err
+				return fmt.Errorf("%v (while parsing 'scheduler::work_manager_pool_size')", err)
 			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'scheduler'", k)
 		}
 	}
 	return nil
