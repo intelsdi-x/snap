@@ -43,7 +43,11 @@ func newManagers(mm managesMetrics) managers {
 // via Get() calls.
 func (m *managers) Add(key string, val managesMetrics) {
 	m.mutex.Lock()
-	m.remoteManagers[key] = val
+	if key == "" {
+		m.local = val
+	} else {
+		m.remoteManagers[key] = val
+	}
 	m.mutex.Unlock()
 }
 

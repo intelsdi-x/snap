@@ -404,7 +404,6 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 
 func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, serror.SnapError) {
 	up, err := p.pluginManager.UnloadPlugin(pl)
-	fmt.Println("Unloading plugin:", pl)
 	if err != nil {
 		return nil, err
 	}

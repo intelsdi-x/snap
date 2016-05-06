@@ -20,6 +20,7 @@ limitations under the License.
 package scheduler
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"path"
@@ -28,6 +29,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
@@ -126,6 +128,105 @@ func TestDistributedWorkflow(t *testing.T) {
 
 }
 
+func TestDistributedSubscriptions(t *testing.T) {
+
+	Convey("Load control/scheduler with a mock remote scheduler", t, func() {
+		l, _ := net.Listen("tcp", ":0")
+		l.Close()
+		cfg := control.GetDefaultConfig()
+		cfg.ListenPort = l.Addr().(*net.TCPAddr).Port
+		c1 := control.New(cfg)
+		c1.Start()
+		m, _ := net.Listen("tcp", ":0")
+		m.Close()
+		cfg.ListenPort = m.Addr().(*net.TCPAddr).Port
+		port1 := cfg.ListenPort
+		c2 := control.New(cfg)
+		n, _ := net.Listen("tcp", ":0")
+		n.Close()
+		schcfg := GetDefaultConfig()
+		schcfg.ListenPort = n.Addr().(*net.TCPAddr).Port
+		sch := New(schcfg)
+		c2.Start()
+		sch.SetMetricManager(c1)
+		err := sch.Start()
+		So(err, ShouldBeNil)
+		// Load appropriate plugins into each control.
+		mock2Path := path.Join(PluginPath, "snap-collector-mock2")
+		passthruPath := path.Join(PluginPath, "snap-processor-passthru")
+		filePath := path.Join(PluginPath, "snap-publisher-file")
+
+		// mock2 and file onto c1
+
+		rp, err := core.NewRequestedPlugin(mock2Path)
+		So(err, ShouldBeNil)
+		_, err = c1.Load(rp)
+		So(err, ShouldBeNil)
+		rp, err = core.NewRequestedPlugin(filePath)
+		So(err, ShouldBeNil)
+		_, err = c1.Load(rp)
+		So(err, ShouldBeNil)
+		// passthru on c2
+		rp, err = core.NewRequestedPlugin(passthruPath)
+		So(err, ShouldBeNil)
+		_, err = c2.Load(rp)
+		So(err, ShouldBeNil)
+
+		Convey("Starting task should not succeed if remote dep fails to subscribe", func() {
+			//Create a task
+			//Create a workflowmap
+			wf := dsWFMap(port1)
+			// Create a task that is not started immediately so we can
+			// validate deps correctly.
+			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, false)
+			So(len(errs.Errors()), ShouldEqual, 0)
+			So(t, ShouldNotBeNil)
+			schTask := t.(*task)
+			remoteMockManager := &subscriptionManager{Fail: true}
+			schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
+			localMockManager := &subscriptionManager{Fail: false}
+			schTask.RemoteManagers.Add("", localMockManager)
+			// Start task. We expect it to fail while subscribing deps
+			terrs := sch.StartTask(t.ID())
+			So(terrs, ShouldNotBeNil)
+			Convey("So dependencies should have been unsubscribed", func() {
+				// Ensure that unsubscribe call count is equal to subscribe call count
+				// i.e that every subscribe call was followed by an unsubscribe since
+				// we errored
+				So(remoteMockManager.UnsubscribeCallCount, ShouldEqual, remoteMockManager.SubscribeCallCount)
+				So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.UnsubscribeCallCount)
+			})
+		})
+		Convey("Starting task should not succeed if missing local dep fails to subscribe", func() {
+			//Create a task
+			//Create a workflowmap
+			wf := dsWFMap(port1)
+			// Create a task that is not started immediately so we can
+			// validate deps correctly.
+			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, false)
+			So(len(errs.Errors()), ShouldEqual, 0)
+			So(t, ShouldNotBeNil)
+			schTask := t.(*task)
+			localMockManager := &subscriptionManager{Fail: true}
+			schTask.RemoteManagers.Add("", localMockManager)
+			remoteMockManager := &subscriptionManager{Fail: false}
+			schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
+
+			// Start task. We expect it to fail while subscribing deps
+			terrs := sch.StartTask(t.ID())
+			So(terrs, ShouldNotBeNil)
+			Convey("So dependencies should have been unsubscribed", func() {
+				// Ensure that unsubscribe call count is equal to subscribe call count
+				// i.e that every subscribe call was followed by an unsubscribe since
+				// we errored
+				So(remoteMockManager.UnsubscribeCallCount, ShouldEqual, remoteMockManager.SubscribeCallCount)
+				So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.UnsubscribeCallCount)
+			})
+
+		})
+	})
+}
+
 func dsWFMap(port int) *wmap.WorkflowMap {
 	wf := new(wmap.WorkflowMap)
 
@@ -153,4 +254,24 @@ func dsWFMap(port int) *wmap.WorkflowMap {
 	wf.CollectNode = c
 
 	return wf
+}
+
+type subscriptionManager struct {
+	mockMetricManager
+	Fail                 bool
+	SubscribeCallCount   int
+	UnsubscribeCallCount int
+}
+
+func (m *subscriptionManager) SubscribeDeps(taskID string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
+	if m.Fail {
+		return []serror.SnapError{serror.New(errors.New("error"))}
+	}
+	m.SubscribeCallCount += 1
+	return nil
+}
+
+func (m *subscriptionManager) UnsubscribeDeps(taskID string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
+	m.UnsubscribeCallCount += 1
+	return nil
 }
