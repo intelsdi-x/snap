@@ -197,6 +197,7 @@ func TestDistributedSubscriptions(t *testing.T) {
 				So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.UnsubscribeCallCount)
 			})
 		})
+
 		Convey("Starting task should not succeed if missing local dep fails to subscribe", func() {
 			//Create a task
 			//Create a workflowmap
@@ -222,7 +223,31 @@ func TestDistributedSubscriptions(t *testing.T) {
 				So(remoteMockManager.UnsubscribeCallCount, ShouldEqual, remoteMockManager.SubscribeCallCount)
 				So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.UnsubscribeCallCount)
 			})
+		})
 
+		Convey("Starting task should suceed if all deps are available", func() {
+			//Create a task
+			//Create a workflowmap
+			wf := dsWFMap(port1)
+			// Create a task that is not started immediately so we can
+			// validate deps correctly.
+			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, false)
+			So(len(errs.Errors()), ShouldEqual, 0)
+			So(t, ShouldNotBeNil)
+			schTask := t.(*task)
+			localMockManager := &subscriptionManager{Fail: false}
+			schTask.RemoteManagers.Add("", localMockManager)
+			remoteMockManager := &subscriptionManager{Fail: false}
+			schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
+			terrs := sch.StartTask(t.ID())
+			So(terrs, ShouldBeNil)
+			Convey("So all depndencies should have been subscribed to", func() {
+				// Ensure that unsubscribe call count is equal to subscribe call count
+				// i.e that every subscribe call was followed by an unsubscribe since
+				// we errored
+				So(localMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+				So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+			})
 		})
 	})
 }
