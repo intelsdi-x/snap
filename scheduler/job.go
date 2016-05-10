@@ -174,6 +174,14 @@ type collectorJob struct {
 	configDataTree *cdata.ConfigDataTree
 }
 
+func (c *collectorJob) RequestedMetric() []core.RequestedMetric {
+	return c.metricTypes
+}
+
+func (c *collectorJob) ConfigDataTree() *cdata.ConfigDataTree {
+	return c.configDataTree
+}
+
 func newCollectorJob(metricTypes []core.RequestedMetric, deadlineDuration time.Duration, collector collectsMetrics, cdt *cdata.ConfigDataTree, taskID string) job {
 	return &collectorJob{
 		collector:      collector,
@@ -217,30 +225,7 @@ func (c *collectorJob) Run() {
 		"metric-count": len(c.metricTypes),
 	}).Debug("starting collector job")
 
-	metrics := []core.Metric{}
-	for _, rmt := range c.metricTypes {
-		nss, err := c.collector.ExpandWildcards(rmt.Namespace())
-		if err != nil {
-			// use metric directly from the workflow
-			nss = []core.Namespace{rmt.Namespace()}
-		}
-
-		for _, ns := range nss {
-			config := c.configDataTree.Get(ns.Strings())
-
-			if config == nil {
-				config = cdata.NewNode()
-			}
-			metric := &metric{
-				namespace: ns,
-				version:   rmt.Version(),
-				config:    config,
-			}
-			metrics = append(metrics, metric)
-		}
-	}
-
-	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline(), c.TaskID())
+	ret, errs := c.collector.CollectMetrics(c.RequestedMetric(), c.ConfigDataTree(), c.Deadline(), c.TaskID())
 
 	log.WithFields(log.Fields{
 		"_module":      "scheduler-job",

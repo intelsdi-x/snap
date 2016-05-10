@@ -64,18 +64,46 @@ The workflow is a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph) wh
 
 #### collect
 
-The collect section describes which metrics to collect. Metrics can be enumerated explicitly via:
- - a concrete _namespace_
- - a wildcard, `*`
- - a tuple, `(m1|m2|m3)`
- 
-The tuple begins and ends with brackets and items inside are separeted by vertical bar. It works like logical `or`, so it gives an error only if none of these metrics can be collected.
+The collect section describes which metrics are requested to be collected.
 
-Metrics declared in task manifest | Collected metrics
-----------|----------|-----------
-/intel/mock/\* |  /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz
-/intel/mock/(foo\|bar) |  /intel/mock/foo <br/> /intel/mock/bar <br/>
-/intel/mock/\*/baz |  /intel/mock/\*/baz
+Metrics can be enumerated explicitly via using:
+
+ a) **concrete _namespace_**
+
+Declaring the same metric's name in task manifest as it is presented on metric list (see `snapctl metric list`)
+
+    Metrics declared in task manifest           | Collected metrics
+    --------------------------------------------|------------------------
+    /intel/mock/foo                             |  /intel/mock/foo
+	|
+    /intel/mock/bar                             |  /intel/mock/bar
+	|
+    /intel/mock/\*/baz <br/> _(dynamic metric)_ |  /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4 <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/><br/> _(collect metrics for all instances of the dynamic metric)_
+
+ b) **_specified_ _instance_ of dynamic metrics**
+
+ This refers to dynamic metric which namespace contains dynamic element represented by an asterisk within the meaning of representation of dynamic value (e.g. hostname, cgroup id, etc.)
+
+ In task manifest can be declared a specific instance of dynamic metric to collect and only that specific one will be collected (if exist)
+
+ Metrics declared in task manifest  | Collected metrics
+------------------------------------|------------------------
+/intel/mock/host0/baz <br/><br/> _(specific instance of "/intel/mock/*/baz")_ |  /intel/mock/host0/baz <br/><br/> _(only this one metric will be collected)_
+
+
+ c) **dynamic _query_**
+
+ This allows to express metrics to collect by using
+ - **a wildcard `*`** - that matches with any value in the metric namespace or, if the wildcard is in the end, with all metrics with given prefix
+ - **a tuple**, `(metric1|metric2|metric3)` - that matches with all items separated by vertical bar; it works like logical _or_, so it gives an error only if none of these metrics can be collected
+
+Metrics declared in task manifest   | Collected metrics
+------------------------------------|------------------------
+/intel/mock/*                       | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/> <br/> _(collect all metrics with prefix "/intel/mock")_
+|
+/intel/mock/(foo\|bar)              | /intel/mock/foo <br/> /intel/mock/bar
+
+
 
 The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
 

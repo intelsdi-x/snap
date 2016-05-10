@@ -632,25 +632,38 @@ func (m *mc) GetVersions(core.Namespace) ([]*metricType, error) {
 	return nil, nil
 }
 
-func (m *mc) Get(ns core.Namespace, ver int) (*metricType, error) {
+func (m *mc) GetMetric(ns core.Namespace, ver int) (*metricType, error) {
 	if m.e == 1 {
 		return &metricType{
 			policy: &mockCDProc{},
 		}, nil
 	}
-	return nil, serror.New(errorMetricNotFound(ns.String()))
+	return nil, serror.New(errorMetricNotFound(ns.Strings(), ver))
+}
+
+func (m *mc) GetMetrics(ns core.Namespace, ver int) ([]*metricType, error) {
+	if m.e == 1 {
+		metric := &metricType{
+			policy: &mockCDProc{},
+		}
+
+		return []*metricType{
+			metric,
+		}, nil
+	}
+	return nil, serror.New(errorMetricNotFound(ns.Strings(), ver))
 }
 
 func (m *mc) Subscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
-		return serror.New(errorMetricNotFound("/" + strings.Join(ns, "/")))
+		return serror.New(errorMetricNotFound(ns, ver))
 	}
 	return nil
 }
 
 func (m *mc) Unsubscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
-		return serror.New(errorMetricNotFound("/" + strings.Join(ns, "/")))
+		return serror.New(errorMetricNotFound(ns, ver))
 	}
 	if ns[0] == "neg" {
 		return errNegativeSubCount
@@ -676,12 +689,8 @@ func (m *mc) RmUnloadedPluginMetrics(lp *loadedPlugin) {
 
 }
 
-func (m *mc) GetQueriedNamespaces(ns core.Namespace) ([]core.Namespace, error) {
-	return []core.Namespace{ns}, nil
-}
-
-func (m *mc) MatchQuery(ns core.Namespace) ([]core.Namespace, error) {
-	return []core.Namespace{ns}, nil
+func (m *mc) GetMatchedMetricTypes(ns core.Namespace, ver int) ([]*metricType, error) {
+	return nil, nil
 }
 
 type mockCDProc struct {
@@ -741,6 +750,7 @@ func TestExportedMetricCatalog(t *testing.T) {
 	})
 }
 
+/*
 func TestMetricExists(t *testing.T) {
 	Convey("MetricExists()", t, func() {
 		c := New(GetDefaultConfig())
@@ -748,6 +758,7 @@ func TestMetricExists(t *testing.T) {
 		So(c.MetricExists(core.NewNamespace("hi"), -1), ShouldEqual, false)
 	})
 }
+*/
 
 type MockMetricType struct {
 	namespace core.Namespace
@@ -808,35 +819,40 @@ func TestMetricConfig(t *testing.T) {
 		_, err := load(c, JSONRPCPluginPath)
 		So(err, ShouldBeNil)
 		<-lpe.done
-		cd := cdata.NewNode()
+
 		m1 := MockMetricType{
 			namespace: core.NewNamespace("intel", "mock", "foo"),
+			ver:       0,
 		}
 
 		Convey("So metric should not be valid without config", func() {
-			errs := c.validateMetricTypeSubscription(m1, cd)
+			errs := c.validateMetricTypeSubscription(m1, cdata.NewTree())
 			So(errs, ShouldNotBeNil)
 		})
+
+		cdt := cdata.NewTree()
+		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		cdt.Add(m1.namespace.Strings(), cd)
 
 		Convey("So metric should be valid with config", func() {
-			errs := c.validateMetricTypeSubscription(m1, cd)
-			So(errs, ShouldBeNil)
+			errs := c.validateMetricTypeSubscription(m1, cdt)
+			So(errs, ShouldBeEmpty)
 		})
 
 		Convey("So metric should not be valid if does not occur in the catalog", func() {
 			m := MockMetricType{
 				namespace: core.NewNamespace("intel", "mock", "bad"),
 			}
-			errs := c.validateMetricTypeSubscription(m, cd)
-			So(errs, ShouldNotBeNil)
+			errs := c.validateMetricTypeSubscription(m, cdt)
+			So(errs, ShouldNotBeEmpty)
 		})
 
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	})
 
-	Convey("nil config provided by task", t, func() {
+	Convey("nil config tree provided by task", t, func() {
 		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(config)
@@ -847,18 +863,19 @@ func TestMetricConfig(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		<-lpe.done
-		var cd *cdata.ConfigDataNode
+		var cdt *cdata.ConfigDataTree
 		m1 := MockMetricType{
 			namespace: core.NewNamespace("intel", "mock", "foo"),
 		}
 
 		Convey("So metric should be valid with config", func() {
-			errs := c.validateMetricTypeSubscription(m1, cd)
-			So(errs, ShouldBeNil)
+			errs := c.validateMetricTypeSubscription(m1, cdt)
+			So(errs, ShouldBeEmpty)
 		})
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	})
+
 	Convey("required config provided by global plugin config", t, func() {
 		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
@@ -869,14 +886,14 @@ func TestMetricConfig(t *testing.T) {
 		_, err := load(c, JSONRPCPluginPath)
 		So(err, ShouldBeNil)
 		<-lpe.done
-		cd := cdata.NewNode()
+		cdt := cdata.NewTree()
 		m1 := MockMetricType{
 			namespace: core.NewNamespace("intel", "mock", "foo"),
 			ver:       1,
 		}
-		errs := c.validateMetricTypeSubscription(m1, cd)
+		errs := c.validateMetricTypeSubscription(m1, cdt)
 		Convey("So metric should be valid with config", func() {
-			So(errs, ShouldBeNil)
+			So(errs, ShouldBeEmpty)
 		})
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
@@ -884,6 +901,7 @@ func TestMetricConfig(t *testing.T) {
 }
 
 func TestRoutingCachingStrategy(t *testing.T) {
+
 	Convey("Given loaded plugins that use sticky routing", t, func() {
 		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
@@ -896,11 +914,20 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		if e != nil {
 			t.FailNow()
 		}
+
+		// create metric
+		cdt := cdata.NewTree()
 		metric := MockMetricType{
 			namespace: core.NewNamespace("intel", "mock", "foo"),
 			ver:       2,
 			cfg:       cdata.NewNode(),
 		}
+
+		// match the requested metrics (add them into matching map)
+		mts, err := c.metricCatalog.GetMatchedMetricTypes(metric.namespace, metric.ver)
+		So(err, ShouldBeNil)
+		So(mts, ShouldNotBeEmpty)
+
 		<-lpe.done
 		Convey("Start the plugins", func() {
 			lp, err := c.pluginManager.get("collector:mock:2")
@@ -931,7 +958,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 			Convey("Collect metrics", func() {
 				taskID := tasks[rand.Intn(len(tasks))]
 				for i := 0; i < 10; i++ {
-					_, errs := c.CollectMetrics([]core.Metric{metric}, time.Now().Add(time.Second*1), taskID)
+					_, errs := c.CollectMetrics([]core.RequestedMetric{metric}, cdt, time.Now().Add(time.Second*1), taskID)
 					So(errs, ShouldBeEmpty)
 				}
 				Convey("Check cache stats", func() {
@@ -957,9 +984,15 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		if e != nil {
 			t.FailNow()
 		}
-		metric, err := c.metricCatalog.Get(core.NewNamespace("intel", "mock", "foo"), 1)
-		metric.config = cdata.NewNode()
+
+		cdt := cdata.NewTree()
+		// match the requested metrics (add them into matching map)
+		mts, err := c.metricCatalog.GetMatchedMetricTypes(core.NewNamespace("intel", "mock", "foo"), 1)
 		So(err, ShouldBeNil)
+		So(mts, ShouldNotBeEmpty)
+		So(len(mts), ShouldEqual, 1)
+
+		metric := mts[0]
 		So(metric.Namespace().String(), ShouldResemble, "/intel/mock/foo")
 		So(err, ShouldBeNil)
 		<-lpe.done
@@ -993,7 +1026,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 			Convey("Collect metrics", func() {
 				taskID := tasks[rand.Intn(len(tasks))]
 				for i := 0; i < 10; i++ {
-					cr, errs := c.CollectMetrics([]core.Metric{metric}, time.Now().Add(time.Second*1), taskID)
+					cr, errs := c.CollectMetrics([]core.RequestedMetric{metric}, cdt, time.Now().Add(time.Second*1), taskID)
 					So(errs, ShouldBeEmpty)
 					for i := range cr {
 						So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
@@ -1039,21 +1072,24 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			t.FailNow()
 		}
 		<-lpe.done
-		cd := cdata.NewNode()
+
+		cdt := cdata.NewTree()
 		metrics, err := c.metricCatalog.Fetch(core.NewNamespace())
 		So(err, ShouldBeNil)
 		So(len(metrics), ShouldEqual, 6)
 
-		m, err := c.metricCatalog.Get(core.NewNamespace("intel", "mock", "*", "baz"), 2)
+		m, err := c.metricCatalog.GetMetric(core.NewNamespace("intel", "mock", "*", "baz"), 2)
 		So(err, ShouldBeNil)
 		So(m, ShouldNotBeNil)
 
-		jsonm, err := c.metricCatalog.Get(core.NewNamespace("intel", "mock", "*", "baz"), 1)
+		jsonm, err := c.metricCatalog.GetMetric(core.NewNamespace("intel", "mock", "*", "baz"), 1)
+
 		So(err, ShouldBeNil)
 		So(jsonm, ShouldNotBeNil)
 
-		errs := c.validateMetricTypeSubscription(m, cd)
-		So(errs, ShouldBeNil)
+		errs := c.validateMetricTypeSubscription(m, cdt)
+		So(errs, ShouldBeEmpty)
+
 		Convey("collects metrics from plugin using native client", func() {
 			lp, err := c.pluginManager.get("collector:mock:2")
 			So(err, ShouldBeNil)
@@ -1076,13 +1112,13 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(err, ShouldBeNil)
 			// The minimum TTL advertised by the plugin is 100ms therefore the TTL for th			// pool should be the global cache expiration
 			So(ttl, ShouldEqual, strategy.GlobalCacheExpiration)
-			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
+			mts, errs := c.CollectMetrics([]core.RequestedMetric{m}, cdt, time.Now().Add(time.Second*1), taskID)
 			hits, err := pool.CacheHits(m.namespace.String(), 2, taskID)
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 0)
 			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 10)
-			mts, errs = c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
+			mts, errs = c.CollectMetrics([]core.RequestedMetric{m}, cdt, time.Now().Add(time.Second*1), taskID)
 			hits, err = pool.CacheHits(m.namespace.String(), 2, taskID)
 			So(err, ShouldBeNil)
 
@@ -1115,7 +1151,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				ttl, err = pool.CacheTTL(taskID)
 				So(err, ShouldBeNil)
 				So(ttl, ShouldEqual, 1100*time.Millisecond)
-				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New())
+				mts, errs := c.CollectMetrics([]core.RequestedMetric{jsonm}, cdt, time.Now().Add(time.Second*1), uuid.New())
 				hits, err := pool.CacheHits(jsonm.namespace.String(), jsonm.version, taskID)
 				So(pool.SubscriptionCount(), ShouldEqual, 1)
 				So(pool.Strategy, ShouldNotBeNil)
@@ -1124,7 +1160,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				So(hits, ShouldEqual, 0)
 				So(errs, ShouldBeNil)
 				So(len(mts), ShouldEqual, 10)
-				mts, errs = c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New())
+				mts, errs = c.CollectMetrics([]core.RequestedMetric{jsonm}, cdt, time.Now().Add(time.Second*1), uuid.New())
 				hits, err = pool.CacheHits(m.namespace.String(), 1, taskID)
 				So(err, ShouldBeNil)
 
@@ -1146,6 +1182,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				time.Sleep(100 * time.Millisecond)
 			})
 		})
+
 	})
 }
 
@@ -1166,14 +1203,17 @@ func TestFailedPlugin(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// metrics to collect
-		cfg := cdata.NewNode()
-		cfg.AddItem("panic", ctypes.ConfigValueBool{Value: true})
-		m := []core.Metric{
+		rmts := []core.RequestedMetric{
 			MockMetricType{
 				namespace: core.NewNamespace("intel", "mock", "foo"),
-				cfg:       cfg,
 			},
 		}
+
+		// metric's config
+		cdt := cdata.NewTree()
+		cfg := cdata.NewNode()
+		cfg.AddItem("panic", ctypes.ConfigValueBool{Value: true})
+		cdt.Add(rmts[0].Namespace().Strings(), cfg)
 
 		// retrieve loaded plugin
 		lp, err := c.pluginManager.get("collector:mock:2")
@@ -1190,12 +1230,12 @@ func TestFailedPlugin(t *testing.T) {
 			Convey("collect metrics against a plugin that will panic", func() {
 				So(len(pool.Plugins()), ShouldEqual, 1)
 
-				var err []error
+				var errs []error
 				var cr []core.Metric
 				eventMap := map[string]int{}
 				for i := 0; i < MaxPluginRestartCount+1; i++ {
-					cr, err = c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New())
-					So(err, ShouldNotBeNil)
+					cr, errs = c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+					So(errs, ShouldNotBeEmpty)
 					So(cr, ShouldBeNil)
 					<-lpe.done
 					eventMap[lpe.plugin.EventNamespace]++
@@ -1247,20 +1287,6 @@ func TestCollectMetrics(t *testing.T) {
 		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 
-		m := []core.Metric{}
-		m1 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "foo"),
-			cfg:       cd,
-		}
-		m2 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "bar"),
-			cfg:       cd,
-		}
-		m3 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "test"),
-			cfg:       cd,
-		}
-
 		// retrieve loaded plugin
 		lp, err := c.pluginManager.get("collector:mock:1")
 		So(err, ShouldBeNil)
@@ -1274,27 +1300,194 @@ func TestCollectMetrics(t *testing.T) {
 			pool.Subscribe("2", strategy.UnboundSubscriptionType)
 			err = c.pluginRunner.runPlugin(lp.Details)
 			So(err, ShouldBeNil)
-			m = append(m, m1, m2, m3)
+
 			Convey("collect metrics", func() {
-				for x := 0; x < 4; x++ {
-					cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New())
-					So(err, ShouldBeNil)
-					for i := range cr {
-						So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
-						So(cr[i].Data(), ShouldContainSubstring, "test=true")
+				Convey("when requested metrics are explicit defined", func() {
+					// create metrics requested to collect (take the latest version)
+					rmts := []core.RequestedMetric{
+						MockMetricType{
+							namespace: core.NewNamespace("intel", "mock", "foo"),
+						},
+						MockMetricType{
+							namespace: core.NewNamespace("intel", "mock", "bar"),
+						},
 					}
-				}
-				ap := c.AvailablePlugins()
-				So(ap, ShouldNotBeEmpty)
-				So(pool.Strategy().String(), ShouldEqual, plugin.DefaultRouting.String())
-				So(len(pool.Plugins()), ShouldEqual, 2)
-				// when the first first plugin is hit the cache is populated the
-				// cache satisfies the next 3 collect calls that come in within the
-				// cache duration
-				So(pool.Plugins()[1].HitCount(), ShouldEqual, 1)
-				So(pool.Plugins()[2].HitCount(), ShouldEqual, 0)
-				c.Stop()
+
+					// add config
+					cdt := cdata.NewTree()
+					for _, rmt := range rmts {
+						cdt.Add(rmt.Namespace().Strings(), cd)
+					}
+
+					for x := 0; x < 4; x++ {
+						cr, err := c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+						So(err, ShouldBeNil)
+						for i := range cr {
+							So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
+							So(cr[i].Data(), ShouldContainSubstring, "test=true")
+						}
+					}
+					ap := c.AvailablePlugins()
+					So(ap, ShouldNotBeEmpty)
+					So(pool.Strategy().String(), ShouldEqual, plugin.DefaultRouting.String())
+					So(len(pool.Plugins()), ShouldEqual, 2)
+					// when the first first plugin is hit the cache is populated the
+					// cache satisfies the next 3 collect calls that come in within the
+					// cache duration
+					So(pool.Plugins()[1].HitCount(), ShouldEqual, 1)
+					So(pool.Plugins()[2].HitCount(), ShouldEqual, 0)
+				})
+
+				Convey("when requested metric contain a wildcard", func() {
+					// create metrics requested to collect (take the latest version)
+					rmts := []core.RequestedMetric{
+						MockMetricType{
+							namespace: core.NewNamespace("intel", "mock", "*"),
+						},
+					}
+
+					// add config
+					cdt := cdata.NewTree()
+					for _, rmt := range rmts {
+						cdt.Add(rmt.Namespace().Strings(), cd)
+					}
+
+					for x := 0; x < 4; x++ {
+						cr, err := c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+						So(err, ShouldBeNil)
+						So(cr, ShouldNotBeEmpty)
+					}
+				})
+
+				Convey("when requested metric contain a tuple", func() {
+
+					Convey("elements in tuple point to existing metrics", func() {
+						// create metrics requested to collect (take the latest version)
+						rmts := []core.RequestedMetric{
+							MockMetricType{
+								namespace: core.NewNamespace("intel", "mock", "(foo|bar)"),
+							},
+						}
+
+						// add config
+						cdt := cdata.NewTree()
+						for _, rmt := range rmts {
+							cdt.Add(rmt.Namespace().Strings(), cd)
+						}
+
+						for x := 0; x < 4; x++ {
+							cr, err := c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+							So(err, ShouldBeNil)
+							So(cr, ShouldNotBeEmpty)
+							// two metrics should be collected: "intel/mock/foo" and "intel/mock/bar"
+							So(len(cr), ShouldEqual, 2)
+						}
+					})
+					Convey("one of element in tuple is invalid", func() {
+						// create metrics requested to collect (take the latest version)
+						rmts := []core.RequestedMetric{
+							MockMetricType{
+								namespace: core.NewNamespace("intel", "mock", "(foo|invalid)"),
+							},
+						}
+
+						// add config
+						cdt := cdata.NewTree()
+						for _, rmt := range rmts {
+							cdt.Add(rmt.Namespace().Strings(), cd)
+						}
+
+						for x := 0; x < 4; x++ {
+							cr, err := c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+							// tuple works like logic OR - even one of tuple elements is valid, do not return err
+							So(err, ShouldBeNil)
+							So(cr, ShouldNotBeEmpty)
+							// only one metric is obtainable("intel/mock/foo")
+							So(len(cr), ShouldEqual, 1)
+						}
+					})
+
+					Convey("elements in tuple are invalid", func() {
+						// create metrics requested to collect (take the latest version)
+						rmts := []core.RequestedMetric{
+							MockMetricType{
+								namespace: core.NewNamespace("intel", "mock", "(invalidA|invalidB)"),
+							},
+						}
+
+						// add config
+						cdt := cdata.NewTree()
+						for _, rmt := range rmts {
+							cdt.Add(rmt.Namespace().Strings(), cd)
+						}
+
+						for x := 0; x < 4; x++ {
+							cr, err := c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+							// tuple works like logic OR - return err if none of tuple elements is valid
+							So(err, ShouldNotBeNil)
+							So(cr, ShouldBeEmpty)
+						}
+					})
+				})
+
+				Convey("when dynamic metric is requested", func() {
+					Convey("for on-specific instance of dynamic metric", func() {
+						// create metrics requested to collect (take the latest version)
+						rmts := []core.RequestedMetric{
+							MockMetricType{
+								namespace: core.NewNamespace("intel", "mock", "*", "baz"),
+							},
+						}
+
+						cdt := cdata.NewTree()
+
+						for x := 0; x < 4; x++ {
+							cr, err := c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+							So(err, ShouldBeNil)
+							// all instance of dynamic metric should be returned (host0, host1 , ..., host9)
+							So(len(cr), ShouldEqual, 10)
+						}
+					})
+					Convey("for single specific instance of dynamic metric", func() {
+						// create metrics requested to collect (take the latest version)
+						rmts := []core.RequestedMetric{
+							MockMetricType{
+								namespace: core.NewNamespace("intel", "mock", "host0", "baz"),
+							},
+						}
+
+						cdt := cdata.NewTree()
+
+						for x := 0; x < 4; x++ {
+							cr, err := c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+							So(err, ShouldBeNil)
+							// one specified instance of dynamic metric should be returned
+							So(len(cr), ShouldEqual, 1)
+
+							So(cr[0].Namespace().String(), ShouldEqual, "/intel/mock/host0/baz")
+						}
+					})
+
+					Convey("for couple specific instances of dynamic metric", func() {
+						// create metrics requested to collect (take the latest version)
+						rmts := []core.RequestedMetric{
+							MockMetricType{
+								namespace: core.NewNamespace("intel", "mock", "(host0|host1)", "baz"),
+							},
+						}
+
+						cdt := cdata.NewTree()
+
+						for x := 0; x < 4; x++ {
+							cr, err := c.CollectMetrics(rmts, cdt, time.Now().Add(time.Second*1), uuid.New())
+							So(err, ShouldBeNil)
+							// two specified instance (host0 and host1) of dynamic metric should be returned
+							So(len(cr), ShouldEqual, 2)
+						}
+					})
+				})
 			})
+			c.Stop()
 		})
 	})
 
@@ -1308,84 +1501,11 @@ func TestCollectMetrics(t *testing.T) {
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		load(c, PluginPath)
-		m := []core.Metric{}
-		c.CollectMetrics(m, time.Now().Add(time.Second*60), uuid.New())
+		m := []core.RequestedMetric{}
+		cdt := cdata.NewTree()
+		c.CollectMetrics(m, cdt, time.Now().Add(time.Second*60), uuid.New())
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
-	})
-}
-
-func TestExpandWildcards(t *testing.T) {
-	Convey("pluginControl.ExpandWildcards()", t, func() {
-		// adjust HB timeouts for test
-		plugin.PingTimeoutLimit = 1
-		plugin.PingTimeoutDurationDefault = time.Second * 1
-
-		// Create controller
-		config := GetDefaultConfig()
-		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
-		c := New(config)
-		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
-		c.Start()
-		lpe := newListenToPluginEvent()
-		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-
-		// Add a global plugin config
-		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
-
-		// Load plugin
-		_, e := load(c, JSONRPCPluginPath)
-		So(e, ShouldBeNil)
-		<-lpe.done
-		mts, err := c.MetricCatalog()
-		So(err, ShouldBeNil)
-		So(len(mts), ShouldEqual, 4)
-		Convey("expand metric with an asterisk", func() {
-			ns := core.NewNamespace("intel", "mock", "*")
-			c.MatchQueryToNamespaces(ns)
-			nss, err := c.ExpandWildcards(ns)
-			So(err, ShouldBeNil)
-			// "intel/mock/*" should be expanded to all available mock metrics
-			So(len(nss), ShouldEqual, len(mts))
-			So(nss, ShouldResemble, []core.Namespace{
-				core.NewNamespace("intel", "mock", "test"),
-				core.NewNamespace("intel", "mock", "foo"),
-				core.NewNamespace("intel", "mock", "bar"),
-				core.NewNamespace("intel", "mock", "*", "baz"),
-			})
-		})
-		Convey("expand metric with a tuple", func() {
-			ns := core.NewNamespace("intel", "mock", "(test|foo|bad)")
-			c.MatchQueryToNamespaces(ns)
-			nss, err := c.ExpandWildcards(ns)
-			So(err, ShouldBeNil)
-			// '/intel/mock/bad' does not exist in metric catalog and shouldn't be returned
-			So(len(nss), ShouldEqual, 2)
-			So(nss, ShouldResemble, []core.Namespace{
-				core.NewNamespace("intel", "mock", "test"),
-				core.NewNamespace("intel", "mock", "foo"),
-			})
-		})
-		Convey("expanding for dynamic metrics", func() {
-			// if asterisk is acceptable by plugin in this location, leave that
-			ns := core.NewNamespace("intel", "mock", "*", "baz")
-			c.MatchQueryToNamespaces(ns)
-			nss, err := c.ExpandWildcards(ns)
-			So(err, ShouldBeNil)
-			So(len(nss), ShouldEqual, 1)
-			So(nss, ShouldResemble, []core.Namespace{ns})
-		})
-		Convey("expanding for invalid metric name", func() {
-			// if asterisk is acceptable by plugin in this location, leave that
-			ns := core.NewNamespace("intel", "mock", "invalid", "metric")
-			c.MatchQueryToNamespaces(ns)
-			nss, err := c.ExpandWildcards(ns)
-			So(err, ShouldNotBeNil)
-			So(nss, ShouldBeEmpty)
-			So(err.Error(), ShouldContainSubstring, "Metric not found:")
-		})
-
-		c.Stop()
 	})
 }
 
@@ -1624,6 +1744,7 @@ func (l *listenToPluginSubscriptionEvent) HandleGomitEvent(e gomit.Event) {
 		}).Info("Unhandled Event")
 	}
 }
+
 func TestMetricSubscriptionToNewVersion(t *testing.T) {
 	Convey("Given a metric that is being collected at v1", t, func() {
 		c := New(GetDefaultConfig())
@@ -1637,21 +1758,28 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
+
+		cdt := cdata.NewTree()
 		metric := MockMetricType{
 			namespace: core.NewNamespace("intel", "mock", "foo"),
-			cfg:       cdata.NewNode(),
 			ver:       0,
 		}
 		So(metric.Version(), ShouldEqual, 0)
+		_, err3 := c.metricCatalog.GetMatchedMetricTypes(metric.namespace, metric.ver)
+		So(err3, ShouldBeNil)
+
 		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
 		So(serr, ShouldBeNil)
 		// collect metrics as a sanity check that everything is setup correctly
-		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		mts, errs := c.CollectMetrics([]core.RequestedMetric{metric}, cdt, time.Now(), "testTaskID")
 		So(errs, ShouldBeNil)
 		So(len(mts), ShouldEqual, 1)
 		// ensure the data coming back is from v1. V1's data is type string
+		So(mts[0].Version(), ShouldEqual, 1)
 		_, ok := mts[0].Data().(string)
 		So(ok, ShouldEqual, true)
+
+		So(mts[0].Version(), ShouldEqual, 1)
 		Convey("Loading v2 of that plugin should move subscriptions to newer version", func() {
 			// Load version snap-collector-mock2
 			_, err := load(c, path.Join(SnapPath, "plugin", "snap-collector-mock2"))
@@ -1676,12 +1804,12 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
-			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			mts, errs = c.CollectMetrics([]core.RequestedMetric{metric}, cdt, time.Now(), "testTaskID")
 			So(len(mts), ShouldEqual, 1)
 
-			// ensure the data coming back is from v2, V2's data is type int
-			_, ok = mts[0].Data().(int)
-			So(ok, ShouldEqual, true)
+			// ensure the data coming back is from v2. V2's data is type int
+			So(mts[0].Version(), ShouldEqual, 2)
+
 		})
 	})
 }
@@ -1699,15 +1827,19 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
+		cdt := cdata.NewTree()
 		metric := MockMetricType{
 			namespace: core.NewNamespace("intel", "mock", "foo"),
 			cfg:       cdata.NewNode(),
 			ver:       0,
 		}
+		_, err3 := c.metricCatalog.GetMatchedMetricTypes(metric.namespace, metric.ver)
+		So(err3, ShouldBeNil)
+
 		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
 		So(serr, ShouldBeNil)
 		// collect metrics as a sanity check that everything is setup correctly
-		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		mts, errs := c.CollectMetrics([]core.RequestedMetric{metric}, cdt, time.Now(), "testTaskID")
 		So(errs, ShouldBeNil)
 		So(len(mts), ShouldEqual, 1)
 		// ensure the data coming back is from v2. V2's data is type int
@@ -1742,8 +1874,8 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
-			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
-			So(errs, ShouldBeEmpty)
+			mts, errs = c.CollectMetrics([]core.RequestedMetric{metric}, cdt, time.Now(), "testTaskID")
+			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 1)
 
 			// ensure the data coming back is from v1, V1's data is type string

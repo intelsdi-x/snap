@@ -84,6 +84,10 @@ func TestAvailablePlugins(t *testing.T) {
 
 			pool, err := aps.getPool("collector:test:1")
 			So(err, ShouldBeNil)
+
+			status := aps.hasPool("collector:test:1")
+			So(status, ShouldBeTrue)
+
 			nap, ok := pool.Plugins()[ap.id]
 			So(ok, ShouldBeTrue)
 			So(nap, ShouldEqual, ap)
@@ -98,6 +102,9 @@ func TestAvailablePlugins(t *testing.T) {
 			err := aps.insert(ap)
 
 			So(err, ShouldResemble, errors.New("bad plugin type"))
+
+			status := aps.hasPool("collector:test:1")
+			So(status, ShouldBeFalse)
 		})
 	})
 	Convey("it returns an error if client cannot be created", t, func() {
