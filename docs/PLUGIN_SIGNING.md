@@ -1,7 +1,7 @@
 Plugin Signing
 ==============
 # Security
-By default, the snap daemon (snapd) has plugin signing verification enabled. To disable it or turn it to warning, the flag `--plugin-trust, -t` can be set to 0 or 2 respectively. 
+By default, the snap daemon (snapd) has plugin signing verification enabled. To disable it or turn it to warning, the flag `--plugin-trust, -t` can be set to 0 or 2 respectively.
 
 ##How it works
 ![How it works](https://cloud.githubusercontent.com/assets/12282848/10112575/19bec0f4-6391-11e5-8f27-7a1a057122fd.png)  
@@ -14,7 +14,7 @@ openpgp.CheckArmoredDetachedSignature(keyring, signed, signature)
 
 ##Usage
 ```
-snapd 
+snapd
   --plugin-trust, -t '1'		0-2 (Disabled, Enabled, Warning) [$SNAP_TRUST_LEVEL]
   --keyring-paths, -k 			Keyring files for signing verification separated by colons [$SNAP_KEYRING_FILES]
 ```
@@ -30,7 +30,7 @@ Multiple keyrings (may need full path, not ~)
 $ $SNAP_PATH/bin/snapd -t <trustLevel> -k <keyringFile1>:<keyringFile2>
 ```  
 By default, plugin-trust is 1 (enabled), so the flag is only needed for 0 (disabled) and 2 (warning)
-You can make an export to avoid needing the `-k` flag: 
+You can make an export to avoid needing the `-k` flag:
 ```
 $ export SNAP_KEYRING_FILE=<keyringFile>
 $ $SNAP_PATH/bin/snapd -t <trustLevel>
@@ -169,9 +169,9 @@ The following is leveraged from the [CoreOS RKT Signing and Verification Guide](
 Create a file named `gpg-batch` with the following
 ```
 %echo Generating a default key
-Key-Type: RSA 
+Key-Type: RSA
 Key-Length: 2048
-Subkey-Type: RSA 
+Subkey-Type: RSA
 Subkey-Length: 2048
 Name-Real: Tiffany Jernigan
 Name-Comment: Plugin signing key
@@ -183,12 +183,12 @@ Passphrase: snap
 %commit
 %echo done
 ```
-#####Generate the key using batch mode 
+#####Generate the key using batch mode
 ```
 $ gpg --batch --gen-key gpg-batch
 ```
 
-#####List the keys 
+#####List the keys
 ```
 $ gpg --no-default-keyring --secret-keyring ./snap.secring --keyring ./snap.pubring \
 --list-keys
@@ -276,9 +276,9 @@ If you already have a key, you can use that. Otherwise you can create a key and 
 Create a file named `gpg-batch` with the following
 ```
 %echo Generating a default key
-Key-Type: RSA 
+Key-Type: RSA
 Key-Length: 2048
-Subkey-Type: RSA 
+Subkey-Type: RSA
 Subkey-Length: 2048
 Name-Real: Tiffany Jernigan
 Name-Comment: Main signing key
@@ -288,7 +288,7 @@ Passphrase: snap
 %commit
 %echo done
 ```
-#####Generate the key using batch mode 
+#####Generate the key using batch mode
 ```
 $ gpg --batch --gen-key gpg-batch
 ```
@@ -317,7 +317,7 @@ $ gpg --verify <pluginFile>.asc <pluginFile>
 If you only have one key, you can use the `snap.pubring` you just made as your `<keyringFile>`. For multiple you can just separate them by a colon (e.g. <keyringFile1>:<keyringFile2> ) . If you want to add future pubkeys.gpg files to an existing keyring you can do:
 ```
 $ gpg --no-default-keyring --keyring <keyringFile> --import pubkeys.gpg
-``` 
+```
 If you just want to add to your gnupg default keyring (e.g. `~/.gnupg/pubring.gpg`) you can just do  
 ```
 $ gpg --import pubkeys.gpg
@@ -380,10 +380,3 @@ sig!         43F744A0 2015-11-05  Tiffany Jernigan (Main signing key) <my.email@
 gpg> quit
 Save changes? (y/N) y
 ```
-
-
-
-
-
-
-

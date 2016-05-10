@@ -65,7 +65,7 @@ $SNAP_PATH/bin/snapd --version
 
 ### Output
 ```
-$ $SNAP_PATH/bin/snapd -l 1 -t 0 --rest-auth 
+$ $SNAP_PATH/bin/snapd -l 1 -t 0 --rest-auth
 ```
 ```
 INFO[0000] Starting snapd (version: unknown)

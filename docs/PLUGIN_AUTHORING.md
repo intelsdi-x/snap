@@ -76,14 +76,14 @@ A plugin should **NOT** advertise metrics which namespaces contain:
 
 Example:
 
-Unacceptable metric namespace| Why |  Proposal
-----------|-----------|-----------
-/intel/foo/\* | a wildcard in the end | /intel/foo/\*/bar <br/> /intel/foo/\*/baz
-/intel/mock/bar(no) | not allowed characters | /intel/mock/bar_no
-/intel/mock/bar("no") | not allowed characters | /intel/mock/bar_no
-/intel/mock/bar^no | not allowed characters | /intel/mock/bar_no
-/intel/mock/bar.no | not allowed characters | /intel/mock/bar_no
-/intel/mock/bar!? | not allowed characters | /intel/mock/bar
+| Unacceptable metric namespace | Why                    | Proposal                                  |
+|:------------------------------|:-----------------------|:------------------------------------------|
+| /intel/foo/\*                 | a wildcard in the end  | /intel/foo/\*/bar <br/> /intel/foo/\*/baz |
+| /intel/mock/bar(no)           | not allowed characters | /intel/mock/bar_no                        |
+| /intel/mock/bar("no")         | not allowed characters | /intel/mock/bar_no                        |
+| /intel/mock/bar^no            | not allowed characters | /intel/mock/bar_no                        |
+| /intel/mock/bar.no            | not allowed characters | /intel/mock/bar_no                        |
+| /intel/mock/bar!?             | not allowed characters | /intel/mock/bar                           |
 
 snap validates the metrics exposed by plugin and, if validation failed, return an error and not load the plugin.
 

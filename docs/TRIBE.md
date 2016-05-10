@@ -19,92 +19,84 @@ limitations under the License.
 
 # Tribe
 
-Tribe is the name of the clustering feature in snap.  When it is enabled nodes 
-will agree on plugins and/or tasks when they join what is called an 
-`agreement`. When an action is taken on a node that is a member of an agreement
-that action will be carried out by all other members of the agreement. When a 
-new node joins an existing agreement it will retrieve plugins and tasks from 
-the members of the agreement. 
+Tribe is the name of the clustering feature in Snap.  When it is enabled, snapd instances can join to one another through an `agreement`. When an action is taken by one snapd instance that is a member of an agreement, that action will be carried out by all other members of the agreement. When a new snapd joins an existing agreement it will retrieve plugins and tasks from the members of the agreement.
 
 ## Usage
+This walkthrough assumes you have downloaded a Snap release as described in [Getting Started](../README.md#getting-started).
 
-## Starting snapd in tribe mode
+### Starting the first snapd in tribe mode
 
-The first node
-
+Start the first node:
 ```
-$SNAP_PATH/bin/snapd --tribe
-```
-
-All other nodes who join will need to select any existing member of the cluster.
-Since tribe is implemented on top of a gossip based protocol there is no 
-"master".
-
-```
-$SNAP_PATH/bin/snapd --tribe-seed <IP or name of another tribe member>
+$ snapd --tribe -t 0
 ```
 
-## Member
+Only `--tribe` and some trust level (`-t 0`) is required to start tribe. This will result in defaults for all other parameters:
+* Default `tribe-node-name` will be the same as your hostname
+* Default `tribe-seed` is port 6000
+* Default `tribe-addr` and `tribe-port` are the same as `snapd` and `tribe-seed` (ex. 127.0.0.1:6000)
 
-After starting in tribe mode all nodes in the cluster can be listed.
+See `snapd -h` for all the possible flags.
 
+### Creating an initial agreement
+
+Members of a tribe only share configuration once they join an agreement. To create your first agreement:
 ```
-$SNAP_PATH/bin/snapctl member list
+$ snapctl agreement create all-nodes
+Name 	    Number of Members 	 plugins 	 tasks
+all-nodes 	0 			         0 		     0
 ```
+
+Join our running snapd into this agreement:
+```
+$ snapctl agreement join all-nodes `hostname`
+Name 	    Number of Members 	 plugins 	 tasks
+all-nodes 	1 			         0   		 0
+```
+
+### Joining other snapd into an existing tribe
+Since tribe is implemented on top of a gossip based protocol there is no "master." All other nodes who join a tribe by communicating with any existing member.
+
+Start another instance of snapd to join to our existing tribe. The local IP address is 192.168.136.176 in our example. Note that we need a few more parameters to avoid conflicting ports on a single system:
+```
+$ snapd --tribe -t 0 --tribe-port 6001 --api-port 8182 --tribe-node-name secondnodename --tribe-seed 192.168.136.176:6000
+```
+
+Both snapd instances will see each other in their member list:
+```
+$ snapctl member list
+Name
+secondnodename
+firstnode
+```
+
+This member needs to join the agreement:
+```
+$ snapctl agreement join all-nodes secondnodename
+Name 		 Number of Members 	 plugins 	 tasks
+all-nodes 	 2       			 0 		     0
+```
+
+From this point forward, any plugins or tasks you load will load into both members of this agreement.
+
+
+## Examples
 
 *Starting a 4 node cluster and listing members*
 ![tribe-start-list-members](http://i.giphy.com/xTk9ZZFdTeIFBFZgPu.gif)
 
 *Note: Once the cluster is started subsequent new nodes can choose to establish
-membership through **any** node as there is no "master".* 
+membership through **any** node as there is no "master".*
 
-## Agreement
-
-#### create
-
-```
-$SNAP_PATH/bin/snapctl agreement create <agreement_name>
-```
-
-#### list
-
-```
-$SNAP_PATH/bin/snapctl agreement list
-```
-
-#### join
-
-```
-$SNAP_PATH/bin/snapctl agreement join <agreement_name> <member_name>
-```
-
-#### delete
-
-```
-$SNAP_PATH/bin/snapctl agreement delete <agreement_name>
-```
-
-#### leave
-
-```
-$SNAP_PATH/bin/snapctl agreement leave <agreement_name> <member_name>
-```
 
 *Creating an agreement and joining members to it*
 ![tribe-create-join-agreement](http://i.giphy.com/d2YTZ5P1N0Gh4WJ2.gif)
 
-## Managing nodes in a tribe agreement
-
-After an agreement is created and members join it an action, such 
-as loading/unloading plugins and adding/removing and starting/stopping tasks, 
-taken on a single node in the agreement will be carried out on all members of 
-the agreement.
-
-In the example below an agreement has been created and all members of the 
-cluster have joined it.  After loading a collector and publishing 
-plugin and starting a task on one node we demonstrate that the plugins and 
+In the example below an agreement has been created and all members of the
+cluster have joined it.  After loading a collector and publishing
+plugin and starting a task on one node we demonstrate that the plugins and
 tasks are now running on all of the other nodes in the agreement.        
 
 
-*Loading plugins and starting a task on a node participating in an agreement
+*Loading plugins and starting a task on a node participating in an agreement*
 ![tribe-load-start](http://i.giphy.com/3o8doZ9e9MX6ZOH4Iw.gif)

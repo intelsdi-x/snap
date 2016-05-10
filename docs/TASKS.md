@@ -12,7 +12,7 @@ The manifest can be divided into two parts: Header and Workflow.
 ```yaml
 ---
   version: 1
-  schedule: 
+  schedule:
     type: "simple"
     interval: "1s"
 ```
@@ -23,7 +23,7 @@ The header contains a version, used to differentiate between versions of the tas
 #### Schedule
 
 The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  __snap__ is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, __snap__ has three schedules:
-- **simple schedule** which is described above, 
+- **simple schedule** which is described above,
 - **window schedule** which adds a start and stop time,
 - **cron schedule** which supports cron-like entries in ```interval``` field, like in this example (workflow will fire every hour on the half hour):
 ```
@@ -68,14 +68,14 @@ The collect section describes which metrics to collect. Metrics can be enumerate
  - a concrete _namespace_
  - a wildcard, `*`
  - a tuple, `(m1|m2|m3)`
- 
+
 The tuple begins and ends with brackets and items inside are separeted by vertical bar. It works like logical `or`, so it gives an error only if none of these metrics can be collected.
 
-Metrics declared in task manifest | Collected metrics
-----------|----------|-----------
-/intel/mock/\* |  /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz
-/intel/mock/(foo\|bar) |  /intel/mock/foo <br/> /intel/mock/bar <br/>
-/intel/mock/\*/baz |  /intel/mock/\*/baz
+| Metrics declared in task manifest | Collected metrics                                              |                                             |
+|:----------------------------------|:---------------------------------------------------------------|:--------------------------------------------|
+| /intel/mock/\*                    | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz |                                             |
+| /intel/mock/(foo\                 | bar)                                                           | /intel/mock/foo <br/> /intel/mock/bar <br/> |
+| /intel/mock/\*/baz                | /intel/mock/\*/baz                                             |                                             |
 
 The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
 
