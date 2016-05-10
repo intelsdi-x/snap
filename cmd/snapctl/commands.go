@@ -80,6 +80,9 @@ var (
 					Name:   "watch",
 					Usage:  "watch <task_id>",
 					Action: watchTask,
+					Flags: []cli.Flag{
+						flVerbose,
+					},
 				},
 				{
 					Name:   "enable",

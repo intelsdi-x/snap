@@ -360,6 +360,7 @@ func watchTask(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
+	verbose := ctx.Bool("verbose")
 	id := ctx.Args().First()
 	r := pClient.WatchTask(id)
 	if r.Err != nil {
@@ -381,7 +382,12 @@ func watchTask(ctx *cli.Context) {
 	}()
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
-	printFields(w, false, 0, "NAMESPACE", "DATA", "TIMESTAMP")
+	fields := []interface{}{"NAMESPACE", "DATA", "TIMESTAMP"}
+	if verbose {
+		fields = append(fields, "TAGS")
+	}
+	printFields(w, false, 0, fields...)
+
 	// Loop listening to events
 	for {
 		select {
@@ -389,15 +395,51 @@ func watchTask(ctx *cli.Context) {
 			switch e.EventType {
 			case "metric-event":
 				sort.Sort(e.Event)
+				var extra int
 				for _, event := range e.Event {
 					fmt.Printf("\033[0J")
-					printFields(w, false, 0,
+					eventFields := []interface{}{
 						event.Namespace,
 						event.Data,
 						event.Timestamp,
-					)
+					}
+					if !verbose {
+						printFields(w, false, 0, eventFields...)
+						continue
+					}
+					tags := sortTags(event.Tags)
+					if len(tags) <= 3 {
+						eventFields = append(eventFields, strings.Join(tags, ", "))
+						printFields(w, false, 0, eventFields...)
+						continue
+					}
+					for i := 0; i < len(tags); i += 3 {
+						tagSlice := tags[i:min(i+3, len(tags))]
+						if i == 0 {
+							eventFields = append(eventFields, strings.Join(tagSlice, ", ")+",")
+							printFields(w, false, 0, eventFields...)
+							continue
+						}
+						extra += 1
+						if i+3 > len(tags) {
+							printFields(w, false, 0,
+								"",
+								"",
+								"",
+								strings.Join(tagSlice, ", "),
+							)
+							continue
+						}
+						printFields(w, false, 0,
+							"",
+							"",
+							"",
+							strings.Join(tagSlice, ", ")+",",
+						)
+
+					}
 				}
-				lines = len(e.Event)
+				lines = len(e.Event) + extra
 				fmt.Fprintf(w, "\033[%dA\n", lines+1)
 				w.Flush()
 			default:
@@ -507,4 +549,24 @@ func enableTask(ctx *cli.Context) {
 	}
 	fmt.Println("Task enabled:")
 	fmt.Printf("ID: %s\n", r.ID)
+}
+
+func sortTags(tags map[string]string) []string {
+	var tagSlice []string
+	var keys []string
+	for k := range tags {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		tagSlice = append(tagSlice, k+"="+tags[k])
+	}
+	return tagSlice
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
