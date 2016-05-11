@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -701,7 +700,7 @@ func startTribes(count int, seed string) ([]int, int) {
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
 		r.BindTribeManager(t)
-		r.SetAddress(":" + strconv.Itoa(mgtPort))
+		r.SetAddresses("", mgtPort)
 		r.Start()
 		wg.Add(1)
 		timer := time.After(10 * time.Second)

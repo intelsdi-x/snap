@@ -52,6 +52,7 @@ const (
 const (
 	defaultEnable          bool   = true
 	defaultPort            int    = 8181
+	defaultBindAddresses   string = ""
 	defaultHTTPS           bool   = false
 	defaultRestCertificate string = ""
 	defaultRestKey         string = ""
@@ -73,6 +74,7 @@ var (
 type Config struct {
 	Enable           bool   `json:"enable,omitempty"yaml:"enable,omitempty"`
 	Port             int    `json:"port,omitempty"yaml:"port,omitempty"`
+	BindAddresses    string `json:"bind_addresses,omitempty"yaml:"bind_addresses,omitempty"`
 	HTTPS            bool   `json:"https,omitempty"yaml:"https,omitempty"`
 	RestCertificate  string `json:"rest_certificate,omitempty"yaml:"rest_certificate,omitempty"`
 	RestKey          string `json:"rest_key,omitempty"yaml:"rest_key,omitempty"`
@@ -107,6 +109,9 @@ const (
 						"type": "integer",
 						"minimum": 0,
 						"maximum": 65535
+					},
+					"bind_addresses" : {
+						"type": "string"
 					}
 				},
 				"additionalProperties": false
@@ -210,6 +215,7 @@ func GetDefaultConfig() *Config {
 	return &Config{
 		Enable:           defaultEnable,
 		Port:             defaultPort,
+		BindAddresses:    defaultBindAddresses,
 		HTTPS:            defaultHTTPS,
 		RestCertificate:  defaultRestCertificate,
 		RestKey:          defaultRestKey,
@@ -239,6 +245,10 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		case "port":
 			if err := json.Unmarshal(v, &(c.Port)); err != nil {
 				return fmt.Errorf("%v (while parsing 'restapi::port')", err)
+			}
+		case "bind_addresses":
+			if err := json.Unmarshal(v, &(c.BindAddresses)); err != nil {
+				return fmt.Errorf("%v (while parsing 'restapi::bind_addresses')", err)
 			}
 		case "https":
 			if err := json.Unmarshal(v, &(c.HTTPS)); err != nil {
@@ -299,8 +309,19 @@ func (s *Server) Name() string {
 	return "REST"
 }
 
-func (s *Server) SetAddress(addrString string) {
-	s.addrString = addrString
+func (s *Server) SetAddresses(addrString string, dfltPort int) {
+	restLogger.Info(fmt.Sprintf("Setting address to: [%v] Default port: %v", addrString, dfltPort))
+	// In the future, we could extend this to support multiple comma separated IP[:port] values
+	if strings.Index(addrString, ",") != -1 {
+		panic("Not supported address value for binding")
+	}
+	// If no port is specified, use default port
+	if strings.Index(addrString, ":") != -1 {
+		s.addrString = addrString
+	} else {
+		s.addrString = fmt.Sprintf("%s:%d", addrString, dfltPort)
+	}
+	restLogger.Info(fmt.Sprintf("Address used for binding: [%v]", addrString))
 }
 
 func (s *Server) Start() error {

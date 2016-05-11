@@ -54,8 +54,14 @@ var (
 		Usage: "Disable the agent REST API",
 	}
 	flAPIPort = cli.IntFlag{
-		Name:  "api-port,  p",
+		Name:  "api-port, p",
 		Usage: "API port (Default: 8181)",
+		EnvVar: "SNAP_PORT",
+	}
+	flAPIBindAddresses = cli.StringFlag{
+		Name:   "bind-addresses, b",
+		Usage:  "Address[:port] to bind to.",
+		EnvVar: "SNAP_BIND_ADDRESSES",
 	}
 	flMaxProcs = cli.IntFlag{
 		Name:   "max-procs, c",
@@ -227,6 +233,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		flAPIDisabled,
 		flAPIPort,
+		flAPIBindAddresses,
 		flLogLevel,
 		flLogPath,
 		flMaxProcs,
@@ -354,7 +361,7 @@ func action(ctx *cli.Context) {
 			r.BindTribeManager(tr)
 		}
 		go monitorErrors(r.Err())
-		r.SetAddress(fmt.Sprintf(":%d", cfg.RestAPI.Port))
+		r.SetAddresses(cfg.RestAPI.BindAddresses, cfg.RestAPI.Port)
 		coreModules = append(coreModules, r)
 		log.Info("REST API is enabled")
 	} else {
@@ -663,6 +670,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")
+	cfg.RestAPI.BindAddresses = setStringVal(cfg.RestAPI.BindAddresses, ctx, "bind-addresses")
 	cfg.RestAPI.HTTPS = setBoolVal(cfg.RestAPI.HTTPS, ctx, "rest-https")
 	cfg.RestAPI.RestCertificate = setStringVal(cfg.RestAPI.RestCertificate, ctx, "rest-cert")
 	cfg.RestAPI.RestKey = setStringVal(cfg.RestAPI.RestKey, ctx, "rest-key")

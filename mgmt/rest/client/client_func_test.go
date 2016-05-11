@@ -91,7 +91,7 @@ func startAPI() string {
 		}
 		log.Fatal(err)
 	}(r.Err())
-	r.SetAddress("127.0.0.1:0")
+	r.SetAddresses("127.0.0.1", 0)
 	r.Start()
 	time.Sleep(100 * time.Millisecond)
 	return fmt.Sprintf("http://localhost:%d", r.Port())
