@@ -1,6 +1,7 @@
 {
 	"ImportPath": "github.com/intelsdi-x/snap",
 	"GoVersion": "go1.5",
+	"GodepVersion": "v66",
 	"Packages": [
 		"./..."
 	],
@@ -108,10 +109,6 @@
 			"Rev": "995f5b2e021c69b8b028ba6d0b05c1dd500783db"
 		},
 		{
-			"ImportPath": "github.com/spf13/pflag",
-			"Rev": "7f60f83a2c81bc3c3c0d5297f61ddfa68da9d3b7"
-		},
-		{
 			"ImportPath": "golang.org/x/crypto/cast5",
 			"Rev": "aedad9a179ec1ea11b7064c57cbc6dc30d7724ec"
 		},
@@ -125,12 +122,8 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/api/resource",
-			"Comment": "v1.2.0-alpha.7-32-ge78834a",
-			"Rev": "e78834ab62b8a443bd9a27ddd1fa6fdadb64b3a0"
-		},
-		{
-			"ImportPath": "speter.net/go/exp/math/dec/inf",
-			"Rev": "42ca6cd68aa922bc3f32f1e056e61b65945d9ad7"
+			"Comment": "v1.3.0-alpha.3-706-ga7c9c07",
+			"Rev": "a7c9c07b5acb3c8c25e918148a782cb70e86a48c"
 		},
 		{
 			"ImportPath": "github.com/vrischmann/jsonutil",
@@ -139,6 +132,31 @@
 		{
 			"ImportPath": "github.com/robfig/cron",
 			"Rev": "32d9c273155a0506d27cf73dd1246e86a470997e"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/vendor/github.com/gogo/protobuf/proto",
+			"Comment": "v1.3.0-alpha.3-706-ga7c9c07",
+			"Rev": "a7c9c07b5acb3c8c25e918148a782cb70e86a48c"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/vendor/github.com/spf13/pflag",
+			"Comment": "v1.3.0-alpha.3-706-ga7c9c07",
+			"Rev": "a7c9c07b5acb3c8c25e918148a782cb70e86a48c"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/conversion",
+			"Comment": "v1.3.0-alpha.3-706-ga7c9c07",
+			"Rev": "a7c9c07b5acb3c8c25e918148a782cb70e86a48c"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/vendor/speter.net/go/exp/math/dec/inf",
+			"Comment": "v1.3.0-alpha.3-706-ga7c9c07",
+			"Rev": "a7c9c07b5acb3c8c25e918148a782cb70e86a48c"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/third_party/forked/reflect",
+			"Comment": "v1.3.0-alpha.3-706-ga7c9c07",
+			"Rev": "a7c9c07b5acb3c8c25e918148a782cb70e86a48c"
 		}
 	]
 }
