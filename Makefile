@@ -20,6 +20,8 @@ default:
 	$(MAKE) all
 deps:
 	bash -c "./scripts/deps.sh"
+unit_test:
+	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh"
 test:
 	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh"
 check:
