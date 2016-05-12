@@ -121,6 +121,13 @@ func (n Namespace) AddStaticElements(values ...string) Namespace {
 	return n
 }
 
+func (n Namespace) Element(idx int) NamespaceElement {
+	if idx >= 0 && idx < len(n) {
+		return n[idx]
+	}
+	return NamespaceElement{}
+}
+
 // NamespaceElement provides meta data related to the namespace.  This is of particular importance when
 // the namespace contains data.
 type NamespaceElement struct {
@@ -157,4 +164,6 @@ type CatalogedMetric interface {
 	RequestedMetric
 	LastAdvertisedTime() time.Time
 	Policy() *cpolicy.ConfigPolicyNode
+	Description() string
+	Unit() string
 }
