@@ -942,7 +942,7 @@ func TestTribePluginAgreement(t *testing.T) {
 													}
 												}(t)
 											}
-											wg.Done()
+											wg.Wait()
 
 											Convey("Handles out-of-order remove", func() {
 												t := tribes[rand.Intn(numOfTribes)]
@@ -1038,7 +1038,7 @@ func TestTribePluginAgreement(t *testing.T) {
 																	}
 																}(t)
 															}
-															wg.Done()
+															wg.Wait()
 														})
 													})
 												})
