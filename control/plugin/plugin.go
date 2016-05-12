@@ -31,7 +31,6 @@ import (
 	"net/http"
 	"net/rpc"
 	"net/rpc/jsonrpc"
-	"regexp"
 	"runtime"
 	"time"
 
@@ -183,22 +182,17 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 	if len(acceptContentTypes) == 0 {
 		acceptContentTypes = append(acceptContentTypes, "snap.*")
 	}
+
+	allowedContentTypes := []string{SnapAllContentType, SnapGOBContentType, SnapJSONContentType}
+
 	// Validate content type formats
 	for _, s := range acceptContentTypes {
-		b, e := regexp.MatchString(`^[a-z0-9*]+\.[a-z0-9*]+$`, s)
-		if e != nil {
-			panic(e)
-		}
-		if !b {
+		if !checkIfExists(allowedContentTypes, s) {
 			panic(fmt.Sprintf("Bad accept content type [%s] for [%d] [%s]", name, version, s))
 		}
 	}
 	for _, s := range returnContentTypes {
-		b, e := regexp.MatchString(`^[a-z0-9*]+\.[a-z0-9*]+$`, s)
-		if e != nil {
-			panic(e)
-		}
-		if !b {
+		if !checkIfExists(allowedContentTypes, s) {
 			panic(fmt.Sprintf("Bad return content type [%s] for [%d] [%s]", name, version, s))
 		}
 	}
@@ -438,4 +432,13 @@ func catchPluginPanic(l *log.Logger) {
 		l.Printf("Stack of %d bytes: %s\n", count, trace)
 		panic(err)
 	}
+}
+
+func checkIfExists(keys []string, value string) bool {
+	for _, key := range keys {
+		if value == key {
+			return true
+		}
+	}
+	return false
 }
