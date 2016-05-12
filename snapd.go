@@ -21,6 +21,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -38,7 +39,6 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/vrischmann/jsonutil"
 
-	"errors"
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
