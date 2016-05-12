@@ -105,9 +105,18 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	}
 
 	b := &rbody.MetricReturned{}
+	dyn, indexes := mt.Namespace().IsDynamic()
+	var dynamicElements []rbody.DynamicElement
+	if dyn {
+		dynamicElements = getDynamicElements(mt.Namespace(), indexes)
+	}
 	mb := &rbody.Metric{
-		Namespace:               mt.Namespace().String(),
-		Version:                 mt.Version(),
+		Namespace:       mt.Namespace().String(),
+		Version:         mt.Version(),
+		Dynamic:         dyn,
+		DynamicElements: dynamicElements,
+		Description:     mt.Description(),
+		Unit:            mt.Unit(),
 		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
 		Href: catalogedMetricURI(r.Host, mt),
 	}
@@ -144,10 +153,19 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 				Maximum:  r.Maximum,
 			})
 		}
+		dyn, indexes := met.Namespace().IsDynamic()
+		var dynamicElements []rbody.DynamicElement
+		if dyn {
+			dynamicElements = getDynamicElements(met.Namespace(), indexes)
+		}
 		b = append(b, rbody.Metric{
 			Namespace:               met.Namespace().String(),
 			Version:                 met.Version(),
 			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
+			Description:             met.Description(),
+			Dynamic:                 dyn,
+			DynamicElements:         dynamicElements,
+			Unit:                    met.Unit(),
 			Policy:                  policies,
 			Href:                    catalogedMetricURI(host, met),
 		})
@@ -158,4 +176,17 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 
 func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
 	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, mt.Namespace().String(), mt.Version())
+}
+
+func getDynamicElements(ns core.Namespace, indexes []int) []rbody.DynamicElement {
+	elements := make([]rbody.DynamicElement, 0, len(indexes))
+	for _, v := range indexes {
+		e := ns.Element(v)
+		elements = append(elements, rbody.DynamicElement{
+			Index:       v,
+			Name:        e.Name,
+			Description: e.Description,
+		})
+	}
+	return elements
 }
