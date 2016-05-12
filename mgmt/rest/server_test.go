@@ -53,8 +53,8 @@ func TestRestAPIConfigJSON(t *testing.T) {
 		Convey("Port should be 8282", func() {
 			So(cfg.Port, ShouldEqual, 8282)
 		})
-		Convey("BindAddresses should equal 127.0.0.1:12345", func() {
-			So(cfg.BindAddresses, ShouldEqual, "127.0.0.1:12345")
+		Convey("Address should equal 127.0.0.1:12345", func() {
+			So(cfg.Address, ShouldEqual, "127.0.0.1:12345")
 		})
 		Convey("RestAuth should be true", func() {
 			So(cfg.RestAuth, ShouldEqual, true)
@@ -95,8 +95,8 @@ func TestRestAPIConfigYaml(t *testing.T) {
 		Convey("Port should be 8282", func() {
 			So(cfg.Port, ShouldEqual, 8282)
 		})
-		Convey("BindAddresses should equal 127.0.0.1:12345", func() {
-			So(cfg.BindAddresses, ShouldEqual, "127.0.0.1:12345")
+		Convey("Address should equal 127.0.0.1:12345", func() {
+			So(cfg.Address, ShouldEqual, "127.0.0.1:12345")
 		})
 		Convey("RestAuth should be true", func() {
 			So(cfg.RestAuth, ShouldEqual, true)
@@ -126,8 +126,8 @@ func TestRestAPIDefaultConfig(t *testing.T) {
 		Convey("Port should be 8181", func() {
 			So(cfg.Port, ShouldEqual, 8181)
 		})
-		Convey("BindAddresses should equal empty string", func() {
-			So(cfg.BindAddresses, ShouldEqual, "")
+		Convey("Address should equal empty string", func() {
+			So(cfg.Address, ShouldEqual, "")
 		})
 		Convey("RestAuth should be false", func() {
 			So(cfg.RestAuth, ShouldEqual, false)

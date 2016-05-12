@@ -70,7 +70,7 @@
         "rest_certificate": "/path/to/cert/file",
         "rest_key": "/path/to/private/key",
         "port": 8282,
-        "bind_addresses": "127.0.0.1:12345"
+        "addr": "127.0.0.1:12345"
     },
     "tribe": {
         "enable": true,

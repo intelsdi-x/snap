@@ -488,7 +488,7 @@ func startAPI(cfg *mockConfig) *restAPIInstance {
 		}
 		log.Fatal(err)
 	}(r.Err())
-	r.SetAddresses("127.0.0.1", 0)
+	r.SetAddress("127.0.0.1", 0)
 	r.Start()
 	time.Sleep(time.Millisecond * 100)
 	return &restAPIInstance{

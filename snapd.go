@@ -38,6 +38,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/vrischmann/jsonutil"
 
+	"errors"
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
@@ -54,14 +55,14 @@ var (
 		Usage: "Disable the agent REST API",
 	}
 	flAPIPort = cli.IntFlag{
-		Name:  "api-port, p",
-		Usage: "API port (Default: 8181)",
+		Name:   "api-port, p",
+		Usage:  "API port (Default: 8181)",
 		EnvVar: "SNAP_PORT",
 	}
-	flAPIBindAddresses = cli.StringFlag{
-		Name:   "bind-addresses, b",
-		Usage:  "Address[:port] to bind to.",
-		EnvVar: "SNAP_BIND_ADDRESSES",
+	flAPIAddr = cli.StringFlag{
+		Name:   "api-addr, b",
+		Usage:  "API Address[:port] to bind to/listen on. Default: empty string => listen on all interfaces",
+		EnvVar: "SNAP_ADDR",
 	}
 	flMaxProcs = cli.IntFlag{
 		Name:   "max-procs, c",
@@ -233,7 +234,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		flAPIDisabled,
 		flAPIPort,
-		flAPIBindAddresses,
+		flAPIAddr,
 		flLogLevel,
 		flLogPath,
 		flMaxProcs,
@@ -361,7 +362,7 @@ func action(ctx *cli.Context) {
 			r.BindTribeManager(tr)
 		}
 		go monitorErrors(r.Err())
-		r.SetAddresses(cfg.RestAPI.BindAddresses, cfg.RestAPI.Port)
+		r.SetAddress(cfg.RestAPI.Address, cfg.RestAPI.Port)
 		coreModules = append(coreModules, r)
 		log.Info("REST API is enabled")
 	} else {
@@ -652,9 +653,37 @@ func setDurationVal(field time.Duration, ctx *cli.Context, flagName string) time
 	return field
 }
 
+//
+func checkCmdLineFlags(ctx *cli.Context) error {
+	// Bind address is specified
+	if ctx.IsSet("api-addr") {
+		addr := ctx.String("api-addr")
+		// Contains a comma
+		if strings.Index(addr, ",") != -1 {
+			return serror.ErrBadAddress
+		}
+		idx := strings.Index(addr, ":")
+		// Port is specified in address string
+		if idx != -1 {
+			// Port is also specified on command line
+			if ctx.IsSet("api-port") {
+				return errors.New("Port can not be specified in both --api-addr and --port")
+			}
+			if idx == (len(addr) - 1) {
+				return errors.New("Empty port specified")
+			}
+		}
+	}
+	return nil
+}
+
 // Apply the command line flags set (if any) to override the values
 // in the input configuration
 func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
+	err := checkCmdLineFlags(ctx)
+	if err != nil {
+		panic(err)
+	}
 	invertBoolean := true
 	// apply any command line flags that might have been set, first for the
 	// snapd-related flags
@@ -670,7 +699,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")
-	cfg.RestAPI.BindAddresses = setStringVal(cfg.RestAPI.BindAddresses, ctx, "bind-addresses")
+	cfg.RestAPI.Address = setStringVal(cfg.RestAPI.Address, ctx, "ip-addr")
 	cfg.RestAPI.HTTPS = setBoolVal(cfg.RestAPI.HTTPS, ctx, "rest-https")
 	cfg.RestAPI.RestCertificate = setStringVal(cfg.RestAPI.RestCertificate, ctx, "rest-cert")
 	cfg.RestAPI.RestKey = setStringVal(cfg.RestAPI.RestKey, ctx, "rest-key")
