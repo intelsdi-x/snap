@@ -19,14 +19,6 @@ limitations under the License.
 
 package serror
 
-import (
-	"errors"
-)
-
-var (
-	ErrBadAddress = errors.New("Address for binding can not contain comma")
-)
-
 type SnapError interface {
 	error
 	Fields() map[string]interface{}

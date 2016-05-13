@@ -660,7 +660,7 @@ func checkCmdLineFlags(ctx *cli.Context) error {
 		addr := ctx.String("api-addr")
 		// Contains a comma
 		if strings.Index(addr, ",") != -1 {
-			return serror.ErrBadAddress
+			return errors.New("Invalid address")
 		}
 		idx := strings.Index(addr, ":")
 		// Port is specified in address string
@@ -682,7 +682,7 @@ func checkCmdLineFlags(ctx *cli.Context) error {
 func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	err := checkCmdLineFlags(ctx)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	invertBoolean := true
 	// apply any command line flags that might have been set, first for the
@@ -699,7 +699,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")
-	cfg.RestAPI.Address = setStringVal(cfg.RestAPI.Address, ctx, "ip-addr")
+	cfg.RestAPI.Address = setStringVal(cfg.RestAPI.Address, ctx, "api-addr")
 	cfg.RestAPI.HTTPS = setBoolVal(cfg.RestAPI.HTTPS, ctx, "rest-https")
 	cfg.RestAPI.RestCertificate = setStringVal(cfg.RestAPI.RestCertificate, ctx, "rest-cert")
 	cfg.RestAPI.RestKey = setStringVal(cfg.RestAPI.RestKey, ctx, "rest-key")

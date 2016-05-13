@@ -309,11 +309,11 @@ func (s *Server) Name() string {
 	return "REST"
 }
 
-func (s *Server) SetAddress(addrString string, dfltPort int) error {
+func (s *Server) SetAddress(addrString string, dfltPort int) {
 	restLogger.Info(fmt.Sprintf("Setting address to: [%v] Default port: %v", addrString, dfltPort))
 	// In the future, we could extend this to support multiple comma separated IP[:port] values
 	if strings.Index(addrString, ",") != -1 {
-		return serror.ErrBadAddress
+		restLogger.Fatal("Invalid address")
 	}
 	// If no port is specified, use default port
 	if strings.Index(addrString, ":") != -1 {
@@ -322,7 +322,6 @@ func (s *Server) SetAddress(addrString string, dfltPort int) error {
 		s.addrString = fmt.Sprintf("%s:%d", addrString, dfltPort)
 	}
 	restLogger.Info(fmt.Sprintf("Address used for binding: [%v]", s.addrString))
-	return nil
 }
 
 func (s *Server) Start() error {
