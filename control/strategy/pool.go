@@ -266,13 +266,12 @@ func (p *pool) Eligible() bool {
 
 	// optimization: don't even bother with concurrency
 	// count if we have already reached pool max
-	if p.Count() == p.max {
+	if p.Count() >= p.max {
 		return false
 	}
 
-	should := p.SubscriptionCount() > p.concurrencyCount*p.Count()
 	// Check if pool is eligible and number of plugins is less than maximum allowed
-	if should && p.Count() < p.max {
+	if p.SubscriptionCount() > p.concurrencyCount*p.Count() {
 		return true
 	}
 
