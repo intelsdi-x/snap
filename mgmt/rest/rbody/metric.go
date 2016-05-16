@@ -36,11 +36,21 @@ type PolicyTable struct {
 }
 
 type Metric struct {
-	LastAdvertisedTimestamp int64         `json:"last_advertised_timestamp,omitempty"`
-	Namespace               string        `json:"namespace,omitempty"`
-	Version                 int           `json:"version,omitempty"`
-	Policy                  []PolicyTable `json:"policy,omitempty"`
-	Href                    string        `json:"href"`
+	LastAdvertisedTimestamp int64            `json:"last_advertised_timestamp,omitempty"`
+	Namespace               string           `json:"namespace,omitempty"`
+	Version                 int              `json:"version,omitempty"`
+	Dynamic                 bool             `json:"dynamic"`
+	DynamicElements         []DynamicElement `json:"dynamic_elements,omitempty"`
+	Description             string           `json:"description,omitempty"`
+	Unit                    string           `json:"unit,omitempty"`
+	Policy                  []PolicyTable    `json:"policy,omitempty"`
+	Href                    string           `json:"href"`
+}
+
+type DynamicElement struct {
+	Index       int    `json:"index,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 type MetricReturned struct {
