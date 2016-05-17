@@ -13,7 +13,7 @@
             },
             "config": {
                 "/intel/mock": {
-                    "user": "root",
+                    "name": "root",
                     "password": "secret"
                 }
             },
