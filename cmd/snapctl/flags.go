@@ -135,7 +135,7 @@ var (
 
 	// general
 	flVerbose = cli.BoolFlag{
-		Name:  "verbose, v",
+		Name:  "verbose",
 		Usage: "Verbose output",
 	}
 )
