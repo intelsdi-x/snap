@@ -115,6 +115,9 @@ restapi:
   # port sets the port to start the REST API server on. Default is 8181
   port: 8282
 
+  # REST API in address[:port] format
+  addr: 127.0.0.1:12345
+
 # tribe section contains all configuration items for the tribe module
 tribe:
   # enable controls enabling tribe for the snapd instance. Default value is false.
