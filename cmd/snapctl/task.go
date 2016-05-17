@@ -50,25 +50,18 @@ var (
 )
 
 // Constants used to truncate task hit and miss counts
-// e.g. 1K, 1M, etc.
+// e.g. 1K(10^3), 1M(10^6, 1G(10^9) etc (not 1024^#). We do not
+// use units larger than Gb to support 32 bit compiles.
 const (
 	K = 1000
 	M = 1000 * K
 	G = 1000 * M
-	T = 1000 * G
-	P = 1000 * T
 )
 
 func trunc(n int) string {
 	var u string
 
 	switch {
-	case n >= P:
-		u = "P"
-		n /= P
-	case n >= T:
-		u = "T"
-		n /= T
 	case n >= G:
 		u = "G"
 		n /= G
