@@ -1,5 +1,5 @@
-# snap API
-snap exposes a list of RESTful APIs to perform various actions. All of snap's API requests return `JSON`-formatted responses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation have the endpoint:
+# Snap API
+Snap exposes a list of RESTful APIs to perform various actions. All of Snap's API requests return `JSON`-formatted responses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation have the endpoint:
 > http://localhost:8181
 
 ## API Response Meta
@@ -216,7 +216,7 @@ _**Example Response**_
 }                    
 ```
 ## Metric API
-snap metric APIs allow you to retrieve all or particular running metric information by invoking different APIs.  
+Snap metric APIs allow you to retrieve all or particular running metric information by invoking different APIs.  
 
 ## Metric Response Parameters
 | Parameter                 | Description                                       |
@@ -331,7 +331,7 @@ _**Example Response**_
 }
 ```
 ## Task API
-snap task APIs provide the functionality to create, start, stop, remove, enable, retrieve and watch scheduled tasks.
+Snap task APIs provide the functionality to create, start, stop, remove, enable, retrieve and watch scheduled tasks.
 
 ### Task API Response Parameters
 | Parameter                        | Description                             |
@@ -612,7 +612,7 @@ _**Example Response**_
 }                      
 ```
 ## Tribe API
-snap tribe APIs provide the functionality for managing tribe agreements and for tribe members to join or leave tribe contracts.
+Snap tribe APIs provide the functionality for managing tribe agreements and for tribe members to join or leave tribe contracts.
 
 ### Tribe API Response Parameters
 | Parameter                             | Description                      |
