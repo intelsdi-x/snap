@@ -104,7 +104,7 @@ func TestTrie(t *testing.T) {
 		Convey("Fetch with error: not found", func() {
 			_, err := trie.Fetch([]string{"not", "present"})
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "Metric not found:")
+			So(err.Error(), ShouldContainSubstring, "Metrics not found below a given namespace: /not/present")
 		})
 		Convey("Fetch with error: depth exceeded", func() {
 			lp := new(loadedPlugin)
@@ -113,28 +113,52 @@ func TestTrie(t *testing.T) {
 			trie.Add(mt)
 			_, err := trie.Fetch([]string{"intel", "foo", "bar", "baz"})
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "Metric not found:")
+			So(err.Error(), ShouldContainSubstring, "Metrics not found below a given namespace: /intel/foo/bar/baz")
 
 		})
 	})
-	Convey("Get", t, func() {
+	Convey("GetMetrics()", t, func() {
 		trie := NewMTTrie()
-		Convey("simple get", func() {
-			lp := new(loadedPlugin)
-			lp.Meta.Version = 1
-			mt := newMetricType(core.NewNamespace("intel", "foo"), time.Now(), lp)
-			trie.Add(mt)
-			n, err := trie.Get([]string{"intel", "foo"})
-			So(err, ShouldBeNil)
-			So(len(n), ShouldEqual, 1)
-			So(n[0].Namespace(), ShouldResemble, core.NewNamespace("intel", "foo"))
+		ver := -1
+
+		Convey("simply get", func() {
+			lp2 := new(loadedPlugin)
+			lp2.Meta.Version = 2
+
+			lp5 := new(loadedPlugin)
+			lp5.Meta.Version = 5
+
+			mt2 := newMetricType(core.NewNamespace("intel", "foo"), time.Now(), lp2)
+			mt5 := newMetricType(core.NewNamespace("intel", "foo"), time.Now(), lp5)
+
+			trie.Add(mt2)
+			trie.Add(mt5)
+
+			Convey("get the latest version", func() {
+				n, err := trie.GetMetrics([]string{"intel", "foo"}, -1)
+				So(err, ShouldBeNil)
+				So(len(n), ShouldEqual, 1)
+				So(n[0], ShouldEqual, mt5)
+			})
+			Convey("get the queried version", func() {
+				n, err := trie.GetMetrics([]string{"intel", "foo"}, 2)
+				So(err, ShouldBeNil)
+				So(len(n), ShouldEqual, 1)
+				So(n[0], ShouldEqual, mt2)
+			})
+			Convey("error: the queried version of metric cannot be found", func() {
+				n, err := trie.GetMetrics([]string{"intel", "foo"}, 6)
+				So(err, ShouldNotBeNil)
+				So(n, ShouldBeEmpty)
+				So(err.Error(), ShouldContainSubstring, "Metric not found: /intel/foo (version: 6)")
+			})
 		})
 		Convey("error: no data at node", func() {
 			lp := new(loadedPlugin)
 			lp.Meta.Version = 1
 			mt := newMetricType(core.NewNamespace("intel", "foo"), time.Now(), lp)
 			trie.Add(mt)
-			n, err := trie.Get([]string{"intel"})
+			n, err := trie.GetMetrics([]string{"intel"}, ver)
 			So(n, ShouldBeNil)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
 		})

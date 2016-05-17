@@ -79,7 +79,7 @@ func (m *mockMetricManager) GetPluginContentTypes(n string, t core.PluginType, v
 	return m.acceptedContentTypes[key], m.returnedContentTypes[key], nil
 }
 
-func (m *mockMetricManager) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error) {
+func (m *mockMetricManager) CollectMetrics([]core.RequestedMetric, *cdata.ConfigDataTree, time.Time, string) ([]core.Metric, []error) {
 	return nil, nil
 }
 
@@ -91,7 +91,7 @@ func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, p
 	return "", nil, nil
 }
 
-func (m *mockMetricManager) ValidateDeps(mts []core.Metric, prs []core.SubscribedPlugin) []serror.SnapError {
+func (m *mockMetricManager) ValidateDeps(mts []core.Metric, cdt *cdata.ConfigDataTree, prs []core.SubscribedPlugin) []serror.SnapError {
 	if m.failValidatingMetrics {
 		return []serror.SnapError{
 			serror.New(errors.New("metric validation error")),
@@ -107,14 +107,6 @@ func (m *mockMetricManager) SubscribeDeps(taskID string, mts []core.Metric, prs 
 
 func (m *mockMetricManager) UnsubscribeDeps(taskID string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
 	return nil
-}
-
-func (m *mockMetricManager) MatchQueryToNamespaces(core.Namespace) ([]core.Namespace, serror.SnapError) {
-	return nil, nil
-}
-
-func (m *mockMetricManager) ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError) {
-	return nil, nil
 }
 
 type mockMetricManagerError struct {

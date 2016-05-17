@@ -79,178 +79,6 @@ func TestMetricType(t *testing.T) {
 	})
 }
 
-func TestMetricMatching(t *testing.T) {
-	Convey("metricCatalog.MatchQuery()", t, func() {
-		Convey("verify query support for static metrics", func() {
-			mc := newMetricCatalog()
-			ns := []core.Namespace{
-				core.NewNamespace("mock", "foo", "bar"),
-				core.NewNamespace("mock", "foo", "baz"),
-				core.NewNamespace("mock", "asdf", "bar"),
-				core.NewNamespace("mock", "asdf", "baz"),
-				core.NewNamespace("mock", "test", "1"),
-				core.NewNamespace("mock", "test", "2"),
-				core.NewNamespace("mock", "test", "3"),
-				core.NewNamespace("mock", "test", "4"),
-			}
-			lp := new(loadedPlugin)
-			ts := time.Now()
-			mt := []*metricType{
-				newMetricType(ns[0], ts, lp),
-				newMetricType(ns[1], ts, lp),
-				newMetricType(ns[2], ts, lp),
-				newMetricType(ns[3], ts, lp),
-				newMetricType(ns[4], ts, lp),
-				newMetricType(ns[5], ts, lp),
-				newMetricType(ns[6], ts, lp),
-				newMetricType(ns[7], ts, lp),
-			}
-
-			for _, v := range mt {
-				mc.Add(v)
-			}
-			Convey("match /mock/foo/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "foo", "*"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 2)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "foo", "bar"),
-					core.NewNamespace("mock", "foo", "baz"),
-				})
-
-			})
-			Convey("match /mock/test/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "test", "*"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 4)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "test", "1"),
-					core.NewNamespace("mock", "test", "2"),
-					core.NewNamespace("mock", "test", "3"),
-					core.NewNamespace("mock", "test", "4"),
-				})
-			})
-			Convey("match /mock/*/bar", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "*", "bar"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 2)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "foo", "bar"),
-					core.NewNamespace("mock", "asdf", "bar"),
-				})
-			})
-			Convey("match /mock/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "*"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, len(ns))
-				So(nss, ShouldResemble, ns)
-			})
-			Convey("match /mock/(foo|asdf)/baz", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "(foo|asdf)", "baz"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 2)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "foo", "baz"),
-					core.NewNamespace("mock", "asdf", "baz"),
-				})
-			})
-			Convey("match /mock/test/(1|2|3)", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "test", "(1|2|3)"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 3)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "test", "1"),
-					core.NewNamespace("mock", "test", "2"),
-					core.NewNamespace("mock", "test", "3"),
-				})
-			})
-			Convey("invalid matching", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "not", "exist", "metric"))
-				So(err, ShouldNotBeNil)
-				So(nss, ShouldBeEmpty)
-				So(err.Error(), ShouldContainSubstring, "Metric not found:")
-			})
-		})
-		Convey("verify query support for dynamic metrics", func() {
-			mc := newMetricCatalog()
-			ns := []core.Namespace{
-				core.NewNamespace("mock", "cgroups", "*", "bar"),
-				core.NewNamespace("mock", "cgroups", "*", "baz"),
-				core.NewNamespace("mock", "cgroups", "*", "in"),
-				core.NewNamespace("mock", "cgroups", "*", "out"),
-				core.NewNamespace("mock", "cgroups", "*", "test", "1"),
-				core.NewNamespace("mock", "cgroups", "*", "test", "2"),
-				core.NewNamespace("mock", "cgroups", "*", "test", "3"),
-				core.NewNamespace("mock", "cgroups", "*", "test", "4"),
-			}
-			lp := new(loadedPlugin)
-			ts := time.Now()
-			mt := []*metricType{
-				newMetricType(ns[0], ts, lp),
-				newMetricType(ns[1], ts, lp),
-				newMetricType(ns[2], ts, lp),
-				newMetricType(ns[3], ts, lp),
-				newMetricType(ns[4], ts, lp),
-				newMetricType(ns[5], ts, lp),
-				newMetricType(ns[6], ts, lp),
-				newMetricType(ns[7], ts, lp),
-			}
-
-			for _, v := range mt {
-				mc.Add(v)
-			}
-			// check if metrics were added to metric catalog
-			So(len(mc.Keys()), ShouldEqual, len(ns))
-
-			Convey("match /mock/cgroups/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, len(ns))
-				So(nss, ShouldResemble, ns)
-			})
-			Convey("match /mock/cgroups/*/bar", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*", "bar"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 1)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "cgroups", "*", "bar"),
-				})
-			})
-			Convey("match /mock/cgroups/*/(bar|baz)", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*", "(bar|baz)"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 2)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "cgroups", "*", "bar"),
-					core.NewNamespace("mock", "cgroups", "*", "baz"),
-				})
-			})
-			Convey("match /mock/cgroups/*/test/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*", "test", "*"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 4)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "cgroups", "*", "test", "1"),
-					core.NewNamespace("mock", "cgroups", "*", "test", "2"),
-					core.NewNamespace("mock", "cgroups", "*", "test", "3"),
-					core.NewNamespace("mock", "cgroups", "*", "test", "4"),
-				})
-			})
-			Convey("match /mock/cgroups/*/test/(1|2|3)", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*", "test", "(1|2|3)"))
-				So(err, ShouldBeNil)
-				So(len(nss), ShouldEqual, 3)
-				So(nss, ShouldResemble, []core.Namespace{
-					core.NewNamespace("mock", "cgroups", "*", "test", "1"),
-					core.NewNamespace("mock", "cgroups", "*", "test", "2"),
-					core.NewNamespace("mock", "cgroups", "*", "test", "3"),
-				})
-			})
-		})
-
-	})
-}
-
 func TestMetricCatalog(t *testing.T) {
 	Convey("newMetricCatalog()", t, func() {
 		Convey("returns a metricCatalog", func() {
@@ -265,12 +93,12 @@ func TestMetricCatalog(t *testing.T) {
 			mt.description = "some description"
 			mc := newMetricCatalog()
 			mc.Add(mt)
-			_mt, err := mc.Get(ns, -1)
+			_mt, err := mc.GetMetric(ns, -1)
 			So(_mt, ShouldResemble, mt)
 			So(err, ShouldBeNil)
 		})
 	})
-	Convey("metricCatalog.Get()", t, func() {
+	Convey("metricCatalog.GetMetric()", t, func() {
 		mc := newMetricCatalog()
 		ts := time.Now()
 		Convey("add multiple metricTypes and get them back", func() {
@@ -289,7 +117,7 @@ func TestMetricCatalog(t *testing.T) {
 				mc.Add(v)
 			}
 			for k, v := range ns {
-				_mt, err := mc.Get(v, -1)
+				_mt, err := mc.GetMetric(v, -1)
 				So(_mt, ShouldEqual, mt[k])
 				So(err, ShouldBeNil)
 			}
@@ -303,7 +131,7 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Add(m2)
 			m35 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp35)
 			mc.Add(m35)
-			m, err := mc.Get(core.NewNamespace("foo", "bar"), -1)
+			m, err := mc.GetMetric(core.NewNamespace("foo", "bar"), -1)
 			So(err, ShouldBeNil)
 			So(m, ShouldEqual, m35)
 		})
@@ -316,7 +144,7 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Add(m2)
 			m35 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp35)
 			mc.Add(m35)
-			m, err := mc.Get(core.NewNamespace("foo", "bar"), 2)
+			m, err := mc.GetMetric(core.NewNamespace("foo", "bar"), 2)
 			So(err, ShouldBeNil)
 			So(m, ShouldEqual, m2)
 		})
@@ -329,20 +157,140 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Add(m2)
 			m35 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp35)
 			mc.Add(m35)
-			_, err := mc.Get(core.NewNamespace("foo", "bar"), 7)
+			_, err := mc.GetMetric(core.NewNamespace("foo", "bar"), 7)
 			So(err.Error(), ShouldContainSubstring, "Metric not found:")
 		})
 	})
-	Convey("metricCatalog.Table()", t, func() {
-		Convey("returns a copy of the table", func() {
-			mc := newMetricCatalog()
-			mt := newMetricType(core.NewNamespace("foo", "bar"), time.Now(), &loadedPlugin{})
-			mc.Add(mt)
-			//TODO test tree
-			//So(mc.Table(), ShouldHaveSameTypeAs, map[string][]*metricType{})
-			//So(mc.Table()["foo.bar"], ShouldResemble, []*metricType{mt})
+	Convey("metricCatalog.GetMetrics()", t, func() {
+		mc := newMetricCatalog()
+		ts := time.Now()
+		Convey("add multiple metricTypes and get them back", func() {
+			nss := []core.Namespace{
+				core.NewNamespace("mock", "test", "1"),
+				core.NewNamespace("mock", "test", "2"),
+				core.NewNamespace("mock", "test", "3"),
+				core.NewNamespace("mock", "cgroups").AddDynamicElement("cgroup_id", "cgroup id").AddStaticElement("out"),
+				core.NewNamespace("mock", "cgroups").AddDynamicElement("cgroup_id", "cgroup id").AddStaticElement("in"),
+			}
+
+			lp := new(loadedPlugin)
+
+			// add metricTypes to the catalog
+			mt := []*metricType{}
+			for i, ns := range nss {
+				mt = append(mt, newMetricType(ns, ts, lp))
+				mc.Add(mt[i])
+			}
+			Convey("validate adding metrics to the catalog", func() {
+				for _, ns := range nss {
+					// check if metric is in metric catalog
+					_mt, err := mc.GetMetric(ns, -1)
+					So(_mt, ShouldNotBeEmpty)
+					So(err, ShouldBeNil)
+				}
+			})
+			Convey("get a metricType explicitly (no wildcards)", func() {
+				for k, ns := range nss {
+					_mts, err := mc.GetMetrics(ns, -1)
+					So(err, ShouldBeNil)
+					So(len(_mts), ShouldEqual, 1)
+					So(_mts[0], ShouldEqual, mt[k])
+				}
+			})
+			Convey("get metricTypes with an asterisk at the end", func() {
+				_mts, err := mc.GetMetrics(core.NewNamespace("mock", "test", "*"), -1)
+				So(err, ShouldBeNil)
+				// `/mock/test/*` should return 3 metrics:
+				// `/mock/test/1`, `/mock/test/2`, and `/mock/test/3`
+				So(len(_mts), ShouldEqual, 3)
+			})
+			Convey("get metricTypes with an asterisk in the middle of namespace", func() {
+				_mts, err := mc.GetMetrics(core.NewNamespace("mock", "*", "2"), 0)
+				So(err, ShouldBeNil)
+				// `/mock/*/2 should return only 1 metric: `/mock/test/2`
+				So(len(_mts), ShouldEqual, 1)
+				So(_mts[0].Namespace(), ShouldResemble, core.NewNamespace("mock", "test", "2"))
+			})
+			Convey("get a metricType with specified instance of dynamic metric", func() {
+				_mts, err := mc.GetMetrics(core.NewNamespace("mock", "cgroups", "A", "in"), -1)
+				So(err, ShouldBeNil)
+				So(len(_mts), ShouldEqual, 1)
+				So(_mts[0].Namespace(), ShouldResemble, core.NewNamespace("mock", "cgroups").AddDynamicElement("cgroup_id", "cgroup id").AddStaticElement("in"))
+			})
+			Convey("get all metricTypes for specific instance of dynamic metric", func() {
+				_mts, err := mc.GetMetrics(core.NewNamespace("mock", "cgroups", "A", "*"), -1)
+				So(err, ShouldBeNil)
+				// there are two dynamic metrics in the catalog: `/mock/cgroups/*/in` and /mock/cgroups/*/out`
+				So(len(_mts), ShouldEqual, 2)
+
+			})
+
+			Convey("it returns the latest version", func() {
+				lp2 := new(loadedPlugin)
+				lp2.Meta.Version = 2
+				lp35 := new(loadedPlugin)
+				lp35.Meta.Version = 35
+				m2 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp2)
+				mc.Add(m2)
+				m35 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp35)
+				mc.Add(m35)
+				_mts, err := mc.GetMetrics(core.NewNamespace("foo", "bar"), -1)
+				So(err, ShouldBeNil)
+				So(len(_mts), ShouldEqual, 1)
+				So(_mts[0], ShouldEqual, m35)
+			})
+			Convey("it returns the queried version", func() {
+				lp2 := new(loadedPlugin)
+				lp2.Meta.Version = 2
+				lp35 := new(loadedPlugin)
+				lp35.Meta.Version = 35
+				m2 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp2)
+				mc.Add(m2)
+				m35 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp35)
+				mc.Add(m35)
+				_mts, err := mc.GetMetrics(core.NewNamespace("foo", "bar"), 2)
+				So(err, ShouldBeNil)
+				So(len(_mts), ShouldEqual, 1)
+				So(_mts[0], ShouldEqual, m2)
+			})
+			Convey("it returns metric not found if version doesn't exist", func() {
+				lp2 := new(loadedPlugin)
+				lp2.Meta.Version = 2
+				lp35 := new(loadedPlugin)
+				lp35.Meta.Version = 35
+				m2 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp2)
+				mc.Add(m2)
+				m35 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp35)
+				mc.Add(m35)
+				_, err := mc.GetMetrics(core.NewNamespace("foo", "bar"), 7)
+				So(err.Error(), ShouldContainSubstring, "Metric not found:")
+			})
 		})
 	})
+	Convey("metricCatalog.GetVersions()", t, func() {
+		mc := newMetricCatalog()
+		ts := time.Now()
+		Convey("it returns all avaivailable versions", func() {
+			lp2 := new(loadedPlugin)
+			lp2.Meta.Version = 2
+			lp35 := new(loadedPlugin)
+			lp35.Meta.Version = 35
+			m2 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp2)
+			mc.Add(m2)
+			m35 := newMetricType(core.NewNamespace("foo", "bar"), ts, lp35)
+			mc.Add(m35)
+			_mts, err := mc.GetVersions(core.NewNamespace("foo", "bar"))
+			So(err, ShouldBeNil)
+			// all versions of /foo/bar should be returned
+			So(len(_mts), ShouldEqual, 2)
+		})
+		Convey("it returns metric not found if metricType doesn't exist", func() {
+			_mts, err := mc.GetVersions(core.NewNamespace("foo", "invalid"))
+			So(_mts, ShouldBeEmpty)
+			So(err.Error(), ShouldContainSubstring, "Metric not found:")
+		})
+	})
+
 	Convey("metricCatalog.Next()", t, func() {
 		ns := core.NewNamespace("test")
 		mt := newMetricType(ns, time.Now(), new(loadedPlugin))
@@ -407,8 +355,8 @@ func TestMetricCatalog(t *testing.T) {
 			core.NewNamespace("mock", "cgroups", "*", "in"),
 			core.NewNamespace("mock", "cgroups", "*", "out"),
 		}
-		Convey("removes a metricType from the catalog", func() {
-			// adding metrics to the catalog
+		Convey("remove a metricType from non-empty catalog", func() {
+			// add metrics to the catalog to remove it later
 			mt := []*metricType{}
 			for i, ns := range nss {
 				mt = append(mt, newMetricType(ns, ts, new(loadedPlugin)))
@@ -417,7 +365,7 @@ func TestMetricCatalog(t *testing.T) {
 			Convey("validate adding metrics to the catalog", func() {
 				for _, ns := range nss {
 					// check if metric is in metric catalog
-					_mt, err := mc.Get(ns, -1)
+					_mt, err := mc.GetMetric(ns, -1)
 					So(_mt, ShouldNotBeEmpty)
 					So(err, ShouldBeNil)
 				}
@@ -427,7 +375,7 @@ func TestMetricCatalog(t *testing.T) {
 			mc.Remove(nss[0])
 
 			Convey("validate removing a single metric from the catalog", func() {
-				_mt, err := mc.Get(core.NewNamespace("mock", "test", "1"), -1)
+				_mt, err := mc.GetMetric(core.NewNamespace("mock", "test", "1"), -1)
 				So(_mt, ShouldBeNil)
 				So(err, ShouldNotBeNil)
 
@@ -441,11 +389,78 @@ func TestMetricCatalog(t *testing.T) {
 			Convey("validate removing all metrics from the catalog", func() {
 				for _, ns := range nss {
 					// check if metric is in metric catalog
-					_mt, err := mc.Get(ns, -1)
+					_mt, err := mc.GetMetric(ns, -1)
 					So(_mt, ShouldBeNil)
 					So(err, ShouldNotBeNil)
 					So(err.Error(), ShouldContainSubstring, "Metric not found:")
 				}
+			})
+		})
+	})
+	Convey("metricCatalog.Fetch()", t, func() {
+		mc := newMetricCatalog()
+		ts := time.Now()
+		nss := []core.Namespace{
+			core.NewNamespace("mock", "test", "1"),
+			core.NewNamespace("mock", "test", "2"),
+			core.NewNamespace("mock", "test", "3"),
+			core.NewNamespace("mock", "cgroups", "*", "in"),
+			core.NewNamespace("mock", "cgroups", "*", "out"),
+		}
+		Convey("retrive all metrics types under a given namespace", func() {
+
+			Convey("add metrics types to the catalog", func() {
+				mt := []*metricType{}
+				for i, ns := range nss {
+					mt = append(mt, newMetricType(ns, ts, new(loadedPlugin)))
+					mc.Add(mt[i])
+				}
+				Convey("validate adding metrics to the catalog", func() {
+					for _, ns := range nss {
+						// check if metric is in metric catalog
+						_mt, err := mc.GetMetric(ns, -1)
+						So(_mt, ShouldNotBeEmpty)
+						So(err, ShouldBeNil)
+					}
+				})
+				Convey("fetch a single metric type from the catalog", func() {
+					_mt, err := mc.Fetch(core.NewNamespace("mock", "test", "1"))
+					So(err, ShouldBeNil)
+					So(_mt, ShouldNotBeNil)
+					So(len(_mt), ShouldEqual, 1)
+					So(_mt[0].Namespace(), ShouldResemble, core.NewNamespace("mock", "test", "1"))
+
+				})
+				Convey("fetch a group of metrics types from the catalog", func() {
+					_mts, err := mc.Fetch(core.NewNamespace("mock", "cgroups"))
+					So(err, ShouldBeNil)
+					So(_mts, ShouldNotBeNil)
+					// two metrics types are under /mock/cgroups/
+					So(len(_mts), ShouldEqual, 2)
+				})
+				Convey("fetch all metrics types from the catalog", func() {
+					_mts, err := mc.Fetch(core.NewNamespace())
+					So(err, ShouldBeNil)
+					So(_mts, ShouldNotBeNil)
+					// all the cataloged metrics types should be returned
+					So(len(_mts), ShouldEqual, len(nss))
+				})
+				Convey("try to fetch a metric type from the catalog which not exist", func() {
+					_mts, err := mc.Fetch(core.NewNamespace("mock", "invalid", "name"))
+					So(err, ShouldNotBeNil)
+					So(_mts, ShouldBeEmpty)
+					So(err.Error(), ShouldContainSubstring, "Metrics not found below a given namespace: /mock/invalid/name")
+				})
+				Convey("try to fetch all metrics types from empty catalog", func() {
+					// remove all metrics types from the catalog
+					for _, ns := range nss {
+						mc.Remove(ns)
+					}
+					_mts, err := mc.Fetch(core.NewNamespace())
+					So(err, ShouldNotBeNil)
+					So(_mts, ShouldBeEmpty)
+					So(err.Error(), ShouldContainSubstring, "Metric catalog is empty (no plugin loaded)")
+				})
 			})
 		})
 	})
@@ -478,7 +493,7 @@ func TestSubscribe(t *testing.T) {
 		Convey("then it gets correctly increments the count", func() {
 			err := mc.Subscribe([]string{"test1"}, -1)
 			So(err, ShouldBeNil)
-			m, err2 := mc.Get(core.NewNamespace("test1"), -1)
+			m, err2 := mc.GetMetric(core.NewNamespace("test1"), -1)
 			So(err2, ShouldBeNil)
 			So(m.subscriptions, ShouldEqual, 1)
 		})
@@ -508,7 +523,7 @@ func TestUnsubscribe(t *testing.T) {
 			So(err, ShouldBeNil)
 			err1 := mc.Unsubscribe([]string{"test1"}, -1)
 			So(err1, ShouldBeNil)
-			m, err2 := mc.Get(core.NewNamespace("test1"), -1)
+			m, err2 := mc.GetMetric(core.NewNamespace("test1"), -1)
 			So(err2, ShouldBeNil)
 			So(m.subscriptions, ShouldEqual, 0)
 		})

@@ -28,17 +28,12 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/snap/core/serror"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 type mockCollector struct{}
 
-func (m *mockCollector) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error) {
-	return nil, nil
-}
-
-func (m *mockCollector) ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError) {
+func (m *mockCollector) CollectMetrics([]core.RequestedMetric, *cdata.ConfigDataTree, time.Time, string) ([]core.Metric, []error) {
 	return nil, nil
 }
 

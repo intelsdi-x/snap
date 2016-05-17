@@ -359,6 +359,13 @@ func (ap *availablePlugins) getPool(key string) (strategy.Pool, serror.SnapError
 	return pool, nil
 }
 
+func (ap *availablePlugins) hasPool(key string) bool {
+	if pool, _ := ap.getPool(key); pool != nil {
+		return true
+	}
+	return false
+}
+
 func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.Metric, taskID string) ([]core.Metric, error) {
 	var results []core.Metric
 	pool, serr := ap.getPool(pluginKey)

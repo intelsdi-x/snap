@@ -109,9 +109,9 @@ type managesPlugins interface {
 }
 
 type catalogsMetrics interface {
-	Get(core.Namespace, int) (*metricType, error)
-	GetQueriedNamespaces(core.Namespace) ([]core.Namespace, error)
-	MatchQuery(core.Namespace) ([]core.Namespace, error)
+	GetMetric(core.Namespace, int) (*metricType, error)
+	GetMetrics(core.Namespace, int) ([]*metricType, error)
+	GetMatchedMetricTypes(core.Namespace, int) ([]*metricType, error)
 	Add(*metricType)
 	AddLoadedMetricType(*loadedPlugin, core.Metric) error
 	RmUnloadedPluginMetrics(lp *loadedPlugin)
@@ -448,40 +448,15 @@ func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.Cataloged
 	return nil
 }
 
-// MatchQueryToNamespaces performs the process of matching the 'ns' with namespaces of all cataloged metrics
-func (p *pluginControl) MatchQueryToNamespaces(ns core.Namespace) ([]core.Namespace, serror.SnapError) {
-	// carry out the matching process
-	nss, err := p.metricCatalog.MatchQuery(ns)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-	return nss, nil
-}
-
-// ExpandWildcards returns all matched metrics namespaces with given 'ns'
-// as the results of matching query process which has been done
-func (p *pluginControl) ExpandWildcards(ns core.Namespace) ([]core.Namespace, serror.SnapError) {
-	// retrieve queried namespaces
-	nss, err := p.metricCatalog.GetQueriedNamespaces(ns)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-	return nss, nil
-}
-
-func (p *pluginControl) ValidateDeps(mts []core.Metric, plugins []core.SubscribedPlugin) []serror.SnapError {
+func (p *pluginControl) ValidateDeps(mts []core.Metric, cdt *cdata.ConfigDataTree, plugins []core.SubscribedPlugin) []serror.SnapError {
 	var serrs []serror.SnapError
-	for _, mt := range mts {
-		errs := p.validateMetricTypeSubscription(mt, mt.Config())
-		if len(errs) > 0 {
-			serrs = append(serrs, errs...)
-		}
-	}
-	if len(serrs) > 0 {
-		return serrs
+
+	errs := p.validateMetricsTypeSubscriptions(mts, cdt)
+	if len(errs) > 0 {
+		serrs = append(serrs, errs...)
 	}
 
-	//validate plugins
+	//validate plugins (publishers and processors)
 	for _, plg := range plugins {
 		typ, err := core.ToPluginType(plg.TypeName())
 		if err != nil {
@@ -530,62 +505,80 @@ func (p *pluginControl) validatePluginSubscription(pl core.SubscribedPlugin) []s
 	return serrs
 }
 
-func (p *pluginControl) validateMetricTypeSubscription(mt core.RequestedMetric, cd *cdata.ConfigDataNode) []serror.SnapError {
-	var serrs []serror.SnapError
+// validateMetricTypeSubscription validates the subscription for given requested metric
+func (p *pluginControl) validateMetricTypeSubscription(rmt core.RequestedMetric, cdt *cdata.ConfigDataTree) []serror.SnapError {
+	serrs := []serror.SnapError{}
+
 	controlLogger.WithFields(log.Fields{
 		"_block":    "validate-metric-subscription",
-		"namespace": mt.Namespace(),
-		"version":   mt.Version(),
+		"namespace": rmt.Namespace(),
+		"version":   rmt.Version(),
 	}).Info("subscription called on metric")
 
-	m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
+	// match the requested metric with the cataloged metrics types
+	mts, err := p.metricCatalog.GetMatchedMetricTypes(rmt.Namespace(), rmt.Version())
 
 	if err != nil {
 		serrs = append(serrs, serror.New(err, map[string]interface{}{
-			"name":    mt.Namespace().String(),
-			"version": mt.Version(),
+			"name":    rmt.Namespace().String(),
+			"version": rmt.Version(),
 		}))
 		return serrs
 	}
 
-	// No metric found return error.
-	if m == nil {
-		serrs = append(serrs, serror.New(fmt.Errorf("no metric found cannot subscribe: (%s) version(%d)", mt.Namespace(), mt.Version())))
-		return serrs
+	if cdt == nil {
+		// initialize config tree if nil is provided
+		cdt = cdata.NewTree()
 	}
 
-	m.config = cd
+	for _, m := range mts {
+		config := cdt.Get(m.Namespace().Strings())
 
-	typ, serr := core.ToPluginType(m.Plugin.TypeName())
-	if serr != nil {
-		return []serror.SnapError{serror.New(err)}
-	}
-
-	// merge global plugin config
-	if m.config != nil {
-		m.config.ReverseMerge(p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version()))
-	} else {
-		m.config = p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version())
-	}
-
-	// When a metric is added to the MetricCatalog, the policy of rules defined by the plugin is added to the metric's policy.
-	// If no rules are defined for a metric, we set the metric's policy to an empty ConfigPolicyNode.
-	// Checking m.policy for nil will not work, we need to check if rules are nil.
-	if m.policy.HasRules() {
-		if m.Config() == nil {
-			serrs = append(serrs, serror.New(fmt.Errorf("Policy defined for metric, (%s) version (%d), but no config defined in manifest", mt.Namespace(), mt.Version())))
-			return serrs
+		if config == nil {
+			config = cdata.NewNode()
 		}
-		ncdTable, errs := m.policy.Process(m.Config().Table())
-		if errs != nil && errs.HasErrors() {
-			for _, e := range errs.Errors() {
-				serrs = append(serrs, serror.New(e))
+		m.config = config
+
+		typ, serr := core.ToPluginType(m.Plugin.TypeName())
+		if serr != nil {
+			return []serror.SnapError{serror.New(err)}
+		}
+
+		// merge global plugin config
+		if m.config != nil {
+			m.config.ReverseMerge(p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version()))
+		} else {
+			m.config = p.Config.Plugins.getPluginConfigDataNode(typ, m.Plugin.Name(), m.Plugin.Version())
+		}
+
+		// When a metric is added to the MetricCatalog, the policy of rules defined by the plugin is added to the metric's policy.
+		// If no rules are defined for a metric, we set the metric's policy to an empty ConfigPolicyNode.
+		// Checking m.policy for nil will not work, we need to check if rules are nil.
+		if m.policy.HasRules() {
+
+			ncdTable, errs := m.policy.Process(m.Config().Table())
+			if errs != nil && errs.HasErrors() {
+				for _, e := range errs.Errors() {
+					serrs = append(serrs, serror.New(e))
+				}
+				return serrs
 			}
-			return serrs
+			m.config = cdata.FromTable(*ncdTable)
 		}
-		m.config = cdata.FromTable(*ncdTable)
 	}
 
+	return serrs
+}
+
+// validateMetricsTypeSubscriptions validates subscriptions for all requested metrics
+func (p *pluginControl) validateMetricsTypeSubscriptions(mts []core.Metric, cdt *cdata.ConfigDataTree) []serror.SnapError {
+	var serrs []serror.SnapError
+	for _, mt := range mts {
+		errs := p.validateMetricTypeSubscription(mt, cdt)
+		if len(errs) > 0 {
+			serrs = append(serrs, errs...)
+		}
+	}
 	return serrs
 }
 
@@ -594,37 +587,54 @@ type gatheredPlugin struct {
 	subscriptionType strategy.SubscriptionType
 }
 
-func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]gatheredPlugin, []serror.SnapError) {
+func (p *pluginControl) gatherCollectors(rmts []core.Metric) ([]gatheredPlugin, []serror.SnapError) {
 	var (
 		plugins []gatheredPlugin
 		serrs   []serror.SnapError
 	)
+
 	// here we resolve and retrieve plugins for each metric type.
-	// if the incoming metric type version is < 1, we treat that as
-	// latest as with plugins.  The following two loops create a set
+	// if the requested metric type version is < 1, we treat that as
+	// latest as with plugins.  The following loops create a set
 	// of plugins with proper versions needed to discern the subscription
 	// types.
+
 	colPlugins := make(map[string]gatheredPlugin)
-	for _, mt := range mts {
-		// If the version provided is <1 we will get the latest
-		// plugin for the given metric.
-		m, err := p.metricCatalog.Get(mt.Namespace(), mt.Version())
+
+	for _, rmt := range rmts {
+		// get matched metrics types for requested metrics
+		mts, err := p.metricCatalog.GetMatchedMetricTypes(rmt.Namespace(), rmt.Version())
 		if err != nil {
 			serrs = append(serrs, serror.New(err, map[string]interface{}{
-				"name":    mt.Namespace().String(),
-				"version": mt.Version(),
+				"name":    rmt.Namespace().String(),
+				"version": rmt.Version(),
 			}))
 			continue
 		}
+
 		subType := strategy.BoundSubscriptionType
-		if mt.Version() < 1 {
+		if rmt.Version() < 1 {
 			subType = strategy.UnboundSubscriptionType
 		}
-		colPlugins[fmt.Sprintf("%s:%d", m.Plugin.Key(), subType)] = gatheredPlugin{
-			plugin:           m.Plugin,
-			subscriptionType: subType,
+
+		for _, mt := range mts {
+			lp := mt.Plugin
+
+			if lp == nil {
+				serrs = append(serrs, serror.New(errMetricNotFound, map[string]interface{}{
+					"name":    mt.Namespace().String(),
+					"version": mt.Version(),
+				}))
+				continue
+			}
+
+			colPlugins[fmt.Sprintf("%s:%d", lp.Key(), subType)] = gatheredPlugin{
+				plugin:           lp,
+				subscriptionType: subType,
+			}
 		}
 	}
+
 	if len(serrs) > 0 {
 		return plugins, serrs
 	}
@@ -639,7 +649,7 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]gatheredPlugin, [
 	return plugins, nil
 }
 
-func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
+func (p *pluginControl) subscribeCollectorDeps(taskID string, mts []core.Metric) []serror.SnapError {
 	var serrs []serror.SnapError
 	collectors, errs := p.gatherCollectors(mts)
 	if len(errs) > 0 {
@@ -670,6 +680,17 @@ func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins 
 			serrs = append(serrs, serr)
 		}
 	}
+	return serrs
+}
+
+func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
+	var serrs []serror.SnapError
+
+	errs := p.subscribeCollectorDeps(taskID, mts)
+	if len(errs) > 0 {
+		serrs = append(serrs, errs...)
+	}
+
 	for _, sub := range plugins {
 		// pools are created statically, not with keys like "publisher:foo:-1"
 		// here we check to see if the version of the incoming plugin is -1, and
@@ -870,7 +891,21 @@ func (p *pluginControl) FetchMetrics(ns core.Namespace, version int) ([]core.Cat
 }
 
 func (p *pluginControl) GetMetric(ns core.Namespace, ver int) (core.CatalogedMetric, error) {
-	return p.metricCatalog.Get(ns, ver)
+	return p.metricCatalog.GetMetric(ns, ver)
+}
+
+func (p *pluginControl) GetMetrics(ns core.Namespace, ver int) ([]core.CatalogedMetric, error) {
+	mts, err := p.metricCatalog.GetMetrics(ns, ver)
+	if err != nil {
+		return nil, err
+	}
+
+	rmts := make([]core.CatalogedMetric, len(mts))
+	for i, m := range mts {
+		rmts[i] = m
+	}
+	return rmts, nil
+
 }
 
 func (p *pluginControl) GetMetricVersions(ns core.Namespace) ([]core.CatalogedMetric, error) {
@@ -886,22 +921,79 @@ func (p *pluginControl) GetMetricVersions(ns core.Namespace) ([]core.CatalogedMe
 	return rmts, nil
 }
 
-func (p *pluginControl) MetricExists(mns core.Namespace, ver int) bool {
-	_, err := p.metricCatalog.Get(mns, ver)
+func (p *pluginControl) MetricsExists(mns core.Namespace, ver int) bool {
+	_, err := p.metricCatalog.GetMetric(mns, ver)
 	if err == nil {
 		return true
 	}
 	return false
 }
 
+// gatherMetricTypesGroupedByPlugin gathers matched metrics types for requested metrics and groups them by plugins to call
+func (p *pluginControl) gatherMetricTypesGroupedByPlugin(rmts []core.RequestedMetric, cdt *cdata.ConfigDataTree) (map[string]metricTypes, []error) {
+	pmts := make(map[string]metricTypes)
+	var errs []error
+
+	if cdt == nil {
+		// initialize config tree if nil is provided
+		cdt = cdata.NewTree()
+	}
+
+	for _, rmt := range rmts {
+		// for each requested metric get matched metrics types on appropriate version
+		// (if version < 1 choose the latest)
+		mts, err := p.metricCatalog.GetMatchedMetricTypes(rmt.Namespace(), rmt.Version())
+
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		for _, mt := range mts {
+			lp := mt.Plugin
+			if lp == nil {
+				errs = append(errs, errorMetricNotFound(mt.Namespace().Strings(), mt.Version()))
+				continue
+			}
+
+			// get config
+			config := cdt.Get(mt.Namespace().Strings())
+
+			if config == nil {
+				config = cdata.NewNode()
+			}
+			returnedmt := plugin.MetricType{
+				Namespace_:          mt.Namespace(),
+				LastAdvertisedTime_: mt.LastAdvertisedTime(),
+				Version_:            mt.Version(),
+				Tags_:               mt.Tags(),
+				Config_:             config,
+				Unit_:               mt.Unit(),
+			}
+
+			// group matched metrics by plugin
+			pluginKey := lp.Key()
+			pmt, _ := pmts[pluginKey]
+			pmt.plugin = lp
+			pmt.metricTypes = append(pmt.metricTypes, returnedmt)
+			pmts[pluginKey] = pmt
+
+		}
+
+	}
+
+	return pmts, errs
+}
+
 // CollectMetrics is a blocking call to collector plugins returning a collection
 // of metrics and errors.  If an error is encountered no metrics will be
 // returned.
-func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.Time, taskID string) (metrics []core.Metric, errs []error) {
+func (p *pluginControl) CollectMetrics(rmts []core.RequestedMetric, cdt *cdata.ConfigDataTree, deadline time.Time, taskID string) (metrics []core.Metric, errs []error) {
 
-	pluginToMetricMap, err := groupMetricTypesByPlugin(p.metricCatalog, metricTypes)
-	if err != nil {
-		errs = append(errs, err)
+	// gathers metrics to collect grouped by plugin
+	pluginToMetricMap, errs := p.gatherMetricTypesGroupedByPlugin(rmts, cdt)
+
+	if len(errs) > 0 {
 		return
 	}
 
@@ -911,8 +1003,43 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
+
+		// if plugin does not have a pool, try to make new subscription
+		if !p.pluginRunner.AvailablePlugins().hasPool(pluginKey) {
+			// this happens only when the queried metric in task manifest matches with metrics
+			// from several plugins (e.q. "/intel/*") and during running the task, a new plugin was loaded
+			// and its metrics are below the requested metric's namespace
+
+			// check if metrics policy is fulfilled by task config
+			serrs := p.validateMetricsTypeSubscriptions(pmt.metricTypes, cdt)
+
+			if serrs == nil {
+				serrs = p.subscribeCollectorDeps(taskID, pmt.metricTypes)
+			} else {
+				// metrics policy is not fulfilled
+				controlLogger.WithFields(log.Fields{
+					"_module": "control",
+					"_file":   "control.go",
+					"_block":  "collect-metrics",
+					"plugin":  pluginKey,
+					"task-id": taskID,
+					"error":   serrs,
+				}).Error("additional subscription is invalid")
+			}
+
+			for _, serr := range serrs {
+				errs = append(errs, errors.New(serr.Error()))
+			}
+
+		}
+
+		if len(errs) > 0 {
+			return
+		}
+
 		// merge global plugin config into the config for the metric
 		for _, mt := range pmt.metricTypes {
+
 			if mt.Config() != nil {
 				mt.Config().ReverseMerge(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, pmt.plugin.Name(), pmt.plugin.Version()))
 			}
@@ -1048,39 +1175,4 @@ type metricTypes struct {
 
 func (p *metricTypes) Count() int {
 	return len(p.metricTypes)
-}
-
-// groupMetricTypesByPlugin groups metricTypes by a plugin.Key() and returns appropriate structure
-func groupMetricTypesByPlugin(cat catalogsMetrics, mts []core.Metric) (map[string]metricTypes, serror.SnapError) {
-	pmts := make(map[string]metricTypes)
-	// For each plugin type select a matching available plugin to call
-	for _, incomingmt := range mts {
-		version := incomingmt.Version()
-		if version == 0 {
-			// If the version is not provided we will choose the latest
-			version = -1
-		}
-		catalogedmt, err := cat.Get(incomingmt.Namespace(), version)
-		if err != nil {
-			return nil, serror.New(err)
-		}
-		returnedmt := plugin.MetricType{
-			Namespace_:          catalogedmt.Namespace(),
-			LastAdvertisedTime_: catalogedmt.LastAdvertisedTime(),
-			Version_:            incomingmt.Version(),
-			Tags_:               catalogedmt.Tags(),
-			Config_:             incomingmt.Config(),
-			Unit_:               catalogedmt.Unit(),
-		}
-		lp := catalogedmt.Plugin
-		if lp == nil {
-			return nil, serror.New(errorMetricNotFound(incomingmt.Namespace().String()))
-		}
-		key := lp.Key()
-		pmt, _ := pmts[key]
-		pmt.plugin = lp
-		pmt.metricTypes = append(pmt.metricTypes, returnedmt)
-		pmts[key] = pmt
-	}
-	return pmts, nil
 }

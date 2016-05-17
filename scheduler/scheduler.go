@@ -29,6 +29,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
@@ -71,10 +72,9 @@ type managesMetrics interface {
 	publishesMetrics
 	processesMetrics
 	managesPluginContentTypes
-	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []serror.SnapError
+	ValidateDeps([]core.Metric, *cdata.ConfigDataTree, []core.SubscribedPlugin) []serror.SnapError
 	SubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
 	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
-	MatchQueryToNamespaces(core.Namespace) ([]core.Namespace, serror.SnapError)
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -83,8 +83,7 @@ type managesPluginContentTypes interface {
 }
 
 type collectsMetrics interface {
-	ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError)
-	CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error)
+	CollectMetrics([]core.RequestedMetric, *cdata.ConfigDataTree, time.Time, string) ([]core.Metric, []error)
 }
 
 type publishesMetrics interface {
@@ -204,8 +203,8 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	}
 
 	// validate plugins and metrics
-	mts, plugins := s.gatherMetricsAndPlugins(wf)
-	errs := s.metricManager.ValidateDeps(mts, plugins)
+	mts, cdt, plugins := s.gatherMetricsAndPlugins(wf)
+	errs := s.metricManager.ValidateDeps(mts, cdt, plugins)
 	if len(errs) > 0 {
 		te.errs = append(te.errs, errs...)
 		return nil, te
@@ -355,7 +354,7 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 		}
 	}
 
-	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
+	mts, _, plugins := s.gatherMetricsAndPlugins(t.workflow)
 	cps := returnCorePlugin(plugins)
 	serrs := s.metricManager.SubscribeDeps(t.ID(), mts, cps)
 	if len(serrs) > 0 {
@@ -417,7 +416,7 @@ func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 		}
 	}
 
-	mts, plugins := s.gatherMetricsAndPlugins(t.workflow)
+	mts, _, plugins := s.gatherMetricsAndPlugins(t.workflow)
 	cps := returnCorePlugin(plugins)
 	errs := s.metricManager.UnsubscribeDeps(t.ID(), mts, cps)
 	if len(errs) > 0 {
@@ -563,7 +562,7 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 		}).Debug("event received")
 		// We need to unsubscribe from deps when a task goes disabled
 		task, _ := s.getTask(v.TaskID)
-		mts, plugins := s.gatherMetricsAndPlugins(task.workflow)
+		mts, _, plugins := s.gatherMetricsAndPlugins(task.workflow)
 		cps := returnCorePlugin(plugins)
 		s.metricManager.UnsubscribeDeps(task.ID(), mts, cps)
 		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
@@ -584,30 +583,29 @@ func (s *scheduler) getTask(id string) (*task, error) {
 	return task, nil
 }
 
-func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) ([]core.Metric, []core.SubscribedPlugin) {
+func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) ([]core.Metric, *cdata.ConfigDataTree, []core.SubscribedPlugin) {
 	var (
 		mts     []core.Metric
 		plugins []core.SubscribedPlugin
 	)
 
-	for _, m := range wf.metrics {
-		nss, err := s.metricManager.MatchQueryToNamespaces(m.Namespace())
-		if err != nil {
-			// use metric directly from the workflow
-			nss = []core.Namespace{m.Namespace()}
-		}
+	log.WithFields(log.Fields{
+		"_module": "scheduler",
+		"_file":   "scheduler.go,",
+		"_block":  "gather-metrics-and-plugins",
+	}).Debug("gathering metrics and plugins from workflow")
 
-		for _, ns := range nss {
-			mts = append(mts, &metric{
-				namespace: ns,
-				version:   m.Version(),
-				config:    wf.configTree.Get(ns.Strings()),
-			})
-		}
+	for _, mt := range wf.metrics {
+		mts = append(mts, &metric{
+			namespace: mt.Namespace(),
+			version:   mt.Version(),
+			config:    cdata.NewNode(),
+		})
 	}
+
 	s.walkWorkflow(wf.processNodes, wf.publishNodes, &plugins)
 
-	return mts, plugins
+	return mts, wf.configTree, plugins
 }
 
 func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, plugins *[]core.SubscribedPlugin) {
