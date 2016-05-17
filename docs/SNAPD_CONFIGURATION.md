@@ -30,13 +30,13 @@ In order of precedence (from greatest to least):
 - Default values per configuration setting
 
 ## Usage
-The configuration file is comprised of different sections for each module that the snap daemon can run. Settings specifically for the snap daemon are defined on the top level, along with configuration sections for Control, Scheduler, REST API Server, and Tribe. Below, each section will be detailed in YAML format broken out for each section. A full example configuration file can be seen in YAML or JSON format in examples/configs in the project source.
+The configuration file is comprised of different sections for each module that the Snap daemon can run. Settings specifically for the Snap daemon are defined on the top level, along with configuration sections for Control, Scheduler, REST API Server, and Tribe. Below, each section will be detailed in YAML format broken out for each section. A full example configuration file can be seen in YAML or JSON format in examples/configs in the project source.
 
 ## YAML Example
 When defining a configuration in YAML format, options or sections can be commented out if the value provided will not be different from the default value configured by the system.
 
 ### snapd configuration
-This section comprises of configuration settings that are specific for the snap daemon.
+This section comprises of configuration settings that are specific for the Snap daemon.
 
 ```yaml
 ---
@@ -57,7 +57,7 @@ gomaxprocs: 1
 ```
 
 ### snapd control configurations
-The control section contains settings for configuring the Control module within the snap daemon. These configuration settings are specific for the running of plugins and the plugins section under control allows for passing of plugin specific configuration items to the plugins during a task run.
+The control section contains settings for configuring the Control module within the Snap daemon. These configuration settings are specific for the running of plugins and the plugins section under control allows for passing of plugin specific configuration items to the plugins during a task run.
 
 ```yaml
 control:
@@ -123,7 +123,7 @@ control:
 ```
 
 ### snapd scheduler configurations
-The scheduler section of the configuration file configures settings for the Scheduler module inside the snap daemon.
+The scheduler section of the configuration file configures settings for the Scheduler module inside the Snap daemon.
 
 ```yaml
 scheduler:
@@ -137,7 +137,7 @@ scheduler:
 ```
 
 ### snapd REST API configurations
-The restapi section of the configuration file configures settings for enabling and running the REST API as part of the snap daemon. The snapctl command line tool uses the REST API to manage snapd on a host.
+The restapi section of the configuration file configures settings for enabling and running the REST API as part of the Snap daemon. The snapctl command line tool uses the REST API to manage snapd on a host.
 
 ```yaml
 restapi:
@@ -168,7 +168,7 @@ restapi:
 ```
 
 ### snapd tribe configurations
-The tribe section of the configuration file configures settings for enabling and running tribe as part of the snap daemon.
+The tribe section of the configuration file configures settings for enabling and running tribe as part of the Snap daemon.
 ```yaml
 tribe:
   # enable controls enabling tribe for the snapd instance. Default value is false.

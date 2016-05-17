@@ -63,7 +63,7 @@ create      There are two ways to create a task.
 			   --no-start                   Do not start task on creation [normally started on creation]
 
         	* Note: Start and stop date/time are optional.
-list         list 
+list         list
 start        start <task_id>
 stop         stop <task_id>
 remove       remove <task_id>
@@ -77,13 +77,13 @@ help, h      Shows a list of commands or help for one command
 $ $SNAP_PATH/bin/snapctl plugin command [command options] [arguments...]
 ```
 ```
-load		load <plugin path> 
+load		load <plugin path>
 				--plugin-asc, -a     The armored detached plugin signature file (.asc)
 unload		unload -t <plugin-type> -n <plugin_name> -v <plugin_version>
 				--plugin-type, -t            The plugin type
 			    --plugin-name, -n            The plugin name
 			    --plugin-version, -v '0'     The plugin version
-list		list 
+list		list
 help, h		Shows a list of commands or help for one command
 ```
 #### metric
@@ -103,7 +103,7 @@ Example Usage
 (Log level is set to 1 and signing is turned off for this example.)
 
 ```
-$ $SNAP_PATH/bin/snapd -l 1 -t 0 
+$ $SNAP_PATH/bin/snapd -l 1 -t 0
 ```
 
 1. load a collector plugin

@@ -1,7 +1,7 @@
 Tasks
 =====
 
-A task describes the how, what, and when to do for a __snap__ job.  A task is described in a task _manifest_, which can be either JSON or YAML<sup>1</sup>.
+A task describes the how, what, and when to do for a Snap job.  A task is described in a task _manifest_, which can be either JSON or YAML<sup>1</sup>.
 
 _Skip to the TL;DR example [here](#tldr)_.
 
@@ -12,7 +12,7 @@ The manifest can be divided into two parts: Header and Workflow.
 ```yaml
 ---
   version: 1
-  schedule: 
+  schedule:
     type: "simple"
     interval: "1s"
 ```
@@ -22,8 +22,8 @@ The header contains a version, used to differentiate between versions of the tas
 
 #### Schedule
 
-The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  __snap__ is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, __snap__ has three schedules:
-- **simple schedule** which is described above, 
+The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  Snap is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, Snap has three schedules:
+- **simple schedule** which is described above,
 - **window schedule** which adds a start and stop time,
 - **cron schedule** which supports cron-like entries in ```interval``` field, like in this example (workflow will fire every hour on the half hour):
 ```
@@ -68,14 +68,14 @@ The collect section describes which metrics to collect. Metrics can be enumerate
  - a concrete _namespace_
  - a wildcard, `*`
  - a tuple, `(m1|m2|m3)`
- 
+
 The tuple begins and ends with brackets and items inside are separeted by vertical bar. It works like logical `or`, so it gives an error only if none of these metrics can be collected.
 
-Metrics declared in task manifest | Collected metrics
-----------|----------|-----------
-/intel/mock/\* |  /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz
-/intel/mock/(foo\|bar) |  /intel/mock/foo <br/> /intel/mock/bar <br/>
-/intel/mock/\*/baz |  /intel/mock/\*/baz
+| Metrics declared in task manifest | Collected metrics                                              |                                             |
+|:----------------------------------|:---------------------------------------------------------------|:--------------------------------------------|
+| /intel/mock/\*                    | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz |                                             |
+| /intel/mock/(foo\                 | bar)                                                           | /intel/mock/foo <br/> /intel/mock/bar <br/> |
+| /intel/mock/\*/baz                | /intel/mock/\*/baz                                             |                                             |
 
 The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
 
@@ -85,7 +85,7 @@ The namespaces are keys to another nested object which may contain a specific ve
   version: 4
 ```
 
-If a version is not given, __snap__ will __select__ the latest for you.
+If a version is not given, Snap will __select__ the latest for you.
 
 The config section describes configuration data for metrics.  Since metric namespaces form a tree, config can be described at a branch, and all leaves of that branch will receive the given config.  For example, say a task is going to collect `/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz`, all of which require a username and password to collect.  That config could be described like so:
 
