@@ -24,12 +24,15 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -42,6 +45,7 @@ import (
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/grpc/controlproxy/rpc"
 	"github.com/intelsdi-x/snap/pkg/aci"
 	"github.com/intelsdi-x/snap/pkg/psigning"
 )
@@ -64,7 +68,7 @@ var (
 	ErrLoadedPluginNotFound = errors.New("Loaded plugin not found")
 
 	// ErrControllerNotStarted - error message when the Controller was not started
-	ErrControllerNotStarted = errors.New("Must start Controller before calling Load()")
+	ErrControllerNotStarted = errors.New("Must start Controller before use")
 )
 
 type executablePlugins []plugin.ExecutablePlugin
@@ -236,6 +240,7 @@ func (p *pluginControl) Start() error {
 	controlLogger.WithFields(log.Fields{
 		"_block": "start",
 	}).Info("control started")
+
 	//Autodiscover
 	if p.Config.AutoDiscoverPath != "" {
 		controlLogger.WithFields(log.Fields{
@@ -323,6 +328,23 @@ func (p *pluginControl) Start() error {
 			"_block": "start",
 		}).Info("auto discover path is disabled")
 	}
+
+	lis, err := net.Listen("tcp", fmt.Sprintf("%v:%v", p.Config.ListenAddr, p.Config.ListenPort))
+	if err != nil {
+		controlLogger.WithField("error", err.Error()).Error("Failed to start control grpc listener")
+		return err
+	}
+
+	opts := []grpc.ServerOption{}
+	grpcServer := grpc.NewServer(opts...)
+	rpc.RegisterMetricManagerServer(grpcServer, &ControlGRPCServer{p})
+	go func() {
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			controlLogger.Fatal(err)
+		}
+	}()
+
 	return nil
 }
 
@@ -731,33 +753,35 @@ func (p *pluginControl) gatherCollectors(mts []core.Metric) ([]gatheredPlugin, [
 
 func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
 	var serrs []serror.SnapError
-	collectors, errs := p.gatherCollectors(mts)
-	if len(errs) > 0 {
-		serrs = append(serrs, errs...)
-	}
+	if len(mts) != 0 {
+		collectors, errs := p.gatherCollectors(mts)
+		if len(errs) > 0 {
+			serrs = append(serrs, errs...)
+		}
 
-	for _, gc := range collectors {
-		pool, err := p.pluginRunner.AvailablePlugins().getOrCreatePool(fmt.Sprintf("%s:%s:%d", gc.plugin.TypeName(), gc.plugin.Name(), gc.plugin.Version()))
-		if err != nil {
-			serrs = append(serrs, serror.New(err))
-			return serrs
-		}
-		pool.Subscribe(taskID, gc.subscriptionType)
-		if pool.Eligible() {
-			err = p.verifyPlugin(gc.plugin.(*loadedPlugin))
+		for _, gc := range collectors {
+			pool, err := p.pluginRunner.AvailablePlugins().getOrCreatePool(fmt.Sprintf("%s:%s:%d", gc.plugin.TypeName(), gc.plugin.Name(), gc.plugin.Version()))
 			if err != nil {
 				serrs = append(serrs, serror.New(err))
 				return serrs
 			}
-			err = p.pluginRunner.runPlugin(gc.plugin.(*loadedPlugin).Details)
-			if err != nil {
-				serrs = append(serrs, serror.New(err))
-				return serrs
+			pool.Subscribe(taskID, gc.subscriptionType)
+			if pool.Eligible() {
+				err = p.verifyPlugin(gc.plugin.(*loadedPlugin))
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
+				err = p.pluginRunner.runPlugin(gc.plugin.(*loadedPlugin).Details)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
 			}
-		}
-		serr := p.sendPluginSubscriptionEvent(taskID, gc.plugin)
-		if serr != nil {
-			serrs = append(serrs, serr)
+			serr := p.sendPluginSubscriptionEvent(taskID, gc.plugin)
+			if serr != nil {
+				serrs = append(serrs, serr)
+			}
 		}
 	}
 	for _, sub := range plugins {
@@ -819,7 +843,6 @@ func (p *pluginControl) SubscribeDeps(taskID string, mts []core.Metric, plugins 
 			serrs = append(serrs, serr)
 		}
 	}
-
 	return serrs
 }
 
@@ -988,6 +1011,12 @@ func (p *pluginControl) MetricExists(mns core.Namespace, ver int) bool {
 // of metrics and errors.  If an error is encountered no metrics will be
 // returned.
 func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.Time, taskID string, allTags map[string]map[string]string) (metrics []core.Metric, errs []error) {
+	// If control is not started we don't want tasks to be able to
+	// go through a workflow.
+	if !p.Started {
+		return nil, []error{ErrControllerNotStarted}
+	}
+
 	for ns, nsTags := range allTags {
 		for k, v := range nsTags {
 			log.WithFields(log.Fields{
@@ -1064,6 +1093,11 @@ func (p *pluginControl) CollectMetrics(metricTypes []core.Metric, deadline time.
 
 // PublishMetrics
 func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
+	// If control is not started we don't want tasks to be able to
+	// go through a workflow.
+	if !p.Started {
+		return []error{ErrControllerNotStarted}
+	}
 	// merge global plugin config into the config for this request
 	// without over-writing the task specific config
 	cfg := p.Config.Plugins.getPluginConfigDataNode(core.PublisherPluginType, pluginName, pluginVersion).Table()
@@ -1080,6 +1114,11 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 
 // ProcessMetrics
 func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
+	// If control is not started we don't want tasks to be able to
+	// go through a workflow.
+	if !p.Started {
+		return "", nil, []error{ErrControllerNotStarted}
+	}
 	// merge global plugin config into the config for this request
 	// without over-writing the task specific config
 	cfg := p.Config.Plugins.getPluginConfigDataNode(core.ProcessorPluginType, pluginName, pluginVersion).Table()
