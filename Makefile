@@ -31,3 +31,5 @@ snap:
 install:
 	cp build/bin/snapd /usr/local/bin/
 	cp build/bin/snapctl /usr/local/bin/
+proto:
+	cd $(GOPATH); bash -c "./src/github.com/intelsdi-x/snap/scripts/gen-proto.sh"
