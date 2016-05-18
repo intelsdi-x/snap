@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
+	"github.com/intelsdi-x/snap/pkg/netutil"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -127,7 +128,7 @@ func TestTribeDefaultConfig(t *testing.T) {
 			So(cfg.Enable, ShouldEqual, false)
 		})
 		Convey("BindAddr should be not empty", func() {
-			So(cfg.BindAddr, ShouldEqual, getIP())
+			So(cfg.BindAddr, ShouldEqual, netutil.GetIP())
 		})
 		Convey("BindPort should be 6000", func() {
 			So(cfg.BindPort, ShouldEqual, 6000)
