@@ -47,11 +47,13 @@ func TestTask(t *testing.T) {
 		So(errs, ShouldBeEmpty)
 		c := &mockMetricManager{}
 		c.setAcceptedContentType("rabbitmq", core.PublisherPluginType, 5, []string{plugin.SnapGOBContentType})
-		err := wf.BindPluginContentTypes(c)
+		mgrs := newManagers(c)
+		err := wf.BindPluginContentTypes(&mgrs)
 		So(err, ShouldBeNil)
 		Convey("task + simple schedule", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
-			task := newTask(sch, wf, newWorkManager(), c, emitter)
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
+			So(err, ShouldBeNil)
 			task.Spin()
 			time.Sleep(time.Millisecond * 10) // it is a race so we slow down the test
 			So(task.state, ShouldEqual, core.TaskSpinning)
@@ -61,14 +63,16 @@ func TestTask(t *testing.T) {
 
 		Convey("Task specified-name test", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
-			task := newTask(sch, wf, newWorkManager(), c, emitter, core.SetTaskName("My name is unique"))
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter, core.SetTaskName("My name is unique"))
+			So(err, ShouldBeNil)
 			task.Spin()
 			So(task.GetName(), ShouldResemble, "My name is unique")
 
 		})
 		Convey("Task default-name test", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
-			task := newTask(sch, wf, newWorkManager(), c, emitter)
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
+			So(err, ShouldBeNil)
 			task.Spin()
 			So(task.GetName(), ShouldResemble, "Task-"+task.ID())
 
@@ -76,7 +80,8 @@ func TestTask(t *testing.T) {
 
 		Convey("Task deadline duration test", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
-			task := newTask(sch, wf, newWorkManager(), c, emitter, core.TaskDeadlineDuration(20*time.Second))
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter, core.TaskDeadlineDuration(20*time.Second))
+			So(err, ShouldBeNil)
 			task.Spin()
 			So(task.deadlineDuration, ShouldEqual, 20*time.Second)
 			task.Option(core.TaskDeadlineDuration(20 * time.Second))
@@ -87,8 +92,10 @@ func TestTask(t *testing.T) {
 
 		Convey("Tasks are created and creation of task table is checked", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
-			task := newTask(sch, wf, newWorkManager(), c, emitter)
-			task1 := newTask(sch, wf, newWorkManager(), c, emitter)
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
+			So(err, ShouldBeNil)
+			task1, err := newTask(sch, wf, newWorkManager(), c, emitter)
+			So(err, ShouldBeNil)
 			task1.Spin()
 			task.Spin()
 			tC := newTaskCollection()
@@ -102,7 +109,8 @@ func TestTask(t *testing.T) {
 
 		Convey("Task is created and starts to spin", func() {
 			sch := schedule.NewSimpleSchedule(time.Second * 5)
-			task := newTask(sch, wf, newWorkManager(), c, emitter)
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
+			So(err, ShouldBeNil)
 			task.Spin()
 			So(task.state, ShouldEqual, core.TaskSpinning)
 			Convey("Task is Stopped", func() {
@@ -114,7 +122,8 @@ func TestTask(t *testing.T) {
 
 		Convey("task fires", func() {
 			sch := schedule.NewSimpleSchedule(time.Nanosecond * 100)
-			task := newTask(sch, wf, newWorkManager(), c, emitter)
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
+			So(err, ShouldBeNil)
 			task.Spin()
 			time.Sleep(time.Millisecond * 50)
 			So(task.hitCount, ShouldBeGreaterThan, 2)
@@ -124,19 +133,21 @@ func TestTask(t *testing.T) {
 
 		Convey("Enable a running task", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
-			task := newTask(sch, wf, newWorkManager(), c, emitter)
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
+			So(err, ShouldBeNil)
 			task.Spin()
-			err := task.Enable()
+			err = task.Enable()
 			So(err, ShouldNotBeNil)
 			So(task.State(), ShouldEqual, core.TaskSpinning)
 		})
 
 		Convey("Enable a disabled task", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
-			task := newTask(sch, wf, newWorkManager(), c, emitter)
+			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
+			So(err, ShouldBeNil)
 
 			task.state = core.TaskDisabled
-			err := task.Enable()
+			err = task.Enable()
 			So(err, ShouldBeNil)
 			So(task.State(), ShouldEqual, core.TaskStopped)
 		})
@@ -148,7 +159,8 @@ func TestTask(t *testing.T) {
 		So(errs, ShouldBeEmpty)
 
 		sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
-		task := newTask(sch, wf, newWorkManager(), &mockMetricManager{}, emitter)
+		task, err := newTask(sch, wf, newWorkManager(), &mockMetricManager{}, emitter)
+		So(err, ShouldBeNil)
 		So(task.id, ShouldNotBeEmpty)
 		So(task.id, ShouldNotBeNil)
 		taskCollection := newTaskCollection()
@@ -182,7 +194,8 @@ func TestTask(t *testing.T) {
 			})
 
 			Convey("Create another task and compare the id", func() {
-				task2 := newTask(sch, wf, newWorkManager(), &mockMetricManager{}, emitter)
+				task2, err := newTask(sch, wf, newWorkManager(), &mockMetricManager{}, emitter)
+				So(err, ShouldBeNil)
 				So(task2.id, ShouldNotEqual, task.ID())
 			})
 
