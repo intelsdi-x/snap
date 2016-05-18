@@ -176,6 +176,13 @@ func (c *CollectWorkflowMapNode) GetTags() map[string]map[string]string {
 	return c.Tags
 }
 
+func NewCollectWorkflowMapNode() *CollectWorkflowMapNode {
+	return &CollectWorkflowMapNode{
+		Metrics: make(map[string]metricInfo),
+		Config:  make(map[string]map[string]interface{}),
+	}
+}
+
 // GetConfigTree converts config data for collection node in wmap into a proper cdata.ConfigDataTree
 func (c *CollectWorkflowMapNode) GetConfigTree() (*cdata.ConfigDataTree, error) {
 	cdt := cdata.NewTree()
@@ -229,6 +236,7 @@ type ProcessWorkflowMapNode struct {
 	PublishNodes []PublishWorkflowMapNode `json:"publish,omitempty"yaml:"publish"`
 	// TODO processor config
 	Config map[string]interface{} `json:"config,omitempty"yaml:"config"`
+	Target string                 `json:"target"yaml:"target"`
 }
 
 func NewProcessNode(name string, version int) *ProcessWorkflowMapNode {
@@ -270,6 +278,7 @@ type PublishWorkflowMapNode struct {
 	Version int    `json:"plugin_version"yaml:"plugin_version"`
 	// TODO publisher config
 	Config map[string]interface{} `json:"config,omitempty"yaml:"config"`
+	Target string                 `json:"target"yaml:"target"`
 }
 
 func NewPublishNode(name string, version int) *PublishWorkflowMapNode {

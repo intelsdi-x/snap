@@ -139,6 +139,7 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 			name:         p.Name,
 			version:      p.Version,
 			config:       cdn,
+			Target:       p.Target,
 			ProcessNodes: prC,
 			PublishNodes: puC,
 		}
@@ -163,6 +164,7 @@ func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error
 			name:    p.Name,
 			version: p.Version,
 			config:  cdn,
+			Target:  p.Target,
 		}
 	}
 	return puNodes, nil
@@ -186,6 +188,7 @@ type processNode struct {
 	name               string
 	version            int
 	config             *cdata.ConfigDataNode
+	Target             string
 	ProcessNodes       []*processNode
 	PublishNodes       []*publishNode
 	InboundContentType string
@@ -211,6 +214,7 @@ type publishNode struct {
 	name               string
 	version            int
 	config             *cdata.ConfigDataNode
+	Target             string
 	InboundContentType string
 }
 
@@ -233,12 +237,16 @@ func (p *publishNode) TypeName() string {
 type wfContentTypes map[string]map[string][]string
 
 // BindPluginContentTypes
-func (s *schedulerWorkflow) BindPluginContentTypes(mm managesPluginContentTypes) error {
-	return bindPluginContentTypes(s.publishNodes, s.processNodes, mm, []string{plugin.SnapGOBContentType})
+func (s *schedulerWorkflow) BindPluginContentTypes(mgrs *managers) error {
+	return bindPluginContentTypes(s.publishNodes, s.processNodes, []string{plugin.SnapGOBContentType}, mgrs)
 }
 
-func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPluginContentTypes, lct []string) error {
+func bindPluginContentTypes(pus []*publishNode, prs []*processNode, lct []string, mgrs *managers) error {
 	for _, pr := range prs {
+		mm, err := mgrs.Get(pr.Target)
+		if err != nil {
+			return err
+		}
 		act, rct, err := mm.GetPluginContentTypes(pr.Name(), core.ProcessorPluginType, pr.Version())
 		if err != nil {
 			return err
@@ -273,11 +281,15 @@ func bindPluginContentTypes(pus []*publishNode, prs []*processNode, mm managesPl
 			}
 		}
 		//continue the walk down the nodes
-		if err := bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, mm, rct); err != nil {
+		if err := bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, rct, mgrs); err != nil {
 			return err
 		}
 	}
 	for _, pu := range pus {
+		mm, err := mgrs.Get(pu.Target)
+		if err != nil {
+			return err
+		}
 		act, _, err := mm.GetPluginContentTypes(pu.Name(), core.PublisherPluginType, pu.Version())
 		if err != nil {
 			return err
@@ -392,7 +404,20 @@ func submitProcessJob(pj job, t *task, wg *sync.WaitGroup, pr *processNode) {
 	// Decrement the waitgroup
 	defer wg.Done()
 	// Create a new process job
-	j := newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), t.metricsManager, t.id)
+	mgr, err := t.RemoteManagers.Get(pr.Target)
+	if err != nil {
+		t.RecordFailure([]error{err})
+		workflowLogger.WithFields(log.Fields{
+			"_block":           "submit-prblish-job",
+			"task-id":          t.id,
+			"task-name":        t.name,
+			"prblish-name":     pr.Name(),
+			"prblish-version":  pr.Version(),
+			"parent-node-type": pj.TypeString(),
+		}).Warn("Error getting control instance")
+		return
+	}
+	j := newProcessJob(pj, pr.Name(), pr.Version(), pr.InboundContentType, pr.config.Table(), mgr, t.id)
 	workflowLogger.WithFields(log.Fields{
 		"_block":           "submit-process-job",
 		"task-id":          t.id,
@@ -434,7 +459,20 @@ func submitPublishJob(pj job, t *task, wg *sync.WaitGroup, pu *publishNode) {
 	// Decrement the waitgroup
 	defer wg.Done()
 	// Create a new process job
-	j := newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), t.metricsManager, t.id)
+	mgr, err := t.RemoteManagers.Get(pu.Target)
+	if err != nil {
+		t.RecordFailure([]error{err})
+		workflowLogger.WithFields(log.Fields{
+			"_block":           "submit-publish-job",
+			"task-id":          t.id,
+			"task-name":        t.name,
+			"publish-name":     pu.Name(),
+			"publish-version":  pu.Version(),
+			"parent-node-type": pj.TypeString(),
+		}).Warn("Error getting control instance")
+		return
+	}
+	j := newPublishJob(pj, pu.Name(), pu.Version(), pu.InboundContentType, pu.config.Table(), mgr, t.id)
 	workflowLogger.WithFields(log.Fields{
 		"_block":           "submit-publish-job",
 		"task-id":          t.id,

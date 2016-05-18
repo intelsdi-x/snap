@@ -22,6 +22,8 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -31,6 +33,7 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
@@ -80,10 +83,11 @@ type task struct {
 	lastFailureTime    time.Time
 	stopOnFailure      uint
 	eventEmitter       gomit.Emitter
+	RemoteManagers     managers
 }
 
 //NewTask creates a Task
-func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm managesMetrics, emitter gomit.Emitter, opts ...core.TaskOption) *task {
+func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm managesMetrics, emitter gomit.Emitter, opts ...core.TaskOption) (*task, error) {
 
 	//Task would always be given a default name.
 	//However if a user want to change this name, she can pass optional arguments, in form of core.TaskOption
@@ -92,6 +96,11 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 	taskID := uuid.New()
 	name := fmt.Sprintf("Task-%s", taskID)
 	wf.eventEmitter = emitter
+	mgrs := newManagers(mm)
+	err := createTaskClients(&mgrs, wf)
+	if err != nil {
+		return nil, err
+	}
 	task := &task{
 		id:               taskID,
 		name:             name,
@@ -105,12 +114,13 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 		deadlineDuration: DefaultDeadlineDuration,
 		stopOnFailure:    DefaultStopOnFailure,
 		eventEmitter:     emitter,
+		RemoteManagers:   mgrs,
 	}
 	//set options
 	for _, opt := range opts {
 		opt(task)
 	}
-	return task
+	return task, nil
 }
 
 // Option sets the options specified.
@@ -444,4 +454,53 @@ func (t *taskCollection) Table() map[string]*task {
 		tasks[id] = t
 	}
 	return tasks
+}
+
+// createTaskClients walks the workflowmap and creates clients for this task
+// remoteManagers so that nodes that require proxy request can make them.
+func createTaskClients(mgrs *managers, wf *schedulerWorkflow) error {
+	return walkWorkflow(wf.processNodes, wf.publishNodes, mgrs)
+}
+
+func walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, mgrs *managers) error {
+	for _, pr := range prnodes {
+		if pr.Target != "" {
+			host, port, err := net.SplitHostPort(pr.Target)
+			if err != nil {
+				return err
+			}
+			p, err := strconv.Atoi(port)
+			if err != nil {
+				return err
+			}
+			proxy, err := controlproxy.New(host, p)
+			if err != nil {
+				return err
+			}
+			mgrs.Add(pr.Target, proxy)
+		}
+		err := walkWorkflow(pr.ProcessNodes, pr.PublishNodes, mgrs)
+		if err != nil {
+			return err
+		}
+
+	}
+	for _, pu := range pbnodes {
+		if pu.Target != "" {
+			host, port, err := net.SplitHostPort(pu.Target)
+			if err != nil {
+				return err
+			}
+			p, err := strconv.Atoi(port)
+			if err != nil {
+				return err
+			}
+			proxy, err := controlproxy.New(host, p)
+			if err != nil {
+				return err
+			}
+			mgrs.Add(pu.Target, proxy)
+		}
+	}
+	return nil
 }
