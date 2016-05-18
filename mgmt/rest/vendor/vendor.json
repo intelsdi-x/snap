@@ -1,0 +1,20 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"comment": "v0.1-70-gc7477ad",
+			"path": "github.com/codegangsta/negroni",
+			"revision": "c7477ad8e330bef55bf1ebe300cf8aa67c492d1b"
+		},
+		{
+			"path": "github.com/julienschmidt/httprouter",
+			"revision": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
+		},
+		{
+			"path": "gopkg.in/yaml.v2",
+			"revision": "c1cd2254a6dd314c9d73c338c12688c9325d85c6"
+		}
+	],
+	"rootPath": "github.com/intelsdi-x/snap/mgmt/rest"
+}
