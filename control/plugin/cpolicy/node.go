@@ -78,13 +78,9 @@ func (c *ConfigPolicyNode) UnmarshalJSON(data []byte) error {
 	if err := decoder.Decode(&m); err != nil {
 		return err
 	}
-	if n, ok := m["PolicyNode"]; ok {
-		if pn, ok := n.(map[string]interface{}); ok {
-			if rs, ok := pn["rules"]; ok {
-				if rules, ok := rs.(map[string]interface{}); ok {
-					addRulesToConfigPolicyNode(rules, c)
-				}
-			}
+	if rs, ok := m["rules"]; ok {
+		if rules, ok := rs.(map[string]interface{}); ok {
+			addRulesToConfigPolicyNode(rules, c)
 		}
 	}
 	return nil
