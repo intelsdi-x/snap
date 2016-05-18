@@ -264,7 +264,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 					runnerLog.WithFields(log.Fields{
 						"_block":  "handle-events",
 						"aplugin": v.String,
-					}).Error(err.Error())
+					}).Error(e.Error())
 					return
 				}
 				pool.IncRestartCount()
@@ -341,7 +341,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			if e != nil {
 				runnerLog.WithFields(log.Fields{
 					"_block": "handle-events",
-				}).Error(err.Error())
+				}).Error(e.Error())
 				return
 			}
 		}
@@ -451,7 +451,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			if e != nil {
 				runnerLog.WithFields(log.Fields{
 					"_block": "handle-events",
-				}).Error(err.Error())
+				}).Error(e.Error())
 				return
 			}
 			runnerLog.WithFields(log.Fields{
