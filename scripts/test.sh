@@ -46,10 +46,10 @@ go get golang.org/x/tools/cmd/cover
 
 # Automatic checks
 echo "gofmt"
-test -z "$(gofmt -s -l -d $TEST_DIRS | tee /dev/stderr)"
+test -z "$(gofmt -s -l -d $(find . -type f -name '*.go' -not -path "*/vendor/*") | tee /dev/stderr)"
 
 echo "goimports"
-test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"
+test -z "$(goimports -l -d $(find . -type f -name '*.go' -not -path "*/vendor/*") | tee /dev/stderr)"
 
 # Useful but should not fail on link per: https://github.com/golang/lint
 # "The suggestions made by golint are exactly that: suggestions. Golint is not perfect,
