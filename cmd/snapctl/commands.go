@@ -147,6 +147,7 @@ var (
 					Flags: []cli.Flag{
 						flMetricVersion,
 						flMetricNamespace,
+						flVerbose,
 					},
 				},
 				{

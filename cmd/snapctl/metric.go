@@ -29,11 +29,13 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
 func listMetrics(ctx *cli.Context) {
 	ns := ctx.String("metric-namespace")
 	ver := ctx.Int("metric-version")
+	verbose := ctx.Bool("verbose")
 	if ns != "" {
 		//if the user doesn't provide '/*' we fix it
 		if ns[len(ns)-2:] != "/*" {
@@ -58,6 +60,22 @@ func listMetrics(ctx *cli.Context) {
 		/intel/mock/bar         1
 	*/
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
+
+	if verbose {
+
+		//	NAMESPACE                VERSION         UNIT          DESCRIPTION
+		//	/intel/mock/foo          1
+		//      /intel/mock/foo          2               mock unit     mock description
+		//      /intel/mock/[host]/baz   2               mock unit     mock description
+
+		printFields(w, false, 0, "NAMESPACE", "VERSION", "UNIT", "DESCRIPTION")
+		for _, mt := range mts.Catalog {
+			namespace := getNamespace(mt)
+			printFields(w, false, 0, namespace, mt.Version, mt.Unit, mt.Description)
+		}
+		w.Flush()
+		return
+	}
 	metsByVer := make(map[string][]string)
 	for _, mt := range mts.Catalog {
 		metsByVer[mt.Namespace] = append(metsByVer[mt.Namespace], strconv.Itoa(mt.Version))
@@ -104,14 +122,49 @@ func getMetric(ctx *cli.Context) {
 		     portRange   int                             false        9000      10000
 	*/
 
+	namespace := getNamespace(metric.Metric)
+
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
-	printFields(w, false, 0, "NAMESPACE", "VERSION", "LAST ADVERTISED TIME")
-	printFields(w, false, 0, metric.Metric.Namespace, metric.Metric.Version, time.Unix(metric.Metric.LastAdvertisedTimestamp, 0).Format(time.RFC1123))
+	printFields(w, false, 0, "NAMESPACE", "VERSION", "UNIT", "LAST ADVERTISED TIME", "DESCRIPTION")
+	printFields(w, false, 0, namespace, metric.Metric.Version, metric.Metric.Unit, time.Unix(metric.Metric.LastAdvertisedTimestamp, 0).Format(time.RFC1123), metric.Metric.Description)
 	w.Flush()
-	fmt.Printf("\n  Rules for collecting %s:\n\n", metric.Metric.Namespace)
+	if metric.Metric.Dynamic {
+
+		//	NAMESPACE                VERSION     UNIT        LAST ADVERTISED TIME            DESCRIPTION
+		//	/intel/mock/[host]/baz   2           mock unit   Wed, 09 Sep 2015 10:01:04 PDT   mock description
+		//
+		//	  Dynamic elements of namespace: /intel/mock/[host]/baz
+		//
+		//           NAME        DESCRIPTION
+		//           host        name of the host
+		//
+		//	  Rules for collecting /intel/mock/[host]/baz:
+		//
+		//	     NAME        TYPE            DEFAULT         REQUIRED     MINIMUM   MAXIMUM
+
+		fmt.Printf("\n  Dynamic elements of namespace: %s\n\n", namespace)
+		printFields(w, true, 6, "NAME", "DESCRIPTION")
+		for _, v := range metric.Metric.DynamicElements {
+			printFields(w, true, 6, v.Name, v.Description)
+		}
+		w.Flush()
+	}
+	fmt.Printf("\n  Rules for collecting %s:\n\n", namespace)
 	printFields(w, true, 6, "NAME", "TYPE", "DEFAULT", "REQUIRED", "MINIMUM", "MAXIMUM")
 	for _, rule := range metric.Metric.Policy {
 		printFields(w, true, 6, rule.Name, rule.Type, rule.Default, rule.Required, rule.Minimum, rule.Maximum)
 	}
 	w.Flush()
+}
+
+func getNamespace(mt *rbody.Metric) string {
+	ns := mt.Namespace
+	if mt.Dynamic {
+		slice := strings.Split(ns, "/")
+		for _, v := range mt.DynamicElements {
+			slice[v.Index+1] = "[" + v.Name + "]"
+		}
+		ns = strings.Join(slice, "/")
+	}
+	return ns
 }
