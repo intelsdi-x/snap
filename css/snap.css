@@ -20,12 +20,64 @@
     border-image: linear-gradient(45deg, #0071C5, #0071C5);
     background: linear-gradient(45deg, #0071C5, #0071C5); 
 }
+/*
+.top-bar {
+  background-color: #838383;
+}
+  .top-bar ul {
+  background-color: #838383; }
+    .top-bar ul li {
+  background-color: #838383; }
+      .top-bar ul li a {
+        color: #808080 }
+
+*/
+.main-content{
+  /*margin-top: 20px;
+  margin-bottom: 20px;
+  margin: 20px;
+  */
+  padding-left: 30px;
+      border-left: 2px solid #838383;
+
+}
+.main-content img{
+  height: 400px;
 
 
+}
+.side-links{
+  /*border: 2px solid #838383;*/
+/*border-right: 2px solid #838383;*/
+
+
+}
+
+.side-links ul li{
+/*  margin: 50px;
+  margin-top: 50px;
+  margin-bottom: 50px;*/
+  text-align: right;
+}
+
+
+.side-links p{
+/*  margin: 20px;
+  margin-top: 50px;
+  margin-bottom: 50px;*/
+  text-align: right;
+}
+
+.side-links p a{
+  color: #838383;
+}
+
+
+.side-links p a:hover {
+  color: #0071C5;
+}
 
 .top-bar {
-  /*padding-top: 1rem;
-  padding-bottom: 1rem;*/
   background: #fff; }
   .top-bar ul {
     background: #fff; }
@@ -92,5 +144,4 @@
 .table-striped-background{
   background-color: transparent;
 }
-
 
