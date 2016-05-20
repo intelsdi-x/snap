@@ -21,7 +21,15 @@ default:
 deps:
 	bash -c "./scripts/deps.sh"
 test:
-	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh"
+	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh $(SNAP_TEST_TYPE)"
+test-legacy:
+	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh legacy"
+test-small:
+	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh small"
+test-medium:
+	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh medium"
+test-large:
+	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh large"
 check:
 	$(MAKE) test
 all:
