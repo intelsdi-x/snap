@@ -372,6 +372,7 @@ func (p *pool) SelectAP(taskID string, config map[string]ctypes.ConfigValue) (Av
 }
 
 func idFromCfg(cfg map[string]ctypes.ConfigValue) string {
+	//TODO: check for nil map
 	var buff bytes.Buffer
 	enc := gob.NewEncoder(&buff)
 	err := enc.Encode(cfg)

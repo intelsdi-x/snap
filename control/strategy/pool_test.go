@@ -1,3 +1,5 @@
+// +build small
+
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
@@ -26,6 +28,8 @@ import (
 
 	"github.com/intelsdi-x/snap/control/plugin"
 	. "github.com/intelsdi-x/snap/control/strategy/fixtures"
+	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/core/serror"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -207,6 +211,80 @@ func TestPoolEligibility(t *testing.T) {
 						})
 				}
 			})
+		})
+	})
+}
+
+func TestPoolSelectAPDefaultRouter(t *testing.T) {
+	Convey("For plugin defined with default strategy", t, func() {
+		plugin := NewMockAvailablePlugin().WithStrategy(plugin.DefaultRouting)
+		pool, _ := NewPool(plugin.String(), plugin)
+
+		Convey("Then AvailablePlugin is selected", func() {
+			ap, err := pool.SelectAP("TaskID", nil)
+			So(ap, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+		})
+	})
+}
+
+func TestPoolSelectAPConfigRouter(t *testing.T) {
+	Convey("Given task id and configuration", t, func() {
+		cfg := map[string]ctypes.ConfigValue{"foo": ctypes.ConfigValueStr{"bar"}}
+		otherCfg := map[string]ctypes.ConfigValue{"foo": ctypes.ConfigValueStr{"baz"}}
+
+		Convey("When plugin is defined with config based strategy", func() {
+			plugin := NewMockAvailablePlugin().WithStrategy(plugin.ConfigRouting)
+			pool, _ := NewPool(plugin.String(), plugin)
+
+			Convey("Then given routering is handled", func() {
+				ap, err := pool.SelectAP("TaskID", cfg)
+				So(ap, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+
+				ap, err = pool.SelectAP("AnotherTaskID", cfg)
+				So(ap, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+				So(ap, ShouldEqual, plugin)
+
+				ap, err = pool.SelectAP("YetAnotherTaskID", otherCfg)
+				So(ap, ShouldBeNil)
+				So(err, ShouldResemble, serror.New(ErrCouldNotSelect))
+			})
+		})
+
+		Convey("When another plugin is defined with config based strategy", func() {
+			plugin := NewMockAvailablePlugin().WithStrategy(plugin.ConfigRouting)
+			pool, _ := NewPool(plugin.String(), plugin)
+
+			Convey("With empty config, for some task, then routing is handled", func() {
+				ap, err := pool.SelectAP("TaskID", map[string]ctypes.ConfigValue{})
+				So(ap, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
+		})
+	})
+}
+
+func TestPoolSelectAPStickyRouter(t *testing.T) {
+	Convey("For plugin defined with sticky strategy", t, func() {
+		plugin := NewMockAvailablePlugin().WithStrategy(plugin.StickyRouting)
+		pool, _ := NewPool(plugin.String(), plugin)
+
+		Convey("With empty config, for some task, routering is handled", func() {
+			ap1, err := pool.SelectAP("TaskID", nil)
+			So(ap1, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+
+			cfg := map[string]ctypes.ConfigValue{"foo": ctypes.ConfigValueStr{"bar"}}
+			ap2, err := pool.SelectAP("TaskID", cfg)
+			So(ap2, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+			So(ap2, ShouldEqual, ap1)
+
+			ap3, err := pool.SelectAP("AnotherTaskID", nil)
+			So(ap3, ShouldBeNil)
+			So(err, ShouldResemble, serror.New(ErrCouldNotSelect))
 		})
 	})
 }

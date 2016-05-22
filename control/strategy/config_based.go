@@ -29,7 +29,7 @@ import (
 	"time"
 )
 
-// config-based provides a strategy that ... concurrency count is 1
+// config-based provides a strategy that selects plugin based on given config
 type configBased struct {
 	plugins     map[string]AvailablePlugin
 	metricCache map[string]*cache
