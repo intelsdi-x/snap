@@ -28,27 +28,30 @@ import (
 	"github.com/intelsdi-x/snap/core"
 )
 
+type MapAvailablePlugin map[uint32]AvailablePlugin
+
 var (
 	ErrCouldNotSelect = errors.New("could not select a plugin")
 )
 
-type SelectablePlugin interface {
-	HitCount() int
-	LastHit() time.Time
-	String() string
-	Kill(r string) error
-	ID() uint32
-}
-
 type RoutingAndCaching interface {
-	Select(selectablePlugins []SelectablePlugin, taskID string) (SelectablePlugin, error)
-	Remove(selectablePlugins []SelectablePlugin, taskID string) (SelectablePlugin, error)
-	CheckCache(metrics []core.Metric, taskID string) ([]core.Metric, []core.Metric)
-	UpdateCache(metrics []core.Metric, taskID string)
-	CacheHits(ns string, ver int, taskID string) (uint64, error)
-	CacheMisses(ns string, ver int, taskID string) (uint64, error)
+	Select(availablePlugins []AvailablePlugin, id string) (AvailablePlugin, error)
+	Remove(availablePlugins []AvailablePlugin, id string) (AvailablePlugin, error)
+	CheckCache(metrics []core.Metric, id string) ([]core.Metric, []core.Metric)
+	UpdateCache(metrics []core.Metric, id string)
+	CacheHits(ns string, ver int, id string) (uint64, error)
+	CacheMisses(ns string, ver int, id string) (uint64, error)
 	AllCacheHits() uint64
 	AllCacheMisses() uint64
 	CacheTTL(taskID string) (time.Duration, error)
 	String() string
+}
+
+// Values returns slice of map values
+func (sm MapAvailablePlugin) Values() []AvailablePlugin {
+	values := []AvailablePlugin{}
+	for _, v := range sm {
+		values = append(values, v)
+	}
+	return values
 }

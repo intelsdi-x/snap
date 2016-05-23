@@ -35,7 +35,7 @@ var (
 
 // sticky provides a stragey that ... concurrency count is 1
 type sticky struct {
-	plugins     map[string]SelectablePlugin
+	plugins     map[string]AvailablePlugin
 	metricCache map[string]*cache
 	logger      *log.Entry
 	cacheTTL    time.Duration
@@ -44,7 +44,7 @@ type sticky struct {
 func NewSticky(cacheTTL time.Duration) *sticky {
 	return &sticky{
 		metricCache: make(map[string]*cache),
-		plugins:     make(map[string]SelectablePlugin),
+		plugins:     make(map[string]AvailablePlugin),
 		cacheTTL:    cacheTTL,
 		logger: log.WithFields(log.Fields{
 			"_module": "control-routing",
@@ -53,22 +53,22 @@ func NewSticky(cacheTTL time.Duration) *sticky {
 }
 
 // Select selects an available plugin using the sticky plugin strategy.
-func (s *sticky) Select(spa []SelectablePlugin, taskID string) (SelectablePlugin, error) {
-	if sp, ok := s.plugins[taskID]; ok && sp != nil {
-		return sp, nil
+func (s *sticky) Select(aps []AvailablePlugin, taskID string) (AvailablePlugin, error) {
+	if ap, ok := s.plugins[taskID]; ok && ap != nil {
+		return ap, nil
 	}
-	return s.selectPlugin(spa, taskID)
+	return s.selectPlugin(aps, taskID)
 }
 
 // Remove selects a plugin and and removes it from the cache
-func (s *sticky) Remove(sp []SelectablePlugin, taskID string) (SelectablePlugin, error) {
-	p, err := s.Select(sp, taskID)
+func (s *sticky) Remove(aps []AvailablePlugin, taskID string) (AvailablePlugin, error) {
+	ap, err := s.Select(aps, taskID)
 	if err != nil {
 		return nil, err
 	}
 	delete(s.metricCache, taskID)
 	delete(s.plugins, taskID)
-	return p, nil
+	return ap, nil
 }
 
 // String returns the strategy name.
@@ -134,23 +134,23 @@ func (s *sticky) CacheMisses(ns string, version int, taskID string) (uint64, err
 	return 0, ErrCacheDoesNotExist
 }
 
-func (s *sticky) selectPlugin(sp []SelectablePlugin, taskID string) (SelectablePlugin, error) {
-	for _, p := range sp {
+func (s *sticky) selectPlugin(aps []AvailablePlugin, taskID string) (AvailablePlugin, error) {
+	for _, ap := range aps {
 		available := true
 		for _, busyPlugin := range s.plugins {
-			if p == busyPlugin {
+			if ap == busyPlugin {
 				available = false
 			}
 		}
 		if available {
-			s.plugins[taskID] = p
-			return p, nil
+			s.plugins[taskID] = ap
+			return ap, nil
 		}
 	}
 	s.logger.WithFields(log.Fields{
 		"_block":   "findAvailablePlugin",
 		"strategy": s.String(),
-		"error":    fmt.Sprintf("%v of %v plugins are available", len(sp)-len(s.plugins), len(sp)),
+		"error":    fmt.Sprintf("%v of %v plugins are available", len(aps)-len(s.plugins), len(aps)),
 	}).Error(ErrCouldNotSelect)
 	return nil, ErrCouldNotSelect
 }

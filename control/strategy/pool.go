@@ -20,6 +20,8 @@ limitations under the License.
 package strategy
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"strconv"
 	"strings"
@@ -31,6 +33,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 )
 
@@ -62,11 +65,11 @@ type Pool interface {
 	Insert(a AvailablePlugin) error
 	Kill(id uint32, reason string)
 	MoveSubscriptions(to Pool) []subscription
-	Plugins() map[uint32]AvailablePlugin
+	Plugins() MapAvailablePlugin
 	RLock()
 	RUnlock()
 	SelectAndKill(taskID, reason string)
-	SelectAP(taskID string) (SelectablePlugin, serror.SnapError)
+	SelectAP(taskID string, configID map[string]ctypes.ConfigValue) (AvailablePlugin, serror.SnapError)
 	Strategy() RoutingAndCaching
 	Subscribe(taskID string, subType SubscriptionType)
 	SubscriptionCount() int
@@ -112,7 +115,7 @@ type pool struct {
 	// The plugins in the pool.
 	// the primary key is an increasing --> uint from
 	// snapd epoch (`service snapd start`).
-	plugins    map[uint32]AvailablePlugin
+	plugins    MapAvailablePlugin
 	pidCounter uint32
 
 	// The max size which this pool may grow.
@@ -140,8 +143,8 @@ func NewPool(key string, plugins ...AvailablePlugin) (Pool, error) {
 		RWMutex:          &sync.RWMutex{},
 		version:          ver,
 		key:              key,
-		subs:             make(map[string]*subscription),
-		plugins:          make(map[uint32]AvailablePlugin),
+		subs:             map[string]*subscription{},
+		plugins:          MapAvailablePlugin{},
 		max:              MaximumRunningPlugins,
 		concurrencyCount: 1,
 	}
@@ -161,7 +164,7 @@ func (p *pool) Version() int {
 }
 
 // Plugins returns a map of plugin ids to the AvailablePlugin
-func (p *pool) Plugins() map[uint32]AvailablePlugin {
+func (p *pool) Plugins() MapAvailablePlugin {
 	return p.plugins
 }
 
@@ -227,6 +230,8 @@ func (p *pool) applyPluginMeta(a AvailablePlugin) error {
 	case plugin.StickyRouting:
 		p.RoutingAndCaching = NewSticky(cacheTTL)
 		p.concurrencyCount = 1
+	case plugin.ConfigRouting:
+		p.RoutingAndCaching = NewConfigBased(cacheTTL)
 	default:
 		return ErrBadStrategy
 	}
@@ -292,25 +297,19 @@ func (p *pool) Kill(id uint32, reason string) {
 }
 
 // SelectAndKill selects, kills and removes the available plugin from the pool
-func (p *pool) SelectAndKill(taskID, reason string) {
-	sp := make([]SelectablePlugin, p.Count())
-	i := 0
-	for _, plg := range p.plugins {
-		sp[i] = plg
-		i++
-	}
-	rp, err := p.Remove(sp, taskID)
+func (p *pool) SelectAndKill(id, reason string) {
+	rp, err := p.Remove(p.plugins.Values(), id)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"_block": "selectAndKill",
-			"taskID": taskID,
+			"taskID": id,
 			"reason": reason,
 		}).Error(err)
 	}
 	if err := rp.Kill(reason); err != nil {
 		log.WithFields(log.Fields{
 			"_block": "selectAndKill",
-			"taskID": taskID,
+			"taskID": id,
 			"reason": reason,
 		}).Error(err)
 	}
@@ -347,21 +346,40 @@ func (p *pool) SubscriptionCount() int {
 }
 
 // SelectAP selects an available plugin from the pool
-func (p *pool) SelectAP(taskID string) (SelectablePlugin, serror.SnapError) {
+func (p *pool) SelectAP(taskID string, config map[string]ctypes.ConfigValue) (AvailablePlugin, serror.SnapError) {
 	p.RLock()
 	defer p.RUnlock()
 
-	sp := make([]SelectablePlugin, p.Count())
-	i := 0
-	for _, plg := range p.plugins {
-		sp[i] = plg
-		i++
+	aps := p.plugins.Values()
+
+	var id string
+	switch p.Strategy().String() {
+	case "least-recently-used":
+		id = ""
+	case "sticky":
+		id = taskID
+	case "config-based":
+		id = idFromCfg(config)
+	default:
+		return nil, serror.New(ErrBadStrategy)
 	}
-	sap, err := p.Select(sp, taskID)
-	if err != nil || sap == nil {
+
+	ap, err := p.Select(aps, id)
+	if err != nil {
 		return nil, serror.New(err)
 	}
-	return sap, nil
+	return ap, nil
+}
+
+func idFromCfg(cfg map[string]ctypes.ConfigValue) string {
+	//TODO: check for nil map
+	var buff bytes.Buffer
+	enc := gob.NewEncoder(&buff)
+	err := enc.Encode(cfg)
+	if err != nil {
+		return ""
+	}
+	return string(buff.Bytes())
 }
 
 // generatePID returns the next available pid for the pool
@@ -380,6 +398,7 @@ func (p *pool) MoveSubscriptions(to Pool) []subscription {
 	}
 	p.Lock()
 	defer p.Unlock()
+
 	for task, sub := range p.subs {
 		// ensure that this sub was not bound to this pool specifically before moving
 		if sub.SubType == UnboundSubscriptionType {

@@ -381,9 +381,15 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 		return metricsFromCache, nil
 	}
 
+	config := metricTypes[0].Config()
+	cfg := map[string]ctypes.ConfigValue{}
+	if config != nil {
+		cfg = config.Table()
+	}
+
 	pool.RLock()
 	defer pool.RUnlock()
-	p, serr := pool.SelectAP(taskID)
+	p, serr := pool.SelectAP(taskID, cfg)
 	if serr != nil {
 		return nil, serr
 	}
@@ -434,7 +440,8 @@ func (ap *availablePlugins) publishMetrics(contentType string, content []byte, p
 
 	pool.RLock()
 	defer pool.RUnlock()
-	p, err := pool.SelectAP(taskID)
+
+	p, err := pool.SelectAP(taskID, config)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -468,7 +475,7 @@ func (ap *availablePlugins) processMetrics(contentType string, content []byte, p
 
 	pool.RLock()
 	defer pool.RUnlock()
-	p, err := pool.SelectAP(taskID)
+	p, err := pool.SelectAP(taskID, config)
 	if err != nil {
 		errs = append(errs, err)
 		return "", nil, errs
