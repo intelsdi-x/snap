@@ -318,8 +318,8 @@ func (s *schedulerWorkflow) Start(t *task) {
 	// Block until the job has been either run or skipped.
 	errors := t.manager.Work(j).Promise().Await()
 
-	if len(errors) != 0 {
-		t.RecordFailure(j.Errors())
+	if len(errors) > 0 {
+		t.RecordFailure(errors)
 		event := new(scheduler_event.MetricCollectionFailedEvent)
 		event.TaskID = t.id
 		event.Errors = errors
