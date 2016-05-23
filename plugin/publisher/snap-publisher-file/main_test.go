@@ -61,10 +61,3 @@ func TestFilePublisherLoad(t *testing.T) {
 		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
 	}
 }
-
-func TestMain(t *testing.T) {
-	Convey("ensure plugin loads and responds", t, func() {
-		os.Args = []string{"", "{\"NoDaemon\": true}"}
-		So(func() { main() }, ShouldNotPanic)
-	})
-}
