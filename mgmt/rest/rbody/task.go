@@ -222,8 +222,23 @@ func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {
 			Interval: v.Interval.String(),
 		}
 		return
+	case *schedule.WindowedSchedule:
+		startTime := v.StartTime.Unix()
+		stopTime := v.StopTime.Unix()
+		t.Schedule = &request.Schedule{
+			Type:           "windowed",
+			Interval:       v.Interval.String(),
+			StartTimestamp: &startTime,
+			StopTimestamp:  &stopTime,
+		}
+		return
+	case *schedule.CronSchedule:
+		t.Schedule = &request.Schedule{
+			Type:     "cron",
+			Interval: v.Entry(),
+		}
+		return
 	}
-	t.Schedule = &request.Schedule{}
 }
 
 type ScheduledTaskWatchingEnded struct {
