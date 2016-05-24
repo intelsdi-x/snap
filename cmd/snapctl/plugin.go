@@ -69,8 +69,7 @@ func loadPlugin(ctx *cli.Context) {
 
 func unloadPlugin(ctx *cli.Context) {
 	pDetails := filepath.SplitList(ctx.Args().First())
-	var pType string
-	var pName string
+	var pType, pName string
 	var pVer int
 	var err error
 
@@ -114,6 +113,87 @@ func unloadPlugin(ctx *cli.Context) {
 	fmt.Printf("Name: %s\n", r.Name)
 	fmt.Printf("Version: %d\n", r.Version)
 	fmt.Printf("Type: %s\n", r.Type)
+}
+
+func swapPlugins(ctx *cli.Context) {
+	// plugin to load
+	pAsc := ctx.String("plugin-asc")
+	var paths []string
+	if len(ctx.Args()) < 1 || len(ctx.Args()) > 2 {
+		fmt.Println("Incorrect usage:")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+	paths = append(paths, ctx.Args().First())
+	if pAsc != "" {
+		if !strings.Contains(pAsc, ".asc") {
+			fmt.Println("Must be a .asc file for the -a flag")
+			cli.ShowCommandHelp(ctx, ctx.Command.Name)
+			os.Exit(1)
+		}
+		paths = append(paths, pAsc)
+	}
+
+	// plugin to unload
+	var pDetails []string
+	var pType, pName string
+	var pVer int
+	var err error
+
+	if len(ctx.Args()) == 2 {
+		pDetails = filepath.SplitList(ctx.Args()[1])
+		if len(pDetails) == 3 {
+			pType = pDetails[0]
+			pName = pDetails[1]
+			pVer, err = strconv.Atoi(pDetails[2])
+			if err != nil {
+				fmt.Println("Can't convert version string to integer")
+				cli.ShowCommandHelp(ctx, ctx.Command.Name)
+				os.Exit(1)
+			}
+		} else {
+			fmt.Println("Missing type, name, or version")
+			cli.ShowCommandHelp(ctx, ctx.Command.Name)
+			os.Exit(1)
+		}
+	} else {
+		pType = ctx.String("plugin-type")
+		pName = ctx.String("plugin-name")
+		pVer = ctx.Int("plugin-version")
+	}
+	if pType == "" {
+		fmt.Println("Must provide plugin type")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+	if pName == "" {
+		fmt.Println("Must provide plugin name")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+	if pVer < 1 {
+		fmt.Println("Must provide plugin version")
+		cli.ShowCommandHelp(ctx, ctx.Command.Name)
+		os.Exit(1)
+	}
+
+	r := pClient.SwapPlugin(paths, pType, pName, pVer)
+	if r.Err != nil {
+		fmt.Printf("Error swapping plugins:\n%v\n", r.Err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Println("Plugin loaded")
+	fmt.Printf("Name: %s\n", r.LoadedPlugin.Name)
+	fmt.Printf("Version: %d\n", r.LoadedPlugin.Version)
+	fmt.Printf("Type: %s\n", r.LoadedPlugin.Type)
+	fmt.Printf("Signed: %v\n", r.LoadedPlugin.Signed)
+	fmt.Printf("Loaded Time: %s\n\n", r.LoadedPlugin.LoadedTime().Format(timeFormat))
+
+	fmt.Println("\nPlugin unloaded")
+	fmt.Printf("Name: %s\n", r.UnloadedPlugin.Name)
+	fmt.Printf("Version: %d\n", r.UnloadedPlugin.Version)
+	fmt.Printf("Type: %s\n", r.UnloadedPlugin.Type)
 }
 
 func listPlugins(ctx *cli.Context) {

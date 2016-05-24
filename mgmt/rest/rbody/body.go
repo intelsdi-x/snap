@@ -82,6 +82,8 @@ func UnmarshalBody(t string, b []byte) (Body, error) {
 		return unmarshalAndHandleError(b, &PluginsLoaded{})
 	case PluginUnloadedType:
 		return unmarshalAndHandleError(b, &PluginUnloaded{})
+	case PluginReturnedType:
+		return unmarshalAndHandleError(b, &PluginReturned{})
 	case ScheduledTaskListReturnedType:
 		return unmarshalAndHandleError(b, &ScheduledTaskListReturned{})
 	case ScheduledTaskReturnedType:

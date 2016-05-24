@@ -205,6 +205,49 @@ func TestSnapClient(t *testing.T) {
 		})
 	})
 
+	Convey("SwapPlugins", t, func() {
+		Convey("Swap with different types should fail", func() {
+			sp := c.SwapPlugin(FILE_PLUGIN_PATH, p1.LoadedPlugins[0].Type, p1.LoadedPlugins[0].Name, p1.LoadedPlugins[0].Version)
+			So(sp.Err, ShouldNotBeNil)
+			So(sp.Err.Error(), ShouldEqual, "Plugins do not have the same type and name.")
+			lps := c.GetPlugins(false)
+			So(len(lps.LoadedPlugins), ShouldEqual, 1)
+		})
+		Convey("Swap with same plugin should fail", func() {
+			sp := c.SwapPlugin(MOCK_PLUGIN_PATH1, p1.LoadedPlugins[0].Type, p1.LoadedPlugins[0].Name, p1.LoadedPlugins[0].Version)
+			So(sp.Err, ShouldNotBeNil)
+			So(sp.Err.Error(), ShouldEqual, "plugin is already loaded")
+			lps := c.GetPlugins(false)
+			So(len(lps.LoadedPlugins), ShouldEqual, 1)
+		})
+		Convey("Swap with plugin that is not loaded should fail", func() {
+			sp := c.SwapPlugin(MOCK_PLUGIN_PATH1, "collector", "mock", 2)
+			So(sp.Err.Error(), ShouldEqual, "plugin not found collector:mock:2")
+			So(sp.Err, ShouldNotBeNil)
+		})
+		Convey("Swap with plugins with the same type and name", func() {
+			sp := c.SwapPlugin(MOCK_PLUGIN_PATH2, p1.LoadedPlugins[0].Type, p1.LoadedPlugins[0].Name, p1.LoadedPlugins[0].Version)
+			So(sp.Err, ShouldBeNil)
+			lps := c.GetPlugins(false)
+			So(len(lps.LoadedPlugins), ShouldEqual, 1)
+			So(lps.LoadedPlugins[0].Type, ShouldEqual, "collector")
+			So(lps.LoadedPlugins[0].Name, ShouldEqual, "mock")
+			So(lps.LoadedPlugins[0].Type, ShouldEqual, p1.LoadedPlugins[0].Type)
+			So(lps.LoadedPlugins[0].Name, ShouldEqual, p1.LoadedPlugins[0].Name)
+			So(lps.LoadedPlugins[0].Version, ShouldNotEqual, p1.LoadedPlugins[0].Version)
+
+			sp2 := c.SwapPlugin(MOCK_PLUGIN_PATH1, sp.LoadedPlugin.Type, sp.LoadedPlugin.Name, sp.LoadedPlugin.Version)
+			So(sp2.Err, ShouldBeNil)
+			lps2 := c.GetPlugins(false)
+			So(len(lps.LoadedPlugins), ShouldEqual, 1)
+			So(lps2.LoadedPlugins[0].Type, ShouldEqual, "collector")
+			So(lps2.LoadedPlugins[0].Name, ShouldEqual, "mock")
+			So(lps2.LoadedPlugins[0].Type, ShouldEqual, sp.LoadedPlugin.Type)
+			So(lps2.LoadedPlugins[0].Name, ShouldEqual, sp.LoadedPlugin.Name)
+			So(lps2.LoadedPlugins[0].Version, ShouldNotEqual, sp.LoadedPlugin.Version)
+		})
+	})
+
 	if cerr == nil {
 		p2 = c.LoadPlugin(MOCK_PLUGIN_PATH2)
 	}

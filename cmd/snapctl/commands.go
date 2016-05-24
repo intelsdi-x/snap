@@ -104,9 +104,20 @@ var (
 				},
 				{
 					Name:   "unload",
-					Usage:  "unload <plugin_type>:<plugin_name>:<plugin_version> or unload -t <plugin_type> -n <plugin_version> -v <plugin_version>",
+					Usage:  "unload <plugin_type>:<plugin_name>:<plugin_version> or unload -t <plugin_type> -n <plugin_name> -v <plugin_version>",
 					Action: unloadPlugin,
 					Flags: []cli.Flag{
+						flPluginType,
+						flPluginName,
+						flPluginVersion,
+					},
+				},
+				{
+					Name:   "swap",
+					Usage:  "swap <load_plugin_path> <unload_plugin_type>:<unload_plugin_name>:<unload_plugin_version> or swap <load_plugin_path> -t <unload_plugin_type> -n <unload_plugin_name> -v <unload_plugin_version>",
+					Action: swapPlugins,
+					Flags: []cli.Flag{
+						flPluginAsc,
 						flPluginType,
 						flPluginName,
 						flPluginVersion,
