@@ -52,6 +52,14 @@ func (c *CollectWorkflowMapNode) String(pad string) string {
 		}
 	}
 	out += "\n"
+	out += pad + "Tags:\n"
+	for k, v := range c.Tags {
+		out += pad + "   " + k + "\n"
+		for x, y := range v {
+			out += pad + "      " + fmt.Sprintf("%s=%+v\n", x, y)
+		}
+	}
+	out += "\n"
 	out += pad + "Process Nodes:\n"
 	for _, pr := range c.ProcessNodes {
 		out += pr.String(pad)

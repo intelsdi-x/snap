@@ -81,7 +81,7 @@ func (m *mockMetricManager) GetPluginContentTypes(n string, t core.PluginType, v
 	return m.acceptedContentTypes[key], m.returnedContentTypes[key], nil
 }
 
-func (m *mockMetricManager) CollectMetrics([]core.Metric, time.Time, string) ([]core.Metric, []error) {
+func (m *mockMetricManager) CollectMetrics([]core.Metric, time.Time, string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }
 

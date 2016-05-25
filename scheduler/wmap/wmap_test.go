@@ -62,6 +62,36 @@ func TestWorkflow(t *testing.T) {
 			So(SampleWorkflowMapYaml(), ShouldNotBeEmpty)
 		})
 
+		Convey("from json/CollectNode.GetTags()", func() {
+			wmap, _ := FromJson(jsonP)
+			tags := wmap.CollectNode.GetTags()
+			So(tags, ShouldNotBeNil)
+			So(tags, ShouldResemble, map[string]map[string]string{
+				"/foo/bar": {
+					"tag1": "val1",
+					"tag2": "val2",
+				},
+				"/foo/baz": {
+					"tag3": "val3",
+				},
+			})
+		})
+
+		Convey("from yaml/CollectNode.GetTags()", func() {
+			wmap, _ := FromYaml(jsonP)
+			tags := wmap.CollectNode.GetTags()
+			So(tags, ShouldNotBeNil)
+			So(tags, ShouldResemble, map[string]map[string]string{
+				"/foo/bar": {
+					"tag1": "val1",
+					"tag2": "val2",
+				},
+				"/foo/baz": {
+					"tag3": "val3",
+				},
+			})
+		})
+
 		Convey("NewWorkFlowMap()/GetRequestedMetrics()", func() {
 			wmap := NewWorkflowMap()
 			So(wmap, ShouldNotBeNil)

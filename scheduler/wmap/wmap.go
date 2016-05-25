@@ -153,6 +153,7 @@ func (w *WorkflowMap) ToYaml() ([]byte, error) {
 type CollectWorkflowMapNode struct {
 	Metrics      map[string]metricInfo             `json:"metrics"yaml:"metrics"`
 	Config       map[string]map[string]interface{} `json:"config,omitempty"yaml:"config"`
+	Tags         map[string]map[string]string      `json:"tags,omitempty"yaml:"tags"`
 	ProcessNodes []ProcessWorkflowMapNode          `json:"process,omitempty"yaml:"process"`
 	PublishNodes []PublishWorkflowMapNode          `json:"publish,omitempty"yaml:"publish"`
 }
@@ -169,6 +170,10 @@ func (c *CollectWorkflowMapNode) GetMetrics() []Metric {
 		i++
 	}
 	return metrics
+}
+
+func (c *CollectWorkflowMapNode) GetTags() map[string]map[string]string {
+	return c.Tags
 }
 
 // GetConfigTree converts config data for collection node in wmap into a proper cdata.ConfigDataTree

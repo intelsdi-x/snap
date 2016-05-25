@@ -89,6 +89,8 @@ func convertCollectionNode(cnode *wmap.CollectWorkflowMapNode, wf *schedulerWork
 	for i, m := range mts {
 		wf.metrics[i] = &metric{namespace: core.NewNamespace(m.Namespace()...), version: m.Version()}
 	}
+	// get tags defined
+	wf.tags = cnode.GetTags()
 
 	// Get our config data tree
 	cdt, err := cnode.GetConfigTree()
@@ -177,6 +179,7 @@ type schedulerWorkflow struct {
 	// workflowMap used to generate this workflow
 	workflowMap  *wmap.WorkflowMap
 	eventEmitter gomit.Emitter
+	tags         map[string]map[string]string
 }
 
 type processNode struct {
@@ -309,7 +312,7 @@ func (s *schedulerWorkflow) Start(t *task) {
 		"task-name": t.name,
 	}).Info(fmt.Sprintf("Starting workflow for task (%s\\%s)", t.id, t.name))
 	s.state = WorkflowStarted
-	j := newCollectorJob(s.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree, t.id)
+	j := newCollectorJob(s.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree, t.id, s.tags)
 
 	// dispatch 'collect' job to be worked
 	// Block until the job has been either run or skipped.

@@ -933,7 +933,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 			Convey("Collect metrics", func() {
 				taskID := tasks[rand.Intn(len(tasks))]
 				for i := 0; i < 10; i++ {
-					_, errs := c.CollectMetrics([]core.Metric{metric}, time.Now().Add(time.Second*1), taskID)
+					_, errs := c.CollectMetrics([]core.Metric{metric}, time.Now().Add(time.Second*1), taskID, nil)
 					So(errs, ShouldBeEmpty)
 				}
 				Convey("Check cache stats", func() {
@@ -995,7 +995,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 			Convey("Collect metrics", func() {
 				taskID := tasks[rand.Intn(len(tasks))]
 				for i := 0; i < 10; i++ {
-					cr, errs := c.CollectMetrics([]core.Metric{metric}, time.Now().Add(time.Second*1), taskID)
+					cr, errs := c.CollectMetrics([]core.Metric{metric}, time.Now().Add(time.Second*1), taskID, nil)
 					So(errs, ShouldBeEmpty)
 					for i := range cr {
 						So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
@@ -1078,13 +1078,13 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(err, ShouldBeNil)
 			// The minimum TTL advertised by the plugin is 100ms therefore the TTL for th			// pool should be the global cache expiration
 			So(ttl, ShouldEqual, strategy.GlobalCacheExpiration)
-			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
+			mts, errs := c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID, nil)
 			hits, err := pool.CacheHits(m.namespace.String(), 2, taskID)
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 0)
 			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 10)
-			mts, errs = c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID)
+			mts, errs = c.CollectMetrics([]core.Metric{m}, time.Now().Add(time.Second*1), taskID, nil)
 			hits, err = pool.CacheHits(m.namespace.String(), 2, taskID)
 			So(err, ShouldBeNil)
 
@@ -1117,7 +1117,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				ttl, err = pool.CacheTTL(taskID)
 				So(err, ShouldBeNil)
 				So(ttl, ShouldEqual, 1100*time.Millisecond)
-				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New())
+				mts, errs := c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New(), nil)
 				hits, err := pool.CacheHits(jsonm.namespace.String(), jsonm.version, taskID)
 				So(pool.SubscriptionCount(), ShouldEqual, 1)
 				So(pool.Strategy, ShouldNotBeNil)
@@ -1126,7 +1126,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				So(hits, ShouldEqual, 0)
 				So(errs, ShouldBeNil)
 				So(len(mts), ShouldEqual, 10)
-				mts, errs = c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New())
+				mts, errs = c.CollectMetrics([]core.Metric{jsonm}, time.Now().Add(time.Second*1), uuid.New(), nil)
 				hits, err = pool.CacheHits(m.namespace.String(), 1, taskID)
 				So(err, ShouldBeNil)
 
@@ -1196,7 +1196,7 @@ func TestFailedPlugin(t *testing.T) {
 				var cr []core.Metric
 				eventMap := map[string]int{}
 				for i := 0; i < MaxPluginRestartCount+1; i++ {
-					cr, err = c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New())
+					cr, err = c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New(), nil)
 					So(err, ShouldNotBeNil)
 					So(cr, ShouldBeNil)
 					<-lpe.done
@@ -1279,7 +1279,7 @@ func TestCollectMetrics(t *testing.T) {
 			m = append(m, m1, m2, m3)
 			Convey("collect metrics", func() {
 				for x := 0; x < 4; x++ {
-					cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New())
+					cr, err := c.CollectMetrics(m, time.Now().Add(time.Second*1), uuid.New(), nil)
 					So(err, ShouldBeNil)
 					for i := range cr {
 						So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
@@ -1311,7 +1311,7 @@ func TestCollectMetrics(t *testing.T) {
 		c.Start()
 		load(c, PluginPath)
 		m := []core.Metric{}
-		c.CollectMetrics(m, time.Now().Add(time.Second*60), uuid.New())
+		c.CollectMetrics(m, time.Now().Add(time.Second*60), uuid.New(), nil)
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	})
@@ -1648,7 +1648,7 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
 		So(serr, ShouldBeNil)
 		// collect metrics as a sanity check that everything is setup correctly
-		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID", nil)
 		So(errs, ShouldBeNil)
 		So(len(mts), ShouldEqual, 1)
 		// ensure the data coming back is from v1. V1's data is type string
@@ -1678,7 +1678,7 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
-			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID", nil)
 			So(len(mts), ShouldEqual, 1)
 
 			// ensure the data coming back is from v2, V2's data is type int
@@ -1709,7 +1709,7 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
 		So(serr, ShouldBeNil)
 		// collect metrics as a sanity check that everything is setup correctly
-		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+		mts, errs := c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID", nil)
 		So(errs, ShouldBeNil)
 		So(len(mts), ShouldEqual, 1)
 		// ensure the data coming back is from v2. V2's data is type int
@@ -1744,7 +1744,7 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
-			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID")
+			mts, errs = c.CollectMetrics([]core.Metric{metric}, time.Now(), "testTaskID", nil)
 			So(errs, ShouldBeEmpty)
 			So(len(mts), ShouldEqual, 1)
 
