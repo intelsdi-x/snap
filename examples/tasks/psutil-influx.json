@@ -14,12 +14,6 @@
                 "/intel/psutil/vm/free": {},
                 "/intel/psutil/vm/used": {}
             },
-            "config": {
-                "/intel/mock": {
-                    "password": "secret",
-                    "user": "root"
-                }
-            },
             "process": null,
             "publish": [
                 {
