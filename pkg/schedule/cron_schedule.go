@@ -46,6 +46,11 @@ func NewCronSchedule(entry string) *CronSchedule {
 	}
 }
 
+// Entry returns the cron schedule entry
+func (c *CronSchedule) Entry() string {
+	return c.entry
+}
+
 // GetState returns state of CronSchedule
 func (c *CronSchedule) GetState() ScheduleState {
 	return c.state
