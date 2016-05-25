@@ -37,6 +37,8 @@ import (
 
 // default configuration values
 const (
+	defaultListenAddr        string        = "127.0.0.1"
+	defaultListenPort        int           = 8082
 	defaultMaxRunningPlugins int           = 3
 	defaultPluginTrust       int           = 1
 	defaultAutoDiscoverPath  string        = ""
@@ -73,6 +75,8 @@ type Config struct {
 	KeyringPaths      string            `json:"keyring_paths,omitempty"yaml:"keyring_paths,omitempty"`
 	CacheExpiration   jsonutil.Duration `json:"cache_expiration,omitempty"yaml:"cache_expiration,omitempty"`
 	Plugins           *pluginConfig     `json:"plugins,omitempty"yaml:"plugins,omitempty"`
+	ListenAddr        string            `json:"listen_addr,omitempty"yaml:"listen_addr,omitempty"`
+	ListenPort        int               `json:"listen_port,omitempty"yaml:"listen_port,omitempty"`
 }
 
 const (
@@ -102,6 +106,12 @@ const (
 						"type": ["object", "null"],
 						"properties" : {},
 						"additionalProperties": true
+					},
+					"listen_addr": {
+						"type": "string"
+					},
+					"listen_port": {
+						"type": "integer"
 					}
 				},
 				"additionalProperties": false
@@ -112,6 +122,8 @@ const (
 // get the default snapd configuration
 func GetDefaultConfig() *Config {
 	return &Config{
+		ListenAddr:        defaultListenAddr,
+		ListenPort:        defaultListenPort,
 		MaxRunningPlugins: defaultMaxRunningPlugins,
 		PluginTrust:       defaultPluginTrust,
 		AutoDiscoverPath:  defaultAutoDiscoverPath,
@@ -159,6 +171,15 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, c.Plugins); err != nil {
 				return err
 			}
+		case "listen_addr":
+			if err := json.Unmarshal(v, &(c.ListenAddr)); err != nil {
+				return err
+			}
+		case "listen_port":
+			if err := json.Unmarshal(v, &(c.ListenPort)); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'control'", k)
 		}

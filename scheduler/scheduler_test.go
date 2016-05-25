@@ -52,7 +52,7 @@ func (m *mockMetricManager) lazyContentType(key string) {
 		m.returnedContentTypes = make(map[string][]string)
 	}
 	if m.acceptedContentTypes[key] == nil {
-		m.acceptedContentTypes[key] = []string{}
+		m.acceptedContentTypes[key] = []string{"snap.gob"}
 	}
 	if m.returnedContentTypes[key] == nil {
 		m.returnedContentTypes[key] = []string{}
@@ -171,7 +171,8 @@ func TestScheduler(t *testing.T) {
 		c.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.gob"})
 		c.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"snap.json", "snap.gob"})
 		c.setAcceptedContentType("file", core.PublisherPluginType, -1, []string{"snap.json"})
-		s := New(GetDefaultConfig())
+		cfg := GetDefaultConfig()
+		s := New(cfg)
 		s.SetMetricManager(c)
 		w := wmap.NewWorkflowMap()
 		// Collection node

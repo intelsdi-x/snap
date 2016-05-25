@@ -5,7 +5,9 @@
     "control": {
         "auto_discover_path": "/some/directory/with/plugins",
         "cache_expiration": "750ms",
-        "max_running_plugins": 1,
+        "listen_addr": "0.0.0.0",
+	"listen_port": 10082,
+	"max_running_plugins": 1,
         "keyring_paths": "/some/path/with/keyring/files",
         "plugin_trust_level": 0,
         "plugins": {

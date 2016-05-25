@@ -160,6 +160,12 @@ func TestControlConfigJSON(t *testing.T) {
 		Convey("MaxRunningPlugins should be set to 1", func() {
 			So(cfg.MaxRunningPlugins, ShouldEqual, 1)
 		})
+		Convey("ListenAddr should be set to 0.0.0.0", func() {
+			So(cfg.ListenAddr, ShouldEqual, "0.0.0.0")
+		})
+		Convey("ListenPort should be set to 10082", func() {
+			So(cfg.ListenPort, ShouldEqual, 10082)
+		})
 		Convey("KeyringPaths should be set to /some/path/with/keyring/files", func() {
 			So(cfg.KeyringPaths, ShouldEqual, "/some/path/with/keyring/files")
 		})
@@ -223,6 +229,12 @@ func TestControlConfigYaml(t *testing.T) {
 		Convey("MaxRunningPlugins should be set to 1", func() {
 			So(cfg.MaxRunningPlugins, ShouldEqual, 1)
 		})
+		Convey("ListenAddr should be set to 0.0.0.0", func() {
+			So(cfg.ListenAddr, ShouldEqual, "0.0.0.0")
+		})
+		Convey("ListenPort should be set to 10082", func() {
+			So(cfg.ListenPort, ShouldEqual, 10082)
+		})
 		Convey("KeyringPaths should be set to /some/path/with/keyring/files", func() {
 			So(cfg.KeyringPaths, ShouldEqual, "/some/path/with/keyring/files")
 		})
@@ -274,6 +286,12 @@ func TestControlDefaultConfig(t *testing.T) {
 		})
 		Convey("MaxRunningPlugins should equal 3", func() {
 			So(cfg.MaxRunningPlugins, ShouldEqual, 3)
+		})
+		Convey("ListenAddr should be set to 127.0.0.1", func() {
+			So(cfg.ListenAddr, ShouldEqual, "127.0.0.1")
+		})
+		Convey("ListenPort should be set to 8082", func() {
+			So(cfg.ListenPort, ShouldEqual, 8082)
 		})
 		Convey("KeyringPaths should be empty", func() {
 			So(cfg.KeyringPaths, ShouldEqual, "")
