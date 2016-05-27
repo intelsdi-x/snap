@@ -153,6 +153,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			respond(500, rbody.FromError(err), w)
 			return
 		}
+		rp.SetAutoLoaded(false)
 		// Sanity check, verify the checkSum on the file sent is the same
 		// as after it is written to disk.
 		if rp.CheckSum() != checkSum {
