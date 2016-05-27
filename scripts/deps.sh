@@ -27,17 +27,17 @@ trap ctrl_c SIGINT
 
 # Godep
 echo "Getting godep if not found"
-go get github.com/tools/godep
+go get github.com/kardianos/govendor
 
 # First load snap deps
 echo "Checking snap root for deps"
-godep restore
+govendor sync
 # REST API
 echo "Checking snapctl for deps"
 cd cmd/snapctl
-godep restore
+govendor sync
 # CLI
 echo "Checking snap mgmt/rest for deps"
 cd ../../mgmt/rest
-godep restore
+govendor sync
 cd ../../

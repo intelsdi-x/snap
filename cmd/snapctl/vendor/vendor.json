@@ -1,0 +1,24 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"comment": "1.2.0-26-gf7ebb76",
+			"path": "github.com/codegangsta/cli",
+			"revision": "f7ebb761e83e21225d1d8954fde853bf8edd46c4"
+		},
+		{
+			"path": "github.com/ghodss/yaml",
+			"revision": "c3eb24aeea63668ebdac08d2e252f20df8b6b1ae"
+		},
+		{
+			"path": "github.com/robfig/cron",
+			"revision": "32d9c273155a0506d27cf73dd1246e86a470997e"
+		},
+		{
+			"path": "gopkg.in/yaml.v2",
+			"revision": "c1cd2254a6dd314c9d73c338c12688c9325d85c6"
+		}
+	],
+	"rootPath": "github.com/intelsdi-x/snap/cmd/snapctl"
+}
