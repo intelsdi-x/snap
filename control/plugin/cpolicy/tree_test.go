@@ -49,7 +49,7 @@ func TestConfigPolicy(t *testing.T) {
 			Convey("retrieves store policy", func() {
 				gc := cp.Get(ns)
 				So(gc.rules["username"].Required(), ShouldEqual, false)
-				So(gc.rules["username"].Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "root")
+				So(gc.rules["username"].Default().(ctypes.ConfigValueStr).Value, ShouldEqual, "root")
 				So(gc.rules["password"].Required(), ShouldEqual, true)
 			})
 			Convey("encode & decode", func() {
@@ -69,7 +69,7 @@ func TestConfigPolicy(t *testing.T) {
 				So(gc.rules["password"].Required(), ShouldEqual, true)
 				So(gc.rules["username"].Default(), ShouldNotBeNil)
 				So(gc.rules["password"].Default(), ShouldBeNil)
-				So(gc.rules["username"].Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "root")
+				So(gc.rules["username"].Default().(ctypes.ConfigValueStr).Value, ShouldEqual, "root")
 			})
 
 		})

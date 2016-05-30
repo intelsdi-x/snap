@@ -130,7 +130,7 @@ func (s *StringRule) Validate(cv ctypes.ConfigValue) error {
 // Returns a default value is it exists.
 func (s *StringRule) Default() ctypes.ConfigValue {
 	if s.default_ != nil {
-		return &ctypes.ConfigValueStr{Value: *s.default_}
+		return ctypes.ConfigValueStr{Value: *s.default_}
 	}
 	return nil
 }

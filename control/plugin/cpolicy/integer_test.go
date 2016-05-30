@@ -54,7 +54,7 @@ func TestConfigPolicyRuleInteger(t *testing.T) {
 			r, e := NewIntegerRule("thekey", true, 7)
 			So(r.Default(), ShouldNotBeNil)
 			So(r.Default().Type(), ShouldEqual, "integer")
-			So(r.Default().(*ctypes.ConfigValueInt).Value, ShouldEqual, 7)
+			So(r.Default().(ctypes.ConfigValueInt).Value, ShouldEqual, 7)
 			So(e, ShouldBeNil)
 		})
 
@@ -84,7 +84,7 @@ func TestConfigPolicyRuleInteger(t *testing.T) {
 				r, e := NewIntegerRule("thekey", true, 7)
 				So(r.Default(), ShouldNotBeNil)
 				So(r.Default().Type(), ShouldEqual, "integer")
-				So(r.Default().(*ctypes.ConfigValueInt).Value, ShouldEqual, 7)
+				So(r.Default().(ctypes.ConfigValueInt).Value, ShouldEqual, 7)
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueInt{Value: 1}
@@ -105,7 +105,7 @@ func TestConfigPolicyRuleInteger(t *testing.T) {
 				r, e := NewIntegerRule("thekey", true, 2)
 				So(r.Default(), ShouldNotBeNil)
 				So(r.Default().Type(), ShouldEqual, "integer")
-				So(r.Default().(*ctypes.ConfigValueInt).Value, ShouldEqual, 2)
+				So(r.Default().(ctypes.ConfigValueInt).Value, ShouldEqual, 2)
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueStr{Value: "wat"}

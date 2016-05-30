@@ -54,7 +54,7 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 			r, e := NewFloatRule("thekey", true, 7)
 			So(r.Default(), ShouldNotBeNil)
 			So(r.Default().Type(), ShouldEqual, "float")
-			So(r.Default().(*ctypes.ConfigValueFloat).Value, ShouldEqual, 7)
+			So(r.Default().(ctypes.ConfigValueFloat).Value, ShouldEqual, 7)
 			So(e, ShouldBeNil)
 		})
 
@@ -84,7 +84,7 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 				r, e := NewFloatRule("thekey", true, 7)
 				So(r.Default(), ShouldNotBeNil)
 				So(r.Default().Type(), ShouldEqual, "float")
-				So(r.Default().(*ctypes.ConfigValueFloat).Value, ShouldEqual, 7)
+				So(r.Default().(ctypes.ConfigValueFloat).Value, ShouldEqual, 7)
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueFloat{Value: 1}
@@ -105,7 +105,7 @@ func TestConfigPolicyRuleFloat(t *testing.T) {
 				r, e := NewFloatRule("thekey", true, 2)
 				So(r.Default(), ShouldNotBeNil)
 				So(r.Default().Type(), ShouldEqual, "float")
-				So(r.Default().(*ctypes.ConfigValueFloat).Value, ShouldEqual, 2)
+				So(r.Default().(ctypes.ConfigValueFloat).Value, ShouldEqual, 2)
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueStr{Value: "wat"}

@@ -129,7 +129,7 @@ func (b *BoolRule) Validate(cv ctypes.ConfigValue) error {
 // Default returns a default value is it exists.
 func (b *BoolRule) Default() ctypes.ConfigValue {
 	if b.default_ != nil {
-		return &ctypes.ConfigValueBool{Value: *b.default_}
+		return ctypes.ConfigValueBool{Value: *b.default_}
 	}
 	return nil
 }

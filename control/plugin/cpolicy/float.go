@@ -176,7 +176,7 @@ func (f *FloatRule) Validate(cv ctypes.ConfigValue) error {
 // Default returns the rule's default value
 func (f *FloatRule) Default() ctypes.ConfigValue {
 	if f.default_ != nil {
-		return &ctypes.ConfigValueFloat{Value: *f.default_}
+		return ctypes.ConfigValueFloat{Value: *f.default_}
 	}
 	return nil
 }
@@ -198,14 +198,14 @@ func (f *FloatRule) SetMaximum(m float64) {
 
 func (i *FloatRule) Minimum() ctypes.ConfigValue {
 	if i.minimum != nil {
-		return &ctypes.ConfigValueFloat{Value: *i.minimum}
+		return ctypes.ConfigValueFloat{Value: *i.minimum}
 	}
 	return nil
 }
 
 func (i *FloatRule) Maximum() ctypes.ConfigValue {
 	if i.maximum != nil {
-		return &ctypes.ConfigValueFloat{Value: *i.maximum}
+		return ctypes.ConfigValueFloat{Value: *i.maximum}
 	}
 	return nil
 }
