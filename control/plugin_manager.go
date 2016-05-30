@@ -42,6 +42,7 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/serror"
 )
 
@@ -356,10 +357,49 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	lPlugin.ConfigPolicy = cp
 
 	if resp.Type == plugin.CollectorPluginType {
+		cfgNode := p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version)
+
+		if lPlugin.ConfigPolicy != nil {
+			// Get plugin config defaults
+			defaults := cdata.NewNode()
+			cpolicies := lPlugin.ConfigPolicy.GetAll()
+			for _, cpolicy := range cpolicies {
+				_, errs := cpolicy.AddDefaults(defaults.Table())
+				if len(errs.Errors()) > 0 {
+					for _, err := range errs.Errors() {
+						pmLogger.WithFields(log.Fields{
+							"_block":         "load-plugin",
+							"plugin-type":    "collector",
+							"plugin-name":    ap.Name(),
+							"plugin-version": ap.Version(),
+							"plugin-id":      ap.ID(),
+						}).Error(err.Error())
+					}
+					return nil, serror.New(errors.New("error getting default config"))
+				}
+			}
+
+			// Update config policy with defaults
+			cfgNode.ReverseMerge(defaults)
+			cp, err = c.GetConfigPolicy()
+			if err != nil {
+				pmLogger.WithFields(log.Fields{
+					"_block":         "load-plugin",
+					"plugin-type":    "collector",
+					"error":          err.Error(),
+					"plugin-name":    ap.Name(),
+					"plugin-version": ap.Version(),
+					"plugin-id":      ap.ID(),
+				}).Error("error in getting config policy")
+				return nil, serror.New(err)
+			}
+			lPlugin.ConfigPolicy = cp
+		}
+
 		colClient := ap.client.(client.PluginCollectorClient)
 
 		cfg := plugin.ConfigType{
-			ConfigDataNode: p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version),
+			ConfigDataNode: cfgNode,
 		}
 
 		metricTypes, err := colClient.GetMetricTypes(cfg)

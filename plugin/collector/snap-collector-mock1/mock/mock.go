@@ -67,9 +67,9 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 			}
 		} else {
 			if cv, ok := p.Config().Table()["test"]; ok {
-				p.Data_ = fmt.Sprintf("The mock collected data! config data: user=%s password=%s test=%v", p.Config().Table()["user"], p.Config().Table()["password"], cv.(ctypes.ConfigValueBool).Value)
+				p.Data_ = fmt.Sprintf("The mock collected data! config data: name=%s password=%s test=%v", p.Config().Table()["name"], p.Config().Table()["password"], cv.(ctypes.ConfigValueBool).Value)
 			} else {
-				p.Data_ = fmt.Sprintf("The mock collected data! config data: user=%s password=%s", p.Config().Table()["user"], p.Config().Table()["password"])
+				p.Data_ = fmt.Sprintf("The mock collected data! config data: name=%s password=%s", p.Config().Table()["name"], p.Config().Table()["password"])
 			}
 			p.Timestamp_ = time.Now()
 			metrics = append(metrics, p)
