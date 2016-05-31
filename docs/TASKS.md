@@ -62,6 +62,38 @@ For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
 
 The workflow is a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph) which describes the how and what of a task.  It is always rooted by a `collect`, and then contains any number of `process`es and `publish`es.
 
+#### Remote Targets
+
+Process and Publish nodes in the workflow can also target remote snap nodes via the 'target' key. The purpose of this is to allow offloading of resource intensive workflow steps from the node where data collection is occuring. Modifying the example above we have:
+
+```yaml
+---
+  collect:
+    metrics:
+      /intel/mock/foo: {}
+      /intel/mock/bar: {}
+      /intel/mock/*/baz: {}
+    config:
+      /intel/mock:
+        user: "root"
+        password: "secret"
+    process:
+      -
+        plugin_name: "passthru"
+        target: "127.0.0.1:8082"
+        publish:
+          -
+            plugin_name: "file"
+            target: "127.0.0.1:8082"
+            config:
+              file: "/tmp/published"
+
+```
+
+If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of it's steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the snap rest-api and port 8082.
+
+An example json task that uses remote targets can be found under [examples](https://github.com/intelsdi-x/snap/blob/distributed-workflow/examples/tasks/distributed-mock-file.json). More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
+
 #### collect
 
 The collect section describes which metrics to collect. Metrics can be enumerated explicitly via:
