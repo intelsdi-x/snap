@@ -56,10 +56,11 @@ var (
 	// Switching this turns on logging for all the REST API calls
 	LOG_LEVEL = log.WarnLevel
 
-	SNAP_PATH         = os.Getenv("SNAP_PATH")
-	MOCK_PLUGIN_PATH1 = SNAP_PATH + "/plugin/snap-collector-mock1"
-	MOCK_PLUGIN_PATH2 = SNAP_PATH + "/plugin/snap-collector-mock2"
-	FILE_PLUGIN_PATH  = SNAP_PATH + "/plugin/snap-publisher-file"
+	SNAP_PATH              = os.Getenv("SNAP_PATH")
+	SNAP_AUTODISCOVER_PATH = os.Getenv("SNAP_AUTODISCOVER_PATH")
+	MOCK_PLUGIN_PATH1      = SNAP_PATH + "/plugin/snap-collector-mock1"
+	MOCK_PLUGIN_PATH2      = SNAP_PATH + "/plugin/snap-collector-mock2"
+	FILE_PLUGIN_PATH       = SNAP_PATH + "/plugin/snap-publisher-file"
 
 	CompressedUpload = true
 	TotalUploadSize  = 0
@@ -582,6 +583,12 @@ func TestPluginRestCalls(t *testing.T) {
 				cfg := getDefaultMockConfig()
 				err := cfgfile.Read("../../examples/configs/snap-config-sample.json", &cfg, MOCK_CONSTRAINTS)
 				So(err, ShouldBeNil)
+				if len(SNAP_AUTODISCOVER_PATH) == 0 {
+					if len(SNAP_PATH) != 0 {
+						SNAP_AUTODISCOVER_PATH = fmt.Sprintf("%s/plugin", SNAP_PATH)
+					}
+				}
+				cfg.Control.AutoDiscoverPath = SNAP_AUTODISCOVER_PATH
 				r := startAPI(cfg)
 				port := r.port
 				col := core.CollectorPluginType
