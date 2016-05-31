@@ -6,6 +6,36 @@ myfcn(
 "url": "https://github.com/intelsdi-x/snap-plugin-collector-ceph"
 },
 {
+"name": "NFS Client",
+"type": "Collector",
+"description": "Collect NFS client counters and RPC data",
+"url": "https://github.com/intelsdi-x/snap-plugin-collector-nfsclient"
+},
+{
+"name": "Elasticsearch",
+"type": "Collector",
+"description": "Collects metrics from Elasticsearch cluster",
+"url": "https://github.com/intelsdi-x/snap-plugin-collector-elasticsearch"
+},
+{
+"name": "Disk",
+"type": "Collector",
+"description": "Collects disk related metrics from Linux procfs",
+"url": "https://github.com/intelsdi-x/snap-plugin-collector-disk"
+},
+{
+"name": "Etcd",
+"type": "Collector",
+"description": "Collects metrics from Etcd's `/metrics` endpoint.",
+"url": "https://github.com/intelsdi-x/snap-plugin-collector-etcd"
+},
+{
+"name": "HEKA",
+"type": "Publisher",
+"description": "Publishes snap metrics into heka via TCP",
+"url": "https://github.com/intelsdi-x/snap-plugin-publisher-heka"
+},
+{
 "name": "Docker",
 "type": "Collector",
 "description": "Collects from Docker engine",
