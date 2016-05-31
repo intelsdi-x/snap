@@ -48,9 +48,6 @@ function myfcn2(p_list2) {
     for(i = 0; i < p_list2.length; i++) {
         addentry = '<div class="box in-progress">'+'<div class="info">'+'<h5>' + 
         p_list2[i].name +
-        '<a href="' + p_list2[i].url + '">' + 
-        '<i class="fa fa-github"></i>'+ '</a>'+
-//        '<i class="fa fa-github-alt"></i>'+ '</a>'+
 
         '<a href="' + p_list2[i].author_url + '"><i class="fa fa-user"></i></a>' +
         '<i class="fa fa-star-half-full"></i>' + '</h5>' +
