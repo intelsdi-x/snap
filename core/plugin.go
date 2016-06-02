@@ -94,15 +94,17 @@ type SubscribedPlugin interface {
 }
 
 type RequestedPlugin struct {
-	path      string
-	checkSum  [sha256.Size]byte
-	signature []byte
+	path       string
+	checkSum   [sha256.Size]byte
+	signature  []byte
+	autoLoaded bool
 }
 
 func NewRequestedPlugin(path string) (*RequestedPlugin, error) {
 	rp := &RequestedPlugin{
-		path:      path,
-		signature: nil,
+		path:       path,
+		signature:  nil,
+		autoLoaded: true,
 	}
 	err := rp.generateCheckSum()
 	if err != nil {
@@ -123,12 +125,20 @@ func (p *RequestedPlugin) Signature() []byte {
 	return p.signature
 }
 
+func (p *RequestedPlugin) AutoLoaded() bool {
+	return p.autoLoaded
+}
+
 func (p *RequestedPlugin) SetPath(path string) {
 	p.path = path
 }
 
 func (p *RequestedPlugin) SetSignature(data []byte) {
 	p.signature = data
+}
+
+func (p *RequestedPlugin) SetAutoLoaded(isAutoLoaded bool) {
+	p.autoLoaded = isAutoLoaded
 }
 
 func (p *RequestedPlugin) generateCheckSum() error {
