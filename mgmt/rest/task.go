@@ -22,7 +22,6 @@ package rest
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -33,9 +32,7 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
-	"github.com/intelsdi-x/snap/mgmt/rest/request"
-	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
-	"github.com/intelsdi-x/snap/scheduler/wmap"
+	mtask "github.com/intelsdi-x/snap/pkg/task"
 )
 
 var (
@@ -47,66 +44,12 @@ var (
 	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started")
 )
 
-type configItem struct {
-	Key   string      `json:"key"`
-	Value interface{} `json:"value"`
-}
-
-type task struct {
-	ID                 uint64                  `json:"id"`
-	Config             map[string][]configItem `json:"config"`
-	Name               string                  `json:"name"`
-	Deadline           string                  `json:"deadline"`
-	Workflow           wmap.WorkflowMap        `json:"workflow"`
-	Schedule           cschedule.Schedule      `json:"schedule"`
-	CreationTime       time.Time               `json:"creation_timestamp,omitempty"`
-	LastRunTime        time.Time               `json:"last_run_timestamp,omitempty"`
-	HitCount           uint                    `json:"hit_count,omitempty"`
-	MissCount          uint                    `json:"miss_count,omitempty"`
-	FailedCount        uint                    `json:"failed_count,omitempty"`
-	LastFailureMessage string                  `json:"last_failure_message,omitempty"`
-	State              string                  `json:"task_state"`
-}
-
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
-	tr, err := marshalTask(r.Body)
+	task, err := mtask.CreateTaskFromContent(r.Body, nil, s.mt.CreateTask)
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-
-	sch, err := makeSchedule(tr.Schedule)
-	if err != nil {
-		respond(500, rbody.FromError(err), w)
-		return
-	}
-
-	var opts []core.TaskOption
-	if tr.Deadline != "" {
-		dl, err := time.ParseDuration(tr.Deadline)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-			return
-		}
-		opts = append(opts, core.TaskDeadlineDuration(dl))
-	}
-
-	if tr.Name != "" {
-		opts = append(opts, core.SetTaskName(tr.Name))
-	}
-	opts = append(opts, core.OptionStopOnFailure(10))
-
-	task, errs := s.mt.CreateTask(sch, tr.Workflow, tr.Start, opts...)
-	if errs != nil && len(errs.Errors()) != 0 {
-		var errMsg string
-		for _, e := range errs.Errors() {
-			errMsg = errMsg + e.Error() + " -- "
-		}
-		respond(500, rbody.FromError(errors.New(errMsg[:len(errMsg)-4])), w)
-		return
-	}
-
 	taskB := rbody.AddSchedulerTaskFromTask(task)
 	taskB.Href = taskURI(r.Host, task)
 	respond(201, taskB, w)
@@ -309,71 +252,6 @@ func (s *Server) enableTask(w http.ResponseWriter, r *http.Request, p httprouter
 	task := &rbody.ScheduledTaskEnabled{}
 	task.AddScheduledTask = *rbody.AddSchedulerTaskFromTask(tsk)
 	respond(200, task, w)
-}
-
-func marshalTask(body io.ReadCloser) (*request.TaskCreationRequest, error) {
-	var tr request.TaskCreationRequest
-	errCode, err := marshalBody(&tr, body)
-	if errCode != 0 && err != nil {
-		return nil, err
-	}
-	return &tr, nil
-}
-
-func makeSchedule(s request.Schedule) (cschedule.Schedule, error) {
-	switch s.Type {
-	case "simple":
-		d, err := time.ParseDuration(s.Interval)
-		if err != nil {
-			return nil, err
-		}
-		sch := cschedule.NewSimpleSchedule(d)
-
-		err = sch.Validate()
-		if err != nil {
-			return nil, err
-		}
-		return sch, nil
-	case "windowed":
-		d, err := time.ParseDuration(s.Interval)
-		if err != nil {
-			return nil, err
-		}
-
-		var start, stop *time.Time
-		if s.StartTimestamp != nil {
-			t := time.Unix(*s.StartTimestamp, 0)
-			start = &t
-		}
-		if s.StopTimestamp != nil {
-			t := time.Unix(*s.StopTimestamp, 0)
-			stop = &t
-		}
-		sch := cschedule.NewWindowedSchedule(
-			d,
-			start,
-			stop,
-		)
-
-		err = sch.Validate()
-		if err != nil {
-			return nil, err
-		}
-		return sch, nil
-	case "cron":
-		if s.Interval == "" {
-			return nil, errors.New("missing cron entry ")
-		}
-		sch := cschedule.NewCronSchedule(s.Interval)
-
-		err := sch.Validate()
-		if err != nil {
-			return nil, err
-		}
-		return sch, nil
-	default:
-		return nil, errors.New("unknown schedule type " + s.Type)
-	}
 }
 
 type TaskWatchHandler struct {

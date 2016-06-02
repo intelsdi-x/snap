@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/mgmt/rest/request"
 	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/pkg/task"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -121,7 +121,7 @@ type ScheduledTask struct {
 	Name               string            `json:"name"`
 	Deadline           string            `json:"deadline"`
 	Workflow           *wmap.WorkflowMap `json:"workflow,omitempty"`
-	Schedule           *request.Schedule `json:"schedule,omitempty"`
+	Schedule           *task.Schedule    `json:"schedule,omitempty"`
 	CreationTimestamp  int64             `json:"creation_timestamp,omitempty"`
 	LastRunTimestamp   int64             `json:"last_run_timestamp,omitempty"`
 	HitCount           int               `json:"hit_count,omitempty"`
@@ -217,7 +217,7 @@ func (s *ScheduledTaskEnabled) ResponseBodyType() string {
 func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {
 	switch v := s.(type) {
 	case *schedule.SimpleSchedule:
-		t.Schedule = &request.Schedule{
+		t.Schedule = &task.Schedule{
 			Type:     "simple",
 			Interval: v.Interval.String(),
 		}
@@ -225,7 +225,7 @@ func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {
 	case *schedule.WindowedSchedule:
 		startTime := v.StartTime.Unix()
 		stopTime := v.StopTime.Unix()
-		t.Schedule = &request.Schedule{
+		t.Schedule = &task.Schedule{
 			Type:           "windowed",
 			Interval:       v.Interval.String(),
 			StartTimestamp: &startTime,
@@ -233,7 +233,7 @@ func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {
 		}
 		return
 	case *schedule.CronSchedule:
-		t.Schedule = &request.Schedule{
+		t.Schedule = &task.Schedule{
 			Type:     "cron",
 			Interval: v.Entry(),
 		}

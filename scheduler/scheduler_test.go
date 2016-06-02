@@ -44,6 +44,7 @@ type mockMetricManager struct {
 	failuredSoFar              int
 	acceptedContentTypes       map[string][]string
 	returnedContentTypes       map[string][]string
+	autodiscoverPaths          []string
 }
 
 func (m *mockMetricManager) lazyContentType(key string) {
@@ -117,6 +118,14 @@ func (m *mockMetricManager) MatchQueryToNamespaces(core.Namespace) ([]core.Names
 
 func (m *mockMetricManager) ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError) {
 	return nil, nil
+}
+
+func (m *mockMetricManager) SetAutodiscoverPaths(paths []string) {
+	m.autodiscoverPaths = paths
+}
+
+func (m *mockMetricManager) GetAutodiscoverPaths() []string {
+	return m.autodiscoverPaths
 }
 
 type mockMetricManagerError struct {

@@ -23,8 +23,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
@@ -468,18 +466,6 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 		panic(err)
 	}
 	fmt.Fprint(w, string(j))
-}
-
-func marshalBody(in interface{}, body io.ReadCloser) (int, error) {
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		return 500, err
-	}
-	err = json.Unmarshal(b, in)
-	if err != nil {
-		return 400, err
-	}
-	return 0, nil
 }
 
 func parseNamespace(ns string) []string {
