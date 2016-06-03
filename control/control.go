@@ -27,10 +27,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
@@ -234,6 +236,93 @@ func (p *pluginControl) Start() error {
 	controlLogger.WithFields(log.Fields{
 		"_block": "start",
 	}).Info("control started")
+	//Autodiscover
+	if p.Config.AutoDiscoverPath != "" {
+		controlLogger.WithFields(log.Fields{
+			"_block": "start",
+		}).Info("auto discover path is enabled")
+		paths := filepath.SplitList(p.Config.AutoDiscoverPath)
+		p.SetAutodiscoverPaths(paths)
+		for _, pa := range paths {
+			fullPath, err := filepath.Abs(pa)
+			if err != nil {
+				controlLogger.WithFields(log.Fields{
+					"_block":           "start",
+					"autodiscoverpath": pa,
+				}).Fatal(err)
+			}
+			controlLogger.WithFields(log.Fields{
+				"_block": "start",
+			}).Info("autoloading plugins from: ", fullPath)
+			files, err := ioutil.ReadDir(fullPath)
+			if err != nil {
+				controlLogger.WithFields(log.Fields{
+					"_block":           "start",
+					"autodiscoverpath": pa,
+				}).Fatal(err)
+			}
+			for _, file := range files {
+				if file.IsDir() {
+					controlLogger.WithFields(log.Fields{
+						"_block":           "start",
+						"autodiscoverpath": pa,
+					}).Warning("Ignoring subdirectory: ", file.Name())
+					continue
+				}
+				// Ignore tasks files (JSON and YAML)
+				fname := strings.ToLower(file.Name())
+				if strings.HasSuffix(fname, ".json") || strings.HasSuffix(fname, ".yaml") || strings.HasSuffix(fname, ".yml") {
+					controlLogger.WithFields(log.Fields{
+						"_block":           "start",
+						"autodiscoverpath": pa,
+					}).Warning("Ignoring JSON/Yaml file: ", file.Name())
+					continue
+				}
+				if strings.HasSuffix(file.Name(), ".aci") || !(strings.HasSuffix(file.Name(), ".asc")) {
+					rp, err := core.NewRequestedPlugin(path.Join(fullPath, file.Name()))
+					if err != nil {
+						controlLogger.WithFields(log.Fields{
+							"_block":           "start",
+							"autodiscoverpath": pa,
+							"plugin":           file,
+						}).Error(err)
+					}
+					signatureFile := file.Name() + ".asc"
+					if _, err := os.Stat(path.Join(fullPath, signatureFile)); err == nil {
+						err = rp.ReadSignatureFile(path.Join(fullPath, signatureFile))
+						if err != nil {
+							controlLogger.WithFields(log.Fields{
+								"_block":           "start",
+								"autodiscoverpath": pa,
+								"plugin":           file.Name() + ".asc",
+							}).Error(err)
+						}
+					}
+					pl, err := p.Load(rp)
+					if err != nil {
+						controlLogger.WithFields(log.Fields{
+							"_block":           "start",
+							"autodiscoverpath": fullPath,
+							"plugin":           file,
+						}).Error(err)
+					} else {
+						controlLogger.WithFields(log.Fields{
+							"_block":           "start",
+							"autodiscoverpath": fullPath,
+							"plugin-file-name": file.Name(),
+							"plugin-name":      pl.Name(),
+							"plugin-version":   pl.Version(),
+							"plugin-type":      pl.TypeName(),
+						}).Info("Loading plugin")
+					}
+				}
+			}
+		}
+	} else {
+		controlLogger.WithFields(log.Fields{
+			"_block": "start",
+		}).Info("auto discover path is disabled")
+	}
 	return nil
 }
 

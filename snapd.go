@@ -26,7 +26,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -40,7 +39,6 @@ import (
 	"github.com/vrischmann/jsonutil"
 
 	"github.com/intelsdi-x/snap/control"
-	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
@@ -470,83 +468,6 @@ func action(ctx *cli.Context) {
 				c.SetKeyringFile(keyringPath)
 			}
 		}
-	}
-
-	//Autodiscover
-	if cfg.Control.AutoDiscoverPath != "" {
-		log.Info("auto discover path is enabled")
-		paths := filepath.SplitList(cfg.Control.AutoDiscoverPath)
-		c.SetAutodiscoverPaths(paths)
-		for _, p := range paths {
-			fullPath, err := filepath.Abs(p)
-			if err != nil {
-				log.WithFields(
-					log.Fields{
-						"_block":           "main",
-						"_module":          "snapd",
-						"autodiscoverpath": p,
-					}).Fatal(err)
-			}
-			log.Info("autoloading plugins from: ", fullPath)
-			files, err := ioutil.ReadDir(fullPath)
-			if err != nil {
-				log.WithFields(
-					log.Fields{
-						"_block":           "main",
-						"_module":          "snapd",
-						"autodiscoverpath": fullPath,
-					}).Fatal(err)
-			}
-			for _, file := range files {
-				if file.IsDir() {
-					continue
-				}
-				if strings.HasSuffix(file.Name(), ".aci") || !(strings.HasSuffix(file.Name(), ".asc")) {
-					rp, err := core.NewRequestedPlugin(path.Join(fullPath, file.Name()))
-					if err != nil {
-						log.WithFields(log.Fields{
-							"_block":           "main",
-							"_module":          "snapd",
-							"autodiscoverpath": fullPath,
-							"plugin":           file,
-						}).Error(err)
-					}
-					signatureFile := file.Name() + ".asc"
-					if _, err := os.Stat(path.Join(fullPath, signatureFile)); err == nil {
-						err = rp.ReadSignatureFile(path.Join(fullPath, signatureFile))
-						if err != nil {
-							log.WithFields(log.Fields{
-								"_block":           "main",
-								"_module":          "snapd",
-								"autodiscoverpath": fullPath,
-								"plugin":           file.Name() + ".asc",
-							}).Error(err)
-						}
-					}
-					pl, err := c.Load(rp)
-					if err != nil {
-						log.WithFields(log.Fields{
-							"_block":           "main",
-							"_module":          "snapd",
-							"autodiscoverpath": fullPath,
-							"plugin":           file,
-						}).Error(err)
-					} else {
-						log.WithFields(log.Fields{
-							"_block":           "main",
-							"_module":          "snapd",
-							"autodiscoverpath": fullPath,
-							"plugin-file-name": file.Name(),
-							"plugin-name":      pl.Name(),
-							"plugin-version":   pl.Version(),
-							"plugin-type":      pl.TypeName(),
-						}).Info("Loading plugin")
-					}
-				}
-			}
-		}
-	} else {
-		log.Info("auto discover path is disabled")
 	}
 
 	log.WithFields(
