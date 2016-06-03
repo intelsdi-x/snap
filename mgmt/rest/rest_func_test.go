@@ -586,7 +586,10 @@ func TestPluginRestCalls(t *testing.T) {
 				if len(SNAP_AUTODISCOVER_PATH) == 0 {
 					if len(SNAP_PATH) != 0 {
 						SNAP_AUTODISCOVER_PATH = fmt.Sprintf("%s/plugin", SNAP_PATH)
+						log.Warning(fmt.Sprintf("SNAP_AUTODISCOVER_PATH has been set to SNAP_PATH/plugin (%s). This might cause test failures", SNAP_AUTODISCOVER_PATH))
 					}
+				} else {
+					log.Warning(fmt.Sprintf("SNAP_AUTODISCOVER_PATH is set to %s. This might cause test failures", SNAP_AUTODISCOVER_PATH))
 				}
 				cfg.Control.AutoDiscoverPath = SNAP_AUTODISCOVER_PATH
 				r := startAPI(cfg)
