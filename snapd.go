@@ -287,13 +287,17 @@ func action(ctx *cli.Context) {
 		log.SetOutput(file)
 	}
 
+	// Validate log level and trust level settings for snapd
+	validateLevelSettings(cfg.LogLevel, cfg.Control.PluginTrust)
+
+	// Switch log level to user defined
+	log.SetLevel(getLevel(cfg.LogLevel))
+	log.Info("setting log level to: ", l[cfg.LogLevel])
+
 	log.Info("Starting snapd (version: ", gitversion, ")")
 
 	// Set Max Processors for snapd.
 	setMaxProcs(cfg.GoMaxProcs)
-
-	// Validate log level and trust level settings for snapd
-	validateLevelSettings(cfg.LogLevel, cfg.Control.PluginTrust)
 
 	c := control.New(cfg.Control)
 
@@ -475,10 +479,6 @@ func action(ctx *cli.Context) {
 			"block":   "main",
 			"_module": "snapd",
 		}).Info("snapd started")
-
-	// Switch log level to user defined
-	log.Info("setting log level to: ", l[cfg.LogLevel])
-	log.SetLevel(getLevel(cfg.LogLevel))
 
 	select {} //run forever and ever
 }
