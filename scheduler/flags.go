@@ -19,18 +19,24 @@ limitations under the License.
 
 package scheduler
 
-import "github.com/codegangsta/cli"
+import (
+	"fmt"
+
+	"github.com/codegangsta/cli"
+)
 
 var (
 	flSchedulerQueueSize = cli.IntFlag{
 		Name:   "work-manager-queue-size",
-		Usage:  "Size of the work manager queue (default: 25)",
+		Usage:  fmt.Sprintf("Size of the work manager queue (default: %d)", defaultWorkManagerQueueSize),
+		Value:  int(defaultWorkManagerQueueSize),
 		EnvVar: "WORK_MANAGER_QUEUE_SIZE",
 	}
 
 	flSchedulerPoolSize = cli.IntFlag{
 		Name:   "work-manager-pool-size",
-		Usage:  "Size of the work manager pool (default 4)",
+		Usage:  fmt.Sprintf("Size of the work manager pool (default %d)", defaultWorkManagerPoolSize),
+		Value:  int(defaultWorkManagerPoolSize),
 		EnvVar: "WORK_MANAGER_POOL_SIZE",
 	}
 
