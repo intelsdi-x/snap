@@ -67,13 +67,17 @@ type task struct {
 	State              string                  `json:"task_state"`
 }
 
-//
+// Function used to create a task according to content (1st parameter)
+// . Content can be retrieved from a configuration file or a HTTP REST request body
+// . Mode is used to specify if the created task should start right away or not
+// . function pointer is responsible for effectively creating and returning the created task
 func CreateTaskFromContent(body io.ReadCloser,
 	mode *bool,
 	fp func(sch schedule.Schedule,
 		wfMap *wmap.WorkflowMap,
 		startOnCreate bool,
 		opts ...core.TaskOption) (core.Task, core.TaskErrors)) (core.Task, error) {
+
 	tr, err := marshalTask(body)
 	if err != nil {
 		return nil, err
@@ -100,6 +104,9 @@ func CreateTaskFromContent(body io.ReadCloser,
 
 	if mode == nil {
 		mode = &tr.Start
+	}
+	if fp == nil {
+		return nil, errors.New("Missing workflow creation routine")
 	}
 	task, errs := fp(sch, tr.Workflow, *mode, opts...)
 	if errs != nil && len(errs.Errors()) != 0 {
@@ -163,7 +170,7 @@ func makeSchedule(s Schedule) (schedule.Schedule, error) {
 		return sch, nil
 	case "cron":
 		if s.Interval == "" {
-			return nil, errors.New("missing cron entry ")
+			return nil, errors.New("missing cron entry")
 		}
 		sch := schedule.NewCronSchedule(s.Interval)
 
