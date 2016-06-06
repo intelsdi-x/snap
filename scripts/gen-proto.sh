@@ -62,7 +62,7 @@ echo "Generating pb.go files"
 common_path="src/github.com/intelsdi-x/snap"
 #generate common
 echo "Generating common proto files"
-protoc --go_out=plugins.grpc:src/ --proto_path=src/ "$common_path"/grpc/common/*.proto
+protoc --go_out=plugins:src/ --proto_path=src/ "$common_path"/grpc/common/*.proto
 echo "$license" | cat - "$common_path"/grpc/common/common.pb.go > temp && mv temp "$common_path"/grpc/common/common.pb.go
 #generate all others
 
