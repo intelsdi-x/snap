@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/intelsdi-x/snap",
 	"GoVersion": "go1.5",
-	"GodepVersion": "v66",
+	"GodepVersion": "v62",
 	"Packages": [
 		"./..."
 	],
@@ -122,23 +122,23 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "7f88271ea9913b72aca44fa7fc8af919eacc17ce"
+			"Rev": "154d9f9ea81208afed560f4cf27b4860c8ed1904"
 		},
 		{
 			"ImportPath": "golang.org/x/net/http2",
-			"Rev": "7f88271ea9913b72aca44fa7fc8af919eacc17ce"
+			"Rev": "154d9f9ea81208afed560f4cf27b4860c8ed1904"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/timeseries",
-			"Rev": "7f88271ea9913b72aca44fa7fc8af919eacc17ce"
+			"Rev": "154d9f9ea81208afed560f4cf27b4860c8ed1904"
 		},
 		{
 			"ImportPath": "golang.org/x/net/trace",
-			"Rev": "7f88271ea9913b72aca44fa7fc8af919eacc17ce"
+			"Rev": "154d9f9ea81208afed560f4cf27b4860c8ed1904"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "b60d3e9ed84da5710af43964e78bc44de74b72aa"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
