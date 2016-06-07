@@ -17,7 +17,7 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-GITVERSION=`git describe --always`
+GITVERSION=`git describe --always --exact-match 2> /dev/null || echo "$(git symbolic-ref HEAD 2> /dev/null | cut -b 12-)-$(git log --pretty=format:"%h" -1)"`
 SOURCEDIR=$1
 BUILDPLUGINS=$2
 SPLUGINFOLDER=$3
