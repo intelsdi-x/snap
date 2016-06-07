@@ -48,29 +48,11 @@ import (
 )
 
 var (
-	flAPIDisabled = cli.BoolFlag{
-		Name:  "disable-api, d",
-		Usage: "Disable the agent REST API",
-	}
-	flAPIPort = cli.IntFlag{
-		Name:   "api-port, p",
-		Usage:  "API port (Default: 8181)",
-		EnvVar: "SNAP_PORT",
-	}
-	flAPIAddr = cli.StringFlag{
-		Name:   "api-addr, b",
-		Usage:  "API Address[:port] to bind to/listen on. Default: empty string => listen on all interfaces",
-		EnvVar: "SNAP_ADDR",
-	}
 	flMaxProcs = cli.IntFlag{
 		Name:   "max-procs, c",
-		Usage:  "Set max cores to use for snap Agent. Default is 1 core.",
+		Usage:  fmt.Sprintf("Set max cores to use for snap Agent. Default is %d core.", defaultGoMaxProcs),
+		Value:  defaultGoMaxProcs,
 		EnvVar: "GOMAXPROCS",
-	}
-	flNumberOfPLs = cli.IntFlag{
-		Name:   "max-running-plugins, m",
-		Usage:  "The maximum number of instances of a loaded plugin to run",
-		EnvVar: "SNAP_MAX_PLUGINS",
 	}
 	// plugin
 	flLogPath = cli.StringFlag{
@@ -81,48 +63,13 @@ var (
 	flLogLevel = cli.IntFlag{
 		Name:   "log-level, l",
 		Usage:  "1-5 (Debug, Info, Warning, Error, Fatal)",
+		Value:  defaultLogLevel,
 		EnvVar: "SNAP_LOG_LEVEL",
-	}
-	flAutoDiscover = cli.StringFlag{
-		Name:   "auto-discover, a",
-		Usage:  "Auto discover paths separated by colons.",
-		EnvVar: "SNAP_AUTODISCOVER_PATH",
-	}
-	flPluginTrust = cli.IntFlag{
-		Name:   "plugin-trust, t",
-		Usage:  "0-2 (Disabled, Enabled, Warning)",
-		EnvVar: "SNAP_TRUST_LEVEL",
-	}
-	flKeyringPaths = cli.StringFlag{
-		Name:   "keyring-paths, k",
-		Usage:  "Keyring paths for signing verification separated by colons",
-		EnvVar: "SNAP_KEYRING_PATHS",
-	}
-	flCache = cli.DurationFlag{
-		Name:   "cache-expiration",
-		Usage:  "The time limit for which a metric cache entry is valid",
-		EnvVar: "SNAP_CACHE_EXPIRATION",
 	}
 	flConfig = cli.StringFlag{
 		Name:   "config",
 		Usage:  "A path to a config file",
 		EnvVar: "SNAP_CONFIG_PATH",
-	}
-	flRestHTTPS = cli.BoolFlag{
-		Name:  "rest-https",
-		Usage: "start snap's API as https",
-	}
-	flRestCert = cli.StringFlag{
-		Name:  "rest-cert",
-		Usage: "A path to a certificate to use for HTTPS deployment of snap's REST API",
-	}
-	flRestKey = cli.StringFlag{
-		Name:  "rest-key",
-		Usage: "A path to a key file to use for HTTPS deployment of snap's REST API",
-	}
-	flRestAuth = cli.BoolFlag{
-		Name:  "rest-auth",
-		Usage: "Enables snap's REST API authentication",
 	}
 
 	gitversion  string
@@ -230,24 +177,14 @@ func main() {
 	app.Version = gitversion
 	app.Usage = "A powerful telemetry framework"
 	app.Flags = []cli.Flag{
-		flAPIDisabled,
-		flAPIPort,
-		flAPIAddr,
 		flLogLevel,
 		flLogPath,
 		flMaxProcs,
-		flAutoDiscover,
-		flNumberOfPLs,
-		flCache,
-		flPluginTrust,
-		flKeyringPaths,
-		flRestCert,
 		flConfig,
-		flRestHTTPS,
-		flRestKey,
-		flRestAuth,
 	}
 	app.Flags = append(app.Flags, scheduler.Flags...)
+	app.Flags = append(app.Flags, control.Flags...)
+	app.Flags = append(app.Flags, rest.Flags...)
 	app.Flags = append(app.Flags, tribe.Flags...)
 
 	app.Action = action

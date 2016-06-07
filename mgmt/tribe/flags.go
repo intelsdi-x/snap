@@ -43,6 +43,7 @@ var (
 	flTribeAdvertisePort = cli.IntFlag{
 		Name:   "tribe-port",
 		Usage:  "Port tribe gossips over to maintain membership",
+		Value:  defaultBindPort,
 		EnvVar: "SNAP_TRIBE_PORT",
 	}
 

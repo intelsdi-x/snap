@@ -107,7 +107,7 @@ const (
 					},
 					"port" : {
 						"type": "integer",
-						"minimum": 0,
+						"minimum": 1,
 						"maximum": 65535
 					},
 					"addr" : {
