@@ -29,6 +29,7 @@ import (
 
 	"github.com/intelsdi-x/gomit"
 
+	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	. "github.com/smartystreets/goconvey/convey"
@@ -348,7 +349,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 			Convey("startPlugin", func() {
 
 				// These tests only work if snap Path is known to discover mock plugin used for testing
-				if SnapPath != "" {
+				if fixtures.SnapPath != "" {
 					Convey("should return an AvailablePlugin", func() {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
@@ -356,7 +357,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 							PluginLogPath: "/tmp/snap-test-plugin.log",
 							// Daemon:        true,
 						}
-						exPlugin, err := newExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -380,7 +381,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/snap-test-plugin.log",
 						}
-						exPlugin, err := newExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -400,7 +401,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/snap-test-plugin.log",
 						}
-						exPlugin, err := newExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -419,7 +420,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/snap-test-plugin.log",
 						}
-						exPlugin, err := newExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -438,7 +439,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/snap-test-plugin-foo.log",
 						}
-						exPlugin, err := newExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -461,7 +462,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						a := plugin.Arg{
 							PluginLogPath: "/tmp/snap-test-plugin.log",
 						}
-						exPlugin, err := newExecutablePlugin(a, PluginPath)
+						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
 						}
@@ -528,7 +529,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					a := plugin.Arg{
 						PluginLogPath: "/tmp/snap-test-plugin-stop.log",
 					}
-					exPlugin, err := newExecutablePlugin(a, PluginPath)
+					exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 					if err != nil {
 						panic(err)
 					}

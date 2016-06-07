@@ -23,27 +23,17 @@ package control
 
 import (
 	"errors"
-	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
-)
-
-var (
-	PluginName = "snap-collector-mock2"
-	SnapPath   = os.Getenv("SNAP_PATH")
-	PluginPath = path.Join(SnapPath, "plugin", PluginName)
-
-	JSONRPCPluginName = "snap-collector-mock1"
-	JSONRPCPluginPath = path.Join(SnapPath, "plugin", JSONRPCPluginName)
 )
 
 func TestLoadedPlugins(t *testing.T) {
@@ -106,13 +96,13 @@ func TestLoadPlugin(t *testing.T) {
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir
 
-	if SnapPath != "" {
+	if fixtures.SnapPath != "" {
 		Convey("PluginManager.LoadPlugin", t, func() {
 
 			Convey("loads plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, PluginPath)
+				lp, err := loadPlugin(p, fixtures.PluginPath)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.all(), ShouldNotBeEmpty)
@@ -125,7 +115,7 @@ func TestLoadPlugin(t *testing.T) {
 				cfg.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, serr := loadPlugin(p, PluginPath)
+				lp, serr := loadPlugin(p, fixtures.PluginPath)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.all(), ShouldNotBeEmpty)
@@ -145,7 +135,7 @@ func TestLoadPlugin(t *testing.T) {
 				cfg.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, PluginPath)
+				lp, err := loadPlugin(p, fixtures.PluginPath)
 
 				So(lp, ShouldBeNil)
 				So(p.all(), ShouldBeEmpty)
@@ -157,7 +147,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads json-rpc plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, JSONRPCPluginPath)
+				lp, err := loadPlugin(p, fixtures.JSONRPCPluginPath)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.loadedPlugins, ShouldNotBeEmpty)
@@ -168,7 +158,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin with cache TTL set", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, JSONRPCPluginPath)
+				lp, err := loadPlugin(p, fixtures.JSONRPCPluginPath)
 
 				So(err, ShouldBeNil)
 				So(lp.Meta.CacheTTL, ShouldNotBeNil)
@@ -181,14 +171,14 @@ func TestLoadPlugin(t *testing.T) {
 }
 
 func TestUnloadPlugin(t *testing.T) {
-	if SnapPath != "" {
+	if fixtures.SnapPath != "" {
 		Convey("pluginManager.UnloadPlugin", t, func() {
 
 			Convey("when a loaded plugin is unloaded", func() {
 				Convey("then it is removed from the loadedPlugins", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := loadPlugin(p, PluginPath)
+					_, err := loadPlugin(p, fixtures.PluginPath)
 					So(err, ShouldBeNil)
 
 					numPluginsLoaded := len(p.all())
@@ -205,7 +195,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					lp, err := loadPlugin(p, PluginPath)
+					lp, err := loadPlugin(p, fixtures.PluginPath)
 					glp, err2 := p.get("collector:mock:2")
 					So(err2, ShouldBeNil)
 					glp.State = DetectedState
@@ -218,7 +208,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := loadPlugin(p, PluginPath)
+					_, err := loadPlugin(p, fixtures.PluginPath)
 
 					lp, err2 := p.get("collector:mock:2")
 					So(err2, ShouldBeNil)

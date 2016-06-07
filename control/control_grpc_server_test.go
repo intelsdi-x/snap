@@ -30,10 +30,10 @@ import (
 	"golang.org/x/net/context"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/grpc/common"
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
@@ -63,17 +63,17 @@ func TestGRPCServerScheduler(t *testing.T) {
 	// collector -- mock
 	// processor -- passthru
 	// publisher -- file
-	mock, err := core.NewRequestedPlugin(JSONRPCPluginPath)
+	mock, err := core.NewRequestedPlugin(fixtures.JSONRPCPluginPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	c.Load(mock)
-	passthru, err := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-processor-passthru"))
+	passthru, err := core.NewRequestedPlugin(path.Join(fixtures.SnapPath, "plugin", "snap-processor-passthru"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	c.Load(passthru)
-	filepub, err := core.NewRequestedPlugin(path.Join(SnapPath, "plugin", "snap-publisher-file"))
+	filepub, err := core.NewRequestedPlugin(path.Join(fixtures.SnapPath, "plugin", "snap-publisher-file"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -122,22 +122,11 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 	})
 
-	validMetric := MockMetricType{
-		namespace: core.NewNamespace([]string{"intel", "mock", "foo"}...),
-		cfg:       cdata.NewNode(),
-		ver:       0,
-	}
-	invalidMetric := MockMetricType{
-		namespace: core.NewNamespace([]string{"this", "is", "invalid"}...),
-		cfg:       cdata.NewNode(),
-		ver:       1000,
-	}
-
 	// Verify that validate deps is properly passing through errors
 	Convey("Validating Deps", t, func() {
 		Convey("Should Fail if given invalid info", func() {
 			req := &rpc.ValidateDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{invalidMetric}),
+				Metrics: common.NewMetrics([]core.Metric{fixtures.InvalidMetric}),
 				Plugins: common.ToSubPluginsMsg([]core.SubscribedPlugin{}),
 			}
 			reply, err := client.ValidateDeps(context.Background(), req)
@@ -147,7 +136,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 		Convey("with valid metrics", func() {
 			req := &rpc.ValidateDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{validMetric}),
+				Metrics: common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
 				Plugins: common.ToSubPluginsMsg([]core.SubscribedPlugin{}),
 			}
 			reply, err := client.ValidateDeps(context.Background(), req)
@@ -160,7 +149,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	Convey("SubscribeDeps", t, func() {
 		Convey("Should Error with invalid inputs", func() {
 			req := &rpc.SubscribeDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{invalidMetric}),
+				Metrics: common.NewMetrics([]core.Metric{fixtures.InvalidMetric}),
 				Plugins: common.ToCorePluginsMsg([]core.Plugin{}),
 				TaskId:  "my-snowflake-id",
 			}
@@ -172,7 +161,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 		Convey("Should not error with valid inputs", func() {
 			req := &rpc.SubscribeDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{validMetric}),
+				Metrics: common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
 				Plugins: common.ToCorePluginsMsg([]core.Plugin{}),
 				TaskId:  "my-snowflake-id",
 			}
@@ -186,7 +175,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	Convey("UnsubscribeDeps", t, func() {
 		Convey("Should Error with invalid inputs", func() {
 			req := &rpc.SubscribeDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{invalidMetric}),
+				Metrics: common.NewMetrics([]core.Metric{fixtures.InvalidMetric}),
 				Plugins: common.ToCorePluginsMsg([]core.Plugin{}),
 				TaskId:  "my-snowflake-id",
 			}
@@ -198,7 +187,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 		Convey("Should not error with valid inputs", func() {
 			req := &rpc.SubscribeDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{validMetric}),
+				Metrics: common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
 				Plugins: common.ToCorePluginsMsg([]core.Plugin{}),
 				TaskId:  "my-snowflake-id",
 			}
@@ -212,7 +201,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	Convey("MatchingQueryToNamespaces", t, func() {
 		Convey("Should error with invalid inputs", func() {
 			req := &rpc.ExpandWildcardsRequest{
-				Namespace: common.ToNamespace(invalidMetric.Namespace()),
+				Namespace: common.ToNamespace(fixtures.InvalidMetric.Namespace()),
 			}
 			reply, err := client.MatchQueryToNamespaces(context.Background(), req)
 			// we don't expect rpc.errors
@@ -222,7 +211,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 		Convey("Should not error with invalid inputs", func() {
 			req := &rpc.ExpandWildcardsRequest{
-				Namespace: common.ToNamespace(validMetric.Namespace()),
+				Namespace: common.ToNamespace(fixtures.ValidMetric.Namespace()),
 			}
 			reply, err := client.MatchQueryToNamespaces(context.Background(), req)
 			// we don't expect rpc.errors
@@ -234,7 +223,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	Convey("ExpandWildcards", t, func() {
 		Convey("Should error with invalid inputs", func() {
 			req := &rpc.ExpandWildcardsRequest{
-				Namespace: common.ToNamespace(invalidMetric.Namespace()),
+				Namespace: common.ToNamespace(fixtures.InvalidMetric.Namespace()),
 			}
 			reply, err := client.ExpandWildcards(context.Background(), req)
 			// we don't expect rpc errors
@@ -244,7 +233,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 		Convey("Should not error with valid inputs", func() {
 			req := &rpc.ExpandWildcardsRequest{
-				Namespace: common.ToNamespace(validMetric.Namespace()),
+				Namespace: common.ToNamespace(fixtures.ValidMetric.Namespace()),
 			}
 			reply, err := client.ExpandWildcards(context.Background(), req)
 			// we don't expect rpc errors
@@ -278,7 +267,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	Convey("CollectMetrics", t, func() {
 		Convey("Should error with invalid inputs", func() {
 			req := &rpc.CollectMetricsRequest{
-				Metrics: common.NewMetrics([]core.Metric{invalidMetric}),
+				Metrics: common.NewMetrics([]core.Metric{fixtures.InvalidMetric}),
 				Deadline: &common.Time{
 					Sec:  int64(time.Now().Unix()),
 					Nsec: int64(time.Now().Nanosecond()),
@@ -291,7 +280,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 		Convey("should not error with valid inputs", func() {
 			req := &rpc.CollectMetricsRequest{
-				Metrics: common.NewMetrics([]core.Metric{validMetric}),
+				Metrics: common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
 				Deadline: &common.Time{
 					Sec:  int64(time.Now().Unix()),
 					Nsec: int64(time.Now().Nanosecond()),
@@ -301,7 +290,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 			reply, err := client.CollectMetrics(context.Background(), req)
 			So(err, ShouldBeNil)
 			So(len(reply.Errors), ShouldEqual, 0)
-			So(reply.Metrics[0].Namespace, ShouldResemble, common.ToNamespace(validMetric.Namespace()))
+			So(reply.Metrics[0].Namespace, ShouldResemble, common.ToNamespace(fixtures.ValidMetric.Namespace()))
 			// Used in a later test as metrics to be passed to processor
 			mts = common.ToCoreMetrics(reply.Metrics)
 		})

@@ -26,6 +26,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -56,7 +57,7 @@ func TestAvailablePlugin(t *testing.T) {
 				PluginLogPath: "/tmp/snap-test-plugin-stop.log",
 			}
 
-			exPlugin, _ := plugin.NewExecutablePlugin(a, PluginPath)
+			exPlugin, _ := plugin.NewExecutablePlugin(a, fixtures.PluginPath)
 			ap, err := r.startPlugin(exPlugin)
 			So(err, ShouldBeNil)
 
