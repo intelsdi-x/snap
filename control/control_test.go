@@ -24,7 +24,6 @@ package control
 import (
 	"bytes"
 	"encoding/gob"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -39,6 +38,7 @@ import (
 	"github.com/vrischmann/jsonutil"
 
 	"github.com/intelsdi-x/gomit"
+	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/control/strategy"
@@ -126,14 +126,14 @@ func TestPluginControlGenerateArgs(t *testing.T) {
 }
 
 func TestSwapPlugin(t *testing.T) {
-	if SnapPath != "" {
+	if fixtures.SnapPath != "" {
 		c := New(GetDefaultConfig())
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginsSwapped", lpe)
 
-		_, e := load(c, PluginPath)
+		_, e := load(c, fixtures.PluginPath)
 		Convey("Loading first plugin", t, func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
@@ -153,7 +153,7 @@ func TestSwapPlugin(t *testing.T) {
 				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
 			})
 		})
-		mock1Path := strings.Replace(PluginPath, "snap-collector-mock2", "snap-collector-mock1", 1)
+		mock1Path := strings.Replace(fixtures.PluginPath, "snap-collector-mock2", "snap-collector-mock1", 1)
 		mockRP, mErr := core.NewRequestedPlugin(mock1Path)
 		Convey("Loading a plugin should not error", t, func() {
 			So(mErr, ShouldBeNil)
@@ -200,7 +200,7 @@ func TestSwapPlugin(t *testing.T) {
 			})
 		})
 
-		filePath := strings.Replace(PluginPath, "snap-collector-mock2", "snap-publisher-file", 1)
+		filePath := strings.Replace(fixtures.PluginPath, "snap-collector-mock2", "snap-publisher-file", 1)
 		fileRP, pErr := core.NewRequestedPlugin(filePath)
 		Convey("Loading a plugin should not error", t, func() {
 			So(pErr, ShouldBeNil)
@@ -304,7 +304,7 @@ func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 }
 
 var (
-	AciPath = path.Join(strings.TrimRight(SnapPath, "build"), "pkg/unpackage/")
+	AciPath = path.Join(strings.TrimRight(fixtures.SnapPath, "build"), "pkg/unpackage/")
 	AciFile = "snap-collector-plugin-mock1.darwin-x86_64.aci"
 )
 
@@ -324,12 +324,12 @@ func TestLoad(t *testing.T) {
 	// These tests only work if SNAP_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
-	if SnapPath != "" {
+	if fixtures.SnapPath != "" {
 		c := New(GetDefaultConfig())
 
 		// Testing trying to load before starting pluginControl
 		Convey("pluginControl before being started", t, func() {
-			_, err := load(c, PluginPath)
+			_, err := load(c, fixtures.PluginPath)
 			Convey("should return an error when loading a plugin", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -343,7 +343,7 @@ func TestLoad(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, PluginPath)
+		_, err := load(c, fixtures.PluginPath)
 		Convey("pluginControl.Load on successful load", t, func() {
 			Convey("Should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -372,12 +372,12 @@ func TestLoad(t *testing.T) {
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginName)
 	}
 }
 
 func TestLoadWithSignedPlugins(t *testing.T) {
-	if SnapPath != "" {
+	if fixtures.SnapPath != "" {
 		Convey("pluginControl.Load should successufully load a signed plugin with trust enabled", t, func() {
 			c := New(GetDefaultConfig())
 			c.pluginTrust = PluginTrustEnabled
@@ -386,7 +386,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, PluginPath, "mock.asc")
+			_, err := load(c, fixtures.PluginPath, "mock.asc")
 			Convey("so error on loading a signed plugin should be nil", func() {
 				So(err, ShouldBeNil)
 			})
@@ -402,7 +402,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, PluginPath)
+			_, err := load(c, fixtures.PluginPath)
 			Convey("so error on loading an unsigned plugin should be nil", func() {
 				So(err, ShouldBeNil)
 			})
@@ -415,13 +415,13 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.signingManager = &mocksigningManager{signed: false}
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, PluginPath)
+			_, err := load(c, fixtures.PluginPath)
 			Convey("so error should not be nil when loading an unsigned plugin with trust enabled", func() {
 				So(err, ShouldNotBeNil)
 			})
 		})
 	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginName)
 	}
 }
 
@@ -429,13 +429,13 @@ func TestUnload(t *testing.T) {
 	// These tests only work if SNAP_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
-	if SnapPath != "" {
+	if fixtures.SnapPath != "" {
 		c := New(GetDefaultConfig())
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestUnload", lpe)
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
-		_, e := load(c, PluginPath)
+		_, e := load(c, fixtures.PluginPath)
 		Convey("Loading a plugin to test unload", t, func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
@@ -487,7 +487,7 @@ func TestUnload(t *testing.T) {
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginName)
 	}
 }
 
@@ -751,68 +751,18 @@ func TestMetricExists(t *testing.T) {
 	})
 }
 
-type MockMetricType struct {
-	namespace core.Namespace
-	cfg       *cdata.ConfigDataNode
-	ver       int
-}
-
-func (m MockMetricType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Namespace core.Namespace        `json:"namespace"`
-		Config    *cdata.ConfigDataNode `json:"config"`
-	}{
-		Namespace: m.namespace,
-		Config:    m.cfg,
-	})
-}
-
-func (m MockMetricType) Namespace() core.Namespace {
-	return m.namespace
-}
-
-func (m MockMetricType) Description() string {
-	return ""
-}
-
-func (m MockMetricType) Unit() string {
-	return ""
-}
-
-func (m MockMetricType) LastAdvertisedTime() time.Time {
-	return time.Now()
-}
-
-func (m MockMetricType) Timestamp() time.Time {
-	return time.Now()
-}
-
-func (m MockMetricType) Version() int {
-	return m.ver
-}
-
-func (m MockMetricType) Config() *cdata.ConfigDataNode {
-	return m.cfg
-}
-
-func (m MockMetricType) Data() interface{} {
-	return nil
-}
-
-func (m MockMetricType) Tags() map[string]string { return nil }
-
 func TestMetricConfig(t *testing.T) {
 	Convey("required config provided by task", t, func() {
 		c := New(GetDefaultConfig())
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, JSONRPCPluginPath)
+		_, err := load(c, fixtures.JSONRPCPluginPath)
 		So(err, ShouldBeNil)
 		<-lpe.done
 		cd := cdata.NewNode()
-		m1 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "foo"),
+		m1 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "foo"),
 		}
 
 		Convey("So metric should not be valid without config", func() {
@@ -827,8 +777,8 @@ func TestMetricConfig(t *testing.T) {
 		})
 
 		Convey("So metric should not be valid if does not occur in the catalog", func() {
-			m := MockMetricType{
-				namespace: core.NewNamespace("intel", "mock", "bad"),
+			m := fixtures.MockMetricType{
+				Namespace_: core.NewNamespace("intel", "mock", "bad"),
 			}
 			errs := c.validateMetricTypeSubscription(m, cd)
 			So(errs, ShouldNotBeNil)
@@ -845,13 +795,13 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, JSONRPCPluginPath)
+		_, err := load(c, fixtures.JSONRPCPluginPath)
 		So(err, ShouldBeNil)
 
 		<-lpe.done
 		var cd *cdata.ConfigDataNode
-		m1 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "foo"),
+		m1 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "foo"),
 		}
 
 		Convey("So metric should be valid with config", func() {
@@ -868,13 +818,13 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, JSONRPCPluginPath)
+		_, err := load(c, fixtures.JSONRPCPluginPath)
 		So(err, ShouldBeNil)
 		<-lpe.done
 		cd := cdata.NewNode()
-		m1 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "foo"),
-			ver:       1,
+		m1 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "foo"),
+			Ver:        1,
 		}
 		errs := c.validateMetricTypeSubscription(m1, cd)
 		Convey("So metric should be valid with config", func() {
@@ -893,15 +843,15 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, e := load(c, PluginPath)
+		_, e := load(c, fixtures.PluginPath)
 		So(e, ShouldBeNil)
 		if e != nil {
 			t.FailNow()
 		}
-		metric := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "foo"),
-			ver:       2,
-			cfg:       cdata.NewNode(),
+		metric := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "foo"),
+			Ver:        2,
+			Cfg:        cdata.NewNode(),
 		}
 		<-lpe.done
 		Convey("Start the plugins", func() {
@@ -954,7 +904,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		)
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, e := load(c, JSONRPCPluginPath)
+		_, e := load(c, fixtures.JSONRPCPluginPath)
 		So(e, ShouldBeNil)
 		if e != nil {
 			t.FailNow()
@@ -1021,7 +971,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		So(strategy.GlobalCacheExpiration, ShouldResemble, time.Second*1)
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, e := load(c, PluginPath)
+		_, e := load(c, fixtures.PluginPath)
 		Convey("Loading native client plugin", func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
@@ -1031,7 +981,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			t.FailNow()
 		}
 		<-lpe.done
-		_, e = load(c, JSONRPCPluginPath)
+		_, e = load(c, fixtures.JSONRPCPluginPath)
 		Convey("Loading JSONRPC client plugin", func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
@@ -1161,7 +1111,7 @@ func TestFailedPlugin(t *testing.T) {
 		c.Config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 
 		// Load plugin
-		_, e := load(c, PluginPath)
+		_, e := load(c, fixtures.PluginPath)
 		So(e, ShouldBeNil)
 		<-lpe.done
 		_, err := c.MetricCatalog()
@@ -1171,9 +1121,9 @@ func TestFailedPlugin(t *testing.T) {
 		cfg := cdata.NewNode()
 		cfg.AddItem("panic", ctypes.ConfigValueBool{Value: true})
 		m := []core.Metric{
-			MockMetricType{
-				namespace: core.NewNamespace("intel", "mock", "foo"),
-				cfg:       cfg,
+			fixtures.MockMetricType{
+				Namespace_: core.NewNamespace("intel", "mock", "foo"),
+				Cfg:        cfg,
 			},
 		}
 
@@ -1239,7 +1189,7 @@ func TestCollectMetrics(t *testing.T) {
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		_, e := load(c, JSONRPCPluginPath)
+		_, e := load(c, fixtures.JSONRPCPluginPath)
 		So(e, ShouldBeNil)
 		<-lpe.done
 		mts, err := c.MetricCatalog()
@@ -1250,17 +1200,17 @@ func TestCollectMetrics(t *testing.T) {
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 
 		m := []core.Metric{}
-		m1 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "foo"),
-			cfg:       cd,
+		m1 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "foo"),
+			Cfg:        cd,
 		}
-		m2 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "bar"),
-			cfg:       cd,
+		m2 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "bar"),
+			Cfg:        cd,
 		}
-		m3 := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "test"),
-			cfg:       cd,
+		m3 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "test"),
+			Cfg:        cd,
 		}
 
 		// retrieve loaded plugin
@@ -1309,7 +1259,7 @@ func TestCollectMetrics(t *testing.T) {
 		c := New(GetDefaultConfig())
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
-		load(c, PluginPath)
+		load(c, fixtures.PluginPath)
 		m := []core.Metric{}
 		c.CollectMetrics(m, time.Now().Add(time.Second*60), uuid.New(), nil)
 		c.Stop()
@@ -1336,7 +1286,7 @@ func TestExpandWildcards(t *testing.T) {
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		_, e := load(c, JSONRPCPluginPath)
+		_, e := load(c, fixtures.JSONRPCPluginPath)
 		So(e, ShouldBeNil)
 		<-lpe.done
 		mts, err := c.MetricCatalog()
@@ -1410,7 +1360,7 @@ func TestGatherCollectors(t *testing.T) {
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		_, e := load(c, JSONRPCPluginPath)
+		_, e := load(c, fixtures.JSONRPCPluginPath)
 		So(e, ShouldBeNil)
 		<-lpe.done
 
@@ -1420,8 +1370,8 @@ func TestGatherCollectors(t *testing.T) {
 		So(len(mts), ShouldEqual, 4)
 		Convey("it gathers the latest version", func() {
 			m := []core.Metric{
-				MockMetricType{
-					namespace: ns,
+				fixtures.MockMetricType{
+					Namespace_: ns,
 				},
 			}
 			plgs, errs := c.gatherCollectors(m)
@@ -1433,9 +1383,9 @@ func TestGatherCollectors(t *testing.T) {
 			Convey("the version is available", func() {
 				v := 1
 				m := []core.Metric{
-					MockMetricType{
-						namespace: ns,
-						ver:       v,
+					fixtures.MockMetricType{
+						Namespace_: ns,
+						Ver:        v,
 					},
 				}
 				plgs, errs := c.gatherCollectors(m)
@@ -1445,9 +1395,9 @@ func TestGatherCollectors(t *testing.T) {
 			})
 			Convey("the version is not available", func() {
 				m := []core.Metric{
-					MockMetricType{
-						namespace: ns,
-						ver:       30,
+					fixtures.MockMetricType{
+						Namespace_: ns,
+						Ver:        30,
 					},
 				}
 				plgs, errs := c.gatherCollectors(m)
@@ -1458,31 +1408,6 @@ func TestGatherCollectors(t *testing.T) {
 		c.Stop()
 	})
 }
-
-type mockMetric struct {
-	namespace []string
-	data      int
-}
-
-func (m *mockMetric) Namespace() []string {
-	return m.namespace
-}
-
-func (m *mockMetric) Data() interface{} {
-	return m.data
-}
-
-type mockPlugin struct {
-	pluginType core.PluginType
-	name       string
-	ver        int
-	config     *cdata.ConfigDataNode
-}
-
-func (m mockPlugin) Name() string                  { return m.name }
-func (m mockPlugin) TypeName() string              { return m.pluginType.String() }
-func (m mockPlugin) Version() int                  { return m.ver }
-func (m mockPlugin) Config() *cdata.ConfigDataNode { return m.config }
 
 func TestPublishMetrics(t *testing.T) {
 	Convey("Given an available file publisher plugin", t, func() {
@@ -1499,7 +1424,7 @@ func TestPublishMetrics(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		// Load plugin
-		_, err := load(c, path.Join(SnapPath, "plugin", "snap-publisher-file"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-publisher-file"))
 		So(err, ShouldBeNil)
 		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
@@ -1553,7 +1478,7 @@ func TestProcessMetrics(t *testing.T) {
 		c.Config.Plugins.Processor.Plugins["passthru"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		_, err := load(c, path.Join(SnapPath, "plugin", "snap-processor-passthru"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-processor-passthru"))
 		So(err, ShouldBeNil)
 		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
@@ -1632,17 +1557,17 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		lpe := newListenToPluginSubscriptionEvent()
 		c.eventManager.RegisterHandler("TestMetricSubscriptionToNewVersion", lpe)
 		c.Start()
-		_, err := load(c, path.Join(SnapPath, "plugin", "snap-collector-mock1"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-collector-mock1"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("collector:mock:1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
-		metric := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "foo"),
-			cfg:       cdata.NewNode(),
-			ver:       0,
+		metric := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "foo"),
+			Cfg:        cdata.NewNode(),
+			Ver:        0,
 		}
 		So(metric.Version(), ShouldEqual, 0)
 		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
@@ -1656,7 +1581,7 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		So(ok, ShouldEqual, true)
 		Convey("Loading v2 of that plugin should move subscriptions to newer version", func() {
 			// Load version snap-collector-mock2
-			_, err := load(c, path.Join(SnapPath, "plugin", "snap-collector-mock2"))
+			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-collector-mock2"))
 			So(err, ShouldBeNil)
 			select {
 			// Wait on subscriptionMovedEvent
@@ -1694,17 +1619,17 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		lpe := newListenToPluginSubscriptionEvent()
 		c.eventManager.RegisterHandler("TestMetricSubscriptionToOlderVersion", lpe)
 		c.Start()
-		_, err := load(c, path.Join(SnapPath, "plugin", "snap-collector-mock2"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-collector-mock2"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("collector:mock:2")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
-		metric := MockMetricType{
-			namespace: core.NewNamespace("intel", "mock", "foo"),
-			cfg:       cdata.NewNode(),
-			ver:       0,
+		metric := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "foo"),
+			Cfg:        cdata.NewNode(),
+			Ver:        0,
 		}
 		serr := c.SubscribeDeps("testTaskID", []core.Metric{metric}, []core.Plugin{})
 		So(serr, ShouldBeNil)
@@ -1720,7 +1645,7 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		mockv2 := pc[0]
 		Convey("Loading v1 of that plugin and unloading v2 should move subscriptions to older version", func() {
 			// Load version snap-collector-mock2
-			_, err = load(c, path.Join(SnapPath, "plugin", "snap-collector-mock1"))
+			_, err = load(c, path.Join(fixtures.SnapPath, "plugin", "snap-collector-mock1"))
 			So(err, ShouldBeNil)
 			_, err = c.Unload(mockv2)
 			So(err, ShouldBeNil)
