@@ -47,11 +47,11 @@ const (
 //         UnmarshalJSON method in this same file needs to be modified to
 //         match the field mapping that is defined here
 type Config struct {
-	Name                      string             `json:"name,omitempty"yaml:"name,omitempty"`
-	Enable                    bool               `json:"enable,omitempty"yaml:"enable,omitempty"`
-	BindAddr                  string             `json:"bind_addr,omitempty"yaml:"bind_addr,omitempty"`
-	BindPort                  int                `json:"bind_port,omitempty"yaml:"bind_port,omitempty"`
-	Seed                      string             `json:"seed,omitempty"yaml:"seed,omitempty"`
+	Name                      string             `json:"name"yaml:"name"`
+	Enable                    bool               `json:"enable"yaml:"enable"`
+	BindAddr                  string             `json:"bind_addr"yaml:"bind_addr"`
+	BindPort                  int                `json:"bind_port"yaml:"bind_port"`
+	Seed                      string             `json:"seed"yaml:"seed"`
 	MemberlistConfig          *memberlist.Config `json:"-"yaml:"-"`
 	RestAPIProto              string             `json:"-"yaml:"-"`
 	RestAPIPassword           string             `json:"-"yaml:"-"`

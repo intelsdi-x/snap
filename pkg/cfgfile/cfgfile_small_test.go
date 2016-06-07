@@ -112,8 +112,8 @@ type mockSchemaValidator struct {
 	returnError bool
 }
 
-// and redefine the ValidateSchema method to always return nil (no errors found)
-func (r *mockSchemaValidator) ValidateSchema(schema, cfg string) []serror.SnapError {
+// and redefine the validateSchema method to always return nil (no errors found)
+func (r *mockSchemaValidator) validateSchema(schema, cfg string) []serror.SnapError {
 	if r.returnError {
 		return []serror.SnapError{serror.New(errors.New("Invalid schema"))}
 	}
@@ -185,7 +185,7 @@ func TestValidateSchema(t *testing.T) {
 		config := testConfig{"Tom", "Justin"}
 		cfgValidator = &schemaValidatorType{}
 		jb, _ := json.Marshal(config)
-		errs := cfgValidator.ValidateSchema(MOCK_CONSTRAINTS, string(jb))
+		errs := ValidateSchema(MOCK_CONSTRAINTS, string(jb))
 		So(errs, ShouldBeNil)
 	})
 
@@ -193,7 +193,7 @@ func TestValidateSchema(t *testing.T) {
 		config := testConfig{"Tom", "Justin"}
 		cfgValidator = &schemaValidatorType{}
 		jb, _ := json.Marshal(config)
-		errs := cfgValidator.ValidateSchema(INVALID_MOCK_CONSTRAINTS, string(jb))
+		errs := ValidateSchema(INVALID_MOCK_CONSTRAINTS, string(jb))
 		So(errs, ShouldNotBeNil)
 	})
 
@@ -201,7 +201,7 @@ func TestValidateSchema(t *testing.T) {
 		config := testConfig{"Tom", "Justin"}
 		cfgValidator = &schemaValidatorType{}
 		yb, _ := yaml.Marshal(config)
-		errs := cfgValidator.ValidateSchema(MOCK_CONSTRAINTS, string(yb))
+		errs := ValidateSchema(MOCK_CONSTRAINTS, string(yb))
 		So(errs, ShouldNotBeNil)
 	})
 }

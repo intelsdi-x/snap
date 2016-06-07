@@ -35,8 +35,8 @@ const (
 //         UnmarshalJSON method in this same file needs to be modified to
 //         match the field mapping that is defined here
 type Config struct {
-	WorkManagerQueueSize uint `json:"work_manager_queue_size,omitempty"yaml:"work_manager_queue_size,omitempty"`
-	WorkManagerPoolSize  uint `json:"work_manager_pool_size,omitempty"yaml:"work_manager_pool_size,omitempty"`
+	WorkManagerQueueSize uint `json:"work_manager_queue_size"yaml:"work_manager_queue_size"`
+	WorkManagerPoolSize  uint `json:"work_manager_pool_size"yaml:"work_manager_pool_size"`
 }
 
 const (
