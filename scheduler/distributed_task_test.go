@@ -32,6 +32,7 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
@@ -92,6 +93,7 @@ func TestDistributedWorkflow(t *testing.T) {
 
 		Convey("Test task with invalid remote port", func() {
 			wf := dsWFMap(0)
+			controlproxy.MAX_CONNECTION_TIMEOUT = 1 * time.Second
 			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, true)
 			So(len(errs.Errors()), ShouldEqual, 1)
 			So(t, ShouldBeNil)
@@ -108,6 +110,7 @@ func TestDistributedWorkflow(t *testing.T) {
 
 		Convey("Test task failing when control is stopped while task is running", func() {
 			wf := dsWFMap(port1)
+			controlproxy.MAX_CONNECTION_TIMEOUT = 10 * time.Second
 			interval := time.Millisecond * 100
 			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(interval), wf, true)
 			So(len(errs.Errors()), ShouldEqual, 0)

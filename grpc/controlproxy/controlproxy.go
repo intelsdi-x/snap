@@ -32,10 +32,15 @@ import (
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
 )
 
+var (
+	MAX_CONNECTION_TIMEOUT = 10 * time.Second
+)
+
 // Implements managesMetrics interface provided by scheduler and
 // proxies those calls to the grpc client.
 type ControlProxy struct {
 	Client rpc.MetricManagerClient
+	ctx    context.Context
 }
 
 func New(addr string, port int) (ControlProxy, error) {
@@ -44,14 +49,15 @@ func New(addr string, port int) (ControlProxy, error) {
 		return ControlProxy{}, err
 	}
 	c := rpc.NewMetricManagerClient(conn)
-	return ControlProxy{Client: c}, nil
+	cd, _ := context.WithTimeout(context.Background(), MAX_CONNECTION_TIMEOUT)
+	return ControlProxy{Client: c, ctx: cd}, nil
 }
 
 func (c ControlProxy) ExpandWildcards(namespace core.Namespace) ([]core.Namespace, serror.SnapError) {
 	req := &rpc.ExpandWildcardsRequest{
 		Namespace: common.ToNamespace(namespace),
 	}
-	reply, err := c.Client.ExpandWildcards(context.Background(), req)
+	reply, err := c.Client.ExpandWildcards(c.ctx, req)
 	if err != nil {
 		return nil, serror.New(err)
 	}
@@ -63,7 +69,7 @@ func (c ControlProxy) ExpandWildcards(namespace core.Namespace) ([]core.Namespac
 }
 func (c ControlProxy) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	req := GetPubProcReq(contentType, content, pluginName, pluginVersion, config, taskID)
-	reply, err := c.Client.PublishMetrics(context.Background(), req)
+	reply, err := c.Client.PublishMetrics(c.ctx, req)
 	var errs []error
 	if err != nil {
 		errs = append(errs, err)
@@ -76,7 +82,7 @@ func (c ControlProxy) PublishMetrics(contentType string, content []byte, pluginN
 
 func (c ControlProxy) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
 	req := GetPubProcReq(contentType, content, pluginName, pluginVersion, config, taskID)
-	reply, err := c.Client.ProcessMetrics(context.Background(), req)
+	reply, err := c.Client.ProcessMetrics(c.ctx, req)
 	var errs []error
 	if err != nil {
 		errs = append(errs, err)
@@ -109,7 +115,7 @@ func (c ControlProxy) CollectMetrics(mts []core.Metric, deadline time.Time, task
 		TaskID:  taskID,
 		AllTags: allTags,
 	}
-	reply, err := c.Client.CollectMetrics(context.Background(), req)
+	reply, err := c.Client.CollectMetrics(c.ctx, req)
 	var errs []error
 	if err != nil {
 		errs = append(errs, err)
@@ -130,7 +136,7 @@ func (c ControlProxy) GetPluginContentTypes(n string, t core.PluginType, v int) 
 		PluginType: getPluginType(t),
 		Version:    int32(v),
 	}
-	reply, err := c.Client.GetPluginContentTypes(context.Background(), req)
+	reply, err := c.Client.GetPluginContentTypes(c.ctx, req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -145,7 +151,7 @@ func (c ControlProxy) ValidateDeps(mts []core.Metric, plugins []core.SubscribedP
 		Metrics: common.NewMetrics(mts),
 		Plugins: common.ToSubPluginsMsg(plugins),
 	}
-	reply, err := c.Client.ValidateDeps(context.Background(), req)
+	reply, err := c.Client.ValidateDeps(c.ctx, req)
 	if err != nil {
 		return []serror.SnapError{serror.New(err)}
 	}
@@ -155,7 +161,7 @@ func (c ControlProxy) ValidateDeps(mts []core.Metric, plugins []core.SubscribedP
 
 func (c ControlProxy) SubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
 	req := depsRequest(taskID, mts, plugins)
-	reply, err := c.Client.SubscribeDeps(context.Background(), req)
+	reply, err := c.Client.SubscribeDeps(c.ctx, req)
 	if err != nil {
 		return []serror.SnapError{serror.New(err)}
 	}
@@ -165,7 +171,7 @@ func (c ControlProxy) SubscribeDeps(taskID string, mts []core.Metric, plugins []
 
 func (c ControlProxy) UnsubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
 	req := depsRequest(taskID, mts, plugins)
-	reply, err := c.Client.UnsubscribeDeps(context.Background(), req)
+	reply, err := c.Client.UnsubscribeDeps(c.ctx, req)
 	if err != nil {
 		return []serror.SnapError{serror.New(err)}
 	}
@@ -177,7 +183,7 @@ func (c ControlProxy) MatchQueryToNamespaces(namespace core.Namespace) ([]core.N
 	req := &rpc.ExpandWildcardsRequest{
 		Namespace: common.ToNamespace(namespace),
 	}
-	reply, err := c.Client.MatchQueryToNamespaces(context.Background(), req)
+	reply, err := c.Client.MatchQueryToNamespaces(c.ctx, req)
 	if err != nil {
 		return nil, serror.New(err)
 	}
