@@ -20,14 +20,11 @@ limitations under the License.
 package common
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
 	"strconv"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
@@ -52,7 +49,24 @@ func ToMetric(co core.Metric) *Metric {
 	if co.Config() != nil {
 		cm.Config = ConfigToConfigMap(co.Config())
 	}
-	cm.Data, cm.DataType = encodeData(co)
+	switch t := co.Data().(type) {
+	case string:
+		cm.Data = &Metric_StringData{t}
+	case float64:
+		cm.Data = &Metric_Float64Data{t}
+	case float32:
+		cm.Data = &Metric_Float32Data{t}
+	case int32:
+		cm.Data = &Metric_Int32Data{t}
+	case int:
+		cm.Data = &Metric_Int64Data{int64(t)}
+	case int64:
+		cm.Data = &Metric_Int64Data{t}
+	case []byte:
+		cm.Data = &Metric_BytesData{t}
+	default:
+		panic(t)
+	}
 	return cm
 }
 
@@ -70,87 +84,11 @@ func ToNamespace(n core.Namespace) []*NamespaceElement {
 	return elements
 }
 
-func encodeData(mt core.Metric) ([]byte, string) {
-
-	var b bytes.Buffer
-	enc := gob.NewEncoder(&b)
-	var Data []byte
-	var DataType string
-	switch t := mt.Data().(type) {
-	case string:
-		enc.Encode(t)
-		Data = b.Bytes()
-		DataType = "string"
-	case float64:
-		enc.Encode(t)
-		Data = b.Bytes()
-		DataType = "float64"
-	case float32:
-		enc.Encode(t)
-		Data = b.Bytes()
-		DataType = "float32"
-	case int32:
-		enc.Encode(t)
-		Data = b.Bytes()
-		DataType = "int32"
-	case int:
-		enc.Encode(t)
-		Data = b.Bytes()
-		DataType = "int"
-	case int64:
-		enc.Encode(t)
-		Data = b.Bytes()
-		DataType = "int64"
-	case nil:
-		Data = nil
-		DataType = "nil"
-	default:
-		panic(t)
+func ToTime(t time.Time) *Time {
+	return &Time{
+		Nsec: t.Unix(),
+		Sec:  int64(t.Second()),
 	}
-	return Data, DataType
-}
-
-func decodeData(b []byte, t string) interface{} {
-	var Data interface{}
-	switch t {
-	case "int":
-		var val int
-		buf := bytes.NewBuffer(b)
-		decoder := gob.NewDecoder(buf)
-		decoder.Decode(&val)
-		Data = val
-	case "int32":
-		var val int32
-		buf := bytes.NewBuffer(b)
-		decoder := gob.NewDecoder(buf)
-		decoder.Decode(&val)
-		Data = val
-	case "int64":
-		var val int64
-		buf := bytes.NewBuffer(b)
-		decoder := gob.NewDecoder(buf)
-		decoder.Decode(&val)
-		Data = val
-	case "float32":
-		var val float32
-		buf := bytes.NewBuffer(b)
-		decoder := gob.NewDecoder(buf)
-		decoder.Decode(&val)
-		Data = val
-	case "float64":
-		var val float64
-		buf := bytes.NewBuffer(b)
-		decoder := gob.NewDecoder(buf)
-		decoder.Decode(&val)
-		Data = val
-	case "string":
-		var val string
-		buf := bytes.NewBuffer(b)
-		decoder := gob.NewDecoder(buf)
-		decoder.Decode(&val)
-		Data = val
-	}
-	return Data
 }
 
 // Convert a slice of core.Metrics to []*common.Metric protobuf messages
@@ -162,18 +100,55 @@ func NewMetrics(ms []core.Metric) []*Metric {
 	return metrics
 }
 
+type metric struct {
+	namespace          core.Namespace
+	version            int
+	config             *cdata.ConfigDataNode
+	lastAdvertisedTime time.Time
+	timeStamp          time.Time
+	data               interface{}
+	tags               map[string]string
+	description        string
+	unit               string
+}
+
+func (m *metric) Namespace() core.Namespace     { return m.namespace }
+func (m *metric) Config() *cdata.ConfigDataNode { return m.config }
+func (m *metric) Version() int                  { return m.version }
+func (m *metric) Data() interface{}             { return m.data }
+func (m *metric) Tags() map[string]string       { return m.tags }
+func (m *metric) LastAdvertisedTime() time.Time { return m.lastAdvertisedTime }
+func (m *metric) Timestamp() time.Time          { return m.timeStamp }
+func (m *metric) Description() string           { return m.description }
+func (m *metric) Unit() string                  { return m.unit }
+
 // Convert common.Metric to core.Metric
 func ToCoreMetric(mt *Metric) core.Metric {
-	ret := plugin.MetricType{
-		Namespace_:          ToCoreNamespace(mt.Namespace),
-		Version_:            int(mt.Version),
-		Tags_:               mt.Tags,
-		Timestamp_:          time.Unix(mt.Timestamp.Sec, mt.Timestamp.Nsec),
-		LastAdvertisedTime_: time.Unix(mt.LastAdvertisedTime.Sec, mt.LastAdvertisedTime.Nsec),
+	ret := &metric{
+		namespace:          ToCoreNamespace(mt.Namespace),
+		version:            int(mt.Version),
+		tags:               mt.Tags,
+		timeStamp:          time.Unix(mt.Timestamp.Sec, mt.Timestamp.Nsec),
+		lastAdvertisedTime: time.Unix(mt.LastAdvertisedTime.Sec, mt.LastAdvertisedTime.Nsec),
+		config:             ConfigMapToConfig(mt.Config),
+		description:        mt.Description,
+		unit:               mt.Unit,
 	}
-	ret.Config_ = ConfigMapToConfig(mt.Config)
-	ret.Data_ = decodeData(mt.Data, mt.DataType)
 
+	switch mt.Data.(type) {
+	case *Metric_BytesData:
+		ret.data = mt.GetBytesData()
+	case *Metric_StringData:
+		ret.data = mt.GetStringData()
+	case *Metric_Float32Data:
+		ret.data = mt.GetFloat32Data
+	case *Metric_Float64Data:
+		ret.data = mt.GetFloat64Data
+	case *Metric_Int32Data:
+		ret.data = mt.GetInt32Data
+	case *Metric_Int64Data:
+		ret.data = mt.GetInt64Data
+	}
 	return ret
 }
 
