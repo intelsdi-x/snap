@@ -53,6 +53,11 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | Riemann | Publisher | Writes to Riemann monitoring system | [snap-plugin-publisher-riemann](https://github.com/intelsdi-x/snap-plugin-publisher-riemann) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-publisher-riemann) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-publisher-riemann)
 | Tag | Processor | Processes data and add tags | [snap-plugin-processor-tag](https://github.com/intelsdi-x/snap-plugin-processor-tag) |
 
+## Community Plugins
+| Name  | Type  | Description | Link |
+| :---- | :---- | :---------- | :--- |
+| CloudWatch | Publisher | Publishes snap metrics to AWS CloudWatch | [snap-plugin-collector-cloudwatch](https://github.com/Ticketmaster/snap-plugin-publisher-cloudwatch) |
+
 ## Committed plugins
 These plugins are in planned/active development. This list is useful if you want to reach out and contribute to the development.
 
