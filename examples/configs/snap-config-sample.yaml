@@ -15,6 +15,11 @@ log_path: /some/log/dir
 # true  => truncate
 log_truncate: false
 
+# log_colors specifies if log file output is colorified
+# true  => colors
+# false => no colors
+log_colors: true
+
 # Gomaxprocs sets the number of cores to use on the system
 # for snapd to use. Default for gomaxprocs is 1
 gomaxprocs: 2

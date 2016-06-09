@@ -64,6 +64,10 @@ var (
 		Name:  "log-truncate",
 		Usage: "Log file truncating mode. Default is false => append (true => truncate).",
 	}
+	flLogColors = cli.BoolTFlag{
+		Name:  "log-colors",
+		Usage: "Log file coloring mode. Default is true => colored (--log-colors=false => no colors).",
+	}
 	flLogLevel = cli.IntFlag{
 		Name:   "log-level, l",
 		Usage:  "1-5 (Debug, Info, Warning, Error, Fatal)",
@@ -101,6 +105,7 @@ const (
 	defaultGoMaxProcs  int    = 1
 	defaultLogPath     string = ""
 	defaultLogTruncate bool   = false
+	defaultLogColors   bool   = true
 	defaultConfigPath  string = "/etc/snap/snapd.conf"
 )
 
@@ -113,6 +118,7 @@ type Config struct {
 	GoMaxProcs  int               `json:"gomaxprocs,omitempty"yaml:"gomaxprocs,omitempty"`
 	LogPath     string            `json:"log_path,omitempty"yaml:"log_path,omitempty"`
 	LogTruncate bool              `json:"log_truncate,omitempty"yaml:"log_truncate,omitempty"`
+	LogColors   bool              `json:"log_colors,omitempty"yaml:"log_colors,omitempty"`
 	Control     *control.Config   `json:"control,omitempty"yaml:"control,omitempty"`
 	Scheduler   *scheduler.Config `json:"scheduler,omitempty"yaml:"scheduler,omitempty"`
 	RestAPI     *rest.Config      `json:"restapi,omitempty"yaml:"restapi,omitempty"`
@@ -137,6 +143,10 @@ const (
 			},
 			"log_truncate": {
 				"description": "truncate log file default is false",
+				"type": "boolean"
+			},
+			"log_colors": {
+				"description": "log file colored output default is true",
 				"type": "boolean"
 			},
 			"gomaxprocs": {
@@ -190,6 +200,7 @@ func main() {
 		flLogLevel,
 		flLogPath,
 		flLogTruncate,
+		flLogColors,
 		flMaxProcs,
 		flConfig,
 	}
@@ -248,6 +259,17 @@ func action(ctx *cli.Context) {
 		}
 		defer file.Close()
 		log.SetOutput(file)
+	}
+	// Because even though github.com/Sirupsen/logrus states that
+	// 'Logs the event in colors if stdout is a tty, otherwise without colors'
+	// Seems like this does not work
+	// Please note however that the default output format without colors is somewhat different (timestamps, ...)
+	//
+	// We could also restrict this command line parameter to only apply when no logpath is given
+	// and forcing the coloring to off when using a file but this might not please users who like to use
+	// redirect mechanisms like # snapd -t 0 -l 1 2>&1 | tee my.log
+	if !cfg.LogColors {
+		log.SetFormatter(&log.TextFormatter{DisableColors: true})
 	}
 
 	// Validate log level and trust level settings for snapd
@@ -453,6 +475,7 @@ func getDefaultConfig() *Config {
 		GoMaxProcs:  defaultGoMaxProcs,
 		LogPath:     defaultLogPath,
 		LogTruncate: defaultLogTruncate,
+		LogColors:   defaultLogColors,
 		Control:     control.GetDefaultConfig(),
 		Scheduler:   scheduler.GetDefaultConfig(),
 		RestAPI:     rest.GetDefaultConfig(),
@@ -576,6 +599,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.LogLevel = setIntVal(cfg.LogLevel, ctx, "log-level")
 	cfg.LogPath = setStringVal(cfg.LogPath, ctx, "log-path")
 	cfg.LogTruncate = setBoolVal(cfg.LogTruncate, ctx, "log-truncate")
+	cfg.LogColors = setBoolVal(cfg.LogColors, ctx, "log-colors")
 	// next for the flags related to the control package
 	cfg.Control.MaxRunningPlugins = setIntVal(cfg.Control.MaxRunningPlugins, ctx, "max-running-plugins")
 	cfg.Control.PluginTrust = setIntVal(cfg.Control.PluginTrust, ctx, "plugin-trust")
@@ -699,6 +723,10 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		case "log_truncate":
 			if err := json.Unmarshal(v, &(c.LogTruncate)); err != nil {
 				return fmt.Errorf("%v (while parsing 'log_truncate')", err)
+			}
+		case "log_colors":
+			if err := json.Unmarshal(v, &(c.LogColors)); err != nil {
+				return fmt.Errorf("%v (while parsing 'log_colors')", err)
 			}
 		case "control":
 			if err := json.Unmarshal(v, c.Control); err != nil {
