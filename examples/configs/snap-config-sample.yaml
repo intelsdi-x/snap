@@ -10,6 +10,11 @@ log_level: 2
 # the provided directory.
 log_path: /some/log/dir
 
+# log_truncate specifies how the log file with be opened
+# false => append
+# true  => truncate
+log_truncate: false
+
 # Gomaxprocs sets the number of cores to use on the system
 # for snapd to use. Default for gomaxprocs is 1
 gomaxprocs: 2

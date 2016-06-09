@@ -1,6 +1,7 @@
 {
     "log_level": 2,
     "log_path": "/some/log/dir",
+    "log_truncate": false,
     "gomaxprocs": 2,
     "control": {
         "auto_discover_path": "/some/directory/with/plugins",
