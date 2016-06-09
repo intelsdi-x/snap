@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/intelsdi-x/snap",
 	"GoVersion": "go1.5",
-	"GodepVersion": "v62",
+	"GodepVersion": "v66",
 	"Packages": [
 		"./..."
 	],
