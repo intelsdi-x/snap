@@ -66,6 +66,10 @@
 			"Rev": "d043ae190b3202550d026daf009359bb5d761672"
 		},
 		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "b982704f8bb716bb608144408cff30e15fbde841"
+		},
+		{
 			"ImportPath": "github.com/ghodss/yaml",
 			"Rev": "c3eb24aeea63668ebdac08d2e252f20df8b6b1ae"
 		},
@@ -115,6 +119,26 @@
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
 			"Rev": "aedad9a179ec1ea11b7064c57cbc6dc30d7724ec"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "154d9f9ea81208afed560f4cf27b4860c8ed1904"
+		},
+		{
+			"ImportPath": "golang.org/x/net/http2",
+			"Rev": "154d9f9ea81208afed560f4cf27b4860c8ed1904"
+		},
+		{
+			"ImportPath": "golang.org/x/net/internal/timeseries",
+			"Rev": "154d9f9ea81208afed560f4cf27b4860c8ed1904"
+		},
+		{
+			"ImportPath": "golang.org/x/net/trace",
+			"Rev": "154d9f9ea81208afed560f4cf27b4860c8ed1904"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc",
+			"Rev": "b60d3e9ed84da5710af43964e78bc44de74b72aa"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

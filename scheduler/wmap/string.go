@@ -82,6 +82,8 @@ func (p *ProcessWorkflowMapNode) String(pad string) string {
 	for k, v := range p.Config {
 		out += pad + "      " + fmt.Sprintf("%s=%+v\n", k, v)
 	}
+	out += pad + "   Target:" + p.Target + "\n"
+
 	out += pad + "   Process Nodes:\n"
 	for _, pr := range p.ProcessNodes {
 		out += pr.String(pad + "   ")

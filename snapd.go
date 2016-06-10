@@ -182,8 +182,8 @@ func main() {
 		flMaxProcs,
 		flConfig,
 	}
-	app.Flags = append(app.Flags, scheduler.Flags...)
 	app.Flags = append(app.Flags, control.Flags...)
+	app.Flags = append(app.Flags, scheduler.Flags...)
 	app.Flags = append(app.Flags, rest.Flags...)
 	app.Flags = append(app.Flags, tribe.Flags...)
 
@@ -566,6 +566,8 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.Control.AutoDiscoverPath = setStringVal(cfg.Control.AutoDiscoverPath, ctx, "auto-discover")
 	cfg.Control.KeyringPaths = setStringVal(cfg.Control.KeyringPaths, ctx, "keyring-paths")
 	cfg.Control.CacheExpiration = jsonutil.Duration{setDurationVal(cfg.Control.CacheExpiration.Duration, ctx, "cache-expiration")}
+	cfg.Control.ListenAddr = setStringVal(cfg.Control.ListenAddr, ctx, "control-listen-addr")
+	cfg.Control.ListenPort = setIntVal(cfg.Control.ListenPort, ctx, "control-listen-port")
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")

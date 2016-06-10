@@ -34,6 +34,7 @@ var (
 		Value:  defaultPluginTrust,
 		EnvVar: "SNAP_TRUST_LEVEL",
 	}
+
 	flAutoDiscover = cli.StringFlag{
 		Name:   "auto-discover, a",
 		Usage:  "Auto discover paths separated by colons.",
@@ -51,6 +52,17 @@ var (
 		EnvVar: "SNAP_CACHE_EXPIRATION",
 	}
 
-	// Flags consumed by snapd
-	Flags = []cli.Flag{flNumberOfPLs, flPluginTrust, flAutoDiscover, flKeyringPaths, flCache}
+	flControlRpcPort = cli.IntFlag{
+		Name:   "control-listen-port",
+		Usage:  "Listen port for control RPC server",
+		EnvVar: "SNAP_CONTROL_LISTEN_PORT",
+	}
+
+	flControlRpcAddr = cli.StringFlag{
+		Name:   "control-listen-addr",
+		Usage:  "Listen address for control RPC server",
+		EnvVar: "SNAP_CONTROL_LISTEN_ADDR",
+	}
+
+	Flags = []cli.Flag{flNumberOfPLs, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr}
 )
