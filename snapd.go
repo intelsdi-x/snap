@@ -104,13 +104,13 @@ const (
 //         UnmarshalJSON method in this same file needs to be modified to
 //         match the field mapping that is defined here
 type Config struct {
-	LogLevel   int               `json:"log_level,omitempty"yaml:"log_level,omitempty"`
-	GoMaxProcs int               `json:"gomaxprocs,omitempty"yaml:"gomaxprocs,omitempty"`
-	LogPath    string            `json:"log_path,omitempty"yaml:"log_path,omitempty"`
-	Control    *control.Config   `json:"control,omitempty"yaml:"control,omitempty"`
-	Scheduler  *scheduler.Config `json:"scheduler,omitempty"yaml:"scheduler,omitempty"`
-	RestAPI    *rest.Config      `json:"restapi,omitempty"yaml:"restapi,omitempty"`
-	Tribe      *tribe.Config     `json:"tribe,omitempty"yaml:"tribe,omitempty"`
+	LogLevel   int               `json:"log_level"yaml:"log_level"`
+	GoMaxProcs int               `json:"gomaxprocs"yaml:"gomaxprocs"`
+	LogPath    string            `json:"log_path"yaml:"log_path"`
+	Control    *control.Config   `json:"control"yaml:"control"`
+	Scheduler  *scheduler.Config `json:"scheduler"yaml:"scheduler"`
+	RestAPI    *rest.Config      `json:"restapi"yaml:"restapi"`
+	Tribe      *tribe.Config     `json:"tribe"yaml:"tribe"`
 }
 
 const (
@@ -203,6 +203,18 @@ func action(ctx *cli.Context) {
 	// values that may have already been set (if any) for the
 	// same variables in that configuration
 	applyCmdLineFlags(cfg, ctx)
+
+	// test the resulting configuration to ensure the values it contains still pass the
+	// constraints after applying the environment variables and command-line parameters;
+	// if errors are found, report them and exit with a fatal error
+	jb, _ := json.Marshal(cfg)
+	serrs := cfgfile.ValidateSchema(CONFIG_CONSTRAINTS, string(jb))
+	if serrs != nil {
+		for _, serr := range serrs {
+			log.WithFields(serr.Fields()).Error(serr.Error())
+		}
+		log.Fatal("Errors found after applying command-line flags")
+	}
 
 	// If logPath is set, we verify the logPath and set it so that all logging
 	// goes to the log file instead of stdout.

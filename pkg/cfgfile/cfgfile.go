@@ -54,14 +54,14 @@ var cfgReader reader
 // validating the schema; first, create an interface to wrap the underlying
 // method that will be used to validate the schema
 type schemaValidator interface {
-	ValidateSchema(schema, cfg string) []serror.SnapError
+	validateSchema(schema, cfg string) []serror.SnapError
 }
 
 // then, define a type (struct) that will validate the underlying schema
 type schemaValidatorType struct{}
 
 // and define an implementation for that type that performs the schema validation
-func (r *schemaValidatorType) ValidateSchema(schema, cfg string) []serror.SnapError {
+func (r *schemaValidatorType) validateSchema(schema, cfg string) []serror.SnapError {
 	schemaLoader := gojsonschema.NewStringLoader(schema)
 	testDoc := gojsonschema.NewStringLoader(cfg)
 	result, err := gojsonschema.Validate(schemaLoader, testDoc)
@@ -110,7 +110,7 @@ func Read(path string, v interface{}, schema string) []serror.SnapError {
 		return []serror.SnapError{serror.New(fmt.Errorf("error converting YAML to JSON: %v", err))}
 	}
 	// validate the resulting JSON against the input the schema
-	if errors := cfgValidator.ValidateSchema(schema, string(jb)); errors != nil {
+	if errors := cfgValidator.validateSchema(schema, string(jb)); errors != nil {
 		// if invalid, construct (and return?) a SnapError from the errors identified
 		// during schema validation
 		return errors
@@ -127,4 +127,10 @@ func Read(path string, v interface{}, schema string) []serror.SnapError {
 		return []serror.SnapError{serror.New(fmt.Errorf("Error while parsing configuration file: %v", errRet))}
 	}
 	return nil
+}
+
+// Validate an input JSON string against the input schema (and return a set of errors
+// or nil if the input JSON string matches the constraints defined in that schema)
+func ValidateSchema(schema, cfg string) []serror.SnapError {
+	return cfgValidator.validateSchema(schema, cfg)
 }

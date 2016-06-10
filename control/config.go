@@ -67,12 +67,12 @@ type pluginConfigItem struct {
 //         UnmarshalJSON method in this same file needs to be modified to
 //         match the field mapping that is defined here
 type Config struct {
-	MaxRunningPlugins int               `json:"max_running_plugins,omitempty"yaml:"max_running_plugins,omitempty"`
-	PluginTrust       int               `json:"plugin_trust_level,omitempty"yaml:"plugin_trust_level,omitempty"`
-	AutoDiscoverPath  string            `json:"auto_discover_path,omitempty"yaml:"auto_discover_path,omitempty"`
-	KeyringPaths      string            `json:"keyring_paths,omitempty"yaml:"keyring_paths,omitempty"`
-	CacheExpiration   jsonutil.Duration `json:"cache_expiration,omitempty"yaml:"cache_expiration,omitempty"`
-	Plugins           *pluginConfig     `json:"plugins,omitempty"yaml:"plugins,omitempty"`
+	MaxRunningPlugins int               `json:"max_running_plugins"yaml:"max_running_plugins"`
+	PluginTrust       int               `json:"plugin_trust_level"yaml:"plugin_trust_level"`
+	AutoDiscoverPath  string            `json:"auto_discover_path"yaml:"auto_discover_path"`
+	KeyringPaths      string            `json:"keyring_paths"yaml:"keyring_paths"`
+	CacheExpiration   jsonutil.Duration `json:"cache_expiration"yaml:"cache_expiration"`
+	Plugins           *pluginConfig     `json:"plugins"yaml:"plugins"`
 }
 
 const (

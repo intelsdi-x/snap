@@ -72,14 +72,14 @@ var (
 //         UnmarshalJSON method in this same file needs to be modified to
 //         match the field mapping that is defined here
 type Config struct {
-	Enable           bool   `json:"enable,omitempty"yaml:"enable,omitempty"`
-	Port             int    `json:"port,omitempty"yaml:"port,omitempty"`
-	Address          string `json:"addr,omitempty"yaml:"addr,omitempty"`
-	HTTPS            bool   `json:"https,omitempty"yaml:"https,omitempty"`
-	RestCertificate  string `json:"rest_certificate,omitempty"yaml:"rest_certificate,omitempty"`
-	RestKey          string `json:"rest_key,omitempty"yaml:"rest_key,omitempty"`
-	RestAuth         bool   `json:"rest_auth,omitempty"yaml:"rest_auth,omitempty"`
-	RestAuthPassword string `json:"rest_auth_password,omitempty"yaml:"rest_auth_password,omitempty"`
+	Enable           bool   `json:"enable"yaml:"enable"`
+	Port             int    `json:"port"yaml:"port"`
+	Address          string `json:"addr"yaml:"addr"`
+	HTTPS            bool   `json:"https"yaml:"https"`
+	RestCertificate  string `json:"rest_certificate"yaml:"rest_certificate"`
+	RestKey          string `json:"rest_key"yaml:"rest_key"`
+	RestAuth         bool   `json:"rest_auth"yaml:"rest_auth"`
+	RestAuthPassword string `json:"rest_auth_password"yaml:"rest_auth_password"`
 }
 
 const (
