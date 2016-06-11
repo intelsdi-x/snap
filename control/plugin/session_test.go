@@ -104,6 +104,13 @@ func (s *MockSessionState) heartbeatWatch(killChan chan int) {
 	killChan <- 0
 }
 
+func (s *MockSessionState) setKey(key []byte) {
+}
+
+func (s *MockSessionState) DecryptKey(in []byte) ([]byte, error) {
+	return []byte{}, nil
+}
+
 type errSessionState struct {
 	*MockSessionState
 }

@@ -52,6 +52,10 @@ func TestConfigPolicy(t *testing.T) {
 				So(gc.rules["username"].Default().(ctypes.ConfigValueStr).Value, ShouldEqual, "root")
 				So(gc.rules["password"].Required(), ShouldEqual, true)
 			})
+			Convey("retrieves all policies", func() {
+				policies := cp.GetAll()
+				So(len(policies), ShouldEqual, 1)
+			})
 			Convey("encode & decode", func() {
 				gob.Register(NewPolicyNode())
 				gob.Register(&StringRule{})
@@ -101,6 +105,11 @@ func TestConfigPolicy(t *testing.T) {
 			Convey("base node is nil", func() {
 				gc := cp.Get([]string{"one"})
 				So(gc, ShouldResemble, NewPolicyNode())
+			})
+
+			Convey("retrieves all policies", func() {
+				policies := cp.GetAll()
+				So(len(policies), ShouldEqual, 3)
 			})
 
 			Convey("two is correct", func() {

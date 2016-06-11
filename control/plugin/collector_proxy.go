@@ -22,8 +22,14 @@ package plugin
 import (
 	"errors"
 	"fmt"
+	"time"
 
+	"golang.org/x/net/context"
+
+	"github.com/intelsdi-x/snap/control/plugin/rpc"
+	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/grpc/common"
 )
 
 // Arguments passed to CollectMetrics() for a Collector implementation
@@ -95,4 +101,144 @@ func (c *collectorPluginProxy) CollectMetrics(args []byte, reply *[]byte) error 
 		return err
 	}
 	return nil
+}
+
+type gRPCCollectorProxy struct {
+	Plugin  CollectorPlugin
+	Session Session
+}
+
+func (g *gRPCCollectorProxy) SetKey(ctx context.Context, arg *rpc.SetKeyArg) (*rpc.SetKeyReply, error) {
+	out, err := g.Session.DecryptKey(arg.Key)
+	if err != nil {
+		return &rpc.SetKeyReply{Error: err.Error()}, nil
+	}
+	g.Session.setKey(out)
+	return &rpc.SetKeyReply{}, nil
+}
+
+func (g *gRPCCollectorProxy) Ping(ctx context.Context, arg *common.Empty) (*rpc.PingReply, error) {
+	g.Session.ResetHeartbeat()
+	return &rpc.PingReply{}, nil
+}
+
+func (g *gRPCCollectorProxy) Kill(ctx context.Context, arg *rpc.KillRequest) (*rpc.KillReply, error) {
+	killChan := g.Session.KillChan()
+	g.Session.Logger().Printf("Kill called by agent, reason: %s\n", arg.Reason)
+	go func() {
+		time.Sleep(time.Second * 2)
+		killChan <- 0
+	}()
+	return &rpc.KillReply{}, nil
+}
+
+func (g *gRPCCollectorProxy) GetConfigPolicy(ctx context.Context, arg *common.Empty) (*rpc.GetConfigPolicyReply, error) {
+	defer catchPluginPanic(g.Session.Logger())
+
+	g.Session.Logger().Println("GetConfigPolicy called")
+
+	policy, err := g.Plugin.GetConfigPolicy()
+	if err != nil {
+		return &rpc.GetConfigPolicyReply{
+			Error: err.Error(),
+		}, nil
+	}
+
+	reply, err := rpc.NewGetConfigPolicyReply(policy)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
+
+func (g *gRPCCollectorProxy) CollectMetrics(ctx context.Context, arg *rpc.CollectMetricsArg) (*rpc.CollectMetricsReply, error) {
+	defer catchPluginPanic(g.Session.Logger())
+
+	metrics, err := g.Plugin.CollectMetrics(toPluginMetricTypes(arg.Metrics))
+	if err != nil {
+		return &rpc.CollectMetricsReply{
+			Error: err.Error(),
+		}, nil
+	}
+
+	coreMetrics := make([]core.Metric, len(metrics))
+	idx := 0
+	for _, m := range metrics {
+		coreMetrics[idx] = m
+		idx++
+	}
+
+	reply := &rpc.CollectMetricsReply{
+		Metrics: common.NewMetrics(coreMetrics),
+	}
+
+	return reply, nil
+}
+
+func (g *gRPCCollectorProxy) GetMetricTypes(ctx context.Context, arg *rpc.GetMetricTypesArg) (*rpc.GetMetricTypesReply, error) {
+	defer catchPluginPanic(g.Session.Logger())
+
+	metricTypes, err := g.Plugin.GetMetricTypes(
+		ConfigType{common.ConfigMapToConfig(arg.Config)},
+	)
+	if err != nil {
+		return &rpc.GetMetricTypesReply{
+			Error: err.Error(),
+		}, nil
+	}
+
+	coreMetrics := make([]core.Metric, len(metricTypes))
+	idx := 0
+	for _, m := range metricTypes {
+		coreMetrics[idx] = m
+		idx++
+	}
+
+	reply := &rpc.GetMetricTypesReply{
+		Metrics: common.NewMetrics(coreMetrics),
+	}
+
+	return reply, nil
+}
+
+// Convert common.Metric to plugin.MetricType
+func toPluginMetricTypes(mts []*common.Metric) []MetricType {
+	ret := make([]MetricType, len(mts))
+	for i, metric := range mts {
+		ret[i] = MetricType{
+			Namespace_:          common.ToCoreNamespace(metric.Namespace),
+			Version_:            int(metric.Version),
+			Tags_:               metric.Tags,
+			LastAdvertisedTime_: time.Unix(metric.LastAdvertisedTime.Sec, metric.LastAdvertisedTime.Nsec),
+			Config_:             common.ConfigMapToConfig(metric.Config),
+			Description_:        metric.Description,
+			Unit_:               metric.Unit,
+		}
+		if metric.Timestamp != nil {
+			ret[i].Timestamp_ = time.Unix(metric.Timestamp.Sec, metric.Timestamp.Nsec)
+		}
+		if metric.LastAdvertisedTime != nil {
+			ret[i].LastAdvertisedTime_ = time.Unix(metric.LastAdvertisedTime.Sec, metric.LastAdvertisedTime.Nsec)
+		}
+		if metric.Data != nil {
+			switch t := metric.Data.(type) {
+			case *common.Metric_StringData:
+				ret[i].Data_ = t.StringData
+			case *common.Metric_Float32Data:
+				ret[i].Data_ = t.Float32Data
+			case *common.Metric_Float64Data:
+				ret[i].Data_ = t.Float64Data
+			case *common.Metric_Int32Data:
+				ret[i].Data_ = t.Int32Data
+			case *common.Metric_Int64Data:
+				ret[i].Data_ = t.Int64Data
+			case *common.Metric_BytesData:
+				ret[i].Data_ = t.BytesData
+			default:
+				panic(fmt.Sprintf("unsupported type: %s", t))
+			}
+		}
+	}
+	return ret
 }

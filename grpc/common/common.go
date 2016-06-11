@@ -21,6 +21,7 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -65,7 +66,7 @@ func ToMetric(co core.Metric) *Metric {
 	case []byte:
 		cm.Data = &Metric_BytesData{t}
 	default:
-		panic(t)
+		panic(fmt.Sprintf("unsupported type: %s", t))
 	}
 	return cm
 }

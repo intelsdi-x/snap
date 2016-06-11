@@ -24,15 +24,22 @@ package plugin
 import (
 	"errors"
 	"log"
+	"net"
 	"os"
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/control/plugin/encoding"
+	"github.com/intelsdi-x/snap/control/plugin/rpc"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/grpc/common"
+	"github.com/intelsdi-x/snap/pkg/rpcutil"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/grpc"
 )
 
 type mockPlugin struct {
@@ -52,6 +59,9 @@ func (p *mockPlugin) CollectMetrics(mockMetricTypes []MetricType) ([]MetricType,
 		if mockMetricTypes[i].Namespace().String() == "/foo/*/bar" {
 			mockMetricTypes[i].Namespace_[1].Value = "test"
 		}
+		mockMetricTypes[i].Timestamp_ = time.Now()
+		mockMetricTypes[i].LastAdvertisedTime_ = time.Now()
+		mockMetricTypes[i].Data_ = "data"
 	}
 	return mockMetricTypes, nil
 }
@@ -61,7 +71,15 @@ func (p *mockPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cpn := cpolicy.NewPolicyNode()
 	r1, _ := cpolicy.NewStringRule("username", false, "root")
 	r2, _ := cpolicy.NewStringRule("password", true)
-	cpn.Add(r1, r2)
+	r3, _ := cpolicy.NewBoolRule("bool_rule_default_true", false, true)
+	r4, _ := cpolicy.NewBoolRule("bool_rule_default_false", false, false)
+	r5, _ := cpolicy.NewIntegerRule("integer_rule", true, 1234)
+	r5.SetMaximum(9999)
+	r5.SetMinimum(1000)
+	r6, _ := cpolicy.NewFloatRule("float_rule", true, 0.1234)
+	r6.SetMaximum(.9999)
+	r6.SetMinimum(.001)
+	cpn.Add(r1, r2, r3, r4, r5, r6)
 	ns := []string{"one", "two", "potato"}
 	cp.Add(ns, cpn)
 	cp.Freeze()
@@ -155,5 +173,152 @@ func TestCollectorProxy(t *testing.T) {
 		})
 
 	})
+}
 
+func TestGRPCCollectorProxy(t *testing.T) {
+	port, mockSession, err := startCollectorServer()
+	Convey("Start gRPC ", t, func() {
+		So(err, ShouldBeNil)
+	})
+
+	conn, err := rpcutil.GetClientConnection("127.0.0.1", port)
+	Convey("create grpc collector", t, func() {
+		So(err, ShouldBeNil)
+	})
+
+	client := rpc.NewCollectorClient(conn)
+	Convey("create client", t, func() {
+		So(client, ShouldNotBeNil)
+	})
+
+	pingRes, err := client.Ping(context.Background(), &common.Empty{})
+	Convey("call ping", t, func() {
+		So(pingRes, ShouldResemble, &rpc.PingReply{})
+		So(err, ShouldBeNil)
+	})
+
+	killRes, err := client.Kill(context.Background(), &rpc.KillRequest{Reason: "testing"})
+	Convey("calls kill", t, func() {
+		So(killRes, ShouldResemble, &rpc.KillReply{})
+		So(err, ShouldBeNil)
+		So(<-mockSession.KillChan(), ShouldEqual, 0)
+	})
+
+	getConfigPolicyRes, err := client.GetConfigPolicy(context.Background(), &common.Empty{})
+	Convey("calls GetConfigPolicy", t, func() {
+		So(err, ShouldBeNil)
+		So(getConfigPolicyRes, ShouldNotBeNil)
+		// string policy
+		So(len(getConfigPolicyRes.StringPolicy), ShouldEqual, 1)
+		So(len(getConfigPolicyRes.StringPolicy["one.two.potato"].Rules), ShouldEqual, 2)
+		// bool policy
+		So(len(getConfigPolicyRes.BoolPolicy["one.two.potato"].Rules), ShouldEqual, 2)
+		So(
+			getConfigPolicyRes.BoolPolicy["one.two.potato"].Rules["bool_rule_default_true"].Default,
+			ShouldEqual,
+			true,
+		)
+		// integer policy
+		So(len(getConfigPolicyRes.IntegerPolicy["one.two.potato"].Rules), ShouldEqual, 1)
+		So(
+			getConfigPolicyRes.IntegerPolicy["one.two.potato"].Rules["integer_rule"].Default,
+			ShouldEqual,
+			1234,
+		)
+		So(
+			getConfigPolicyRes.IntegerPolicy["one.two.potato"].Rules["integer_rule"].Maximum,
+			ShouldEqual,
+			9999,
+		)
+		So(
+			getConfigPolicyRes.IntegerPolicy["one.two.potato"].Rules["integer_rule"].Minimum,
+			ShouldEqual,
+			1000,
+		)
+		// float policy
+		So(len(getConfigPolicyRes.FloatPolicy["one.two.potato"].Rules), ShouldEqual, 1)
+		So(
+			getConfigPolicyRes.FloatPolicy["one.two.potato"].Rules["float_rule"].Default,
+			ShouldEqual,
+			0.1234,
+		)
+		So(
+			getConfigPolicyRes.FloatPolicy["one.two.potato"].Rules["float_rule"].Maximum,
+			ShouldEqual,
+			.9999,
+		)
+		So(
+			getConfigPolicyRes.FloatPolicy["one.two.potato"].Rules["float_rule"].Minimum,
+			ShouldEqual,
+			0.001,
+		)
+	})
+
+	getCollectArg := &rpc.CollectMetricsArg{
+		Metrics: []*common.Metric{
+			&common.Metric{
+				LastAdvertisedTime: common.ToTime(time.Now()),
+				Namespace: []*common.NamespaceElement{
+					&common.NamespaceElement{
+						Value: "foo",
+					},
+					&common.NamespaceElement{
+						Name:  "something",
+						Value: "*",
+					},
+					&common.NamespaceElement{
+						Value: "bar",
+					},
+				},
+			},
+		},
+	}
+	getCollectRes, err := client.CollectMetrics(context.Background(), getCollectArg)
+	Convey("calls CollectMetrics", t, func() {
+		So(err, ShouldBeNil)
+		So(getCollectRes, ShouldNotBeNil)
+		So(len(getCollectRes.Metrics), ShouldEqual, 1)
+		So(getCollectRes.Metrics[0].Namespace[1].Value, ShouldEqual, "test")
+		So(getCollectRes.Metrics[0].Data.(*common.Metric_StringData).StringData, ShouldEqual, "data")
+	})
+
+	getMetricTypesArg := &rpc.GetMetricTypesArg{}
+	getMetricTypes, err := client.GetMetricTypes(context.Background(), getMetricTypesArg)
+	Convey("calls GetMetricTypes", t, func() {
+		So(err, ShouldBeNil)
+		So(getMetricTypes, ShouldNotBeNil)
+		So(len(getMetricTypes.Metrics), ShouldEqual, 2)
+	})
+
+}
+
+func startCollectorServer() (int, Session, error) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, nil, err
+	}
+
+	mockPlugin := &mockPlugin{}
+	mockSessionState := &MockSessionState{
+		Encoder:    encoding.NewGobEncoder(),
+		listenPort: "0",
+		token:      "abcdef",
+		logger: log.New(os.Stdout,
+			"test: ",
+			log.Ldate|log.Ltime|log.Lshortfile),
+		PingTimeoutDuration: time.Millisecond * 100,
+		killChan:            make(chan int),
+	}
+
+	opts := []grpc.ServerOption{}
+	grpcServer := grpc.NewServer(opts...)
+
+	rpc.RegisterCollectorServer(grpcServer, &gRPCCollectorProxy{mockPlugin, mockSessionState})
+	go func() {
+		err := grpcServer.Serve(lis)
+		if err != nil {
+			log.Print(err)
+		}
+	}()
+	return lis.Addr().(*net.TCPAddr).Port, mockSessionState, nil
 }

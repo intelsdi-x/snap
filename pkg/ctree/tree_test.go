@@ -79,6 +79,17 @@ func TestConfigTree(t *testing.T) {
 		c.Add([]string{"intel", "manhole", "joel", "dan"}, newMockNode())
 	})
 
+	Convey("GetAll()", t, func() {
+		c := New()
+		c.Add([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, newMockNode())
+		c.Add([]string{"intel", "sdilabs", "joel", "dan"}, newMockNode())
+		c.Add([]string{"intel", "manhole", "joel", "dan"}, newMockNode())
+		c.Freeze()
+		results := c.GetAll()
+		So(results, ShouldNotBeNil)
+		So(len(results), ShouldEqual, 3)
+	})
+
 	Convey("Get()", t, func() {
 		Convey("order preserved", func() {
 			d1 := newMockNode()

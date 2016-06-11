@@ -27,6 +27,10 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
+const (
+	StringType = "string"
+)
+
 // A rule validating against string-typed config
 type StringRule struct {
 	rule
@@ -56,7 +60,7 @@ func NewStringRule(key string, req bool, opts ...string) (*StringRule, error) {
 }
 
 func (s *StringRule) Type() string {
-	return "string"
+	return StringType
 }
 
 // MarshalJSON marshals a StringRule into JSON
@@ -70,7 +74,7 @@ func (s *StringRule) MarshalJSON() ([]byte, error) {
 		Key:      s.key,
 		Required: s.required,
 		Default:  s.Default(),
-		Type:     "string",
+		Type:     StringType,
 	})
 }
 
@@ -121,8 +125,8 @@ func (s *StringRule) Key() string {
 // Validates a config value against this rule.
 func (s *StringRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
-	if cv.Type() != "string" {
-		return wrongType(s.key, cv.Type(), "string")
+	if cv.Type() != StringType {
+		return wrongType(s.key, cv.Type(), StringType)
 	}
 	return nil
 }
