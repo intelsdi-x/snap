@@ -884,13 +884,16 @@ func (p *pluginControl) sendPluginSubscriptionEvent(taskID string, pl core.Plugi
 
 func (p *pluginControl) UnsubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
 	var serrs []serror.SnapError
-
-	collectors, errs := p.gatherCollectors(mts)
-	if len(errs) > 0 {
-		serrs = append(serrs, errs...)
-	}
-	for _, gc := range collectors {
-		plugins = append(plugins, gc.plugin)
+	// If no metrics to unsubscribe then skip this section. Avoids errors when
+	// workflow is distributed and each node may not have metrics.
+	if len(mts) > 0 {
+		collectors, errs := p.gatherCollectors(mts)
+		if len(errs) > 0 {
+			serrs = append(serrs, errs...)
+		}
+		for _, gc := range collectors {
+			plugins = append(plugins, gc.plugin)
+		}
 	}
 
 	for _, sub := range plugins {
