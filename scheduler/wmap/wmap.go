@@ -26,9 +26,10 @@ import (
 	"regexp"
 	"strings"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"gopkg.in/yaml.v2"
 )
 
 var (
