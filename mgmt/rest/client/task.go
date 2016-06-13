@@ -28,8 +28,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
-	"github.com/intelsdi-x/snap/pkg/task"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -49,8 +49,8 @@ type Schedule struct {
 // Otherwise, it's in the Stopped state. CreateTask is accomplished through a POST HTTP JSON request.
 // A ScheduledTask is returned if it succeeds, otherwise an error is returned.
 func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, deadline string, startTask bool) *CreateTaskResult {
-	t := task.TaskCreationRequest{
-		Schedule: task.Schedule{
+	t := core.TaskCreationRequest{
+		Schedule: core.Schedule{
 			Type:     s.Type,
 			Interval: s.Interval,
 		},

@@ -40,7 +40,6 @@ import (
 	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
-	mtask "github.com/intelsdi-x/snap/pkg/task"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -198,7 +197,7 @@ func autoDiscoverTasks(taskFiles []os.FileInfo, fullPath string,
 			defer f.Close()
 		}
 		mode := true
-		task, err := mtask.CreateTaskFromContent(f, &mode, fp)
+		task, err := core.CreateTaskFromContent(f, &mode, fp)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"_block":           "autoDiscoverTasks",

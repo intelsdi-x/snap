@@ -20,6 +20,10 @@ limitations under the License.
 package core
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
+	"io/ioutil"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -149,4 +153,85 @@ func SetTaskID(id string) TaskOption {
 
 type TaskErrors interface {
 	Errors() []serror.SnapError
+}
+
+type TaskCreationRequest struct {
+	Name     string            `json:"name"`
+	Deadline string            `json:"deadline"`
+	Workflow *wmap.WorkflowMap `json:"workflow"`
+	Schedule Schedule          `json:"schedule"`
+	Start    bool              `json:"start"`
+}
+
+// Function used to create a task according to content (1st parameter)
+// . Content can be retrieved from a configuration file or a HTTP REST request body
+// . Mode is used to specify if the created task should start right away or not
+// . function pointer is responsible for effectively creating and returning the created task
+func CreateTaskFromContent(body io.ReadCloser,
+	mode *bool,
+	fp func(sch schedule.Schedule,
+		wfMap *wmap.WorkflowMap,
+		startOnCreate bool,
+		opts ...TaskOption) (Task, TaskErrors)) (Task, error) {
+
+	tr, err := marshalTask(body)
+	if err != nil {
+		return nil, err
+	}
+
+	sch, err := makeSchedule(tr.Schedule)
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []TaskOption
+	if tr.Deadline != "" {
+		dl, err := time.ParseDuration(tr.Deadline)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, TaskDeadlineDuration(dl))
+	}
+
+	if tr.Name != "" {
+		opts = append(opts, SetTaskName(tr.Name))
+	}
+	opts = append(opts, OptionStopOnFailure(10))
+
+	if mode == nil {
+		mode = &tr.Start
+	}
+	if fp == nil {
+		return nil, errors.New("Missing workflow creation routine")
+	}
+	task, errs := fp(sch, tr.Workflow, *mode, opts...)
+	if errs != nil && len(errs.Errors()) != 0 {
+		var errMsg string
+		for _, e := range errs.Errors() {
+			errMsg = errMsg + e.Error() + " -- "
+		}
+		return nil, errors.New(errMsg[:len(errMsg)-4])
+	}
+	return task, nil
+}
+
+func marshalTask(body io.ReadCloser) (*TaskCreationRequest, error) {
+	var tr TaskCreationRequest
+	errCode, err := MarshalBody(&tr, body)
+	if errCode != 0 && err != nil {
+		return nil, err
+	}
+	return &tr, nil
+}
+
+func MarshalBody(in interface{}, body io.ReadCloser) (int, error) {
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		return 500, err
+	}
+	err = json.Unmarshal(b, in)
+	if err != nil {
+		return 400, err
+	}
+	return 0, nil
 }

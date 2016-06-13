@@ -26,7 +26,6 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
-	"github.com/intelsdi-x/snap/pkg/task"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -88,7 +87,7 @@ func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, 
 	}
 
 	src := []string{}
-	errCode, err := task.MarshalBody(&src, r.Body)
+	errCode, err := core.MarshalBody(&src, r.Body)
 	if errCode != 0 && err != nil {
 		respond(400, rbody.FromError(err), w)
 		return
@@ -130,7 +129,7 @@ func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 	}
 
 	src := cdata.NewNode()
-	errCode, err := task.MarshalBody(src, r.Body)
+	errCode, err := core.MarshalBody(src, r.Body)
 	if errCode != 0 && err != nil {
 		respond(400, rbody.FromError(err), w)
 		return

@@ -32,7 +32,6 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
-	mtask "github.com/intelsdi-x/snap/pkg/task"
 )
 
 var (
@@ -45,7 +44,7 @@ var (
 )
 
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	task, err := mtask.CreateTaskFromContent(r.Body, nil, s.mt.CreateTask)
+	task, err := core.CreateTaskFromContent(r.Body, nil, s.mt.CreateTask)
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
 		return

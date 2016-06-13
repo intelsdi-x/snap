@@ -19,7 +19,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package task
+package core
 
 import (
 	"errors"
@@ -28,7 +28,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -50,15 +49,15 @@ func (t *taskErrors) Errors() []serror.SnapError {
 
 const (
 	DUMMY_FILE = "dummy.txt"
-	YAML_FILE  = "../../examples/tasks/mock-file.yaml"
-	JSON_FILE  = "../../examples/tasks/mock-file.json"
+	YAML_FILE  = "../examples/tasks/mock-file.yaml"
+	JSON_FILE  = "../examples/tasks/mock-file.json"
 	DUMMY_TYPE = "dummy"
 )
 
 func koRoutine(sch schedule.Schedule,
 	wfMap *wmap.WorkflowMap,
 	startOnCreate bool,
-	opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+	opts ...TaskOption) (Task, TaskErrors) {
 	// Create a container for task errors
 	te := &taskErrors{
 		errs: make([]serror.SnapError, 0),
@@ -70,7 +69,7 @@ func koRoutine(sch schedule.Schedule,
 func okRoutine(sch schedule.Schedule,
 	wfMap *wmap.WorkflowMap,
 	startOnCreate bool,
-	opts ...core.TaskOption) (core.Task, core.TaskErrors) {
+	opts ...TaskOption) (Task, TaskErrors) {
 	return nil, nil
 }
 
