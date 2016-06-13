@@ -29,7 +29,7 @@ __proj_dir="$(dirname "$__dir")"
 
 _go_path
 
-_go_get github.com/tools/godep
+_go_get github.com/Masterminds/glide
 
-_info "restoring dependency with godep"
-(cd "${__proj_dir}" && godep restore)
+_info "restoring dependency with glide"
+(cd "${__proj_dir}" && glide install)
