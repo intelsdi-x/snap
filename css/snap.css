@@ -92,10 +92,6 @@
 
 .menu-text {
   color: #000; }
-  @media only screen and (max-width: 40em) {
-    .menu-text {
-      display: none !important; } }
-
 
 .row {
   max-width: 1200px; }

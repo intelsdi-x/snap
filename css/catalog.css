@@ -15,7 +15,8 @@ button {
 
 
 .menu-text {
-height: 62px;
+height: 75px;
+vertical-align: middle;
 }
 
 i {
