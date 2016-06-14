@@ -33,6 +33,7 @@ service MetricManager {
 	rpc SubscribeDeps(SubscribeDepsRequest) returns (SubscribeDepsReply) {}
 	rpc UnsubscribeDeps(SubscribeDepsRequest) returns (SubscribeDepsReply) {}
 	rpc MatchQueryToNamespaces(ExpandWildcardsRequest) returns (ExpandWildcardsReply) {}
+	rpc GetAutodiscoverPaths(common.Empty) returns (GetAutodiscoverPathsReply) {}
 }
 
 // managesMetrics from scheduler
@@ -120,4 +121,8 @@ message ArrString {
 message ExpandWildcardsReply {
 	repeated ArrString NSS = 1;
 	common.SnapError Error = 2;
+}
+
+message GetAutodiscoverPathsReply{
+	repeated string Paths = 1;
 }
