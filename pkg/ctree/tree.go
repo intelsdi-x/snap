@@ -24,6 +24,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -117,6 +118,35 @@ func (c *ConfigTree) Add(ns []string, inNode Node) {
 	}
 	c.root.add(remain, inNode)
 
+}
+
+func (c *ConfigTree) GetAll() map[string]Node {
+	ret := map[string]Node{}
+	if !c.Frozen() {
+		panic("must freeze before getting")
+	}
+	if c.root == nil {
+		c.log(fmt.Sprintln("ctree: no root - returning nil"))
+		return nil
+	}
+	return c.getAll(c.root, "", ret)
+}
+
+func (c *ConfigTree) getAll(node *node, base string, results map[string]Node) map[string]Node {
+	if len(node.keys) > 0 {
+		if base != "" {
+			base = base + "." + strings.Join(node.keys, ".")
+		} else {
+			base = strings.Join(node.keys, ".")
+		}
+		if node.Node != nil {
+			results[base] = node.Node
+		}
+	}
+	for _, child := range node.nodes {
+		c.getAll(child, base, results)
+	}
+	return results
 }
 
 // Get returns a tree node given the namespace
