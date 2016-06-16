@@ -193,7 +193,7 @@ func TestConfigTree(t *testing.T) {
 			So(g, ShouldNotBeNil)
 		})
 
-		Convey("get is inbetween two nodes in tree", func() {
+		Convey("get is in between two nodes in tree", func() {
 			d1 := newMockNode()
 			d1.data = "a"
 			d2 := newMockNode()
@@ -217,6 +217,21 @@ func TestConfigTree(t *testing.T) {
 			So(func() {
 				c.Add([]string{"mashery", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d2)
 			}, ShouldPanic)
+		})
+
+		Convey("doesn't panic on ns where the root and ns don't have a policy", func() {
+			d1 := newMockNode()
+			d1.data = "a"
+			d2 := newMockNode()
+			d2.data = "b"
+			c := New()
+			c.Add([]string{"intel", "foo", "sdi-x", "cody"}, d1)
+			c.Add([]string{"intel", "foo", "sdi-x", "nan"}, d2)
+			c.Freeze()
+			So(func() {
+				g := c.Get([]string{"intel", "foo", "sdi-x", "emily", "tiffany", "matt"})
+				So(g, ShouldBeNil)
+			}, ShouldNotPanic)
 		})
 
 		Convey("doesn't panic on empty ns", func() {
