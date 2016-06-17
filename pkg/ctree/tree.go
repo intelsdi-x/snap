@@ -191,6 +191,10 @@ func (c *ConfigTree) Get(ns []string) Node {
 		childNodes := child.get(remain)
 		*retNodes = append(*retNodes, *childNodes...)
 	}
+	if len(*retNodes) == 0 {
+		// There are no child nodes with configs so we return
+		return nil
+	}
 
 	c.log(fmt.Sprintf("nodes to merge count (%d)\n", len(*retNodes)))
 	// Call Node.Merge() sequentially on the retNodes
