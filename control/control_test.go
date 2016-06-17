@@ -788,6 +788,32 @@ func TestMetricConfig(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	})
 
+	Convey("config provided by defaults", t, func() {
+		c := New(GetDefaultConfig())
+		c.Config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "pwd"})
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+		_, err := load(c, fixtures.JSONRPCPluginPath)
+		So(err, ShouldBeNil)
+		<-lpe.done
+		cd := cdata.NewNode()
+		m1 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "foo"),
+		}
+
+		Convey("So metric should be valid with config", func() {
+			errs := c.validateMetricTypeSubscription(m1, cd)
+			So(errs, ShouldBeNil)
+		})
+		Convey("So mock should have name: bob config from defaults", func() {
+			So(c.Config.Plugins.pluginCache["0:mock:1"].Table()["name"], ShouldResemble, ctypes.ConfigValueStr{Value: "bob"})
+		})
+
+		c.Stop()
+		time.Sleep(100 * time.Millisecond)
+	})
+
 	Convey("nil config provided by task", t, func() {
 		config := GetDefaultConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
@@ -1234,6 +1260,8 @@ func TestCollectMetrics(t *testing.T) {
 					for i := range cr {
 						So(cr[i].Data(), ShouldContainSubstring, "The mock collected data!")
 						So(cr[i].Data(), ShouldContainSubstring, "test=true")
+						So(cr[i].Data(), ShouldContainSubstring, "name={bob}")
+						So(cr[i].Data(), ShouldContainSubstring, "password={testval}")
 					}
 				}
 				ap := c.AvailablePlugins()

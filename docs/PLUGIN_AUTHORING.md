@@ -95,20 +95,22 @@ github.com/intelsdi-x/snap/control/plugin/cpolicy
 github.com/intelsdi-x/snap/core/ctypes  
 ```
 ### Writing a collector plugin
-A Snap collector plugin collects telemetry data by communicating with the Snap daemon. To confine to collector plugin interfaces and metric types defined in Snap,  a collector plugin must implement the following methods:
+A Snap collector plugin collects telemetry data by communicating with the Snap daemon. To confine to collector plugin interfaces and metric types defined in Snap, a collector plugin must implement the following methods:
 ```
 GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
 CollectMetrics([]MetricType) ([]MetricType, error)
 GetMetricTypes(ConfigType) ([]MetricType, error)
 ```
+The plugin uses the default values given in the ConfigPolicy so a config file doesn't need to be passed in for these rules. An example use case would be for the URL the Apache Collector collects from. Disclaimer: Two namespaces can't have rules with the same key name. E.g. you can't have the key "username" for /intel/foo/bar and a different "username" for /intel/foo/mock. They would need unique keys.
+
 ### Writing a processor plugin
-A Snap processor plugin allows filtering, aggregation, transformation, etc of collected telemetry data. To complaint with processor plugin interfaces defined in Snap,  a processor plugin must implement the following methods:
+A Snap processor plugin allows filtering, aggregation, transformation, etc of collected telemetry data. To complaint with processor plugin interfaces defined in Snap, a processor plugin must implement the following methods:
 ```
 GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
 Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error)
 ```
 ### Writing a publisher plugin
-A Snap publisher plugin allows publishing processed telemetry data into a variety of systems, databases, and monitors through Snap metrics. To compliant with metric types and plugin interfaces defined in Snap,  a publisher plugin must implement the following methods:
+A Snap publisher plugin allows publishing processed telemetry data into a variety of systems, databases, and monitors through Snap metrics. To compliant with metric types and plugin interfaces defined in Snap, a publisher plugin must implement the following methods:
 ```
 GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
 Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error

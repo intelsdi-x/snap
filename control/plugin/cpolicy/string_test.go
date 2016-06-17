@@ -54,7 +54,7 @@ func TestConfigPolicyRuleString(t *testing.T) {
 			r, e := NewStringRule("thekey", true, "wat")
 			So(r.Default(), ShouldNotBeNil)
 			So(r.Default().Type(), ShouldEqual, "string")
-			So(r.Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
+			So(r.Default().(ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
 			So(e, ShouldBeNil)
 		})
 
@@ -69,7 +69,7 @@ func TestConfigPolicyRuleString(t *testing.T) {
 			Convey("passes with string config value", func() {
 				r, e := NewStringRule("thekey", true, "wat")
 				So(r.Default().Type(), ShouldEqual, "string")
-				So(r.Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
+				So(r.Default().(ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueStr{Value: "foo"}
@@ -81,7 +81,7 @@ func TestConfigPolicyRuleString(t *testing.T) {
 			Convey("errors with non-string config value", func() {
 				r, e := NewStringRule("thekey", true, "wat")
 				So(r.Default().Type(), ShouldEqual, "string")
-				So(r.Default().(*ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
+				So(r.Default().(ctypes.ConfigValueStr).Value, ShouldEqual, "wat")
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueInt{Value: 1}

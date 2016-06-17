@@ -122,9 +122,9 @@ func TestConfigPolicyNode(t *testing.T) {
 		m2, pe := n.Process(m)
 
 		So(len(pe.Errors()), ShouldEqual, 0)
-		So((*m2)["username"].(*ctypes.ConfigValueStr).Value, ShouldEqual, "root")
-		So((*m2)["port"].(*ctypes.ConfigValueInt).Value, ShouldEqual, 8080)
-		So((*m2)["nova"].(*ctypes.ConfigValueBool).Value, ShouldEqual, true)
+		So((*m2)["username"].(ctypes.ConfigValueStr).Value, ShouldEqual, "root")
+		So((*m2)["port"].(ctypes.ConfigValueInt).Value, ShouldEqual, 8080)
+		So((*m2)["nova"].(ctypes.ConfigValueBool).Value, ShouldEqual, true)
 	})
 
 	Convey("defaults don't fix missing values on required", t, func() {

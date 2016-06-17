@@ -54,7 +54,7 @@ func TestConfigPolicyRuleBool(t *testing.T) {
 			r, e := NewBoolRule("thekey", true, true)
 			So(r.Default(), ShouldNotBeNil)
 			So(r.Default().Type(), ShouldEqual, "bool")
-			So(r.Default().(*ctypes.ConfigValueBool).Value, ShouldEqual, true)
+			So(r.Default().(ctypes.ConfigValueBool).Value, ShouldEqual, true)
 			So(e, ShouldBeNil)
 		})
 
@@ -69,7 +69,7 @@ func TestConfigPolicyRuleBool(t *testing.T) {
 			Convey("passes with string config value", func() {
 				r, e := NewBoolRule("thekey", true, true)
 				So(r.Default().Type(), ShouldEqual, "bool")
-				So(r.Default().(*ctypes.ConfigValueBool).Value, ShouldEqual, true)
+				So(r.Default().(ctypes.ConfigValueBool).Value, ShouldEqual, true)
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueBool{Value: true}
@@ -81,7 +81,7 @@ func TestConfigPolicyRuleBool(t *testing.T) {
 			Convey("errors with non-string config value", func() {
 				r, e := NewBoolRule("thekey", true, true)
 				So(r.Default().Type(), ShouldEqual, "bool")
-				So(r.Default().(*ctypes.ConfigValueBool).Value, ShouldEqual, true)
+				So(r.Default().(ctypes.ConfigValueBool).Value, ShouldEqual, true)
 				So(e, ShouldBeNil)
 
 				v := ctypes.ConfigValueInt{Value: 1}

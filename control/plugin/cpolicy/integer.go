@@ -179,7 +179,7 @@ func (i *IntRule) Validate(cv ctypes.ConfigValue) error {
 // Default return this rules default value
 func (i *IntRule) Default() ctypes.ConfigValue {
 	if i.default_ != nil {
-		return &ctypes.ConfigValueInt{Value: *i.default_}
+		return ctypes.ConfigValueInt{Value: *i.default_}
 	}
 	return nil
 }
@@ -201,14 +201,14 @@ func (i *IntRule) SetMaximum(m int) {
 
 func (i *IntRule) Minimum() ctypes.ConfigValue {
 	if i.minimum != nil {
-		return &ctypes.ConfigValueInt{Value: *i.minimum}
+		return ctypes.ConfigValueInt{Value: *i.minimum}
 	}
 	return nil
 }
 
 func (i *IntRule) Maximum() ctypes.ConfigValue {
 	if i.maximum != nil {
-		return &ctypes.ConfigValueInt{Value: *i.maximum}
+		return ctypes.ConfigValueInt{Value: *i.maximum}
 	}
 	return nil
 }

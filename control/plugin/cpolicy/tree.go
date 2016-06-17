@@ -144,6 +144,22 @@ func (c *ConfigPolicy) Get(ns []string) *ConfigPolicyNode {
 	}
 }
 
+func (c *ConfigPolicy) GetAll() map[string]*ConfigPolicyNode {
+	// Automatically freeze on first Get
+	if !c.config.Frozen() {
+		c.config.Freeze()
+	}
+
+	ret := map[string]*ConfigPolicyNode{}
+	for key, node := range c.config.GetAll() {
+		switch t := node.(type) {
+		case *ConfigPolicyNode:
+			ret[key] = t
+		}
+	}
+	return ret
+}
+
 // Freezes the ConfigPolicy from future writes (adds) and triggers compression
 // of tree into read-performant version.
 func (c *ConfigPolicy) Freeze() {

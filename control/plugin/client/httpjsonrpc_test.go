@@ -240,7 +240,7 @@ func TestHTTPJSONRPC(t *testing.T) {
 				cpn, cserrs := node.Process(mts[0].Config().Table())
 				So(cpn, ShouldNotBeNil)
 				So((*cpn)["somefloat"].Type(), ShouldResemble, "float")
-				So((*cpn)["somefloat"].(*ctypes.ConfigValueFloat).Value, ShouldResemble, 3.14)
+				So((*cpn)["somefloat"].(ctypes.ConfigValueFloat).Value, ShouldResemble, 3.14)
 				So(cserrs.Errors(), ShouldBeEmpty)
 			})
 		})

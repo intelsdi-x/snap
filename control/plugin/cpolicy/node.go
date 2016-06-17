@@ -170,7 +170,7 @@ func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string
 		} else {
 			// If it was required add error
 			if rule.Required() {
-				e := errors.New(fmt.Sprintf("required key missing (%s)", key))
+				e := fmt.Errorf("required key missing (%s)", key)
 				pErrors.AddError(e)
 			} else {
 				// If default returns we should add it
@@ -179,6 +179,34 @@ func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string
 					m[key] = cv
 				}
 
+			}
+		}
+	}
+
+	if pErrors.HasErrors() {
+		return nil, pErrors
+	}
+	return &m, pErrors
+}
+
+// AddDefaults validates and returns a processed policy node or nil and error if validation has failed
+func (c *ConfigPolicyNode) AddDefaults(m map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *ProcessingErrors) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	pErrors := NewProcessingErrors()
+	// Loop through each rule and process
+	for key, rule := range c.rules {
+		// items exists for rule
+		if _, ok := m[key]; ok {
+			pErrors.AddError(fmt.Errorf("The key \"%v\" already has a default policy for this plugin", key))
+		} else {
+			// If it was required add error
+			if !rule.Required() {
+				// If default returns we should add it
+				cv := rule.Default()
+				if cv != nil {
+					m[key] = cv
+				}
 			}
 		}
 	}
