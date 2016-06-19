@@ -32,8 +32,5 @@ gin-bin
 tags
 .vscode/
 
-# we don't vendor godep _workspace
-**/Godeps/_workspace/**
-
 # OSX stuff
 .DS_Store

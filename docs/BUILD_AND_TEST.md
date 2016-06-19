@@ -36,25 +36,14 @@ $ go get github.com/intelsdi-x/snap
 $ cd $GOPATH/src/github.com/intelsdi-x/snap
 ```
 
-[godeps](https://github.com/tools/godep) is a dependency for running the `make` task(s) required for the build process. If it is not already installed, install `godeps` now:
-```
-$ # first check to see if it is installed
-$ which godep
-$ # if not installed, do so
-$ # then download and set your path
-$ go get github.com/tools/godep
-$ export PATH=$GOPATH/bin/
-```
-
-In the `snap/` directory there's a `Makefile` that builds all dependencies and then the Snap Framework binaries. To get dependencies and build Snap run:  
+In the `snap/` directory there's a `Makefile` that builds all dependencies and then the Snap Framework binaries. To build Snap run:
 ```
 $ cd $GOPATH/src/github.com/intelsdi-x/snap
 $ make
 ```
 
-It runs `make deps` and `make all` commands for you. Alternatively, you can run `make` with any of these other targets:
+When no target is specified `make` executes the `all` target. Alternatively, you can run `make` with any of these other targets:
 
-* `deps`: fetches all dependencies using godeps
 * `check`: runs test suite
 * `all`: builds snapd, snapctl, and the test plugins
 * `snap` builds snapd and snapctl

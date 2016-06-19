@@ -15,11 +15,7 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-default:
-	$(MAKE) deps
-	$(MAKE) all
-deps:
-	bash -c "./scripts/deps.sh"
+default: all
 test:
 	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh $(SNAP_TEST_TYPE)"
 test-legacy:
