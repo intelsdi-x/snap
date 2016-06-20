@@ -28,6 +28,9 @@ It is generated from these files:
 	github.com/intelsdi-x/snap/control/plugin/rpc/plugin.proto
 
 It has these top-level messages:
+	ProcessArg
+	ProcessReply
+	PublishArg
 	Rule
 	SetKeyArg
 	SetKeyReply
@@ -67,27 +70,76 @@ var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
-const _ = proto.ProtoPackageIsVersion1
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
+type ProcessArg struct {
+	ContentType string            `protobuf:"bytes,1,opt,name=ContentType,json=contentType" json:"ContentType,omitempty"`
+	Content     []byte            `protobuf:"bytes,2,opt,name=Content,json=content,proto3" json:"Content,omitempty"`
+	Config      *common.ConfigMap `protobuf:"bytes,3,opt,name=Config,json=config" json:"Config,omitempty"`
+}
+
+func (m *ProcessArg) Reset()                    { *m = ProcessArg{} }
+func (m *ProcessArg) String() string            { return proto.CompactTextString(m) }
+func (*ProcessArg) ProtoMessage()               {}
+func (*ProcessArg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
+func (m *ProcessArg) GetConfig() *common.ConfigMap {
+	if m != nil {
+		return m.Config
+	}
+	return nil
+}
+
+type ProcessReply struct {
+	ContentType string `protobuf:"bytes,1,opt,name=ContentType,json=contentType" json:"ContentType,omitempty"`
+	Content     []byte `protobuf:"bytes,2,opt,name=Content,json=content,proto3" json:"Content,omitempty"`
+	Error       string `protobuf:"bytes,3,opt,name=Error,json=error" json:"Error,omitempty"`
+}
+
+func (m *ProcessReply) Reset()                    { *m = ProcessReply{} }
+func (m *ProcessReply) String() string            { return proto.CompactTextString(m) }
+func (*ProcessReply) ProtoMessage()               {}
+func (*ProcessReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+type PublishArg struct {
+	ContentType string            `protobuf:"bytes,1,opt,name=ContentType,json=contentType" json:"ContentType,omitempty"`
+	Content     []byte            `protobuf:"bytes,2,opt,name=Content,json=content,proto3" json:"Content,omitempty"`
+	Config      *common.ConfigMap `protobuf:"bytes,3,opt,name=Config,json=config" json:"Config,omitempty"`
+}
+
+func (m *PublishArg) Reset()                    { *m = PublishArg{} }
+func (m *PublishArg) String() string            { return proto.CompactTextString(m) }
+func (*PublishArg) ProtoMessage()               {}
+func (*PublishArg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *PublishArg) GetConfig() *common.ConfigMap {
+	if m != nil {
+		return m.Config
+	}
+	return nil
+}
 
 type Rule struct {
-	RuleType      string  `protobuf:"bytes,1,opt,name=rule_type" json:"rule_type,omitempty"`
+	RuleType      string  `protobuf:"bytes,1,opt,name=rule_type,json=ruleType" json:"rule_type,omitempty"`
 	Key           string  `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
 	Required      bool    `protobuf:"varint,3,opt,name=required" json:"required,omitempty"`
 	Eescription   string  `protobuf:"bytes,4,opt,name=eescription" json:"eescription,omitempty"`
-	BoolDefault   bool    `protobuf:"varint,5,opt,name=bool_default" json:"bool_default,omitempty"`
-	FloatDefault  float64 `protobuf:"fixed64,6,opt,name=float_default" json:"float_default,omitempty"`
-	FloatMinimum  float64 `protobuf:"fixed64,7,opt,name=float_minimum" json:"float_minimum,omitempty"`
-	FloatMaximum  float64 `protobuf:"fixed64,8,opt,name=float_maximum" json:"float_maximum,omitempty"`
-	IntDefault    int64   `protobuf:"varint,9,opt,name=int_default" json:"int_default,omitempty"`
-	IntMinimum    int64   `protobuf:"varint,10,opt,name=int_minimum" json:"int_minimum,omitempty"`
-	IntMaximum    int64   `protobuf:"varint,11,opt,name=int_maximum" json:"int_maximum,omitempty"`
-	StringDefault string  `protobuf:"bytes,12,opt,name=string_default" json:"string_default,omitempty"`
+	BoolDefault   bool    `protobuf:"varint,5,opt,name=bool_default,json=boolDefault" json:"bool_default,omitempty"`
+	FloatDefault  float64 `protobuf:"fixed64,6,opt,name=float_default,json=floatDefault" json:"float_default,omitempty"`
+	FloatMinimum  float64 `protobuf:"fixed64,7,opt,name=float_minimum,json=floatMinimum" json:"float_minimum,omitempty"`
+	FloatMaximum  float64 `protobuf:"fixed64,8,opt,name=float_maximum,json=floatMaximum" json:"float_maximum,omitempty"`
+	IntDefault    int64   `protobuf:"varint,9,opt,name=int_default,json=intDefault" json:"int_default,omitempty"`
+	IntMinimum    int64   `protobuf:"varint,10,opt,name=int_minimum,json=intMinimum" json:"int_minimum,omitempty"`
+	IntMaximum    int64   `protobuf:"varint,11,opt,name=int_maximum,json=intMaximum" json:"int_maximum,omitempty"`
+	StringDefault string  `protobuf:"bytes,12,opt,name=string_default,json=stringDefault" json:"string_default,omitempty"`
 }
 
 func (m *Rule) Reset()                    { *m = Rule{} }
 func (m *Rule) String() string            { return proto.CompactTextString(m) }
 func (*Rule) ProtoMessage()               {}
-func (*Rule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (*Rule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
 type SetKeyArg struct {
 	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -96,7 +148,7 @@ type SetKeyArg struct {
 func (m *SetKeyArg) Reset()                    { *m = SetKeyArg{} }
 func (m *SetKeyArg) String() string            { return proto.CompactTextString(m) }
 func (*SetKeyArg) ProtoMessage()               {}
-func (*SetKeyArg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (*SetKeyArg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
 type SetKeyReply struct {
 	Error string `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -105,7 +157,7 @@ type SetKeyReply struct {
 func (m *SetKeyReply) Reset()                    { *m = SetKeyReply{} }
 func (m *SetKeyReply) String() string            { return proto.CompactTextString(m) }
 func (*SetKeyReply) ProtoMessage()               {}
-func (*SetKeyReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (*SetKeyReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
 type PingReply struct {
 	Error string `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -114,16 +166,16 @@ type PingReply struct {
 func (m *PingReply) Reset()                    { *m = PingReply{} }
 func (m *PingReply) String() string            { return proto.CompactTextString(m) }
 func (*PingReply) ProtoMessage()               {}
-func (*PingReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+func (*PingReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
 
 type KillRequest struct {
-	Reason string `protobuf:"bytes,1,opt,name=Reason" json:"Reason,omitempty"`
+	Reason string `protobuf:"bytes,1,opt,name=Reason,json=reason" json:"Reason,omitempty"`
 }
 
 func (m *KillRequest) Reset()                    { *m = KillRequest{} }
 func (m *KillRequest) String() string            { return proto.CompactTextString(m) }
 func (*KillRequest) ProtoMessage()               {}
-func (*KillRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+func (*KillRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
 
 type KillReply struct {
 	Error string `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -132,20 +184,20 @@ type KillReply struct {
 func (m *KillReply) Reset()                    { *m = KillReply{} }
 func (m *KillReply) String() string            { return proto.CompactTextString(m) }
 func (*KillReply) ProtoMessage()               {}
-func (*KillReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+func (*KillReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
 
 type GetConfigPolicyReply struct {
 	Error         string                    `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
-	BoolPolicy    map[string]*BoolPolicy    `protobuf:"bytes,2,rep,name=bool_policy" json:"bool_policy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	FloatPolicy   map[string]*FloatPolicy   `protobuf:"bytes,3,rep,name=float_policy" json:"float_policy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	IntegerPolicy map[string]*IntegerPolicy `protobuf:"bytes,4,rep,name=integer_policy" json:"integer_policy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	StringPolicy  map[string]*StringPolicy  `protobuf:"bytes,5,rep,name=string_policy" json:"string_policy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	BoolPolicy    map[string]*BoolPolicy    `protobuf:"bytes,2,rep,name=bool_policy,json=boolPolicy" json:"bool_policy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	FloatPolicy   map[string]*FloatPolicy   `protobuf:"bytes,3,rep,name=float_policy,json=floatPolicy" json:"float_policy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	IntegerPolicy map[string]*IntegerPolicy `protobuf:"bytes,4,rep,name=integer_policy,json=integerPolicy" json:"integer_policy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	StringPolicy  map[string]*StringPolicy  `protobuf:"bytes,5,rep,name=string_policy,json=stringPolicy" json:"string_policy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
 func (m *GetConfigPolicyReply) Reset()                    { *m = GetConfigPolicyReply{} }
 func (m *GetConfigPolicyReply) String() string            { return proto.CompactTextString(m) }
 func (*GetConfigPolicyReply) ProtoMessage()               {}
-func (*GetConfigPolicyReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*GetConfigPolicyReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
 
 func (m *GetConfigPolicyReply) GetBoolPolicy() map[string]*BoolPolicy {
 	if m != nil {
@@ -183,7 +235,7 @@ type BoolRule struct {
 func (m *BoolRule) Reset()                    { *m = BoolRule{} }
 func (m *BoolRule) String() string            { return proto.CompactTextString(m) }
 func (*BoolRule) ProtoMessage()               {}
-func (*BoolRule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+func (*BoolRule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
 
 type BoolPolicy struct {
 	Rules map[string]*BoolRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -192,7 +244,7 @@ type BoolPolicy struct {
 func (m *BoolPolicy) Reset()                    { *m = BoolPolicy{} }
 func (m *BoolPolicy) String() string            { return proto.CompactTextString(m) }
 func (*BoolPolicy) ProtoMessage()               {}
-func (*BoolPolicy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+func (*BoolPolicy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
 
 func (m *BoolPolicy) GetRules() map[string]*BoolRule {
 	if m != nil {
@@ -211,7 +263,7 @@ type FloatRule struct {
 func (m *FloatRule) Reset()                    { *m = FloatRule{} }
 func (m *FloatRule) String() string            { return proto.CompactTextString(m) }
 func (*FloatRule) ProtoMessage()               {}
-func (*FloatRule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
+func (*FloatRule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
 
 type FloatPolicy struct {
 	Rules map[string]*FloatRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -220,7 +272,7 @@ type FloatPolicy struct {
 func (m *FloatPolicy) Reset()                    { *m = FloatPolicy{} }
 func (m *FloatPolicy) String() string            { return proto.CompactTextString(m) }
 func (*FloatPolicy) ProtoMessage()               {}
-func (*FloatPolicy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
+func (*FloatPolicy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
 
 func (m *FloatPolicy) GetRules() map[string]*FloatRule {
 	if m != nil {
@@ -239,7 +291,7 @@ type IntegerRule struct {
 func (m *IntegerRule) Reset()                    { *m = IntegerRule{} }
 func (m *IntegerRule) String() string            { return proto.CompactTextString(m) }
 func (*IntegerRule) ProtoMessage()               {}
-func (*IntegerRule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
+func (*IntegerRule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{14} }
 
 type IntegerPolicy struct {
 	Rules map[string]*IntegerRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -248,7 +300,7 @@ type IntegerPolicy struct {
 func (m *IntegerPolicy) Reset()                    { *m = IntegerPolicy{} }
 func (m *IntegerPolicy) String() string            { return proto.CompactTextString(m) }
 func (*IntegerPolicy) ProtoMessage()               {}
-func (*IntegerPolicy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
+func (*IntegerPolicy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
 
 func (m *IntegerPolicy) GetRules() map[string]*IntegerRule {
 	if m != nil {
@@ -265,7 +317,7 @@ type StringRule struct {
 func (m *StringRule) Reset()                    { *m = StringRule{} }
 func (m *StringRule) String() string            { return proto.CompactTextString(m) }
 func (*StringRule) ProtoMessage()               {}
-func (*StringRule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
+func (*StringRule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{16} }
 
 type StringPolicy struct {
 	Rules map[string]*StringRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -274,7 +326,7 @@ type StringPolicy struct {
 func (m *StringPolicy) Reset()                    { *m = StringPolicy{} }
 func (m *StringPolicy) String() string            { return proto.CompactTextString(m) }
 func (*StringPolicy) ProtoMessage()               {}
-func (*StringPolicy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{14} }
+func (*StringPolicy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{17} }
 
 func (m *StringPolicy) GetRules() map[string]*StringRule {
 	if m != nil {
@@ -290,7 +342,7 @@ type CollectMetricsArg struct {
 func (m *CollectMetricsArg) Reset()                    { *m = CollectMetricsArg{} }
 func (m *CollectMetricsArg) String() string            { return proto.CompactTextString(m) }
 func (*CollectMetricsArg) ProtoMessage()               {}
-func (*CollectMetricsArg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
+func (*CollectMetricsArg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{18} }
 
 func (m *CollectMetricsArg) GetMetrics() []*common.Metric {
 	if m != nil {
@@ -307,7 +359,7 @@ type CollectMetricsReply struct {
 func (m *CollectMetricsReply) Reset()                    { *m = CollectMetricsReply{} }
 func (m *CollectMetricsReply) String() string            { return proto.CompactTextString(m) }
 func (*CollectMetricsReply) ProtoMessage()               {}
-func (*CollectMetricsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{16} }
+func (*CollectMetricsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{19} }
 
 func (m *CollectMetricsReply) GetMetrics() []*common.Metric {
 	if m != nil {
@@ -323,7 +375,7 @@ type GetMetricTypesArg struct {
 func (m *GetMetricTypesArg) Reset()                    { *m = GetMetricTypesArg{} }
 func (m *GetMetricTypesArg) String() string            { return proto.CompactTextString(m) }
 func (*GetMetricTypesArg) ProtoMessage()               {}
-func (*GetMetricTypesArg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{17} }
+func (*GetMetricTypesArg) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{20} }
 
 func (m *GetMetricTypesArg) GetConfig() *common.ConfigMap {
 	if m != nil {
@@ -340,7 +392,7 @@ type GetMetricTypesReply struct {
 func (m *GetMetricTypesReply) Reset()                    { *m = GetMetricTypesReply{} }
 func (m *GetMetricTypesReply) String() string            { return proto.CompactTextString(m) }
 func (*GetMetricTypesReply) ProtoMessage()               {}
-func (*GetMetricTypesReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{18} }
+func (*GetMetricTypesReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{21} }
 
 func (m *GetMetricTypesReply) GetMetrics() []*common.Metric {
 	if m != nil {
@@ -350,6 +402,9 @@ func (m *GetMetricTypesReply) GetMetrics() []*common.Metric {
 }
 
 func init() {
+	proto.RegisterType((*ProcessArg)(nil), "rpc.ProcessArg")
+	proto.RegisterType((*ProcessReply)(nil), "rpc.ProcessReply")
+	proto.RegisterType((*PublishArg)(nil), "rpc.PublishArg")
 	proto.RegisterType((*Rule)(nil), "rpc.Rule")
 	proto.RegisterType((*SetKeyArg)(nil), "rpc.SetKeyArg")
 	proto.RegisterType((*SetKeyReply)(nil), "rpc.SetKeyReply")
@@ -382,12 +437,12 @@ const _ = grpc.SupportPackageIsVersion2
 // Client API for Collector service
 
 type CollectorClient interface {
+	CollectMetrics(ctx context.Context, in *CollectMetricsArg, opts ...grpc.CallOption) (*CollectMetricsReply, error)
+	GetMetricTypes(ctx context.Context, in *GetMetricTypesArg, opts ...grpc.CallOption) (*GetMetricTypesReply, error)
 	SetKey(ctx context.Context, in *SetKeyArg, opts ...grpc.CallOption) (*SetKeyReply, error)
 	Ping(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*PingReply, error)
 	Kill(ctx context.Context, in *KillRequest, opts ...grpc.CallOption) (*KillReply, error)
 	GetConfigPolicy(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*GetConfigPolicyReply, error)
-	CollectMetrics(ctx context.Context, in *CollectMetricsArg, opts ...grpc.CallOption) (*CollectMetricsReply, error)
-	GetMetricTypes(ctx context.Context, in *GetMetricTypesArg, opts ...grpc.CallOption) (*GetMetricTypesReply, error)
 }
 
 type collectorClient struct {
@@ -396,6 +451,24 @@ type collectorClient struct {
 
 func NewCollectorClient(cc *grpc.ClientConn) CollectorClient {
 	return &collectorClient{cc}
+}
+
+func (c *collectorClient) CollectMetrics(ctx context.Context, in *CollectMetricsArg, opts ...grpc.CallOption) (*CollectMetricsReply, error) {
+	out := new(CollectMetricsReply)
+	err := grpc.Invoke(ctx, "/rpc.Collector/CollectMetrics", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *collectorClient) GetMetricTypes(ctx context.Context, in *GetMetricTypesArg, opts ...grpc.CallOption) (*GetMetricTypesReply, error) {
+	out := new(GetMetricTypesReply)
+	err := grpc.Invoke(ctx, "/rpc.Collector/GetMetricTypes", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *collectorClient) SetKey(ctx context.Context, in *SetKeyArg, opts ...grpc.CallOption) (*SetKeyReply, error) {
@@ -434,37 +507,55 @@ func (c *collectorClient) GetConfigPolicy(ctx context.Context, in *common.Empty,
 	return out, nil
 }
 
-func (c *collectorClient) CollectMetrics(ctx context.Context, in *CollectMetricsArg, opts ...grpc.CallOption) (*CollectMetricsReply, error) {
-	out := new(CollectMetricsReply)
-	err := grpc.Invoke(ctx, "/rpc.Collector/CollectMetrics", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *collectorClient) GetMetricTypes(ctx context.Context, in *GetMetricTypesArg, opts ...grpc.CallOption) (*GetMetricTypesReply, error) {
-	out := new(GetMetricTypesReply)
-	err := grpc.Invoke(ctx, "/rpc.Collector/GetMetricTypes", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // Server API for Collector service
 
 type CollectorServer interface {
+	CollectMetrics(context.Context, *CollectMetricsArg) (*CollectMetricsReply, error)
+	GetMetricTypes(context.Context, *GetMetricTypesArg) (*GetMetricTypesReply, error)
 	SetKey(context.Context, *SetKeyArg) (*SetKeyReply, error)
 	Ping(context.Context, *common.Empty) (*PingReply, error)
 	Kill(context.Context, *KillRequest) (*KillReply, error)
 	GetConfigPolicy(context.Context, *common.Empty) (*GetConfigPolicyReply, error)
-	CollectMetrics(context.Context, *CollectMetricsArg) (*CollectMetricsReply, error)
-	GetMetricTypes(context.Context, *GetMetricTypesArg) (*GetMetricTypesReply, error)
 }
 
 func RegisterCollectorServer(s *grpc.Server, srv CollectorServer) {
 	s.RegisterService(&_Collector_serviceDesc, srv)
+}
+
+func _Collector_CollectMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CollectMetricsArg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CollectorServer).CollectMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Collector/CollectMetrics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CollectorServer).CollectMetrics(ctx, req.(*CollectMetricsArg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Collector_GetMetricTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetricTypesArg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CollectorServer).GetMetricTypes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Collector/GetMetricTypes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CollectorServer).GetMetricTypes(ctx, req.(*GetMetricTypesArg))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Collector_SetKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -539,46 +630,18 @@ func _Collector_GetConfigPolicy_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Collector_CollectMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CollectMetricsArg)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CollectorServer).CollectMetrics(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rpc.Collector/CollectMetrics",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CollectorServer).CollectMetrics(ctx, req.(*CollectMetricsArg))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Collector_GetMetricTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetMetricTypesArg)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CollectorServer).GetMetricTypes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rpc.Collector/GetMetricTypes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CollectorServer).GetMetricTypes(ctx, req.(*GetMetricTypesArg))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 var _Collector_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "rpc.Collector",
 	HandlerType: (*CollectorServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CollectMetrics",
+			Handler:    _Collector_CollectMetrics_Handler,
+		},
+		{
+			MethodName: "GetMetricTypes",
+			Handler:    _Collector_GetMetricTypes_Handler,
+		},
 		{
 			MethodName: "SetKey",
 			Handler:    _Collector_SetKey_Handler,
@@ -595,73 +658,474 @@ var _Collector_serviceDesc = grpc.ServiceDesc{
 			MethodName: "GetConfigPolicy",
 			Handler:    _Collector_GetConfigPolicy_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{},
+}
+
+// Client API for Processor service
+
+type ProcessorClient interface {
+	Process(ctx context.Context, in *ProcessArg, opts ...grpc.CallOption) (*ProcessReply, error)
+	SetKey(ctx context.Context, in *SetKeyArg, opts ...grpc.CallOption) (*SetKeyReply, error)
+	Ping(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*PingReply, error)
+	Kill(ctx context.Context, in *KillRequest, opts ...grpc.CallOption) (*KillReply, error)
+	GetConfigPolicy(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*GetConfigPolicyReply, error)
+}
+
+type processorClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewProcessorClient(cc *grpc.ClientConn) ProcessorClient {
+	return &processorClient{cc}
+}
+
+func (c *processorClient) Process(ctx context.Context, in *ProcessArg, opts ...grpc.CallOption) (*ProcessReply, error) {
+	out := new(ProcessReply)
+	err := grpc.Invoke(ctx, "/rpc.Processor/Process", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *processorClient) SetKey(ctx context.Context, in *SetKeyArg, opts ...grpc.CallOption) (*SetKeyReply, error) {
+	out := new(SetKeyReply)
+	err := grpc.Invoke(ctx, "/rpc.Processor/SetKey", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *processorClient) Ping(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*PingReply, error) {
+	out := new(PingReply)
+	err := grpc.Invoke(ctx, "/rpc.Processor/Ping", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *processorClient) Kill(ctx context.Context, in *KillRequest, opts ...grpc.CallOption) (*KillReply, error) {
+	out := new(KillReply)
+	err := grpc.Invoke(ctx, "/rpc.Processor/Kill", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *processorClient) GetConfigPolicy(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*GetConfigPolicyReply, error) {
+	out := new(GetConfigPolicyReply)
+	err := grpc.Invoke(ctx, "/rpc.Processor/GetConfigPolicy", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Processor service
+
+type ProcessorServer interface {
+	Process(context.Context, *ProcessArg) (*ProcessReply, error)
+	SetKey(context.Context, *SetKeyArg) (*SetKeyReply, error)
+	Ping(context.Context, *common.Empty) (*PingReply, error)
+	Kill(context.Context, *KillRequest) (*KillReply, error)
+	GetConfigPolicy(context.Context, *common.Empty) (*GetConfigPolicyReply, error)
+}
+
+func RegisterProcessorServer(s *grpc.Server, srv ProcessorServer) {
+	s.RegisterService(&_Processor_serviceDesc, srv)
+}
+
+func _Processor_Process_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProcessArg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProcessorServer).Process(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Processor/Process",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProcessorServer).Process(ctx, req.(*ProcessArg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Processor_SetKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetKeyArg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProcessorServer).SetKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Processor/SetKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProcessorServer).SetKey(ctx, req.(*SetKeyArg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Processor_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(common.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProcessorServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Processor/Ping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProcessorServer).Ping(ctx, req.(*common.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Processor_Kill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProcessorServer).Kill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Processor/Kill",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProcessorServer).Kill(ctx, req.(*KillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Processor_GetConfigPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(common.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProcessorServer).GetConfigPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Processor/GetConfigPolicy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProcessorServer).GetConfigPolicy(ctx, req.(*common.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Processor_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "rpc.Processor",
+	HandlerType: (*ProcessorServer)(nil),
+	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CollectMetrics",
-			Handler:    _Collector_CollectMetrics_Handler,
+			MethodName: "Process",
+			Handler:    _Processor_Process_Handler,
 		},
 		{
-			MethodName: "GetMetricTypes",
-			Handler:    _Collector_GetMetricTypes_Handler,
+			MethodName: "SetKey",
+			Handler:    _Processor_SetKey_Handler,
+		},
+		{
+			MethodName: "Ping",
+			Handler:    _Processor_Ping_Handler,
+		},
+		{
+			MethodName: "Kill",
+			Handler:    _Processor_Kill_Handler,
+		},
+		{
+			MethodName: "GetConfigPolicy",
+			Handler:    _Processor_GetConfigPolicy_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},
 }
 
+// Client API for Publisher service
+
+type PublisherClient interface {
+	Publish(ctx context.Context, in *PublishArg, opts ...grpc.CallOption) (*common.Empty, error)
+	SetKey(ctx context.Context, in *SetKeyArg, opts ...grpc.CallOption) (*SetKeyReply, error)
+	Ping(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*PingReply, error)
+	Kill(ctx context.Context, in *KillRequest, opts ...grpc.CallOption) (*KillReply, error)
+	GetConfigPolicy(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*GetConfigPolicyReply, error)
+}
+
+type publisherClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewPublisherClient(cc *grpc.ClientConn) PublisherClient {
+	return &publisherClient{cc}
+}
+
+func (c *publisherClient) Publish(ctx context.Context, in *PublishArg, opts ...grpc.CallOption) (*common.Empty, error) {
+	out := new(common.Empty)
+	err := grpc.Invoke(ctx, "/rpc.Publisher/Publish", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) SetKey(ctx context.Context, in *SetKeyArg, opts ...grpc.CallOption) (*SetKeyReply, error) {
+	out := new(SetKeyReply)
+	err := grpc.Invoke(ctx, "/rpc.Publisher/SetKey", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) Ping(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*PingReply, error) {
+	out := new(PingReply)
+	err := grpc.Invoke(ctx, "/rpc.Publisher/Ping", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) Kill(ctx context.Context, in *KillRequest, opts ...grpc.CallOption) (*KillReply, error) {
+	out := new(KillReply)
+	err := grpc.Invoke(ctx, "/rpc.Publisher/Kill", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) GetConfigPolicy(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*GetConfigPolicyReply, error) {
+	out := new(GetConfigPolicyReply)
+	err := grpc.Invoke(ctx, "/rpc.Publisher/GetConfigPolicy", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Publisher service
+
+type PublisherServer interface {
+	Publish(context.Context, *PublishArg) (*common.Empty, error)
+	SetKey(context.Context, *SetKeyArg) (*SetKeyReply, error)
+	Ping(context.Context, *common.Empty) (*PingReply, error)
+	Kill(context.Context, *KillRequest) (*KillReply, error)
+	GetConfigPolicy(context.Context, *common.Empty) (*GetConfigPolicyReply, error)
+}
+
+func RegisterPublisherServer(s *grpc.Server, srv PublisherServer) {
+	s.RegisterService(&_Publisher_serviceDesc, srv)
+}
+
+func _Publisher_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishArg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).Publish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Publisher/Publish",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).Publish(ctx, req.(*PublishArg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_SetKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetKeyArg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).SetKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Publisher/SetKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).SetKey(ctx, req.(*SetKeyArg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(common.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Publisher/Ping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).Ping(ctx, req.(*common.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_Kill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).Kill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Publisher/Kill",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).Kill(ctx, req.(*KillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_GetConfigPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(common.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).GetConfigPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Publisher/GetConfigPolicy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).GetConfigPolicy(ctx, req.(*common.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Publisher_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "rpc.Publisher",
+	HandlerType: (*PublisherServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Publish",
+			Handler:    _Publisher_Publish_Handler,
+		},
+		{
+			MethodName: "SetKey",
+			Handler:    _Publisher_SetKey_Handler,
+		},
+		{
+			MethodName: "Ping",
+			Handler:    _Publisher_Ping_Handler,
+		},
+		{
+			MethodName: "Kill",
+			Handler:    _Publisher_Kill_Handler,
+		},
+		{
+			MethodName: "GetConfigPolicy",
+			Handler:    _Publisher_GetConfigPolicy_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{},
+}
+
+func init() {
+	proto.RegisterFile("github.com/intelsdi-x/snap/control/plugin/rpc/plugin.proto", fileDescriptor0)
+}
+
 var fileDescriptor0 = []byte{
-	// 874 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x9c, 0x96, 0x6d, 0x6f, 0xe3, 0x44,
-	0x10, 0xc7, 0x2f, 0x71, 0x92, 0x8b, 0xc7, 0x79, 0xdc, 0x3b, 0x4e, 0xc6, 0xb4, 0xdc, 0xd5, 0x6f,
-	0xe8, 0x63, 0x22, 0xb5, 0x08, 0xa1, 0x42, 0x2b, 0xe8, 0x13, 0xa0, 0xaa, 0x52, 0x95, 0xf2, 0xbe,
-	0x4a, 0xdd, 0x6d, 0xb0, 0x70, 0x6c, 0x63, 0x3b, 0xd0, 0x20, 0xf1, 0x11, 0xf9, 0x00, 0x7c, 0x1a,
-	0xd8, 0x9d, 0xb5, 0x9d, 0x5d, 0xc7, 0x86, 0x8a, 0x57, 0xa9, 0x67, 0x67, 0x7e, 0x3b, 0xff, 0x9d,
-	0xd9, 0xd9, 0xc2, 0xf1, 0xcc, 0x4d, 0x7e, 0x5a, 0x3c, 0x8c, 0x9c, 0x60, 0x3e, 0x76, 0xfd, 0x84,
-	0x7a, 0xf1, 0xa3, 0x7b, 0xf0, 0x3c, 0x8e, 0xfd, 0x69, 0x38, 0x76, 0x02, 0x3f, 0x89, 0x02, 0x6f,
-	0x1c, 0x7a, 0x8b, 0x99, 0xeb, 0x8f, 0xa3, 0xd0, 0x49, 0xff, 0x1c, 0x85, 0x51, 0x90, 0x04, 0x44,
-	0x63, 0x16, 0xeb, 0xe8, 0x5f, 0x00, 0x33, 0x1e, 0xc2, 0x16, 0xe6, 0x81, 0x9f, 0xfe, 0x88, 0x48,
-	0xfb, 0xef, 0x1a, 0x34, 0x26, 0x0b, 0x8f, 0x92, 0x21, 0xe8, 0x11, 0xfb, 0xbd, 0x4f, 0x96, 0x21,
-	0x35, 0x6b, 0x1f, 0x6a, 0xdb, 0x3a, 0x31, 0x40, 0xfb, 0x99, 0x2e, 0xcd, 0x3a, 0x7e, 0x0c, 0xa0,
-	0x1d, 0xd1, 0x5f, 0x16, 0x6e, 0x44, 0x1f, 0x4d, 0x8d, 0x59, 0xda, 0xe4, 0x0d, 0x18, 0x94, 0xc6,
-	0x4e, 0xe4, 0x86, 0x89, 0x1b, 0xf8, 0x66, 0x03, 0xdd, 0xde, 0x42, 0xe7, 0x21, 0x08, 0xbc, 0xfb,
-	0x47, 0xfa, 0x34, 0x5d, 0x78, 0x89, 0xd9, 0x44, 0xd7, 0x8f, 0xa0, 0xfb, 0xe4, 0x05, 0xd3, 0x24,
-	0x37, 0xb7, 0x98, 0xb9, 0xb6, 0x32, 0xcf, 0x5d, 0xdf, 0x9d, 0x2f, 0xe6, 0xe6, 0xeb, 0x82, 0x79,
-	0xfa, 0x8c, 0xe6, 0x36, 0x9a, 0xd9, 0x7e, 0x4c, 0x56, 0x8e, 0xd0, 0x99, 0x51, 0xcb, 0x8c, 0x19,
-	0x00, 0x14, 0x63, 0x1a, 0x6e, 0xa0, 0xf1, 0x1d, 0xf4, 0xe2, 0x24, 0x72, 0xfd, 0x59, 0x4e, 0xe8,
-	0xf0, 0x8c, 0x6d, 0x13, 0xf4, 0x3b, 0x9a, 0x5c, 0xd3, 0xe5, 0xb7, 0xd1, 0x2c, 0x93, 0xcc, 0xf5,
-	0x77, 0xec, 0x0d, 0x30, 0xc4, 0xca, 0x84, 0x86, 0xde, 0x92, 0x74, 0xa1, 0x49, 0xa3, 0x28, 0x88,
-	0xc4, 0xe9, 0xd8, 0x16, 0xe8, 0xb7, 0x8c, 0x56, 0xba, 0xb6, 0x09, 0xc6, 0xb5, 0xeb, 0x79, 0x13,
-	0x76, 0x60, 0x34, 0x4e, 0x48, 0x0f, 0x5a, 0x13, 0x3a, 0x8d, 0xd9, 0x21, 0xe5, 0xa1, 0x62, 0xb9,
-	0x24, 0xf4, 0xcf, 0x06, 0xbc, 0xfd, 0x8e, 0x26, 0xe7, 0x81, 0xff, 0xe4, 0xce, 0x6e, 0x03, 0xcf,
-	0x75, 0x4a, 0xb7, 0x27, 0xa7, 0x60, 0xe0, 0x41, 0x87, 0xe8, 0xc2, 0x8a, 0xa4, 0x6d, 0x1b, 0x87,
-	0x3b, 0x23, 0x56, 0xe7, 0x51, 0x59, 0xf8, 0xe8, 0x8c, 0x39, 0x8b, 0xef, 0x4b, 0xd6, 0x4b, 0x4b,
-	0xf2, 0x0d, 0x74, 0xc4, 0x21, 0xa7, 0x00, 0x0d, 0x01, 0xbb, 0xd5, 0x80, 0x2b, 0xee, 0x2d, 0x13,
-	0x2e, 0xa0, 0xc7, 0xdb, 0x6c, 0x46, 0xa3, 0x8c, 0xd1, 0x40, 0xc6, 0x7e, 0x35, 0xe3, 0x07, 0xe1,
-	0x2f, 0x53, 0xce, 0xa0, 0x9b, 0x96, 0x25, 0x85, 0x34, 0x11, 0xb2, 0x57, 0x0d, 0xb9, 0x43, 0x77,
-	0x89, 0x61, 0x9d, 0x41, 0xbf, 0x28, 0x4f, 0x2a, 0xa4, 0x4e, 0x3e, 0x85, 0xe6, 0xaf, 0x53, 0x6f,
-	0x41, 0xb1, 0x95, 0x8d, 0xc3, 0x3e, 0xb2, 0x57, 0x11, 0xc7, 0xf5, 0x2f, 0x6b, 0xd6, 0x05, 0x0c,
-	0xd6, 0x14, 0x2a, 0x90, 0xf7, 0x2a, 0x64, 0x80, 0x10, 0x29, 0x04, 0x29, 0xdf, 0x03, 0x29, 0xd1,
-	0xa8, 0x70, 0xb6, 0x54, 0x0e, 0x41, 0x8e, 0x12, 0x84, 0xa4, 0x2b, 0x18, 0xae, 0x09, 0x55, 0x41,
-	0x1f, 0x54, 0xd0, 0x10, 0x41, 0x72, 0x0c, 0xe7, 0xd8, 0x07, 0xd0, 0xe6, 0x4a, 0xf1, 0x8e, 0xcb,
-	0x77, 0xb8, 0x86, 0x17, 0xb3, 0x0f, 0xaf, 0xb3, 0xdb, 0xc0, 0x29, 0x6d, 0x3b, 0x01, 0x58, 0x1d,
-	0x0c, 0xd9, 0x81, 0x26, 0x1f, 0x0a, 0x31, 0xf3, 0xe6, 0x45, 0xb1, 0x0a, 0x07, 0x37, 0xe2, 0xd4,
-	0x58, 0xd4, 0xe0, 0x2b, 0x80, 0xd5, 0x97, 0x9a, 0xe8, 0x86, 0x9a, 0x68, 0x37, 0xa7, 0xf0, 0x00,
-	0x4c, 0xf2, 0x16, 0x74, 0x3c, 0xc9, 0xea, 0x2c, 0xb3, 0x0b, 0x5e, 0xc7, 0x51, 0xc0, 0x0d, 0xe9,
-	0xe5, 0xd6, 0x32, 0x43, 0xa6, 0x83, 0xcf, 0xa1, 0x9a, 0xfd, 0x1b, 0x18, 0x52, 0x6d, 0xc8, 0xae,
-	0x2a, 0xe4, 0x93, 0x62, 0xf1, 0x64, 0x25, 0x5f, 0x57, 0x2b, 0xd9, 0x54, 0x95, 0xf4, 0x56, 0x98,
-	0x5c, 0xca, 0x04, 0x8c, 0xb4, 0x98, 0x2f, 0x13, 0xa3, 0x15, 0xc5, 0x68, 0x45, 0x31, 0x9a, 0xfd,
-	0x07, 0x74, 0x95, 0x06, 0x21, 0xfb, 0xaa, 0x9c, 0xcd, 0xf5, 0x1e, 0x92, 0x05, 0x9d, 0x56, 0x0b,
-	0x2a, 0x6d, 0x6a, 0x29, 0x7f, 0x94, 0x34, 0x06, 0x10, 0x6d, 0xf5, 0xb2, 0x26, 0xd2, 0xed, 0xdf,
-	0xa1, 0x23, 0xf7, 0x21, 0xd9, 0x53, 0xd3, 0xdd, 0x58, 0xeb, 0x54, 0x39, 0xdb, 0x93, 0xea, 0x6c,
-	0x4b, 0xef, 0xf1, 0x2a, 0x35, 0x4c, 0xf6, 0x73, 0x18, 0x9e, 0x07, 0x9e, 0x47, 0x9d, 0xe4, 0x86,
-	0xb2, 0x15, 0x27, 0xe6, 0x63, 0xfd, 0x3d, 0x3b, 0x62, 0xf1, 0x95, 0xa6, 0xd0, 0x1b, 0xa5, 0xaf,
-	0xa0, 0x70, 0xb2, 0x2f, 0xe1, 0x8d, 0x1a, 0x25, 0x66, 0xee, 0x7f, 0xc5, 0xad, 0x86, 0xb2, 0x10,
-	0xfe, 0x05, 0x0c, 0xd9, 0xc8, 0x12, 0x6b, 0x3f, 0xb2, 0x87, 0x14, 0x37, 0xdf, 0x82, 0x96, 0x83,
-	0x43, 0x0c, 0x55, 0xf0, 0x8b, 0x9a, 0x32, 0xc4, 0x68, 0xbb, 0x99, 0x86, 0x7c, 0x7b, 0x35, 0xee,
-	0x7f, 0x6d, 0x7f, 0xf8, 0x57, 0x1d, 0xf4, 0x54, 0x46, 0x10, 0xb1, 0x26, 0x69, 0x89, 0xe7, 0x8b,
-	0x88, 0x3e, 0xcd, 0x5f, 0x39, 0x6b, 0x20, 0x7d, 0xe3, 0x4e, 0xf6, 0x2b, 0xf2, 0x19, 0x34, 0xf8,
-	0x73, 0x46, 0xba, 0xd9, 0x16, 0x97, 0xf3, 0x30, 0x59, 0x5a, 0x22, 0x34, 0x7f, 0xe8, 0x98, 0xe3,
-	0x2e, 0x34, 0xf8, 0xe3, 0x45, 0x04, 0x44, 0x7a, 0xe6, 0x52, 0xdf, 0xfc, 0x65, 0x63, 0xbe, 0x27,
-	0xd0, 0x2f, 0x8c, 0xf0, 0x22, 0xff, 0xe3, 0xca, 0x39, 0xcf, 0xc2, 0xd9, 0x0b, 0xa3, 0x56, 0x85,
-	0xbc, 0x43, 0xf7, 0xb5, 0x02, 0x5b, 0x66, 0x89, 0x5d, 0xa2, 0xa8, 0x87, 0x9b, 0x52, 0xd6, 0x2a,
-	0x95, 0x52, 0x4a, 0x2a, 0x61, 0xbf, 0x7a, 0x68, 0xe1, 0xff, 0x4b, 0x47, 0xff, 0x04, 0x00, 0x00,
-	0xff, 0xff, 0x4f, 0xbe, 0xf6, 0x62, 0xa7, 0x09, 0x00, 0x00,
+	// 1113 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xdc, 0x57, 0xdd, 0x8e, 0xdb, 0x44,
+	0x14, 0xae, 0xe3, 0x24, 0x1b, 0x1f, 0x27, 0xd9, 0xcd, 0x50, 0x55, 0xc1, 0xa5, 0xa2, 0xcd, 0xb2,
+	0x74, 0xfb, 0x43, 0x02, 0xd9, 0x1b, 0x54, 0xa9, 0x08, 0xda, 0x2e, 0xa5, 0xad, 0x16, 0x45, 0xde,
+	0x72, 0xbd, 0x24, 0xde, 0xd9, 0xd4, 0xc2, 0xb1, 0x8d, 0x7f, 0xa0, 0x79, 0x02, 0x24, 0x24, 0x04,
+	0xcf, 0xc3, 0x9b, 0xf0, 0x2a, 0x5c, 0x20, 0x66, 0xce, 0x8c, 0xed, 0x71, 0xe2, 0xec, 0xb6, 0x02,
+	0xf5, 0x62, 0xaf, 0x92, 0x39, 0xf3, 0xcd, 0x77, 0xe6, 0x7c, 0x73, 0xe6, 0xcc, 0x31, 0x3c, 0x98,
+	0xbb, 0xc9, 0xab, 0x74, 0x36, 0x74, 0x82, 0xc5, 0xc8, 0xf5, 0x13, 0xea, 0xc5, 0xa7, 0xee, 0x27,
+	0xaf, 0x47, 0xb1, 0x3f, 0x0d, 0x47, 0x4e, 0xe0, 0x27, 0x51, 0xe0, 0x8d, 0x42, 0x2f, 0x9d, 0xbb,
+	0xfe, 0x28, 0x0a, 0x1d, 0xf9, 0x77, 0x18, 0x46, 0x41, 0x12, 0x10, 0x9d, 0x59, 0xac, 0x83, 0x73,
+	0x08, 0xe6, 0x7c, 0x09, 0x9b, 0x58, 0x04, 0xbe, 0xfc, 0x11, 0x2b, 0x07, 0x31, 0xc0, 0x24, 0x0a,
+	0x1c, 0x1a, 0xc7, 0x5f, 0x45, 0x73, 0x72, 0x13, 0xcc, 0xc7, 0xcc, 0x15, 0xf5, 0x93, 0x97, 0xcb,
+	0x90, 0xf6, 0xb5, 0x9b, 0xda, 0xbe, 0x61, 0x9b, 0x4e, 0x61, 0x22, 0x7d, 0xd8, 0x92, 0x88, 0x7e,
+	0x8d, 0xcd, 0xb6, 0xed, 0x2d, 0x39, 0x4b, 0xee, 0x40, 0x93, 0xcd, 0x9c, 0xb9, 0xf3, 0xbe, 0xce,
+	0x26, 0xcc, 0x71, 0x6f, 0x28, 0x1d, 0x09, 0xeb, 0xd1, 0x34, 0xb4, 0x9b, 0x0e, 0xfe, 0x1d, 0x7c,
+	0x0f, 0x6d, 0xe9, 0xd4, 0xa6, 0xa1, 0xb7, 0xfc, 0x4f, 0x6e, 0xaf, 0x42, 0xe3, 0x30, 0x8a, 0x82,
+	0x08, 0xbd, 0x1a, 0x76, 0x83, 0xf2, 0x01, 0x86, 0x95, 0xce, 0x3c, 0x37, 0x7e, 0xf5, 0x0e, 0xc3,
+	0xfa, 0x5d, 0x87, 0xba, 0x9d, 0x7a, 0x94, 0x5c, 0x07, 0x23, 0x62, 0xbf, 0x27, 0x49, 0xe1, 0xad,
+	0xc5, 0x0d, 0xe8, 0x6a, 0x07, 0xf4, 0x1f, 0xe8, 0x12, 0xdd, 0x18, 0x36, 0xff, 0x4b, 0x2c, 0x68,
+	0x45, 0xf4, 0xc7, 0xd4, 0x8d, 0xe8, 0x29, 0x3a, 0x69, 0xd9, 0xf9, 0x98, 0x6f, 0x9d, 0xd2, 0xd8,
+	0x89, 0xdc, 0x30, 0x71, 0x03, 0xbf, 0x5f, 0x17, 0x5b, 0x57, 0x4c, 0xe4, 0x16, 0xb4, 0x67, 0x41,
+	0xe0, 0x9d, 0x9c, 0xd2, 0xb3, 0x69, 0xea, 0x25, 0xfd, 0x06, 0x32, 0x98, 0xdc, 0xf6, 0x44, 0x98,
+	0xc8, 0x2e, 0x74, 0xce, 0xbc, 0x60, 0x9a, 0xe4, 0x98, 0x26, 0xc3, 0x68, 0x76, 0x1b, 0x8d, 0x6b,
+	0xa0, 0x85, 0xeb, 0xbb, 0x8b, 0x74, 0xd1, 0xdf, 0x52, 0x40, 0x47, 0xc2, 0xa6, 0x80, 0xa6, 0xaf,
+	0x11, 0xd4, 0x52, 0x41, 0xc2, 0x46, 0x3e, 0x04, 0x93, 0xe5, 0x5f, 0xee, 0xcc, 0x60, 0x10, 0xdd,
+	0x06, 0x66, 0xca, 0x5c, 0x49, 0x40, 0xe6, 0x08, 0x72, 0x40, 0xe6, 0x26, 0x03, 0x48, 0x27, 0x66,
+	0x01, 0x90, 0x2e, 0xf6, 0xa0, 0x1b, 0x27, 0x91, 0xeb, 0xcf, 0x73, 0x2f, 0x6d, 0x54, 0xa6, 0x23,
+	0xac, 0xd2, 0xd1, 0xe0, 0x06, 0x18, 0xc7, 0x34, 0x79, 0x41, 0x97, 0x3c, 0x0b, 0xa4, 0xf0, 0x1a,
+	0x9e, 0x2f, 0xff, 0x3b, 0xd8, 0x05, 0x53, 0x4c, 0x8b, 0x34, 0x64, 0xa9, 0x84, 0xd9, 0x23, 0x8f,
+	0x4c, 0xa6, 0xd2, 0x2d, 0x30, 0x26, 0x8c, 0xf2, 0x3c, 0xc8, 0x1e, 0x98, 0x2f, 0x5c, 0xcf, 0xb3,
+	0xd9, 0xa1, 0xd1, 0x38, 0x21, 0xd7, 0xa0, 0x69, 0xd3, 0x69, 0xcc, 0x8e, 0x4b, 0xa0, 0x9a, 0x11,
+	0x8e, 0x38, 0x93, 0x80, 0x6d, 0x66, 0xfa, 0xb3, 0x01, 0x57, 0x9f, 0xd2, 0x44, 0xe4, 0xd6, 0x24,
+	0xf0, 0x5c, 0xe7, 0xbc, 0xbd, 0x91, 0xe7, 0x80, 0xe7, 0x7c, 0x12, 0x22, 0x92, 0xe5, 0x94, 0xce,
+	0x32, 0xf4, 0xce, 0x90, 0x5d, 0xf6, 0x61, 0x15, 0xcb, 0xf0, 0x11, 0x03, 0x8b, 0xf1, 0x21, 0x2b,
+	0x28, 0x4b, 0x1b, 0x66, 0xb9, 0x81, 0x1c, 0x81, 0x38, 0xc5, 0x8c, 0x4c, 0x47, 0xb2, 0xbb, 0x9b,
+	0xc9, 0xbe, 0xe6, 0x68, 0x95, 0xcd, 0x3c, 0x2b, 0x2c, 0xe4, 0x18, 0xba, 0xbc, 0x08, 0xcd, 0x69,
+	0x94, 0x11, 0xd6, 0x91, 0xf0, 0xfe, 0x66, 0xc2, 0x67, 0x02, 0xaf, 0x52, 0x76, 0x5c, 0xd5, 0x46,
+	0x26, 0x20, 0x0f, 0x38, 0xe3, 0x6c, 0x20, 0xe7, 0xbd, 0xcd, 0x9c, 0xc7, 0x08, 0x57, 0x29, 0xdb,
+	0xb1, 0x62, 0xb2, 0xbe, 0x85, 0xed, 0x15, 0x51, 0xd4, 0x3c, 0x91, 0x17, 0x74, 0x0f, 0x1a, 0x3f,
+	0x4d, 0xbd, 0x94, 0xe2, 0xa5, 0x35, 0xc7, 0xdb, 0xe8, 0xae, 0x58, 0x66, 0x8b, 0xd9, 0x07, 0xb5,
+	0xcf, 0x35, 0x6b, 0x02, 0x3b, 0xab, 0xba, 0x54, 0x10, 0x7e, 0x5c, 0x26, 0xdc, 0x41, 0x42, 0x65,
+	0x9d, 0xca, 0xf8, 0x12, 0xc8, 0xba, 0x30, 0x15, 0x9c, 0xfb, 0x65, 0x4e, 0x82, 0x9c, 0xa5, 0x95,
+	0x2a, 0xab, 0x0d, 0xbd, 0x35, 0x69, 0x2a, 0x48, 0x6f, 0x97, 0x49, 0x7b, 0x48, 0xaa, 0x2e, 0x54,
+	0x38, 0x07, 0x5f, 0x42, 0x8b, 0x8b, 0x82, 0x25, 0x50, 0xad, 0x69, 0xda, 0x4a, 0x4d, 0x63, 0xc5,
+	0x36, 0xbb, 0xb5, 0x35, 0x9c, 0xca, 0x86, 0x83, 0x5f, 0x34, 0x80, 0x42, 0x57, 0xf2, 0x29, 0x34,
+	0x78, 0xd9, 0x8c, 0x19, 0x03, 0x3f, 0x66, 0x6b, 0x45, 0xf7, 0x21, 0xf7, 0x14, 0x8b, 0x53, 0x15,
+	0x40, 0xeb, 0x29, 0x40, 0x61, 0xac, 0x88, 0x67, 0xb7, 0x1c, 0x4f, 0x27, 0x67, 0xe4, 0xab, 0xd4,
+	0x58, 0x52, 0x30, 0xf0, 0x3c, 0xde, 0x24, 0x98, 0xac, 0x8e, 0xd5, 0xb0, 0x16, 0x66, 0x43, 0x9c,
+	0x91, 0x05, 0x4c, 0x97, 0x33, 0xb2, 0x7a, 0x29, 0x02, 0xd4, 0xc5, 0x4c, 0x26, 0xc0, 0xaf, 0x1a,
+	0x98, 0x4a, 0x1e, 0x90, 0xcf, 0xca, 0x0a, 0x5c, 0x5f, 0x4d, 0x94, 0x0a, 0x09, 0xbe, 0xb9, 0x40,
+	0x82, 0x8f, 0xca, 0x12, 0x74, 0x0b, 0xca, 0x55, 0x0d, 0x7e, 0x06, 0x53, 0xe6, 0xcf, 0xdb, 0xaa,
+	0xa0, 0x6f, 0x54, 0x41, 0xdf, 0xa8, 0x82, 0x5e, 0xa8, 0xf0, 0x87, 0x06, 0x9d, 0x52, 0xe6, 0x92,
+	0x83, 0xb2, 0x0e, 0x37, 0xd6, 0x93, 0xbb, 0x42, 0x89, 0xe7, 0x17, 0x28, 0x51, 0x79, 0x0b, 0x95,
+	0x88, 0x55, 0x2d, 0x1e, 0x01, 0x88, 0xb4, 0x7f, 0xdb, 0xec, 0x36, 0x8a, 0xb0, 0x7e, 0xd3, 0xa0,
+	0xad, 0xde, 0x1d, 0x32, 0x2e, 0x47, 0xf5, 0xc1, 0xda, 0xed, 0xaa, 0x08, 0xea, 0xd9, 0x05, 0x41,
+	0x55, 0xd6, 0xaa, 0x62, 0xeb, 0x6a, 0x4c, 0x0f, 0xa1, 0xf7, 0x38, 0xf0, 0x3c, 0xea, 0x24, 0x47,
+	0x94, 0x01, 0x1c, 0x6c, 0x01, 0xf7, 0xd9, 0x79, 0x89, 0x91, 0xdc, 0x55, 0x37, 0x6b, 0x78, 0x04,
+	0xc8, 0xce, 0xa6, 0x07, 0xdf, 0xc1, 0x7b, 0xe5, 0xe5, 0xe2, 0xa5, 0x7a, 0x63, 0x82, 0xe2, 0x4d,
+	0xab, 0xa9, 0x4f, 0xe0, 0x17, 0xd0, 0x63, 0x95, 0x5c, 0x60, 0x79, 0xc3, 0x84, 0xbb, 0x62, 0x5d,
+	0x98, 0x68, 0xb2, 0x30, 0xd4, 0x73, 0xbb, 0x30, 0xb6, 0xad, 0xf2, 0xfa, 0xff, 0x65, 0x5b, 0xe3,
+	0xbf, 0x6a, 0x60, 0xc8, 0x70, 0xd9, 0xc3, 0xfb, 0x04, 0xba, 0xe5, 0xd8, 0xc9, 0x35, 0x14, 0x7a,
+	0x4d, 0x4f, 0xab, 0x5f, 0x61, 0xc7, 0x1d, 0x0d, 0xae, 0x70, 0x96, 0xf2, 0x56, 0x25, 0xcb, 0x5a,
+	0xfc, 0x92, 0xa5, 0x22, 0x2e, 0xc6, 0x72, 0x1f, 0x9a, 0xa2, 0x8b, 0x21, 0xe2, 0x2e, 0xe7, 0x1d,
+	0x8f, 0xb5, 0xa3, 0x8c, 0x33, 0xf4, 0x6d, 0xa8, 0xf3, 0x76, 0x86, 0x74, 0xb2, 0xf0, 0x0f, 0x17,
+	0x61, 0xb2, 0xb4, 0xc4, 0xd2, 0xbc, 0xd1, 0x61, 0xc0, 0xbb, 0x50, 0xe7, 0xdd, 0x0a, 0x11, 0x24,
+	0x4a, 0x7f, 0x23, 0xb1, 0x79, 0x2b, 0xc3, 0xb0, 0x0f, 0x61, 0x7b, 0xe5, 0xf5, 0x5d, 0xe5, 0x7f,
+	0x7f, 0xe3, 0x13, 0x3d, 0xb8, 0x32, 0xfe, 0x47, 0x63, 0x3d, 0x96, 0xf8, 0x20, 0x60, 0xda, 0x8e,
+	0x60, 0x4b, 0x0e, 0x88, 0xc8, 0xde, 0xe2, 0x03, 0xc5, 0xea, 0xa9, 0x86, 0xcb, 0x23, 0xc0, 0xdf,
+	0x5c, 0x00, 0xf1, 0xbd, 0x42, 0x23, 0x72, 0x8f, 0x09, 0x20, 0x06, 0x99, 0x00, 0xf9, 0xa7, 0x8c,
+	0x55, 0x66, 0xbd, 0x0c, 0xc1, 0xcf, 0x9a, 0xf8, 0x25, 0x7a, 0xf0, 0x6f, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0x20, 0x7e, 0x29, 0xc5, 0x01, 0x0f, 0x00, 0x00,
 }
