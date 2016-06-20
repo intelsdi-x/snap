@@ -83,7 +83,7 @@ type task struct {
 	Workflow    *wmap.WorkflowMap
 	Name        string
 	Deadline    string
-	MaxFailures uint `json:"max-failures"`
+	MaxFailures int `json:"max-failures"`
 }
 
 func createTask(ctx *cli.Context) {

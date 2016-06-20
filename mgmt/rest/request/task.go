@@ -29,7 +29,7 @@ type TaskCreationRequest struct {
 	Workflow    *wmap.WorkflowMap `json:"workflow"`
 	Schedule    Schedule          `json:"schedule"`
 	Start       bool              `json:"start"`
-	MaxFailures uint              `json:"max-failures"`
+	MaxFailures int               `json:"max-failures"`
 }
 
 type Schedule struct {
