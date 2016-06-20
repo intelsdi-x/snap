@@ -23,7 +23,11 @@ import (
 	"errors"
 	"fmt"
 
+	"golang.org/x/net/context"
+
+	"github.com/intelsdi-x/snap/control/plugin/rpc"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/grpc/common"
 )
 
 type PublishArgs struct {
@@ -55,4 +59,19 @@ func (p *publisherPluginProxy) Publish(args []byte, reply *[]byte) error {
 		return errors.New(fmt.Sprintf("Publish call error: %v", err.Error()))
 	}
 	return nil
+}
+
+type gRPCPublisherProxy struct {
+	Plugin  PublisherPlugin
+	Session Session
+	gRPCPluginProxy
+}
+
+func (p *gRPCPublisherProxy) Publish(ctx context.Context, arg *rpc.PublishArg) (*common.Empty, error) {
+	defer catchPluginPanic(p.Session.Logger())
+	err := p.Plugin.Publish(arg.ContentType, arg.Content, common.ParseConfig(arg.Config))
+	if err != nil {
+		return &common.Empty{}, err
+	}
+	return &common.Empty{}, nil
 }

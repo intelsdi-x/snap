@@ -23,7 +23,11 @@ import (
 	"errors"
 	"fmt"
 
+	"golang.org/x/net/context"
+
+	"github.com/intelsdi-x/snap/control/plugin/rpc"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/grpc/common"
 )
 
 type ProcessorArgs struct {
@@ -65,4 +69,23 @@ func (p *processorPluginProxy) Process(args []byte, reply *[]byte) error {
 	}
 
 	return nil
+}
+
+type gRPCProcessorProxy struct {
+	Plugin  ProcessorPlugin
+	Session Session
+	gRPCPluginProxy
+}
+
+func (p *gRPCProcessorProxy) Process(ctx context.Context, arg *rpc.ProcessArg) (*rpc.ProcessReply, error) {
+	defer catchPluginPanic(p.Session.Logger())
+	ct, content, err := p.Plugin.Process(arg.ContentType, arg.Content, common.ParseConfig(arg.Config))
+	reply := &rpc.ProcessReply{
+		ContentType: ct,
+		Content:     content,
+	}
+	if err != nil {
+		reply.Error = err.Error()
+	}
+	return reply, nil
 }
