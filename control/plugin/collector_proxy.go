@@ -103,53 +103,11 @@ func (c *collectorPluginProxy) CollectMetrics(args []byte, reply *[]byte) error 
 	return nil
 }
 
+// collectorPluginGrpc server
 type gRPCCollectorProxy struct {
 	Plugin  CollectorPlugin
 	Session Session
-}
-
-func (g *gRPCCollectorProxy) SetKey(ctx context.Context, arg *rpc.SetKeyArg) (*rpc.SetKeyReply, error) {
-	out, err := g.Session.DecryptKey(arg.Key)
-	if err != nil {
-		return &rpc.SetKeyReply{Error: err.Error()}, nil
-	}
-	g.Session.setKey(out)
-	return &rpc.SetKeyReply{}, nil
-}
-
-func (g *gRPCCollectorProxy) Ping(ctx context.Context, arg *common.Empty) (*rpc.PingReply, error) {
-	g.Session.ResetHeartbeat()
-	return &rpc.PingReply{}, nil
-}
-
-func (g *gRPCCollectorProxy) Kill(ctx context.Context, arg *rpc.KillRequest) (*rpc.KillReply, error) {
-	killChan := g.Session.KillChan()
-	g.Session.Logger().Printf("Kill called by agent, reason: %s\n", arg.Reason)
-	go func() {
-		time.Sleep(time.Second * 2)
-		killChan <- 0
-	}()
-	return &rpc.KillReply{}, nil
-}
-
-func (g *gRPCCollectorProxy) GetConfigPolicy(ctx context.Context, arg *common.Empty) (*rpc.GetConfigPolicyReply, error) {
-	defer catchPluginPanic(g.Session.Logger())
-
-	g.Session.Logger().Println("GetConfigPolicy called")
-
-	policy, err := g.Plugin.GetConfigPolicy()
-	if err != nil {
-		return &rpc.GetConfigPolicyReply{
-			Error: err.Error(),
-		}, nil
-	}
-
-	reply, err := rpc.NewGetConfigPolicyReply(policy)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	gRPCPluginProxy
 }
 
 func (g *gRPCCollectorProxy) CollectMetrics(ctx context.Context, arg *rpc.CollectMetricsArg) (*rpc.CollectMetricsReply, error) {

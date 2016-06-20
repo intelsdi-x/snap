@@ -175,7 +175,7 @@ func TestCollectorProxy(t *testing.T) {
 	})
 }
 
-func TestGRPCCollectorProxy(t *testing.T) {
+func TestGRPCPluginProxy(t *testing.T) {
 	port, mockSession, err := startCollectorServer()
 	Convey("Start gRPC ", t, func() {
 		So(err, ShouldBeNil)
@@ -185,12 +185,9 @@ func TestGRPCCollectorProxy(t *testing.T) {
 	Convey("create grpc collector", t, func() {
 		So(err, ShouldBeNil)
 	})
-
+	// We use collector client here but all the clients contain "plugin" functions
+	// and they are all used from the same base.
 	client := rpc.NewCollectorClient(conn)
-	Convey("create client", t, func() {
-		So(client, ShouldNotBeNil)
-	})
-
 	pingRes, err := client.Ping(context.Background(), &common.Empty{})
 	Convey("call ping", t, func() {
 		So(pingRes, ShouldResemble, &rpc.PingReply{})
@@ -253,20 +250,38 @@ func TestGRPCCollectorProxy(t *testing.T) {
 			0.001,
 		)
 	})
+}
+
+func TestGRPCCollectorProxy(t *testing.T) {
+	port, _, err := startCollectorServer()
+	Convey("Start gRPC ", t, func() {
+		So(err, ShouldBeNil)
+	})
+
+	conn, err := rpcutil.GetClientConnection("127.0.0.1", port)
+	Convey("create grpc collector", t, func() {
+		So(err, ShouldBeNil)
+	})
+
+	client := rpc.NewCollectorClient(conn)
+	Convey("create client", t, func() {
+		So(err, ShouldBeNil)
+		So(client, ShouldNotBeNil)
+	})
 
 	getCollectArg := &rpc.CollectMetricsArg{
 		Metrics: []*common.Metric{
-			&common.Metric{
+			{
 				LastAdvertisedTime: common.ToTime(time.Now()),
 				Namespace: []*common.NamespaceElement{
-					&common.NamespaceElement{
+					{
 						Value: "foo",
 					},
-					&common.NamespaceElement{
+					{
 						Name:  "something",
 						Value: "*",
 					},
-					&common.NamespaceElement{
+					{
 						Value: "bar",
 					},
 				},
@@ -312,8 +327,16 @@ func startCollectorServer() (int, Session, error) {
 
 	opts := []grpc.ServerOption{}
 	grpcServer := grpc.NewServer(opts...)
+	collectProxy := &gRPCCollectorProxy{
+		Plugin:  mockPlugin,
+		Session: mockSessionState,
+		gRPCPluginProxy: gRPCPluginProxy{
+			plugin:  mockPlugin,
+			session: mockSessionState,
+		},
+	}
 
-	rpc.RegisterCollectorServer(grpcServer, &gRPCCollectorProxy{mockPlugin, mockSessionState})
+	rpc.RegisterCollectorServer(grpcServer, collectProxy)
 	go func() {
 		err := grpcServer.Serve(lis)
 		if err != nil {
