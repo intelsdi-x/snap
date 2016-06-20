@@ -209,13 +209,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 
 	// Deadline for a task
 	dl := ctx.String("deadline")
-
-	var failure uint
-	if ctx.IsSet("failure") {
-		failure = uint(ctx.Int("failure"))
-	} else {
-		failure = 10
-	}
+	failure := uint(ctx.Int("failure"))
 
 	var sch *client.Schedule
 	// None of these mean it is a simple schedule
