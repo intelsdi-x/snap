@@ -122,6 +122,10 @@ var (
 		Name:  "deadline",
 		Usage: "The deadline for the task to be killed after started if the task runs too long (All tasks default to 5s)",
 	}
+	flTaskFailure = cli.StringFlag{
+		Name:  "failure",
+		Usage: "The number of consecutive failures before snap disable the task (Default 10 consective failures)",
+	}
 
 	// metric
 	flMetricVersion = cli.IntFlag{

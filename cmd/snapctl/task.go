@@ -83,6 +83,7 @@ type task struct {
 	Workflow *wmap.WorkflowMap
 	Name     string
 	Deadline string
+	Failure  uint
 }
 
 func createTask(ctx *cli.Context) {
@@ -135,7 +136,14 @@ func createTaskUsingTaskManifest(ctx *cli.Context) {
 		fmt.Println("Invalid version provided")
 		os.Exit(1)
 	}
-	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"))
+
+	// If the number of failure does not specific, default value is 10
+	if t.Failure == 0 {
+		fmt.Println("Not specific the number of failures to disable the task.  Use default value: 10")
+		t.Failure = 10
+	}
+
+	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"), t.Failure)
 
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
@@ -201,6 +209,13 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 
 	// Deadline for a task
 	dl := ctx.String("deadline")
+
+	var failure uint
+	if ctx.IsSet("failure") {
+		failure = uint(ctx.Int("failure"))
+	} else {
+		failure = 10
+	}
 
 	var sch *client.Schedule
 	// None of these mean it is a simple schedule
@@ -269,7 +284,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 		}
 	}
 	// Create task
-	r := pClient.CreateTask(sch, wf, name, dl, !ctx.IsSet("no-start"))
+	r := pClient.CreateTask(sch, wf, name, dl, !ctx.IsSet("no-start"), failure)
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
 		fmt.Println("Error creating task:")

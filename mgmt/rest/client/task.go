@@ -48,7 +48,7 @@ type Schedule struct {
 // If the startTask flag is true, the newly created task is started after the creation.
 // Otherwise, it's in the Stopped state. CreateTask is accomplished through a POST HTTP JSON request.
 // A ScheduledTask is returned if it succeeds, otherwise an error is returned.
-func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, deadline string, startTask bool) *CreateTaskResult {
+func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, deadline string, startTask bool, failure uint) *CreateTaskResult {
 	t := request.TaskCreationRequest{
 		Schedule: request.Schedule{
 			Type:     s.Type,
@@ -56,6 +56,7 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, dead
 		},
 		Workflow: wf,
 		Start:    startTask,
+		Failure:  failure,
 	}
 	// Add start and/or stop timestamps if they exist
 	if s.StartTime != nil {

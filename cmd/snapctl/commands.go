@@ -49,6 +49,7 @@ var (
 						flTaskSchedDuration,
 						flTaskSchedNoStart,
 						flTaskDeadline,
+						flTaskFailure,
 					},
 				},
 				{
