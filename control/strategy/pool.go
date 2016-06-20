@@ -90,6 +90,7 @@ type AvailablePlugin interface {
 	SetID(id uint32)
 	String() string
 	Type() plugin.PluginType
+	Stop(string) error
 }
 
 type subscription struct {
@@ -306,6 +307,7 @@ func (p *pool) SelectAndKill(id, reason string) {
 			"reason": reason,
 		}).Error(err)
 	}
+	rp.Stop(reason)
 	if err := rp.Kill(reason); err != nil {
 		log.WithFields(log.Fields{
 			"_block": "selectAndKill",
