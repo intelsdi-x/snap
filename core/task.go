@@ -117,7 +117,7 @@ func TaskDeadlineDuration(v time.Duration) TaskOption {
 // TaskStopOnFailure sets the tasks stopOnFailure
 // The stopOnFailure is the number of consecutive task failures that will
 // trigger disabling the task
-func OptionStopOnFailure(v uint) TaskOption {
+func OptionStopOnFailure(v int) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.GetStopOnFailure()
 		t.SetStopOnFailure(v)
@@ -156,11 +156,12 @@ type TaskErrors interface {
 }
 
 type TaskCreationRequest struct {
-	Name     string            `json:"name"`
-	Deadline string            `json:"deadline"`
-	Workflow *wmap.WorkflowMap `json:"workflow"`
-	Schedule Schedule          `json:"schedule"`
-	Start    bool              `json:"start"`
+	Name        string            `json:"name"`
+	Deadline    string            `json:"deadline"`
+	Workflow    *wmap.WorkflowMap `json:"workflow"`
+	Schedule    Schedule          `json:"schedule"`
+	Start       bool              `json:"start"`
+	MaxFailures int               `json:"max-failures"`
 }
 
 // Function used to create a task according to content (1st parameter)

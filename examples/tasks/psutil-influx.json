@@ -4,6 +4,7 @@
         "type": "simple",
         "interval": "1s"
     },
+    "max-failure": 10,
     "workflow": {
         "collect": {
             "metrics": {

@@ -43,12 +43,66 @@ var (
 	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started")
 )
 
+<<<<<<< 0995570155aeaa57088aedc64b522204046a9c3c
+=======
+type configItem struct {
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+}
+
+type task struct {
+	ID                 uint64                  `json:"id"`
+	Config             map[string][]configItem `json:"config"`
+	Name               string                  `json:"name"`
+	Deadline           string                  `json:"deadline"`
+	Workflow           wmap.WorkflowMap        `json:"workflow"`
+	Schedule           cschedule.Schedule      `json:"schedule"`
+	CreationTime       time.Time               `json:"creation_timestamp,omitempty"`
+	LastRunTime        time.Time               `json:"last_run_timestamp,omitempty"`
+	HitCount           uint                    `json:"hit_count,omitempty"`
+	MissCount          uint                    `json:"miss_count,omitempty"`
+	FailedCount        uint                    `json:"failed_count,omitempty"`
+	LastFailureMessage string                  `json:"last_failure_message,omitempty"`
+	State              string                  `json:"task_state"`
+	MaxFailure         uint                    `json:"max_failure"`
+}
+
+>>>>>>> issue#967: Customizable number of failures before snap disable the task
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.mt.CreateTask)
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
 		return
 	}
+<<<<<<< 0995570155aeaa57088aedc64b522204046a9c3c
+=======
+
+	var opts []core.TaskOption
+	if tr.Deadline != "" {
+		dl, err := time.ParseDuration(tr.Deadline)
+		if err != nil {
+			respond(500, rbody.FromError(err), w)
+			return
+		}
+		opts = append(opts, core.TaskDeadlineDuration(dl))
+	}
+
+	if tr.Name != "" {
+		opts = append(opts, core.SetTaskName(tr.Name))
+	}
+	opts = append(opts, core.OptionStopOnFailure(tr.MaxFailures))
+
+	task, errs := s.mt.CreateTask(sch, tr.Workflow, tr.Start, opts...)
+	if errs != nil && len(errs.Errors()) != 0 {
+		var errMsg string
+		for _, e := range errs.Errors() {
+			errMsg = errMsg + e.Error() + " -- "
+		}
+		respond(500, rbody.FromError(errors.New(errMsg[:len(errMsg)-4])), w)
+		return
+	}
+
+>>>>>>> issue#967: Customizable number of failures before snap disable the task
 	taskB := rbody.AddSchedulerTaskFromTask(task)
 	taskB.Href = taskURI(r.Host, task)
 	respond(201, taskB, w)
