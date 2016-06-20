@@ -21,6 +21,10 @@ package main
 
 import "github.com/codegangsta/cli"
 
+const (
+	default_failure = 10
+)
+
 var (
 
 	// Main flags
@@ -125,7 +129,7 @@ var (
 	flTaskFailure = cli.IntFlag{
 		Name:  "failure",
 		Usage: "The number of consecutive failures before snap disable the task (Default 10 consective failures)",
-		Value: 10,
+		Value: default_failure,
 	}
 
 	// metric

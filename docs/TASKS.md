@@ -39,7 +39,7 @@ More on cron expressions can be found here: https://godoc.org/github.com/robfig/
 
 #### Failure
 By default, snap will disable a task if there is 10 consecutive error from any plugins within the workflow.  The configuration
-can be changed by specific the number of failures value in the task header.
+can be changing by specifying the number of failures value in the task header.
 
 
 For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
