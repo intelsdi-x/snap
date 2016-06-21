@@ -160,7 +160,7 @@ func TestSnapClient(t *testing.T) {
 					So(t1.Err.Error(), ShouldEqual, fmt.Sprintf("Task not found: ID(%s)", uuid))
 				})
 				Convey("invalid task (missing metric)", func() {
-					tt := c.CreateTask(sch, wf, "baron", "", true)
+					tt := c.CreateTask(sch, wf, "baron", "", true, rest.DefaultMaxFailures)
 					So(tt.Err, ShouldNotBeNil)
 					So(tt.Err.Error(), ShouldContainSubstring, "Metric not found: /intel/mock/foo")
 				})
@@ -193,7 +193,7 @@ func TestSnapClient(t *testing.T) {
 				So(p.AvailablePlugins, ShouldBeEmpty)
 			})
 			Convey("invalid task (missing publisher)", func() {
-				tf := c.CreateTask(sch, wf, "baron", "", false)
+				tf := c.CreateTask(sch, wf, "baron", "", false, rest.DefaultMaxFailures)
 				So(tf.Err, ShouldNotBeNil)
 				So(tf.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file)")
 			})
@@ -338,11 +338,11 @@ func TestSnapClient(t *testing.T) {
 		Convey("Tasks", func() {
 			Convey("Passing a bad task manifest", func() {
 				wfb := getWMFromSample("bad.json")
-				ttb := c.CreateTask(sch, wfb, "bad", "", true)
+				ttb := c.CreateTask(sch, wfb, "bad", "", true, rest.DefaultMaxFailures)
 				So(ttb.Err, ShouldNotBeNil)
 			})
 
-			tf := c.CreateTask(sch, wf, "baron", "", false)
+			tf := c.CreateTask(sch, wf, "baron", "", false, rest.DefaultMaxFailures)
 			Convey("valid task not started on creation", func() {
 				So(tf.Err, ShouldBeNil)
 				So(tf.Name, ShouldEqual, "baron")
@@ -385,7 +385,7 @@ func TestSnapClient(t *testing.T) {
 				})
 			})
 
-			tt := c.CreateTask(sch, wf, "baron", "", true)
+			tt := c.CreateTask(sch, wf, "baron", "", true, rest.DefaultMaxFailures)
 			Convey("valid task started on creation", func() {
 				So(tt.Err, ShouldBeNil)
 				So(tt.Name, ShouldEqual, "baron")
@@ -473,7 +473,7 @@ func TestSnapClient(t *testing.T) {
 					Convey("event stream", func() {
 						rest.StreamingBufferWindow = 0.01
 						sch := &Schedule{Type: "simple", Interval: "100ms"}
-						tf := c.CreateTask(sch, wf, "baron", "", false)
+						tf := c.CreateTask(sch, wf, "baron", "", false, rest.DefaultMaxFailures)
 
 						type ea struct {
 							events []string
