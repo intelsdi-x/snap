@@ -82,8 +82,8 @@ type Task interface {
 	DeadlineDuration() time.Duration
 	SetDeadlineDuration(time.Duration)
 	SetTaskID(id string)
-	SetStopOnFailure(uint)
-	GetStopOnFailure() uint
+	SetStopOnFailure(int)
+	GetStopOnFailure() int
 	Option(...TaskOption) TaskOption
 	WMap() *wmap.WorkflowMap
 	Schedule() schedule.Schedule

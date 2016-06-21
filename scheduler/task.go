@@ -81,7 +81,7 @@ type task struct {
 	failedRuns         uint
 	lastFailureMessage string
 	lastFailureTime    time.Time
-	stopOnFailure      uint
+	stopOnFailure      int
 	eventEmitter       gomit.Emitter
 	RemoteManagers     managers
 }
@@ -199,7 +199,7 @@ func (t *task) Status() WorkflowState {
 	return t.workflow.State()
 }
 
-func (t *task) SetStopOnFailure(v uint) {
+func (t *task) SetStopOnFailure(v int) {
 	t.stopOnFailure = v
 }
 
@@ -207,7 +207,7 @@ func (t *task) SetID(id string) {
 	t.id = id
 }
 
-func (t *task) GetStopOnFailure() uint {
+func (t *task) GetStopOnFailure() int {
 	return t.stopOnFailure
 }
 
@@ -271,7 +271,7 @@ func (t *task) Schedule() schedule.Schedule {
 }
 
 func (t *task) spin() {
-	var consecutiveFailures uint
+	var consecutiveFailures int
 	for {
 		taskLogger.Debug("task spin loop")
 		// Start go routine to wait on schedule
@@ -301,24 +301,35 @@ func (t *task) spin() {
 				} else {
 					consecutiveFailures = 0
 				}
-				if consecutiveFailures >= t.stopOnFailure {
+				if t.stopOnFailure >= 0 {
+					if consecutiveFailures >= t.stopOnFailure {
+						taskLogger.WithFields(log.Fields{
+							"_block":               "spin",
+							"task-id":              t.id,
+							"task-name":            t.name,
+							"consecutive failures": consecutiveFailures,
+							"error":                t.lastFailureMessage,
+						}).Error(ErrTaskDisabledOnFailures)
+						// You must lock on state change for tasks
+						t.Lock()
+						t.state = core.TaskDisabled
+						t.Unlock()
+						// Send task disabled event
+						event := new(scheduler_event.TaskDisabledEvent)
+						event.TaskID = t.id
+						event.Why = fmt.Sprintf("Task disabled with error: %s", t.lastFailureMessage)
+						defer t.eventEmitter.Emit(event)
+						return
+					}
+				} else {
 					taskLogger.WithFields(log.Fields{
-						"_block":               "spin",
-						"task-id":              t.id,
-						"task-name":            t.name,
-						"consecutive failures": consecutiveFailures,
-						"error":                t.lastFailureMessage,
-					}).Error(ErrTaskDisabledOnFailures)
-					// You must lock on state change for tasks
-					t.Lock()
-					t.state = core.TaskDisabled
-					t.Unlock()
-					// Send task disabled event
-					event := new(scheduler_event.TaskDisabledEvent)
-					event.TaskID = t.id
-					event.Why = fmt.Sprintf("Task disabled with error: %s", t.lastFailureMessage)
-					defer t.eventEmitter.Emit(event)
-					return
+						"_block":                    "spin",
+						"task-id":                   t.id,
+						"task-name":                 t.name,
+						"consecutive failures":      consecutiveFailures,
+						"consecutive failure limit": t.stopOnFailure,
+						"error":                     t.lastFailureMessage,
+					}).Warn("Task failed")
 				}
 			// Schedule has ended
 			case schedule.Ended:
