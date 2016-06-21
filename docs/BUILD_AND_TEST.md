@@ -30,9 +30,11 @@ To build the Snap Framework you'll need:
 
 The instructions below assume that the `GOPATH` environment variable has been set properly. Many of us use [go version manager (gvm)](https://github.com/moovweb/gvm) to easily switch between Go versions.
 
-Now you can install Snap into your `$GOPATH`:
+Now you can download Snap into your `$GOPATH`:
+
 ```
-$ go get github.com/intelsdi-x/snap
+$ # -d is used to download snap without building it
+$ go get -d github.com/intelsdi-x/snap
 $ cd $GOPATH/src/github.com/intelsdi-x/snap
 ```
 
