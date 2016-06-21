@@ -67,8 +67,8 @@ func (t *mockTask) CreationTime() *time.Time                  { return nil }
 func (t *mockTask) DeadlineDuration() time.Duration           { return 0 }
 func (t *mockTask) SetDeadlineDuration(time.Duration)         { return }
 func (t *mockTask) SetTaskID(id string)                       { return }
-func (t *mockTask) SetStopOnFailure(uint)                     { return }
-func (t *mockTask) GetStopOnFailure() uint                    { return 0 }
+func (t *mockTask) SetStopOnFailure(int)                      { return }
+func (t *mockTask) GetStopOnFailure() int                     { return 0 }
 func (t *mockTask) Option(...core.TaskOption) core.TaskOption { return core.TaskDeadlineDuration(0) }
 func (t *mockTask) WMap() *wmap.WorkflowMap                   { return nil }
 func (t *mockTask) Schedule() schedule.Schedule               { return nil }

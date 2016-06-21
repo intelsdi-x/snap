@@ -24,11 +24,12 @@ import (
 )
 
 type TaskCreationRequest struct {
-	Name     string            `json:"name"`
-	Deadline string            `json:"deadline"`
-	Workflow *wmap.WorkflowMap `json:"workflow"`
-	Schedule Schedule          `json:"schedule"`
-	Start    bool              `json:"start"`
+	Name        string            `json:"name"`
+	Deadline    string            `json:"deadline"`
+	Workflow    *wmap.WorkflowMap `json:"workflow"`
+	Schedule    Schedule          `json:"schedule"`
+	Start       bool              `json:"start"`
+	MaxFailures int               `json:"max-failures"`
 }
 
 type Schedule struct {

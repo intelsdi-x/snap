@@ -78,11 +78,12 @@ func trunc(n int) string {
 }
 
 type task struct {
-	Version  int
-	Schedule *client.Schedule
-	Workflow *wmap.WorkflowMap
-	Name     string
-	Deadline string
+	Version     int
+	Schedule    *client.Schedule
+	Workflow    *wmap.WorkflowMap
+	Name        string
+	Deadline    string
+	MaxFailures int `json:"max-failures"`
 }
 
 func createTask(ctx *cli.Context) {
@@ -135,7 +136,14 @@ func createTaskUsingTaskManifest(ctx *cli.Context) {
 		fmt.Println("Invalid version provided")
 		os.Exit(1)
 	}
-	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"))
+
+	// If the number of failures does not specific, default value is 10
+	if t.MaxFailures == 0 {
+		fmt.Println("If the number of maximum failures is not specified, use default value of", DefaultMaxFailures)
+		t.MaxFailures = DefaultMaxFailures
+	}
+
+	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"), t.MaxFailures)
 
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
@@ -201,6 +209,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 
 	// Deadline for a task
 	dl := ctx.String("deadline")
+	maxFailures := ctx.Int("max-failures")
 
 	var sch *client.Schedule
 	// None of these mean it is a simple schedule
@@ -269,7 +278,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 		}
 	}
 	// Create task
-	r := pClient.CreateTask(sch, wf, name, dl, !ctx.IsSet("no-start"))
+	r := pClient.CreateTask(sch, wf, name, dl, !ctx.IsSet("no-start"), maxFailures)
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
 		fmt.Println("Error creating task:")

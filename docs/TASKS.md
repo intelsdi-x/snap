@@ -15,6 +15,7 @@ The manifest can be divided into two parts: Header and Workflow.
   schedule:
     type: "simple"
     interval: "1s"
+  max-failures: 10
 ```
 
 #### Version
@@ -32,8 +33,16 @@ The schedule describes the schedule type and interval for running the task.  The
         "type": "cron",
         "interval" : "0 30 * * * *"
     },
+    "max-failures": 10,
 ```
 More on cron expressions can be found here: https://godoc.org/github.com/robfig/cron
+
+#### Max-Failures
+By default, snap will disable a task if there is 10 consecutive errors from any plugins within the workflow.  The configuration
+can be changed by specifying the number of failures value in the task header.  If the max-failures value is -1, snap will
+not disable a task with consecutive failure.  Instead, snap will sleep for 1 second for every 10 consective failures
+and retry again.
+
 
 For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
 

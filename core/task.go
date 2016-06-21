@@ -82,8 +82,8 @@ type Task interface {
 	DeadlineDuration() time.Duration
 	SetDeadlineDuration(time.Duration)
 	SetTaskID(id string)
-	SetStopOnFailure(uint)
-	GetStopOnFailure() uint
+	SetStopOnFailure(int)
+	GetStopOnFailure() int
 	Option(...TaskOption) TaskOption
 	WMap() *wmap.WorkflowMap
 	Schedule() schedule.Schedule
@@ -113,7 +113,7 @@ func TaskDeadlineDuration(v time.Duration) TaskOption {
 // TaskStopOnFailure sets the tasks stopOnFailure
 // The stopOnFailure is the number of consecutive task failures that will
 // trigger disabling the task
-func OptionStopOnFailure(v uint) TaskOption {
+func OptionStopOnFailure(v int) TaskOption {
 	return func(t Task) TaskOption {
 		previous := t.GetStopOnFailure()
 		t.SetStopOnFailure(v)
