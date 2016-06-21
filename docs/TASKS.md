@@ -58,6 +58,11 @@ For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
       /intel/mock:
         user: "root"
         password: "secret"
+    tags:
+      /intel/mock:
+        experiment: "experiment 11"
+      /intel/mock/bar:
+        os: "linux"
     process:
       -
         plugin_name: "passthru"
@@ -85,6 +90,11 @@ Process and Publish nodes in the workflow can also target remote snap nodes via 
       /intel/mock:
         user: "root"
         password: "secret"
+    tags:
+      /intel/mock:
+        experiment: "experiment 11"
+      /intel/mock/bar:
+        os: "linux"
     process:
       -
         plugin_name: "passthru"
@@ -143,6 +153,24 @@ config:
 
 Applying the config at `/intel/perf` means that all leaves of `/intel/perf` (`/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz` in this case) will receive the config.
 
+The tag section describes additional meta data for metrics.  Similary to config, tags can also be described at a branch, and all leaves of that branch will receive the given tag(s).  For example, say a task is going to collect `/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz`, all metrics should be tagged with experiment number, additonally one metric `/intel/perf/bar` should be tagged with OS name.  That tags could be described like so:
+
+```yaml
+---
+metrics:
+  /intel/perf/foo: {}
+  /intel/perf/bar: {}
+  /intel/perf/baz: {}
+tags:
+  /intel/perf:
+    experiment: "experiment 11"
+  /intel/perf/bar:
+    os: "linux"
+```
+
+Applying the tags at `/intel/perf` means that all leaves of `/intel/perf` (`/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz` in this case) will receive the tag `experiment: experiment 11`.
+Applying the tags at `/intel/perf/bar` means that only `/intel/perf/bar` will receive the tag `os: linux`.
+
 A collect node can also contain any number of process or publish nodes.  These nodes describe what to do next.
 
 #### process
@@ -179,6 +207,11 @@ Below is a complete example task.
         /intel/mock:
           user: "root"
           password: "secret"
+      tags:
+        /intel/perf:
+          experiment: "experiment 11"
+        /intel/perf/bar:
+          os: "linux"
       process:
         -
           plugin_name: "passthru"
@@ -210,6 +243,14 @@ Below is a complete example task.
                 "/intel/mock": {
                     "user": "root",
                     "password": "secret"
+                }
+            },
+            "tags": {
+                "/intel/mock": {
+                    "experiment": "experiment 11"
+                },
+                "/intel/mock/bar": {
+                    "os": "linux"
                 }
             },
             "process": [
