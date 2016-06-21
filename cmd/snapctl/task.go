@@ -210,7 +210,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) error {
 
 	// Deadline for a task
 	dl := ctx.String("deadline")
-	failure := uint(ctx.Int("failure"))
+	maxFailures := ctx.Int("max-failures")
 
 	var sch *client.Schedule
 	// None of these mean it is a simple schedule
@@ -279,7 +279,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) error {
 		}
 	}
 	// Create task
-	r := pClient.CreateTask(sch, wf, name, dl, !ctx.IsSet("no-start"), failure)
+	r := pClient.CreateTask(sch, wf, name, dl, !ctx.IsSet("no-start"), maxFailures)
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
 		fmt.Println("Error creating task:")

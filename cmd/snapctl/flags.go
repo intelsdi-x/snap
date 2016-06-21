@@ -126,7 +126,7 @@ var (
 		Name:  "deadline",
 		Usage: "The deadline for the task to be killed after started if the task runs too long (All tasks default to 5s)",
 	}
-	flTaskFailures = cli.IntFlag{
+	flTaskMaxFailures = cli.IntFlag{
 		Name:  "max-failures",
 		Usage: "The number of consecutive failures before snap disable the task (Default 10 consective failures)",
 		Value: DefaultMaxFailures,
