@@ -66,7 +66,7 @@ type task struct {
 	FailedCount        uint                    `json:"failed_count,omitempty"`
 	LastFailureMessage string                  `json:"last_failure_message,omitempty"`
 	State              string                  `json:"task_state"`
-	Failure            uint                    `json:"failure"`
+	MaxFailure         uint                    `json:"max_failure"`
 }
 
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -96,7 +96,7 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	if tr.Name != "" {
 		opts = append(opts, core.SetTaskName(tr.Name))
 	}
-	opts = append(opts, core.OptionStopOnFailure(tr.Failure))
+	opts = append(opts, core.OptionStopOnFailure(tr.MaxFailures))
 
 	task, errs := s.mt.CreateTask(sch, tr.Workflow, tr.Start, opts...)
 	if errs != nil && len(errs.Errors()) != 0 {
