@@ -38,7 +38,6 @@ var (
 	flAPIPort = cli.IntFlag{
 		Name:   "api-port, p",
 		Usage:  fmt.Sprintf("API port (Default: %d)", defaultPort),
-		Value:  defaultPort,
 		EnvVar: "SNAP_PORT",
 	}
 	flRestHTTPS = cli.BoolFlag{

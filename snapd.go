@@ -24,10 +24,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -349,7 +351,6 @@ func action(ctx *cli.Context) {
 			r.BindTribeManager(tr)
 		}
 		go monitorErrors(r.Err())
-		r.SetAddress(cfg.RestAPI.Address, cfg.RestAPI.Port)
 		coreModules = append(coreModules, r)
 		log.Info("REST API is enabled")
 	} else {
@@ -524,8 +525,11 @@ func defaultConfigFile() bool {
 // command line context if the corresponding flagName is set
 // in that context
 func setBoolVal(field bool, ctx *cli.Context, flagName string, inverse ...bool) bool {
-	if ctx.IsSet(flagName) {
-		field = ctx.Bool(flagName)
+	// check to see if a value was set (either on the command-line or via the associated
+	// environment variable, if any); if so, use that as value for the input field
+	val := ctx.Bool(flagName)
+	if ctx.IsSet(flagName) || val {
+		field = val
 		if len(inverse) > 0 {
 			field = !field
 		}
@@ -534,63 +538,186 @@ func setBoolVal(field bool, ctx *cli.Context, flagName string, inverse ...bool) 
 }
 
 func setStringVal(field string, ctx *cli.Context, flagName string) string {
-	if ctx.IsSet(flagName) {
-		field = ctx.String(flagName)
+	// check to see if a value was set (either on the command-line or via the associated
+	// environment variable, if any); if so, use that as value for the input field
+	val := ctx.String(flagName)
+	if ctx.IsSet(flagName) || val != "" {
+		field = val
 	}
 	return field
 }
 
 func setIntVal(field int, ctx *cli.Context, flagName string) int {
-	if ctx.IsSet(flagName) {
-		field = ctx.Int(flagName)
+	// check to see if a value was set (either on the command-line or via the associated
+	// environment variable, if any); if so, use that as value for the input field
+	val := ctx.Int(flagName)
+	if ctx.IsSet(flagName) || val != 0 {
+		field = val
 	}
 	return field
 }
 
 func setUIntVal(field uint, ctx *cli.Context, flagName string) uint {
-	if ctx.IsSet(flagName) {
-		field = uint(ctx.Int(flagName))
+	// check to see if a value was set (either on the command-line or via the associated
+	// environment variable, if any); if so, use that as value for the input field
+	val := ctx.Int(flagName)
+	if ctx.IsSet(flagName) || val != 0 {
+		field = uint(val)
 	}
 	return field
 }
 
 func setDurationVal(field time.Duration, ctx *cli.Context, flagName string) time.Duration {
-	if ctx.IsSet(flagName) {
-		field = ctx.Duration(flagName)
+	// check to see if a value was set (either on the command-line or via the associated
+	// environment variable, if any); if so, use that as value for the input field
+	val := ctx.Duration(flagName)
+	if ctx.IsSet(flagName) || val != 0 {
+		field = val
 	}
 	return field
 }
 
-//
-func checkCmdLineFlags(ctx *cli.Context) error {
-	// Bind address is specified
-	if ctx.IsSet("api-addr") {
-		addr := ctx.String("api-addr")
-		// Contains a comma
-		if strings.Index(addr, ",") != -1 {
-			return errors.New("Invalid address")
-		}
-		idx := strings.Index(addr, ":")
-		// Port is specified in address string
-		if idx != -1 {
-			// Port is also specified on command line
-			if ctx.IsSet("api-port") {
-				return errors.New("Port can not be specified in both --api-addr and --port")
-			}
-			if idx == (len(addr) - 1) {
-				return errors.New("Empty port specified")
-			}
+// checks the input addr to see if it can be parsed as an IP address or used
+// as a hostname. If both of those tests fail, then it returns an error, otherwise
+// it returns a nil (no error) indicating that the addr string is a valid address
+func isValidAddress(addr string, errPrefix string) error {
+	parsedIP := net.ParseIP(addr)
+	if parsedIP == nil {
+		_, err := net.LookupHost(addr)
+		if err != nil {
+			errString := fmt.Sprintf("%s Address '%s' is not a valid address/hostname", errPrefix, addr)
+			return errors.New(errString)
 		}
 	}
 	return nil
 }
 
+// sanity checks the input address and port values to ensure they are set
+// appropriately, specifically:
+//
+//	  - ensure that if the port value is set, the addr value does not also
+//		include as part of the addr value (i.e. that the addr value is not a
+//		string of the form IP_ADDR:PORT or HOSTNAME:PORT)
+//	  - ensures that if a port is specified as part of the addr value, that port
+//		string is not an empty string (i.e. that the ':' character is not the
+//		last character in the addr value)
+//	  - ensures that the address portion of the addr value can be either parsed
+//		as an IP address or used as a hostname
+//	  - ensures that the port detected as part of the addr value (if there is one)
+//		can be parsed as an integer
+//
+// this function returns a boolean indicating whether or not a port number was
+// found in the address and either nil or an error (depending on whether or not
+// an error was detected while parsing the addr string)
+func checkHostPortVals(addr string, port *int, errPrefix string) (bool, error) {
+	portInAddrFlag := false
+	// if the address field is empty, then we don't need to worry
+	if len(addr) == 0 {
+		return portInAddrFlag, nil
+	}
+	// If the input address ontains a comma, return an error
+	if strings.Index(addr, ",") != -1 {
+		errString := fmt.Sprintf("%s Invalid address; comma-separated IP address values are not supported", errPrefix)
+		return false, errors.New(errString)
+	}
+	// check to see if the input address contains a colon or not
+	idx := strings.Index(addr, ":")
+	if idx == -1 {
+		// if we don't find a colon in the address, then just try to parse it as
+		// an IP address; return an error if we can't parse it successfully
+		err := isValidAddress(addr, errPrefix)
+		if err != nil {
+			return false, err
+		}
+	} else if idx == (len(addr) - 1) {
+		// if the last character is a colon character, then return an error because
+		// while there is a colon, there's no value after that colon to represent
+		// the port the RESTful APi should listen on
+		errString := fmt.Sprintf("%s Empty port specified as part of API IP address", errPrefix)
+		return false, errors.New(errString)
+	} else {
+		// otherwise attempt to split the input address into a host and port,
+		// then try to parse resulting host string as an IP address; return
+		// an error if the address cannot be split into a host and port or
+		// the resulting host cannot be successfully parsed as an IP address
+		host, portStr, err := net.SplitHostPort(addr)
+		if err != nil {
+			return false, err
+		}
+		addrErr := isValidAddress(host, errPrefix)
+		if addrErr != nil {
+			return false, addrErr
+		}
+		portFromAddr, convErr := strconv.Atoi(portStr)
+		if convErr != nil {
+			errString := fmt.Sprintf("%s Port detected in address ('%s') cannot be parsed as an integer value", errPrefix, portStr)
+			return false, errors.New(errString)
+		}
+		// if we get this far, and the port is also specified via the 'port' input
+		// to this function, then return an error
+		if *port > 0 {
+			errString := fmt.Sprintf("%s Port can not be specified both as a port value and as part of address", errPrefix)
+			return false, errors.New(errString)
+		}
+		// otherwise save the port that was parsed from the 'addr' as the 'port'
+		// value before we return
+		portInAddrFlag = true
+		*port = portFromAddr
+	}
+	return portInAddrFlag, nil
+}
+
+// santiy check of the command-line flags to ensure that values are set
+// appropriately; returns the port read from the command-line arguments, a flag
+// indicating whether or not a port was detected in the address read from the
+// command-line arguments, and an error if one is detected
+func checkCmdLineFlags(ctx *cli.Context) (int, bool, error) {
+	// Check to see if the API address is specified (either via the CLI or through
+	// the associated environment variable); if so, grab the port and check that the
+	// address and port against the constraints (above)
+	addr := ctx.String("api-addr")
+	port := ctx.Int("api-port")
+	if ctx.IsSet("api-addr") || addr != "" {
+		portInAddr, err := checkHostPortVals(addr, &port, "Command Line Error:")
+		if err != nil {
+			return -1, portInAddr, err
+		}
+		return port, portInAddr, nil
+	}
+	return port, false, nil
+}
+
+// santiy check of the configuration file parameters to ensure that values are set
+// appropriately; returns the port read from the global configuration file, a flag
+// indicating whether or not a port was detected in the address read from the
+// global configuration file, and an error if one is detected
+func checkCfgSettings(cfg *Config) (int, bool, error) {
+	addr := cfg.RestAPI.Address
+	var port int
+	if cfg.RestAPI.PortSetByConfigFile() {
+		port = cfg.RestAPI.Port
+	} else {
+		port = -1
+	}
+	portInAddr, err := checkHostPortVals(addr, &port, "ConfigFile Error:")
+	if err != nil {
+		return -1, portInAddr, err
+	}
+	return port, portInAddr, nil
+}
+
 // Apply the command line flags set (if any) to override the values
 // in the input configuration
 func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
-	err := checkCmdLineFlags(ctx)
-	if err != nil {
-		log.Fatal(err)
+	// check the settings for the command-line arguments included in the cli.Context
+	cmdLinePort, cmdLinePortInAddr, cmdLineErr := checkCmdLineFlags(ctx)
+	if cmdLineErr != nil {
+		log.Fatal(cmdLineErr)
+	}
+	// check the settings in the input configuration (and return an error if any issues are found)
+	cfgFilePort, cfgFilePortInAddr, cfgFileErr := checkCfgSettings(cfg)
+	if cfgFileErr != nil {
+		log.Fatal(cfgFileErr)
 	}
 	invertBoolean := true
 	// apply any command line flags that might have been set, first for the
@@ -626,6 +753,23 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.Tribe.BindAddr = setStringVal(cfg.Tribe.BindAddr, ctx, "tribe-addr")
 	cfg.Tribe.BindPort = setIntVal(cfg.Tribe.BindPort, ctx, "tribe-port")
 	cfg.Tribe.Seed = setStringVal(cfg.Tribe.Seed, ctx, "tribe-seed")
+	// check to see if we have duplicate port definitions (check the various
+	// combinations of the config file and command-line parameter values that
+	// could be used to define the port and make sure we only have one)
+	if cmdLinePort > 0 && cfgFilePortInAddr && !cmdLinePortInAddr {
+		log.Fatal("Usage Error: Port can not be specified both as a port value on the CLI and as part of address in the global config file")
+	} else if cfgFilePort > 0 && cmdLinePortInAddr && !cfgFilePortInAddr {
+		log.Fatal("Usage Error: Port can not be specified both as a port value in the global config file and as part of address on the CLI")
+	}
+	// if we retrieved the port from an address, then use that value as the
+	// cfg.RestAPI.Port value (so that we can validate it against the constraints
+	// placed on the value for this parameter and ensure that the port in the
+	// address complies with those constraints)
+	if cmdLinePortInAddr {
+		cfg.RestAPI.Port = cmdLinePort
+	} else if cfgFilePortInAddr {
+		cfg.RestAPI.Port = cfgFilePort
+	}
 }
 
 func monitorErrors(ch <-chan error) {

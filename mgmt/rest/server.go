@@ -56,6 +56,7 @@ const (
 	defaultRestKey         string = ""
 	defaultAuth            bool   = false
 	defaultAuthPassword    string = ""
+	defaultPortSetByConfig bool   = false
 )
 
 var (
@@ -78,6 +79,7 @@ type Config struct {
 	RestKey          string `json:"rest_key"yaml:"rest_key"`
 	RestAuth         bool   `json:"rest_auth"yaml:"rest_auth"`
 	RestAuthPassword string `json:"rest_auth_password"yaml:"rest_auth_password"`
+	portSetByConfig  bool   ``
 }
 
 const (
@@ -219,7 +221,14 @@ func GetDefaultConfig() *Config {
 		RestKey:          defaultRestKey,
 		RestAuth:         defaultAuth,
 		RestAuthPassword: defaultAuthPassword,
+		portSetByConfig:  defaultPortSetByConfig,
 	}
+}
+
+// define a method that can be used to determine if the port the RESTful
+// API is listening on was set in the configuration file
+func (c *Config) PortSetByConfigFile() bool {
+	return c.portSetByConfig
 }
 
 // UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
@@ -244,6 +253,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, &(c.Port)); err != nil {
 				return fmt.Errorf("%v (while parsing 'restapi::port')", err)
 			}
+			c.portSetByConfig = true
 		case "addr":
 			if err := json.Unmarshal(v, &(c.Address)); err != nil {
 				return fmt.Errorf("%v (while parsing 'restapi::addr')", err)
@@ -303,23 +313,13 @@ func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next ht
 	}
 }
 
-func (s *Server) Name() string {
-	return "REST"
+func (s *Server) SetAddress(addrString string) {
+	s.addrString = addrString
+	restLogger.Info(fmt.Sprintf("Address used for binding: [%v]", s.addrString))
 }
 
-func (s *Server) SetAddress(addrString string, dfltPort int) {
-	restLogger.Info(fmt.Sprintf("Setting address to: [%v] Default port: %v", addrString, dfltPort))
-	// In the future, we could extend this to support multiple comma separated IP[:port] values
-	if strings.Index(addrString, ",") != -1 {
-		restLogger.Fatal("Invalid address")
-	}
-	// If no port is specified, use default port
-	if strings.Index(addrString, ":") != -1 {
-		s.addrString = addrString
-	} else {
-		s.addrString = fmt.Sprintf("%s:%d", addrString, dfltPort)
-	}
-	restLogger.Info(fmt.Sprintf("Address used for binding: [%v]", s.addrString))
+func (s *Server) Name() string {
+	return "REST"
 }
 
 func (s *Server) Start() error {
