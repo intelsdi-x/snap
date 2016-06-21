@@ -96,7 +96,12 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	if tr.Name != "" {
 		opts = append(opts, core.SetTaskName(tr.Name))
 	}
-	opts = append(opts, core.OptionStopOnFailure(tr.MaxFailures))
+
+	if tr.MaxFailures != 0 {
+		opts = append(opts, core.OptionStopOnFailure(tr.MaxFailures))
+	} else {
+		opts = append(opts, core.OptionStopOnFailure(DefaultMaxFailures))
+	}
 
 	task, errs := s.mt.CreateTask(sch, tr.Workflow, tr.Start, opts...)
 	if errs != nil && len(errs.Errors()) != 0 {

@@ -73,7 +73,6 @@ func (t *mockTask) Option(...core.TaskOption) core.TaskOption { return core.Task
 func (t *mockTask) WMap() *wmap.WorkflowMap                   { return nil }
 func (t *mockTask) Schedule() schedule.Schedule               { return nil }
 
-
 func getTestConfig() *Config {
 	cfg := GetDefaultConfig()
 	cfg.BindAddr = "127.0.0.1"

@@ -330,6 +330,11 @@ func (t *task) spin() {
 						"consecutive failure limit": t.stopOnFailure,
 						"error":                     t.lastFailureMessage,
 					}).Warn("Task failed")
+
+					// Sleep for 1 second for every 10 consecutive failures
+					if consecutiveFailures%10 == 0 {
+						time.Sleep(1000 * time.Millisecond)
+					}
 				}
 			// Schedule has ended
 			case schedule.Ended:
