@@ -139,8 +139,8 @@ func createTaskUsingTaskManifest(ctx *cli.Context) {
 
 	// If the number of failure does not specific, default value is 10
 	if t.Failure == 0 {
-		fmt.Println("If the number of failures is not specified, use default value of", default_failure)
-		t.Failure = default_failure
+		fmt.Println("If the number of failures is not specified, use default value of", DefaultFailureRetry)
+		t.Failure = DefaultFailureRetry
 	}
 
 	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"), t.Failure)
