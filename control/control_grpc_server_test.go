@@ -314,7 +314,8 @@ func TestGRPCServerScheduler(t *testing.T) {
 			enc := gob.NewEncoder(&buf)
 			metrics := make([]plugin.MetricType, len(mts))
 			for i, m := range mts {
-				metrics[i] = m.(plugin.MetricType)
+				mt := plugin.NewMetricType(m.Namespace(), m.Timestamp(), m.Tags(), m.Unit(), m.Data())
+				metrics[i] = *mt
 			}
 			enc.Encode(metrics)
 			req := controlproxy.GetPubProcReq("snap.gob", buf.Bytes(), "passthru", 1, map[string]ctypes.ConfigValue{}, "my-snowflake-id")
