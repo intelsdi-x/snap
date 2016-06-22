@@ -57,6 +57,7 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | Name  | Type  | Description | Link |
 | :---- | :---- | :---------- | :--- |
 | CloudWatch | Publisher | Publishes snap metrics to AWS CloudWatch | [snap-plugin-publisher-cloudwatch](https://github.com/Ticketmaster/snap-plugin-publisher-cloudwatch) |
+| Memcached | Collector | Collect Memcached performance stats | [snap-plugin-collector-memcache](https://github.com/raintank/snap-plugin-collector-memcache)|
 
 ## Committed plugins
 These plugins are in planned/active development. This list is useful if you want to reach out and contribute to the development.
