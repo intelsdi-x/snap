@@ -159,5 +159,5 @@ The Snap Framework supports running tests in an isolated container as opposed to
 
 ```
 $ cd $GOPATH/src/github.com/intelsdi-x/snap
-$ scripts/run_tests_with_docker.sh`  
+$ scripts/run_tests_with_docker.sh [SNAP_TEST_TYPE]  
 ```
