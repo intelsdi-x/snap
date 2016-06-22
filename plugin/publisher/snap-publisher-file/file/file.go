@@ -32,6 +32,7 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"strings"
 )
 
 const (
@@ -73,11 +74,23 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 	}
 	w := bufio.NewWriter(file)
 	for _, m := range metrics {
-		w.WriteString(fmt.Sprintf("%v|%v|%v\n", m.Timestamp(), m.Namespace(), m.Data()))
+		formattedTags := formatMetricTagsAsString(m.Tags())
+		w.WriteString(fmt.Sprintf("%v|%v|%v|%v\n", m.Timestamp(), m.Namespace(), m.Data(), formattedTags))
 	}
 	w.Flush()
 
 	return nil
+}
+// formatMetricTagsAsString returns metric's tags as a string in the following format tagKey:tagValue where the next tags are separated by semicolon
+func formatMetricTagsAsString(metricTags map[string]string) string {
+	var tags string
+	for tag, value := range metricTags {
+		tags += fmt.Sprintf("%s:%s; ", tag, value)
+	}
+	// trim the last semicolon
+	tags = strings.TrimSuffix(tags, "; ")
+
+	return "tags["+tags+"]"
 }
 
 func Meta() *plugin.PluginMeta {
