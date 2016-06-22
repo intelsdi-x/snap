@@ -20,6 +20,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -33,10 +34,11 @@ import (
 )
 
 var (
-	gitversion string
-	pClient    *client.Client
-	timeFormat = time.RFC1123
-	err        error
+	gitversion  string
+	pClient     *client.Client
+	timeFormat  = time.RFC1123
+	err         error
+	errCritical = errors.New("A critical error occured")
 )
 
 func main() {
@@ -48,7 +50,9 @@ func main() {
 	app.Commands = append(commands, tribeCommands...)
 	sort.Sort(ByCommand(app.Commands))
 	app.Before = beforeAction
-	app.Run(os.Args)
+	if app.Run(os.Args) != nil {
+		os.Exit(1)
+	}
 }
 
 // Run before every command
@@ -57,13 +61,13 @@ func beforeAction(ctx *cli.Context) error {
 	pClient, err = client.New(ctx.String("url"), ctx.String("api-version"), ctx.Bool("insecure"))
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return errCritical
 	}
 	pClient.Password = password
 	pClient.Username = username
 	if err = checkTribeCommand(ctx); err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return errCritical
 	}
 	return nil
 }

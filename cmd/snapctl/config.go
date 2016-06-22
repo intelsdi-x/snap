@@ -52,7 +52,7 @@ func (c *config) loadConfig(path string) error {
 	return nil
 }
 
-func getConfig(ctx *cli.Context) {
+func getConfig(ctx *cli.Context) error {
 	pDetails := filepath.SplitList(ctx.Args().First())
 	var ptyp string
 	var pname string
@@ -66,7 +66,7 @@ func getConfig(ctx *cli.Context) {
 		if err != nil {
 			fmt.Println("Can't convert version string to integer")
 			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			os.Exit(1)
+			return errCritical
 		}
 	} else {
 		ptyp = ctx.String("plugin-type")
@@ -77,24 +77,24 @@ func getConfig(ctx *cli.Context) {
 	if ptyp == "" {
 		fmt.Println("Must provide plugin type")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	if pname == "" {
 		fmt.Println("Must provide plugin name")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	if pver < 1 {
 		fmt.Println("Must provide plugin version")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	defer w.Flush()
 	r := pClient.GetPluginConfig(ptyp, pname, strconv.Itoa(pver))
 	if r.Err != nil {
 		fmt.Println("Error requesting info: ", r.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	printFields(w, false, 0,
 		"NAME",
@@ -113,4 +113,6 @@ func getConfig(ctx *cli.Context) {
 			printFields(w, false, 0, k, t.Value, t.Type())
 		}
 	}
+
+	return nil
 }

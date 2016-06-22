@@ -31,20 +31,20 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-func loadPlugin(ctx *cli.Context) {
+func loadPlugin(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) != 1 {
 		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
 		if !strings.Contains(pAsc, ".asc") {
 			fmt.Println("Must be a .asc file for the -a flag")
 			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			os.Exit(1)
+			return errCritical
 		}
 		paths = append(paths, pAsc)
 	}
@@ -55,7 +55,7 @@ func loadPlugin(ctx *cli.Context) {
 		} else {
 			fmt.Printf("Error loading plugin:\n%v\n", r.Err.Error())
 		}
-		os.Exit(1)
+		return errCritical
 	}
 	for _, p := range r.LoadedPlugins {
 		fmt.Println("Plugin loaded")
@@ -65,9 +65,11 @@ func loadPlugin(ctx *cli.Context) {
 		fmt.Printf("Signed: %v\n", p.Signed)
 		fmt.Printf("Loaded Time: %s\n\n", p.LoadedTime().Format(timeFormat))
 	}
+
+	return nil
 }
 
-func unloadPlugin(ctx *cli.Context) {
+func unloadPlugin(ctx *cli.Context) error {
 	pDetails := filepath.SplitList(ctx.Args().First())
 	var pType, pName string
 	var pVer int
@@ -80,7 +82,7 @@ func unloadPlugin(ctx *cli.Context) {
 		if err != nil {
 			fmt.Println("Can't convert version string to integer")
 			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			os.Exit(1)
+			return errCritical
 		}
 	} else {
 		pType = ctx.String("plugin-type")
@@ -90,46 +92,48 @@ func unloadPlugin(ctx *cli.Context) {
 	if pType == "" {
 		fmt.Println("Must provide plugin type")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	if pName == "" {
 		fmt.Println("Must provide plugin name")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	if pVer < 1 {
 		fmt.Println("Must provide plugin version")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	r := pClient.UnloadPlugin(pType, pName, pVer)
 	if r.Err != nil {
 		fmt.Printf("Error unloading plugin:\n%v\n", r.Err.Error())
-		os.Exit(1)
+		return errCritical
 	}
 
 	fmt.Println("Plugin unloaded")
 	fmt.Printf("Name: %s\n", r.Name)
 	fmt.Printf("Version: %d\n", r.Version)
 	fmt.Printf("Type: %s\n", r.Type)
+
+	return nil
 }
 
-func swapPlugins(ctx *cli.Context) {
+func swapPlugins(ctx *cli.Context) error {
 	// plugin to load
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) < 1 || len(ctx.Args()) > 2 {
 		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
 		if !strings.Contains(pAsc, ".asc") {
 			fmt.Println("Must be a .asc file for the -a flag")
 			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			os.Exit(1)
+			return errCritical
 		}
 		paths = append(paths, pAsc)
 	}
@@ -149,12 +153,12 @@ func swapPlugins(ctx *cli.Context) {
 			if err != nil {
 				fmt.Println("Can't convert version string to integer")
 				cli.ShowCommandHelp(ctx, ctx.Command.Name)
-				os.Exit(1)
+				return errCritical
 			}
 		} else {
 			fmt.Println("Missing type, name, or version")
 			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			os.Exit(1)
+			return errCritical
 		}
 	} else {
 		pType = ctx.String("plugin-type")
@@ -164,23 +168,23 @@ func swapPlugins(ctx *cli.Context) {
 	if pType == "" {
 		fmt.Println("Must provide plugin type")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	if pName == "" {
 		fmt.Println("Must provide plugin name")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	if pVer < 1 {
 		fmt.Println("Must provide plugin version")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	r := pClient.SwapPlugin(paths, pType, pName, pVer)
 	if r.Err != nil {
 		fmt.Printf("Error swapping plugins:\n%v\n", r.Err.Error())
-		os.Exit(1)
+		return errCritical
 	}
 
 	fmt.Println("Plugin loaded")
@@ -194,13 +198,15 @@ func swapPlugins(ctx *cli.Context) {
 	fmt.Printf("Name: %s\n", r.UnloadedPlugin.Name)
 	fmt.Printf("Version: %d\n", r.UnloadedPlugin.Version)
 	fmt.Printf("Type: %s\n", r.UnloadedPlugin.Type)
+
+	return nil
 }
 
-func listPlugins(ctx *cli.Context) {
+func listPlugins(ctx *cli.Context) error {
 	plugins := pClient.GetPlugins(ctx.Bool("running"))
 	if plugins.Err != nil {
 		fmt.Printf("Error: %v\n", plugins.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	if ctx.Bool("running") {
@@ -215,4 +221,6 @@ func listPlugins(ctx *cli.Context) {
 		}
 	}
 	w.Flush()
+
+	return nil
 }
