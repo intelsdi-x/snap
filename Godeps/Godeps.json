@@ -79,7 +79,7 @@
 		},
 		{
 			"ImportPath": "github.com/golang/protobuf/proto",
-			"Rev": "b982704f8bb716bb608144408cff30e15fbde841"
+			"Rev": "8616e8ee5e20a1704615e6c8d7afcdac06087a67"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-msgpack/codec",

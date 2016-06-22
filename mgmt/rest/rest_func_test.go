@@ -1,4 +1,4 @@
-// +build legacy
+/// +build legacy
 
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -45,7 +45,6 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
-	"github.com/intelsdi-x/snap/mgmt/rest/request"
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -252,8 +251,8 @@ func createTask(sample, name, interval string, noStart bool, port int) *rbody.AP
 
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks", port)
 
-	t := request.TaskCreationRequest{
-		Schedule: request.Schedule{Type: "simple", Interval: interval},
+	t := core.TaskCreationRequest{
+		Schedule: core.Schedule{Type: "simple", Interval: interval},
 		Workflow: wf,
 		Name:     name,
 		Start:    !noStart,

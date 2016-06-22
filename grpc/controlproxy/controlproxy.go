@@ -197,6 +197,15 @@ func (c ControlProxy) MatchQueryToNamespaces(namespace core.Namespace) ([]core.N
 	return nss, nil
 }
 
+func (c ControlProxy) GetAutodiscoverPaths() []string {
+	req := &common.Empty{}
+	reply, err := c.Client.GetAutodiscoverPaths(getContext(), req)
+	if err != nil {
+		return nil
+	}
+	return reply.Paths
+}
+
 ///---------Util-------------------------------------------------------------------------
 func getPluginType(t core.PluginType) int32 {
 	val := int32(-1)

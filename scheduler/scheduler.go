@@ -22,9 +22,17 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+
+	"github.com/ghodss/yaml"
+
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/core"
@@ -70,6 +78,7 @@ type managesMetrics interface {
 	publishesMetrics
 	processesMetrics
 	managesPluginContentTypes
+	GetAutodiscoverPaths() []string
 	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []serror.SnapError
 	SubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
 	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
@@ -105,6 +114,111 @@ type scheduler struct {
 
 type managesWork interface {
 	Work(job) queuedJob
+}
+
+// Implemented as a separate function so that defer calls
+// are properly handled and cleanup done properly
+// (like for the removal of temporary Yaml to JSON conversion)
+func autoDiscoverTasks(taskFiles []os.FileInfo, fullPath string,
+	fp func(sch schedule.Schedule,
+		wfMap *wmap.WorkflowMap,
+		startOnCreate bool,
+		opts ...core.TaskOption) (core.Task, core.TaskErrors)) {
+	// Note that the list of files is sorted by name due to ioutil.ReadDir
+	// default behaviour. See go doc ioutil.ReadDir
+	for _, file := range taskFiles {
+		f, err := os.Open(path.Join(fullPath, file.Name()))
+		if err != nil {
+			log.WithFields(log.Fields{
+				"_block":           "autoDiscoverTasks",
+				"_module":          "scheduler",
+				"autodiscoverpath": fullPath,
+				"task":             file.Name(),
+			}).Error("Opening file ", err)
+			continue
+		}
+		defer f.Close()
+		if !strings.HasSuffix(file.Name(), ".json") {
+			fc, err := ioutil.ReadAll(f)
+			if err != nil {
+				log.WithFields(
+					log.Fields{
+						"_block":           "autoDiscoverTasks",
+						"_module":          "scheduler",
+						"autodiscoverpath": fullPath,
+						"task":             file.Name(),
+					}).Error("Reading Yaml file ", err)
+				continue
+			}
+			js, err := yaml.YAMLToJSON(fc)
+			if err != nil {
+				log.WithFields(
+					log.Fields{
+						"_block":           "autoDiscoverTasks",
+						"_module":          "scheduler",
+						"autodiscoverpath": fullPath,
+						"task":             file.Name(),
+					}).Error("Parsing Yaml file ", err)
+				continue
+			}
+			tfile, err := ioutil.TempFile(os.TempDir(), "yaml2json")
+			if err != nil {
+				log.WithFields(
+					log.Fields{
+						"_block":           "autoDiscoverTasks",
+						"_module":          "scheduler",
+						"autodiscoverpath": fullPath,
+						"task":             file.Name(),
+					}).Error("Creating temporary file ", err)
+				continue
+			}
+			defer os.Remove(tfile.Name())
+			err = ioutil.WriteFile(tfile.Name(), js, 0644)
+			if err != nil {
+				log.WithFields(
+					log.Fields{
+						"_block":           "autoDiscoverTasks",
+						"_module":          "scheduler",
+						"autodiscoverpath": fullPath,
+						"task":             file.Name(),
+					}).Error("Writing JSON file from Yaml ", err)
+				continue
+			}
+			f, err = os.Open(tfile.Name())
+			if err != nil {
+				log.WithFields(log.Fields{
+					"_block":           "autoDiscoverTasks",
+					"_module":          "scheduler",
+					"autodiscoverpath": fullPath,
+					"task":             file.Name(),
+				}).Error("Opening temporary file ", err)
+				continue
+			}
+			defer f.Close()
+		}
+		mode := true
+		task, err := core.CreateTaskFromContent(f, &mode, fp)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"_block":           "autoDiscoverTasks",
+				"_module":          "scheduler",
+				"autodiscoverpath": fullPath,
+				"task":             file.Name(),
+			}).Error(err)
+			continue
+		}
+		//TODO: see if the following is really mandatory
+		//in which case mgmt/rest/rbody/task.go contents might also
+		//move into pkg/task
+		//rbody.AddSchedulerTaskFromTask(task)
+		log.WithFields(log.Fields{
+			"_block":           "autoDiscoverTasks",
+			"_module":          "scheduler",
+			"autodiscoverpath": fullPath,
+			"task-file-name":   file.Name(),
+			"task-ID":          task.ID(),
+		}).Info("Loading task")
+	}
 }
 
 // New returns an instance of the scheduler
@@ -524,6 +638,54 @@ func (s *scheduler) Start() error {
 	schedulerLogger.WithFields(log.Fields{
 		"_block": "start-scheduler",
 	}).Info("scheduler started")
+
+	//Autodiscover
+	autoDiscoverPaths := s.metricManager.GetAutodiscoverPaths()
+	if autoDiscoverPaths != nil && len(autoDiscoverPaths) != 0 {
+		schedulerLogger.WithFields(log.Fields{
+			"_block": "start-scheduler",
+		}).Info("auto discover path is enabled")
+		for _, pa := range autoDiscoverPaths {
+			fullPath, err := filepath.Abs(pa)
+			if err != nil {
+				schedulerLogger.WithFields(log.Fields{
+					"_block":           "start-scheduler",
+					"autodiscoverpath": pa,
+				}).Fatal(err)
+			}
+			schedulerLogger.WithFields(log.Fields{
+				"_block": "start-scheduler",
+			}).Info("autoloading tasks from: ", fullPath)
+			files, err := ioutil.ReadDir(fullPath)
+			if err != nil {
+				schedulerLogger.WithFields(log.Fields{
+					"_block":           "start-scheduler",
+					"autodiscoverpath": pa,
+				}).Fatal(err)
+			}
+			var taskFiles []os.FileInfo
+			for _, file := range files {
+				if file.IsDir() {
+					schedulerLogger.WithFields(log.Fields{
+						"_block":           "start-scheduler",
+						"autodiscoverpath": pa,
+					}).Warning("Ignoring subdirectory: ", file.Name())
+					continue
+				}
+				// tasks files (JSON and YAML)
+				fname := strings.ToLower(file.Name())
+				if !strings.HasSuffix(fname, ".json") && !strings.HasSuffix(fname, ".yaml") && !strings.HasSuffix(fname, ".yml") {
+					continue
+				}
+				taskFiles = append(taskFiles, file)
+			}
+			autoDiscoverTasks(taskFiles, fullPath, s.CreateTask)
+		}
+	} else {
+		schedulerLogger.WithFields(log.Fields{
+			"_block": "start-scheduler",
+		}).Info("auto discover path is disabled")
+	}
 
 	return nil
 }

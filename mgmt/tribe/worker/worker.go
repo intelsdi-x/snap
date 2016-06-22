@@ -35,7 +35,6 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
-	"github.com/intelsdi-x/snap/mgmt/rest/request"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -514,7 +513,7 @@ func (w worker) isPluginLoaded(n, t string, v int) bool {
 	return false
 }
 
-func getSchedule(s *request.Schedule) schedule.Schedule {
+func getSchedule(s *core.Schedule) schedule.Schedule {
 	switch s.Type {
 	case "simple":
 		d, e := time.ParseDuration(s.Interval)
