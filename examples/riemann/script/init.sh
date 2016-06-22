@@ -47,10 +47,8 @@ echo "export PATH=$PATH:$GOBIN" >> /home/vagrant/.bash_profile
 export GOPATH=/vagrant/go
 export GOBIN=/vagrant/go/bin
 export PATH=$PATH:$GOBIN
-go get github.com/tools/godep
 
 cd $GOPATH/src/github.com/intelsdi-x/snap
-scripts/deps.sh
 make
 
 echo "PATH=$PATH:$GOPATH/src/github.com/intelsdi-x/snap/build/bin" >> /home/vagrant/.bash_profile

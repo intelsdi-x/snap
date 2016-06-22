@@ -1,0 +1,87 @@
+[submodule "vendor/github.com/Sirupsen/logrus"]
+	path = vendor/github.com/Sirupsen/logrus
+	url = https://github.com/Sirupsen/logrus
+[submodule "vendor/github.com/codegangsta/cli"]
+	path = vendor/github.com/codegangsta/cli
+	url = https://github.com/codegangsta/cli
+[submodule "vendor/github.com/vrischmann/jsonutil"]
+	path = vendor/github.com/vrischmann/jsonutil
+	url = https://github.com/vrischmann/jsonutil
+[submodule "vendor/golang.org/x/crypto"]
+	path = vendor/golang.org/x/crypto
+	url = https://go.googlesource.com/crypto
+[submodule "vendor/github.com/codegangsta/negroni"]
+	path = vendor/github.com/codegangsta/negroni
+	url = https://github.com/codegangsta/negroni
+[submodule "vendor/github.com/julienschmidt/httprouter"]
+	path = vendor/github.com/julienschmidt/httprouter
+	url = https://github.com/julienschmidt/httprouter
+[submodule "vendor/github.com/asaskevich/govalidator"]
+	path = vendor/github.com/asaskevich/govalidator
+	url = https://github.com/asaskevich/govalidator
+[submodule "vendor/github.com/hashicorp/go-msgpack"]
+	path = vendor/github.com/hashicorp/go-msgpack
+	url = https://github.com/hashicorp/go-msgpack
+[submodule "vendor/github.com/hashicorp/memberlist"]
+	path = vendor/github.com/hashicorp/memberlist
+	url = https://github.com/hashicorp/memberlist
+[submodule "vendor/github.com/armon/go-metrics"]
+	path = vendor/github.com/armon/go-metrics
+	url = https://github.com/armon/go-metrics
+[submodule "vendor/github.com/hashicorp/go-multierror"]
+	path = vendor/github.com/hashicorp/go-multierror
+	url = https://github.com/hashicorp/go-multierror
+[submodule "vendor/github.com/hashicorp/errwrap"]
+	path = vendor/github.com/hashicorp/errwrap
+	url = https://github.com/hashicorp/errwrap
+[submodule "vendor/github.com/miekg/dns"]
+	path = vendor/github.com/miekg/dns
+	url = https://github.com/miekg/dns
+[submodule "vendor/github.com/intelsdi-x/gomit"]
+	path = vendor/github.com/intelsdi-x/gomit
+	url = https://github.com/intelsdi-x/gomit
+[submodule "vendor/github.com/pborman/uuid"]
+	path = vendor/github.com/pborman/uuid
+	url = https://github.com/pborman/uuid
+[submodule "vendor/github.com/appc/spec"]
+	path = vendor/github.com/appc/spec
+	url = https://github.com/appc/spec
+[submodule "vendor/golang.org/x/net"]
+	path = vendor/golang.org/x/net
+	url = https://go.googlesource.com/net
+[submodule "vendor/google.golang.org/grpc"]
+	path = vendor/google.golang.org/grpc
+	url = https://github.com/grpc/grpc-go
+[submodule "vendor/github.com/golang/protobuf"]
+	path = vendor/github.com/golang/protobuf
+	url = https://github.com/golang/protobuf
+[submodule "vendor/gopkg.in/yaml.v2"]
+	path = vendor/gopkg.in/yaml.v2
+	url = https://gopkg.in/yaml.v2
+[submodule "vendor/github.com/smartystreets/goconvey"]
+	path = vendor/github.com/smartystreets/goconvey
+	url = https://github.com/smartystreets/goconvey
+[submodule "vendor/github.com/jtolds/gls"]
+	path = vendor/github.com/jtolds/gls
+	url = https://github.com/jtolds/gls
+[submodule "vendor/github.com/smartystreets/assertions"]
+	path = vendor/github.com/smartystreets/assertions
+	url = https://github.com/smartystreets/assertions
+[submodule "vendor/github.com/robfig/cron"]
+	path = vendor/github.com/robfig/cron
+	url = https://github.com/robfig/cron
+[submodule "vendor/github.com/ghodss/yaml"]
+	path = vendor/github.com/ghodss/yaml
+	url = https://github.com/ghodss/yaml
+[submodule "vendor/github.com/cloudfoundry-incubator/candiedyaml"]
+	path = vendor/github.com/cloudfoundry-incubator/candiedyaml
+	url = https://github.com/cloudfoundry-incubator/candiedyaml
+[submodule "vendor/github.com/xeipuuv/gojsonschema"]
+	path = vendor/github.com/xeipuuv/gojsonschema
+	url = https://github.com/xeipuuv/gojsonschema
+[submodule "vendor/github.com/xeipuuv/gojsonreference"]
+	path = vendor/github.com/xeipuuv/gojsonreference
+	url = https://github.com/xeipuuv/gojsonreference
+[submodule "vendor/github.com/xeipuuv/gojsonpointer"]
+	path = vendor/github.com/xeipuuv/gojsonpointer
+	url = https://github.com/xeipuuv/gojsonpointer

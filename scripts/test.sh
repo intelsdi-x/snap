@@ -85,7 +85,7 @@ echo ""
 echo "====================   $SNAP_TEST_TYPE    ===================="
 
 # Standard go tooling behavior is to ignore dirs with leading underscors
-for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -not -path './examples/*' -not -path './scripts/*' -type d);
+for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -not -path './examples/*' -not -path './scripts/*' -not -path './vendor/*' -type d);
 do
 	if ls $dir/*.go &> /dev/null; then
 	    go test -tags=$SNAP_TEST_TYPE -covermode=count -coverprofile=$dir/profile.tmp $dir
