@@ -36,8 +36,8 @@ then
 	exit 1
 fi
 
-proto_files=("grpc/controlproxy/rpc/control.proto")
-pb_go_files=("grpc/controlproxy/rpc/control.pb.go")
+proto_files=("grpc/controlproxy/rpc/control.proto" "control/plugin/rpc/plugin.proto")
+pb_go_files=("grpc/controlproxy/rpc/control.pb.go" "control/plugin/rpc/plugin.pb.go")
 
 license='/*
 http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -69,7 +69,7 @@ echo "$license" | cat - "$common_path"/grpc/common/common.pb.go > temp && mv tem
 for i in "${!proto_files[@]}"
 do
 	file="${proto_files[$i]}"
-	pb="${pb_go_files[$i]}"
+	pb="${pb_go_files[$i]}"    
 	echo "Generating $pb"
 	protoc --go_out=plugins=grpc:src/ --proto_path=src/ "$common_path"/"$file"
 	echo "$license" | cat - "$common_path"/"$pb" > temp && mv temp "$common_path"/"$pb"

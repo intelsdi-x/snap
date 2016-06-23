@@ -36,6 +36,8 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	myRPC "github.com/intelsdi-x/snap/control/plugin/rpc"
+	"google.golang.org/grpc"
 )
 
 // Plugin type
@@ -84,6 +86,7 @@ type RPCType int
 const (
 	NativeRPC RPCType = iota
 	JSONRPC
+	GRPC
 )
 
 var (
@@ -255,10 +258,13 @@ type Response struct {
 
 // Start starts a plugin where:
 // PluginMeta - base information about plugin
-// Plugin - either CollectorPlugin or PublisherPlugin
+// Plugin - CollectorPlugin, ProcessorPlugin or PublisherPlugin
 // requestString - plugins arguments (marshaled json of control/plugin Arg struct)
 // returns an error and exitCode (exitCode from SessionState initilization or plugin termination code)
 func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
+	if m.RPCType == GRPC {
+		return startGRPC(m, c, requestString)
+	}
 	s, sErr, retCode := NewSessionState(requestString, c, m)
 	if sErr != nil {
 		return sErr, retCode
@@ -377,6 +383,104 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	default:
 		panic("Unsupported RPC type")
 	}
+
+	resp := s.generateResponse(r)
+	// Output response to stdout
+	fmt.Println(string(resp))
+
+	go s.heartbeatWatch(s.KillChan())
+
+	if s.isDaemon() {
+		exitCode = <-s.KillChan() // Closing of channel kills
+	}
+
+	return nil, exitCode
+}
+
+func startGRPC(m *PluginMeta, c Plugin, requestString string) (error, int) {
+	s, sErr, retCode := NewSessionState(requestString, c, m)
+	if sErr != nil {
+		return sErr, retCode
+	}
+
+	var (
+		r        *Response
+		exitCode int = 0
+	)
+	// Start grpc stuff
+	opts := []grpc.ServerOption{}
+	grpcServer := grpc.NewServer(opts...)
+	switch m.Type {
+	case CollectorPluginType:
+		r = &Response{
+			Type:  CollectorPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		if !m.Unsecure {
+			r.PublicKey = &s.privateKey.PublicKey
+		}
+		collectProxy := &gRPCCollectorProxy{
+			Plugin:  c.(CollectorPlugin),
+			Session: s,
+			gRPCPluginProxy: gRPCPluginProxy{
+				plugin:  c,
+				session: s,
+			},
+		}
+
+		myRPC.RegisterCollectorServer(grpcServer, collectProxy)
+	case ProcessorPluginType:
+		r = &Response{
+			Type:  ProcessorPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		if !m.Unsecure {
+			r.PublicKey = &s.privateKey.PublicKey
+		}
+		processProxy := &gRPCProcessorProxy{
+			Plugin:  c.(ProcessorPlugin),
+			Session: s,
+			gRPCPluginProxy: gRPCPluginProxy{
+				plugin:  c,
+				session: s,
+			},
+		}
+
+		myRPC.RegisterProcessorServer(grpcServer, processProxy)
+	case PublisherPluginType:
+		r = &Response{
+			Type:  PublisherPluginType,
+			State: PluginSuccess,
+			Meta:  *m,
+		}
+		if !m.Unsecure {
+			r.PublicKey = &s.privateKey.PublicKey
+		}
+		publishProxy := &gRPCPublisherProxy{
+			Plugin:  c.(PublisherPlugin),
+			Session: s,
+			gRPCPluginProxy: gRPCPluginProxy{
+				plugin:  c,
+				session: s,
+			},
+		}
+		myRPC.RegisterPublisherServer(grpcServer, publishProxy)
+	}
+
+	l, err := net.Listen("tcp", "127.0.0.1:"+s.ListenPort())
+	if err != nil {
+		s.Logger().Println(err.Error())
+		panic(err)
+	}
+	s.SetListenAddress(l.Addr().String())
+	go func() {
+		err := grpcServer.Serve(l)
+		if err != nil {
+			log.Print(err)
+		}
+	}()
 
 	resp := s.generateResponse(r)
 	// Output response to stdout

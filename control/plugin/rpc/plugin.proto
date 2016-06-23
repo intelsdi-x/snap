@@ -1,0 +1,172 @@
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2016 Intel Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+syntax = "proto3";
+
+package rpc;
+import "github.com/intelsdi-x/snap/grpc/common/common.proto";
+
+service Collector { 
+    rpc CollectMetrics(CollectMetricsArg) returns (CollectMetricsReply) {}
+    rpc GetMetricTypes(GetMetricTypesArg) returns (GetMetricTypesReply) {}
+    rpc SetKey(SetKeyArg) returns (SetKeyReply) {}
+    rpc Ping(common.Empty) returns (PingReply) {}
+    rpc Kill(KillRequest) returns (KillReply) {}
+    rpc GetConfigPolicy(common.Empty) returns (GetConfigPolicyReply) {}
+}
+
+service Processor {
+    rpc Process(ProcessArg) returns (ProcessReply) {}
+    rpc SetKey(SetKeyArg) returns (SetKeyReply) {}
+    rpc Ping(common.Empty) returns (PingReply) {}
+    rpc Kill(KillRequest) returns (KillReply) {}
+    rpc GetConfigPolicy(common.Empty) returns (GetConfigPolicyReply) {}
+}
+
+service Publisher {
+    rpc Publish(PublishArg) returns (common.Empty) {}
+    rpc SetKey(SetKeyArg) returns (SetKeyReply) {}
+    rpc Ping(common.Empty) returns (PingReply) {}
+    rpc Kill(KillRequest) returns (KillReply) {}
+    rpc GetConfigPolicy(common.Empty) returns (GetConfigPolicyReply) {}
+}
+
+message ProcessArg{
+    string ContentType = 1;
+    bytes Content = 2;
+    common.ConfigMap Config = 3;
+}
+
+message ProcessReply{
+    string ContentType = 1;
+    bytes Content = 2;
+    string Error = 3;
+}
+
+message PublishArg{
+    string ContentType = 1;
+    bytes Content = 2;
+    common.ConfigMap Config = 3;
+}
+
+message Rule {
+    string rule_type = 1;
+    string key = 2;
+    bool required = 3;
+    string eescription = 4;
+
+    bool bool_default = 5;
+
+    double float_default = 6;
+    double float_minimum = 7;
+    double float_maximum = 8;
+
+    int64 int_default = 9;
+    int64 int_minimum = 10;
+    int64 int_maximum = 11;
+
+    string string_default = 12;
+
+}
+
+message SetKeyArg {
+    bytes key = 1;
+}
+
+message SetKeyReply {
+    string error = 1;
+}
+
+message PingReply {
+    string error = 1;
+}
+
+message KillRequest {
+	string Reason = 1;
+}
+
+message KillReply {
+    string error = 1;
+}
+
+message GetConfigPolicyReply {
+    string error = 1;
+    map<string, BoolPolicy> bool_policy = 2;
+    map<string, FloatPolicy> float_policy = 3;
+    map<string, IntegerPolicy> integer_policy = 4;
+    map<string, StringPolicy> string_policy = 5;
+}
+
+message BoolRule {
+    bool required = 1;
+    bool default = 2;
+}
+
+message BoolPolicy {
+    map<string, BoolRule> rules = 1;
+}
+
+message FloatRule {
+    bool required = 1;
+    double minimum = 2;
+    double maximum = 3;
+    double default = 4;
+}
+
+message FloatPolicy {
+    map<string, FloatRule> rules = 1;
+}
+
+message IntegerRule {
+    bool required = 1;
+    int64 minimum = 2;
+    int64 maximum = 3;
+    int64 default = 4;
+}
+
+message IntegerPolicy {
+    map<string, IntegerRule> rules = 1;
+}
+
+message StringRule {
+    bool required = 1;
+    string default = 2;
+}
+
+message StringPolicy {
+    map<string,  StringRule> rules = 1;
+}
+
+message CollectMetricsArg {
+    repeated common.Metric metrics = 1;
+}
+
+message CollectMetricsReply {
+    repeated common.Metric metrics = 1;
+    string error = 2;
+}
+
+message GetMetricTypesArg {
+    common.ConfigMap config = 1;
+}
+
+message GetMetricTypesReply {
+    repeated common.Metric metrics = 1;
+    string error = 2;
+}
+

@@ -57,9 +57,12 @@ type Session interface {
 	isDaemon() bool
 
 	SetKey(SetKeyArgs, *[]byte) error
+	setKey([]byte)
 
 	Encode(interface{}) ([]byte, error)
 	Decode([]byte, interface{}) error
+
+	DecryptKey([]byte) ([]byte, error)
 }
 
 // Arguments passed to ping
@@ -191,6 +194,10 @@ func (s *SessionState) SetKey(args SetKeyArgs, reply *[]byte) error {
 	return nil
 }
 
+func (s *SessionState) setKey(key []byte) {
+	s.Key = key
+}
+
 func (s *SessionState) generateResponse(r *Response) []byte {
 	// Add common plugin response properties
 	r.ListenAddress = s.listenAddress
@@ -272,6 +279,9 @@ func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*Se
 		enc = encoding.NewJsonEncoder()
 	case NativeRPC:
 		enc = encoding.NewGobEncoder()
+	case GRPC:
+		enc = encoding.NewGobEncoder()
+		//TODO(CDR): re-think once content-types is settled
 	}
 	ss := &SessionState{
 		Arg:     pluginArg,

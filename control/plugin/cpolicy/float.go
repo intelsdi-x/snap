@@ -29,6 +29,10 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
+const (
+	FloatType = "float"
+)
+
 // FloatRule A rule validating against string-typed config
 type FloatRule struct {
 	rule
@@ -55,12 +59,12 @@ func (f *FloatRule) MarshalJSON() ([]byte, error) {
 		Default:  f.Default(),
 		Minimum:  f.Minimum(),
 		Maximum:  f.Maximum(),
-		Type:     "float",
+		Type:     FloatType,
 	})
 }
 
 func (s *FloatRule) Type() string {
-	return "float"
+	return FloatType
 }
 
 // GobEncode encodes a FloatRule into a GOB
@@ -159,8 +163,8 @@ func (f *FloatRule) Key() string {
 // Validate Validates a config value against this rule.
 func (f *FloatRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
-	if cv.Type() != "float" {
-		return wrongType(f.key, cv.Type(), "float")
+	if cv.Type() != FloatType {
+		return wrongType(f.key, cv.Type(), FloatType)
 	}
 	// Check minimum. Type should be safe now because of the check above.
 	if f.minimum != nil && cv.(ctypes.ConfigValueFloat).Value < *f.minimum {

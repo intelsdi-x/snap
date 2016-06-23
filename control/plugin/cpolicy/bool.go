@@ -27,6 +27,10 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
+const (
+	BoolType = "bool"
+)
+
 // BoolRule validating against string-typed config
 type BoolRule struct {
 	rule
@@ -55,7 +59,7 @@ func NewBoolRule(key string, req bool, opts ...bool) (*BoolRule, error) {
 
 // Type Returns a type of Rule
 func (b *BoolRule) Type() string {
-	return "bool"
+	return BoolType
 }
 
 // MarshalJSON marshals a BoolRule into JSON
@@ -64,12 +68,12 @@ func (b *BoolRule) MarshalJSON() ([]byte, error) {
 		Key      string             `json:"key"`
 		Required bool               `json:"required"`
 		Default  ctypes.ConfigValue `json:"default,omitempty"`
-		Type     bool               `json:"type"`
+		Type     string             `json:"type"`
 	}{
 		Key:      b.key,
 		Required: b.required,
 		Default:  b.Default(),
-		Type:     false,
+		Type:     BoolType,
 	})
 }
 
@@ -120,8 +124,8 @@ func (b *BoolRule) Key() string {
 // Validate validates a config value against this rule.
 func (b *BoolRule) Validate(cv ctypes.ConfigValue) error {
 	// Check that type is correct
-	if cv.Type() != "bool" {
-		return wrongType(b.key, cv.Type(), "bool")
+	if cv.Type() != BoolType {
+		return wrongType(b.key, cv.Type(), BoolType)
 	}
 	return nil
 }

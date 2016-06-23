@@ -21,6 +21,7 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -64,8 +65,10 @@ func ToMetric(co core.Metric) *Metric {
 		cm.Data = &Metric_Int64Data{t}
 	case []byte:
 		cm.Data = &Metric_BytesData{t}
+	case nil:
+		cm.Data = nil
 	default:
-		panic(t)
+		panic(fmt.Sprintf("unsupported type: %s", t))
 	}
 	return cm
 }
@@ -141,13 +144,13 @@ func ToCoreMetric(mt *Metric) core.Metric {
 	case *Metric_StringData:
 		ret.data = mt.GetStringData()
 	case *Metric_Float32Data:
-		ret.data = mt.GetFloat32Data
+		ret.data = mt.GetFloat32Data()
 	case *Metric_Float64Data:
-		ret.data = mt.GetFloat64Data
+		ret.data = mt.GetFloat64Data()
 	case *Metric_Int32Data:
-		ret.data = mt.GetInt32Data
+		ret.data = mt.GetInt32Data()
 	case *Metric_Int64Data:
-		ret.data = mt.GetInt64Data
+		ret.data = mt.GetInt64Data()
 	}
 	return ret
 }

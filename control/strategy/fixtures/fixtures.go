@@ -140,6 +140,10 @@ func (m MockAvailablePlugin) Kill(string) error {
 	return nil
 }
 
+func (m MockAvailablePlugin) Stop(string) error {
+	return nil
+}
+
 func (m MockAvailablePlugin) ID() uint32 {
 	return m.id
 }

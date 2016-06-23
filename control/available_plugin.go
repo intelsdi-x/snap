@@ -112,6 +112,13 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
 			ap.client = c
+		case plugin.GRPC:
+			c, e := client.NewCollectorGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
+			//TODO(CDR): Add default cases to these switches to catch invalid rpctype?
 		}
 	case plugin.PublisherPluginType:
 		switch resp.Meta.RPCType {
@@ -127,6 +134,12 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
 			ap.client = c
+		case plugin.GRPC:
+			c, e := client.NewPublisherGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
 		}
 	case plugin.ProcessorPluginType:
 		switch resp.Meta.RPCType {
@@ -138,6 +151,12 @@ func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executa
 			ap.client = c
 		case plugin.NativeRPC:
 			c, e := client.NewProcessorNativeClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
+		case plugin.GRPC:
+			c, e := client.NewProcessorGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}

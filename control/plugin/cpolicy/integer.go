@@ -29,6 +29,10 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 )
 
+const (
+	IntegerType = "integer"
+)
+
 // A rule validating against string-typed config
 type IntRule struct {
 	rule
@@ -60,7 +64,7 @@ func NewIntegerRule(key string, req bool, opts ...int) (*IntRule, error) {
 }
 
 func (i *IntRule) Type() string {
-	return "integer"
+	return IntegerType
 }
 
 // MarshalJSON marshals a IntRule into JSON
@@ -78,7 +82,7 @@ func (i *IntRule) MarshalJSON() ([]byte, error) {
 		Default:  i.Default(),
 		Minimum:  i.Minimum(),
 		Maximum:  i.Maximum(),
-		Type:     "integer",
+		Type:     IntegerType,
 	})
 }
 
@@ -162,8 +166,8 @@ func (i *IntRule) Validate(cv ctypes.ConfigValue) error {
 	// when unmarshalling JSON numbers are converted to floats which is the reason
 	// we are checking for integer below.
 	// http://golang.org/pkg/encoding/json/#Marshal
-	if cv.Type() != "integer" && cv.Type() != "float" {
-		return wrongType(i.key, cv.Type(), "integer")
+	if cv.Type() != IntegerType && cv.Type() != FloatType {
+		return wrongType(i.key, cv.Type(), IntegerType)
 	}
 	// Check minimum. Type should be safe now because of the check above.
 	if i.minimum != nil && cv.(ctypes.ConfigValueInt).Value < *i.minimum {

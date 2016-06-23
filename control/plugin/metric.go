@@ -125,11 +125,12 @@ type MetricType struct {
 // NewMetricType returns a Constructor
 func NewMetricType(namespace core.Namespace, timestamp time.Time, tags map[string]string, unit string, data interface{}) *MetricType {
 	return &MetricType{
-		Namespace_: namespace,
-		Tags_:      tags,
-		Data_:      data,
-		Timestamp_: timestamp,
-		Unit_:      unit,
+		Namespace_:          namespace,
+		Tags_:               tags,
+		Data_:               data,
+		Timestamp_:          timestamp,
+		LastAdvertisedTime_: timestamp,
+		Unit_:               unit,
 	}
 }
 
