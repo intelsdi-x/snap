@@ -21,6 +21,10 @@ package main
 
 import "github.com/codegangsta/cli"
 
+const (
+	DefaultMaxFailures = 10
+)
+
 var (
 
 	// Main flags
@@ -121,6 +125,11 @@ var (
 	flTaskDeadline = cli.StringFlag{
 		Name:  "deadline",
 		Usage: "The deadline for the task to be killed after started if the task runs too long (All tasks default to 5s)",
+	}
+	flTaskMaxFailures = cli.IntFlag{
+		Name:  "max-failures",
+		Usage: "The number of consecutive failures before snap disable the task (Default 10 consective failures)",
+		Value: DefaultMaxFailures,
 	}
 
 	// metric

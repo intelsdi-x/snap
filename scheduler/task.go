@@ -81,7 +81,7 @@ type task struct {
 	failedRuns         uint
 	lastFailureMessage string
 	lastFailureTime    time.Time
-	stopOnFailure      uint
+	stopOnFailure      int
 	eventEmitter       gomit.Emitter
 	RemoteManagers     managers
 }
@@ -199,7 +199,7 @@ func (t *task) Status() WorkflowState {
 	return t.workflow.State()
 }
 
-func (t *task) SetStopOnFailure(v uint) {
+func (t *task) SetStopOnFailure(v int) {
 	t.stopOnFailure = v
 }
 
@@ -207,7 +207,7 @@ func (t *task) SetID(id string) {
 	t.id = id
 }
 
-func (t *task) GetStopOnFailure() uint {
+func (t *task) GetStopOnFailure() int {
 	return t.stopOnFailure
 }
 
@@ -271,7 +271,7 @@ func (t *task) Schedule() schedule.Schedule {
 }
 
 func (t *task) spin() {
-	var consecutiveFailures uint
+	var consecutiveFailures int
 	for {
 		taskLogger.Debug("task spin loop")
 		// Start go routine to wait on schedule
@@ -301,7 +301,7 @@ func (t *task) spin() {
 				} else {
 					consecutiveFailures = 0
 				}
-				if consecutiveFailures >= t.stopOnFailure {
+				if t.stopOnFailure >= 0 && consecutiveFailures >= t.stopOnFailure {
 					taskLogger.WithFields(log.Fields{
 						"_block":               "spin",
 						"task-id":              t.id,
@@ -320,6 +320,7 @@ func (t *task) spin() {
 					defer t.eventEmitter.Emit(event)
 					return
 				}
+
 			// Schedule has ended
 			case schedule.Ended:
 				// You must lock task to change state
