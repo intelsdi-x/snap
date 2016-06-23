@@ -32,7 +32,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
-func listMetrics(ctx *cli.Context) {
+func listMetrics(ctx *cli.Context) error {
 	ns := ctx.String("metric-namespace")
 	ver := ctx.Int("metric-version")
 	verbose := ctx.Bool("verbose")
@@ -51,7 +51,7 @@ func listMetrics(ctx *cli.Context) {
 	mts := pClient.FetchMetrics(ns, ver)
 	if mts.Err != nil {
 		fmt.Printf("Error getting metrics: %v\n", mts.Err)
-		os.Exit(1)
+		return errCritical
 	}
 
 	/*
@@ -74,7 +74,7 @@ func listMetrics(ctx *cli.Context) {
 			printFields(w, false, 0, namespace, mt.Version, mt.Unit, mt.Description)
 		}
 		w.Flush()
-		return
+		return nil
 	}
 	metsByVer := make(map[string][]string)
 	for _, mt := range mts.Catalog {
@@ -92,22 +92,22 @@ func listMetrics(ctx *cli.Context) {
 		printFields(w, false, 0, ns, strings.Join(metsByVer[ns], ","))
 	}
 	w.Flush()
-	return
+	return nil
 }
 
-func getMetric(ctx *cli.Context) {
+func getMetric(ctx *cli.Context) error {
 	if !ctx.IsSet("metric-namespace") {
 		fmt.Println("namespace is required")
 		fmt.Println("")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return
+		return errCritical
 	}
 	ns := ctx.String("metric-namespace")
 	ver := ctx.Int("metric-version")
 	metric := pClient.GetMetric(ns, ver)
 	if metric.Err != nil {
 		fmt.Println(metric.Err)
-		return
+		return errCritical
 	}
 
 	/*
@@ -155,6 +155,8 @@ func getMetric(ctx *cli.Context) {
 		printFields(w, true, 6, rule.Name, rule.Type, rule.Default, rule.Required, rule.Minimum, rule.Maximum)
 	}
 	w.Flush()
+
+	return nil
 }
 
 func getNamespace(mt *rbody.Metric) string {

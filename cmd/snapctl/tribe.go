@@ -31,11 +31,11 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 )
 
-func listMembers(ctx *cli.Context) {
+func listMembers(ctx *cli.Context) error {
 	resp := pClient.ListMembers()
 	if resp.Err != nil {
 		fmt.Printf("Error getting members:\n%v\n", resp.Err)
-		os.Exit(1)
+		return errCritical
 	}
 
 	if len(resp.Members) > 0 {
@@ -50,19 +50,21 @@ func listMembers(ctx *cli.Context) {
 	} else {
 		fmt.Println("None")
 	}
+
+	return nil
 }
 
-func showMember(ctx *cli.Context) {
+func showMember(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	resp := pClient.GetMember(ctx.Args().First())
 	if resp.Err != nil {
 		fmt.Printf("Error:\n%v\n", resp.Err)
-		os.Exit(1)
+		return errCritical
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
@@ -84,7 +86,7 @@ func showMember(ctx *cli.Context) {
 	tags, err := json.Marshal(resp.Tags)
 	if err != nil {
 		fmt.Printf("Error:\n%v\n", err)
-		os.Exit(1)
+		return errCritical
 	}
 
 	values := []interface{}{resp.Name, resp.PluginAgreement, tasks.String()}
@@ -94,88 +96,94 @@ func showMember(ctx *cli.Context) {
 
 	printFields(w, false, 0, values...)
 
+	return nil
 }
 
-func listAgreements(ctx *cli.Context) {
+func listAgreements(ctx *cli.Context) error {
 	resp := pClient.ListAgreements()
 	if resp.Err != nil {
 		fmt.Printf("Error getting members:\n%v\n", resp.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	printAgreements(resp.Agreements)
+	return nil
 }
 
-func createAgreement(ctx *cli.Context) {
+func createAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	resp := pClient.AddAgreement(ctx.Args().First())
 	if resp.Err != nil {
 		fmt.Printf("Error creating agreement: %v\n", resp.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	printAgreements(resp.Agreements)
+	return nil
 }
 
-func deleteAgreement(ctx *cli.Context) {
+func deleteAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	resp := pClient.DeleteAgreement(ctx.Args().First())
 	if resp.Err != nil {
 		fmt.Printf("Error: %v\n", resp.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	printAgreements(resp.Agreements)
+	return nil
 }
 
-func joinAgreement(ctx *cli.Context) {
+func joinAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 2 {
 		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	resp := pClient.JoinAgreement(ctx.Args().First(), ctx.Args().Get(1))
 	if resp.Err != nil {
 		fmt.Printf("Error: %v\n", resp.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	printAgreements(map[string]*agreement.Agreement{resp.Agreement.Name: resp.Agreement})
+	return nil
 }
 
-func leaveAgreement(ctx *cli.Context) {
+func leaveAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 2 {
 		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	resp := pClient.LeaveAgreement(ctx.Args().First(), ctx.Args().Get(1))
 	if resp.Err != nil {
 		fmt.Printf("Error: %v\n", resp.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	printAgreements(map[string]*agreement.Agreement{resp.Agreement.Name: resp.Agreement})
+	return nil
 }
 
-func agreementMembers(ctx *cli.Context) {
+func agreementMembers(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Println("Incorrect usage:")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	resp := pClient.GetAgreement(ctx.Args().First())
 	if resp.Err != nil {
 		fmt.Printf("Error: %v\n", resp.Err)
-		os.Exit(1)
+		return errCritical
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
@@ -184,6 +192,8 @@ func agreementMembers(ctx *cli.Context) {
 	for _, v := range resp.Agreement.Members {
 		printFields(w, false, 0, v.Name)
 	}
+
+	return nil
 }
 
 func printAgreements(agreements map[string]*agreement.Agreement) {

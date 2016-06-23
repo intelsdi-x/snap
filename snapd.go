@@ -210,10 +210,12 @@ func main() {
 	app.Flags = append(app.Flags, tribe.Flags...)
 
 	app.Action = action
-	app.Run(os.Args)
+	if app.Run(os.Args) != nil {
+		os.Exit(1)
+	}
 }
 
-func action(ctx *cli.Context) {
+func action(ctx *cli.Context) error {
 	// get default configuration
 	cfg := getDefaultConfig()
 

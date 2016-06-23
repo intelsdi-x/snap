@@ -85,7 +85,7 @@ type task struct {
 	Deadline string
 }
 
-func createTask(ctx *cli.Context) {
+func createTask(ctx *cli.Context) error {
 	if ctx.IsSet("task-manifest") {
 		fmt.Println("Using task manifest to create task")
 		createTaskUsingTaskManifest(ctx)
@@ -95,20 +95,19 @@ func createTask(ctx *cli.Context) {
 	} else {
 		fmt.Println("Must provide either --task-manifest or --workflow-manifest arguments")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
-	os.Exit(0)
-
+	return nil
 }
 
-func createTaskUsingTaskManifest(ctx *cli.Context) {
+func createTaskUsingTaskManifest(ctx *cli.Context) error {
 	path := ctx.String("task-manifest")
 	ext := filepath.Ext(path)
 	file, e := ioutil.ReadFile(path)
 	if e != nil {
 		fmt.Printf("File error [%s]- %v\n", ext, e)
-		os.Exit(1)
+		return errCritical
 	}
 
 	t := task{}
@@ -117,23 +116,23 @@ func createTaskUsingTaskManifest(ctx *cli.Context) {
 		e = yaml.Unmarshal(file, &t)
 		if e != nil {
 			fmt.Printf("Error parsing YAML file input - %v\n", e)
-			os.Exit(1)
+			return errCritical
 		}
 	case ".json":
 		e = json.Unmarshal(file, &t)
 		if e != nil {
 			fmt.Printf("Error parsing JSON file input - %v\n", e)
-			os.Exit(1)
+			return errCritical
 		}
 	default:
 		fmt.Printf("Unsupported file type %s\n", ext)
-		os.Exit(1)
+		return errCritical
 	}
 
 	t.Name = ctx.String("name")
 	if t.Version != 1 {
 		fmt.Println("Invalid version provided")
-		os.Exit(1)
+		return errCritical
 	}
 	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"))
 
@@ -143,15 +142,17 @@ func createTaskUsingTaskManifest(ctx *cli.Context) {
 		for _, err := range errors {
 			fmt.Printf("%v\n", err)
 		}
-		os.Exit(1)
+		return errCritical
 	}
 	fmt.Println("Task created")
 	fmt.Printf("ID: %s\n", r.ID)
 	fmt.Printf("Name: %s\n", r.Name)
 	fmt.Printf("State: %s\n", r.State)
+
+	return nil
 }
 
-func createTaskUsingWFManifest(ctx *cli.Context) {
+func createTaskUsingWFManifest(ctx *cli.Context) error {
 	// Get the workflow
 	path := ctx.String("workflow-manifest")
 	ext := filepath.Ext(path)
@@ -159,11 +160,11 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 
 	if !ctx.IsSet("interval") && !ctx.IsSet("i") {
 		fmt.Println("Workflow manifest requires interval to be set via flag.")
-		os.Exit(1)
+		return errCritical
 	}
 	if e != nil {
 		fmt.Printf("File error [%s]- %v\n", ext, e)
-		os.Exit(1)
+		return errCritical
 	}
 
 	var wf *wmap.WorkflowMap
@@ -173,14 +174,14 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 		wf, e = wmap.FromYaml(file)
 		if e != nil {
 			fmt.Printf("Error parsing YAML file input - %v\n", e)
-			os.Exit(1)
+			return errCritical
 		}
 	case ".json":
 		wf, e = wmap.FromJson(file)
 		// e = json.Unmarshal(file, &t)
 		if e != nil {
 			fmt.Printf("Error parsing JSON file input - %v\n", e)
-			os.Exit(1)
+			return errCritical
 		}
 	}
 	// Get the task name
@@ -194,7 +195,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 		_, e := cron.Parse(i)
 		if e != nil {
 			fmt.Printf("Bad interval format:\nfor simple schedule: %v\nfor cron schedule: %v\n", err, e)
-			os.Exit(1)
+			return errCritical
 		}
 		isCron = true
 	}
@@ -210,7 +211,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 			d, err := time.ParseDuration(ctx.String("duration"))
 			if err != nil {
 				fmt.Printf("Bad duration format:\n%v\n", err)
-				os.Exit(1)
+				return errCritical
 			}
 			start := time.Now().Add(createTaskNowPad)
 			stop := start.Add(d)
@@ -248,7 +249,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 			d, err := time.ParseDuration(ctx.String("duration"))
 			if err != nil {
 				fmt.Printf("Bad duration format:\n%v\n", err)
-				os.Exit(1)
+				return errCritical
 			}
 			// if start is set and stop is not then use duration to create stop
 			if start != nil && stop == nil {
@@ -276,12 +277,14 @@ func createTaskUsingWFManifest(ctx *cli.Context) {
 		for _, err := range errors {
 			fmt.Printf("%v\n", err)
 		}
-		os.Exit(1)
+		return errCritical
 	}
 	fmt.Println("Task created")
 	fmt.Printf("ID: %s\n", r.ID)
 	fmt.Printf("Name: %s\n", r.Name)
 	fmt.Printf("State: %s\n", r.State)
+
+	return nil
 }
 
 func mergeDateTime(tm, dt string) *time.Time {
@@ -313,11 +316,11 @@ func mergeDateTime(tm, dt string) *time.Time {
 	return &reTm
 }
 
-func listTask(ctx *cli.Context) {
+func listTask(ctx *cli.Context) error {
 	tasks := pClient.GetTasks()
 	if tasks.Err != nil {
 		fmt.Printf("Error getting tasks:\n%v\n", tasks.Err)
-		os.Exit(1)
+		return errCritical
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
@@ -344,13 +347,15 @@ func listTask(ctx *cli.Context) {
 		)
 	}
 	w.Flush()
+
+	return nil
 }
 
-func watchTask(ctx *cli.Context) {
+func watchTask(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	verbose := ctx.Bool("verbose")
@@ -358,7 +363,7 @@ func watchTask(ctx *cli.Context) {
 	r := pClient.WatchTask(id)
 	if r.Err != nil {
 		fmt.Println(r.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	fmt.Printf("Watching Task (%s):\n", id)
 
@@ -440,17 +445,17 @@ func watchTask(ctx *cli.Context) {
 			}
 
 		case <-r.DoneChan:
-			return
+			return nil
 		}
 	}
 
 }
 
-func startTask(ctx *cli.Context) {
+func startTask(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	id := ctx.Args().First()
@@ -459,20 +464,22 @@ func startTask(ctx *cli.Context) {
 		if strings.Contains(r.Err.Error(), "Task is already running.") {
 			fmt.Println("Task is already running")
 			fmt.Printf("ID: %s\n", id)
-			os.Exit(0)
+			return nil
 		}
 		fmt.Printf("Error starting task:\n%v\n", r.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	fmt.Println("Task started:")
 	fmt.Printf("ID: %s\n", r.ID)
+
+	return nil
 }
 
-func stopTask(ctx *cli.Context) {
+func stopTask(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	id := ctx.Args().First()
@@ -484,64 +491,70 @@ func stopTask(ctx *cli.Context) {
 			os.Exit(0)
 		}
 		fmt.Printf("Error stopping task:\n%v\n", r.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	fmt.Println("Task stopped:")
 	fmt.Printf("ID: %s\n", r.ID)
+
+	return nil
 }
 
-func removeTask(ctx *cli.Context) {
+func removeTask(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	id := ctx.Args().First()
 	r := pClient.RemoveTask(id)
 	if r.Err != nil {
 		fmt.Printf("Error stopping task:\n%v\n", r.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	fmt.Println("Task removed:")
 	fmt.Printf("ID: %s\n", r.ID)
+
+	return nil
 }
 
-func exportTask(ctx *cli.Context) {
+func exportTask(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 	id := ctx.Args().First()
 	task := pClient.GetTask(id)
 	if task.Err != nil {
 		fmt.Printf("Error exporting task:\n%v\n", task.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	tb, err := json.Marshal(task)
 	if err != nil {
 		fmt.Printf("Error exporting task:\n%v\n", err)
-		os.Exit(1)
+		return errCritical
 	}
 	fmt.Println(string(tb))
+	return nil
 }
 
-func enableTask(ctx *cli.Context) {
+func enableTask(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
 		fmt.Print("Incorrect usage\n")
 		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		os.Exit(1)
+		return errCritical
 	}
 
 	id := ctx.Args().First()
 	r := pClient.EnableTask(id)
 	if r.Err != nil {
 		fmt.Printf("Error enabling task:\n%v\n", r.Err)
-		os.Exit(1)
+		return errCritical
 	}
 	fmt.Println("Task enabled:")
 	fmt.Printf("ID: %s\n", r.ID)
+	return nil
 }
 
 func sortTags(tags map[string]string) []string {
