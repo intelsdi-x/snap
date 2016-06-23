@@ -26,17 +26,15 @@ import (
 )
 
 var (
-	flSchedulerQueueSize = cli.IntFlag{
+	flSchedulerQueueSize = cli.StringFlag{
 		Name:   "work-manager-queue-size",
-		Usage:  fmt.Sprintf("Size of the work manager queue (default: %d)", defaultWorkManagerQueueSize),
-		Value:  int(defaultWorkManagerQueueSize),
+		Usage:  fmt.Sprintf("Size of the work manager queue (default: %v)", defaultWorkManagerQueueSize),
 		EnvVar: "WORK_MANAGER_QUEUE_SIZE",
 	}
 
-	flSchedulerPoolSize = cli.IntFlag{
+	flSchedulerPoolSize = cli.StringFlag{
 		Name:   "work-manager-pool-size",
-		Usage:  fmt.Sprintf("Size of the work manager pool (default %d)", defaultWorkManagerPoolSize),
-		Value:  int(defaultWorkManagerPoolSize),
+		Usage:  fmt.Sprintf("Size of the work manager pool (default: %v)", defaultWorkManagerPoolSize),
 		EnvVar: "WORK_MANAGER_POOL_SIZE",
 	}
 

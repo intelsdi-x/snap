@@ -35,9 +35,9 @@ var (
 		Usage:  "API Address[:port] to bind to/listen on. Default: empty string => listen on all interfaces",
 		EnvVar: "SNAP_ADDR",
 	}
-	flAPIPort = cli.IntFlag{
+	flAPIPort = cli.StringFlag{
 		Name:   "api-port, p",
-		Usage:  fmt.Sprintf("API port (Default: %d)", defaultPort),
+		Usage:  fmt.Sprintf("API port (default: %v)", defaultPort),
 		EnvVar: "SNAP_PORT",
 	}
 	flRestHTTPS = cli.BoolFlag{

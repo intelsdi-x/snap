@@ -19,19 +19,21 @@ limitations under the License.
 
 package control
 
-import "github.com/codegangsta/cli"
+import (
+	"fmt"
+
+	"github.com/codegangsta/cli"
+)
 
 var (
-	flNumberOfPLs = cli.IntFlag{
+	flNumberOfPLs = cli.StringFlag{
 		Name:   "max-running-plugins, m",
-		Value:  defaultMaxRunningPlugins,
-		Usage:  "The maximum number of instances of a loaded plugin to run",
+		Usage:  fmt.Sprintf("The maximum number of instances of a loaded plugin to run (default: %v)", defaultMaxRunningPlugins),
 		EnvVar: "SNAP_MAX_PLUGINS",
 	}
-	flPluginTrust = cli.IntFlag{
+	flPluginTrust = cli.StringFlag{
 		Name:   "plugin-trust, t",
-		Usage:  "0-2 (Disabled, Enabled, Warning)",
-		Value:  defaultPluginTrust,
+		Usage:  fmt.Sprintf("0-2 (Disabled, Enabled, Warning; default: %v)", defaultPluginTrust),
 		EnvVar: "SNAP_TRUST_LEVEL",
 	}
 
@@ -45,16 +47,15 @@ var (
 		Usage:  "Keyring paths for signing verification separated by colons",
 		EnvVar: "SNAP_KEYRING_PATHS",
 	}
-	flCache = cli.DurationFlag{
+	flCache = cli.StringFlag{
 		Name:   "cache-expiration",
-		Usage:  "The time limit for which a metric cache entry is valid",
-		Value:  defaultCacheExpiration,
+		Usage:  fmt.Sprintf("The time limit for which a metric cache entry is valid (default: %v)", defaultCacheExpiration),
 		EnvVar: "SNAP_CACHE_EXPIRATION",
 	}
 
-	flControlRpcPort = cli.IntFlag{
+	flControlRpcPort = cli.StringFlag{
 		Name:   "control-listen-port",
-		Usage:  "Listen port for control RPC server",
+		Usage:  fmt.Sprintf("Listen port for control RPC server (default: %v)", defaultListenPort),
 		EnvVar: "SNAP_CONTROL_LISTEN_PORT",
 	}
 

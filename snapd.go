@@ -50,10 +50,9 @@ import (
 )
 
 var (
-	flMaxProcs = cli.IntFlag{
+	flMaxProcs = cli.StringFlag{
 		Name:   "max-procs, c",
-		Usage:  fmt.Sprintf("Set max cores to use for snap Agent. Default is %d core.", defaultGoMaxProcs),
-		Value:  defaultGoMaxProcs,
+		Usage:  fmt.Sprintf("Set max cores to use for snap Agent (default: %v)", defaultGoMaxProcs),
 		EnvVar: "GOMAXPROCS",
 	}
 	// plugin
@@ -70,10 +69,9 @@ var (
 		Name:  "log-colors",
 		Usage: "Log file coloring mode. Default is true => colored (--log-colors=false => no colors).",
 	}
-	flLogLevel = cli.IntFlag{
+	flLogLevel = cli.StringFlag{
 		Name:   "log-level, l",
-		Usage:  "1-5 (Debug, Info, Warning, Error, Fatal)",
-		Value:  defaultLogLevel,
+		Usage:  fmt.Sprintf("1-5 (Debug, Info, Warning, Error, Fatal; default: %v)", defaultLogLevel),
 		EnvVar: "SNAP_LOG_LEVEL",
 	}
 	flConfig = cli.StringFlag{
@@ -550,9 +548,15 @@ func setStringVal(field string, ctx *cli.Context, flagName string) string {
 func setIntVal(field int, ctx *cli.Context, flagName string) int {
 	// check to see if a value was set (either on the command-line or via the associated
 	// environment variable, if any); if so, use that as value for the input field
-	val := ctx.Int(flagName)
-	if ctx.IsSet(flagName) || val != 0 {
-		field = val
+	val := ctx.String(flagName)
+	if ctx.IsSet(flagName) || val != "" {
+		parsedField, err := strconv.Atoi(val)
+		if err != nil {
+			splitErr := strings.Split(err.Error(), ": ")
+			errStr := splitErr[len(splitErr)-1]
+			log.Fatal(fmt.Sprintf("Error Parsing %v; value '%v' cannot be parsed as an integer (%v)", flagName, val, errStr))
+		}
+		field = int(parsedField)
 	}
 	return field
 }
@@ -560,9 +564,15 @@ func setIntVal(field int, ctx *cli.Context, flagName string) int {
 func setUIntVal(field uint, ctx *cli.Context, flagName string) uint {
 	// check to see if a value was set (either on the command-line or via the associated
 	// environment variable, if any); if so, use that as value for the input field
-	val := ctx.Int(flagName)
-	if ctx.IsSet(flagName) || val != 0 {
-		field = uint(val)
+	val := ctx.String(flagName)
+	if ctx.IsSet(flagName) || val != "" {
+		parsedField, err := strconv.Atoi(val)
+		if err != nil {
+			splitErr := strings.Split(err.Error(), ": ")
+			errStr := splitErr[len(splitErr)-1]
+			log.Fatal(fmt.Sprintf("Error Parsing %v; value '%v' cannot be parsed as an unsigned integer (%v)", flagName, val, errStr))
+		}
+		field = uint(parsedField)
 	}
 	return field
 }
@@ -570,9 +580,15 @@ func setUIntVal(field uint, ctx *cli.Context, flagName string) uint {
 func setDurationVal(field time.Duration, ctx *cli.Context, flagName string) time.Duration {
 	// check to see if a value was set (either on the command-line or via the associated
 	// environment variable, if any); if so, use that as value for the input field
-	val := ctx.Duration(flagName)
-	if ctx.IsSet(flagName) || val != 0 {
-		field = val
+	val := ctx.String(flagName)
+	if ctx.IsSet(flagName) || val != "" {
+		parsedField, err := time.ParseDuration(val)
+		if err != nil {
+			splitErr := strings.Split(err.Error(), ": ")
+			errStr := splitErr[len(splitErr)-1]
+			log.Fatal(fmt.Sprintf("Error Parsing %v; value '%v' cannot be parsed as a duration (%v)", flagName, val, errStr))
+		}
+		field = parsedField
 	}
 	return field
 }

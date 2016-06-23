@@ -19,7 +19,11 @@ limitations under the License.
 
 package tribe
 
-import "github.com/codegangsta/cli"
+import (
+	"fmt"
+
+	"github.com/codegangsta/cli"
+)
 
 var (
 	flTribeNodeName = cli.StringFlag{
@@ -40,10 +44,9 @@ var (
 		EnvVar: "SNAP_TRIBE_SEED",
 	}
 
-	flTribeAdvertisePort = cli.IntFlag{
+	flTribeAdvertisePort = cli.StringFlag{
 		Name:   "tribe-port",
-		Usage:  "Port tribe gossips over to maintain membership",
-		Value:  defaultBindPort,
+		Usage:  fmt.Sprintf("Port tribe gossips over to maintain membership (default: %v)", defaultBindPort),
 		EnvVar: "SNAP_TRIBE_PORT",
 	}
 
