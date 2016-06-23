@@ -140,6 +140,14 @@ func (pc *ControlGRPCServer) MatchQueryToNamespaces(ctx context.Context, r *rpc.
 	return reply, nil
 }
 
+func (pc *ControlGRPCServer) GetAutodiscoverPaths(ctx context.Context, _ *common.Empty) (*rpc.GetAutodiscoverPathsReply, error) {
+	paths := pc.control.GetAutodiscoverPaths()
+	reply := &rpc.GetAutodiscoverPathsReply{
+		Paths: paths,
+	}
+	return reply, nil
+}
+
 //-------- util ---------------
 
 func convertNSS(nss []core.Namespace) []*rpc.ArrString {

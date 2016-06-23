@@ -51,6 +51,16 @@ log_level: 3
 # the provided directory.
 log_path: /var/log/snap
 
+# log_truncate specifies how the log file with be opened
+# false => append
+# true  => truncate
+log_truncate: false
+
+# log_colors specifies if log file output is colorified
+# true  => colors
+# false => no colors
+log_colors: true
+
 # Gomaxprocs sets the number of cores to use on the system
 # for snapd to use. Default for gomaxprocs is 1
 gomaxprocs: 1

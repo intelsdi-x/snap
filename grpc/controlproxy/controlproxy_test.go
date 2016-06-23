@@ -49,6 +49,14 @@ type mockClient struct {
 	SubscribeReply   *rpc.SubscribeDepsReply
 	UnsubscribeReply *rpc.SubscribeDepsReply
 	MatchReply       *rpc.ExpandWildcardsReply
+	AutoDiscoReply   *rpc.GetAutodiscoverPathsReply
+}
+
+func (mc mockClient) GetAutodiscoverPaths(ctx context.Context, _ *common.Empty, opts ...grpc.CallOption) (*rpc.GetAutodiscoverPathsReply, error) {
+	if mc.RpcErr {
+		return nil, rpcErr
+	}
+	return mc.AutoDiscoReply, nil
 }
 
 func (mc mockClient) GetPluginContentTypes(ctx context.Context, in *rpc.GetPluginContentTypesRequest, opts ...grpc.CallOption) (*rpc.GetPluginContentTypesReply, error) {
@@ -539,4 +547,22 @@ func TestMatchQueryToNamespaces(t *testing.T) {
 
 	})
 
+}
+
+func TestGetAutoDiscoverPaths(t *testing.T) {
+	Convey("Able to call successfully", t, func() {
+		reply := &rpc.GetAutodiscoverPathsReply{
+			Paths: []string{"a", "titanium", "poodle"},
+		}
+		proxy := ControlProxy{Client: mockClient{AutoDiscoReply: reply}}
+		val := proxy.GetAutodiscoverPaths()
+		So(val, ShouldNotBeNil)
+		So(val, ShouldResemble, []string{"a", "titanium", "poodle"})
+	})
+
+	Convey("returns nil on rpc error", t, func() {
+		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
+		val := proxy.GetAutodiscoverPaths()
+		So(val, ShouldBeNil)
+	})
 }
