@@ -62,7 +62,7 @@ type Session interface {
 	Encode(interface{}) ([]byte, error)
 	Decode([]byte, interface{}) error
 
-	DecryptKey(in []byte) ([]byte, error)
+	DecryptKey([]byte) ([]byte, error)
 }
 
 // Arguments passed to ping
@@ -279,6 +279,9 @@ func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*Se
 		enc = encoding.NewJsonEncoder()
 	case NativeRPC:
 		enc = encoding.NewGobEncoder()
+	case GRPC:
+		enc = encoding.NewGobEncoder()
+		//TODO(CDR): re-think once content-types is settled
 	}
 	ss := &SessionState{
 		Arg:     pluginArg,
