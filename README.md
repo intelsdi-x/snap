@@ -19,7 +19,7 @@ limitations under the License.
 
 # **snap** <sup><sub>_A powerful telemetry framework_</sub></sup>
 
-[![Join the chat at https://gitter.im/intelsdi-x/snap](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/intelsdi-x/snap?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat on Slack](https://intelsdi-x.herokuapp.com/badge.svg)](https://intelsdi-x.herokuapp.com/)
 [![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap)
 [![Go Report Card](https://goreportcard.com/badge/intelsdi-x/snap)](https://goreportcard.com/report/intelsdi-x/snap)
 
@@ -219,7 +219,7 @@ Documentation for building a task can be found [here](docs/TASKS.md).
 ### Plugin Catalog
 All known plugins are tracked in the [plugin catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) and are tagged as collectors, processors and publishers.
 
-If you would like to write your own, read through [Author a Plugin](#author-a-plugin) to get started. Let us know if you begin to write one by [chatting with us on Gitter](https://gitter.im/intelsdi-x/snap). When you finish, please open a Pull Request to add yours to the catalog!
+If you would like to write your own, read through [Author a Plugin](#author-a-plugin) to get started. Let us know if you begin to write one by [joining our Slack channel](https://intelsdi-x.herokuapp.com/). When you finish, please open a Pull Request to add yours to the catalog!
 
 ## Documentation
 Documentation for Snap will be kept in this repository for now with an emphasis of filling out the `docs/` directory. We would also like to link to external how-to blog posts as people write them. [Read about contributing to the project](#contributing) for more details.
@@ -259,7 +259,7 @@ If you would like to propose a feature, please [open an Issue](https://github.co
 This repository is one of **many** projects in the **Snap framework**. Discuss your questions about snap by reaching out to us:
 
 * Through GitHub Issues. Issues is our home for **all** needs: Q&A on everything - installation, request for events, integrations, bug issues, futures. [Open up an Issue](https://github.com/intelsdi-x/snap/issues) and know there's no wrong question for us.
-* We also have a [Gitter channel](https://gitter.im/intelsdi-x/snap) opened up on this repository that threads directly into our engineering team Slack (thanks to [Sameroom](https://sameroom.io/)).
+* We also have a [Slack team](https://intelsdi-x.herokuapp.com/) where we hang out
 * Submit a blog post on your use of Snap to [our Medium.com publication](https://medium.com/intel-sdi)
 
 The full project lives here, at http://github.com/intelsdi-x/snap.
