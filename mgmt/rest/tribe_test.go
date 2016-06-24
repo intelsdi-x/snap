@@ -702,7 +702,7 @@ func startTribes(count int, seed string) ([]int, int) {
 		r.BindMetricManager(c)
 		r.BindTaskManager(s)
 		r.BindTribeManager(t)
-		r.SetAddress("", mgtPort)
+		r.SetAddress(fmt.Sprintf("127.0.0.1:%d", mgtPort))
 		r.Start()
 		wg.Add(1)
 		timer := time.After(10 * time.Second)
