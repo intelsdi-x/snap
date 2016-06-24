@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #
@@ -17,85 +17,60 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-# The script does automatic checking on a Go package and its sub-packages, including:
-# 1. gofmt         (http://golang.org/cmd/gofmt/)
-# 2. goimports     (https://github.com/bradfitz/goimports)
-# 3. golint        (https://github.com/golang/lint) (disabled)
-# 4. go vet        (http://golang.org/cmd/vet) (disabled)
-# 5. race detector (http://blog.golang.org/race-detector) (disabled)
-# 6. test coverage (http://blog.golang.org/cover)
+# Support travis.ci environment matrix:
+SNAP_TEST_TYPE="${SNAP_TEST_TYPE:-$1}"
 
-if [[ $# -ne 1 ]]; then
-	echo "ERROR; missing SNAP_TEST_TYPE (Usage: $0 SNAP_TEST_TYPE)"
-	exit -2
-elif [[ “$1” != “legacy” && "$1" != "small" && “$1” != “medium” && “$1” != “large” ]]; then
-	echo "Error; invalid SNAP_TEST_TYPE (value must be one of 'legacy', 'small', 'medium', or 'large'; received $1)"
-	exit -1
-fi
-SNAP_TEST_TYPE=$1
-
-# If the following plugins don't exist, exit
-[ -f $SNAP_PATH/plugin/snap-collector-mock1 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock1 does not exist. Run make to build it.' ; exit 1; }
-[ -f $SNAP_PATH/plugin/snap-collector-mock2 ] || { echo 'Error: $SNAP_PATH/plugin/snap-collector-mock2 does not exist. Run make to build it.' ; exit 1; }
-[ -f $SNAP_PATH/plugin/snap-processor-passthru ] || { echo 'Error: $SNAP_PATH/plugin/snap-processor-passthru does not exist. Run make to build it.' ; exit 1; }
-[ -f $SNAP_PATH/plugin/snap-publisher-file ] || { echo 'Error: $SNAP_PATH/plugin/snap-publisher-file does not exist. Run make to build it.' ; exit 1; }
-
-TEST_DIRS="cmd/ control/ core/ mgmt/ pkg/ snapd.go scheduler/"
-# VET_DIRS="./cmd/... ./control/... ./core/... ./mgmt/... ./pkg/... ./scheduler/... ."
+UNIT_TEST="${UNIT_TEST:-"gofmt goimports go_test go_cover"}"
 
 set -e
+set -u
+set -o pipefail
+
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__proj_dir="$(dirname "$__dir")"
+
+SNAP_PATH="${SNAP_PATH:-"${__proj_dir}/build"}"
+export SNAP_PATH
+test_dirs=$(find . -type f -name '*.go' -not -path "./.*" -not -path "*/_*" -not -path "./Godeps/*" -not -path "./vendor/*" -print0 | xargs -0 -n1 dirname| sort -u)
+export test_dirs
+
+# shellcheck source=scripts/common.sh
+. "${__dir}/common.sh"
+
+_debug "script directory ${__dir}"
+_debug "project directory ${__proj_dir}"
+
+[[ "$SNAP_TEST_TYPE" =~ ^(small|medium|large|legacy)$ ]] || _error "invalid/missing SNAP_TEST_TYPE (value must be 'small', 'medium', 'large', or 'legacy', received:${SNAP_TEST_TYPE}"
+
+# If the following plugins don't exist, exit
+[ -f $SNAP_PATH/plugin/snap-collector-mock1 ] || { _error 'Error: $SNAP_PATH/plugin/snap-collector-mock1 does not exist. Run make to build it.'; }
+[ -f $SNAP_PATH/plugin/snap-collector-mock2 ] || { _error 'Error: $SNAP_PATH/plugin/snap-collector-mock2 does not exist. Run make to build it.';  }
+[ -f $SNAP_PATH/plugin/snap-processor-passthru ] || { _error 'Error: $SNAP_PATH/plugin/snap-processor-passthru does not exist. Run make to build it.'; }
+[ -f $SNAP_PATH/plugin/snap-publisher-file ] || { _error 'Error: $SNAP_PATH/plugin/snap-publisher-file does not exist. Run make to build it.'; }
 
 # If the following tools don't exist, get them
-echo "Getting GoConvey if not found"
-go get github.com/smartystreets/goconvey
-echo "Getting goimports if not found"
-go get golang.org/x/tools/cmd/goimports
-echo "Getting cover if not found"
-go get golang.org/x/tools/cmd/cover
-
-# Automatic checks
-echo "gofmt"
-test -z "$(gofmt -s -l -d $TEST_DIRS | tee /dev/stderr)"
-
-echo "goimports"
-test -z "$(goimports -l -d $TEST_DIRS | tee /dev/stderr)"
-
-# Useful but should not fail on link per: https://github.com/golang/lint
-# "The suggestions made by golint are exactly that: suggestions. Golint is not perfect,
-# and has both false positives and false negatives. Do not treat its output as a gold standard.
-# We will not be adding pragmas or other knobs to suppress specific warnings, so do not expect
-# or require code to be completely "lint-free". In short, this tool is not, and will never be,
-# trustworthy enough for its suggestions to be enforced automatically, for example as part of
-# a build process"
-# echo "golint"
-# golint ./...
-
-# Disabling running go vet currently due to the inconsistency in it's reported
-# outputs depending on whether the project was pulled down via 'go get' or 'git clone'.
-# We will look to re-enable go vet checking when we can provide consistency in outputs
-# no matter how a developer gets the project.
-#echo "go vet"
-#go vet $VET_DIRS
-
-# go test -race ./... - Lets disable for now
+_go_get github.com/smartystreets/goconvey
 
 # Run test coverage on each subdirectories and merge the coverage profile.
-echo "mode: count ($SNAP_TEST_TYPE)" > profile-$SNAP_TEST_TYPE.cov
-echo ""
-echo "====================   $SNAP_TEST_TYPE    ===================="
+echo "mode: count (${SNAP_TEST_TYPE})" > "profile-${SNAP_TEST_TYPE}.cov"
 
-# Standard go tooling behavior is to ignore dirs with leading underscors
-for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -not -path './examples/*' -not -path './scripts/*' -type d);
-do
-	if ls $dir/*.go &> /dev/null; then
-	    go test -tags=$SNAP_TEST_TYPE -covermode=count -coverprofile=$dir/profile.tmp $dir
-	    if [ -f $dir/profile.tmp ]
-	    then
-	        cat $dir/profile.tmp | tail -n +2 >> profile-$SNAP_TEST_TYPE.cov
-	        rm $dir/profile.tmp
-	    fi
+TEST_TYPE=$SNAP_TEST_TYPE
+export TEST_TYPE
+
+go_tests=(gofmt goimports golint go_vet go_race go_test go_cover)
+
+_debug "available unit tests: ${go_tests[*]}"
+_debug "user specified tests: ${UNIT_TEST}"
+
+((n_elements=${#go_tests[@]}, max=n_elements - 1))
+
+for ((i = 0; i <= max; i++)); do
+	if [[ "${UNIT_TEST}" =~ (^| )"${go_tests[i]}"( |$) ]]; then
+		_info "running ${go_tests[i]}"
+		_"${go_tests[i]}"
+	else
+		_debug "skipping ${go_tests[i]}"
 	fi
 done
 
-go tool cover -func profile-$SNAP_TEST_TYPE.cov
-echo "==================== end $SNAP_TEST_TYPE  ===================="
+_info "test complete: ${SNAP_TEST_TYPE}"

@@ -5,17 +5,11 @@ go:
 - 1.6.2
 before_install:
 - bash scripts/gitcookie.sh
-- go get github.com/tools/godep
-- go get github.com/axw/gocov/gocov
-- go get github.com/mattn/goveralls
-- go get golang.org/x/tools/cmd/goimports
 - go get github.com/smartystreets/goconvey/convey
 - if [ ! -d $SNAP_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $SNAP_SOURCE; fi # CI for forks not from intelsdi-x
-- go get golang.org/x/tools/cmd/cover
 env:
   global:
     - SNAP_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/snap
-    - SNAP_PATH=/home/travis/gopath/src/github.com/intelsdi-x/snap/build
     - GO15VENDOREXPERIMENT=1
   matrix:
     - SNAP_TEST_TYPE=legacy
