@@ -153,27 +153,31 @@ type listMetricInfo struct {
 }
 
 func (c *cache) updateCache(mts []core.Metric) {
-	dc := map[string]listMetricInfo{}
+	dc := map[string]*listMetricInfo{}
 	for _, mt := range mts {
-		isDynamic, _ := mt.Namespace().IsDynamic()
-		if isDynamic == false {
-			// cache the individual metric
-			c.put(mt.Namespace().String(), mt.Version(), mt)
-		} else {
-			// collect the dynamic query results so we can cache
-			key := fmt.Sprintf("%v:%v", mt.Namespace().String(), mt.Version())
+		isDynamic, idx := mt.Namespace().IsDynamic()
+		if isDynamic {
+			// cache dynamic metrics
+			dynNS := make(core.Namespace, len(mt.Namespace()))
+			copy(dynNS, mt.Namespace())
+			for _, v := range idx {
+				dynNS[v].Value = "*"
+			}
+			key := fmt.Sprintf("%v:%v", dynNS.String(), mt.Version())
 			if _, ok := dc[key]; !ok {
-				dc[key] = listMetricInfo{
-					metrics: []core.Metric{},
+				dc[key] = &listMetricInfo{
+					metrics:   []core.Metric{},
+					namespace: dynNS.String(),
+					version:   mt.Version(),
 				}
 			}
-			var tmp = dc[key]
-			tmp.metrics = append(dc[key].metrics, mt)
-			tmp.namespace = mt.Namespace().String()
-			tmp.version = mt.Version()
-			dc[key] = tmp
+			dc[key].metrics = append(dc[key].metrics, mt)
+			continue
 		}
+		// cache the individual metric
+		c.put(mt.Namespace().String(), mt.Version(), mt)
 	}
+	// write our dynamic metrics to the cache.
 	for _, v := range dc {
 		c.put(v.namespace, v.version, v.metrics)
 	}
