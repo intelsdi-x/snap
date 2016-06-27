@@ -352,6 +352,11 @@ func action(ctx *cli.Context) error {
 		}
 		go monitorErrors(r.Err())
 		coreModules = append(coreModules, r)
+		if cfg.RestAPI.Port != 0 && !strings.Contains(cfg.RestAPI.Address, ":") {
+			r.SetAddress(fmt.Sprintf("%s:%d", cfg.RestAPI.Address, cfg.RestAPI.Port))
+		} else {
+			r.SetAddress(cfg.RestAPI.Address)
+		}
 		log.Info("REST API is enabled")
 	} else {
 		log.Info("REST API is disabled")
