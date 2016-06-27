@@ -787,6 +787,13 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 		cfg.RestAPI.Port = cmdLinePort
 	} else if cfgFilePortInAddr {
 		cfg.RestAPI.Port = cfgFilePort
+	} else {
+		// if get to here, then there is no port number in the input address
+		// (regardless of whether it came from the default configuration, configuration
+		// file, an environment variable, or a command-line flag); in that case we should
+		// set the address in the RestAPI configuration to be the current address and port
+		// (separated by a ':')
+		cfg.RestAPI.Address = fmt.Sprintf("%v:%v", cfg.RestAPI.Address, cfg.RestAPI.Port)
 	}
 }
 

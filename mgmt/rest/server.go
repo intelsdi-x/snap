@@ -186,8 +186,9 @@ func New(cfg *Config) (*Server, error) {
 	cpath := cfg.RestCertificate
 	kpath := cfg.RestKey
 	s := &Server{
-		err:      make(chan error),
-		killChan: make(chan struct{}),
+		err:        make(chan error),
+		killChan:   make(chan struct{}),
+		addrString: cfg.Address,
 	}
 	if https {
 		var err error
