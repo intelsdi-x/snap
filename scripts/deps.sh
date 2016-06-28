@@ -27,6 +27,8 @@ __proj_dir="$(dirname "$__dir")"
 # shellcheck source=scripts/common.sh
 . "${__dir}/common.sh"
 
+_go_path
+
 _go_get github.com/tools/godep
 
 _info "restoring dependency with godep"

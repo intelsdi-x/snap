@@ -48,6 +48,7 @@ _debug "project directory ${__proj_dir}"
 [ -f $SNAP_PATH/plugin/snap-processor-passthru ] || { _error 'Error: $SNAP_PATH/plugin/snap-processor-passthru does not exist. Run make to build it.'; }
 [ -f $SNAP_PATH/plugin/snap-publisher-file ] || { _error 'Error: $SNAP_PATH/plugin/snap-publisher-file does not exist. Run make to build it.'; }
 
+_go_path
 # If the following tools don't exist, get them
 _go_get github.com/smartystreets/goconvey
 

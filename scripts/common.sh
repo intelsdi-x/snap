@@ -59,6 +59,25 @@ _go_get() {
   type -p "${_util}" > /dev/null || go get "${_url}" && _debug "go get ${_util} ${_url}"
 }
 
+_path_prepend() {
+  if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+    PATH="$1${PATH:+":$PATH"}"
+    _debug "Update PATH: ${PATH}"
+  fi
+}
+
+_go_path() {
+  [[ ! -z $GOPATH ]] || _error "Error \$GOPATH unset"
+
+  _debug "GOPATH: ${GOPATH}"
+  _debug "PATH: ${PATH}"
+
+  # NOTE: handles colon separated gopath
+  go_bin_path=${GOPATH//://bin:}/bin
+
+  _path_prepend "${go_bin_path}"
+}
+
 _goimports() {
   _go_get golang.org/x/tools/cmd/goimports
   test -z "$(goimports -l -d $(find . -type f -name '*.go' -not -path "./vendor/*") | tee /dev/stderr)"
