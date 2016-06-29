@@ -3031,8 +3031,8 @@ table.hover tr:nth-of-type(even):hover {
     display: block;
     padding: 1.25rem 1.5rem;
     line-height: 1;
-    font-size: 12px;
-    color: #2199e8; }
+    font-size: 1rem;
+    color: #696969; }
     .tabs-title > a:hover {
       background: #fefefe; }
     .tabs-title > a:focus, .tabs-title > a[aria-selected='true'] {
@@ -3046,7 +3046,7 @@ table.hover tr:nth-of-type(even):hover {
 
 .tabs-content.vertical {
   border: 1px solid #e6e6e6;
-  border-left: 0; }
+  }
 
 .tabs-panel {
   display: none;
