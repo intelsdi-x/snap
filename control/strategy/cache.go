@@ -108,7 +108,7 @@ func (c *cache) put(ns string, version int, m interface{}) {
 		}
 	case []core.Metric:
 		if _, ok := c.table[key]; ok {
-			c.table[key].time = time.Now()
+			c.table[key].time = chrono.Chrono.Now()
 			c.table[key].metrics = metric
 		} else {
 			c.table[key] = &cachecell{
