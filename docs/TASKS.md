@@ -110,7 +110,7 @@ Process and Publish nodes in the workflow can also target remote snap nodes via 
 
 If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of it's steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the snap rest-api and port 8082.
 
-An example json task that uses remote targets can be found under [examples](https://github.com/intelsdi-x/snap/blob/distributed-workflow/examples/tasks/distributed-mock-file.json). More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
+An example json task that uses remote targets can be found under [examples](https://github.com/intelsdi-x/snap/blob/master/examples/tasks/distributed-mock-file.json). More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
 
 #### collect
 
@@ -121,11 +121,11 @@ The collect section describes which metrics to collect. Metrics can be enumerate
 
 The tuple begins and ends with brackets and items inside are separeted by vertical bar. It works like logical `or`, so it gives an error only if none of these metrics can be collected.
 
-| Metrics declared in task manifest | Collected metrics                                              |                                             |
-|:----------------------------------|:---------------------------------------------------------------|:--------------------------------------------|
-| /intel/mock/\*                    | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz |                                             |
-| /intel/mock/(foo\                 | bar)                                                           | /intel/mock/foo <br/> /intel/mock/bar <br/> |
-| /intel/mock/\*/baz                | /intel/mock/\*/baz                                             |                                             |
+| Metrics declared in task manifest | Collected metrics                                              |
+|:----------------------------------|:---------------------------------------------------------------|
+| /intel/mock/\*                    | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz |
+| /intel/mock/(foo\|bar)            | /intel/mock/foo <br/> /intel/mock/bar <br/>                    |
+| /intel/mock/\*/baz                | /intel/mock/\*/baz                                             |
 
 The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
 
