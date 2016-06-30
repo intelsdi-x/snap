@@ -26,13 +26,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"strings"
 )
 
 const (
@@ -81,6 +81,7 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 
 	return nil
 }
+
 // formatMetricTagsAsString returns metric's tags as a string in the following format tagKey:tagValue where the next tags are separated by semicolon
 func formatMetricTagsAsString(metricTags map[string]string) string {
 	var tags string
@@ -90,7 +91,7 @@ func formatMetricTagsAsString(metricTags map[string]string) string {
 	// trim the last semicolon
 	tags = strings.TrimSuffix(tags, "; ")
 
-	return "tags["+tags+"]"
+	return "tags[" + tags + "]"
 }
 
 func Meta() *plugin.PluginMeta {
