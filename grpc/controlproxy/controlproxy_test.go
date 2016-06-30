@@ -43,7 +43,7 @@ type mockClient struct {
 	ExpandReply      *rpc.ExpandWildcardsReply
 	PublishReply     *rpc.ErrorReply
 	ProcessReply     *rpc.ProcessMetricsReply
-	CollectReply     *rpc.CollectMetricsReply
+	CollectReply     *rpc.CollectMetricsResponse
 	ContentTypeReply *rpc.GetPluginContentTypesReply
 	ValidateReply    *rpc.ValidateDepsReply
 	SubscribeReply   *rpc.SubscribeDepsReply
@@ -71,7 +71,7 @@ func (mc mockClient) ExpandWildcards(ctx context.Context, in *rpc.ExpandWildcard
 	}
 	return mc.ExpandReply, nil
 }
-func (mc mockClient) CollectMetrics(ctx context.Context, in *rpc.CollectMetricsRequest, opts ...grpc.CallOption) (*rpc.CollectMetricsReply, error) {
+func (mc mockClient) CollectMetrics(ctx context.Context, in *rpc.CollectMetricsRequest, opts ...grpc.CallOption) (*rpc.CollectMetricsResponse, error) {
 	if mc.RpcErr {
 		return nil, rpcErr
 	}
@@ -276,7 +276,7 @@ func TestCollectMetrics(t *testing.T) {
 	})
 
 	Convey("Control.CollectMetrics returns an error", t, func() {
-		reply := &rpc.CollectMetricsReply{
+		reply := &rpc.CollectMetricsResponse{
 			Metrics: nil,
 			Errors:  []string{"error in collect"},
 		}
@@ -294,7 +294,7 @@ func TestCollectMetrics(t *testing.T) {
 	})
 
 	Convey("Control.CollectMetrics returns sucessfully", t, func() {
-		reply := &rpc.CollectMetricsReply{
+		reply := &rpc.CollectMetricsResponse{
 			Metrics: []*common.Metric{&common.Metric{
 				Namespace:          common.ToNamespace(core.NewNamespace("testing", "this")),
 				Version:            6,
