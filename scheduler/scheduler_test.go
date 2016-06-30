@@ -128,6 +128,9 @@ func (m *mockMetricManager) GetAutodiscoverPaths() []string {
 	return m.autodiscoverPaths
 }
 
+func (m *mockMetricManager) AddTaskIDData(taskID string, metrics []core.RequestedMetric, configTree *cdata.ConfigDataTree, plugins []core.SubscribedPlugin) {
+}
+
 type mockMetricManagerError struct {
 	errs []error
 }

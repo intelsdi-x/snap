@@ -25,6 +25,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/grpc/common"
@@ -204,6 +205,14 @@ func (c ControlProxy) GetAutodiscoverPaths() []string {
 		return nil
 	}
 	return reply.Paths
+}
+
+func (c ControlProxy) AddTaskIDData(taskID string, metrics []core.RequestedMetric, config *cdata.ConfigDataTree, plugins []core.SubscribedPlugin) {
+	// TODO
+}
+
+func (c ControlProxy) RemoveTaskIDData(taskID string) {
+	// TODO
 }
 
 ///---------Util-------------------------------------------------------------------------
