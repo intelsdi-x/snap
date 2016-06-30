@@ -286,7 +286,6 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		"path":   filepath.Base(lPlugin.Details.Exec),
 	}).Info("plugin load called")
 	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Details.Exec), path.Join(lPlugin.Details.ExecPath, lPlugin.Details.Exec))
-
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -295,23 +294,12 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		return nil, serror.New(err)
 	}
 
-	err = ePlugin.Start()
+	resp, err := ePlugin.Run(time.Second * 3)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
 			"error":  err.Error(),
-		}).Error("load plugin error while starting plugin")
-		return nil, serror.New(err)
-	}
-
-	var resp *plugin.Response
-	resp, err = ePlugin.WaitForResponse(time.Second * 3)
-
-	if err != nil {
-		pmLogger.WithFields(log.Fields{
-			"_block": "load-plugin",
-			"error":  err.Error(),
-		}).Error("load plugin error while waiting for response from plugin")
+		}).Error("load plugin error when starting plugin")
 		return nil, serror.New(err)
 	}
 

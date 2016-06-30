@@ -36,7 +36,7 @@ func TestAvailablePlugin(t *testing.T) {
 		Convey("returns an availablePlugin", func() {
 			ln, _ := net.Listen("tcp", ":4000")
 			defer ln.Close()
-			resp := &plugin.Response{
+			resp := plugin.Response{
 				Meta: plugin.PluginMeta{
 					Name:    "testPlugin",
 					Version: 1,
@@ -104,7 +104,7 @@ func TestAvailablePlugins(t *testing.T) {
 		})
 	})
 	Convey("it returns an error if client cannot be created", t, func() {
-		resp := &plugin.Response{
+		resp := plugin.Response{
 			Meta: plugin.PluginMeta{
 				Name:    "test",
 				Version: 1,
