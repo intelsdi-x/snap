@@ -58,6 +58,11 @@ For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
       /intel/mock:
         user: "root"
         password: "secret"
+    tags:
+      /intel/mock:
+        experiment: "experiment 11"
+      /intel/mock/bar:
+        os: "linux"
     process:
       -
         plugin_name: "passthru"
@@ -85,6 +90,11 @@ Process and Publish nodes in the workflow can also target remote snap nodes via 
       /intel/mock:
         user: "root"
         password: "secret"
+    tags:
+      /intel/mock:
+        experiment: "experiment 11"
+      /intel/mock/bar:
+        os: "linux"
     process:
       -
         plugin_name: "passthru"
@@ -100,7 +110,7 @@ Process and Publish nodes in the workflow can also target remote snap nodes via 
 
 If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of it's steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the snap rest-api and port 8082.
 
-An example json task that uses remote targets can be found under [examples](https://github.com/intelsdi-x/snap/blob/distributed-workflow/examples/tasks/distributed-mock-file.json). More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
+An example json task that uses remote targets can be found under [examples](https://github.com/intelsdi-x/snap/blob/master/examples/tasks/distributed-mock-file.json). More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
 
 #### collect
 
@@ -111,11 +121,11 @@ The collect section describes which metrics to collect. Metrics can be enumerate
 
 The tuple begins and ends with brackets and items inside are separeted by vertical bar. It works like logical `or`, so it gives an error only if none of these metrics can be collected.
 
-| Metrics declared in task manifest | Collected metrics                                              |                                             |
-|:----------------------------------|:---------------------------------------------------------------|:--------------------------------------------|
-| /intel/mock/\*                    | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz |                                             |
-| /intel/mock/(foo\                 | bar)                                                           | /intel/mock/foo <br/> /intel/mock/bar <br/> |
-| /intel/mock/\*/baz                | /intel/mock/\*/baz                                             |                                             |
+| Metrics declared in task manifest | Collected metrics                                              |
+|:----------------------------------|:---------------------------------------------------------------|
+| /intel/mock/\*                    | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz |
+| /intel/mock/(foo\|bar)            | /intel/mock/foo <br/> /intel/mock/bar <br/>                    |
+| /intel/mock/\*/baz                | /intel/mock/\*/baz                                             |
 
 The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
 
@@ -142,6 +152,24 @@ config:
 ```
 
 Applying the config at `/intel/perf` means that all leaves of `/intel/perf` (`/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz` in this case) will receive the config.
+
+The tag section describes additional meta data for metrics.  Similary to config, tags can also be described at a branch, and all leaves of that branch will receive the given tag(s).  For example, say a task is going to collect `/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz`, all metrics should be tagged with experiment number, additonally one metric `/intel/perf/bar` should be tagged with OS name.  That tags could be described like so:
+
+```yaml
+---
+metrics:
+  /intel/perf/foo: {}
+  /intel/perf/bar: {}
+  /intel/perf/baz: {}
+tags:
+  /intel/perf:
+    experiment: "experiment 11"
+  /intel/perf/bar:
+    os: "linux"
+```
+
+Applying the tags at `/intel/perf` means that all leaves of `/intel/perf` (`/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz` in this case) will receive the tag `experiment: experiment 11`.
+Applying the tags at `/intel/perf/bar` means that only `/intel/perf/bar` will receive the tag `os: linux`.
 
 A collect node can also contain any number of process or publish nodes.  These nodes describe what to do next.
 
@@ -179,6 +207,11 @@ Below is a complete example task.
         /intel/mock:
           user: "root"
           password: "secret"
+      tags:
+        /intel/perf:
+          experiment: "experiment 11"
+        /intel/perf/bar:
+          os: "linux"
       process:
         -
           plugin_name: "passthru"
@@ -210,6 +243,14 @@ Below is a complete example task.
                 "/intel/mock": {
                     "user": "root",
                     "password": "secret"
+                }
+            },
+            "tags": {
+                "/intel/mock": {
+                    "experiment": "experiment 11"
+                },
+                "/intel/mock/bar": {
+                    "os": "linux"
                 }
             },
             "process": [
