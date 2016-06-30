@@ -87,7 +87,7 @@ func errorMetricStaticElementHasName(value, name, ns string) error {
 	return fmt.Errorf("A static element %s should not define name %s for namespace %s.", value, name, ns)
 }
 
-func errorMetricDynamicElemnetHasNoName(value, ns string) error {
+func errorMetricDynamicElementHasNoName(value, ns string) error {
 	return fmt.Errorf("A dynamic element %s requires a name for namespace %s.", value, ns)
 }
 
@@ -353,7 +353,7 @@ func validateMetricNamespace(ns core.Namespace) error {
 			return errorMetricStaticElementHasName(i.Value, i.Name, ns.String())
 		}
 		if i.Name == "" && i.Value == "*" {
-			return errorMetricDynamicElemnetHasNoName(i.Value, ns.String())
+			return errorMetricDynamicElementHasNoName(i.Value, ns.String())
 		}
 
 		value += i.Value

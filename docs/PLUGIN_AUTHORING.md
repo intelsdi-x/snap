@@ -88,8 +88,7 @@ Example:
 Snap validates the metrics exposed by plugin and, if validation failed, return an error and not load the plugin.
 
 ##### c) static and dynamic metrics
-Snap supports both static and dynamic metrics. Do you like to know the differences and the recommendation for plugins?
-See details [here](./METRICS.md).
+Snap supports both static and dynamic metrics.  You can find more detail about static and dynamic metrics [here](./METRICS.md). 
 
 ### Mandatory packages
 There are three mandatory packages that every plugin must use. Other than those three packages, you can use other packages as necessary. There is no danger of colliding dependencies as plugins are separated processes. The mandatory packages are:
