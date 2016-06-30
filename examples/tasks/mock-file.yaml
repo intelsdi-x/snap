@@ -13,13 +13,16 @@
       config: 
         /intel/mock: 
           name: "root"
-          password: "secret"
+          password: "secret"          
       process: 
         - 
           plugin_name: "passthru"
+          config:
+            debug: true
           process: null
           publish: 
             - 
               plugin_name: "mock-file"
               config: 
                 file: "/tmp/snap_published_mock_file.log"
+                debug: true

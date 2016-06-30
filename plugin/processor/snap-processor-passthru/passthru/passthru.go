@@ -34,6 +34,7 @@ const (
 	name       = "passthru"
 	version    = 1
 	pluginType = plugin.ProcessorPluginType
+	debug      = "debug"
 )
 
 // Meta returns a plugin meta data
@@ -49,27 +50,45 @@ type passthruProcessor struct{}
 
 func (p *passthruProcessor) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cp := cpolicy.New()
+	config := cpolicy.NewPolicyNode()
+
+	r1, err := cpolicy.NewBoolRule(debug, false)
+	if err != nil {
+		panic(err)
+	}
+	r1.Description = "Debug mode"
+	config.Add(r1)
+
+	cp.Add([]string{""}, config)
 	return cp, nil
 }
 
 func (p *passthruProcessor) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
-	logger := log.New()
-	logger.Println("Processor started")
+	log.SetFormatter(&log.TextFormatter{DisableTimestamp: true})
+	if val, ok := config[debug]; ok && val.(ctypes.ConfigValueBool).Value {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+	log.Debug("processing started")
 
 	// The following block is for testing config see.. control_test.go
 	if _, ok := config["test"]; ok {
-		logger.Print("test configuration found")
+		log.Debug("test configuration found")
 		var metrics []plugin.MetricType
 		//Decodes the content into MetricType
 		dec := gob.NewDecoder(bytes.NewBuffer(content))
 		if err := dec.Decode(&metrics); err != nil {
-			logger.Printf("Error decoding: error=%v content=%v", err, content)
+			log.WithFields(log.Fields{
+				"error":   err,
+				"content": content,
+			}).Errorf("error decoding")
 			return "", nil, err
 		}
 
 		for idx, m := range metrics {
 			if m.Namespace()[0].Value == "foo" {
-				logger.Print("found foo metric")
+				log.Print("found foo metric")
 				metrics[idx].Data_ = 2
 			}
 		}

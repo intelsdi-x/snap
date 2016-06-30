@@ -73,16 +73,16 @@ func (m *MockExecutablePlugin) Wait() error {
 	return nil
 }
 
-func (m *MockExecutablePlugin) WaitForResponse(t time.Duration) (*plugin.Response, error) {
+func (m *MockExecutablePlugin) Run(t time.Duration) (plugin.Response, error) {
 	if m.Timeout {
-		return nil, errors.New("timeout")
+		return plugin.Response{}, errors.New("timeout")
 	}
 
 	if m.NilResponse {
-		return nil, nil
+		return plugin.Response{}, nil
 	}
 
-	resp := new(plugin.Response)
+	var resp plugin.Response
 	resp.Type = plugin.CollectorPluginType
 	if m.PluginFailure {
 		resp.State = plugin.PluginFailure
@@ -477,7 +477,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						So(ap.failedHealthChecks, ShouldEqual, 3)
 					})
 
-					Convey("should return error for WaitForResponse error", func() {
+					Convey("should return error for Run error", func() {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
 						exPlugin := new(MockExecutablePlugin)
@@ -485,42 +485,9 @@ func TestRunnerPluginRunning(t *testing.T) {
 						ap, e := r.startPlugin(exPlugin)
 
 						So(ap, ShouldBeNil)
-						So(e, ShouldResemble, errors.New("error while waiting for response: timeout"))
-					})
-
-					Convey("should return error for nil availablePlugin", func() {
-						r := newRunner()
-						exPlugin := new(MockExecutablePlugin)
-						exPlugin.NilResponse = true // set to not response
-						ap, e := r.startPlugin(exPlugin)
-
-						So(e, ShouldResemble, errors.New("no response object returned from plugin"))
-						So(ap, ShouldBeNil)
-					})
-
-					Convey("should return error if plugin fails while starting", func() {
-						r := newRunner()
-						exPlugin := &MockExecutablePlugin{
-							StartError: true,
-						}
-						ap, e := r.startPlugin(exPlugin)
-
-						So(e, ShouldResemble, errors.New("error while starting plugin: start error"))
-						So(ap, ShouldBeNil)
-					})
-
-					Convey("should return error if plugin fails to start", func() {
-						r := newRunner()
-						exPlugin := &MockExecutablePlugin{
-							PluginFailure: true,
-						}
-						ap, e := r.startPlugin(exPlugin)
-
-						So(e, ShouldResemble, errors.New("plugin could not start error: plugin start error"))
-						So(ap, ShouldBeNil)
+						So(e, ShouldResemble, errors.New("error starting plugin: timeout"))
 					})
 				}
-
 			})
 
 			Convey("stopPlugin", func() {
