@@ -109,20 +109,20 @@ func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, serror.SnapE
 }
 
 func TestPluginControlGenerateArgs(t *testing.T) {
-	Convey("pluginControl.Start", t, func() {
-		c := New(GetDefaultConfig())
-		Convey("starts successfully", func() {
-			err := c.Start()
-			So(c.Started, ShouldBeTrue)
-			So(err, ShouldBeNil)
-			n := c.Name()
-			So(n, ShouldResemble, "control")
-		})
-		Convey("sets monitor duration", func() {
-			c.SetMonitorOptions(MonitorDurationOption(time.Millisecond * 100))
-			So(c.pluginRunner.Monitor().duration, ShouldResemble, 100*time.Millisecond)
-		})
+	config := GetDefaultConfig()
+	config.ListenPort = 0
+	c := New(config)
+	err := c.Start()
+	Convey("pluginControl starts successfully", t, func() {
+		So(c.Started, ShouldBeTrue)
+		So(err, ShouldBeNil)
+		So(c.Name(), ShouldResemble, "control")
 	})
+	c.SetMonitorOptions(MonitorDurationOption(time.Millisecond * 100))
+	Convey("sets monitor duration", t, func() {
+		So(c.pluginRunner.Monitor().duration, ShouldResemble, 100*time.Millisecond)
+	})
+	c.Stop()
 }
 
 func TestSwapPlugin(t *testing.T) {
@@ -419,6 +419,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			Convey("so error should not be nil when loading an unsigned plugin with trust enabled", func() {
 				So(err, ShouldNotBeNil)
 			})
+			c.Stop()
 		})
 	} else {
 		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginName)
@@ -918,6 +919,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 				})
 			})
 		})
+		c.Stop()
 	})
 
 	Convey("Given loaded plugins that use least-recently-used routing", t, func() {
@@ -984,6 +986,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 				})
 			})
 		})
+		c.Stop()
 	})
 }
 
@@ -1638,6 +1641,7 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 			_, ok = mts[0].Data().(int)
 			So(ok, ShouldEqual, true)
 		})
+		c.Stop()
 	})
 }
 
@@ -1705,6 +1709,7 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 			_, ok = mts[0].Data().(string)
 			So(ok, ShouldEqual, true)
 		})
+		c.Stop()
 	})
 
 }

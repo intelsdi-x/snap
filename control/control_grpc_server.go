@@ -70,7 +70,7 @@ func (pc *ControlGRPCServer) ProcessMetrics(ctx context.Context, r *rpc.PubProcM
 	return reply, nil
 }
 
-func (pc *ControlGRPCServer) CollectMetrics(ctx context.Context, r *rpc.CollectMetricsRequest) (*rpc.CollectMetricsReply, error) {
+func (pc *ControlGRPCServer) CollectMetrics(ctx context.Context, r *rpc.CollectMetricsRequest) (*rpc.CollectMetricsResponse, error) {
 	metrics := common.ToCoreMetrics(r.Metrics)
 	deadline := time.Unix(r.Deadline.Sec, r.Deadline.Nsec)
 	var AllTags map[string]map[string]string
@@ -81,13 +81,13 @@ func (pc *ControlGRPCServer) CollectMetrics(ctx context.Context, r *rpc.CollectM
 		}
 	}
 	mts, errs := pc.control.CollectMetrics(metrics, deadline, r.TaskID, AllTags)
-	var reply *rpc.CollectMetricsReply
+	var reply *rpc.CollectMetricsResponse
 	if mts == nil {
-		reply = &rpc.CollectMetricsReply{
+		reply = &rpc.CollectMetricsResponse{
 			Errors: errorsToStrings(errs),
 		}
 	} else {
-		reply = &rpc.CollectMetricsReply{
+		reply = &rpc.CollectMetricsResponse{
 			Metrics: common.NewMetrics(mts),
 			Errors:  errorsToStrings(errs),
 		}

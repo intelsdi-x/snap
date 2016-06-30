@@ -26,7 +26,7 @@ service MetricManager {
 	// managesMetrics from scheduler
 	rpc GetPluginContentTypes(GetPluginContentTypesRequest) returns (GetPluginContentTypesReply) {}
 	rpc ExpandWildcards(ExpandWildcardsRequest) returns (ExpandWildcardsReply) {}
-	rpc CollectMetrics(CollectMetricsRequest) returns (CollectMetricsReply) {}
+	rpc CollectMetrics(CollectMetricsRequest) returns (CollectMetricsResponse) {}
 	rpc PublishMetrics(PubProcMetricsRequest) returns (ErrorReply) {}
 	rpc ProcessMetrics(PubProcMetricsRequest) returns (ProcessMetricsReply) {}
 	rpc ValidateDeps(ValidateDepsRequest) returns (ValidateDepsReply) {}
@@ -105,7 +105,7 @@ message CollectMetricsRequest {
         map<string, Map> AllTags = 4;
 }
 
-message CollectMetricsReply {
+message CollectMetricsResponse {
 	repeated common.Metric Metrics = 1;
 	repeated string Errors = 2;
 }
