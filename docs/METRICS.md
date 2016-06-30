@@ -1,10 +1,40 @@
 
-# Snap Static and Dynamic Metrics
+# Snap Metrics
 
-Snap Framework supports two types of metrics. They are static and dynamic metrics. A Snap metric consists of a namespace and value pair.
+A metric in snap has the following fields.
 
-### Static Metrics
-A namespace having no wildcard and only string literals separated by slashes is a static metric.
+* Namespace `[]core.NamespaceElement`
+ * Uniquely identifies the metric
+* LastAdertisedTime `time.Time`
+ * Describes when the metric was added to the metric catalog
+* Version `int`
+ * Is bound to the version of the plugin
+ * Multiple versions of the same metric can be added to the catalog
+  * Unless specified in the task manifest the latest available metric will collected
+* Config `*cdata.ConfigDataNode`
+ * Contains data needed to collect a metric
+  * Examples include 'uri', 'username', 'password', 'paths'
+* Data `interface{}`
+ * The collected data
+* Tags `map[string]string`
+ * Are key value pairs that provide additional meta data about the metric
+ * May be added by the framework or other plugins (processors) 
+  * The framework currently adds the following standard tag to all metrics
+   * `plugin_running_on` describing on which host the plugin is running
+ * May be added by a task manifests as described [here](https://github.com/intelsdi-x/snap/pull/941) 
+ * May be added by the snapd config as described [here](https://github.com/intelsdi-x/snap/issues/827)
+* Unit `string`
+ * Describes the magnititude being measured
+ * Can be an empty string for unitless data
+ * See [Metrics20.org](http://metrics20.org/spec/) for more guidance on units
+* Description `string`
+ * Is stored in the metric catalog and meant to give the user more details about the metric such as how it is derived
+* Timestamp `time.Time`
+ * Describes when the metric was collected  
+
+## Static Metrics
+
+A metric is described as static when the string representation of the namespace has no wildcards.
 
 String representation examples:
 ```
@@ -13,8 +43,9 @@ String representation examples:
 /intel/cassandra/node/apollo/type/Cache/scope/RowCache/name/Hits/OneMinuteRate
 /intel/cassandra/node/apollo/type/ClientRequest/scope/RangeSlice/name/Latency/OneMinuteRate
 ```
-### Dynamic Metrics
-A namespace including at least one wildcard is a dynamic metric.
+## Dynamic Metrics
+
+A metric is described as dynamic when it includes one or more wildcards.
 
 String representation examples:
 ```
@@ -23,102 +54,56 @@ String representation examples:
 /intel/cassandra/node/*/type/*/keyspace/*/name/*/OneMinuteRate
 /intel/cassandra/node/*/type/*/keyspace/*/name/*/FiveMinuteRate
 ```
-### Namespace Element
-Namespace element in Snap is defined as a struct. Both static and dynamic elements share the same definition.
- ```
- type NamespaceElement struct {
-	Value       string
-	Description string
-	Name        string
-}
- ```
-The _`NamespaceElement`_ forms each cell of a namespace and those cells are separated by slashes. 
 
-Create a dynamic element:
-```
-ns := core.NewNamespace("intel", "cassandra", "node")
-    .AddDynamicElement("node name", "description")
-```
+## Metric Namespace
 
-Create multiple dynamic elements:
-```
-ns := core.NewNamespace("intel", "cassandra", "node")
-    .AddDynamicElement("node name", "description")
-    .AddStaticElement("type")
-    .AddDynamicElement("type value", "description")
-    .AddStaticElement("scope")
-    .AddDynamicElement("scope value", "description")
-    .AddStaticElement("name")
-    .AddDynamicElement("name value", "description")
-    .AddStaticElement("50thPercentile")
-```
+As described above a metrics `Namespace` is an array of NamespaceElements (`[]core.NamespaceElement`).
 
-### Why Dynamic Element
-By defining dynamic elements inside a namespace, you'll have the capability to treat them differently at a later time. For instance, you have metric namespaces:
+A `NamespaceElement` has the following fields.
+
+* Value `string`
+* Description `string`
+ * *Only* used to describe dynamic components of a namespace
+* Name `string`
+ * *Only* used to describe dynamic components of a namespace
+
+### Static Metric Namespace Example
+
+Given a static metric identified by the namespace `/intel/psutil/load/load1` the `NamespaceElement`s would 
+have values of 'intel', 'psutil', 'load' and "load1" respectively.  The `Name` and `Description` fields would have 
+empty values.
+
+The metric's namespace could be created using the following constructor function.
+
 ```
-/foo/bar/host-alice/status
-/foo/bar/host-bob/status
-/foo/bar/host-nicole/status
-/foo/bar/host-david/status
+namespace := core.NewNamespace("intel", "psutil", "load", "load1")
+```  
+
+### Dynamic Metric Namespace Example
+
+Dyanmic namespaces enable collector plugins to embed runtime data in the namespace with just enough meta data to enable
+downstrean plugins (processors and publishers) the ability to extract the data and transform the namespace into its 
+ canonical form often required by some backends.     
+
+Given a dynamic metric identified by the namespace `/intel/libvirt/*/disk/*/wrreq` the `NamespaceElement`s would
+have values of 'intel', 'libvirt', '*', 'disk', '*' and 'wrreq' respectively.  The `Name` and `Description` fields
+of the 2nd and 4th elements would also contain non empty values.  
+
+The metric's namespace could be created using the following constructor function. 
+
 ```
-To get the measurement `/foo/bar/status`, specifying the _`hostname`_ element as a dynamic element and create filtering friendly _`hostname`_ tags.
-
->The key takeaway is that the _`named element`_ is a _`dynamic element`_. A static element has an _`empty Name`_ field.
-
-### Collector Plugins
-Building a Snap collector plugin involves two primary tasks. One is to create a collector metric catalog. Another is to collect metric data.
-
-##### Create Metric Catalog
-Creating a collector having dynamic metric catalog by utilizing the following methods from Snap _`core`_ package, Snap CLI(snapctl) verbose output could display the definition and the description of a wildcard along with a namespace's `Measurement Unit` if it's defined.
-
-Methods:
-```
-(n Namespace) AddStaticElement(value string) Namespace
-(n Namespace) AddDynamicElement(name, description string) Namespace
-(n Namespace) AddStaticElements(values ...string) Namespace
+ns := core.NewNamespace("intel", "libvirt")
+    .AddDynamicElement("domain_name", "Domain Name")
+    .AddStaticElement("disk")
+    .AddDynamicElement("disk_name", "Disk Name")
+    .AddStaticElement("wrreq")
 ```
 
-Create Metric Catalog:
-```
-metricType := plugin.MetricType{
-    Namespace_: ns,
-    Unit_:   <namespace measurement unit>,
-}
-```
+It is *important* to note that the `NamespaceElement` fields `Name` and `Description` should *only* have non emtpy string 
+values when the element they are describing is dynamic in which case the `Value` field would contain the string vale "*". 
 
-Snap CLI verbose output:
-```
-$ $SNAP_PATH/bin/snapctl metric list --verbose
+You can find an example of the influxdb publisher creating tags out of the dynamic elements of the namespace and publishing
+to a time series [here](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb/blob/b253302ddfc94e3b444780328d0f503a6d73e3e0/influx/influx.go#L164-L176).
+Using the example above we can expect a datapoint published to a time series with the name `/intel/libvirt/disk/wrreq`
+with tags describing `domain_name` and `disk_name`.  
 
-/intel/cassandra/node/[node name]/type/[type value]/scope/[scope value]/name/[name value]/OneMinuteRate  float64
-/intel/cassandra/node/[node name]/type/[type value]/scope/[scope value]/name/[name value]/FiveMinuteRate  float64
-/intel/cassandra/node/[node name]/type/[type value]/keyspace/[keyspace value]/name/[name value]/OneMinuteRate  float64
-/intel/cassandra/node/[node name]/type/[type value]/keyspace/[keyspace value]/name/[name value]/FiveMinuteRate  float64
-```
-##### Collecting metric data
-While collecting metric data, collector plugin authors may leverage Snap framework by specifying `Name` field for every _`dynamic`_ element but leaving an empty `Name` field for each static element.
-
->If you use the _`(n Namespace) AddDynamicElement(value string) Namespace`_ method to build dynamic elements for a metric, remember setting the actual metric element values.
-
-### Publisher Plugins
-Snap publisher plugins may leverage following methods from Snap to determine if an element is dynamic or static _`if and only if`_ a collector correctly defined the _`Name`_ field for every dynamic element.
-
-Get all dynamic element positions:
-```
-isDynamic, indexes := ns.IsDynamic() 
-```
-Where `isDynamic` is a bool type which indicates if a namespace contains at least one dynamic element and `indexes` is an array of dynamic element positions.
-
-Loop through each element:
-```
-for _, elt := range ns {
-    elt.IsDynamic() {
-        // strip off dynamic element to create searchable metric tags
-    }
-}
-```
-It's even better that plugin [utilities](https://github.com/intelsdi-x/snap-plugin-utilities/blob/master/mts/mts.go#L32) may save your time.
-
-> Snap checks the Name field of a namespace element to determine if an item is static or dynamic.  The _`Name`_ field should be empty as a static element but not empty as a dynamic element.
-
-Appropriately define your dynamic element to leverage Snap framework!
