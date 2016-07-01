@@ -198,6 +198,14 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 		"available-plugin-type": ap.TypeName(),
 	}).Info("available plugin started")
 
+	defer r.emitter.Emit(&control_event.StartPluginEvent{
+		Name:    ap.Name(),
+		Version: ap.Version(),
+		Type:    int(ap.Type()),
+		Key:     ap.key,
+		Id:      ap.ID(),
+	})
+
 	return ap, nil
 }
 

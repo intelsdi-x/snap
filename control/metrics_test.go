@@ -82,7 +82,7 @@ func TestMetricType(t *testing.T) {
 }
 
 func TestMetricMatching(t *testing.T) {
-	Convey("metricCatalog.MatchQuery()", t, func() {
+	Convey("metricCatalog.GetQueriedNamespaces()", t, func() {
 		Convey("verify query support for static metrics", func() {
 			mc := newMetricCatalog()
 			ns := []core.Namespace{
@@ -111,8 +111,10 @@ func TestMetricMatching(t *testing.T) {
 			for _, v := range mt {
 				mc.Add(v)
 			}
+
 			Convey("match /mock/foo/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "foo", "*"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "foo", "*"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "foo", "*"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 2)
 				So(nss, ShouldResemble, []core.Namespace{
@@ -122,7 +124,8 @@ func TestMetricMatching(t *testing.T) {
 
 			})
 			Convey("match /mock/test/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "test", "*"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "test", "*"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "test", "*"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 4)
 				So(nss, ShouldResemble, []core.Namespace{
@@ -133,7 +136,8 @@ func TestMetricMatching(t *testing.T) {
 				})
 			})
 			Convey("match /mock/*/bar", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "*", "bar"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "*", "bar"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "*", "bar"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 2)
 				So(nss, ShouldResemble, []core.Namespace{
@@ -142,13 +146,15 @@ func TestMetricMatching(t *testing.T) {
 				})
 			})
 			Convey("match /mock/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "*"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "*"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "*"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, len(ns))
 				So(nss, ShouldResemble, ns)
 			})
 			Convey("match /mock/(foo|asdf)/baz", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "(foo|asdf)", "baz"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "(foo|asdf)", "baz"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "(foo|asdf)", "baz"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 2)
 				So(nss, ShouldResemble, []core.Namespace{
@@ -157,7 +163,8 @@ func TestMetricMatching(t *testing.T) {
 				})
 			})
 			Convey("match /mock/test/(1|2|3)", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "test", "(1|2|3)"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "test", "(1|2|3)"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "test", "(1|2|3)"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 3)
 				So(nss, ShouldResemble, []core.Namespace{
@@ -167,7 +174,8 @@ func TestMetricMatching(t *testing.T) {
 				})
 			})
 			Convey("invalid matching", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "not", "exist", "metric"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "not", "exist", "metric"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "not", "exist", "metric"))
 				So(err, ShouldNotBeNil)
 				So(nss, ShouldBeEmpty)
 				So(err.Error(), ShouldContainSubstring, "Metric not found:")
@@ -205,13 +213,15 @@ func TestMetricMatching(t *testing.T) {
 			So(len(mc.Keys()), ShouldEqual, len(ns))
 
 			Convey("match /mock/cgroups/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, len(ns))
 				So(nss, ShouldResemble, ns)
 			})
 			Convey("match /mock/cgroups/*/bar", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*", "bar"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*", "bar"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*", "bar"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 1)
 				So(nss, ShouldResemble, []core.Namespace{
@@ -219,7 +229,8 @@ func TestMetricMatching(t *testing.T) {
 				})
 			})
 			Convey("match /mock/cgroups/*/(bar|baz)", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*", "(bar|baz)"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*", "(bar|baz)"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*", "(bar|baz)"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 2)
 				So(nss, ShouldResemble, []core.Namespace{
@@ -228,7 +239,8 @@ func TestMetricMatching(t *testing.T) {
 				})
 			})
 			Convey("match /mock/cgroups/*/test/*", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*", "test", "*"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*", "test", "*"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*", "test", "*"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 4)
 				So(nss, ShouldResemble, []core.Namespace{
@@ -239,7 +251,8 @@ func TestMetricMatching(t *testing.T) {
 				})
 			})
 			Convey("match /mock/cgroups/*/test/(1|2|3)", func() {
-				nss, err := mc.MatchQuery(core.NewNamespace("mock", "cgroups", "*", "test", "(1|2|3)"))
+				mc.UpdateQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*", "test", "(1|2|3)"))
+				nss, err := mc.GetQueriedNamespaces(core.NewNamespace("mock", "cgroups", "*", "test", "(1|2|3)"))
 				So(err, ShouldBeNil)
 				So(len(nss), ShouldEqual, 3)
 				So(nss, ShouldResemble, []core.Namespace{

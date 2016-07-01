@@ -24,14 +24,18 @@ package scheduler
 import (
 	"errors"
 	"fmt"
+	"path"
 	"testing"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 
+	"github.com/intelsdi-x/gomit"
+	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
@@ -131,6 +135,9 @@ func (m *mockMetricManager) GetAutodiscoverPaths() []string {
 func (m *mockMetricManager) AddTaskIDData(taskID string, metrics []core.RequestedMetric, configTree *cdata.ConfigDataTree, plugins []core.SubscribedPlugin) {
 }
 
+func (m *mockMetricManager) RemoveTaskIDData(taskID string) {
+}
+
 type mockMetricManagerError struct {
 	errs []error
 }
@@ -175,6 +182,27 @@ func (m mockScheduleResponse) err() error {
 
 func (m mockScheduleResponse) missedIntervals() uint {
 	return 0
+}
+
+type listenToPluginEvent struct {
+	pluginLoaded  chan struct{}
+	pluginStarted chan struct{}
+}
+
+func newListenToPluginEvent() *listenToPluginEvent {
+	return &listenToPluginEvent{
+		pluginLoaded:  make(chan struct{}),
+		pluginStarted: make(chan struct{}),
+	}
+}
+
+func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
+	switch e.Body.(type) {
+	case *control_event.LoadPluginEvent:
+		l.pluginLoaded <- struct{}{}
+	case *control_event.StartPluginEvent:
+		l.pluginStarted <- struct{}{}
+	}
 }
 
 func TestScheduler(t *testing.T) {
@@ -383,4 +411,84 @@ func testInboundContentType(node interface{}) {
 		fmt.Printf("testing content type for pu plugin %s %d/n", t.Name(), t.Version())
 		So(t.InboundContentType, ShouldNotEqual, "")
 	}
+}
+
+func TestSubscribeAfterNewPluginLoaded(t *testing.T) {
+	// Create workflow map for task
+	wf := new(wmap.WorkflowMap)
+	cn := wmap.NewCollectWorkflowMapNode()
+	cn.Config["/intel/mock/foo"] = make(map[string]interface{})
+	cn.Config["/intel/mock/foo"]["password"] = "mockpass"
+	cn.Config["/intel/anothermock/foo"] = make(map[string]interface{})
+	cn.Config["/intel/anothermock/foo"]["password"] = "anothermockpass"
+	cn.AddMetric("/intel/*/foo", 1)
+	wf.CollectNode = cn
+
+	// Create plugin manager
+	c := control.New(control.GetDefaultConfig())
+	c.Start()
+
+	lpe := newListenToPluginEvent()
+	c.RegisterEventHandler("Control.PluginLoaded", lpe)
+
+	mock1Path := path.Join(PluginPath, "snap-collector-mock1")
+	anotherMock1Path := path.Join(PluginPath, "snap-collector-anothermock1")
+
+	Convey("Test subscribe after new plugin loaded", t, func() {
+		// Create new scheduler and set metric manager
+		s := New(GetDefaultConfig())
+		s.SetMetricManager(c)
+		err := s.Start()
+		So(err, ShouldBeNil)
+
+		// Load mock1 plugin
+		rp, err := core.NewRequestedPlugin(mock1Path)
+		So(err, ShouldBeNil)
+		_, err = c.Load(rp)
+		So(err, ShouldBeNil)
+		<-lpe.pluginLoaded
+
+		// Create and start task
+		tsk, errs := s.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, false)
+		So(len(errs.Errors()), ShouldEqual, 0)
+		So(tsk, ShouldNotBeNil)
+		schTask := tsk.(*task)
+		schTask.RemoteManagers.Add("", c)
+		terrs := s.StartTask(schTask.ID())
+		So(terrs, ShouldBeEmpty)
+		<-lpe.pluginStarted
+
+		// pluginControl.AvailablePlugins() should return 1 item
+		plugins := c.AvailablePlugins()
+		So(len(plugins), ShouldEqual, 1)
+
+		// Load anothermock1 plugin
+		rp, err = core.NewRequestedPlugin(anotherMock1Path)
+		So(err, ShouldBeNil)
+		_, err = c.Load(rp)
+		So(err, ShouldBeNil)
+		<-lpe.pluginLoaded
+		<-lpe.pluginStarted
+
+		// pluginControl.AvailablePlugins() should return 2 items now
+		plugins = c.AvailablePlugins()
+		So(len(plugins), ShouldEqual, 2)
+
+		// Check if config is correct for both plugins
+		metricMock, err := c.GetMetric(core.NewNamespace("intel", "mock", "foo"), 1)
+		So(err, ShouldBeNil)
+		metricAnotherMock, err := c.GetMetric(core.NewNamespace("intel", "anothermock", "foo"), 1)
+		So(err, ShouldBeNil)
+
+		dataMock, errors := c.CollectMetrics([]core.Metric{metricMock.(core.Metric)}, time.Now().Add(time.Second*1), schTask.ID(), nil)
+		So(errors, ShouldBeEmpty)
+		So(dataMock, ShouldNotBeEmpty)
+		So(dataMock[0].Config().Table()["password"].(ctypes.ConfigValueStr).Value, ShouldEqual, "mockpass")
+		dataAnotherMock, errors := c.CollectMetrics([]core.Metric{metricAnotherMock.(core.Metric)}, time.Now().Add(time.Second*1), schTask.ID(), nil)
+		So(errors, ShouldBeEmpty)
+		So(dataAnotherMock, ShouldNotBeEmpty)
+		So(dataAnotherMock[0].Config().Table()["password"].(ctypes.ConfigValueStr).Value, ShouldEqual, "anothermockpass")
+	})
+
+	c.Stop()
 }

@@ -707,7 +707,10 @@ func (m *mc) GetQueriedNamespaces(ns core.Namespace) ([]core.Namespace, error) {
 	return []core.Namespace{ns}, nil
 }
 
-func (m *mc) MatchQuery(ns core.Namespace) ([]core.Namespace, error) {
+func (m *mc) UpdateQueriedNamespaces(ns core.Namespace) {
+}
+
+func (m *mc) MatchNamespaces(ns core.Namespace) ([]core.Namespace, error) {
 	return []core.Namespace{ns}, nil
 }
 

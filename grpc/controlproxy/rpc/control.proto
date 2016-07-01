@@ -123,6 +123,17 @@ message ExpandWildcardsReply {
 	common.SnapError Error = 2;
 }
 
+message AddTaskIDDataRequest {
+	string TaskID = 1;
+	repeated common.RequestedMetric Metrics = 2;
+	common.ConfigTree ConfigTree = 3;
+	common.SubscribedPlugin Plugins = 4;
+}
+
+message RemoveTaskIDDataRequest {
+	string TaskID = 1;
+}
+
 message GetAutodiscoverPathsReply{
 	repeated string Paths = 1;
 }
