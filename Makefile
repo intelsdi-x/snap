@@ -21,21 +21,19 @@ default:
 deps:
 	bash -c "./scripts/deps.sh"
 test:
-	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh $(SNAP_TEST_TYPE)"
+	bash -c "./scripts/test.sh $(SNAP_TEST_TYPE)"
 test-legacy:
-	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh legacy"
+	bash -c "./scripts/test.sh legacy"
 test-small:
-	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh small"
+	bash -c "./scripts/test.sh small"
 test-medium:
-	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh medium"
+	bash -c "./scripts/test.sh medium"
 test-large:
-	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh large"
+	bash -c "./scripts/test.sh large"
 check:
 	$(MAKE) test
 all:
-	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))) true"
-snap:
-	bash -c "./scripts/build.sh $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))"
+	bash -c "./scripts/build_snap.sh"
 install:
 	cp build/bin/snapd /usr/local/bin/
 	cp build/bin/snapctl /usr/local/bin/

@@ -17,14 +17,24 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-if [[ $# -ne 1 ]]; then
-	echo "ERROR; missing SNAP_TEST_TYPE (Usage: $0 SNAP_TEST_TYPE)"
-	exit -2
-elif [[ “$1” != “legacy” && "$1" != "small" && “$1” != “medium” && “$1” != “large” ]]; then
-	echo "Error; invalid SNAP_TEST_TYPE (value must be one of 'legacy', 'small', 'medium', or 'large'; received $1)"
-	exit -1
-fi
-SNAP_TEST_TYPE=$1
+SNAP_TEST_TYPE="${SNAP_TEST_TYPE:-$1}"
 
-docker build -t intelsdi-x/snap-test -f scripts/Dockerfile .
-docker run -it intelsdi-x/snap-test scripts/test.sh $SNAP_TEST_TYPE
+UNIT_TEST="${UNIT_TEST:-"gofmt goimports go_test go_cover"}"
+
+set -e
+set -u
+set -o pipefail
+
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__proj_dir="$(dirname "$__dir")"
+
+# shellcheck source=scripts/common.sh
+. "${__dir}/common.sh"
+
+_debug "script directory ${__dir}"
+_debug "project directory ${__proj_dir}"
+
+[[ "$SNAP_TEST_TYPE" =~ ^(small|medium|large|legacy)$ ]] || _error "invalid TEST_TYPE (value must be 'small', 'medium', 'large', or 'legacy', recieved:${SNAP_TEST_TYPE}"
+
+(cd ${__proj_dir} && docker build -t intelsdi-x/snap-test -f "${__dir}/Dockerfile" .)
+docker run -it intelsdi-x/snap-test scripts/test.sh "${SNAP_TEST_TYPE}"

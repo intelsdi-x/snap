@@ -17,10 +17,24 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-BUILDCMD='go build -a -ldflags "-w"'
-BUILDDIR=$1
-PLUGIN=$2
-PLUGINNAME=`echo $PLUGIN | grep -oh "snap-.*"` 
+set -e
+set -u
+set -o pipefail
 
-echo "    $PLUGINNAME => $BUILDDIR"
-$BUILDCMD -o $BUILDDIR/$PLUGINNAME $PLUGIN || exit 2
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__proj_dir="$(dirname "$__dir")"
+
+# shellcheck source=scripts/common.sh
+. "${__dir}/common.sh"
+
+build_dir="${__proj_dir}/build"
+plugin_dir="${build_dir}/plugin"
+
+plugin_src_path=$1
+plugin_name=$(basename "${plugin_src_path}")
+go_build=(go build -a -ldflags "-w")
+
+_debug "plugin source: ${plugin_src_path}"
+_info "building ${plugin_name}"
+
+(cd "${plugin_src_path}" && "${go_build[@]}" -o "${plugin_dir}/${plugin_name}" . || exit 1)

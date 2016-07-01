@@ -1,9 +1,9 @@
-#!/bin/bash -e
+#!/bin/bash
 
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #
 #
-#Copyright 2015 Intel Corporation
+#Copyright 2016 Intel Corporation
 #
 #Licensed under the Apache License, Version 2.0 (the "License");
 #you may not use this file except in compliance with the License.
@@ -17,18 +17,19 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-# This script runs the correct godep sequences for snap and built-in plugins
-# This will rebase back to the committed version. It should be run from snap/.
-ctrl_c()
-{
-  exit $?
-}
-trap ctrl_c SIGINT
+set -e
+set -u
+set -o pipefail
 
-# Godep
-echo "Getting godep if not found"
-go get github.com/tools/godep
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__proj_dir="$(dirname "$__dir")"
 
-# First load snap deps
-echo "Checking snap root for deps"
-godep restore
+# shellcheck source=scripts/common.sh
+. "${__dir}/common.sh"
+
+_go_path
+
+_go_get github.com/tools/godep
+
+_info "restoring dependency with godep"
+(cd "${__proj_dir}" && godep restore)

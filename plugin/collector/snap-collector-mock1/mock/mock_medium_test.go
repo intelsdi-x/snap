@@ -218,4 +218,3 @@ func TestGetConfigPolicy(t *testing.T) {
 		So(configPolicy, ShouldNotBeNil)
 	})
 }
-
