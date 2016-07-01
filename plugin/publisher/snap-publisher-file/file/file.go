@@ -23,7 +23,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/gob"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -44,6 +44,7 @@ const (
 type filePublisher struct {
 }
 
+//NewFilePublisher returns an instance of filePublisher
 func NewFilePublisher() *filePublisher {
 	return &filePublisher{}
 }
@@ -62,7 +63,7 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 		}
 	default:
 		logger.Printf("Error unknown content type '%v'", contentType)
-		return errors.New(fmt.Sprintf("Unknown content type '%s'", contentType))
+		return fmt.Errorf("Unknown content type '%s'", contentType)
 	}
 
 	logger.Printf("publishing %v metrics to %v", len(metrics), config)
@@ -73,10 +74,12 @@ func (f *filePublisher) Publish(contentType string, content []byte, config map[s
 		return err
 	}
 	w := bufio.NewWriter(file)
-	for _, m := range metrics {
-		formattedTags := formatMetricTagsAsString(m.Tags())
-		w.WriteString(fmt.Sprintf("%v|%v|%v|%v\n", m.Timestamp(), m.Namespace(), m.Data(), formattedTags))
+	jsonOut, err := json.Marshal(metrics)
+	if err != nil {
+		return fmt.Errorf("Error while marshalling metrics to JSON: %v", err)
 	}
+	w.Write(jsonOut)
+	w.WriteString("\n")
 	w.Flush()
 
 	return nil
@@ -94,6 +97,7 @@ func formatMetricTagsAsString(metricTags map[string]string) string {
 	return "tags[" + tags + "]"
 }
 
+//Meta returns metadata about the plugin
 func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(name, version, pluginType, []string{plugin.SnapGOBContentType}, []string{plugin.SnapGOBContentType})
 }
