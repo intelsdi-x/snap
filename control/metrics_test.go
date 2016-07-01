@@ -561,3 +561,30 @@ func TestMetricNamespaceValidation(t *testing.T) {
 		})
 	})
 }
+
+func TestMetricStaticDynamicNamespace(t *testing.T) {
+	Convey("validateStaticDynamic()", t, func() {
+		Convey("has static elements only", func() {
+			ns := core.NewNamespace("mock", "foo", "bar")
+			err := validateMetricNamespace(ns)
+			So(err, ShouldBeNil)
+		})
+		Convey("had both static and dynamic elements", func() {
+			ns := core.NewNamespace("mock", "foo", "*", "bar")
+			ns[2].Name = "dynamic element"
+			err := validateMetricNamespace(ns)
+			So(err, ShouldBeNil)
+		})
+		Convey("has name for a static element", func() {
+			ns := core.NewNamespace("mock", "foo")
+			ns[0].Name = "static element"
+			err := validateMetricNamespace(ns)
+			So(err, ShouldNotBeNil)
+		})
+		Convey("has * but no name", func() {
+			ns := core.NewNamespace("mock", "foo", "*", "bar")
+			err := validateMetricNamespace(ns)
+			So(err, ShouldNotBeNil)
+		})
+	})
+}

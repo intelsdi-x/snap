@@ -83,6 +83,14 @@ func errorMetricEndsWithAsterisk(ns string) error {
 	return fmt.Errorf("Metric namespace %s ends with an asterisk is not allowed", ns)
 }
 
+func errorMetricStaticElementHasName(value, name, ns string) error {
+	return fmt.Errorf("A static element %s should not define name %s for namespace %s.", value, name, ns)
+}
+
+func errorMetricDynamicElementHasNoName(value, ns string) error {
+	return fmt.Errorf("A dynamic element %s requires a name for namespace %s.", value, ns)
+}
+
 // listNotAllowedChars returns list of not allowed characters in metric's namespace as a string
 // which is used in construct errorMetricContainsNotAllowedChars as a recommendation
 // exemplary output: "brackets [( ) [ ] { }], spaces [ ], punctuations [. , ; ? !], slashes [| \ /], carets [^], quotations [" ` ']"
@@ -338,19 +346,28 @@ func (mc *metricCatalog) removeMatchedKey(key string) {
 
 // validateMetricNamespace validates metric namespace in terms of containing not allowed characters and ending with an asterisk
 func validateMetricNamespace(ns core.Namespace) error {
-	name := ""
+	value := ""
 	for _, i := range ns {
-		name += i.Value
+		// A dynamic element requires the name while a static element does not.
+		if i.Name != "" && i.Value != "*" {
+			return errorMetricStaticElementHasName(i.Value, i.Name, ns.String())
+		}
+		if i.Name == "" && i.Value == "*" {
+			return errorMetricDynamicElementHasNoName(i.Value, ns.String())
+		}
+
+		value += i.Value
 	}
+
 	for _, chars := range notAllowedChars {
 		for _, ch := range chars {
-			if strings.ContainsAny(name, ch) {
+			if strings.ContainsAny(value, ch) {
 				return errorMetricContainsNotAllowedChars(ns.String())
 			}
 		}
 	}
 	// plugin should NOT advertise metrics ending with a wildcard
-	if strings.HasSuffix(name, "*") {
+	if strings.HasSuffix(value, "*") {
 		return errorMetricEndsWithAsterisk(ns.String())
 	}
 
@@ -363,7 +380,7 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) e
 			"_module": "control",
 			"_file":   "metrics.go,",
 			"_block":  "add-loaded-metric-type",
-			"error":   fmt.Errorf("Metric namespace %s contains not allowed characters", mt.Namespace()),
+			"error":   fmt.Errorf("Metric namespace %s is invalid", mt.Namespace()),
 		}).Error("error adding loaded metric type")
 		return err
 	}
