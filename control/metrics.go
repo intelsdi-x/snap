@@ -453,6 +453,14 @@ func (mc *metricCatalog) RmUnloadedPluginMetrics(lp *loadedPlugin) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 	mc.tree.DeleteByPlugin(lp)
+
+	// Update metric catalog keys
+	mc.keys = []string{}
+	mts := mc.tree.gatherMetricTypes()
+	for _, m := range mts {
+		mc.keys = append(mc.keys, m.Namespace().Key())
+	}
+
 	// update the contents of matching map (mKeys)
 	mc.updateMatchingMap()
 }
