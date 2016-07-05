@@ -259,51 +259,54 @@ func (p *pluginControl) HandleGomitEvent(e gomit.Event) {
 						"plugin-version": v.Version,
 						"plugin-type":    core.PluginType(v.Type).String(),
 					}).Error("error matching task namespace with metric catalog")
-				} else {
-					if len(matchedNss) > 0 {
-						depMts := []core.Metric{}
-						for _, ns := range matchedNss {
+					continue
+				}
 
-							// Get expanded namespace data from metric catalog
-							if m, err := p.metricCatalog.Get(ns, tm.Version()); err == nil {
-								// Check if expanded namespace belongs to currently loaded plugin
-								if m.Plugin.TypeName() == core.PluginType(v.Type).String() && m.Plugin.Name() == v.Name {
-									depMts = append(depMts, &metric{
-										namespace: ns,
-										version:   tm.Version(),
-										config:    taskData.configTree.Get(ns.Strings()),
-									})
-								}
-							}
-						}
+				if len(matchedNss) > 0 {
+					depMts := []core.Metric{}
+					for _, ns := range matchedNss {
 
-						// Validate and subscribe deps for loaded plugin
-						errs := p.ValidateDeps(depMts, taskData.plugins)
-						if len(errs) > 0 {
-							log.WithFields(log.Fields{
-								"_block":         "control",
-								"event":          v.Namespace(),
-								"plugin-name":    v.Name,
-								"plugin-version": v.Version,
-								"plugin-type":    core.PluginType(v.Type).String(),
-							}).Error("error validating dependencies")
-						} else {
-							cps := returnCorePlugin(taskData.plugins)
-							errs = p.SubscribeDeps(taskID, depMts, cps)
-							if len(errs) > 0 {
-								log.WithFields(log.Fields{
-									"_block":         "control",
-									"event":          v.Namespace(),
-									"plugin-name":    v.Name,
-									"plugin-version": v.Version,
-									"plugin-type":    core.PluginType(v.Type).String(),
-								}).Error("error subscribing dependencies")
-								p.UnsubscribeDeps(taskID, depMts, cps)
-							} else {
-								p.metricCatalog.UpdateQueriedNamespaces(tm.Namespace())
+						// Get expanded namespace data from metric catalog
+						if m, err := p.metricCatalog.Get(ns, tm.Version()); err == nil {
+							// Check if expanded namespace belongs to currently loaded plugin
+							if m.Plugin.TypeName() == core.PluginType(v.Type).String() && m.Plugin.Name() == v.Name {
+								depMts = append(depMts, &metric{
+									namespace: ns,
+									version:   tm.Version(),
+									config:    taskData.configTree.Get(ns.Strings()),
+								})
 							}
 						}
 					}
+
+					// Validate and subscribe deps for loaded plugin
+					errs := p.ValidateDeps(depMts, taskData.plugins)
+					if len(errs) > 0 {
+						log.WithFields(log.Fields{
+							"_block":         "control",
+							"event":          v.Namespace(),
+							"plugin-name":    v.Name,
+							"plugin-version": v.Version,
+							"plugin-type":    core.PluginType(v.Type).String(),
+						}).Error("error validating dependencies")
+						continue
+					}
+
+					cps := returnCorePlugin(taskData.plugins)
+					errs = p.SubscribeDeps(taskID, depMts, cps)
+					if len(errs) > 0 {
+						log.WithFields(log.Fields{
+							"_block":         "control",
+							"event":          v.Namespace(),
+							"plugin-name":    v.Name,
+							"plugin-version": v.Version,
+							"plugin-type":    core.PluginType(v.Type).String(),
+						}).Error("error subscribing dependencies")
+						p.UnsubscribeDeps(taskID, depMts, cps)
+						continue
+					}
+
+					p.metricCatalog.UpdateQueriedNamespaces(tm.Namespace())
 				}
 			}
 		}
