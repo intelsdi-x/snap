@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"path"
 	"strings"
 	"testing"
@@ -108,10 +109,33 @@ func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, serror.SnapE
 	return p, nil
 }
 
-func TestPluginControlGenerateArgs(t *testing.T) {
+// Generates a config to use for testing by taking the a default config
+// and setting the ListenPort to an available port on the system running
+// the tests.
+func getTestConfig() *Config {
 	config := GetDefaultConfig()
-	config.ListenPort = 0
-	c := New(config)
+	config.ListenPort = getPort()
+	return config
+}
+
+// Returns an available port on the test system. If no port is available
+// after 1000 tries, then the test will panic.
+func getPort() int {
+	count := 0
+	for count < 1000 {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err == nil {
+			p := ln.Addr().(*net.TCPAddr).Port
+			ln.Close()
+			return p
+		}
+		count++
+	}
+	panic("Could not find an available port")
+}
+
+func TestPluginControlGenerateArgs(t *testing.T) {
+	c := New(getTestConfig())
 	err := c.Start()
 	Convey("pluginControl starts successfully", t, func() {
 		So(c.Started, ShouldBeTrue)
@@ -127,7 +151,7 @@ func TestPluginControlGenerateArgs(t *testing.T) {
 
 func TestSwapPlugin(t *testing.T) {
 	if fixtures.SnapPath != "" {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
 		lpe := newListenToPluginEvent()
@@ -325,7 +349,7 @@ func TestLoad(t *testing.T) {
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
 	if fixtures.SnapPath != "" {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 
 		// Testing trying to load before starting pluginControl
 		Convey("pluginControl before being started", t, func() {
@@ -379,7 +403,7 @@ func TestLoad(t *testing.T) {
 func TestLoadWithSignedPlugins(t *testing.T) {
 	if fixtures.SnapPath != "" {
 		Convey("pluginControl.Load should successufully load a signed plugin with trust enabled", t, func() {
-			c := New(GetDefaultConfig())
+			c := New(getTestConfig())
 			c.pluginTrust = PluginTrustEnabled
 			c.signingManager = &mocksigningManager{signed: true}
 			lpe := newListenToPluginEvent()
@@ -395,7 +419,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 		})
 		Convey("pluginControl.Load should successfully load unsigned plugin when trust level set to warning", t, func() {
-			c := New(GetDefaultConfig())
+			c := New(getTestConfig())
 			c.pluginTrust = PluginTrustWarn
 			c.signingManager = &mocksigningManager{signed: false}
 			lpe := newListenToPluginEvent()
@@ -410,7 +434,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 		})
 		Convey("pluginControl.Load returns error with trust enabled and signing not validated", t, func() {
-			c := New(GetDefaultConfig())
+			c := New(getTestConfig())
 			c.pluginTrust = PluginTrustEnabled
 			c.signingManager = &mocksigningManager{signed: false}
 			c.Start()
@@ -431,7 +455,7 @@ func TestUnload(t *testing.T) {
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
 	if fixtures.SnapPath != "" {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestUnload", lpe)
 		c.Start()
@@ -494,7 +518,7 @@ func TestUnload(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	Convey("pluginControl.Stop", t, func() {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		lps := newLoadedPlugins()
 		err := lps.add(&loadedPlugin{
 			Type: plugin.CollectorPluginType,
@@ -518,7 +542,7 @@ func TestStop(t *testing.T) {
 func TestPluginCatalog(t *testing.T) {
 	ts := time.Now()
 
-	c := New(GetDefaultConfig())
+	c := New(getTestConfig())
 
 	// We need our own plugin manager to drop mock
 	// loaded plugins into.  Arbitrarily adding
@@ -725,7 +749,7 @@ func (m *mockCDProc) HasRules() bool {
 
 func TestExportedMetricCatalog(t *testing.T) {
 	Convey(".MetricCatalog()", t, func() {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		lp := &loadedPlugin{}
 		mt := newMetricType(core.NewNamespace("foo", "bar"), time.Now(), lp)
 		c.metricCatalog.Add(mt)
@@ -746,7 +770,7 @@ func TestExportedMetricCatalog(t *testing.T) {
 
 func TestMetricExists(t *testing.T) {
 	Convey("MetricExists()", t, func() {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		c.metricCatalog = &mc{}
 		So(c.MetricExists(core.NewNamespace("hi"), -1), ShouldEqual, false)
 	})
@@ -754,7 +778,7 @@ func TestMetricExists(t *testing.T) {
 
 func TestMetricConfig(t *testing.T) {
 	Convey("required config provided by task", t, func() {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
@@ -790,7 +814,7 @@ func TestMetricConfig(t *testing.T) {
 	})
 
 	Convey("config provided by defaults", t, func() {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		c.Config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "pwd"})
 		c.Start()
 		lpe := newListenToPluginEvent()
@@ -816,7 +840,7 @@ func TestMetricConfig(t *testing.T) {
 	})
 
 	Convey("nil config provided by task", t, func() {
-		config := GetDefaultConfig()
+		config := getTestConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(config)
 		c.Start()
@@ -839,7 +863,7 @@ func TestMetricConfig(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	})
 	Convey("required config provided by global plugin config", t, func() {
-		config := GetDefaultConfig()
+		config := getTestConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(config)
 		c.Start()
@@ -864,7 +888,7 @@ func TestMetricConfig(t *testing.T) {
 
 func TestRoutingCachingStrategy(t *testing.T) {
 	Convey("Given loaded plugins that use sticky routing", t, func() {
-		config := GetDefaultConfig()
+		config := getTestConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(config)
 		c.Start()
@@ -923,7 +947,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 	})
 
 	Convey("Given loaded plugins that use least-recently-used routing", t, func() {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		c.Start()
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(
 			optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}),
@@ -992,7 +1016,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 
 func TestCollectDynamicMetrics(t *testing.T) {
 	Convey("given a plugin using the native client", t, func() {
-		config := GetDefaultConfig()
+		config := getTestConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		config.CacheExpiration = jsonutil.Duration{time.Second * 1}
 		c := New(config)
@@ -1133,7 +1157,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 func TestFailedPlugin(t *testing.T) {
 	Convey("given a loaded plugin", t, func() {
 		// Create controller
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TEST", lpe)
@@ -1206,7 +1230,7 @@ func TestCollectMetrics(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		config := GetDefaultConfig()
+		config := getTestConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(config)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
@@ -1287,7 +1311,7 @@ func TestCollectMetrics(t *testing.T) {
 		plugin.PingTimeoutLimit = 1
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 		// Create controller
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
 		c.Start()
 		load(c, fixtures.PluginPath)
@@ -1305,7 +1329,7 @@ func TestExpandWildcards(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		config := GetDefaultConfig()
+		config := getTestConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(config)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
@@ -1379,7 +1403,7 @@ func TestGatherCollectors(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		config := GetDefaultConfig()
+		config := getTestConfig()
 		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 		c := New(config)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
@@ -1447,7 +1471,7 @@ func TestPublishMetrics(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestPublishMetrics", lpe)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
@@ -1500,7 +1524,7 @@ func TestProcessMetrics(t *testing.T) {
 		plugin.PingTimeoutDurationDefault = time.Second * 1
 
 		// Create controller
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("TestProcessMetrics", lpe)
 		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
@@ -1584,7 +1608,7 @@ func (l *listenToPluginSubscriptionEvent) HandleGomitEvent(e gomit.Event) {
 }
 func TestMetricSubscriptionToNewVersion(t *testing.T) {
 	Convey("Given a metric that is being collected at v1", t, func() {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		lpe := newListenToPluginSubscriptionEvent()
 		c.eventManager.RegisterHandler("TestMetricSubscriptionToNewVersion", lpe)
 		c.Start()
@@ -1647,7 +1671,7 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 
 func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 	Convey("Given a metric that is being collected at v2", t, func() {
-		c := New(GetDefaultConfig())
+		c := New(getTestConfig())
 		lpe := newListenToPluginSubscriptionEvent()
 		c.eventManager.RegisterHandler("TestMetricSubscriptionToOlderVersion", lpe)
 		c.Start()
