@@ -244,6 +244,11 @@ func New(cfg *Config) *pluginControl {
 func (p *pluginControl) HandleGomitEvent(e gomit.Event) {
 	switch v := e.Body.(type) {
 	case *control_event.LoadPluginEvent:
+		// Ignore plugins with type other than collector
+		if core.PluginType(v.Type).String() != "collector" {
+			return
+		}
+
 		// Get all known tasks data
 		for taskID, taskData := range p.taskIDData {
 			// Expand every task metric namespaces (with "*") to corresponding metric calalog namespaces
