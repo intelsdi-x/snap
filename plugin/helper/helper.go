@@ -21,31 +21,21 @@ limitations under the License.
 package helper
 
 import (
-	// "fmt"
+	"fmt"
 	"os"
-	"os/exec"
-	"path"
-	"strings"
 )
 
-var (
-	buildScript = "/scripts/build.sh"
-)
+//SNAP_PATH should be set to Snap's build directory
 
-// BuildPlugin attempts to make the plugins before each test.
-func BuildPlugin(pluginType, pluginName string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
+//CheckPluginBuilt checks if PluginName has been built.
+func CheckPluginBuilt(SnapPath string, PluginName string) error {
+	if SnapPath == "" {
+		return fmt.Errorf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
 	}
-
-	bPath := strings.Replace(wd, path.Join("/", "plugin", pluginType, pluginName), buildScript, 1)
-	sPath := strings.Replace(wd, path.Join("/", "plugin", pluginType, pluginName), "", 1)
-
-	// fmt.Println(bPath, sPath, pluginType, pluginName)
-	c := exec.Command(bPath, sPath, pluginType, pluginName)
-
-	_, e := c.Output()
-	// fmt.Println(string(o))
-	return e
+	bPath := fmt.Sprintf("%s/plugin/%s", SnapPath, PluginName)
+	if _, err := os.Stat(bPath); os.IsNotExist(err) {
+		//the binary has not been built yet
+		return fmt.Errorf("Error: $SNAP_PATH/plugin/%s does not exist. Run make to build it.", PluginName)
+	}
+	return nil
 }
