@@ -23,7 +23,7 @@ import (
 	"os"
 
 	"github.com/intelsdi-x/snap/control/plugin"
-	"github.com/intelsdi-x/snap/plugin/publisher/snap-publisher-file/file"
+	"github.com/intelsdi-x/snap/plugin/publisher/snap-publisher-mock-file/file"
 )
 
 func main() {

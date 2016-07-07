@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	name       = "file"
+	name       = "mock-file"
 	version    = 3
 	pluginType = plugin.PublisherPluginType
 )
