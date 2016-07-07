@@ -51,7 +51,7 @@ var (
 	snap_collector_mock1_path    = path.Join(SnapPath, "plugin", "snap-collector-mock1")
 	snap_collector_mock2_path    = path.Join(SnapPath, "plugin", "snap-collector-mock2")
 	snap_processor_passthru_path = path.Join(SnapPath, "plugin", "snap-processor-passthru")
-	snap_publisher_file_path     = path.Join(SnapPath, "plugin", "snap-publisher-file")
+	snap_publisher_file_path     = path.Join(SnapPath, "plugin", "snap-publisher-mock-file")
 
 	metricsToCollect = 3
 )

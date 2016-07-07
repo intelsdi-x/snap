@@ -75,7 +75,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		log.Fatal(err)
 	}
 	c.Load(passthru)
-	filepub, err := core.NewRequestedPlugin(path.Join(fixtures.SnapPath, "plugin", "snap-publisher-file"))
+	filepub, err := core.NewRequestedPlugin(path.Join(fixtures.SnapPath, "plugin", "snap-publisher-mock-file"))
 	if err != nil {
 		log.Fatal(err)
 	}

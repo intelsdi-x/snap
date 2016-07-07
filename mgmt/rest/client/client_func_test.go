@@ -48,7 +48,7 @@ var (
 	SNAP_PATH         = os.Getenv("SNAP_PATH")
 	MOCK_PLUGIN_PATH1 = []string{SNAP_PATH + "/plugin/snap-collector-mock1"}
 	MOCK_PLUGIN_PATH2 = []string{SNAP_PATH + "/plugin/snap-collector-mock2"}
-	FILE_PLUGIN_PATH  = []string{SNAP_PATH + "/plugin/snap-publisher-file"}
+	FILE_PLUGIN_PATH  = []string{SNAP_PATH + "/plugin/snap-publisher-mock-file"}
 	DIRECTORY_PATH    = []string{SNAP_PATH + "/plugin/"}
 
 	NextPort = 45000

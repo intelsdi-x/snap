@@ -119,7 +119,7 @@ $ $SNAP_PATH/bin/snapd -l 1 -t 0
 
 $ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-collector-mock1
 $ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-processor-passthru
-$ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-publisher-file
+$ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-publisher-mock-file
 $ $SNAP_PATH/bin/snapctl plugin list
 $ $SNAP_PATH/bin/snapctl task create -t $SNAP_PATH/../examples/tasks/mock-file.json
 $ $SNAP_PATH/bin/snapctl task create -w $SNAP_PATH/../mgmt/rest/wmap_sample/1.json -i 1s -d 10s

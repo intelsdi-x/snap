@@ -200,7 +200,7 @@ func TestSwapPlugin(t *testing.T) {
 			})
 		})
 
-		filePath := strings.Replace(fixtures.PluginPath, "snap-collector-mock2", "snap-publisher-file", 1)
+		filePath := strings.Replace(fixtures.PluginPath, "snap-collector-mock2", "snap-publisher-mock-file", 1)
 		fileRP, pErr := core.NewRequestedPlugin(filePath)
 		Convey("Loading a plugin should not error", t, func() {
 			So(pErr, ShouldBeNil)
@@ -1455,7 +1455,7 @@ func TestPublishMetrics(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		// Load plugin
-		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-publisher-file"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-publisher-mock-file"))
 		So(err, ShouldBeNil)
 		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
