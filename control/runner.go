@@ -61,9 +61,8 @@ const (
 
 // TBD
 type executablePlugin interface {
-	Start() error
+	Run(time.Duration) (plugin.Response, error)
 	Kill() error
-	WaitForResponse(time.Duration) (*plugin.Response, error)
 }
 
 // Handles events pertaining to plugins and control the runnning state accordingly.
@@ -158,29 +157,9 @@ func (r *runner) Stop() []error {
 }
 
 func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
-	e := p.Start()
-	if e != nil {
-		err := errors.New("error while starting plugin: " + e.Error())
-		defer runnerLog.WithFields(log.Fields{
-			"_block": "start-plugin",
-			"error":  e.Error(),
-		}).Error("error starting a plugin")
-		return nil, err
-	}
-
-	// Wait for plugin response
-	resp, err := p.WaitForResponse(time.Second * 5)
+	resp, err := p.Run(time.Second * 5)
 	if err != nil {
-		e := errors.New("error while waiting for response: " + err.Error())
-		runnerLog.WithFields(log.Fields{
-			"_block": "start-plugin",
-			"error":  e.Error(),
-		}).Error("error starting a plugin")
-		return nil, e
-	}
-
-	if resp == nil {
-		e := errors.New("no response object returned from plugin")
+		e := errors.New("error starting plugin: " + err.Error())
 		runnerLog.WithFields(log.Fields{
 			"_block": "start-plugin",
 			"error":  e.Error(),

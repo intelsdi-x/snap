@@ -79,7 +79,7 @@ type availablePlugin struct {
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
-func newAvailablePlugin(resp *plugin.Response, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
+func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
 	if resp.Type != plugin.CollectorPluginType && resp.Type != plugin.ProcessorPluginType && resp.Type != plugin.PublisherPluginType {
 		return nil, strategy.ErrBadType
 	}
