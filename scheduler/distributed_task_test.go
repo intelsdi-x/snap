@@ -29,8 +29,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
@@ -89,6 +91,12 @@ func TestDistributedWorkflow(t *testing.T) {
 			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, true)
 			So(len(errs.Errors()), ShouldEqual, 0)
 			So(t, ShouldNotBeNil)
+			// stop the scheduler and control (since in nested Convey statements, the
+			// statements in the outer Convey execute for each of the inner Conveys
+			// independently; see https://github.com/smartystreets/goconvey/wiki/Execution-order
+			// for details on execution order in Convey)
+			sch.Stop()
+			c2.Stop()
 		})
 
 		Convey("Test task with invalid remote port", func() {
@@ -97,6 +105,12 @@ func TestDistributedWorkflow(t *testing.T) {
 			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, true)
 			So(len(errs.Errors()), ShouldEqual, 1)
 			So(t, ShouldBeNil)
+			// stop the scheduler and control (since in nested Convey statements, the
+			// statements in the outer Convey execute for each of the inner Conveys
+			// independently; see https://github.com/smartystreets/goconvey/wiki/Execution-order
+			// for details on execution order in Convey)
+			sch.Stop()
+			c2.Stop()
 		})
 
 		Convey("Test task without remote plugin", func() {
@@ -106,28 +120,66 @@ func TestDistributedWorkflow(t *testing.T) {
 			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, true)
 			So(len(errs.Errors()), ShouldEqual, 1)
 			So(t, ShouldBeNil)
+			// stop the scheduler and control (since in nested Convey statements, the
+			// statements in the outer Convey execute for each of the inner Conveys
+			// independently; see https://github.com/smartystreets/goconvey/wiki/Execution-order
+			// for details on execution order in Convey)
+			sch.Stop()
+			c2.Stop()
 		})
 
 		Convey("Test task failing when control is stopped while task is running", func() {
 			wf := dsWFMap(port1)
-			controlproxy.MAX_CONNECTION_TIMEOUT = 10 * time.Second
+			// set timeout so that connection attempt through the controlproxy will fail after 1 second
+			controlproxy.MAX_CONNECTION_TIMEOUT = time.Second
+			// define an interval that the simple scheduler will run on every 100ms
 			interval := time.Millisecond * 100
+			// create our task; should be disabled after 3 failures
 			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(interval), wf, true)
+			// ensure task was created successfully
 			So(len(errs.Errors()), ShouldEqual, 0)
 			So(t, ShouldNotBeNil)
+			// create a channel to listen on for a response and setup an event handler
+			// that will respond on that channel once the 'TaskDisabledEvent'  arrives
+			respChan := make(chan struct{})
+			sch.RegisterEventHandler("test", &failHandler{respChan})
+			// then stop the controller
 			c2.Stop()
-			// Give task time to fail
-			time.Sleep(time.Second)
-			tasks := sch.GetTasks()
-			var task core.Task
-			for _, v := range tasks {
-				task = v
+			// and wait for the response (with a 30 second timeout; just in case)
+			var ok bool
+			select {
+			case <-time.After(30 * time.Second):
+				// if get here, the select timed out waiting for a response; we don't
+				// expect to hit this timeout since it should only take 3 seconds for
+				// the workflow to fail to connect to the gRPC server three times, but
+				// it might if the task did not fail as expected
+				So("Timeout triggered waiting for disabled event", ShouldBeBlank)
+			case <-respChan:
+				// if get here, we got a response on the respChan
+				ok = true
 			}
-			So(task.State(), ShouldEqual, core.TaskDisabled)
+			So(ok, ShouldEqual, true)
+			// stop the scheduler (since in nested Convey statements, the
+			// statements in the outer Convey execute for each of the inner Conveys
+			// independently; see https://github.com/smartystreets/goconvey/wiki/Execution-order
+			// for details on execution order in Convey)
+			sch.Stop()
 		})
 
 	})
 
+}
+
+type failHandler struct {
+	respChan chan struct{}
+}
+
+func (f *failHandler) HandleGomitEvent(ev gomit.Event) {
+	switch ev.Body.(type) {
+	case *scheduler_event.TaskDisabledEvent:
+		close(f.respChan)
+	default:
+	}
 }
 
 func TestDistributedSubscriptions(t *testing.T) {

@@ -1123,10 +1123,10 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				pool.SelectAndKill("1", "unsubscription event")
 				So(pool.Count(), ShouldEqual, 0)
 				So(pool.SubscriptionCount(), ShouldEqual, 0)
-				c.Stop()
-				time.Sleep(100 * time.Millisecond)
 			})
 		})
+		c.Stop()
+		time.Sleep(100 * time.Millisecond)
 	})
 }
 

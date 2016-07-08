@@ -83,6 +83,9 @@ var (
 	gitversion  string
 	coreModules []coreModule
 
+	// used to save a reference to the CLi App
+	cliApp *cli.App
+
 	// log levels
 	l = map[int]string{
 		1: "debug",
@@ -192,11 +195,11 @@ func main() {
 		gitversion = "unknown"
 	}
 
-	app := cli.NewApp()
-	app.Name = "snapd"
-	app.Version = gitversion
-	app.Usage = "The open telemetry framework"
-	app.Flags = []cli.Flag{
+	cliApp = cli.NewApp()
+	cliApp.Name = "snapd"
+	cliApp.Version = gitversion
+	cliApp.Usage = "The open telemetry framework"
+	cliApp.Flags = []cli.Flag{
 		flLogLevel,
 		flLogPath,
 		flLogTruncate,
@@ -204,13 +207,14 @@ func main() {
 		flMaxProcs,
 		flConfig,
 	}
-	app.Flags = append(app.Flags, control.Flags...)
-	app.Flags = append(app.Flags, scheduler.Flags...)
-	app.Flags = append(app.Flags, rest.Flags...)
-	app.Flags = append(app.Flags, tribe.Flags...)
+	cliApp.Flags = append(cliApp.Flags, control.Flags...)
+	cliApp.Flags = append(cliApp.Flags, scheduler.Flags...)
+	cliApp.Flags = append(cliApp.Flags, rest.Flags...)
+	cliApp.Flags = append(cliApp.Flags, tribe.Flags...)
 
-	app.Action = action
-	if app.Run(os.Args) != nil {
+	cliApp.Action = action
+
+	if cliApp.Run(os.Args) != nil {
 		os.Exit(1)
 	}
 }
@@ -357,7 +361,8 @@ func action(ctx *cli.Context) error {
 		log.Info("REST API is disabled")
 	}
 
-	// Set interrupt handling so we can die gracefully.
+	// Set interrupt handling so we can either restart the app on a SIGHUP or
+	// die gracefully when an interrupt, kill, etc. are received
 	startInterruptHandling(coreModules...)
 
 	// Start our modules
@@ -945,7 +950,7 @@ func printErrorAndExit(name string, err error) {
 
 func startInterruptHandling(modules ...coreModule) {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGHUP)
 
 	//Let's block until someone tells us to quit
 	go func() {
@@ -965,13 +970,28 @@ func startInterruptHandling(modules ...coreModule) {
 				}).Info("stopping module")
 			m.Stop()
 		}
-		log.WithFields(
-			log.Fields{
-				"block":   "main",
-				"_module": "snapd",
-				"signal":  sig.String(),
-			}).Info("exiting on signal")
-		os.Exit(0)
+		if sig == syscall.SIGHUP {
+			// log the action we're taking (restarting the app)
+			log.WithFields(
+				log.Fields{
+					"block":   "main",
+					"_module": "snapd",
+					"signal":  sig.String(),
+				}).Info("restarting app")
+			// and restart the app (with the current configuration)
+			err := cliApp.Run(os.Args)
+			if err != nil {
+				os.Exit(1)
+			}
+		} else {
+			log.WithFields(
+				log.Fields{
+					"block":   "main",
+					"_module": "snapd",
+					"signal":  sig.String(),
+				}).Info("exiting on signal")
+			os.Exit(0)
+		}
 	}()
 }
 

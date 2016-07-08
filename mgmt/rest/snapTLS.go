@@ -31,12 +31,12 @@ import (
 	"time"
 )
 
-type tls struct {
+type snapTLS struct {
 	cert, key string
 }
 
-func newtls(certPath, keyPath string) (*tls, error) {
-	t := &tls{}
+func newtls(certPath, keyPath string) (*snapTLS, error) {
+	t := &snapTLS{}
 	if certPath != "" && keyPath != "" {
 		cert, err := os.Open(certPath)
 		if err != nil {
@@ -78,7 +78,7 @@ func newtls(certPath, keyPath string) (*tls, error) {
 	return t, nil
 }
 
-func generateCert(t *tls) error {
+func generateCert(t *snapTLS) error {
 	// good for 1 year
 	notBefore := time.Now()
 	notAfter := notBefore.Add(time.Hour * 24 * 365)
