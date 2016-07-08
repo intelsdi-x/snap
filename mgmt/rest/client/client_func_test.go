@@ -195,7 +195,7 @@ func TestSnapClient(t *testing.T) {
 			Convey("invalid task (missing publisher)", func() {
 				tf := c.CreateTask(sch, wf, "baron", "", false, rest.DefaultMaxFailures)
 				So(tf.Err, ShouldNotBeNil)
-				So(tf.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(file)")
+				So(tf.Err.Error(), ShouldContainSubstring, "Plugin not found: type(publisher) name(mock-file)")
 			})
 			Convey("plugin already loaded", func() {
 				p1 := c.LoadPlugin(MOCK_PLUGIN_PATH1)
@@ -323,7 +323,7 @@ func TestSnapClient(t *testing.T) {
 				So(p3, ShouldNotBeNil)
 				So(p3.Err, ShouldBeNil)
 				So(p3.LoadedPlugins, ShouldNotBeEmpty)
-				So(p3.LoadedPlugins[0].Name, ShouldEqual, "file")
+				So(p3.LoadedPlugins[0].Name, ShouldEqual, "mock-file")
 				So(p3.LoadedPlugins[0].Version, ShouldEqual, 3)
 				So(p3.LoadedPlugins[0].LoadedTime().Unix(), ShouldBeLessThanOrEqualTo, time.Now().Unix())
 			})
@@ -530,9 +530,9 @@ func TestSnapClient(t *testing.T) {
 				So(p2.Version, ShouldEqual, 2)
 				So(p2.Type, ShouldEqual, "collector")
 
-				p3 := c.UnloadPlugin("publisher", "file", 3)
+				p3 := c.UnloadPlugin("publisher", "mock-file", 3)
 				So(p3.Err, ShouldBeNil)
-				So(p3.Name, ShouldEqual, "file")
+				So(p3.Name, ShouldEqual, "mock-file")
 				So(p3.Version, ShouldEqual, 3)
 				So(p3.Type, ShouldEqual, "publisher")
 			})

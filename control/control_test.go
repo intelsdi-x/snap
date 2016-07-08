@@ -1459,15 +1459,15 @@ func TestPublishMetrics(t *testing.T) {
 		So(err, ShouldBeNil)
 		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.get("publisher:file:3")
+		lp, err2 := c.pluginManager.get("publisher:mock-file:3")
 		So(err2, ShouldBeNil)
-		So(lp.Name(), ShouldResemble, "file")
+		So(lp.Name(), ShouldResemble, "mock-file")
 		So(lp.ConfigPolicy, ShouldNotBeNil)
 
 		Convey("Subscribe to file publisher with good config", func() {
 			n := cdata.NewNode()
 			c.Config.Plugins.Publisher.Plugins[lp.Name()] = newPluginConfigItem(optAddPluginConfigItem("file", ctypes.ConfigValueStr{Value: "/tmp/snap-TestPublishMetrics.out"}))
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:file:3")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("publisher:mock-file:3")
 			So(errp, ShouldBeNil)
 			pool.Subscribe("1", strategy.UnboundSubscriptionType)
 			err := c.pluginRunner.runPlugin(lp.Details)
@@ -1482,7 +1482,7 @@ func TestPublishMetrics(t *testing.T) {
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(metrics)
 				contentType := plugin.SnapGOBContentType
-				errs := c.PublishMetrics(contentType, buf.Bytes(), "file", 3, n.Table(), uuid.New())
+				errs := c.PublishMetrics(contentType, buf.Bytes(), "mock-file", 3, n.Table(), uuid.New())
 				So(errs, ShouldBeNil)
 				ap := c.AvailablePlugins()
 				So(ap, ShouldNotBeEmpty)

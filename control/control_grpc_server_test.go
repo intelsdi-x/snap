@@ -245,7 +245,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	})
 	// start plugin pools/provide task info so we can do collect/process/publishMetrics
 	// errors here indicate problems outside the scope of this test.
-	plugins := []string{"collector:mock:1", "processor:passthru:1", "publisher:file:3"}
+	plugins := []string{"collector:mock:1", "processor:passthru:1", "publisher:mock-file:3"}
 	lps := make([]*loadedPlugin, len(plugins))
 	pools := make([]strategy.Pool, len(plugins))
 	for i, v := range plugins {
@@ -343,7 +343,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		Convey("should not error with valid inputs", func() {
 			config := make(map[string]ctypes.ConfigValue)
 			config["file"] = ctypes.ConfigValueStr{Value: "/tmp/grpcservertest.snap"}
-			req := controlproxy.GetPubProcReq("snap.gob", content, "file", 3, config, "my-snowflake-id")
+			req := controlproxy.GetPubProcReq("snap.gob", content, "mock-file", 3, config, "my-snowflake-id")
 			reply, err := client.PublishMetrics(context.Background(), req)
 			// we don't expect rpc errors
 			So(err, ShouldBeNil)

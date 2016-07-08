@@ -7,7 +7,7 @@
         "process": [],
         "publish": [
             {
-                "plugin_name": "file",
+                "plugin_name": "mock-file",
                 "config": {
                     "file": "/tmp/rest.test"
                 }
