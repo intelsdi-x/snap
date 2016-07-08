@@ -25,6 +25,7 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | Libvirt | Collector | Collects from libvirt | [snap-plugin-collector-libvirt](https://github.com/intelsdi-x/snap-plugin-collector-libvirt) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-libvirt)
 | Load | Collector | Collects plaform load metrics from Linux procfs | [snap-plugin-collector-load](https://github.com/intelsdi-x/snap-plugin-collector-load) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-load)
 | Meminfo | Collector | Collects memory related metrics from Linux procfs | [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-meminfo)
+| Mesos | Collector | Collects metrics from an Apache Mesos cluster | [snap-plugin-collector-mesos](https://github.com/intelsdi-x/snap-plugin-collector-mesos) | 
 | MySQL | Collector | Collects metrics from MySQL DB | [snap-plugin-collector-mysql](https://github.com/intelsdi-x/snap-plugin-collector-mysql) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-publisher-mysql) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-publisher-mysql)
 | Neutron | Collector | Collect from OpenStack Neutron | [snap-plugin-collector-neutron](https://github.com/intelsdi-x/snap-plugin-collector-neutron) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-neutron)
 | NFS Client | Collector | Collect NFS client counters and RPC data | [snap-plugin-collector-nfsclient](https://github.com/intelsdi-x/snap-plugin-collector-nfsclient) |
@@ -79,8 +80,6 @@ This is a wish list of plugins for snap. If you see one here and want to start o
 - snap App Endpoint (needs event spec)
 - Intel NIC
 - Kubernetes Minion
-- Mesos Slave
-- Mesos Master
 - JVM (via JMX)
 
 #### Processor
