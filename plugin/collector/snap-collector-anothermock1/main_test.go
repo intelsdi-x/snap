@@ -4,7 +4,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2016 Intel Corporation
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"testing"
@@ -44,11 +43,11 @@ func TestMockPluginLoad(t *testing.T) {
 	// These tests only work if SNAP_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
-	if SnapPath != "" {
-		// Helper plugin trigger build if possible for this plugin
-		helper.BuildPlugin(PluginType, PluginName)
-		//
-		Convey("ensure plugin loads and responds", t, func() {
+	Convey("make sure plugin has been built", t, func() {
+		err := helper.CheckPluginBuilt(SnapPath, PluginName)
+		So(err, ShouldBeNil)
+
+		Convey("ensure plugin loads and responds", func() {
 			c := control.New(control.GetDefaultConfig())
 			c.Start()
 			rp, _ := core.NewRequestedPlugin(PluginPath)
@@ -56,7 +55,6 @@ func TestMockPluginLoad(t *testing.T) {
 
 			So(err, ShouldBeNil)
 		})
-	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
-	}
+
+	})
 }
