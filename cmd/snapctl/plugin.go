@@ -35,27 +35,21 @@ func loadPlugin(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) != 1 {
-		fmt.Println("Incorrect usage:")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Incorrect usage:", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
 		if !strings.Contains(pAsc, ".asc") {
-			fmt.Println("Must be a .asc file for the -a flag")
-			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			return errCritical
+			return newUsageError("Must be a .asc file for the -a flag", ctx)
 		}
 		paths = append(paths, pAsc)
 	}
 	r := pClient.LoadPlugin(paths)
 	if r.Err != nil {
 		if r.Err.Fields()["error"] != nil {
-			fmt.Printf("Error loading plugin:\n%v\n%v\n", r.Err.Error(), r.Err.Fields()["error"])
-		} else {
-			fmt.Printf("Error loading plugin:\n%v\n", r.Err.Error())
+			return fmt.Errorf("Error loading plugin:\n%v\n%v\n", r.Err.Error(), r.Err.Fields()["error"])
 		}
-		return errCritical
+		return fmt.Errorf("Error loading plugin:\n%v\n", r.Err.Error())
 	}
 	for _, p := range r.LoadedPlugins {
 		fmt.Println("Plugin loaded")
@@ -80,9 +74,7 @@ func unloadPlugin(ctx *cli.Context) error {
 		pName = pDetails[1]
 		pVer, err = strconv.Atoi(pDetails[2])
 		if err != nil {
-			fmt.Println("Can't convert version string to integer")
-			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			return errCritical
+			return newUsageError("Can't convert version string to integer", ctx)
 		}
 	} else {
 		pType = ctx.String("plugin-type")
@@ -90,25 +82,18 @@ func unloadPlugin(ctx *cli.Context) error {
 		pVer = ctx.Int("plugin-version")
 	}
 	if pType == "" {
-		fmt.Println("Must provide plugin type")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin type", ctx)
 	}
 	if pName == "" {
-		fmt.Println("Must provide plugin name")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin name", ctx)
 	}
 	if pVer < 1 {
-		fmt.Println("Must provide plugin version")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin version", ctx)
 	}
 
 	r := pClient.UnloadPlugin(pType, pName, pVer)
 	if r.Err != nil {
-		fmt.Printf("Error unloading plugin:\n%v\n", r.Err.Error())
-		return errCritical
+		return fmt.Errorf("Error unloading plugin:\n%v\n", r.Err.Error())
 	}
 
 	fmt.Println("Plugin unloaded")
@@ -124,16 +109,12 @@ func swapPlugins(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) < 1 || len(ctx.Args()) > 2 {
-		fmt.Println("Incorrect usage:")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Incorrect usage:", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
 		if !strings.Contains(pAsc, ".asc") {
-			fmt.Println("Must be a .asc file for the -a flag")
-			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			return errCritical
+			return newUsageError("Must be a .asc file for the -a flag", ctx)
 		}
 		paths = append(paths, pAsc)
 	}
@@ -151,14 +132,10 @@ func swapPlugins(ctx *cli.Context) error {
 			pName = pDetails[1]
 			pVer, err = strconv.Atoi(pDetails[2])
 			if err != nil {
-				fmt.Println("Can't convert version string to integer")
-				cli.ShowCommandHelp(ctx, ctx.Command.Name)
-				return errCritical
+				return newUsageError("Can't convert version string to integer", ctx)
 			}
 		} else {
-			fmt.Println("Missing type, name, or version")
-			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			return errCritical
+			return newUsageError("Missing type, name, or version", ctx)
 		}
 	} else {
 		pType = ctx.String("plugin-type")
@@ -166,25 +143,18 @@ func swapPlugins(ctx *cli.Context) error {
 		pVer = ctx.Int("plugin-version")
 	}
 	if pType == "" {
-		fmt.Println("Must provide plugin type")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin type", ctx)
 	}
 	if pName == "" {
-		fmt.Println("Must provide plugin name")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin name", ctx)
 	}
 	if pVer < 1 {
-		fmt.Println("Must provide plugin version")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin version", ctx)
 	}
 
 	r := pClient.SwapPlugin(paths, pType, pName, pVer)
 	if r.Err != nil {
-		fmt.Printf("Error swapping plugins:\n%v\n", r.Err.Error())
-		return errCritical
+		return fmt.Errorf("Error swapping plugins:\n%v\n", r.Err.Error())
 	}
 
 	fmt.Println("Plugin loaded")
@@ -205,8 +175,7 @@ func swapPlugins(ctx *cli.Context) error {
 func listPlugins(ctx *cli.Context) error {
 	plugins := pClient.GetPlugins(ctx.Bool("running"))
 	if plugins.Err != nil {
-		fmt.Printf("Error: %v\n", plugins.Err)
-		return errCritical
+		return fmt.Errorf("Error: %v\n", plugins.Err)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	if ctx.Bool("running") {
