@@ -17,13 +17,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# **snap** <sup><sub>_A powerful telemetry framework_</sub></sup>
+# **snap** <sup><sub>_the open telemetry framework_</sub></sup>
 
 [![Join the chat on Slack](https://intelsdi-x.herokuapp.com/badge.svg)](https://intelsdi-x.herokuapp.com/)
 [![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap)
 [![Go Report Card](https://goreportcard.com/badge/intelsdi-x/snap)](https://goreportcard.com/report/intelsdi-x/snap)
 
-<img src="https://cloud.githubusercontent.com/assets/1744971/13930753/6f676b34-ef5d-11e5-97be-8503562cd5fe.png" width="50%">
+<img src="https://cloud.githubusercontent.com/assets/1744971/16677455/f1d4e9de-448a-11e6-9afb-c31dcc7e3274.png" width="50%">
 
 ----
 

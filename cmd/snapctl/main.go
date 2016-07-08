@@ -45,7 +45,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "snapctl"
 	app.Version = gitversion
-	app.Usage = "A powerful telemetry framework"
+	app.Usage = "The open telemetry framework"
 	app.Flags = []cli.Flag{flURL, flSecure, flAPIVer, flPassword, flConfig}
 	app.Commands = append(commands, tribeCommands...)
 	sort.Sort(ByCommand(app.Commands))

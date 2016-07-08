@@ -195,7 +195,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "snapd"
 	app.Version = gitversion
-	app.Usage = "A powerful telemetry framework"
+	app.Usage = "The open telemetry framework"
 	app.Flags = []cli.Flag{
 		flLogLevel,
 		flLogPath,
