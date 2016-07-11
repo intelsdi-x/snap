@@ -167,7 +167,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			w.CollectNode.AddMetric("/intel/mock/test", -1)
 			w.CollectNode.AddConfigItem("/intel/mock/foo", "password", "secret")
 
-			pu := wmap.NewPublishNode("file", 3)
+			pu := wmap.NewPublishNode("mock-file", 3)
 			pu.AddConfigItem("file", "/tmp/snap-TestCollectPublishWorkflow.out")
 			pr := wmap.NewProcessNode("passthru", 1)
 
@@ -228,7 +228,7 @@ func TestProcessChainingWorkflow(t *testing.T) {
 			w.CollectNode.AddMetric("/intel/mock/foo", 2)
 			w.CollectNode.AddConfigItem("/intel/mock/foo", "password", "secret")
 
-			pu := wmap.NewPublishNode("file", 3)
+			pu := wmap.NewPublishNode("mock-file", 3)
 			pu.AddConfigItem("file", "/tmp/snap-TestCollectPublishWorkflow.out")
 
 			pr1 := wmap.NewProcessNode("passthru", 1)

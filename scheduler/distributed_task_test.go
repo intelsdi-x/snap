@@ -264,7 +264,7 @@ func dsWFMap(port int) *wmap.WorkflowMap {
 		Target:  fmt.Sprintf("127.0.0.1:%v", port),
 	}
 	pu := &wmap.PublishWorkflowMapNode{
-		Name:    "file",
+		Name:    "mock-file",
 		Version: -1,
 		Config:  make(map[string]interface{}),
 	}

@@ -181,7 +181,7 @@ func TestScheduler(t *testing.T) {
 		c.setAcceptedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.*", "snap.gob", "foo.bar"})
 		c.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.gob"})
 		c.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"snap.json", "snap.gob"})
-		c.setAcceptedContentType("file", core.PublisherPluginType, -1, []string{"snap.json"})
+		c.setAcceptedContentType("mock-file", core.PublisherPluginType, -1, []string{"snap.json"})
 		cfg := GetDefaultConfig()
 		s := New(cfg)
 		s.SetMetricManager(c)
@@ -210,7 +210,7 @@ func TestScheduler(t *testing.T) {
 		pu1.AddConfigItem("monies", 2)
 
 		// Publish node direct to collection
-		pu2 := wmap.NewPublishNode("file", -1)
+		pu2 := wmap.NewPublishNode("mock-file", -1)
 		pu2.AddConfigItem("color", "brown")
 		pu2.AddConfigItem("purpose", 42)
 
