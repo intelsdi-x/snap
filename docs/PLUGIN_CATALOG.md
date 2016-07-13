@@ -15,6 +15,7 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | Etcd | Collector | Collects metrics from Etcd's `/metrics` endpoint. | [snap-plugin-collector-etcd](https://github.com/intelsdi-x/snap-plugin-collector-etcd) |
 | Ethtool | Collector | Collect from ethtool stats & registry dump |[snap-plugin-collector-ethtool](https://github.com/intelsdi-x/snap-plugin-collector-ethtool) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-ethtool)
 | Facter | Collector | Collects from Facter | [snap-plugin-collector-facter](https://github.com/intelsdi-x/snap-plugin-collector-facter) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-facter) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-collector-facter)
+| File | Publisher | Publishes snap metrics to a file as JSON | [snap-plugin-publisher-file](https://github.com/intelsdi-x/snap-plugin-publisher-file) |
 | Glance | Collector | Collects metrics from OpenStack Glance | [snap-plugin-collector-glance](https://github.com/intelsdi-x/snap-plugin-collector-glance) |
 | HAProxy | Collector | Collects metrics from HAProxy | [snap-plugin-collector-haproxy](https://github.com/intelsdi-x/snap-plugin-collector-haproxy) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-haproxy)
 | HEKA | Publisher | Publishes snap metrics into heka via TCP | [snap-plugin-publisher-heka](https://github.com/intelsdi-x/snap-plugin-publisher-heka) |
