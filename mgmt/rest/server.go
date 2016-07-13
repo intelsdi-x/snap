@@ -20,6 +20,7 @@ limitations under the License.
 package rest
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -169,7 +170,7 @@ type Server struct {
 	mc         managesConfig
 	n          *negroni.Negroni
 	r          *httprouter.Router
-	tls        *tls
+	snapTLS    *snapTLS
 	auth       bool
 	authpwd    string
 	addrString string
@@ -177,6 +178,9 @@ type Server struct {
 	wg         sync.WaitGroup
 	killChan   chan struct{}
 	err        chan error
+	// the following instance variables are used to cleanly shutdown the server
+	serverListener net.Listener
+	closingChan    chan bool
 }
 
 // New creates a REST API server with a given config
@@ -192,7 +196,7 @@ func New(cfg *Config) (*Server, error) {
 	}
 	if https {
 		var err error
-		s.tls, err = newtls(cpath, kpath)
+		s.snapTLS, err = newtls(cpath, kpath)
 		if err != nil {
 			return nil, err
 		}
@@ -324,6 +328,7 @@ func (s *Server) Name() string {
 }
 
 func (s *Server) Start() error {
+	s.closingChan = make(chan bool, 1)
 	s.addRoutes()
 	s.run(s.addrString)
 	restLogger.WithFields(log.Fields{
@@ -333,8 +338,19 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Stop() {
+	// add a boolean to the s.closingChan (used for error handling in the
+	// goroutine that is listening for connections)
+	s.closingChan <- true
+	// then close the server
 	close(s.killChan)
+	// close the server listener
+	s.serverListener.Close()
+	// wait for the server goroutines to complete (serve and watch)
 	s.wg.Wait()
+	// finally log the result
+	restLogger.WithFields(log.Fields{
+		"_block": "stop",
+	}).Info("REST stopped")
 }
 
 func (s *Server) Err() <-chan error {
@@ -347,31 +363,59 @@ func (s *Server) Port() int {
 
 func (s *Server) run(addrString string) {
 	restLogger.Info("Starting REST API on ", addrString)
-	if s.tls != nil {
-		go s.serveTLS(addrString)
+	if s.snapTLS != nil {
+		cer, err := tls.LoadX509KeyPair(s.snapTLS.cert, s.snapTLS.key)
+		if err != nil {
+			s.err <- err
+			return
+		}
+		config := &tls.Config{Certificates: []tls.Certificate{cer}}
+		ln, err := tls.Listen("tcp", addrString, config)
+		if err != nil {
+			s.err <- err
+		}
+		s.serverListener = ln
+		s.wg.Add(1)
+		go s.serveTLS(ln)
 	} else {
 		ln, err := net.Listen("tcp", addrString)
 		if err != nil {
 			s.err <- err
 		}
+		s.serverListener = ln
 		s.addr = ln.Addr()
+		s.wg.Add(1)
 		go s.serve(ln)
 	}
 }
 
-func (s *Server) serveTLS(addrString string) {
-	err := http.ListenAndServeTLS(addrString, s.tls.cert, s.tls.key, s.n)
+func (s *Server) serveTLS(ln net.Listener) {
+	defer s.wg.Done()
+	err := http.Serve(ln, s.n)
 	if err != nil {
-		restLogger.Error(err)
-		s.err <- err
+		select {
+		case <-s.closingChan:
+			// If we called Stop() then there will be a value in s.closingChan, so
+			// we'll get here and we can exit without showing the error.
+		default:
+			restLogger.Error(err)
+			s.err <- err
+		}
 	}
 }
 
 func (s *Server) serve(ln net.Listener) {
+	defer s.wg.Done()
 	err := http.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)}, s.n)
 	if err != nil {
-		restLogger.Error(err)
-		s.err <- err
+		select {
+		case <-s.closingChan:
+			// If we called Stop() then there will be a value in s.closingChan, so
+			// we'll get here and we can exit without showing the error.
+		default:
+			restLogger.Error(err)
+			s.err <- err
+		}
 	}
 }
 

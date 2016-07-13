@@ -89,6 +89,10 @@ type pluginControl struct {
 
 	pluginTrust  int
 	keyringFiles []string
+	// used to cleanly shutdown the GRPC server
+	grpcServer  *grpc.Server
+	closingChan chan bool
+	wg          sync.WaitGroup
 }
 
 type runsPlugins interface {
@@ -336,12 +340,21 @@ func (p *pluginControl) Start() error {
 	}
 
 	opts := []grpc.ServerOption{}
-	grpcServer := grpc.NewServer(opts...)
-	rpc.RegisterMetricManagerServer(grpcServer, &ControlGRPCServer{p})
+	p.closingChan = make(chan bool, 1)
+	p.grpcServer = grpc.NewServer(opts...)
+	rpc.RegisterMetricManagerServer(p.grpcServer, &ControlGRPCServer{p})
+	p.wg.Add(1)
 	go func() {
-		err := grpcServer.Serve(lis)
+		defer p.wg.Done()
+		err := p.grpcServer.Serve(lis)
 		if err != nil {
-			controlLogger.Fatal(err)
+			select {
+			case <-p.closingChan:
+				// If we called Stop() then there will be a value in p.closingChan, so
+				// we'll get here and we can exit without showing the error.
+			default:
+				controlLogger.Fatal(err)
+			}
 		}
 	}()
 
@@ -349,10 +362,16 @@ func (p *pluginControl) Start() error {
 }
 
 func (p *pluginControl) Stop() {
+	// set the Started flag to false (since we're stopping the server)
 	p.Started = false
-	controlLogger.WithFields(log.Fields{
-		"_block": "stop",
-	}).Info("control stopped")
+
+	// and add a boolean to the p.closingChan (used for error handling in the
+	// goroutine that is listening for connections)
+	p.closingChan <- true
+
+	// stop GRPC server
+	p.grpcServer.Stop()
+	p.wg.Wait()
 
 	// stop runner
 	err := p.pluginRunner.Stop()
@@ -368,6 +387,12 @@ func (p *pluginControl) Stop() {
 
 	// unload plugins
 	p.pluginManager.teardown()
+
+	// log that we've stopped the control module
+	controlLogger.WithFields(log.Fields{
+		"_block": "stop",
+	}).Info("control stopped")
+
 }
 
 // Load is the public method to load a plugin into

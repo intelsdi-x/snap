@@ -216,6 +216,17 @@ The same configuration settings above can also be provided in a JSON formatted c
 }
 ```
 
+## Restarting snapd to pick up configuration changes
+If changes are made to the configuration file, `snapd` must be restarted to pick up those changes. Fortunately, this is a simple matter of sending a `SIGHUP` signal to the `snapd` process. For example, the following command will restart the `snapd` process on the local system:
+
+```bash
+$ kill -HUP `pidof snapd`
+```
+
+Note that in this example, we are using the `pidof` command to retrieve the process ID of the `snapd` process. If the `pidof` command is not available on your system you might have to use a `ps aux` command and pipe the output of that command to a `grep snapd` command in order to obtain the process ID of the `snapd` process. Once the `snapd` process receives that signal it will restart and pick up any changes that have been made to the configuration file that was originally used to Âstart the `snapd` process.
+
+Do keep in mind that this signal will trigger a **restart** of the `snapd` process. This means that any running tasks will be shut down and any loaded plugins will be unloaded. In reality, this means that when the `snapd` process restarts any plugins not in the `auto_discover_path` will need to be loaded manually once the `snapd` process restarts (and any tasks not in that same `auto_discover_path` will need to be restarted). However, any plugins in the `auto_discover_path` will be automatically reloaded and any tasks in that same `auto_discover_path` will be automatically restarted when the when the `snapd` process restarts in response to a `SIGHUP` signal.
+
 ## More information
 * [SNAPD.md](SNAPD.md)
 * [REST_API.md](REST_API.md)
