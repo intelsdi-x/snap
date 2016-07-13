@@ -64,7 +64,7 @@ func TestDistributedWorkflow(t *testing.T) {
 		// Load appropriate plugins into each control.
 		mock2Path := path.Join(PluginPath, "snap-collector-mock2")
 		passthruPath := path.Join(PluginPath, "snap-processor-passthru")
-		filePath := path.Join(PluginPath, "snap-publisher-file")
+		filePath := path.Join(PluginPath, "snap-publisher-mock-file")
 
 		// mock2 and file onto c1
 
@@ -153,7 +153,7 @@ func TestDistributedSubscriptions(t *testing.T) {
 		// Load appropriate plugins into each control.
 		mock2Path := path.Join(PluginPath, "snap-collector-mock2")
 		passthruPath := path.Join(PluginPath, "snap-processor-passthru")
-		filePath := path.Join(PluginPath, "snap-publisher-file")
+		filePath := path.Join(PluginPath, "snap-publisher-mock-file")
 
 		// mock2 and file onto c1
 
@@ -264,7 +264,7 @@ func dsWFMap(port int) *wmap.WorkflowMap {
 		Target:  fmt.Sprintf("127.0.0.1:%v", port),
 	}
 	pu := &wmap.PublishWorkflowMapNode{
-		Name:    "file",
+		Name:    "mock-file",
 		Version: -1,
 		Config:  make(map[string]interface{}),
 	}

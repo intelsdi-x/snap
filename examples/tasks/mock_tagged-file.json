@@ -30,7 +30,7 @@
                     "process": null,
                     "publish": [
                         {
-                            "plugin_name": "file",                            
+                            "plugin_name": "mock-file",                            
                             "config": {
                                 "file": "/tmp/snap_published_mock_file.log"
                             }

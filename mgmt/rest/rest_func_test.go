@@ -59,7 +59,7 @@ var (
 	SNAP_AUTODISCOVER_PATH = os.Getenv("SNAP_AUTODISCOVER_PATH")
 	MOCK_PLUGIN_PATH1      = SNAP_PATH + "/plugin/snap-collector-mock1"
 	MOCK_PLUGIN_PATH2      = SNAP_PATH + "/plugin/snap-collector-mock2"
-	FILE_PLUGIN_PATH       = SNAP_PATH + "/plugin/snap-publisher-file"
+	FILE_PLUGIN_PATH       = SNAP_PATH + "/plugin/snap-publisher-mock-file"
 
 	CompressedUpload = true
 	TotalUploadSize  = 0
