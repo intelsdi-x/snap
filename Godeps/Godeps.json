@@ -94,6 +94,10 @@
 			"Rev": "4f098da2bbb51d787be003e4abfbc25d01837564"
 		},
 		{
+			"ImportPath": "github.com/intelsdi-x/snap-plugin-utilities",
+			"Rev": "0b327aae781a2e94b414be121d5ac4668750156c"
+		},
+		{
 			"ImportPath": "github.com/jtolds/gls",
 			"Rev": "8ddce2a84170772b95dd5d576c48d517b22cac63"
 		},
