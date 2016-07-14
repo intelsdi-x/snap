@@ -71,13 +71,10 @@ var (
 	ErrControllerNotStarted = errors.New("Must start Controller before use")
 )
 
-type executablePlugins []plugin.ExecutablePlugin
-
 type pluginControl struct {
 	// TODO, going to need coordination on changing of these
-	RunningPlugins executablePlugins
-	Started        bool
-	Config         *Config
+	Started bool
+	Config  *Config
 
 	autodiscoverPaths []string
 	eventManager      *gomit.EventController
@@ -380,9 +377,9 @@ func (p *pluginControl) Stop() {
 	}
 
 	// stop running plugins
-	for _, rp := range p.RunningPlugins {
+	for _, rp := range p.pluginRunner.AvailablePlugins().all() {
 		controlLogger.Debug("Stopping running plugin")
-		rp.Kill()
+		rp.Stop("daemon exiting")
 	}
 
 	// unload plugins

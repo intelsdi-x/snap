@@ -39,6 +39,7 @@ const (
 	name       = "mock-file"
 	version    = 3
 	pluginType = plugin.PublisherPluginType
+	debug      = "debug"
 )
 
 type filePublisher struct {
@@ -49,29 +50,40 @@ func NewFilePublisher() *filePublisher {
 }
 
 func (f *filePublisher) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
-	logger := log.New()
-	logger.Println("Publishing started")
+	log.SetFormatter(&log.TextFormatter{DisableTimestamp: true})
+	if val, ok := config[debug]; ok && val.(ctypes.ConfigValueBool).Value {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+	log.Debug("publishing started")
 	var metrics []plugin.MetricType
 
 	switch contentType {
 	case plugin.SnapGOBContentType:
 		dec := gob.NewDecoder(bytes.NewBuffer(content))
 		if err := dec.Decode(&metrics); err != nil {
-			logger.Printf("Error decoding: error=%v content=%v", err, content)
+			log.WithFields(log.Fields{
+				"error":   err,
+				"content": content,
+			}).Errorf("error decoding")
 			return err
 		}
 	default:
-		logger.Printf("Error unknown content type '%v'", contentType)
+		log.WithField("content-type", contentType).Errorf("unknown content type")
 		return errors.New(fmt.Sprintf("Unknown content type '%s'", contentType))
 	}
 
-	logger.Printf("publishing %v metrics to %v", len(metrics), config)
 	file, err := os.OpenFile(config["file"].(ctypes.ConfigValueStr).Value, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
 	defer file.Close()
 	if err != nil {
-		logger.Printf("Error: %v", err)
+		log.Error(err)
 		return err
 	}
+	log.WithFields(log.Fields{
+		"file": config["file"].(ctypes.ConfigValueStr).Value,
+		"metrics-published-count": len(metrics),
+	}).Debug("metrics published")
 	w := bufio.NewWriter(file)
 	for _, m := range metrics {
 		formattedTags := formatMetricTagsAsString(m.Tags())
@@ -105,6 +117,10 @@ func (f *filePublisher) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	r1, err := cpolicy.NewStringRule("file", true)
 	handleErr(err)
 	r1.Description = "Absolute path to the output file for publishing"
+
+	r2, err := cpolicy.NewBoolRule(debug, false)
+	handleErr(err)
+	r2.Description = "Debug mode"
 
 	config.Add(r1)
 	cp.Add([]string{""}, config)

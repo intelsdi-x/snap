@@ -275,7 +275,9 @@ func action(ctx *cli.Context) error {
 	// and forcing the coloring to off when using a file but this might not please users who like to use
 	// redirect mechanisms like # snapd -t 0 -l 1 2>&1 | tee my.log
 	if !cfg.LogColors {
-		log.SetFormatter(&log.TextFormatter{DisableColors: true})
+		log.SetFormatter(&log.TextFormatter{FullTimestamp: true, DisableColors: true})
+	} else {
+		log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	}
 
 	// Validate log level and trust level settings for snapd

@@ -262,6 +262,7 @@ type Response struct {
 // requestString - plugins arguments (marshaled json of control/plugin Arg struct)
 // returns an error and exitCode (exitCode from SessionState initilization or plugin termination code)
 func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
+	log.SetFlags(0)
 	if m.RPCType == GRPC {
 		return startGRPC(m, c, requestString)
 	}
