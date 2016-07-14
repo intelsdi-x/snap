@@ -62,6 +62,8 @@ var (
 	ErrTaskAlreadyStopped = errors.New("Task is already stopped.")
 	// ErrTaskDisabledNotRunnable - The error message for task is disabled and cannot be started
 	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started.")
+	// ErrTaskDisabledNotStoppable - The error message for when a task is disabled and cannot be stopped
+	ErrTaskDisabledNotStoppable = errors.New("Task is disabled. Only running tasks can be stopped.")
 )
 
 type schedulerState int
@@ -553,47 +555,56 @@ func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 		}
 	}
 
-	if t.state == core.TaskStopped {
+	switch t.state {
+	case core.TaskStopped:
 		logger.WithFields(log.Fields{
 			"task-id":    t.ID(),
 			"task-state": t.State(),
-		}).Info("task is already stopped")
+		}).Error("task is already stopped")
 		return []serror.SnapError{
 			serror.New(ErrTaskAlreadyStopped),
 		}
-	}
+	case core.TaskDisabled:
+		logger.WithFields(log.Fields{
+			"task-id":    t.ID(),
+			"task-state": t.State(),
+		}).Error("invalid action (stop) called on disabled task")
+		return []serror.SnapError{
+			serror.New(ErrTaskDisabledNotStoppable),
+		}
+	default:
+		// Group depndencies by the host they live on and
+		// unsubscirbe them since task is stopping.
+		depGroupMap := s.gatherMetricsAndPlugins(t.workflow)
 
-	// Group depndencies by the host they live on and
-	// unsubscirbe them since task is stopping.
-	depGroupMap := s.gatherMetricsAndPlugins(t.workflow)
-
-	var errs []serror.SnapError
-	for k := range depGroupMap {
-		mgr, err := t.RemoteManagers.Get(k)
-		if err != nil {
-			errs = append(errs, serror.New(err))
-		} else {
-			uerrs := mgr.UnsubscribeDeps(t.ID(), depGroupMap[k].Metrics, returnCorePlugin(depGroupMap[k].Plugins))
-			if len(uerrs) > 0 {
-				errs = append(errs, uerrs...)
+		var errs []serror.SnapError
+		for k := range depGroupMap {
+			mgr, err := t.RemoteManagers.Get(k)
+			if err != nil {
+				errs = append(errs, serror.New(err))
+			} else {
+				uerrs := mgr.UnsubscribeDeps(t.ID(), depGroupMap[k].Metrics, returnCorePlugin(depGroupMap[k].Plugins))
+				if len(uerrs) > 0 {
+					errs = append(errs, uerrs...)
+				}
 			}
 		}
-	}
-	if len(errs) > 0 {
-		return errs
-	}
+		if len(errs) > 0 {
+			return errs
+		}
 
-	event := &scheduler_event.TaskStoppedEvent{
-		TaskID: t.ID(),
-		Source: source,
+		event := &scheduler_event.TaskStoppedEvent{
+			TaskID: t.ID(),
+			Source: source,
+		}
+		defer s.eventManager.Emit(event)
+		t.Stop()
+		logger.WithFields(log.Fields{
+			"task-id":    t.ID(),
+			"task-state": t.State(),
+		}).Info("task stopped")
+		return nil
 	}
-	defer s.eventManager.Emit(event)
-	t.Stop()
-	logger.WithFields(log.Fields{
-		"task-id":    t.ID(),
-		"task-state": t.State(),
-	}).Info("task stopped")
-	return nil
 }
 
 //EnableTask changes state from disabled to stopped
