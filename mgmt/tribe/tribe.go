@@ -35,6 +35,7 @@ import (
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/core/tribe_event"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/mgmt/tribe/worker"
 	"github.com/pborman/uuid"
@@ -78,6 +79,7 @@ type tribe struct {
 	taskStateResponses map[string]*taskStateQueryResponse
 	members            map[string]*agreement.Member
 	tags               map[string]string
+	EventManager       *gomit.EventController
 	config             *Config
 
 	pluginCatalog   worker.ManagesPlugins
@@ -117,6 +119,7 @@ func New(cfg *Config) (*tribe, error) {
 		workerQuitChan:  make(chan struct{}),
 		workerWaitGroup: &sync.WaitGroup{},
 		config:          cfg,
+		EventManager:    gomit.NewEventController(),
 	}
 
 	tribe.broadcasts = &memberlist.TransmitLimitedQueue{
@@ -504,6 +507,14 @@ func (t *tribe) AddPlugin(agreementName string, p agreement.Plugin) error {
 		UUID:          uuid.New(),
 		Type:          addPluginMsgType,
 	}
+	defer t.EventManager.Emit(&tribe_event.AddPluginEvent{
+		Agreement: struct{ Name string }{agreementName},
+		Plugin: struct {
+			Name    string
+			Type    core.PluginType
+			Version int
+		}{Name: p.Name(), Type: p.Type_, Version: p.Version_},
+	})
 	if t.handleAddPlugin(msg) {
 		t.broadcast(addPluginMsgType, msg, nil)
 	}

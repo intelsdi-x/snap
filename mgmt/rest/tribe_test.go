@@ -35,8 +35,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 
+	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/tribe_event"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/scheduler"
@@ -151,7 +153,7 @@ func TestTribeTaskAgreements(t *testing.T) {
 	log.SetLevel(log.WarnLevel)
 	numOfNodes := 5
 	aName := "agreement99"
-	mgtPorts, tribePort := startTribes(numOfNodes, "")
+	mgtPorts, tribePort, lpe := startTribes(numOfNodes, "")
 	Convey("A cluster is started", t, func() {
 		Convey("Members are retrieved", func() {
 			for _, i := range mgtPorts {
@@ -206,6 +208,7 @@ func TestTribeTaskAgreements(t *testing.T) {
 						So(resp.Meta.Code, ShouldEqual, 200)
 						So(len(resp.Body.(*rbody.PluginList).LoadedPlugins), ShouldEqual, 1)
 						pluginToUnload := resp.Body.(*rbody.PluginList).LoadedPlugins[0]
+						<-lpe.pluginAddEvent
 						resp = getAgreement(mgtPorts[0], aName)
 						So(resp.Meta.Code, ShouldEqual, 200)
 						So(len(resp.Body.(*rbody.TribeGetAgreement).Agreement.PluginAgreement.Plugins), ShouldEqual, 1)
@@ -278,7 +281,7 @@ func TestTribeTaskAgreements(t *testing.T) {
 									wg.Wait()
 									So(timedOut, ShouldEqual, false)
 									Convey("A new node joins the agreement", func() {
-										mgtPort, _ := startTribes(1, fmt.Sprintf("127.0.0.1:%d", tribePort))
+										mgtPort, _, _ := startTribes(1, fmt.Sprintf("127.0.0.1:%d", tribePort))
 										j := joinAgreement(mgtPort[0], fmt.Sprintf("member-%d", mgtPort[0]), aName)
 										mgtPorts = append(mgtPorts, mgtPort[0])
 										So(j.Meta.Code, ShouldEqual, 200)
@@ -429,7 +432,7 @@ func TestTribePluginAgreements(t *testing.T) {
 	)
 	numOfNodes := 5
 	aName := "agreement1"
-	mgtPorts, _ := startTribes(numOfNodes, "")
+	mgtPorts, _, _ := startTribes(numOfNodes, "")
 	Convey("A cluster is started", t, func() {
 		Convey("Members are retrieved", func() {
 			for _, i := range mgtPorts {
@@ -663,11 +666,29 @@ func TestTribePluginAgreements(t *testing.T) {
 	})
 }
 
+type listenToSeedEvents struct {
+	pluginAddEvent chan struct{}
+}
+
+func newListenToSeedEvents() *listenToSeedEvents {
+	return &listenToSeedEvents{
+		pluginAddEvent: make(chan struct{}),
+	}
+}
+
+func (l *listenToSeedEvents) HandleGomitEvent(e gomit.Event) {
+	switch e.Body.(type) {
+	case *tribe_event.AddPluginEvent:
+		l.pluginAddEvent <- struct{}{}
+	}
+}
+
 // returns an array of the mgtports and the tribe port for the last node
-func startTribes(count int, seed string) ([]int, int) {
+func startTribes(count int, seed string) ([]int, int, *listenToSeedEvents) {
 	var wg sync.WaitGroup
 	var tribePort int
 	var mgtPorts []int
+	lpe := newListenToSeedEvents()
 	for i := 0; i < count; i++ {
 		mgtPort := getAvailablePort()
 		mgtPorts = append(mgtPorts, mgtPort)
@@ -680,12 +701,15 @@ func startTribes(count int, seed string) ([]int, int) {
 		conf.RestAPIPort = mgtPort
 		//conf.MemberlistConfig.PushPullInterval = 5 * time.Second
 		conf.MemberlistConfig.RetransmitMult = conf.MemberlistConfig.RetransmitMult * 2
-		if seed == "" {
-			seed = fmt.Sprintf("%s:%d", "127.0.0.1", tribePort)
-		}
+
 		t, err := tribe.New(conf)
 		if err != nil {
 			panic(err)
+		}
+
+		if seed == "" {
+			seed = fmt.Sprintf("%s:%d", "127.0.0.1", tribePort)
+			t.EventManager.RegisterHandler("tribe.tests", lpe)
 		}
 
 		c := control.New(control.GetDefaultConfig())
@@ -724,7 +748,7 @@ func startTribes(count int, seed string) ([]int, int) {
 		}(mgtPort)
 	}
 	wg.Wait()
-	return mgtPorts, tribePort
+	return mgtPorts, tribePort, lpe
 }
 
 var nextPort uint64 = 55234
