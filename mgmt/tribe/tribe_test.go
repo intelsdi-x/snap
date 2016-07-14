@@ -841,7 +841,6 @@ func TestTribePluginAgreement(t *testing.T) {
 										}
 									}
 								}(tr)
-
 							}
 							log.Debugf("Waits for %d members of clan1 to have %d plugins\n", numOfTribes, numAddMessages)
 							wg.Wait()
@@ -894,7 +893,6 @@ func TestTribePluginAgreement(t *testing.T) {
 										after := len(t.agreements["clan1"].PluginAgreement.Plugins)
 										So(before, ShouldEqual, after)
 										So(len(t.intentBuffer), ShouldEqual, 1)
-
 										So(len(t.agreements["clan1"].PluginAgreement.Plugins), ShouldBeGreaterThan, numAddMessages)
 										t.handleRemovePlugin(&pluginMsg{
 											LTime:         t.clock.Time(),
@@ -902,17 +900,38 @@ func TestTribePluginAgreement(t *testing.T) {
 											AgreementName: "clan1",
 											Type:          removePluginMsgType,
 										})
-										time.Sleep(50 * time.Millisecond)
 										So(len(t.agreements["clan1"].PluginAgreement.Plugins), ShouldBeGreaterThan, numAddMessages)
 										So(len(t.intentBuffer), ShouldEqual, 0)
+
+										// removes the plugin added to test duplicates
 										t.handleRemovePlugin(&pluginMsg{
 											LTime:         t.clock.Time(),
 											Plugin:        agreement.Plugin{Name_: "pluginABC", Version_: 1},
 											AgreementName: "clan1",
 											Type:          removePluginMsgType,
 										})
-										time.Sleep(50 * time.Millisecond)
 										So(len(t.agreements["clan1"].PluginAgreement.Plugins), ShouldEqual, numAddMessages)
+										// wait for all members of the tribe to get back to 10 plugins
+										wg = sync.WaitGroup{}
+										for _, tr := range tribes {
+											wg.Add(1)
+											go func(tr *tribe) {
+												defer wg.Done()
+												for {
+													select {
+													case <-time.After(1500 * time.Millisecond):
+														c.So(len(t.agreements["clan1"].PluginAgreement.Plugins), ShouldEqual, numAddMessages)
+													default:
+														if clan, ok := tr.agreements["clan1"]; ok {
+															if len(clan.PluginAgreement.Plugins) == numAddMessages {
+																return
+															}
+															time.Sleep(50 * time.Millisecond)
+														}
+													}
+												}
+											}(tr)
+										}
 
 										Convey("Handles a 'remove plugin' messages broadcasted across the cluster", func(c C) {
 											for _, t := range tribes {
