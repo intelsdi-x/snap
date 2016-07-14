@@ -995,13 +995,27 @@ func (p *pluginControl) FetchMetrics(ns core.Namespace, version int) ([]core.Cat
 		return nil, err
 	}
 	cmt := make([]core.CatalogedMetric, 0, len(mts))
+	nsMap := map[string]struct{}{}
 	for _, mt := range mts {
 		if version > 0 {
+			// a version is specified
 			if mt.version == version {
 				cmt = append(cmt, mt)
 			}
+		} else if version < 0 {
+			// -1 (or less) is specified meaning return the latest
+			if _, ok := nsMap[mt.Namespace().String()]; !ok {
+				mt, err = p.metricCatalog.Get(mt.Namespace(), version)
+				if err != nil {
+					return nil, err
+				}
+				cmt = append(cmt, mt)
+				nsMap[mt.Namespace().String()] = struct{}{}
+			}
 		} else {
+			// no version is specified return all metric versions
 			cmt = append(cmt, mt)
+
 		}
 	}
 	return cmt, nil
