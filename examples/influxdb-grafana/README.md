@@ -43,6 +43,7 @@ Note: The script also supports docker-machine but doesn't require it.
 
 - Make sure the time on your docker-machine vm is syncd with the time on your host 
 
+- There is an unresolved issue with the 1.12.0-rc4-beta19 (build: 10258) Docker for Mac Beta that will throw an error ("unexpected EOF") while attempting to publish to the InfluxDB container. When using Mac OS X, it is suggested to use an InfluxDB daemon (`influxd`) or to utilize a virtual machine with a docker-supported Linux distribution 
 
    
 
