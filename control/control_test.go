@@ -271,13 +271,16 @@ type mockPluginEvent struct {
 }
 
 type listenToPluginEvent struct {
-	plugin *mockPluginEvent
-	done   chan struct{}
+	plugin                          *mockPluginEvent
+	pluginRestartsExceededDoneChan  chan struct{}
+	pluginRestartsExceededNamespace string
+	done                            chan struct{}
 }
 
 func newListenToPluginEvent() *listenToPluginEvent {
 	return &listenToPluginEvent{
-		done:   make(chan struct{}),
+		done: make(chan struct{}),
+		pluginRestartsExceededDoneChan: make(chan struct{}),
 		plugin: &mockPluginEvent{},
 	}
 }
@@ -288,8 +291,8 @@ func (l *listenToPluginEvent) HandleGomitEvent(e gomit.Event) {
 		l.plugin.EventNamespace = v.Namespace()
 		l.done <- struct{}{}
 	case *control_event.MaxPluginRestartsExceededEvent:
-		l.plugin.EventNamespace = v.Namespace()
-		l.done <- struct{}{}
+		l.pluginRestartsExceededNamespace = v.Namespace()
+		l.pluginRestartsExceededDoneChan <- struct{}{}
 	case *control_event.DeadAvailablePluginEvent:
 		l.plugin.EventNamespace = v.Namespace()
 		l.done <- struct{}{}
@@ -1215,8 +1218,8 @@ func TestFailedPlugin(t *testing.T) {
 						So(lpe.plugin.EventNamespace, ShouldEqual, control_event.AvailablePluginRestarted)
 					}
 				}
-				<-lpe.done
-				So(lpe.plugin.EventNamespace, ShouldEqual, control_event.PluginRestartsExceeded)
+				<-lpe.pluginRestartsExceededDoneChan
+				So(lpe.pluginRestartsExceededNamespace, ShouldEqual, control_event.PluginRestartsExceeded)
 				So(eventMap[control_event.AvailablePluginRestarted], ShouldEqual, MaxPluginRestartCount)
 				So(len(pool.Plugins()), ShouldEqual, 0)
 				So(pool.RestartCount(), ShouldEqual, MaxPluginRestartCount)
