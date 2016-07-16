@@ -44,23 +44,22 @@ type IntRule struct {
 	maximum  *int
 }
 
-// Returns a new int-typed rule. Arguments are key(string), required(bool), default(int), min(int), max(int)
+// NewIntegerRule returns a new int-typed rule. Arguments are key(string), required(bool), default(int)
 func NewIntegerRule(key string, req bool, opts ...int) (*IntRule, error) {
 	// Return error if key is empty
 	if key == "" {
 		return nil, EmptyKeyError
 	}
 
-	options := make([]*int, 1)
-	for i, o := range opts {
-		options[i] = &o
-	}
-
-	return &IntRule{
+	i := &IntRule{
 		key:      key,
 		required: req,
-		default_: options[0],
-	}, nil
+	}
+
+	if len(opts) > 0 {
+		i.default_ = &opts[0]
+	}
+	return i, nil
 }
 
 func (i *IntRule) Type() string {
