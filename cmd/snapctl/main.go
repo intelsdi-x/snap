@@ -20,7 +20,6 @@ limitations under the License.
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -34,12 +33,28 @@ import (
 )
 
 var (
-	gitversion  string
-	pClient     *client.Client
-	timeFormat  = time.RFC1123
-	err         error
-	errCritical = errors.New("A critical error occured")
+	gitversion string
+	pClient    *client.Client
+	timeFormat = time.RFC1123
+	err        error
 )
+
+type usageError struct {
+	s   string
+	ctx *cli.Context
+}
+
+func (ue usageError) Error() string {
+	return ue.s
+}
+
+func (ue usageError) help() {
+	cli.ShowCommandHelp(ue.ctx, ue.ctx.Command.Name)
+}
+
+func newUsageError(s string, ctx *cli.Context) usageError {
+	return usageError{s, ctx}
+}
 
 func main() {
 	app := cli.NewApp()
@@ -50,7 +65,13 @@ func main() {
 	app.Commands = append(commands, tribeCommands...)
 	sort.Sort(ByCommand(app.Commands))
 	app.Before = beforeAction
-	if app.Run(os.Args) != nil {
+
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Println(err)
+		if ue, ok := err.(usageError); ok {
+			ue.help()
+		}
 		os.Exit(1)
 	}
 }
@@ -60,14 +81,12 @@ func beforeAction(ctx *cli.Context) error {
 	username, password := checkForAuth(ctx)
 	pClient, err = client.New(ctx.String("url"), ctx.String("api-version"), ctx.Bool("insecure"))
 	if err != nil {
-		fmt.Println(err)
-		return errCritical
+		return fmt.Errorf("%v", err)
 	}
 	pClient.Password = password
 	pClient.Username = username
 	if err = checkTribeCommand(ctx); err != nil {
-		fmt.Println(err)
-		return errCritical
+		return fmt.Errorf("%v", err)
 	}
 	return nil
 }

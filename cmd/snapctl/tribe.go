@@ -34,8 +34,7 @@ import (
 func listMembers(ctx *cli.Context) error {
 	resp := pClient.ListMembers()
 	if resp.Err != nil {
-		fmt.Printf("Error getting members:\n%v\n", resp.Err)
-		return errCritical
+		return fmt.Errorf("Error getting members:\n%v\n", resp.Err)
 	}
 
 	if len(resp.Members) > 0 {
@@ -56,15 +55,12 @@ func listMembers(ctx *cli.Context) error {
 
 func showMember(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		fmt.Println("Incorrect usage:")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Incorrect usage:", ctx)
 	}
 
 	resp := pClient.GetMember(ctx.Args().First())
 	if resp.Err != nil {
-		fmt.Printf("Error:\n%v\n", resp.Err)
-		return errCritical
+		return fmt.Errorf("Error:\n%v\n", resp.Err)
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
@@ -85,8 +81,7 @@ func showMember(ctx *cli.Context) error {
 	}
 	tags, err := json.Marshal(resp.Tags)
 	if err != nil {
-		fmt.Printf("Error:\n%v\n", err)
-		return errCritical
+		return fmt.Errorf("Error:\n%v\n", err)
 	}
 
 	values := []interface{}{resp.Name, resp.PluginAgreement, tasks.String()}
@@ -102,8 +97,7 @@ func showMember(ctx *cli.Context) error {
 func listAgreements(ctx *cli.Context) error {
 	resp := pClient.ListAgreements()
 	if resp.Err != nil {
-		fmt.Printf("Error getting members:\n%v\n", resp.Err)
-		return errCritical
+		return fmt.Errorf("Error getting members:\n%v\n", resp.Err)
 	}
 	printAgreements(resp.Agreements)
 	return nil
@@ -111,15 +105,12 @@ func listAgreements(ctx *cli.Context) error {
 
 func createAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		fmt.Println("Incorrect usage:")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Incorrect usage:", ctx)
 	}
 
 	resp := pClient.AddAgreement(ctx.Args().First())
 	if resp.Err != nil {
-		fmt.Printf("Error creating agreement: %v\n", resp.Err)
-		return errCritical
+		return fmt.Errorf("Error creating agreement: %v\n", resp.Err)
 	}
 	printAgreements(resp.Agreements)
 	return nil
@@ -127,15 +118,12 @@ func createAgreement(ctx *cli.Context) error {
 
 func deleteAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		fmt.Println("Incorrect usage:")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Incorrect usage:", ctx)
 	}
 
 	resp := pClient.DeleteAgreement(ctx.Args().First())
 	if resp.Err != nil {
-		fmt.Printf("Error: %v\n", resp.Err)
-		return errCritical
+		return fmt.Errorf("Error: %v\n", resp.Err)
 	}
 	printAgreements(resp.Agreements)
 	return nil
@@ -143,15 +131,12 @@ func deleteAgreement(ctx *cli.Context) error {
 
 func joinAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 2 {
-		fmt.Println("Incorrect usage:")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Incorrect usage:", ctx)
 	}
 
 	resp := pClient.JoinAgreement(ctx.Args().First(), ctx.Args().Get(1))
 	if resp.Err != nil {
-		fmt.Printf("Error: %v\n", resp.Err)
-		return errCritical
+		return fmt.Errorf("Error: %v\n", resp.Err)
 	}
 	printAgreements(map[string]*agreement.Agreement{resp.Agreement.Name: resp.Agreement})
 	return nil
@@ -159,15 +144,12 @@ func joinAgreement(ctx *cli.Context) error {
 
 func leaveAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 2 {
-		fmt.Println("Incorrect usage:")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Incorrect usage:", ctx)
 	}
 
 	resp := pClient.LeaveAgreement(ctx.Args().First(), ctx.Args().Get(1))
 	if resp.Err != nil {
-		fmt.Printf("Error: %v\n", resp.Err)
-		return errCritical
+		return fmt.Errorf("Error: %v\n", resp.Err)
 	}
 	printAgreements(map[string]*agreement.Agreement{resp.Agreement.Name: resp.Agreement})
 	return nil
@@ -175,15 +157,12 @@ func leaveAgreement(ctx *cli.Context) error {
 
 func agreementMembers(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		fmt.Println("Incorrect usage:")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Incorrect usage:", ctx)
 	}
 
 	resp := pClient.GetAgreement(ctx.Args().First())
 	if resp.Err != nil {
-		fmt.Printf("Error: %v\n", resp.Err)
-		return errCritical
+		return fmt.Errorf("Error: %v\n", resp.Err)
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)

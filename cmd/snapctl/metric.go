@@ -50,8 +50,7 @@ func listMetrics(ctx *cli.Context) error {
 	}
 	mts := pClient.FetchMetrics(ns, ver)
 	if mts.Err != nil {
-		fmt.Printf("Error getting metrics: %v\n", mts.Err)
-		return errCritical
+		return fmt.Errorf("Error getting metrics: %v\n", mts.Err)
 	}
 
 	/*
@@ -97,17 +96,13 @@ func listMetrics(ctx *cli.Context) error {
 
 func getMetric(ctx *cli.Context) error {
 	if !ctx.IsSet("metric-namespace") {
-		fmt.Println("namespace is required")
-		fmt.Println("")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("namespace is required\n\n", ctx)
 	}
 	ns := ctx.String("metric-namespace")
 	ver := ctx.Int("metric-version")
 	metric := pClient.GetMetric(ns, ver)
 	if metric.Err != nil {
-		fmt.Println(metric.Err)
-		return errCritical
+		return fmt.Errorf("%v", metric.Err)
 	}
 
 	/*

@@ -21,7 +21,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -43,11 +42,11 @@ type restAPIConfig struct {
 func (c *config) loadConfig(path string) error {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		return errors.New("Unable to read config. File might not exist.")
+		return fmt.Errorf("Unable to read config. File might not exist.")
 	}
 	err = json.Unmarshal(b, &c)
 	if err != nil {
-		return errors.New("Invalid config")
+		return fmt.Errorf("Invalid config")
 	}
 	return nil
 }
@@ -64,9 +63,7 @@ func getConfig(ctx *cli.Context) error {
 		pname = pDetails[1]
 		pver, err = strconv.Atoi(pDetails[2])
 		if err != nil {
-			fmt.Println("Can't convert version string to integer")
-			cli.ShowCommandHelp(ctx, ctx.Command.Name)
-			return errCritical
+			return newUsageError("Can't convert version string to integer", ctx)
 		}
 	} else {
 		ptyp = ctx.String("plugin-type")
@@ -75,26 +72,19 @@ func getConfig(ctx *cli.Context) error {
 	}
 
 	if ptyp == "" {
-		fmt.Println("Must provide plugin type")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin type", ctx)
 	}
 	if pname == "" {
-		fmt.Println("Must provide plugin name")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin name", ctx)
 	}
 	if pver < 1 {
-		fmt.Println("Must provide plugin version")
-		cli.ShowCommandHelp(ctx, ctx.Command.Name)
-		return errCritical
+		return newUsageError("Must provide plugin version", ctx)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	defer w.Flush()
 	r := pClient.GetPluginConfig(ptyp, pname, strconv.Itoa(pver))
 	if r.Err != nil {
-		fmt.Println("Error requesting info: ", r.Err)
-		return errCritical
+		return fmt.Errorf("Error requesting info: ", r.Err)
 	}
 	printFields(w, false, 0,
 		"NAME",
