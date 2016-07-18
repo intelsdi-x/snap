@@ -31,8 +31,6 @@ __proj_dir="$(dirname "$__dir")"
 
 SNAP_PATH="${SNAP_PATH:-"${__proj_dir}/build"}"
 export SNAP_PATH
-test_dirs=$(find . -type f -name '*.go' -not -path "./.*" -not -path "*/_*" -not -path "./Godeps/*" -not -path "./vendor/*" -print0 | xargs -0 -n1 dirname| sort -u)
-export test_dirs
 
 # shellcheck source=scripts/common.sh
 . "${__dir}/common.sh"

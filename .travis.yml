@@ -9,12 +9,13 @@ before_install:
 - if [ ! -d $SNAP_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $SNAP_SOURCE; fi # CI for forks not from intelsdi-x
 env:
   global:
-    - SNAP_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/snap
-    - GO15VENDOREXPERIMENT=1
+  - SNAP_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/snap
+  - GO15VENDOREXPERIMENT=1
+  - secure: kSsbBOCrSRyWx6yhSwhTYIWRId4WNMkO9OhMphBPXb5kDEd+asanCybuBKdOSgzuqrzBbQsuQjzhw+iZwdiPoQInZyDxeVl7frroNvg94n+q4tpPQOPzJ6gN15MCHSq3m1lCk3XVrESGEBTqmdmUtZhY+RfxSXuq1xkDMesst2f+gONd5Bl+QFiboRqvjUXwGC+e3JnZI2LxWjYZspNh2ZS6c5mvbhufDPV5MD6+jlZppzHcNkHAtHOt3KNoTFai8X0U8MYiEax3mSIAHjYzQQayS5al54MfgcVo1r4gWmPOybkyb5+/DyNSUT4KY+XVIrxV68fSOuCnLxLEaQZ9W0c0WuetmUU1fOT8Iy9q0qLQq9IknXNnfsCEGdwB2XKfyNvKEtkWbi6b6idrok5d1y7b8Qt5olveczGx0cRbpXQ0BTZ/bnQMhL9tpUeRltbDey6dsSsTJjnatqH7CdeEAV0ZeY+LjBgTukps4TlEHTn0ddEzhR1rrRsQ3OB0kT59Y3BCJ4kstzpMsTFWKUTMr/75UR1g5XETfOt0BtXkM3I343AIjJt+MQg/bW26ZOTbqPbqVO3Z7eDf0MaRC4Mugm809ekMZARTLAmq4FMIutDsTTT741IgWZQrMDI37WUztDUE1WFDzcTkAk99yc6gBjZ+0dZd1Qc7RQR0RMBi4M4=
   matrix:
-    - SNAP_TEST_TYPE=legacy
-    - SNAP_TEST_TYPE=small
-    - SNAP_TEST_TYPE=medium
+  - SNAP_TEST_TYPE=legacy
+  - SNAP_TEST_TYPE=small
+  - SNAP_TEST_TYPE=medium
 install:
 - export TMPDIR=$HOME/tmp
 - mkdir -p $TMPDIR
@@ -23,5 +24,25 @@ install:
 script:
 - make check 2>&1 # Run test suite
 notifications:
+  email: false
   slack:
     secure: VkbZLIc2RH8yf3PtIAxUNPdAu3rQQ7yQx0GcK124JhbEnZGaHyK615V0rbG7HcVmYKGPdB0cXqZiLBDKGqGKb2zR1NepOe1nF03jxGSpPq8jIFeEXSJGEYGL34ScDzZZGuG6qwbjFcXiW5lqn6t8igzp7v2+URYBaZo5ktCS2xY=
+before_deploy:
+- "./scripts/pre_deploy.sh"
+deploy:
+  provider: s3
+  access_key_id: AKIAINMB43VSSPFZISAA
+  secret_access_key:
+    secure: vEWq7ImahLeJ3n+RsazhuCuzRV5b8biZRy3HpqJlNasSAqUPvugGD8TrhaK/3fru931flVLsLdFJObG3cIHmJrJDaLS+Zv7707+yAPHOLrATedO530P89CPlJpDmbPNuqU2e+6NfCu7DZQdceXF5hSQRIVeVloHcsnoo7XG4VFHPrIOCB+JbWnVquH7wtOn3h0RcOtzQQgdehqKB2c6Yi68wFkgKIEyIQHL63m28biMn1nMH1i0lYCN4rk8kxhPWar6e86JPeDvyhUbXixokXsy0H3J819yWwZIejb0UCucJmXMG+m9jMNXwh1DoC4+HMvFnzUdB61G6nYCPFz0GRyw363sXCg2rBizkTyhVF1Bd039gWgGFm6rb5cUKTlvNuvWe+x1E0lX8G3pPa8ZFX7/i2P9GPJCt8LHnZnskIHv0Yic/+6Kt89veS0YWgQRUuSGDnhaMuJHeyZppiFr4ALUi032/qTCuTj6z/v7UMpDSkPGpCh4505mMVsx11lT7zoZnK5/1Qxfd8ysJgfPKcptJXMfYjX/8QFT9EPok4KMx6E2k8hS82rT5i1pjjE9Kw18xqJNlWOUatfX5jzzoCYxuj/d99Zu4gD0n7UUN5rcNY7xrrBwYPmPaIKOTp+k+RdwlRIhxaXr2j5GFCaSPrtDobULioJIHfdbxVjrThQY=
+  bucket: intelsdi-x
+  region: us-west-2
+  skip_cleanup: true
+  local-dir: build
+  upload-dir: snap
+  acl: public_read
+  on:
+    repo: intelsdi-x/snap
+    branch: master
+    condition: $SNAP_TEST_TYPE = medium && $TRAVIS_GO_VERSION = "1.6.2"
+after_deploy:
+- "./scripts/post_deploy.sh"
