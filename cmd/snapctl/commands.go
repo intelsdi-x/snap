@@ -164,7 +164,7 @@ var (
 				},
 				{
 					Name:   "get",
-					Usage:  "get details on a single metric",
+					Usage:  "get details on metric(s)",
 					Action: getMetric,
 					Flags: []cli.Flag{
 						flMetricVersion,

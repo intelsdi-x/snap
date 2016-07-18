@@ -56,7 +56,7 @@ func (c *Client) GetMetricCatalog() *GetMetricsResult {
 // It returns the corresponding metric catalog if succeeded. Otherwise, an error is returned.
 func (c *Client) FetchMetrics(ns string, ver int) *GetMetricsResult {
 	r := &GetMetricsResult{}
-	q := fmt.Sprintf("/metrics%s?ver=%d", ns, ver)
+	q := fmt.Sprintf("/metrics?ns=%s&ver=%d", ns, ver)
 	resp, err := c.do("GET", q, ContentTypeJSON)
 	if err != nil {
 		return &GetMetricsResult{Err: err}
@@ -80,7 +80,7 @@ func (c *Client) FetchMetrics(ns string, ver int) *GetMetricsResult {
 // GetMetricVersions retrieves all versions of a metric at a given namespace.
 func (c *Client) GetMetricVersions(ns string) *GetMetricsResult {
 	r := &GetMetricsResult{}
-	q := fmt.Sprintf("/metrics%s", ns)
+	q := fmt.Sprintf("/metrics?ns=%s", ns)
 	resp, err := c.do("GET", q, ContentTypeJSON)
 	if err != nil {
 		return &GetMetricsResult{Err: err}
@@ -100,11 +100,12 @@ func (c *Client) GetMetricVersions(ns string) *GetMetricsResult {
 
 // GetMetric retrieves a metric at a given namespace and version.
 // If the version is < 1, the latest version is returned.
-// Now returns an interface as several return types are possible
-// (array of metrics)
+// Returns an interface as several return types are possible
+// (array of metrics).
 func (c *Client) GetMetric(ns string, ver int) interface{} {
 	r := &GetMetricResult{}
-	q := fmt.Sprintf("/metrics%s?ver=%d", ns, ver)
+
+	q := fmt.Sprintf("/metrics?ns=%s&ver=%d", ns, ver)
 	resp, err := c.do("GET", q, ContentTypeJSON)
 	if err != nil {
 		return &GetMetricResult{Err: err}
