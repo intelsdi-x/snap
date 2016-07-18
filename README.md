@@ -130,17 +130,17 @@ Next, load the plugins. This can be achieved through the REST API directly or by
 Using the API directly with cURL:
 ```
 $ cd ~/snap/plugins/
-$ curl -X POST -F plugin=@snap-collector-mock1 http://localhost:8181/v1/plugins
-$ curl -X POST -F plugin=@snap-processor-passthru http://localhost:8181/v1/plugins
-$ curl -X POST -F plugin=@snap-publisher-file http://localhost:8181/v1/plugins
+$ curl -X POST -F plugin=@snap-plugin-collector-mock1 http://localhost:8181/v1/plugins
+$ curl -X POST -F plugin=@snap-plugin-processor-passthru http://localhost:8181/v1/plugins
+$ curl -X POST -F plugin=@snap-plugin-publisher-file http://localhost:8181/v1/plugins
 ```
 
 Every interaction with `snapd` can be done through the REST API. To see what else you can do with the API, view our [API Documentation](docs/REST_API.md). We will continue on using `snapctl`:
 ```
 $ cd ~/snap/plugins/
-$ snapctl plugin load snap-collector-mock1
-$ snapctl plugin load snap-processor-passthru
-$ snapctl plugin load snap-publisher-file
+$ snapctl plugin load snap-plugin-collector-mock1
+$ snapctl plugin load snap-plugin-processor-passthru
+$ snapctl plugin load snap-plugin-publisher-file
 ```
 
 Let's look at what plugins you have loaded now:

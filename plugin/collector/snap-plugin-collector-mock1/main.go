@@ -25,7 +25,7 @@ import (
 	// Import the snap plugin library
 	"github.com/intelsdi-x/snap/control/plugin"
 	// Import our collector plugin implementation
-	"github.com/intelsdi-x/snap/plugin/collector/snap-collector-mock1/mock"
+	"github.com/intelsdi-x/snap/plugin/collector/snap-plugin-collector-mock1/mock"
 )
 
 func main() {

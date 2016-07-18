@@ -177,7 +177,7 @@ func TestSwapPlugin(t *testing.T) {
 				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
 			})
 		})
-		mock1Path := strings.Replace(fixtures.PluginPath, "snap-collector-mock2", "snap-collector-mock1", 1)
+		mock1Path := strings.Replace(fixtures.PluginPath, "snap-plugin-collector-mock2", "snap-plugin-collector-mock1", 1)
 		mockRP, mErr := core.NewRequestedPlugin(mock1Path)
 		Convey("Loading a plugin should not error", t, func() {
 			So(mErr, ShouldBeNil)
@@ -224,7 +224,7 @@ func TestSwapPlugin(t *testing.T) {
 			})
 		})
 
-		filePath := strings.Replace(fixtures.PluginPath, "snap-collector-mock2", "snap-publisher-mock-file", 1)
+		filePath := strings.Replace(fixtures.PluginPath, "snap-plugin-collector-mock2", "snap-plugin-publisher-mock-file", 1)
 		fileRP, pErr := core.NewRequestedPlugin(filePath)
 		Convey("Loading a plugin should not error", t, func() {
 			So(pErr, ShouldBeNil)
@@ -1479,7 +1479,7 @@ func TestPublishMetrics(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		// Load plugin
-		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-publisher-mock-file"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-publisher-mock-file"))
 		So(err, ShouldBeNil)
 		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
@@ -1533,7 +1533,7 @@ func TestProcessMetrics(t *testing.T) {
 		c.Config.Plugins.Processor.Plugins["passthru"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-processor-passthru"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-processor-passthru"))
 		So(err, ShouldBeNil)
 		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
@@ -1612,7 +1612,7 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		lpe := newListenToPluginSubscriptionEvent()
 		c.eventManager.RegisterHandler("TestMetricSubscriptionToNewVersion", lpe)
 		c.Start()
-		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-collector-mock1"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("collector:mock:1")
@@ -1635,8 +1635,8 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		_, ok := mts[0].Data().(string)
 		So(ok, ShouldEqual, true)
 		Convey("Loading v2 of that plugin should move subscriptions to newer version", func() {
-			// Load version snap-collector-mock2
-			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-collector-mock2"))
+			// Load version snap-plugin-collector-mock2
+			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock2"))
 			So(err, ShouldBeNil)
 			select {
 			// Wait on subscriptionMovedEvent
@@ -1675,7 +1675,7 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		lpe := newListenToPluginSubscriptionEvent()
 		c.eventManager.RegisterHandler("TestMetricSubscriptionToOlderVersion", lpe)
 		c.Start()
-		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-collector-mock2"))
+		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock2"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("collector:mock:2")
@@ -1700,8 +1700,8 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		pc := c.PluginCatalog()
 		mockv2 := pc[0]
 		Convey("Loading v1 of that plugin and unloading v2 should move subscriptions to older version", func() {
-			// Load version snap-collector-mock2
-			_, err = load(c, path.Join(fixtures.SnapPath, "plugin", "snap-collector-mock1"))
+			// Load version snap-plugin-collector-mock2
+			_, err = load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock1"))
 			So(err, ShouldBeNil)
 			_, err = c.Unload(mockv2)
 			So(err, ShouldBeNil)

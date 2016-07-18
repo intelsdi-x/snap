@@ -31,11 +31,11 @@ import (
 )
 
 var (
-	PluginName = "snap-collector-mock2"
+	PluginName = "snap-plugin-collector-mock2"
 	SnapPath   = os.Getenv("SNAP_PATH")
 	PluginPath = path.Join(SnapPath, "plugin", PluginName)
 
-	JSONRPCPluginName = "snap-collector-mock1"
+	JSONRPCPluginName = "snap-plugin-collector-mock1"
 	JSONRPCPluginPath = path.Join(SnapPath, "plugin", JSONRPCPluginName)
 )
 

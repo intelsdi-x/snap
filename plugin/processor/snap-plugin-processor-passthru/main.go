@@ -23,7 +23,7 @@ import (
 	"os"
 
 	"github.com/intelsdi-x/snap/control/plugin"
-	"github.com/intelsdi-x/snap/plugin/processor/snap-processor-passthru/passthru"
+	"github.com/intelsdi-x/snap/plugin/processor/snap-plugin-processor-passthru/passthru"
 )
 
 func main() {

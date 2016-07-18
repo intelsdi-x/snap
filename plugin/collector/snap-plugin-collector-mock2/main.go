@@ -22,11 +22,21 @@ package main
 import (
 	"os"
 
+	// Import the snap plugin library
 	"github.com/intelsdi-x/snap/control/plugin"
-	"github.com/intelsdi-x/snap/plugin/publisher/snap-publisher-mock-file/file"
+	// Import our collector plugin implementation
+	"github.com/intelsdi-x/snap/plugin/collector/snap-plugin-collector-mock2/mock"
 )
 
 func main() {
-	meta := file.Meta()
-	plugin.Start(meta, file.NewFilePublisher(), os.Args[1])
+	// Provided:
+	//   the definition of the plugin metadata
+	//   the implementation satisfying plugin.CollectorPlugin
+
+	// Define metadata about Plugin
+	meta := mock.Meta()
+	// meta.RPCType = plugin.JSONRPC
+
+	// Start a collector
+	plugin.Start(meta, new(mock.Mock), os.Args[1])
 }

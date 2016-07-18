@@ -33,17 +33,16 @@ import (
 )
 
 var (
-	PluginName = "snap-publisher-mock-file"
-	PluginType = "publisher"
+	PluginName = "snap-plugin-collector-mock2"
+	PluginType = "collector"
 	SnapPath   = os.Getenv("SNAP_PATH")
 	PluginPath = path.Join(SnapPath, "plugin", PluginName)
 )
 
-func TestFilePublisherLoad(t *testing.T) {
+func TestMockPluginLoad(t *testing.T) {
 	// These tests only work if SNAP_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
-
 	Convey("make sure plugin has been built", t, func() {
 		err := helper.CheckPluginBuilt(SnapPath, PluginName)
 		So(err, ShouldBeNil)
@@ -56,5 +55,6 @@ func TestFilePublisherLoad(t *testing.T) {
 
 			So(err, ShouldBeNil)
 		})
+
 	})
 }
