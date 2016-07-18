@@ -224,9 +224,6 @@ func New(cfg *Config) *pluginControl {
 	c.pluginRunner.SetMetricCatalog(c.metricCatalog)
 	c.pluginRunner.SetPluginManager(c.pluginManager)
 
-	// Pass runner events to control main module
-	c.eventManager.RegisterHandler(c.Name(), c)
-
 	c.tasks = &taskDataMap{data: make(map[string]*taskData)}
 
 	// Start stuff
@@ -244,83 +241,6 @@ func New(cfg *Config) *pluginControl {
 	}
 
 	return c
-}
-
-func (p *pluginControl) HandleGomitEvent(e gomit.Event) {
-	switch v := e.Body.(type) {
-	case *control_event.LoadPluginEvent:
-		// Ignore plugins with type other than collector
-		if core.PluginType(v.Type).String() != "collector" {
-			return
-		}
-
-		// Get all known tasks data
-		for taskID, taskData := range p.tasks.data {
-			// Expand every task metric namespaces (with "*") to corresponding metric calalog namespaces
-			for _, tm := range taskData.metrics {
-
-				matchedNss, err := p.metricCatalog.MatchNamespaces(tm.Namespace())
-
-				if err != nil {
-					log.WithFields(log.Fields{
-						"_block":         "control",
-						"event":          v.Namespace(),
-						"plugin-name":    v.Name,
-						"plugin-version": v.Version,
-						"plugin-type":    core.PluginType(v.Type).String(),
-					}).Error("error matching task namespace with metric catalog")
-					continue
-				}
-
-				if len(matchedNss) > 0 {
-					depMts := []core.Metric{}
-					for _, ns := range matchedNss {
-
-						// Get expanded namespace data from metric catalog
-						if m, err := p.metricCatalog.Get(ns, tm.Version()); err == nil {
-							// Check if expanded namespace belongs to currently loaded plugin
-							if m.Plugin.TypeName() == core.PluginType(v.Type).String() && m.Plugin.Name() == v.Name {
-								depMts = append(depMts, &metric{
-									namespace: ns,
-									version:   tm.Version(),
-									config:    taskData.configTree.Get(ns.Strings()),
-								})
-							}
-						}
-					}
-
-					// Validate and subscribe deps for loaded plugin
-					errs := p.ValidateDeps(depMts, taskData.plugins)
-					if len(errs) > 0 {
-						log.WithFields(log.Fields{
-							"_block":         "control",
-							"event":          v.Namespace(),
-							"plugin-name":    v.Name,
-							"plugin-version": v.Version,
-							"plugin-type":    core.PluginType(v.Type).String(),
-						}).Error("error validating dependencies")
-						continue
-					}
-
-					cps := returnCorePlugin(taskData.plugins)
-					errs = p.SubscribeDeps(taskID, depMts, cps)
-					if len(errs) > 0 {
-						log.WithFields(log.Fields{
-							"_block":         "control",
-							"event":          v.Namespace(),
-							"plugin-name":    v.Name,
-							"plugin-version": v.Version,
-							"plugin-type":    core.PluginType(v.Type).String(),
-						}).Error("error subscribing dependencies")
-						p.UnsubscribeDeps(taskID, depMts, cps)
-						continue
-					}
-
-					p.metricCatalog.UpdateQueriedNamespaces(tm.Namespace())
-				}
-			}
-		}
-	}
 }
 
 func (p *pluginControl) AddTaskIDData(taskID string, metrics []core.RequestedMetric, configTree *cdata.ConfigDataTree, plugins []core.SubscribedPlugin) {
@@ -536,6 +456,8 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, se
 		pl.Details.ExecPath = ""
 	}
 
+	p.refreshPluginSubscriptions(pl.Meta)
+
 	// defer sending event
 	event := &control_event.LoadPluginEvent{
 		Name:    pl.Meta.Name,
@@ -545,6 +467,66 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, se
 	}
 	defer p.eventManager.Emit(event)
 	return pl, nil
+}
+
+func (p *pluginControl) refreshPluginSubscriptions(meta plugin.PluginMeta) {
+	f := map[string]interface{}{
+		"_block": "refresh-plugin-subscriptions",
+	}
+
+	// Ignore plugins with type other than collector
+	if core.PluginType(meta.Type).String() != "collector" {
+		return
+	}
+
+	// Get all known tasks data
+	for taskID, taskData := range p.tasks.data {
+		// Expand every task metric namespaces (with "*") to corresponding metric calalog namespaces
+		for _, tm := range taskData.metrics {
+
+			matchedNss, err := p.metricCatalog.MatchNamespaces(tm.Namespace())
+
+			if err != nil {
+				log.WithFields(f).Error("error matching task namespace with metric catalog")
+				continue
+			}
+
+			if len(matchedNss) > 0 {
+				depMts := []core.Metric{}
+				for _, ns := range matchedNss {
+
+					// Get expanded namespace data from metric catalog
+					if m, err := p.metricCatalog.Get(ns, tm.Version()); err == nil {
+						// Check if expanded namespace belongs to currently loaded plugin
+						if m.Plugin.TypeName() == core.PluginType(meta.Type).String() && m.Plugin.Name() == meta.Name {
+							depMts = append(depMts, &metric{
+								namespace: ns,
+								version:   tm.Version(),
+								config:    taskData.configTree.Get(ns.Strings()),
+							})
+						}
+					}
+				}
+
+				// Validate and subscribe deps for loaded plugin
+				errs := p.ValidateDeps(depMts, taskData.plugins)
+				if len(errs) > 0 {
+					log.WithFields(f).Error("error validating dependencies")
+					continue
+				}
+
+				cps := returnCorePlugin(taskData.plugins)
+				errs = p.SubscribeDeps(taskID, depMts, cps)
+				if len(errs) > 0 {
+					log.WithFields(f).Error("error subscribing dependencies")
+					p.UnsubscribeDeps(taskID, depMts, cps)
+					continue
+				}
+
+				p.metricCatalog.UpdateQueriedNamespaces(tm.Namespace())
+			}
+		}
+	}
 }
 
 func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, serror.SnapError) {
