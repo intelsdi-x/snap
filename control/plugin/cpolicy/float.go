@@ -136,23 +136,22 @@ func (f *FloatRule) GobDecode(buf []byte) error {
 	return nil
 }
 
-// NewFloatRule Returns a new float-typed rule. Arguments are key(string), required(bool), default(float64), min(float64), max(float64)
+// NewFloatRule returns a new float-typed rule. Arguments are key(string), required(bool), default(float64)
 func NewFloatRule(key string, req bool, opts ...float64) (*FloatRule, error) {
 	// Return error if key is empty
 	if key == "" {
 		return nil, EmptyKeyError
 	}
 
-	options := make([]*float64, 1)
-	for i, o := range opts {
-		options[i] = &o
-	}
-
-	return &FloatRule{
+	f := &FloatRule{
 		key:      key,
 		required: req,
-		default_: options[0],
-	}, nil
+	}
+
+	if len(opts) > 0 {
+		f.default_ = &opts[0]
+	}
+	return f, nil
 }
 
 // Key Returns the key
