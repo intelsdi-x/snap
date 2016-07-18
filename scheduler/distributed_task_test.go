@@ -64,9 +64,9 @@ func TestDistributedWorkflow(t *testing.T) {
 		err := sch.Start()
 		So(err, ShouldBeNil)
 		// Load appropriate plugins into each control.
-		mock2Path := path.Join(PluginPath, "snap-collector-mock2")
-		passthruPath := path.Join(PluginPath, "snap-processor-passthru")
-		filePath := path.Join(PluginPath, "snap-publisher-mock-file")
+		mock2Path := path.Join(PluginPath, "snap-plugin-collector-mock2")
+		passthruPath := path.Join(PluginPath, "snap-plugin-processor-passthru")
+		filePath := path.Join(PluginPath, "snap-plugin-publisher-mock-file")
 
 		// mock2 and file onto c1
 
@@ -203,9 +203,9 @@ func TestDistributedSubscriptions(t *testing.T) {
 		err := sch.Start()
 		So(err, ShouldBeNil)
 		// Load appropriate plugins into each control.
-		mock2Path := path.Join(PluginPath, "snap-collector-mock2")
-		passthruPath := path.Join(PluginPath, "snap-processor-passthru")
-		filePath := path.Join(PluginPath, "snap-publisher-mock-file")
+		mock2Path := path.Join(PluginPath, "snap-plugin-collector-mock2")
+		passthruPath := path.Join(PluginPath, "snap-plugin-processor-passthru")
+		filePath := path.Join(PluginPath, "snap-plugin-publisher-mock-file")
 
 		// mock2 and file onto c1
 

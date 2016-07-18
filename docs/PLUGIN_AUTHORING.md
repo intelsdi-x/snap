@@ -119,7 +119,7 @@ GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
 Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
 ```
 ### Exposing a plugin
-Creating the main program to serve the newly written plugin as an external process in main.go. By defining "Plugin.PluginMeta" with plugin specific settings, the newly created plugin may have its setting to override Snap global settings. Please refer to [a sample](https://github.com/intelsdi-x/snap/blob/master/plugin/collector/snap-collector-mock1/main.go) to see how main.go is written. You may browse [snap global settings](https://github.com/intelsdi-x/snap/blob/master/snapd.go#L45-L119).
+Creating the main program to serve the newly written plugin as an external process in main.go. By defining "Plugin.PluginMeta" with plugin specific settings, the newly created plugin may have its setting to override Snap global settings. Please refer to [a sample](https://github.com/intelsdi-x/snap/blob/master/plugin/collector/snap-plugin-collector-mock1/main.go) to see how main.go is written. You may browse [snap global settings](https://github.com/intelsdi-x/snap/blob/master/snapd.go#L45-L119).
 
 Building main.go generates a binary executable. You may choose to sign the executable with our [plugin signing](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_SIGNING.md).
 

@@ -43,10 +43,10 @@ _debug "project directory ${__proj_dir}"
 [[ "$SNAP_TEST_TYPE" =~ ^(small|medium|large|legacy)$ ]] || _error "invalid/missing SNAP_TEST_TYPE (value must be 'small', 'medium', 'large', or 'legacy', received:${SNAP_TEST_TYPE}"
 
 # If the following plugins don't exist, exit
-[ -f $SNAP_PATH/plugin/snap-collector-mock1 ] || { _error 'Error: $SNAP_PATH/plugin/snap-collector-mock1 does not exist. Run make to build it.'; }
-[ -f $SNAP_PATH/plugin/snap-collector-mock2 ] || { _error 'Error: $SNAP_PATH/plugin/snap-collector-mock2 does not exist. Run make to build it.';  }
-[ -f $SNAP_PATH/plugin/snap-processor-passthru ] || { _error 'Error: $SNAP_PATH/plugin/snap-processor-passthru does not exist. Run make to build it.'; }
-[ -f $SNAP_PATH/plugin/snap-publisher-mock-file ] || { _error 'Error: $SNAP_PATH/plugin/snap-publisher-mock-file does not exist. Run make to build it.'; }
+[ -f $SNAP_PATH/plugin/snap-plugin-collector-mock1 ] || { _error 'Error: $SNAP_PATH/plugin/snap-plugin-collector-mock1 does not exist. Run make to build it.'; }
+[ -f $SNAP_PATH/plugin/snap-plugin-collector-mock2 ] || { _error 'Error: $SNAP_PATH/plugin/snap-plugin-collector-mock2 does not exist. Run make to build it.';  }
+[ -f $SNAP_PATH/plugin/snap-plugin-processor-passthru ] || { _error 'Error: $SNAP_PATH/plugin/snap-plugin-processor-passthru does not exist. Run make to build it.'; }
+[ -f $SNAP_PATH/plugin/snap-plugin-publisher-mock-file ] || { _error 'Error: $SNAP_PATH/plugin/snap-plugin-publisher-mock-file does not exist. Run make to build it.'; }
 
 _go_path
 # If the following tools don't exist, get them

@@ -71,7 +71,7 @@ INFO[0000] adding keyring file: /Users/tiffany/.gnupg/secring.gpg
 INFO[0000] adding keyring file: /Users/tiffany/.gnupg/trustdb.gpg
 ```
 ```
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-collector-mock1 -a build/plugin/snap-collector-mock1.asc
+$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
 Plugin loaded
 Name: mock
 Version: 1
@@ -81,51 +81,52 @@ Loaded Time: Thu, 12 Nov 2015 13:53:58 PST
 ```
 ```
 INFO[0036] API request                                   _module=_mgmt-rest index=3 method=POST url=/v1/plugins
-DEBU[0037] wrote 7332032 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/485061199/snap-collector-mock1
-DEBU[0037] wrote 473 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/784063842/snap-collector-mock1.asc
-INFO[0037] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/485061199/snap-collector-mock1  _module=_mgmt-rest
+DEBU[0037] wrote 7332032 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/485061199/snap-plugin-collector-mock1
+DEBU[0037] wrote 473 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/784063842/snap-plugin-collector-mock1.asc
+INFO[0037] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/485061199/snap-plugin-collector-mock1  _module=_mgmt-rest
 Signature made Thu, 12 Nov 2015 13:53:58 PST using RSA key ID 43F744A0
 Good signature from Tiffany Jernigan (Main signing key) <my.email@intel.com>
 ```
 No signature
 ```
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-collector-mock2
+$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock2
 Error loading plugin:
 Signature file (.asc) not found:
 open : no such file or directory
 ```
 ```
-DEBU[0033] wrote 7327840 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/snap-collector-mock2
-INFO[0033] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/snap-collector-mock2  _module=_mgmt-rest
+DEBU[0033] wrote 7327840 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/snap-plugin-collector-mock2
+INFO[0033] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/snap-plugin-collector-mock2  _module=_mgmt-rest
 ERRO[0033] Signature file (.asc) not found:
 open : no such file or directory  _module=_mgmt-rest
-DEBU[0033] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/snap-collector-mock2) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/snap-collector-mock2)  _module=_mgmt-rest
+DEBU[0033] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/snap-plugin-collector-mock2) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/180549107/snap-plugin-collector-mock2)  _module=_mgmt-rest
 ```
 Invalid signature
 ```
-$SNAP_PATH/bin/snapctl plugin load build/plugin/snap-collector-mock2 -a build/plugin/snap-collector-mock1.asc
+$SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock2 -a build/plugin/snap-plugin-collector-mock1.asc
 Error loading plugin:
 Error checking signature
 openpgp: invalid signature: hash tag doesn't match
 ```
 ```
-DEBU[0003] wrote 7327840 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-collector-mock2
-DEBU[0003] wrote 473 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/700509798/snap-collector-mock1.asc
-INFO[0003] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-collector-mock2  _module=_mgmt-rest
+DEBU[0003] wrote 7327840 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-plugin-collector-mock2
+DEBU[0003] wrote 473 to /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/700509798/snap-plugin-collector-mock1.asc
+INFO[0003] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-plugin-collector-mock2  _module=_mgmt-rest
 ERRO[0003] Error checking signature
 openpgp: invalid signature: hash tag doesn't match  _module=_mgmt-rest
-DEBU[0003] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-collector-mock2) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-collector-mock2)  _module=_mgmt-rest
-DEBU[0003] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/700509798/snap-collector-mock1.asc) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-collector-mock2)  _module=_mgmt-rest
+DEBU[0003] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-plugin-collector-mock2) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-plugin-collector-mock2)  _module=_mgmt-rest
+DEBU[0003] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/700509798/snap-plugin-collector-mock1.asc) after failure to load plugin (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/719702627/snap-plugin-collector-mock2)  _module=_mgmt-rest
 ```
 Wrong keyring
 ```
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-collector-mock1 -a build/plugin/snap-collector-mock1.asc
+$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
 Error loading plugin:
 Error checking signature
 openpgp: signature made by unknown entity
 ```
 ```
-INFO[0002] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/057449871/snap-collector-mock1  _module=_mgmt-rest
+INFO[0002] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/057449871/snap-plugin-collector-mock1  _module=_mgmt-rest
+
 ERRO[0002] Error checking signature
 openpgp: signature made by unknown entity  _module=_mgmt-rest
 ```
@@ -136,7 +137,7 @@ INFO[0000] setting plugin trust level to: warning
 INFO[0000] adding keyring file /Users/tiffany/.gnupg/pubring.gpg
 ```
 ```
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-collector-mock1 -a build/plugin/snap-collector-mock1.asc
+$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
 
 Plugin loaded
 Name: mock
@@ -145,7 +146,7 @@ Type: collector
 Signed: true
 Loaded Time: Thu, 12 Nov 2015 14:08:32 PST
 
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-collector-mock2
+$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock2
 
 Plugin loaded
 Name: mock
@@ -155,10 +156,10 @@ Signed: false
 Loaded Time: Thu, 12 Nov 2015 14:08:49 PST
 ```
 ```
-INFO[0338] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/276797457/snap-collector-mock1  _module=_mgmt-rest
+INFO[0338] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/276797457/snap-plugin-collector-mock1  _module=_mgmt-rest
 Signature made Thu, 12 Nov 2015 14:08:32 PST using RSA key ID 43F744A0
 Good signature from Tiffany Jernigan (ACI signing key) <my.email@intel.com>
-WARN[0355] Loading unsigned plugin /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/205904491/snap-collector-mock2  _block=load _module=control
+WARN[0355] Loading unsigned plugin /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/205904491/snap-plugin-collector-mock2  _block=load _module=control
 ```
 
 ##Creating Signing Files and Validating Signature

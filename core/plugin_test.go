@@ -32,10 +32,10 @@ import (
 )
 
 var (
-	PluginName    = "snap-collector-mock1"
+	PluginName    = "snap-plugin-collector-mock1"
 	SnapPath      = os.Getenv("SNAP_PATH")
 	PluginPath    = path.Join(SnapPath, "plugin", PluginName)
-	SignatureFile = path.Join(SnapPath, "../pkg/psigning", "snap-collector-mock1.asc")
+	SignatureFile = path.Join(SnapPath, "../pkg/psigning", "snap-plugin-collector-mock1.asc")
 )
 
 func TestRequestedPlugin(t *testing.T) {
