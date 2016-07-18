@@ -84,7 +84,7 @@ func NewMetricsReturned() MetricsReturned {
 }
 
 func (m MetricsReturned) ResponseBodyMessage() string {
-	return "Metric"
+	return "Metrics returned"
 }
 
 func (m MetricsReturned) ResponseBodyType() string {

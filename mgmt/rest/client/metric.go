@@ -100,7 +100,9 @@ func (c *Client) GetMetricVersions(ns string) *GetMetricsResult {
 
 // GetMetric retrieves a metric at a given namespace and version.
 // If the version is < 1, the latest version is returned.
-func (c *Client) GetMetric(ns string, ver int) *GetMetricResult {
+// Now returns an interface as several return types are possible
+// (array of metrics)
+func (c *Client) GetMetric(ns string, ver int) interface{} {
 	r := &GetMetricResult{}
 	q := fmt.Sprintf("/metrics%s?ver=%d", ns, ver)
 	resp, err := c.do("GET", q, ContentTypeJSON)
@@ -112,6 +114,10 @@ func (c *Client) GetMetric(ns string, ver int) *GetMetricResult {
 	case rbody.MetricReturnedType:
 		mc := resp.Body.(*rbody.MetricReturned)
 		r.Metric = mc.Metric
+	case rbody.MetricsReturnedType:
+		mc := resp.Body.(*rbody.MetricsReturned)
+		r := convertMetrics(mc)
+		return r
 	case rbody.ErrorType:
 		r.Err = resp.Body.(*rbody.Error)
 	default:
@@ -141,6 +147,15 @@ func convertCatalog(c *rbody.MetricsReturned) []*rbody.Metric {
 	mci := make([]*rbody.Metric, len(*c))
 	for i := range *c {
 		mci[i] = &(*c)[i]
+	}
+	return mci
+}
+
+func convertMetrics(c *rbody.MetricsReturned) []*GetMetricResult {
+	mci := make([]*GetMetricResult, len(*c))
+	for i, _ := range *c {
+		r := &GetMetricResult{Metric: &(*c)[i]}
+		mci[i] = r
 	}
 	return mci
 }
