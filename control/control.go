@@ -92,7 +92,12 @@ type pluginControl struct {
 	closingChan chan bool
 	wg          sync.WaitGroup
 
-	taskIDData map[string]*taskData
+	tasks *taskDataMap
+}
+
+type taskDataMap struct {
+	sync.Mutex
+	data map[string]*taskData
 }
 
 type taskData struct {
@@ -222,7 +227,7 @@ func New(cfg *Config) *pluginControl {
 	// Pass runner events to control main module
 	c.eventManager.RegisterHandler(c.Name(), c)
 
-	c.taskIDData = make(map[string]*taskData)
+	c.tasks = &taskDataMap{data: make(map[string]*taskData)}
 
 	// Start stuff
 	err := c.pluginRunner.Start()
@@ -250,7 +255,7 @@ func (p *pluginControl) HandleGomitEvent(e gomit.Event) {
 		}
 
 		// Get all known tasks data
-		for taskID, taskData := range p.taskIDData {
+		for taskID, taskData := range p.tasks.data {
 			// Expand every task metric namespaces (with "*") to corresponding metric calalog namespaces
 			for _, tm := range taskData.metrics {
 
@@ -319,11 +324,15 @@ func (p *pluginControl) HandleGomitEvent(e gomit.Event) {
 }
 
 func (p *pluginControl) AddTaskIDData(taskID string, metrics []core.RequestedMetric, configTree *cdata.ConfigDataTree, plugins []core.SubscribedPlugin) {
-	p.taskIDData[taskID] = &taskData{metrics, configTree, plugins}
+	p.tasks.Lock()
+	defer p.tasks.Unlock()
+	p.tasks.data[taskID] = &taskData{metrics, configTree, plugins}
 }
 
 func (p *pluginControl) RemoveTaskIDData(taskID string) {
-	delete(p.taskIDData, taskID)
+	p.tasks.Lock()
+	defer p.tasks.Unlock()
+	delete(p.tasks.data, taskID)
 }
 
 func (p *pluginControl) Name() string {
