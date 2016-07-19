@@ -20,6 +20,7 @@ limitations under the License.
 package rest
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -510,6 +511,7 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 	if err != nil {
 		panic(err)
 	}
+	j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
 	fmt.Fprint(w, string(j))
 }
 

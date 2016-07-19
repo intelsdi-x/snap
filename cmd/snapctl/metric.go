@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
+	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
@@ -94,13 +95,7 @@ func listMetrics(ctx *cli.Context) error {
 	return nil
 }
 
-func getMetric(ctx *cli.Context) error {
-	if !ctx.IsSet("metric-namespace") {
-		return newUsageError("namespace is required\n\n", ctx)
-	}
-	ns := ctx.String("metric-namespace")
-	ver := ctx.Int("metric-version")
-	metric := pClient.GetMetric(ns, ver)
+func printMetric(metric *client.GetMetricResult, idx int) error {
 	if metric.Err != nil {
 		return fmt.Errorf("%v", metric.Err)
 	}
@@ -119,6 +114,9 @@ func getMetric(ctx *cli.Context) error {
 
 	namespace := getNamespace(metric.Metric)
 
+	if idx > 0 {
+		fmt.Printf("\n")
+	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	printFields(w, false, 0, "NAMESPACE", "VERSION", "UNIT", "LAST ADVERTISED TIME", "DESCRIPTION")
 	printFields(w, false, 0, namespace, metric.Metric.Version, metric.Metric.Unit, time.Unix(metric.Metric.LastAdvertisedTimestamp, 0).Format(time.RFC1123), metric.Metric.Description)
@@ -150,7 +148,38 @@ func getMetric(ctx *cli.Context) error {
 		printFields(w, true, 6, rule.Name, rule.Type, rule.Default, rule.Required, rule.Minimum, rule.Maximum)
 	}
 	w.Flush()
+	return nil
+}
 
+func getMetric(ctx *cli.Context) error {
+	if !ctx.IsSet("metric-namespace") {
+		return newUsageError("namespace is required\n\n", ctx)
+	}
+	ns := ctx.String("metric-namespace")
+	ver := ctx.Int("metric-version")
+	metric := pClient.GetMetric(ns, ver)
+	switch mtype := metric.(type) {
+	case []*client.GetMetricResult:
+		// Multiple metrics
+		var merr error
+		for i, m := range metric.([]*client.GetMetricResult) {
+			err := printMetric(m, i)
+			if err != nil {
+				merr = err
+			}
+		}
+		if merr != nil {
+			return merr
+		}
+	case *client.GetMetricResult:
+		// Single metric
+		err := printMetric(metric.(*client.GetMetricResult), 0)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("Unexpected response type %T\n", mtype)
+	}
 	return nil
 }
 

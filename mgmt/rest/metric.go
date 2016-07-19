@@ -22,8 +22,10 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -32,6 +34,38 @@ import (
 )
 
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ver := 0 // 0: get all metrics
+
+	// If we are provided a parameter with the name 'ns' we need to
+	// perform a query
+	q := r.URL.Query()
+	v := q.Get("ver")
+	ns_query := q.Get("ns")
+	if ns_query != "" {
+		ver = 0 // 0: get all versions
+		if v != "" {
+			var err error
+			ver, err = strconv.Atoi(v)
+			if err != nil {
+				respond(400, rbody.FromError(err), w)
+				return
+			}
+		}
+		// strip the leading '/' and split on the remaining '/'
+		ns := strings.Split(strings.TrimLeft(ns_query, "/"), "/")
+		if ns[len(ns)-1] == "*" {
+			ns = ns[:len(ns)-1]
+		}
+
+		mets, err := s.mm.FetchMetrics(core.NewNamespace(ns...), ver)
+		if err != nil {
+			respond(404, rbody.FromError(err), w)
+			return
+		}
+		respondWithMetrics(r.Host, mets, w)
+		return
+	}
+
 	mets, err := s.mm.MetricCatalog()
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
@@ -63,7 +97,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 
 	if ns[len(ns)-1] == "*" {
 		if v == "" {
-			ver = -1
+			ver = 0 //return all metrics
 		} else {
 			ver, err = strconv.Atoi(v)
 			if err != nil {
@@ -81,14 +115,14 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		return
 	}
 
-	// If no version was given, get all that fall at this namespace.
+	// If no version was given, get all version that fall at this namespace.
 	if v == "" {
-		mts, err := s.mm.GetMetricVersions(core.NewNamespace(ns...))
+		mets, err := s.mm.FetchMetrics(core.NewNamespace(ns...), 0)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mts, w)
+		respondWithMetrics(r.Host, mets, w)
 		return
 	}
 
@@ -175,7 +209,7 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 }
 
 func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics%s?ver=%d", protocolPrefix, host, mt.Namespace().String(), mt.Version())
+	return fmt.Sprintf("%s://%s/v1/metrics?ns=%s&ver=%d", protocolPrefix, host, url.QueryEscape(mt.Namespace().String()), mt.Version())
 }
 
 func getDynamicElements(ns core.Namespace, indexes []int) []rbody.DynamicElement {
