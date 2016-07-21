@@ -65,7 +65,7 @@ snap-plugin-[type]-[name]
 A plugin should **NOT** advertise metrics which namespaces contain:
 
 ##### a) the following characters in a namespace:
-    - spaces
+    - spaces	` `
     - brackets: `()[]{}`
     - slashes:  `| \ /`
     - carets:   `^`
