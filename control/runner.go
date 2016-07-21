@@ -286,7 +286,9 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 			return
 		}
 	case *control_event.UnloadPluginEvent:
-		// On plugin unload,  find the key and pool info for the plugin being unloaded.
+		// On plugin unload, first find the key and pool info for the plugin being unloaded
+		// so that we can determine what, if any, subscriptions need to be moved to another
+		// version of that plugin (if one is available).
 		r.availablePlugins.RLock()
 		var pool strategy.Pool
 		var k string
@@ -301,14 +303,24 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 		r.availablePlugins.RUnlock()
 		if pool == nil {
+			// if we didn't find the named plugin in one of our pools, then simply return
 			return
 		}
-		// Check for the highest lower version plugin and move subscriptions that
-		// are not bound to a plugin version to this pool.
+		// Otherwise, we need to roll any subscriptions that may have existed for the plugin being
+		// unloaded to a new version (if we can find one). First, check for the highest version of the
+		// plugin being unloaded that is still available (if there is one)
 		plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", core.PluginType(v.Type).String(), v.Name, -1))
 		if err != nil {
+			if err == ErrPluginNotFound {
+				// if we got to here via a "PluginNotFoundError", then we can't find
+				// another version of this plugin, so we need to kill all instances
+				// of the plugin from this pool
+				pool.KillAll("Last version of plugin unloaded; no additional versions to roll over to")
+			}
 			return
 		}
+		// if we found another version, then move the subscriptions that are not currently bound to a
+		// plugin version to our pool
 		newPool, err := r.availablePlugins.getOrCreatePool(plugin.Key())
 		if err != nil {
 			return
@@ -324,7 +336,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 				return
 			}
 		}
-		// Remove the unloaded plugin from available plugins
+		// Finally, remove the unloaded plugin from available plugins
 		r.availablePlugins.Lock()
 		delete(r.availablePlugins.table, k)
 		r.availablePlugins.Unlock()
