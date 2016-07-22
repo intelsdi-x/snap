@@ -45,7 +45,7 @@ _notice ()  { [ "${LOG_LEVEL}" -ge 5 ] && echo "$(_fmt notice) ${*}" 1>&2 || tru
 _warning () { [ "${LOG_LEVEL}" -ge 4 ] && echo "$(_fmt warning) ${*}" 1>&2 || true; }
 _error ()   { [ "${LOG_LEVEL}" -ge 3 ] && echo "$(_fmt error) ${*}" 1>&2 || true; exit 1; }
 
-test_dirs=$(find . -type f -name '*.go' -not -path "./.*" -not -path "*/_*" -not -path "./Godeps/*" -not -path "./vendor/*" -print0 | xargs -0 -n1 dirname| sort -u)
+test_dirs=$(find . -type f -name '*.go' -not -path "./.*" -not -path "*/_*" -not -path "./Godeps/*" -not -path "./vendor/*" -not -path "./scripts/*" -print0 | xargs -0 -n1 dirname | sort -u)
 
 _debug "go code directories:
 ${test_dirs}"
