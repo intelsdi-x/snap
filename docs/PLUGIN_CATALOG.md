@@ -73,13 +73,12 @@ These plugins are in planned/active development. This list is useful if you want
 
 | Name  | Type  | Description | Link | Authors |
 | :---- | :---- | :---------- | :--- | :------ |
-| Cassandra | Collector | Collects metrics from Cassandra cluster | - | [@candysmurf](https://github.com/candysmurf) |
 | Open vSwitch | Collector | Collects Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
 | Redfish | Collector | Collects metrics from Redfish API | - | [@candysmurf](https://github.com/candysmurf) |
 | Cassandra | Publisher | Publishes snap metrics into Cassandra | - | [@candysmurf](https://github.com/candysmurf) |
 
 ## Wish List
-This is a wish list of plugins for snap. If you see one here and want to start on it please let us know.
+This is a wish list of plugins for Snap. If you see one here and want to start on it please let us know.
 #### Collector
 
 - CollectD native
