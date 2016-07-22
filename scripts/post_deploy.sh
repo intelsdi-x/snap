@@ -17,11 +17,6 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-git_branch=$(git symbolic-ref HEAD 2> /dev/null | cut -b 12-)
-git_branch="${git_branch:-snap}"
-git_sha=$(git log --pretty=format:"%h" -1)
-git_version=$(git describe --always --exact-match 2> /dev/null || echo "${git_branch}-${git_sha}")
-
 set -e
 set -u
 set -o pipefail
@@ -32,7 +27,8 @@ __proj_dir="$(dirname "$__dir")"
 # shellcheck source=scripts/common.sh
 . "${__dir}/common.sh"
 
-SNAP_BUILD_URL="https://s3-us-west-2.amazonaws.com/intelsdi-x/snap/${git_version}"
+git_sha=$(git log --pretty=format:"%H" -1)
+SNAP_BUILD_URL="https://s3-us-west-2.amazonaws.com/intelsdi-x/snap/${git_sha}"
 export SNAP_BUILD_URL
 
 _info "updating package URL: ${SNAP_BUILD_URL}"

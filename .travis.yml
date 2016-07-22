@@ -16,6 +16,11 @@ env:
   - SNAP_TEST_TYPE=legacy
   - SNAP_TEST_TYPE=small
   - SNAP_TEST_TYPE=medium
+  - SNAP_TEST_TYPE=build
+matrix:
+  exclude:
+  - go: 1.5.4
+    env: SNAP_TEST_TYPE=build
 install:
 - export TMPDIR=$HOME/tmp
 - mkdir -p $TMPDIR
@@ -43,6 +48,6 @@ deploy:
   on:
     repo: intelsdi-x/snap
     branch: master
-    condition: $SNAP_TEST_TYPE = medium && $TRAVIS_GO_VERSION = "1.6.2"
+    condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.6.2"
 after_deploy:
 - "./scripts/post_deploy.sh"
