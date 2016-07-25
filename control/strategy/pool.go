@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -77,6 +78,7 @@ type Pool interface {
 	Version() int
 	RestartCount() int
 	IncRestartCount()
+	KillAll(string)
 }
 
 type AvailablePlugin interface {
@@ -297,20 +299,43 @@ func (p *pool) Kill(id uint32, reason string) {
 	}
 }
 
+// Kill all instances of a plugin
+func (p *pool) KillAll(reason string) {
+	for id, rp := range p.plugins {
+		log.WithFields(log.Fields{
+			"_block": "KillAll",
+			"reason": reason,
+		}).Debug(fmt.Sprintf("handling 'KillAll' for pool '%v', killing plugin '%v:%v'", p.String(), rp.Name(), rp.Version()))
+		if err := rp.Stop(reason); err != nil {
+			log.WithFields(log.Fields{
+				"_block": "KillAll",
+				"reason": reason,
+			}).Error(err)
+		}
+		p.Kill(id, reason)
+	}
+}
+
 // SelectAndKill selects, kills and removes the available plugin from the pool
 func (p *pool) SelectAndKill(id, reason string) {
 	rp, err := p.Remove(p.plugins.Values(), id)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"_block": "selectAndKill",
+			"_block": "SelectAndKill",
 			"taskID": id,
 			"reason": reason,
 		}).Error(err)
 	}
-	rp.Stop(reason)
+	if err := rp.Stop(reason); err != nil {
+		log.WithFields(log.Fields{
+			"_block": "SelectAndKill",
+			"taskID": id,
+			"reason": reason,
+		}).Error(err)
+	}
 	if err := rp.Kill(reason); err != nil {
 		log.WithFields(log.Fields{
-			"_block": "selectAndKill",
+			"_block": "SelectAndKill",
 			"taskID": id,
 			"reason": reason,
 		}).Error(err)

@@ -53,8 +53,20 @@ type commandWrapper struct {
 }
 
 func (cw *commandWrapper) Path() string { return cw.cmd.Path }
-func (cw *commandWrapper) Kill() error  { return cw.cmd.Process.Kill() }
-func (cw *commandWrapper) Start()       { cw.cmd.Start() }
+func (cw *commandWrapper) Kill() error {
+	// first, kill the process wrapped up in the commandWrapper
+	if err := cw.cmd.Process.Kill(); err != nil {
+		log.WithFields(log.Fields{
+			"_block": "Kill",
+		}).Error(err)
+		return err
+	}
+	// then wait for it to exit (so that we don't have any zombie processes kicking
+	// around the system)
+	_, err := cw.cmd.Process.Wait()
+	return err
+}
+func (cw *commandWrapper) Start() { cw.cmd.Start() }
 
 // Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
 func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
