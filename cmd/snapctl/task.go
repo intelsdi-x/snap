@@ -87,17 +87,17 @@ type task struct {
 }
 
 func createTask(ctx *cli.Context) error {
+	var err error
 	if ctx.IsSet("task-manifest") {
 		fmt.Println("Using task manifest to create task")
-		createTaskUsingTaskManifest(ctx)
+		err = createTaskUsingTaskManifest(ctx)
 	} else if ctx.IsSet("workflow-manifest") {
 		fmt.Println("Using workflow manifest to create task")
-		createTaskUsingWFManifest(ctx)
+		err = createTaskUsingWFManifest(ctx)
 	} else {
 		return newUsageError("Must provide either --task-manifest or --workflow-manifest arguments", ctx)
 	}
-
-	return nil
+	return err
 }
 
 func createTaskUsingTaskManifest(ctx *cli.Context) error {
