@@ -35,6 +35,7 @@ check:
 all:
 	bash -c "./scripts/build_snap.sh"
 install:
+	$(MAKE) all
 	cp build/bin/snapd /usr/local/bin/
 	cp build/bin/snapctl /usr/local/bin/
 proto:
