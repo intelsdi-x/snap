@@ -32,6 +32,11 @@ git_sha=$(git log --pretty=format:"%H" -1)
 git_path="${build_path}/${git_sha}"
 
 mkdir -p "${git_path}"
+mkdir -p "${build_path}/latest"
+
 _info "copying snap binaries to ${git_path}"
-mv "${build_path}/bin/"* "${git_path}"
-mv "${build_path}/plugin/"* "${git_path}"
+cp "${build_path}/bin/"* "${git_path}"
+cp "${build_path}/plugin/"* "${git_path}"
+_info "copying snap binaries to latest"
+mv "${build_path}/bin/"* "${build_path}/latest"
+mv "${build_path}/plugin/"* "${build_path}/latest"

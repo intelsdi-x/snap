@@ -32,9 +32,9 @@ func main() {
 	accountID := strconv.Itoa(whoamiResponse.Data.Account.ID)
 	zoneID := "snap-telemetry.io"
 
-	result, err := client.Zones.ListRecords(accountID, zoneID, &dnsimple.ZoneRecordListOptions{Name: "build.ci"})
+	result, err := client.Zones.ListRecords(accountID, zoneID, &dnsimple.ZoneRecordListOptions{Name: "latest.snap.ci"})
 	if err != nil {
-		fmt.Printf("build.ci.snap-telemetry.io DNS record not found: %v\n", err)
+		fmt.Printf("latest.snap.ci.snap-telemetry.io DNS record not found: %v\n", err)
 		os.Exit(1)
 	}
 
