@@ -88,16 +88,10 @@ type managesMetrics interface {
 	collectsMetrics
 	publishesMetrics
 	processesMetrics
-	managesPluginContentTypes
 	GetAutodiscoverPaths() []string
 	ValidateDeps([]core.RequestedMetric, []core.SubscribedPlugin, *cdata.ConfigDataTree) []serror.SnapError
 	SubscribeDeps(string, []core.RequestedMetric, []core.SubscribedPlugin, *cdata.ConfigDataTree) []serror.SnapError
 	UnsubscribeDeps(string) []serror.SnapError
-}
-
-// ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
-type managesPluginContentTypes interface {
-	GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error)
 }
 
 type collectsMetrics interface {
@@ -105,11 +99,13 @@ type collectsMetrics interface {
 }
 
 type publishesMetrics interface {
-	PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error
+	PublishMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) []error
+	//PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error
 }
 
 type processesMetrics interface {
-	ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error)
+	ProcessMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) ([]core.Metric, []error)
+	//ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error)
 }
 
 type scheduler struct {
@@ -351,15 +347,6 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 			te.errs = append(te.errs, errs...)
 			return nil, te
 		}
-	}
-
-	// Bind plugin content type selections in workflow
-	err = wf.BindPluginContentTypes(&task.RemoteManagers)
-	if err != nil {
-		te.errs = append(te.errs, serror.New(err))
-		f := buildErrorsLog(te.Errors(), logger)
-		f.Error("unable to bind plugin content types")
-		return nil, te
 	}
 
 	// Add task to taskCollection

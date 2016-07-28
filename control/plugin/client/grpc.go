@@ -466,8 +466,8 @@ func ParseConfig(config *rpc.ConfigMap) map[string]ctypes.ConfigValue {
 	return c
 }
 
-func ToTime(t time.Time) *Time {
-	return &Time{
+func ToTime(t time.Time) *rpc.Time {
+	return &rpc.Time{
 		Nsec: t.Unix(),
 		Sec:  int64(t.Second()),
 	}

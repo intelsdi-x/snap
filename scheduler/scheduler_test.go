@@ -44,56 +44,19 @@ type mockMetricManager struct {
 	failValidatingMetrics      bool
 	failValidatingMetricsAfter int
 	failuredSoFar              int
-	acceptedContentTypes       map[string][]string
-	returnedContentTypes       map[string][]string
 	autodiscoverPaths          []string
-}
-
-func (m *mockMetricManager) lazyContentType(key string) {
-	if m.acceptedContentTypes == nil {
-		m.acceptedContentTypes = make(map[string][]string)
-	}
-	if m.returnedContentTypes == nil {
-		m.returnedContentTypes = make(map[string][]string)
-	}
-	if m.acceptedContentTypes[key] == nil {
-		m.acceptedContentTypes[key] = []string{"snap.gob"}
-	}
-	if m.returnedContentTypes[key] == nil {
-		m.returnedContentTypes[key] = []string{}
-	}
-}
-
-// Used to mock type from plugin
-func (m *mockMetricManager) setAcceptedContentType(n string, t core.PluginType, v int, s []string) {
-	key := fmt.Sprintf("%s:%d:%d", n, t, v)
-	m.lazyContentType(key)
-	m.acceptedContentTypes[key] = s
-}
-
-func (m *mockMetricManager) setReturnedContentType(n string, t core.PluginType, v int, s []string) {
-	key := fmt.Sprintf("%s:%d:%d", n, t, v)
-	m.lazyContentType(key)
-	m.returnedContentTypes[key] = s
-}
-
-func (m *mockMetricManager) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
-	key := fmt.Sprintf("%s:%d:%d", n, t, v)
-	m.lazyContentType(key)
-
-	return m.acceptedContentTypes[key], m.returnedContentTypes[key], nil
 }
 
 func (m *mockMetricManager) CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }
 
-func (m *mockMetricManager) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
+func (m *mockMetricManager) PublishMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) []error {
 	return nil
 }
 
-func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
-	return "", nil, nil
+func (m *mockMetricManager) ProcessMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) ([]core.Metric, []error) {
+	return nil, nil
 }
 func (m *mockMetricManager) ValidateDeps(mts []core.RequestedMetric, prs []core.SubscribedPlugin, cdt *cdata.ConfigDataTree) []serror.SnapError {
 	if m.failValidatingMetrics {
@@ -192,10 +155,6 @@ func TestScheduler(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 	Convey("NewTask", t, func() {
 		c := new(mockMetricManager)
-		c.setAcceptedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.*", "snap.gob", "foo.bar"})
-		c.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.gob"})
-		c.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"snap.json", "snap.gob"})
-		c.setAcceptedContentType("mock-file", core.PublisherPluginType, -1, []string{"snap.json"})
 		cfg := GetDefaultConfig()
 		s := New(cfg)
 		s.SetMetricManager(c)
@@ -235,16 +194,8 @@ func TestScheduler(t *testing.T) {
 
 		e := s.Start()
 		So(e, ShouldBeNil)
-		t, te := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
+		_, te := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
 		So(te.Errors(), ShouldBeEmpty)
-
-		for _, i := range t.(*task).workflow.processNodes {
-			testInboundContentType(i)
-		}
-		for _, i := range t.(*task).workflow.publishNodes {
-			testInboundContentType(i)
-		}
-		So(t.(*task).workflow.processNodes[0].ProcessNodes[0].PublishNodes[0].InboundContentType, ShouldEqual, "snap.json")
 
 		Convey("returns errors when metrics do not validate", func() {
 			c.failValidatingMetrics = true
@@ -380,18 +331,4 @@ func TestScheduler(t *testing.T) {
 		})
 	})
 
-}
-
-func testInboundContentType(node interface{}) {
-	switch t := node.(type) {
-	case *processNode:
-		fmt.Printf("testing content type for pr plugin %s %d/n", t.Name(), t.Version())
-		So(t.InboundContentType, ShouldNotEqual, "")
-		for _, i := range t.ProcessNodes {
-			testInboundContentType(i)
-		}
-	case *publishNode:
-		fmt.Printf("testing content type for pu plugin %s %d/n", t.Name(), t.Version())
-		So(t.InboundContentType, ShouldNotEqual, "")
-	}
 }

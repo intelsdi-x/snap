@@ -1729,7 +1729,9 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 		Convey("metrics are collected from mock1", func() {
 			for _, m := range mts1 {
 				if strings.Contains(m.Namespace().String(), "host") {
-					val, ok := m.Data().(int64)
+					// Because mock1 uses jsonrpc, all number typers are interpreted
+					// as float64
+					val, ok := m.Data().(float64)
 					So(ok, ShouldEqual, true)
 					So(val, ShouldBeLessThan, 100)
 				} else {
@@ -1738,9 +1740,6 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 				}
 			}
 		})
-		// ensure the data coming back is from v1. V1's data is type string
-		_, ok := mts1[0].Data().(string)
-		So(ok, ShouldEqual, true)
 		Convey("Loading higher plugin version with less metrics", func() {
 			// Load version snap-plugin-collector-mock2
 			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock2"))

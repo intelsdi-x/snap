@@ -49,7 +49,6 @@ type mockClient struct {
 	ValidateReply    *rpc.ValidateDepsReply
 	SubscribeReply   *rpc.SubscribeDepsReply
 	UnsubscribeReply *rpc.UnsubscribeDepsReply
-	MatchReply       *rpc.ExpandWildcardsReply
 	AutoDiscoReply   *rpc.GetAutodiscoverPathsReply
 }
 
