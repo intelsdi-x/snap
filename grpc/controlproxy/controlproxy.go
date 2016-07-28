@@ -57,8 +57,19 @@ func New(addr string, port int) (ControlProxy, error) {
 	return ControlProxy{Client: c}, nil
 }
 
-func (c ControlProxy) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
-	req := GetPubProcReq(contentType, content, pluginName, pluginVersion, config, taskID)
+func (c ControlProxy) PublishMetrics(metrics []core.Metric,
+	config map[string]ctypes.ConfigValue,
+	taskId string,
+	pluginName string,
+	pluginVersion int) []error {
+
+	req := &rpc.PubProcMetricsRequest{
+		Metrics:       common.NewMetrics(metrics),
+		PluginName:    pluginName,
+		PluginVersion: int64(pluginVersion),
+		TaskId:        taskId,
+		Config:        common.ToConfigMap(config),
+	}
 	reply, err := c.Client.PublishMetrics(getContext(), req)
 	var errs []error
 	if err != nil {
@@ -70,17 +81,27 @@ func (c ControlProxy) PublishMetrics(contentType string, content []byte, pluginN
 	return errs
 }
 
-func (c ControlProxy) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
-	req := GetPubProcReq(contentType, content, pluginName, pluginVersion, config, taskID)
+func (c ControlProxy) ProcessMetrics(metrics []core.Metric,
+	config map[string]ctypes.ConfigValue,
+	taskId string,
+	pluginName string,
+	pluginVersion int) ([]core.Metric, []error) {
+	req := &rpc.PubProcMetricsRequest{
+		Metrics:       common.NewMetrics(metrics),
+		PluginName:    pluginName,
+		PluginVersion: int64(pluginVersion),
+		TaskId:        taskId,
+		Config:        common.ToConfigMap(config),
+	}
 	reply, err := c.Client.ProcessMetrics(getContext(), req)
 	var errs []error
 	if err != nil {
 		errs = append(errs, err)
-		return "", nil, errs
+		return nil, errs
 	}
 	rerrs := replyErrorsToErrors(reply.Errors)
 	errs = append(errs, rerrs...)
-	return reply.ContentType, reply.Content, errs
+	return common.ToCoreMetrics(reply.Metrics), errs
 }
 
 func (c ControlProxy) CollectMetrics(taskID string, AllTags map[string]map[string]string) ([]core.Metric, []error) {
@@ -115,23 +136,10 @@ func (c ControlProxy) CollectMetrics(taskID string, AllTags map[string]map[strin
 	return metrics, nil
 }
 
-func (c ControlProxy) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
-	req := &rpc.GetPluginContentTypesRequest{
-		Name:       n,
-		PluginType: getPluginType(t),
-		Version:    int32(v),
-	}
-	reply, err := c.Client.GetPluginContentTypes(getContext(), req)
-	if err != nil {
-		return nil, nil, err
-	}
-	if reply.Error != "" {
-		return nil, nil, errors.New(reply.Error)
-	}
-	return reply.AcceptedTypes, reply.ReturnedTypes, nil
-}
-
-func (c ControlProxy) ValidateDeps(mts []core.RequestedMetric, plugins []core.SubscribedPlugin, ctree *cdata.ConfigDataTree) []serror.SnapError {
+func (c ControlProxy) ValidateDeps(mts []core.RequestedMetric, plugins []core.SubscribedPlugin, _ *cdata.ConfigDataTree) []serror.SnapError {
+	// The configDataTree is kept so that we can match the interface provided by control
+	// we do not need it here though since the configDataTree is only used for metrics
+	// and we do not allow remote collection.
 	req := &rpc.ValidateDepsRequest{
 		Metrics: common.RequestedToMetric(mts),
 		Plugins: common.ToSubPluginsMsg(plugins),
@@ -213,18 +221,4 @@ func replyErrorsToErrors(errs []string) []error {
 		erro = append(erro, errors.New(e))
 	}
 	return erro
-}
-
-// Constructs a protobuf message for publish/process given the relevant information
-func GetPubProcReq(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) *rpc.PubProcMetricsRequest {
-	newConfig := common.ToConfigMap(config)
-	request := &rpc.PubProcMetricsRequest{
-		ContentType:   contentType,
-		Content:       content,
-		PluginName:    pluginName,
-		PluginVersion: int64(pluginVersion),
-		Config:        newConfig,
-		TaskId:        taskID,
-	}
-	return request
 }

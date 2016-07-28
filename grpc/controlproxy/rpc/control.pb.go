@@ -81,18 +81,24 @@ func (*SerrorReply) ProtoMessage()               {}
 func (*SerrorReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
 type PubProcMetricsRequest struct {
-	ContentType   string            `protobuf:"bytes,1,opt,name=ContentType" json:"ContentType,omitempty"`
-	Content       []byte            `protobuf:"bytes,2,opt,name=Content,proto3" json:"Content,omitempty"`
-	PluginName    string            `protobuf:"bytes,3,opt,name=PluginName" json:"PluginName,omitempty"`
-	PluginVersion int64             `protobuf:"varint,4,opt,name=PluginVersion" json:"PluginVersion,omitempty"`
-	Config        *common.ConfigMap `protobuf:"bytes,5,opt,name=Config" json:"Config,omitempty"`
-	TaskId        string            `protobuf:"bytes,6,opt,name=TaskId" json:"TaskId,omitempty"`
+	Metrics       []*common.Metric  `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	PluginName    string            `protobuf:"bytes,2,opt,name=PluginName,json=pluginName" json:"PluginName,omitempty"`
+	PluginVersion int64             `protobuf:"varint,3,opt,name=PluginVersion,json=pluginVersion" json:"PluginVersion,omitempty"`
+	Config        *common.ConfigMap `protobuf:"bytes,4,opt,name=Config,json=config" json:"Config,omitempty"`
+	TaskId        string            `protobuf:"bytes,5,opt,name=TaskId,json=taskId" json:"TaskId,omitempty"`
 }
 
 func (m *PubProcMetricsRequest) Reset()                    { *m = PubProcMetricsRequest{} }
 func (m *PubProcMetricsRequest) String() string            { return proto.CompactTextString(m) }
 func (*PubProcMetricsRequest) ProtoMessage()               {}
 func (*PubProcMetricsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *PubProcMetricsRequest) GetMetrics() []*common.Metric {
+	if m != nil {
+		return m.Metrics
+	}
+	return nil
+}
 
 func (m *PubProcMetricsRequest) GetConfig() *common.ConfigMap {
 	if m != nil {
@@ -102,7 +108,7 @@ func (m *PubProcMetricsRequest) GetConfig() *common.ConfigMap {
 }
 
 type ErrorReply struct {
-	Errors []string `protobuf:"bytes,1,rep,name=Errors" json:"Errors,omitempty"`
+	Errors []string `protobuf:"bytes,1,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *ErrorReply) Reset()                    { *m = ErrorReply{} }
@@ -111,9 +117,8 @@ func (*ErrorReply) ProtoMessage()               {}
 func (*ErrorReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
 type ProcessMetricsReply struct {
-	ContentType string   `protobuf:"bytes,1,opt,name=ContentType" json:"ContentType,omitempty"`
-	Content     []byte   `protobuf:"bytes,2,opt,name=Content,proto3" json:"Content,omitempty"`
-	Errors      []string `protobuf:"bytes,3,rep,name=Errors" json:"Errors,omitempty"`
+	Metrics []*common.Metric `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	Errors  []string         `protobuf:"bytes,2,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *ProcessMetricsReply) Reset()                    { *m = ProcessMetricsReply{} }
@@ -121,10 +126,17 @@ func (m *ProcessMetricsReply) String() string            { return proto.CompactT
 func (*ProcessMetricsReply) ProtoMessage()               {}
 func (*ProcessMetricsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
+func (m *ProcessMetricsReply) GetMetrics() []*common.Metric {
+	if m != nil {
+		return m.Metrics
+	}
+	return nil
+}
+
 type GetPluginContentTypesRequest struct {
-	Name       string `protobuf:"bytes,1,opt,name=Name" json:"Name,omitempty"`
-	PluginType int32  `protobuf:"varint,2,opt,name=PluginType" json:"PluginType,omitempty"`
-	Version    int32  `protobuf:"varint,3,opt,name=Version" json:"Version,omitempty"`
+	Name       string `protobuf:"bytes,1,opt,name=Name,json=name" json:"Name,omitempty"`
+	PluginType int32  `protobuf:"varint,2,opt,name=PluginType,json=pluginType" json:"PluginType,omitempty"`
+	Version    int32  `protobuf:"varint,3,opt,name=Version,json=version" json:"Version,omitempty"`
 }
 
 func (m *GetPluginContentTypesRequest) Reset()                    { *m = GetPluginContentTypesRequest{} }
@@ -133,9 +145,9 @@ func (*GetPluginContentTypesRequest) ProtoMessage()               {}
 func (*GetPluginContentTypesRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
 type GetPluginContentTypesReply struct {
-	AcceptedTypes []string `protobuf:"bytes,1,rep,name=AcceptedTypes" json:"AcceptedTypes,omitempty"`
-	ReturnedTypes []string `protobuf:"bytes,2,rep,name=ReturnedTypes" json:"ReturnedTypes,omitempty"`
-	Error         string   `protobuf:"bytes,3,opt,name=Error" json:"Error,omitempty"`
+	AcceptedTypes []string `protobuf:"bytes,1,rep,name=AcceptedTypes,json=acceptedTypes" json:"AcceptedTypes,omitempty"`
+	ReturnedTypes []string `protobuf:"bytes,2,rep,name=ReturnedTypes,json=returnedTypes" json:"ReturnedTypes,omitempty"`
+	Error         string   `protobuf:"bytes,3,opt,name=Error,json=error" json:"Error,omitempty"`
 }
 
 func (m *GetPluginContentTypesReply) Reset()                    { *m = GetPluginContentTypesReply{} }
@@ -144,8 +156,8 @@ func (*GetPluginContentTypesReply) ProtoMessage()               {}
 func (*GetPluginContentTypesReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
 type ValidateDepsRequest struct {
-	Metrics []*common.Metric           `protobuf:"bytes,1,rep,name=Metrics" json:"Metrics,omitempty"`
-	Plugins []*common.SubscribedPlugin `protobuf:"bytes,2,rep,name=Plugins" json:"Plugins,omitempty"`
+	Metrics []*common.Metric           `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	Plugins []*common.SubscribedPlugin `protobuf:"bytes,2,rep,name=Plugins,json=plugins" json:"Plugins,omitempty"`
 }
 
 func (m *ValidateDepsRequest) Reset()                    { *m = ValidateDepsRequest{} }
@@ -168,7 +180,7 @@ func (m *ValidateDepsRequest) GetPlugins() []*common.SubscribedPlugin {
 }
 
 type ValidateDepsReply struct {
-	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors" json:"Errors,omitempty"`
+	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *ValidateDepsReply) Reset()                    { *m = ValidateDepsReply{} }
@@ -184,9 +196,15 @@ func (m *ValidateDepsReply) GetErrors() []*common.SnapError {
 }
 
 type SubscribeDepsRequest struct {
+<<<<<<< HEAD
 	Requested []*common.Metric           `protobuf:"bytes,1,rep,name=Requested" json:"Requested,omitempty"`
 	Plugins   []*common.SubscribedPlugin `protobuf:"bytes,2,rep,name=Plugins" json:"Plugins,omitempty"`
 	TaskId    string                     `protobuf:"bytes,3,opt,name=TaskId" json:"TaskId,omitempty"`
+=======
+	Metrics []*common.Metric `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	Plugins []*common.Plugin `protobuf:"bytes,2,rep,name=Plugins,json=plugins" json:"Plugins,omitempty"`
+	TaskId  string           `protobuf:"bytes,3,opt,name=TaskId,json=taskId" json:"TaskId,omitempty"`
+>>>>>>> Updates controlproxy to match new managesMetrics
 }
 
 func (m *SubscribeDepsRequest) Reset()                    { *m = SubscribeDepsRequest{} }
@@ -209,7 +227,7 @@ func (m *SubscribeDepsRequest) GetPlugins() []*common.SubscribedPlugin {
 }
 
 type SubscribeDepsReply struct {
-	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors" json:"Errors,omitempty"`
+	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *SubscribeDepsReply) Reset()                    { *m = SubscribeDepsReply{} }
@@ -250,7 +268,7 @@ func (m *UnsubscribeDepsReply) GetErrors() []*common.SnapError {
 }
 
 type Map struct {
-	Entries []*MapEntry `protobuf:"bytes,1,rep,name=Entries" json:"Entries,omitempty"`
+	Entries []*MapEntry `protobuf:"bytes,1,rep,name=Entries,json=entries" json:"Entries,omitempty"`
 }
 
 func (m *Map) Reset()                    { *m = Map{} }
@@ -266,8 +284,8 @@ func (m *Map) GetEntries() []*MapEntry {
 }
 
 type MapEntry struct {
-	Key   string `protobuf:"bytes,1,opt,name=Key" json:"Key,omitempty"`
-	Value string `protobuf:"bytes,2,opt,name=Value" json:"Value,omitempty"`
+	Key   string `protobuf:"bytes,1,opt,name=Key,json=key" json:"Key,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=Value,json=value" json:"Value,omitempty"`
 }
 
 func (m *MapEntry) Reset()                    { *m = MapEntry{} }
@@ -276,8 +294,15 @@ func (*MapEntry) ProtoMessage()               {}
 func (*MapEntry) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
 
 type CollectMetricsRequest struct {
+<<<<<<< HEAD
 	TaskID  string          `protobuf:"bytes,1,opt,name=TaskID" json:"TaskID,omitempty"`
 	AllTags map[string]*Map `protobuf:"bytes,2,rep,name=AllTags" json:"AllTags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+=======
+	TaskID   string           `protobuf:"bytes,1,opt,name=TaskID,json=taskID" json:"TaskID,omitempty"`
+	Metrics  []*common.Metric `protobuf:"bytes,2,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	Deadline *common.Time     `protobuf:"bytes,3,opt,name=Deadline,json=deadline" json:"Deadline,omitempty"`
+	AllTags  map[string]*Map  `protobuf:"bytes,4,rep,name=AllTags,json=allTags" json:"AllTags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+>>>>>>> Updates controlproxy to match new managesMetrics
 }
 
 func (m *CollectMetricsRequest) Reset()                    { *m = CollectMetricsRequest{} }
@@ -293,8 +318,8 @@ func (m *CollectMetricsRequest) GetAllTags() map[string]*Map {
 }
 
 type CollectMetricsResponse struct {
-	Metrics []*common.Metric `protobuf:"bytes,1,rep,name=Metrics" json:"Metrics,omitempty"`
-	Errors  []string         `protobuf:"bytes,2,rep,name=Errors" json:"Errors,omitempty"`
+	Metrics []*common.Metric `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	Errors  []string         `protobuf:"bytes,2,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *CollectMetricsResponse) Reset()                    { *m = CollectMetricsResponse{} }
@@ -310,7 +335,7 @@ func (m *CollectMetricsResponse) GetMetrics() []*common.Metric {
 }
 
 type ExpandWildcardsRequest struct {
-	Namespace []*common.NamespaceElement `protobuf:"bytes,1,rep,name=Namespace" json:"Namespace,omitempty"`
+	Namespace []*common.NamespaceElement `protobuf:"bytes,1,rep,name=Namespace,json=namespace" json:"Namespace,omitempty"`
 }
 
 func (m *ExpandWildcardsRequest) Reset()                    { *m = ExpandWildcardsRequest{} }
@@ -326,7 +351,7 @@ func (m *ExpandWildcardsRequest) GetNamespace() []*common.NamespaceElement {
 }
 
 type ArrString struct {
-	S []*common.NamespaceElement `protobuf:"bytes,1,rep,name=S" json:"S,omitempty"`
+	S []*common.NamespaceElement `protobuf:"bytes,1,rep,name=S,json=s" json:"S,omitempty"`
 }
 
 func (m *ArrString) Reset()                    { *m = ArrString{} }
@@ -342,8 +367,8 @@ func (m *ArrString) GetS() []*common.NamespaceElement {
 }
 
 type ExpandWildcardsReply struct {
-	NSS   []*ArrString      `protobuf:"bytes,1,rep,name=NSS" json:"NSS,omitempty"`
-	Error *common.SnapError `protobuf:"bytes,2,opt,name=Error" json:"Error,omitempty"`
+	NSS   []*ArrString      `protobuf:"bytes,1,rep,name=NSS,json=nSS" json:"NSS,omitempty"`
+	Error *common.SnapError `protobuf:"bytes,2,opt,name=Error,json=error" json:"Error,omitempty"`
 }
 
 func (m *ExpandWildcardsReply) Reset()                    { *m = ExpandWildcardsReply{} }
@@ -366,7 +391,7 @@ func (m *ExpandWildcardsReply) GetError() *common.SnapError {
 }
 
 type GetAutodiscoverPathsReply struct {
-	Paths []string `protobuf:"bytes,1,rep,name=Paths" json:"Paths,omitempty"`
+	Paths []string `protobuf:"bytes,1,rep,name=Paths,json=paths" json:"Paths,omitempty"`
 }
 
 func (m *GetAutodiscoverPathsReply) Reset()                    { *m = GetAutodiscoverPathsReply{} }
@@ -409,7 +434,11 @@ const _ = grpc.SupportPackageIsVersion2
 
 type MetricManagerClient interface {
 	// managesMetrics from scheduler
+<<<<<<< HEAD
 	GetPluginContentTypes(ctx context.Context, in *GetPluginContentTypesRequest, opts ...grpc.CallOption) (*GetPluginContentTypesReply, error)
+=======
+	ExpandWildcards(ctx context.Context, in *ExpandWildcardsRequest, opts ...grpc.CallOption) (*ExpandWildcardsReply, error)
+>>>>>>> Updates controlproxy to match new managesMetrics
 	CollectMetrics(ctx context.Context, in *CollectMetricsRequest, opts ...grpc.CallOption) (*CollectMetricsResponse, error)
 	PublishMetrics(ctx context.Context, in *PubProcMetricsRequest, opts ...grpc.CallOption) (*ErrorReply, error)
 	ProcessMetrics(ctx context.Context, in *PubProcMetricsRequest, opts ...grpc.CallOption) (*ProcessMetricsReply, error)
@@ -427,9 +456,15 @@ func NewMetricManagerClient(cc *grpc.ClientConn) MetricManagerClient {
 	return &metricManagerClient{cc}
 }
 
+<<<<<<< HEAD
 func (c *metricManagerClient) GetPluginContentTypes(ctx context.Context, in *GetPluginContentTypesRequest, opts ...grpc.CallOption) (*GetPluginContentTypesReply, error) {
 	out := new(GetPluginContentTypesReply)
 	err := grpc.Invoke(ctx, "/rpc.MetricManager/GetPluginContentTypes", in, out, c.cc, opts...)
+=======
+func (c *metricManagerClient) ExpandWildcards(ctx context.Context, in *ExpandWildcardsRequest, opts ...grpc.CallOption) (*ExpandWildcardsReply, error) {
+	out := new(ExpandWildcardsReply)
+	err := grpc.Invoke(ctx, "/rpc.MetricManager/ExpandWildcards", in, out, c.cc, opts...)
+>>>>>>> Updates controlproxy to match new managesMetrics
 	if err != nil {
 		return nil, err
 	}
@@ -503,7 +538,11 @@ func (c *metricManagerClient) GetAutodiscoverPaths(ctx context.Context, in *comm
 
 type MetricManagerServer interface {
 	// managesMetrics from scheduler
+<<<<<<< HEAD
 	GetPluginContentTypes(context.Context, *GetPluginContentTypesRequest) (*GetPluginContentTypesReply, error)
+=======
+	ExpandWildcards(context.Context, *ExpandWildcardsRequest) (*ExpandWildcardsReply, error)
+>>>>>>> Updates controlproxy to match new managesMetrics
 	CollectMetrics(context.Context, *CollectMetricsRequest) (*CollectMetricsResponse, error)
 	PublishMetrics(context.Context, *PubProcMetricsRequest) (*ErrorReply, error)
 	ProcessMetrics(context.Context, *PubProcMetricsRequest) (*ProcessMetricsReply, error)
@@ -517,12 +556,18 @@ func RegisterMetricManagerServer(s *grpc.Server, srv MetricManagerServer) {
 	s.RegisterService(&_MetricManager_serviceDesc, srv)
 }
 
+<<<<<<< HEAD
 func _MetricManager_GetPluginContentTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPluginContentTypesRequest)
+=======
+func _MetricManager_ExpandWildcards_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExpandWildcardsRequest)
+>>>>>>> Updates controlproxy to match new managesMetrics
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
+<<<<<<< HEAD
 		return srv.(MetricManagerServer).GetPluginContentTypes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
@@ -531,6 +576,16 @@ func _MetricManager_GetPluginContentTypes_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MetricManagerServer).GetPluginContentTypes(ctx, req.(*GetPluginContentTypesRequest))
+=======
+		return srv.(MetricManagerServer).ExpandWildcards(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.MetricManager/ExpandWildcards",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricManagerServer).ExpandWildcards(ctx, req.(*ExpandWildcardsRequest))
+>>>>>>> Updates controlproxy to match new managesMetrics
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -666,8 +721,13 @@ var _MetricManager_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*MetricManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+<<<<<<< HEAD
 			MethodName: "GetPluginContentTypes",
 			Handler:    _MetricManager_GetPluginContentTypes_Handler,
+=======
+			MethodName: "ExpandWildcards",
+			Handler:    _MetricManager_ExpandWildcards_Handler,
+>>>>>>> Updates controlproxy to match new managesMetrics
 		},
 		{
 			MethodName: "CollectMetrics",
@@ -706,6 +766,7 @@ func init() {
 }
 
 var fileDescriptor0 = []byte{
+<<<<<<< HEAD
 	// 840 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xa4, 0x56, 0xdb, 0x4e, 0xf3, 0x46,
 	0x10, 0x26, 0x31, 0x49, 0xc8, 0xe4, 0x80, 0x58, 0x42, 0x30, 0x06, 0x01, 0x71, 0xd5, 0x96, 0xb6,
@@ -760,4 +821,66 @@ var fileDescriptor0 = []byte{
 	0x73, 0x68, 0x64, 0x35, 0x13, 0xaa, 0x25, 0x7d, 0xd7, 0x9f, 0x84, 0x6c, 0x6a, 0xec, 0x27, 0x95,
 	0xcf, 0x6e, 0x3b, 0x73, 0x65, 0x54, 0x94, 0xff, 0x0c, 0x8e, 0xff, 0x0f, 0x00, 0x00, 0xff, 0xff,
 	0x4e, 0xc0, 0x13, 0x3e, 0x95, 0x08, 0x00, 0x00,
+=======
+	// 939 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xac, 0x56, 0x4d, 0x6f, 0xdb, 0x46,
+	0x10, 0xb5, 0x44, 0x4b, 0xb2, 0x46, 0xa6, 0xdd, 0x6c, 0x1c, 0x55, 0x61, 0x0a, 0xc3, 0x20, 0x82,
+	0xc6, 0x39, 0x54, 0x42, 0x65, 0xa0, 0x28, 0x7a, 0x48, 0xa0, 0x46, 0x82, 0x5b, 0x04, 0x0e, 0x54,
+	0x52, 0x4d, 0x80, 0xde, 0x56, 0xe4, 0x56, 0x26, 0x4c, 0x2d, 0x59, 0xee, 0x32, 0xb0, 0x2e, 0x3d,
+	0xf4, 0xdc, 0xbf, 0xd1, 0x3f, 0xd3, 0x5f, 0xd5, 0xfd, 0x20, 0x69, 0x52, 0xa1, 0xeb, 0x36, 0xf1,
+	0xc9, 0xde, 0x99, 0xe1, 0xdb, 0x79, 0x6f, 0xdf, 0xce, 0x0a, 0x5e, 0xac, 0x02, 0x7e, 0x99, 0x2e,
+	0x87, 0x5e, 0xb4, 0x1e, 0x05, 0x94, 0x93, 0x90, 0xf9, 0xc1, 0x57, 0xd7, 0x23, 0x46, 0x71, 0x3c,
+	0x5a, 0x25, 0xb1, 0x37, 0xf2, 0x22, 0xca, 0x93, 0x28, 0x8c, 0x93, 0xe8, 0x7a, 0x33, 0x2a, 0x05,
+	0x86, 0x22, 0xc2, 0x23, 0x64, 0x88, 0x90, 0x75, 0x76, 0x37, 0xc8, 0x7a, 0x1d, 0xd1, 0xec, 0x8f,
+	0xfe, 0xd2, 0x36, 0xa1, 0xe7, 0x92, 0x24, 0x89, 0x12, 0x87, 0xc4, 0xe1, 0xc6, 0xfe, 0xbb, 0x01,
+	0x8f, 0xe6, 0xe9, 0x72, 0x9e, 0x44, 0xde, 0x05, 0xe1, 0x49, 0xe0, 0x31, 0x87, 0xfc, 0x96, 0x12,
+	0xc6, 0xd1, 0x29, 0x74, 0xb2, 0xc8, 0xa0, 0x71, 0x62, 0x9c, 0xf6, 0xc6, 0x07, 0xc3, 0x0c, 0x48,
+	0x87, 0x9d, 0xce, 0x5a, 0xa7, 0xd1, 0x31, 0xc0, 0x3c, 0x4c, 0x57, 0x01, 0x7d, 0x83, 0xd7, 0x64,
+	0xd0, 0x3c, 0x69, 0x9c, 0x76, 0x1d, 0x88, 0x8b, 0x08, 0x7a, 0x0a, 0xa6, 0xce, 0xbf, 0x25, 0x09,
+	0x0b, 0x22, 0x3a, 0x30, 0x44, 0x89, 0xe1, 0x98, 0x71, 0x39, 0x88, 0x9e, 0x43, 0xfb, 0x55, 0x44,
+	0x7f, 0x0d, 0x56, 0x83, 0x5d, 0x91, 0xee, 0x8d, 0x1f, 0xe4, 0xdb, 0xe9, 0xe8, 0x05, 0x8e, 0x9d,
+	0xb6, 0xa7, 0xfe, 0x45, 0x7d, 0x68, 0x2f, 0x30, 0xbb, 0xfa, 0xd1, 0x1f, 0xb4, 0xd4, 0x66, 0x6d,
+	0xae, 0x56, 0xf6, 0x53, 0x80, 0x59, 0x41, 0x4d, 0x56, 0xa9, 0x95, 0xee, 0x5f, 0x54, 0x29, 0xda,
+	0xcc, 0x7e, 0x07, 0x0f, 0x25, 0x5d, 0xc2, 0x58, 0xc1, 0x58, 0x96, 0xff, 0x77, 0xbe, 0x37, 0xc0,
+	0xcd, 0x0a, 0x70, 0x08, 0x5f, 0x9c, 0x13, 0xae, 0xa9, 0x8a, 0xa6, 0x39, 0xa1, 0x7c, 0xb1, 0x89,
+	0x49, 0xa1, 0x28, 0x82, 0x5d, 0xa5, 0x50, 0x43, 0x35, 0xbd, 0x4b, 0xa5, 0x36, 0x85, 0x76, 0xb2,
+	0x52, 0x69, 0xd7, 0xca, 0xb5, 0x93, 0x11, 0x34, 0x80, 0x4e, 0x59, 0xb5, 0x96, 0xd3, 0x79, 0xaf,
+	0x97, 0xf6, 0xef, 0x60, 0xdd, 0xb2, 0x9b, 0x64, 0x23, 0x34, 0x9f, 0x78, 0x1e, 0x89, 0x39, 0xf1,
+	0x55, 0x34, 0xd3, 0xc0, 0xc4, 0xe5, 0xa0, 0xac, 0x72, 0x08, 0x4f, 0x13, 0x9a, 0x57, 0x69, 0x42,
+	0x66, 0x52, 0x0e, 0xa2, 0x23, 0x68, 0x29, 0xbe, 0xaa, 0x83, 0xae, 0xd3, 0x52, 0x74, 0x6d, 0x06,
+	0x0f, 0xdf, 0xe2, 0x30, 0xf0, 0x31, 0x27, 0x53, 0x12, 0x7f, 0x84, 0x6d, 0xc6, 0xd0, 0xd1, 0xdd,
+	0xeb, 0x6d, 0x7b, 0xe3, 0x41, 0x5e, 0xe9, 0xa6, 0x4b, 0xe6, 0x25, 0xc1, 0x92, 0xf8, 0xba, 0xc0,
+	0xe9, 0x68, 0x45, 0x98, 0xfd, 0x02, 0x1e, 0x54, 0x37, 0x95, 0x5c, 0x9f, 0x57, 0x0e, 0xba, 0xe4,
+	0x1c, 0x57, 0xdc, 0x04, 0x6d, 0x88, 0xfc, 0x88, 0xfe, 0x68, 0xc0, 0x51, 0x81, 0xfe, 0x71, 0x6d,
+	0x9f, 0x6e, 0xb7, 0x5d, 0x54, 0x6e, 0x35, 0x5b, 0xb2, 0xa9, 0x51, 0xb1, 0xe9, 0x4b, 0x40, 0x5b,
+	0x3d, 0xfc, 0x4f, 0x16, 0x43, 0x30, 0xc4, 0x75, 0x40, 0xcf, 0xa0, 0x33, 0x13, 0x43, 0x21, 0x20,
+	0xf9, 0x27, 0xe6, 0x50, 0xdc, 0xfa, 0xa1, 0x48, 0xc9, 0xf0, 0xc6, 0xe9, 0x10, 0x9d, 0xb5, 0xc7,
+	0xb0, 0x97, 0x07, 0xd1, 0x67, 0x60, 0xbc, 0x26, 0x9b, 0xcc, 0x83, 0xc6, 0x15, 0xd9, 0xc8, 0xe3,
+	0x15, 0x9a, 0xa6, 0xf9, 0xcd, 0x6d, 0xbd, 0x97, 0x0b, 0xfb, 0xcf, 0x26, 0x3c, 0x7a, 0x15, 0x85,
+	0x21, 0xf1, 0xf8, 0xd6, 0x60, 0xc8, 0x69, 0x4d, 0x33, 0x10, 0x4d, 0x6b, 0x5a, 0x96, 0xb0, 0x79,
+	0x97, 0x84, 0x7b, 0x53, 0x82, 0xfd, 0x30, 0xa0, 0x44, 0x49, 0xd3, 0x1b, 0xef, 0xe7, 0xa5, 0x8b,
+	0x60, 0x4d, 0x9c, 0x3d, 0x3f, 0xcb, 0xa2, 0x09, 0x74, 0x26, 0x61, 0xb8, 0xc0, 0x2b, 0x26, 0xa6,
+	0x82, 0xc4, 0x7c, 0xa6, 0x28, 0xd6, 0x36, 0x36, 0xcc, 0x2a, 0x33, 0xf2, 0x58, 0xaf, 0xac, 0x29,
+	0xec, 0x97, 0x13, 0x52, 0x80, 0xab, 0xaa, 0x00, 0xc7, 0xa0, 0x39, 0x2b, 0x01, 0x7a, 0xe3, 0xbd,
+	0x5c, 0xc5, 0x4c, 0x8a, 0xef, 0x9a, 0xdf, 0x36, 0xec, 0x5f, 0xa0, 0xbf, 0xbd, 0x29, 0x8b, 0x23,
+	0xca, 0xc8, 0x3d, 0xcc, 0x8d, 0x39, 0xf4, 0x67, 0xd7, 0x31, 0xa6, 0xfe, 0xbb, 0x20, 0xf4, 0x3d,
+	0x9c, 0xf8, 0x85, 0xd4, 0xdf, 0x40, 0x57, 0x4e, 0x0c, 0x16, 0x63, 0x8f, 0x64, 0xe8, 0xc5, 0x25,
+	0x29, 0x12, 0xb3, 0x90, 0xac, 0xc5, 0x49, 0x3b, 0x5d, 0x9a, 0x47, 0xec, 0x33, 0xe8, 0x4e, 0x92,
+	0xc4, 0x15, 0xdb, 0xd2, 0x15, 0xfa, 0x12, 0x1a, 0xee, 0x9d, 0x1f, 0x37, 0x98, 0x8d, 0xe1, 0xe8,
+	0x83, 0x36, 0xa4, 0x31, 0x4f, 0xc0, 0x78, 0xe3, 0xba, 0x05, 0x39, 0x29, 0x4e, 0x01, 0xee, 0x18,
+	0xd4, 0x75, 0x85, 0x11, 0xb3, 0x01, 0xd1, 0xac, 0x4e, 0xee, 0x1b, 0xe7, 0x66, 0x33, 0xe3, 0x6b,
+	0x78, 0x2c, 0x66, 0xd6, 0x24, 0xe5, 0x91, 0x1f, 0x30, 0x2f, 0x12, 0xa3, 0x6c, 0x8e, 0xf9, 0x65,
+	0xb6, 0x8f, 0xf0, 0xa1, 0x5a, 0x65, 0xa3, 0xaa, 0x15, 0xcb, 0xc5, 0xf8, 0xaf, 0x16, 0x98, 0x5a,
+	0xc8, 0x0b, 0x4c, 0xf1, 0x8a, 0x24, 0xe8, 0x35, 0x1c, 0x6e, 0xf5, 0x89, 0x9e, 0xa8, 0xae, 0xea,
+	0x45, 0xb4, 0x1e, 0xd7, 0x27, 0xe5, 0xeb, 0xb7, 0x23, 0xc0, 0x0e, 0xaa, 0xe7, 0x8a, 0xac, 0xdb,
+	0x1d, 0x66, 0x3d, 0xa9, 0xcd, 0x69, 0x23, 0x08, 0xb0, 0x97, 0x70, 0x20, 0xde, 0xd2, 0x30, 0x60,
+	0x97, 0x55, 0xb0, 0xda, 0x07, 0xd6, 0x3a, 0xd4, 0x7d, 0xdd, 0xbc, 0xc5, 0x3b, 0xe8, 0x07, 0x01,
+	0x50, 0x79, 0x9a, 0xfe, 0x15, 0x60, 0xa0, 0x73, 0x1f, 0xbe, 0x65, 0x02, 0xe9, 0x7b, 0xd8, 0x2f,
+	0x0f, 0x4a, 0xa4, 0x6b, 0x6b, 0x06, 0xb6, 0xd5, 0xaf, 0xc9, 0x68, 0x8c, 0x19, 0x98, 0x95, 0x39,
+	0x85, 0xb4, 0x92, 0x75, 0xf3, 0xd3, 0xfa, 0xbc, 0x2e, 0xa5, 0x61, 0xce, 0xe1, 0xf0, 0x67, 0xca,
+	0xee, 0x01, 0xc8, 0x81, 0xfe, 0x05, 0xe6, 0xde, 0xe5, 0x4f, 0x29, 0x49, 0x36, 0x8b, 0xa8, 0xf0,
+	0xf0, 0xa7, 0x9c, 0xff, 0x39, 0x1c, 0xd5, 0x39, 0x12, 0x99, 0xb9, 0x87, 0x67, 0xeb, 0x98, 0x6f,
+	0xac, 0x63, 0x85, 0x71, 0xab, 0x77, 0xed, 0x9d, 0x65, 0x5b, 0xfd, 0xbc, 0x3a, 0xfb, 0x27, 0x00,
+	0x00, 0xff, 0xff, 0xc3, 0x7f, 0x4d, 0x86, 0xda, 0x09, 0x00, 0x00,
+>>>>>>> Updates controlproxy to match new managesMetrics
 }

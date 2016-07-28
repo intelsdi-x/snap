@@ -43,11 +43,9 @@ var (
 
 type mockClient struct {
 	RpcErr           bool
-	ExpandReply      *rpc.ExpandWildcardsReply
 	PublishReply     *rpc.ErrorReply
 	ProcessReply     *rpc.ProcessMetricsReply
 	CollectReply     *rpc.CollectMetricsResponse
-	ContentTypeReply *rpc.GetPluginContentTypesReply
 	ValidateReply    *rpc.ValidateDepsReply
 	SubscribeReply   *rpc.SubscribeDepsReply
 	UnsubscribeReply *rpc.UnsubscribeDepsReply
@@ -62,12 +60,6 @@ func (mc mockClient) GetAutodiscoverPaths(ctx context.Context, _ *common.Empty, 
 	return mc.AutoDiscoReply, nil
 }
 
-func (mc mockClient) GetPluginContentTypes(ctx context.Context, in *rpc.GetPluginContentTypesRequest, opts ...grpc.CallOption) (*rpc.GetPluginContentTypesReply, error) {
-	if mc.RpcErr {
-		return nil, rpcErr
-	}
-	return mc.ContentTypeReply, nil
-}
 func (mc mockClient) CollectMetrics(ctx context.Context, in *rpc.CollectMetricsRequest, opts ...grpc.CallOption) (*rpc.CollectMetricsResponse, error) {
 	if mc.RpcErr {
 		return nil, rpcErr
@@ -108,7 +100,7 @@ func (mc mockClient) UnsubscribeDeps(ctx context.Context, in *rpc.UnsubscribeDep
 func TestPublishMetrics(t *testing.T) {
 	Convey("RPC client errors", t, func() {
 		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		errs := proxy.PublishMetrics("", []byte{}, "fake", 1, map[string]ctypes.ConfigValue{}, "")
+		errs := proxy.PublishMetrics([]core.Metric{}, map[string]ctypes.ConfigValue{}, "", "fake", 1)
 
 		Convey("So the error should be passed through", func() {
 			So(errs[0].Error(), ShouldResemble, rpcErr.Error())
@@ -121,7 +113,7 @@ func TestPublishMetrics(t *testing.T) {
 		}
 
 		proxy := ControlProxy{Client: mockClient{PublishReply: reply}}
-		errs := proxy.PublishMetrics("", []byte{}, "fake", 1, map[string]ctypes.ConfigValue{}, "")
+		errs := proxy.PublishMetrics([]core.Metric{}, map[string]ctypes.ConfigValue{}, "", "fake", 1)
 
 		Convey("So err should not be nil", func() {
 			So(errs, ShouldNotBeNil)
@@ -136,7 +128,7 @@ func TestPublishMetrics(t *testing.T) {
 		reply := &rpc.ErrorReply{Errors: []string{}}
 
 		proxy := ControlProxy{Client: mockClient{PublishReply: reply}}
-		errs := proxy.PublishMetrics("", []byte{}, "fake", 1, map[string]ctypes.ConfigValue{}, "")
+		errs := proxy.PublishMetrics([]core.Metric{}, map[string]ctypes.ConfigValue{}, "", "fake", 1)
 
 		Convey("So publishing should not error", func() {
 			So(len(errs), ShouldEqual, 0)
@@ -147,7 +139,7 @@ func TestPublishMetrics(t *testing.T) {
 func TestProcessMetrics(t *testing.T) {
 	Convey("RPC client errors", t, func() {
 		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		_, _, errs := proxy.ProcessMetrics("", []byte{}, "fake", 1, map[string]ctypes.ConfigValue{}, "")
+		_, errs := proxy.ProcessMetrics([]core.Metric{}, map[string]ctypes.ConfigValue{}, "", "fake", 1)
 
 		Convey("So the error should be passed through", func() {
 			So(errs[0].Error(), ShouldResemble, rpcErr.Error())
@@ -156,13 +148,12 @@ func TestProcessMetrics(t *testing.T) {
 
 	Convey("Control.Process returns an error", t, func() {
 		reply := &rpc.ProcessMetricsReply{
-			ContentType: "bogus",
-			Content:     []byte{},
-			Errors:      []string{"error in control.Process"},
+			Metrics: nil,
+			Errors:  []string{"error in control.Process"},
 		}
 
 		proxy := ControlProxy{Client: mockClient{ProcessReply: reply}}
-		_, _, errs := proxy.ProcessMetrics("", []byte{}, "", 1, map[string]ctypes.ConfigValue{}, "")
+		_, errs := proxy.ProcessMetrics([]core.Metric{}, map[string]ctypes.ConfigValue{}, "", "", 1)
 
 		Convey("So errs should not be nil", func() {
 			So(errs, ShouldNotBeNil)
@@ -179,21 +170,17 @@ func TestProcessMetrics(t *testing.T) {
 
 	Convey("Control.Process returns successfully", t, func() {
 		reply := &rpc.ProcessMetricsReply{
-			ContentType: "bogus",
-			Content:     []byte{},
-			Errors:      []string{},
+			Metrics: nil,
+			Errors:  []string{},
 		}
 
 		proxy := ControlProxy{Client: mockClient{ProcessReply: reply}}
-		ct, _, errs := proxy.ProcessMetrics("", []byte{}, "", 1, map[string]ctypes.ConfigValue{}, "")
+		_, errs := proxy.ProcessMetrics([]core.Metric{}, map[string]ctypes.ConfigValue{}, "", "", 1)
 
 		Convey("So len of errs should be 0", func() {
 			So(len(errs), ShouldEqual, 0)
 		})
 
-		Convey("So returned content-type should be 'bogus'", func() {
-			So(ct, ShouldResemble, "bogus")
-		})
 	})
 }
 
@@ -250,59 +237,6 @@ func TestCollectMetrics(t *testing.T) {
 
 		Convey("So len of metrics returned should be 1", func() {
 			So(len(mts), ShouldEqual, 1)
-		})
-	})
-}
-
-func TestGetPluginContentTypes(t *testing.T) {
-	Convey("RPC client errors", t, func() {
-		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		_, _, err := proxy.GetPluginContentTypes("", core.PluginType(1), 2)
-
-		Convey("So the error should be passed through", func() {
-			So(err.Error(), ShouldResemble, rpcErr.Error())
-		})
-	})
-
-	Convey("control.GetPluginContentTypes returns an error", t, func() {
-		reply := &rpc.GetPluginContentTypesReply{
-			AcceptedTypes: []string{"accept"},
-			ReturnedTypes: []string{"return"},
-			Error:         "error",
-		}
-
-		proxy := ControlProxy{Client: mockClient{ContentTypeReply: reply}}
-		_, _, err := proxy.GetPluginContentTypes("", core.PluginType(1), 2)
-
-		Convey("So err should resemble 'error' ", func() {
-			So(err.Error(), ShouldResemble, "error")
-		})
-	})
-
-	Convey("control.GetPluginContentTypes returns successfully", t, func() {
-		reply := &rpc.GetPluginContentTypesReply{
-			AcceptedTypes: []string{"accept"},
-			ReturnedTypes: []string{"return"},
-		}
-
-		proxy := ControlProxy{Client: mockClient{ContentTypeReply: reply}}
-		act, rct, err := proxy.GetPluginContentTypes("", core.PluginType(1), 2)
-
-		Convey("So err should be nil", func() {
-			So(err, ShouldBeNil)
-		})
-
-		Convey("So accepted/returned types should not be nil", func() {
-			So(act, ShouldNotBeNil)
-			So(rct, ShouldNotBeNil)
-		})
-
-		Convey("So accepted should contain 'accept'", func() {
-			So(act, ShouldContain, "accept")
-		})
-
-		Convey("So returned should contain 'return'", func() {
-			So(rct, ShouldContain, "return")
 		})
 	})
 }
