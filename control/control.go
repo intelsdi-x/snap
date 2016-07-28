@@ -284,7 +284,20 @@ func (p *pluginControl) Start() error {
 					}).Warning("Ignoring JSON/Yaml file: ", file.Name())
 					continue
 				}
+				// if the file is a plugin package (which would have a suffix of '.aci') or if the file
+				// is not a plugin signing file (which would have a suffix of '.asc'), then attempt to
+				// automatically load the file as a plugin
 				if strings.HasSuffix(file.Name(), ".aci") || !(strings.HasSuffix(file.Name(), ".asc")) {
+					// check to makd sure the file is executable by someone (even if it isn't you); if no one
+					// can execute this file then skip it (and include a warning in the log output)
+					if (file.Mode() & 0111) == 0 {
+						controlLogger.WithFields(log.Fields{
+							"_block":           "start",
+							"autodiscoverpath": pa,
+							"plugin":           file,
+						}).Warn("Auto-loading of plugin '", file.Name(), "' skipped (plugin not executable)")
+						continue
+					}
 					rp, err := core.NewRequestedPlugin(path.Join(fullPath, file.Name()))
 					if err != nil {
 						controlLogger.WithFields(log.Fields{
