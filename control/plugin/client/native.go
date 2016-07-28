@@ -20,9 +20,11 @@ limitations under the License.
 package client
 
 import (
+	"bytes"
 	"crypto/rsa"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"net"
 	"net/rpc"
 	"time"
@@ -92,8 +94,47 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	return err
 }
 
-func (p *PluginNativeClient) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
-	args := plugin.PublishArgs{ContentType: contentType, Content: content, Config: config}
+func encodeMetrics(metrics []core.Metric) []byte {
+	mts := make([]plugin.MetricType, len(metrics))
+	for i, m := range metrics {
+		mts[i] = plugin.MetricType{
+			Namespace_:          m.Namespace(),
+			Tags_:               m.Tags(),
+			Timestamp_:          m.Timestamp(),
+			Version_:            m.Version(),
+			Config_:             m.Config(),
+			LastAdvertisedTime_: m.LastAdvertisedTime(),
+			Unit_:               m.Unit(),
+			Description_:        m.Description(),
+			Data_:               m.Data(),
+		}
+	}
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	enc.Encode(mts)
+	return buf.Bytes()
+}
+
+func decodeMetrics(bts []byte) ([]core.Metric, error) {
+	var mts []plugin.MetricType
+	dec := gob.NewDecoder(bytes.NewBuffer(bts))
+	if err := dec.Decode(&mts); err != nil {
+		return nil, fmt.Errorf("Error decoding metrics: %v", err)
+	}
+	var cmetrics []core.Metric
+	for _, mt := range mts {
+		cmetrics = append(cmetrics, mt)
+	}
+	return cmetrics, nil
+}
+
+func (p *PluginNativeClient) Publish(metrics []core.Metric, config map[string]ctypes.ConfigValue) error {
+
+	args := plugin.PublishArgs{
+		ContentType: plugin.SnapGOBContentType,
+		Content:     encodeMetrics(metrics),
+		Config:      config,
+	}
 
 	out, err := p.encoder.Encode(args)
 	if err != nil {
@@ -103,29 +144,39 @@ func (p *PluginNativeClient) Publish(contentType string, content []byte, config 
 	var reply []byte
 	err = p.connection.Call("Publisher.Publish", out, &reply)
 	return err
+	return nil
 }
 
-func (p *PluginNativeClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
-	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
+func (p *PluginNativeClient) Process(metrics []core.Metric, config map[string]ctypes.ConfigValue) ([]core.Metric, error) {
+
+	args := plugin.ProcessorArgs{
+		ContentType: plugin.SnapGOBContentType,
+		Content:     encodeMetrics(metrics),
+		Config:      config,
+	}
 
 	out, err := p.encoder.Encode(args)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	var reply []byte
 	err = p.connection.Call("Processor.Process", out, &reply)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	r := plugin.ProcessorReply{}
 	err = p.encoder.Decode(reply, &r)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
+	mts, err := decodeMetrics(r.Content)
+	if err != nil {
+		return nil, err
+	}
+	return mts, nil
 
-	return r.ContentType, r.Content, nil
 }
 
 func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {

@@ -31,21 +31,22 @@ import (
 
 	"golang.org/x/net/context"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/control/plugin/encrypter"
 	"github.com/intelsdi-x/snap/control/plugin/rpc"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/grpc/common"
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
 )
 
 type pluginClient interface {
-	SetKey(ctx context.Context, in *rpc.SetKeyArg, opts ...grpc.CallOption) (*rpc.SetKeyReply, error)
-	Ping(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*rpc.PingReply, error)
-	Kill(ctx context.Context, in *rpc.KillRequest, opts ...grpc.CallOption) (*rpc.KillReply, error)
-	GetConfigPolicy(ctx context.Context, in *common.Empty, opts ...grpc.CallOption) (*rpc.GetConfigPolicyReply, error)
+	Ping(ctx context.Context, in *rpc.Empty, opts ...grpc.CallOption) (*rpc.ErrReply, error)
+	Kill(ctx context.Context, in *rpc.KillArg, opts ...grpc.CallOption) (*rpc.ErrReply, error)
+	GetConfigPolicy(ctx context.Context, in *rpc.Empty, opts ...grpc.CallOption) (*rpc.GetConfigPolicyReply, error)
 }
 
 type grpcClient struct {
@@ -69,15 +70,6 @@ func NewCollectorGrpcClient(address string, timeout time.Duration, pub *rsa.Publ
 	p, err := newGrpcClient(address, int(port), timeout, plugin.CollectorPluginType)
 	if err != nil {
 		return nil, err
-	}
-	if secure {
-		key, err := encrypter.GenerateKey()
-		if err != nil {
-			return nil, err
-		}
-		encrypter := encrypter.New(pub, nil)
-		encrypter.Key = key
-		p.encrypter = encrypter
 	}
 
 	return p, nil
@@ -175,7 +167,7 @@ func getContext(timeout time.Duration) context.Context {
 }
 
 func (g *grpcClient) Ping() error {
-	_, err := g.plugin.Ping(getContext(g.timeout), &common.Empty{})
+	_, err := g.plugin.Ping(getContext(g.timeout), &rpc.Empty{})
 	if err != nil {
 		return err
 	}
@@ -183,24 +175,12 @@ func (g *grpcClient) Ping() error {
 }
 
 func (g *grpcClient) SetKey() error {
-	out, err := g.encrypter.EncryptKey()
-	if err != nil {
-		return err
-	}
-	reply, err := g.plugin.SetKey(getContext(g.timeout), &rpc.SetKeyArg{Key: out})
-	if err != nil {
-		return err
-	}
-
-	if reply.Error != "" {
-		return errors.New(reply.Error)
-	}
-
+	// Added to conform to interface but not needed by grpc
 	return nil
 }
 
 func (g *grpcClient) Kill(reason string) error {
-	_, err := g.plugin.Kill(getContext(g.timeout), &rpc.KillRequest{Reason: reason})
+	_, err := g.plugin.Kill(getContext(g.timeout), &rpc.KillArg{Reason: reason})
 	g.conn.Close()
 	if err != nil {
 		return err
@@ -208,13 +188,11 @@ func (g *grpcClient) Kill(reason string) error {
 	return nil
 }
 
-func (g *grpcClient) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
-	arg := &rpc.PublishArg{
-		ContentType: contentType,
-		Content:     content,
-		Config:      common.ToConfigMap(config),
+func (g *grpcClient) Publish(metrics []core.Metric, config map[string]ctypes.ConfigValue) error {
+	arg := &rpc.PubProcArg{
+		Metrics: NewMetrics(metrics),
+		Config:  ToConfigMap(config),
 	}
-	// return is empty so we don't need it
 	_, err := g.publisher.Publish(getContext(g.timeout), arg)
 	if err != nil {
 		return err
@@ -222,25 +200,29 @@ func (g *grpcClient) Publish(contentType string, content []byte, config map[stri
 	return nil
 }
 
-func (g *grpcClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
-	arg := &rpc.ProcessArg{
-		ContentType: contentType,
-		Content:     content,
-		Config:      common.ToConfigMap(config),
+func (g *grpcClient) Process(metrics []core.Metric, config map[string]ctypes.ConfigValue) ([]core.Metric, error) {
+	arg := &rpc.PubProcArg{
+		Metrics: NewMetrics(metrics),
+		Config:  ToConfigMap(config),
 	}
 	reply, err := g.processor.Process(getContext(g.timeout), arg)
+
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	if reply.Error != "" {
-		return "", nil, errors.New(reply.Error)
+		return nil, errors.New(reply.Error)
 	}
-	return reply.ContentType, reply.Content, nil
+	mts := ToCoreMetrics(reply.Metrics)
+	for _, mt := range mts {
+		log.Debug(mt.Namespace())
+	}
+	return mts, nil
 }
 
 func (g *grpcClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {
-	arg := &rpc.CollectMetricsArg{
-		Metrics: common.NewMetrics(mts),
+	arg := &rpc.MetricsArg{
+		Metrics: NewMetrics(mts),
 	}
 	reply, err := g.collector.CollectMetrics(getContext(g.timeout), arg)
 
@@ -252,31 +234,13 @@ func (g *grpcClient) CollectMetrics(mts []core.Metric) ([]core.Metric, error) {
 		return nil, errors.New(reply.Error)
 	}
 
-	metrics := common.ToCoreMetrics(reply.Metrics)
-	var results []core.Metric
-	// Convert it to plugin.MetricType because scheduler/job.go checks that is the type before encoding
-	// and sending to the plugin.
-	//TODO(CDR): Decide what to do here if/when content-type handling is refactored
-	for _, metric := range metrics {
-		mt := plugin.MetricType{
-			Namespace_:          metric.Namespace(),
-			LastAdvertisedTime_: metric.LastAdvertisedTime(),
-			Version_:            metric.Version(),
-			Config_:             metric.Config(),
-			Data_:               metric.Data(),
-			Tags_:               metric.Tags(),
-			Unit_:               metric.Unit(),
-			Description_:        metric.Description(),
-			Timestamp_:          metric.Timestamp(),
-		}
-		results = append(results, mt)
-	}
-	return results, nil
+	metrics := ToCoreMetrics(reply.Metrics)
+	return metrics, nil
 }
 
 func (g *grpcClient) GetMetricTypes(config plugin.ConfigType) ([]core.Metric, error) {
 	arg := &rpc.GetMetricTypesArg{
-		Config: common.ToConfigMap(config.Table()),
+		Config: ToConfigMap(config.Table()),
 	}
 	reply, err := g.collector.GetMetricTypes(getContext(g.timeout), arg)
 
@@ -289,15 +253,15 @@ func (g *grpcClient) GetMetricTypes(config plugin.ConfigType) ([]core.Metric, er
 	}
 
 	for _, metric := range reply.Metrics {
-		metric.LastAdvertisedTime = common.ToTime(time.Now())
+		metric.LastAdvertisedTime = ToTime(time.Now())
 	}
 
-	results := common.ToCoreMetrics(reply.Metrics)
+	results := ToCoreMetrics(reply.Metrics)
 	return results, nil
 }
 
 func (g *grpcClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
-	reply, err := g.plugin.GetConfigPolicy(getContext(g.timeout), &common.Empty{})
+	reply, err := g.plugin.GetConfigPolicy(getContext(g.timeout), &rpc.Empty{})
 
 	if err != nil {
 		return nil, err
@@ -308,4 +272,203 @@ func (g *grpcClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	}
 
 	return rpc.ToConfigPolicy(reply), nil
+}
+
+type metric struct {
+	namespace          core.Namespace
+	version            int
+	config             *cdata.ConfigDataNode
+	lastAdvertisedTime time.Time
+	timeStamp          time.Time
+	data               interface{}
+	tags               map[string]string
+	description        string
+	unit               string
+}
+
+func (m *metric) Namespace() core.Namespace     { return m.namespace }
+func (m *metric) Config() *cdata.ConfigDataNode { return m.config }
+func (m *metric) Version() int                  { return m.version }
+func (m *metric) Data() interface{}             { return m.data }
+func (m *metric) Tags() map[string]string       { return m.tags }
+func (m *metric) LastAdvertisedTime() time.Time { return m.lastAdvertisedTime }
+func (m *metric) Timestamp() time.Time          { return m.timeStamp }
+func (m *metric) Description() string           { return m.description }
+func (m *metric) Unit() string                  { return m.unit }
+
+func ToCoreMetrics(mts []*rpc.Metric) []core.Metric {
+	metrics := make([]core.Metric, len(mts))
+	for i, mt := range mts {
+		metrics[i] = ToCoreMetric(mt)
+	}
+	return metrics
+}
+
+func ToCoreMetric(mt *rpc.Metric) core.Metric {
+	ret := &metric{
+		namespace:          ToCoreNamespace(mt.Namespace),
+		version:            int(mt.Version),
+		tags:               mt.Tags,
+		timeStamp:          time.Unix(mt.Timestamp.Sec, mt.Timestamp.Nsec),
+		lastAdvertisedTime: time.Unix(mt.LastAdvertisedTime.Sec, mt.LastAdvertisedTime.Nsec),
+		config:             ConfigMapToConfig(mt.Config),
+		description:        mt.Description,
+		unit:               mt.Unit,
+	}
+
+	switch mt.Data.(type) {
+	case *rpc.Metric_BytesData:
+		ret.data = mt.GetBytesData()
+	case *rpc.Metric_StringData:
+		ret.data = mt.GetStringData()
+	case *rpc.Metric_Float32Data:
+		ret.data = mt.GetFloat32Data()
+	case *rpc.Metric_Float64Data:
+		ret.data = mt.GetFloat64Data()
+	case *rpc.Metric_Int32Data:
+		ret.data = mt.GetInt32Data()
+	case *rpc.Metric_Int64Data:
+		ret.data = mt.GetInt64Data()
+	}
+
+	return ret
+}
+
+func NewMetrics(ms []core.Metric) []*rpc.Metric {
+	metrics := make([]*rpc.Metric, len(ms))
+	for i, m := range ms {
+		metrics[i] = ToMetric(m)
+	}
+	return metrics
+}
+
+func ToMetric(co core.Metric) *rpc.Metric {
+	cm := &rpc.Metric{
+		Namespace: ToNamespace(co.Namespace()),
+		Version:   int64(co.Version()),
+		Tags:      co.Tags(),
+		Timestamp: &rpc.Time{
+			Sec:  co.Timestamp().Unix(),
+			Nsec: int64(co.Timestamp().Nanosecond()),
+		},
+		LastAdvertisedTime: &rpc.Time{
+			Sec:  co.LastAdvertisedTime().Unix(),
+			Nsec: int64(co.Timestamp().Nanosecond()),
+		},
+	}
+	if co.Config() != nil {
+		cm.Config = ConfigToConfigMap(co.Config())
+	}
+	switch t := co.Data().(type) {
+	case string:
+		cm.Data = &rpc.Metric_StringData{t}
+	case float64:
+		cm.Data = &rpc.Metric_Float64Data{t}
+	case float32:
+		cm.Data = &rpc.Metric_Float32Data{t}
+	case int32:
+		cm.Data = &rpc.Metric_Int32Data{t}
+	case int:
+		cm.Data = &rpc.Metric_Int64Data{int64(t)}
+	case int64:
+		cm.Data = &rpc.Metric_Int64Data{t}
+	case []byte:
+		cm.Data = &rpc.Metric_BytesData{t}
+	case nil:
+		cm.Data = nil
+	default:
+		panic(fmt.Sprintf("unsupported type: %s", t))
+	}
+	return cm
+}
+
+func ToCoreNamespace(n []*rpc.NamespaceElement) core.Namespace {
+	var namespace core.Namespace
+	for _, val := range n {
+		ele := core.NamespaceElement{
+			Value:       val.Value,
+			Description: val.Description,
+			Name:        val.Name,
+		}
+		namespace = append(namespace, ele)
+	}
+	return namespace
+}
+
+func ConfigMapToConfig(cfg *rpc.ConfigMap) *cdata.ConfigDataNode {
+	if cfg == nil {
+		return nil
+	}
+	config := cdata.FromTable(ParseConfig(cfg))
+	return config
+}
+
+func ToConfigMap(cv map[string]ctypes.ConfigValue) *rpc.ConfigMap {
+	newConfig := &rpc.ConfigMap{
+		IntMap:    make(map[string]int64),
+		FloatMap:  make(map[string]float64),
+		StringMap: make(map[string]string),
+		BoolMap:   make(map[string]bool),
+	}
+	for k, v := range cv {
+		switch v.Type() {
+		case "integer":
+			newConfig.IntMap[k] = int64(v.(ctypes.ConfigValueInt).Value)
+		case "float":
+			newConfig.FloatMap[k] = v.(ctypes.ConfigValueFloat).Value
+		case "string":
+			newConfig.StringMap[k] = v.(ctypes.ConfigValueStr).Value
+		case "bool":
+			newConfig.BoolMap[k] = v.(ctypes.ConfigValueBool).Value
+		}
+	}
+	return newConfig
+}
+
+func ToNamespace(n core.Namespace) []*rpc.NamespaceElement {
+	elements := make([]*rpc.NamespaceElement, 0, len(n))
+	for _, value := range n {
+		ne := &rpc.NamespaceElement{
+			Value:       value.Value,
+			Description: value.Description,
+			Name:        value.Name,
+		}
+		elements = append(elements, ne)
+	}
+	return elements
+}
+
+func ConfigToConfigMap(cd *cdata.ConfigDataNode) *rpc.ConfigMap {
+	if cd == nil {
+		return nil
+	}
+	return ToConfigMap(cd.Table())
+}
+
+func ParseConfig(config *rpc.ConfigMap) map[string]ctypes.ConfigValue {
+	c := make(map[string]ctypes.ConfigValue)
+	for k, v := range config.IntMap {
+		ival := ctypes.ConfigValueInt{Value: int(v)}
+		c[k] = ival
+	}
+	for k, v := range config.FloatMap {
+		fval := ctypes.ConfigValueFloat{Value: v}
+		c[k] = fval
+	}
+	for k, v := range config.StringMap {
+		sval := ctypes.ConfigValueStr{Value: v}
+		c[k] = sval
+	}
+	for k, v := range config.BoolMap {
+		bval := ctypes.ConfigValueBool{Value: v}
+		c[k] = bval
+	}
+	return c
+}
+
+func ToTime(t time.Time) *Time {
+	return &Time{
+		Nsec: t.Unix(),
+		Sec:  int64(t.Second()),
+	}
 }
