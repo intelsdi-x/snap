@@ -63,21 +63,47 @@ When reporting an issue, details are key. Include the following:
 ## Notes on GitHub Usage
 It's worth noting that we don't use all the native GitHub features for issue management. For instance, it's uncommon for us to assign issues to the developer who will address it. Here are notes on what we do use.
 
+### TL;DR Labels
+We use a number of labels for context in the main framework of Snap. Plugin repository labels will keep it simple. If you want to contribute to Snap, here are the most helpful ones for you:
+
+1. **help-wanted** ([link](https://github.com/intelsdi-x/snap/labels/help-wanted)) - some specific issues maintainers would like help addressing
+2. **type/rfc** ([link](https://github.com/intelsdi-x/snap/labels/type%2Frfc)) - we need active feedback on *how best* to solve these issues
+3. **plugin-wishlist** ([link](https://github.com/intelsdi-x/snap/labels/plugin-wishlist)) - these are a great opportunity to write a plugin
+
 ### Issue Labels
-Snap maintainers have a set of labels we'll use to keep up with issues that are organized:
+Snap maintainers have a set of labels we use to keep up with issues. They are separated into namespaces:
 
-<img src="http://i.imgur.com/epDE8RO.jpg"  alt="GitHub Tagging Strategy" width="500">
+* **type/** - the category of issue. All issues will have one or more
+* **reviewed/** - indicator a maintainer reviewed the issue. All issues should have one or more
+* **breaking-change/** - added to an Issue to note its merge would result in a change to existing behavior throughout the framework
+* **component/** - issues related to a particular package in the framework
+* **area/** - issues related to an overall theme and does not map to a single package
+* **effort/** - amount of work to do related to resolving or merging this code change
 
-* **bug** - the classic definition of missing or misbehaving code from existing functionality (this includes malfunctioning tests)
-* **feature request** - any new functionality or improvements/enhancements to existing functionality. Note that we use a single term for this (instead of both feature & enhancement labels) since it's prioritized in identical ways during sprint planning
-* **question** - discussions related to snap, its administration or other details that do not outline how to address the request
-* **RFC** - short for [request for comment](https://en.wikipedia.org/wiki/Request_for_Comments). These are discussions of snap features requests that include detailed opinions of implementation that are up for discussion
+Other indicators:
+* **reviewed/on-hold** - an idea that gained momentum but has not yet been put into a maintainer's queue to complete. Used to inform any trackers of this status
+* **tracked** - this issue is in the JIRA backlog for the team working on Snap
+* **reviewed/duplicate** - used to tag issues which are identical to other issues _OR_ which are resolved by the same fix of another issue (either case)
+* **reviewed/wont-fix** - the universal sign that we won't fix this issue. This tag is important to use as we separate out the nice-to-have features from the maintainer's agreed upon strategic direction
+* **wip-do-not-merge** - was made to clarify that a PR was just beginning to be worked, specifically for a PR to indicate it is not ready for review yet
 
-We also add contextual notes we'll use to provide more information regarding an issue:
+The difference between bugs, features and enhancements can be confusing. To be extra clear, we reduced it down to two options. Here are their definitions:
+* **type/bug** - the classic definition of missing or misbehaving code from existing functionality (this includes malfunctioning tests)
+* **type/feature-or-enhancement** - any new functionality or improvements/enhancements to existing functionality. We use one label because it's prioritized in identical ways during sprint planning
 
-  * **in progress** - we're taking action (right now). It's best not to develop your own solution to an issue in this state. Comments are welcome
-  * **help wanted** - A useful flag to show this issue would benefit from community support. Please comment or, if it's not in progress, say you'd like to take on the request
-  * **on hold** - an idea that gained momentum but has not yet been put into a maintainer's queue to complete. Used to inform any trackers of this status
-  * **tracked** - this issue is in the JIRA backlog for the team working on snap
-  * **duplicate** - used to tag issues which are identical to other issues _OR_ which are resolved by the same fix of another issue (either case)
-  * **wontfix** - the universal sign that we won't fix this issue. This tag is important to use as we separate out the nice-to-have features from our strategic direction
+For the sake of clarity, here are a few scenarios you might see play out.
+
+As a maintainer:
+* An issue is opened stating that Snap is not working. Upon review, the maintainer finds it is an issue with a plugin. She will label the issue with **reviewed/wrong-repo** and open a new issue under the plugin where she tags the original issue reporter, links the original issue and labels it **bug** (which is available in plugins repositories).
+* An issue is opened stating that Snap is not working. It turns out to be related to Snap's functionality. The maintainer will label it **type/bug**. She has time to write the fix to this issue immediately, so she labels the issue as **reviewed/in-progress**. She finds it maps to the Scheduler package and adds additional context with **component/scheduler**. As she begins to write the fix, she opens a PR that says "Fixes #" for the previous issue and labels it **wip-do-not-merge**. When she wants another maintainer to review her PR, she will remove the **wip-do-not-merge** label.
+* As PR is opened that will change Snap functionality (examples at [#977](https://github.com/intelsdi-x/snap/pull/977) & [#803](https://github.com/intelsdi-x/snap/pull/803)). A maintainer labels it **reviewed/needs-2nd-review** and proceeds with the normal code review. If the initial maintainer labels LGTM, another maintainer must review it again. A discussion must take place with a technical lead before merging.
+* A PR is opened which changes the metadata structure for a plugin. A maintainer labels it **reviewed/needs-2nd-review** and adds whatever **breaking-change/** labels are appropriate. If the initial maintainer labels LGTM, another maintainer must review it again. A discussion must take place with a technical lead before merging. This corresponding issue is added to a milestone that corresponds with its targeted release (real example at [#871](https://github.com/intelsdi-x/snap/issues/871)).
+* A PR is opened that edits a small amount of markdown or string output text. A maintainer labels it **effort/small**, gives it a quick review to ensure it renders, writes LGTM and merges it themselves (example: [#1139](https://github.com/intelsdi-x/snap/issues/1139)).
+* An issue is opened that a maintainer believes could be solved quickly and with no impact outside of its package. She labels it **effort/small** and **help-wanted** to let external contributors know they can pick this up.
+
+And as a contributor:
+* A contributor has an idea to improve Snap. He opens an issue with guidelines on how to fix it. A maintainer likes the idea, label it **type/feature-or-enhancement**. Once a maintainer or contributor begins working on the issue, it's labeled **reviewed/in-progress**. A PR is opened early in the development of the feature and labeled **wip-do-not-merge**. The label is removed once it's time for a maintainer to review the PR.
+* A contributor has an idea to improve Snap. He opens an issue with guidelines on how to fix it and the maintainer labels it **type/feature-or-enhancement**. A maintainer believes the approach requires more user input and labels it **type/rfc** to indicate it's an open discussion on implementation. Once a maintainer or contributor begins working on the issue, it's labeled **reviewed/in-progress**. A PR is opened early in the development of the feature and labeled **wip-do-not-merge**. The label is removed once it's time for a maintainer to review the PR. Whoever authors the PR should check back on the original issues thread for further feedback until code is merged.
+* A contributor wants to understand more about Snap and opens an issue. A maintainer sees its resolution will be an answer to the contributor, so she labels it **type/question**. The question is closed once an answer is given. If good ideas of how to improve Snap come up during that thread, she may open other issues and label them **type/** based on whether they are missing docs, improvements or bugs.
+
+If you read through all of this, you're awesome, well-informed and ready to dive in!

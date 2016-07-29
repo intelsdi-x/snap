@@ -292,28 +292,7 @@ Amongst the many awesome contributors, there are the maintainers. These maintain
 * Committing to reviewing pull requests, issues, and addressing comments/questions as quickly as possible
 * Acting as a point of contact for questions
 
-Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on an issue. If at any time, you don't get a quick enough response, reach out to any of the following team members directly:
-
-<table border="0" cellspacing="0" cellpadding="0">
-  <tr>
-    <td width="125"><a href="https://github.com/andrzej-k"><sub>@andrzej-k</sub><img src="https://avatars.githubusercontent.com/u/13486250" alt="@andrzej-k"></a></td>
-    <td width="125"><a href="https://github.com/candysmurf"><sub>@candysmurf</sub><img src="https://avatars.githubusercontent.com/u/13841563" alt="@candysmurf"></a></td>
-  	<td width="125"><a href="https://github.com/ConnorDoyle"><sub>@ConnorDoyle</sub><img src="https://avatars.githubusercontent.com/u/379372" alt="@ConnorDoyle"></a></td>
-  	<td width="125"><a href="https://github.com/danielscottt"><sub>@danielscottt</sub><img src="https://avatars.githubusercontent.com/u/1194436" alt="@danielscottt"></a></td>
-  	<td width="125"><a href="https://github.com/geauxvirtual"><sub>@geauxvirtual</sub><img src="https://avatars.githubusercontent.com/u/1395030" alt="@geauxvirtual"></a></td>
-  	<td width="125"><a href="http://github.com/jcooklin"><sub>@jcooklin</sub><img src="https://avatars.githubusercontent.com/u/862968" alt="@jcooklin"></a></td>
-  </tr>
-  <tr>
-    <td width="125"><a href="https://github.com/lynxbat"><sub>@lynxbat</sub><img src="https://avatars.githubusercontent.com/u/1278669" width="100" alt="@lynxbat"></a></td>
-    <td width="125"><a href="https://github.com/marcin-krolik"><sub>@marcin-krolik</sub><img src="https://avatars.githubusercontent.com/u/14905131" width="100" alt="@marcin-krolik"></a></td>
-    <td width="125"><a href="https://github.com/mjbrender"><sub>@mjbrender</sub><img src="https://avatars.githubusercontent.com/u/1744971" width="100" alt="@mjbrender"></a></td>
-    <td width="125"><a href="https://github.com/nqn"><sub>@nqn</sub><img src="https://avatars.githubusercontent.com/u/897374" width="100" alt="@nqn"></a></td>
-    <td width="125"><a href="https://github.com/tiffanyfj"><sub>@tiffanyfj</sub><img src="https://avatars.githubusercontent.com/u/12282848" width="100" alt="@tiffanyfj"></a></td>
-    <td width="125"><a href="https://github.com/IzabellaRaulin"><sub>@IzabellaRaulin</sub><img src="https://avatars0.githubusercontent.com/u/11335874" width="100" alt="@IzabellaRaulin"></a></td>
-  </tr>
-</table>
-
-We're also looking to have maintainers from the community. Please let us know if you would like to become one by opening an Issue titled "interested in becoming a maintainer." We are currently working on a more official process.
+Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on an issue. If at any time, you don't get a quick enough response, reach out to us [on Slack](http://slack.snap-telemetry.io)
 
 ## Thank You
 And **thank you!** Your contribution, through code and participation, is incredibly important to us.
