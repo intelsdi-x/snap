@@ -55,7 +55,13 @@ type commandWrapper struct {
 func (cw *commandWrapper) Path() string { return cw.cmd.Path }
 func (cw *commandWrapper) Kill() error {
 	// first, kill the process wrapped up in the commandWrapper
-	if err := cw.cmd.Process.Kill(); err != nil {
+	if cw.cmd.Process == nil {
+		err := fmt.Errorf("Process for plugin '%s' not started; cannot kill", path.Base(cw.Path()))
+		log.WithFields(log.Fields{
+			"_block": "Kill",
+		}).Warn(err)
+		return err
+	} else if err := cw.cmd.Process.Kill(); err != nil {
 		log.WithFields(log.Fields{
 			"_block": "Kill",
 		}).Error(err)
