@@ -124,7 +124,11 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 		return fmt.Errorf("Unsupported file type %s\n", ext)
 	}
 
-	t.Name = ctx.String("name")
+	// Set t.Name to value of --name flag if set on command line
+	if ctx.IsSet("name") {
+		t.Name = ctx.String("name")
+	}
+
 	if t.Version != 1 {
 		return fmt.Errorf("Invalid version provided")
 	}
