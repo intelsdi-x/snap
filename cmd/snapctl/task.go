@@ -100,6 +100,20 @@ func createTask(ctx *cli.Context) error {
 	return err
 }
 
+func stringValToInt(val string) (int, error) {
+	// parse the input (string) value as an integer (log a Fatal
+	// error if we cannot parse the value as an integer)
+	parsedField, err := strconv.Atoi(val)
+	if err != nil {
+		splitErr := strings.Split(err.Error(), ": ")
+		errStr := splitErr[len(splitErr)-1]
+		// return a value of zero and the error encountered during string parsing
+		return 0, fmt.Errorf("Value '%v' cannot be parsed as an integer (%v)", val, errStr)
+	}
+	// return the integer equivalent of the input string and a nil error (indicating success)
+	return parsedField, nil
+}
+
 func createTaskUsingTaskManifest(ctx *cli.Context) error {
 	path := ctx.String("task-manifest")
 	ext := filepath.Ext(path)
@@ -127,12 +141,6 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 	t.Name = ctx.String("name")
 	if t.Version != 1 {
 		return fmt.Errorf("Invalid version provided")
-	}
-
-	// If the number of failures does not specific, default value is 10
-	if t.MaxFailures == 0 {
-		fmt.Println("If the number of maximum failures is not specified, use default value of", DefaultMaxFailures)
-		t.MaxFailures = DefaultMaxFailures
 	}
 
 	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"), t.MaxFailures)
@@ -198,7 +206,11 @@ func createTaskUsingWFManifest(ctx *cli.Context) error {
 
 	// Deadline for a task
 	dl := ctx.String("deadline")
-	maxFailures := ctx.Int("max-failures")
+	maxFailuresStr := ctx.String("max-failures")
+	maxFailures, err := stringValToInt(maxFailuresStr)
+	if err != nil {
+		return fmt.Errorf("Value for command-line option 'max-failures' (%v) cannot be parsed as an integer\n", maxFailuresStr)
+	}
 
 	var sch *client.Schedule
 	// None of these mean it is a simple schedule

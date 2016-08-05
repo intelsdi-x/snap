@@ -25,10 +25,6 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-const (
-	DefaultMaxFailures = 10
-)
-
 var (
 	flAPIDisabled = cli.BoolFlag{
 		Name:  "disable-api, d",
