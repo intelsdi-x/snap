@@ -8,8 +8,6 @@ import (
 var (
 	// ErrInvalidInterval - Error message for the valid schedule interval must ne greater than 0
 	ErrInvalidInterval = errors.New("Interval must be greater than 0")
-	// ErrInvalidStartTime - Error message for the start time is in the past
-	ErrInvalidStartTime = errors.New("Start time is in the past")
 	// ErrInvalidStopTime - Error message for the stop tome is in the past
 	ErrInvalidStopTime = errors.New("Stop time is in the past")
 	// ErrStopBeforeStart - Error message for the stop time cannot occur before start time

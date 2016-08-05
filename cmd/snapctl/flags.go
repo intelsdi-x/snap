@@ -124,7 +124,7 @@ var (
 	}
 	flTaskMaxFailures = cli.StringFlag{
 		Name:  "max-failures",
-		Usage: "The number of consecutive failures before snap disable the task",
+		Usage: "The number of consecutive failures before snap disables the task",
 	}
 
 	// metric

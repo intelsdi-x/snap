@@ -199,7 +199,7 @@ func CreateTaskFromContent(body io.ReadCloser,
 	}
 
 	// if a MaxFailures value is included as part of the task creation request
-	if tr.MaxFailures > 0 {
+	if tr.MaxFailures != 0 {
 		// then set the appropriate value in the opts
 		opts = append(opts, OptionStopOnFailure(tr.MaxFailures))
 	}
