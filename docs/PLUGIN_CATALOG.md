@@ -60,6 +60,7 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | Riemann | Publisher | Writes to Riemann monitoring system | [snap-plugin-publisher-riemann](https://github.com/intelsdi-x/snap-plugin-publisher-riemann) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-publisher-riemann) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-publisher-riemann)
 | Statistics | Processor | Processes data and return statistics over a sliding window | [snap-plugin-processor-statistics](https://github.com/intelsdi-x/snap-plugin-processor-statistics) |
 | Tag | Processor | Processes data and add tags | [snap-plugin-processor-tag](https://github.com/intelsdi-x/snap-plugin-processor-tag) |
+| Anomaly Detection | Processor | Process data and hightlight outliers | [snap-plugin-processor-anomalydetection](https://github.com/intelsdi-x/snap-plugin-processor-anomalydetection) |
 
 ## Community Plugins
 | Name  | Type  | Description | Link |
