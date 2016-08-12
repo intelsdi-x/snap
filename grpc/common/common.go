@@ -43,8 +43,8 @@ func ToMetric(co core.Metric) *Metric {
 			Nsec: int64(co.Timestamp().Nanosecond()),
 		},
 		LastAdvertisedTime: &Time{
-			Sec:  co.LastAdvertisedTime().Unix(),
-			Nsec: int64(co.Timestamp().Nanosecond()),
+			Sec:  time.Now().Unix(),
+			Nsec: int64(time.Now().Nanosecond()),
 		},
 	}
 	if co.Config() != nil {
@@ -127,12 +127,20 @@ func (m *metric) Unit() string                  { return m.unit }
 
 // Convert common.Metric to core.Metric
 func ToCoreMetric(mt *Metric) core.Metric {
+	var lastAdvertisedTime time.Time
+	// if the lastAdvertisedTime is not set we handle.  -62135596800 represents the
+	// number of seconds from 0001-1970 and is the default value for time.Unix.
+	if mt.LastAdvertisedTime.Sec == int64(-62135596800) {
+		lastAdvertisedTime = time.Unix(time.Now().Unix(), int64(time.Now().Nanosecond()))
+	} else {
+		lastAdvertisedTime = time.Unix(mt.LastAdvertisedTime.Sec, mt.LastAdvertisedTime.Nsec)
+	}
 	ret := &metric{
 		namespace:          ToCoreNamespace(mt.Namespace),
 		version:            int(mt.Version),
 		tags:               mt.Tags,
 		timeStamp:          time.Unix(mt.Timestamp.Sec, mt.Timestamp.Nsec),
-		lastAdvertisedTime: time.Unix(mt.LastAdvertisedTime.Sec, mt.LastAdvertisedTime.Nsec),
+		lastAdvertisedTime: lastAdvertisedTime,
 		config:             ConfigMapToConfig(mt.Config),
 		description:        mt.Description,
 		unit:               mt.Unit,

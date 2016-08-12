@@ -288,6 +288,10 @@ func (g *grpcClient) GetMetricTypes(config plugin.ConfigType) ([]core.Metric, er
 		return nil, errors.New(reply.Error)
 	}
 
+	for _, metric := range reply.Metrics {
+		metric.LastAdvertisedTime = common.ToTime(time.Now())
+	}
+
 	results := common.ToCoreMetrics(reply.Metrics)
 	return results, nil
 }

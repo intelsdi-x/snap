@@ -343,7 +343,17 @@ func (p *processJob) Run() {
 					p.AddErrors(fmt.Errorf("unsupported metric type. {%v}", m))
 				}
 			}
-			enc.Encode(metrics)
+			err := enc.Encode(metrics)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"_module":        "scheduler-job",
+					"block":          "run",
+					"job-type":       "processor",
+					"plugin-name":    p.name,
+					"plugin-version": p.version,
+					"error":          err,
+				}).Error("encoding error")
+			}
 			_, content, errs := p.processor.ProcessMetrics(p.contentType, buf.Bytes(), p.name, p.version, p.config, p.taskID)
 			if errs != nil {
 				for _, e := range errs {
@@ -467,7 +477,17 @@ func (p *publisherJob) Run() {
 					panic(fmt.Sprintf("unsupported type %T", mt))
 				}
 			}
-			enc.Encode(metrics)
+			err := enc.Encode(metrics)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"_module":        "scheduler-job",
+					"block":          "run",
+					"job-type":       "publisher",
+					"plugin-name":    p.name,
+					"plugin-version": p.version,
+					"error":          err,
+				}).Error("encoding error")
+			}
 			errs := p.publisher.PublishMetrics(p.contentType, buf.Bytes(), p.name, p.version, p.config, p.taskID)
 			if errs != nil {
 				for _, e := range errs {
