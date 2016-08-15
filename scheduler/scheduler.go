@@ -297,7 +297,7 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	if s.state != schedulerStarted {
 		te.errs = append(te.errs, serror.New(ErrSchedulerNotStarted))
 		f := buildErrorsLog(te.Errors(), logger)
-		f.Error("scheduler not started")
+		f.Error(ErrSchedulerNotStarted.Error())
 		return nil, te
 	}
 
@@ -314,7 +314,7 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	if err != nil {
 		te.errs = append(te.errs, serror.New(err))
 		f := buildErrorsLog(te.Errors(), logger)
-		f.Error(ErrSchedulerNotStarted.Error())
+		f.Error("Unable to generate workflow from workflow map")
 		return nil, te
 	}
 
