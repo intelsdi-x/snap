@@ -136,7 +136,7 @@ func TestMarshalTask(t *testing.T) {
 		task, err := marshalTask(file)
 		So(err, ShouldBeNil)
 		So(task, ShouldNotBeNil)
-		So(task.Name, ShouldEqual, "")
+		So(task.Name, ShouldEqual, "mock-file")
 		So(task.Deadline, ShouldEqual, "")
 		So(task.Schedule.Type, ShouldEqual, "simple")
 		So(task.Schedule.Interval, ShouldEqual, "1s")
