@@ -100,14 +100,233 @@ func createTask(ctx *cli.Context) error {
 	return err
 }
 
+func stringValToInt(val string) (int, error) {
+	// parse the input (string) as an integer value (and return that integer value
+	// to the caller or an error if the input value cannot be parsed as an integer)
+	parsedField, err := strconv.Atoi(val)
+	if err != nil {
+		splitErr := strings.Split(err.Error(), ": ")
+		errStr := splitErr[len(splitErr)-1]
+		// return a value of zero and the error encountered during string parsing
+		return 0, fmt.Errorf("Value '%v' cannot be parsed as an integer (%v)", val, errStr)
+	}
+	// return the integer equivalent of the input string and a nil error (indicating success)
+	return parsedField, nil
+}
+
+// Parses the command-line parameters (if any) and uses them to override the underlying
+// schedule for this task or to set a schedule for that task (if one is not already defined,
+// as is the case when we're building a new task from a workflow manifest).
+//
+// Note: in this method, any of the following types of time windows can be specified:
+//
+//    +---------------------------...  (start with no stop and no duration; no end time for window)
+//    |
+//  start
+//
+//    ...---------------------------+  (stop with no start and no duration; no start time for window)
+//                                  |
+//                                 stop
+//
+//    +-----------------------------+  (start with a duration but no stop)
+//    |                             |
+//    |---------------------------->|
+//  start        duration
+//
+//    +-----------------------------+  (stop with a duration but no start)
+//    |                             |
+//    |<----------------------------|
+//               duration         stop
+//
+//    +-----------------------------+ (start and stop both specified)
+//    |                             |
+//    |<--------------------------->|
+//  start                         stop
+//
+//    +-----------------------------+ (only duration specified, implies start is the current time)
+//    |                             |
+//    |---------------------------->|
+//  Now()        duration
+//
+func (t *task) setWindowedSchedule(start *time.Time, stop *time.Time, duration *time.Duration) error {
+	// if there is an empty schedule already defined for this task, then set the
+	// type for that schedule to 'windowed'
+	if t.Schedule.Type == "" {
+		t.Schedule.Type = "windowed"
+	} else if t.Schedule.Type != "windowed" {
+		// else if the task's existing schedule is not a 'windowed' schedule,
+		// then return an error
+		return fmt.Errorf("Usage error (schedule type mismatch); cannot replace existing schedule of type '%v' with a new, 'windowed' schedule", t.Schedule.Type)
+	}
+	// if a duration was passed in, determine the start and stop times for our new
+	// 'windowed' schedule from the input parameters
+	if duration != nil {
+		// if start and stop were both defined, then return an error (since specifying the
+		// start, stop, *and* duration for a 'windowed' schedule is not allowed)
+		if start != nil && stop != nil {
+			return fmt.Errorf("Usage error (too many parameters); the window start, stop, and duration cannot all be specified for a 'windowed' schedule")
+		}
+		// if start is set and stop is not then use duration to create stop
+		if start != nil && stop == nil {
+			newStop := start.Add(*duration)
+			t.Schedule.StartTime = start
+			t.Schedule.StopTime = &newStop
+			return nil
+		}
+		// if stop is set and start is not then use duration to create start
+		if stop != nil && start == nil {
+			newStart := stop.Add(*duration * -1)
+			t.Schedule.StartTime = &newStart
+			t.Schedule.StopTime = stop
+			return nil
+		}
+		// otherwise, the start and stop are both undefined but a duration was passed in,
+		// so use the current date/time (plus the 'createTaskNowPad' value) as the
+		// start date/time and construct a stop date/time from that start date/time
+		// and the duration
+		newStart := time.Now().Add(createTaskNowPad)
+		newStop := newStart.Add(*duration)
+		t.Schedule.StartTime = &newStart
+		t.Schedule.StopTime = &newStop
+		return nil
+	}
+	// if a start date/time was specified, we will use it to replace
+	// the current schedule's start date/time
+	if start != nil {
+		t.Schedule.StartTime = start
+	}
+	// if a stop date/time was specified, we will use it to replace the
+	// current schedule's stop date/time
+	if stop != nil {
+		t.Schedule.StopTime = stop
+	}
+	// if we get this far, then just return a nil error (indicating success)
+	return nil
+}
+
+// parse the command-line options and use them to setup a new schedule for this task
+func (t *task) setScheduleFromCliOptions(ctx *cli.Context) error {
+	// check the start, stop, and duration values to see if we're looking at a windowed schedule (or not)
+	// first, get the parameters that define the windowed schedule
+	start := mergeDateTime(
+		strings.ToUpper(ctx.String("start-time")),
+		strings.ToUpper(ctx.String("start-date")),
+	)
+	stop := mergeDateTime(
+		strings.ToUpper(ctx.String("stop-time")),
+		strings.ToUpper(ctx.String("stop-date")),
+	)
+	// Grab the duration string (if one was passed in) and parse it
+	durationStr := ctx.String("duration")
+	var duration *time.Duration
+	if ctx.IsSet("duration") || durationStr != "" {
+		d, err := time.ParseDuration(durationStr)
+		if err != nil {
+			return fmt.Errorf("Usage error (bad duration format); %v", err)
+		}
+		duration = &d
+	}
+	// Grab the interval for the schedule (if one was provided). Note that if an
+	// interval value was not passed in and there is no interval defined for the
+	// schedule associated with this task, it's an error
+	interval := ctx.String("interval")
+	if !ctx.IsSet("interval") && interval == "" && t.Schedule.Interval == "" {
+		return fmt.Errorf("Usage error (missing interval value); when constructing a new task schedule an interval must be provided")
+	}
+	// if a start, stop, or duration value was provided, or if the existing schedule for this task
+	// is 'windowed', then it's a 'windowed' schedule
+	isWindowed := (start != nil || stop != nil || duration != nil || t.Schedule.Type == "windowed")
+	// if an interval was passed in, then attempt to parse it (first as a duration,
+	// then as the definition of a cron job)
+	isCron := false
+	if interval != "" {
+		// first try to parse it as a duration
+		_, err := time.ParseDuration(interval)
+		if err != nil {
+			// if that didn't work, then try parsing the interval as cron job entry
+			_, e := cron.Parse(interval)
+			if e != nil {
+				return fmt.Errorf("Usage error (bad interval value): cannot parse interval value '%v' either as a duration or a cron entry", interval)
+			}
+			// if it's a 'windowed' schedule, then return an error (we can't use a
+			// cron entry interval with a 'windowed' schedule)
+			if isWindowed {
+				return fmt.Errorf("Usage error; cannot use a cron entry ('%v') as the interval for a 'windowed' schedule", interval)
+			}
+			isCron = true
+		}
+		t.Schedule.Interval = interval
+	}
+	// if it's a 'windowed' schedule, then create a new 'windowed' schedule and add it to
+	// the current task; the existing schedule (if on exists) will be replaced by the new
+	// schedule in this method (note that it is an error to try to replace an existing
+	// schedule with a new schedule of a different type, so an error will be returned from
+	// this method call if that is the case)
+	if isWindowed {
+		return t.setWindowedSchedule(start, stop, duration)
+	}
+	// if it's not a 'windowed' schedule, then set the schedule type based on the 'isCron' flag,
+	// which was set above.
+	if isCron {
+		// make sure the current schedule type (if there is one) matches; if not it is an error
+		if t.Schedule.Type != "" && t.Schedule.Type != "cron" {
+			return fmt.Errorf("Usage error; cannot replace existing schedule of type '%v' with a new, 'cron' schedule", t.Schedule.Type)
+		}
+		t.Schedule.Type = "cron"
+		return nil
+	}
+	// if it wasn't a 'windowed' schedule and it's not a 'cron' schedule, then it must be a 'simple'
+	// schedule, so first make sure the current schedule type (if there is one) matches; if not
+	// then it's an error
+	if t.Schedule.Type != "" && t.Schedule.Type != "simple" {
+		return fmt.Errorf("Usage error; cannot replace existing schedule of type '%v' with a new, 'simple' schedule", t.Schedule.Type)
+	}
+	// if we get this far set the schedule type and return a nil error (indicating success)
+	t.Schedule.Type = "simple"
+	return nil
+}
+
+// merge the command-line options into the current task
+func (t *task) mergeCliOptions(ctx *cli.Context) error {
+	// set the name of the task (if a 'name' was provided in the CLI options)
+	name := ctx.String("name")
+	if ctx.IsSet("name") || name != "" {
+		t.Name = name
+	}
+	// set the deadline of the task (if a 'deadline' was provided in the CLI options)
+	deadline := ctx.String("deadline")
+	if ctx.IsSet("deadline") || deadline != "" {
+		t.Deadline = deadline
+	}
+	// set the MaxFailures for the task (if a 'max-failures' value was provided in the CLI options)
+	maxFailuresStrVal := ctx.String("max-failures")
+	if ctx.IsSet("max-failures") || maxFailuresStrVal != "" {
+		maxFailures, err := stringValToInt(maxFailuresStrVal)
+		if err != nil {
+			return err
+		}
+		t.MaxFailures = maxFailures
+	}
+	// shouldn't ever happen, but...
+	if t.Version != 1 {
+		return fmt.Errorf("Invalid version provided while creating task")
+	}
+	// set the schedule for the task from the CLI options (and return the results
+	// of that method call, indicating whether or not an error was encountered while
+	// setting up that schedule)
+	return t.setScheduleFromCliOptions(ctx)
+}
+
 func createTaskUsingTaskManifest(ctx *cli.Context) error {
+	// get the task manifest file to use
 	path := ctx.String("task-manifest")
 	ext := filepath.Ext(path)
 	file, e := ioutil.ReadFile(path)
 	if e != nil {
-		return fmt.Errorf("File error [%s]- %v\n", ext, e)
+		return fmt.Errorf("File error [%s] - %v\n", ext, e)
 	}
 
+	// create an empty task struct and unmarshal the contents of the file into that object
 	t := task{}
 	switch ext {
 	case ".yaml", ".yml":
@@ -124,17 +343,13 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 		return fmt.Errorf("Unsupported file type %s\n", ext)
 	}
 
-	t.Name = ctx.String("name")
-	if t.Version != 1 {
-		return fmt.Errorf("Invalid version provided")
+	// merge any CLI options specified by the user (if any) into the current task;
+	// if an error is encountered, return it
+	if err := t.mergeCliOptions(ctx); err != nil {
+		return err
 	}
 
-	// If the number of failures does not specific, default value is 10
-	if t.MaxFailures == 0 {
-		fmt.Println("If the number of maximum failures is not specified, use default value of", DefaultMaxFailures)
-		t.MaxFailures = DefaultMaxFailures
-	}
-
+	// and use the resulting struct to create a new task
 	r := pClient.CreateTask(t.Schedule, t.Workflow, t.Name, t.Deadline, !ctx.IsSet("no-start"), t.MaxFailures)
 
 	if r.Err != nil {
@@ -154,18 +369,21 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 }
 
 func createTaskUsingWFManifest(ctx *cli.Context) error {
-	// Get the workflow
+	// Get the workflow manifest filename from the command-line
 	path := ctx.String("workflow-manifest")
 	ext := filepath.Ext(path)
 	file, e := ioutil.ReadFile(path)
-
-	if !ctx.IsSet("interval") && !ctx.IsSet("i") {
-		return fmt.Errorf("Workflow manifest requires interval to be set via flag.")
-	}
 	if e != nil {
-		return fmt.Errorf("File error [%s]- %v\n", ext, e)
+		return fmt.Errorf("File error [%s] - %v\n", ext, e)
 	}
 
+	// check to make sure that an interval was specified using the appropriate command-line flag
+	interval := ctx.String("interval")
+	if !ctx.IsSet("interval") && interval != "" {
+		return fmt.Errorf("Workflow manifest requires that an interval be set via a command-line flag.")
+	}
+
+	// and unmarshal the contents of the workflow manifest file into a local workflow map
 	var wf *wmap.WorkflowMap
 	switch ext {
 	case ".yaml", ".yml":
@@ -181,91 +399,21 @@ func createTaskUsingWFManifest(ctx *cli.Context) error {
 			return fmt.Errorf("Error parsing JSON file input - %v\n", e)
 		}
 	}
-	// Get the task name
-	name := ctx.String("name")
-	// Get the interval
-	isCron := false
-	i := ctx.String("interval")
-	_, err := time.ParseDuration(i)
-	if err != nil {
-		// try interpreting interval as cron entry
-		_, e := cron.Parse(i)
-		if e != nil {
-			return fmt.Errorf("Bad interval format:\nfor simple schedule: %v\nfor cron schedule: %v\n", err, e)
-		}
-		isCron = true
+
+	// create a dummy task with an empty schedule
+	t := task{
+		Version:  1,
+		Schedule: &client.Schedule{},
 	}
 
-	// Deadline for a task
-	dl := ctx.String("deadline")
-	maxFailures := ctx.Int("max-failures")
-
-	var sch *client.Schedule
-	// None of these mean it is a simple schedule
-	if !ctx.IsSet("start-date") && !ctx.IsSet("start-time") && !ctx.IsSet("stop-date") && !ctx.IsSet("stop-time") {
-		// Check if duration was set
-		if ctx.IsSet("duration") && !isCron {
-			d, err := time.ParseDuration(ctx.String("duration"))
-			if err != nil {
-				return fmt.Errorf("Bad duration format:\n%v\n", err)
-			}
-			start := time.Now().Add(createTaskNowPad)
-			stop := start.Add(d)
-			sch = &client.Schedule{
-				Type:      "windowed",
-				Interval:  i,
-				StartTime: &start,
-				StopTime:  &stop,
-			}
-		} else {
-			// No start or stop and no duration == simple schedule
-			t := "simple"
-			if isCron {
-				// It's a cron schedule, ignore "duration" if set
-				t = "cron"
-			}
-			sch = &client.Schedule{
-				Type:     t,
-				Interval: i,
-			}
-		}
-	} else {
-		// We have some form of windowed schedule
-		start := mergeDateTime(
-			strings.ToUpper(ctx.String("start-time")),
-			strings.ToUpper(ctx.String("start-date")),
-		)
-		stop := mergeDateTime(
-			strings.ToUpper(ctx.String("stop-time")),
-			strings.ToUpper(ctx.String("stop-date")),
-		)
-
-		// Use duration to create missing start or stop
-		if ctx.IsSet("duration") {
-			d, err := time.ParseDuration(ctx.String("duration"))
-			if err != nil {
-				return fmt.Errorf("Bad duration format:\n%v\n", err)
-			}
-			// if start is set and stop is not then use duration to create stop
-			if start != nil && stop == nil {
-				t := start.Add(d)
-				stop = &t
-			}
-			// if stop is set and start is not then use duration to create start
-			if stop != nil && start == nil {
-				t := stop.Add(d * -1)
-				start = &t
-			}
-		}
-		sch = &client.Schedule{
-			Type:      "windowed",
-			Interval:  i,
-			StartTime: start,
-			StopTime:  stop,
-		}
+	// fill in the details for that task from the command-line arguments passed in by the user;
+	// if an error is encountered, return it
+	if err := t.mergeCliOptions(ctx); err != nil {
+		return err
 	}
-	// Create task
-	r := pClient.CreateTask(sch, wf, name, dl, !ctx.IsSet("no-start"), maxFailures)
+
+	// and use the resulting struct (along with the workflow map we constructed, above) to create a new task
+	r := pClient.CreateTask(t.Schedule, wf, t.Name, t.Deadline, !ctx.IsSet("no-start"), t.MaxFailures)
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
 		errString := "Error creating task:"

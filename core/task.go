@@ -197,7 +197,12 @@ func CreateTaskFromContent(body io.ReadCloser,
 	if tr.Name != "" {
 		opts = append(opts, SetTaskName(tr.Name))
 	}
-	opts = append(opts, OptionStopOnFailure(10))
+
+	// if a MaxFailures value is included as part of the task creation request
+	if tr.MaxFailures != 0 {
+		// then set the appropriate value in the opts
+		opts = append(opts, OptionStopOnFailure(tr.MaxFailures))
+	}
 
 	if mode == nil {
 		mode = &tr.Start

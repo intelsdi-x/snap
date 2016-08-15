@@ -36,12 +36,16 @@ func (w *WindowedSchedule) GetState() ScheduleState {
 // Validate validates the start, stop and duration interval of
 // WindowedSchedule
 func (w *WindowedSchedule) Validate() error {
+	// if the stop time was set but it is in the past, return an error
 	if w.StopTime != nil && time.Now().After(*w.StopTime) {
 		return ErrInvalidStopTime
 	}
+	// if the start and stop time were both set and the the stop time is before
+	// the start time, return an error
 	if w.StopTime != nil && w.StartTime != nil && w.StopTime.Before(*w.StartTime) {
 		return ErrStopBeforeStart
 	}
+	// if the interval is less than zero, return an error
 	if w.Interval <= 0 {
 		return ErrInvalidInterval
 	}
