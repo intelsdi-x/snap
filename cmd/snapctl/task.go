@@ -307,10 +307,6 @@ func (t *task) mergeCliOptions(ctx *cli.Context) error {
 		}
 		t.MaxFailures = maxFailures
 	}
-	// shouldn't ever happen, but...
-	if t.Version != 1 {
-		return fmt.Errorf("Invalid version provided while creating task")
-	}
 	// set the schedule for the task from the CLI options (and return the results
 	// of that method call, indicating whether or not an error was encountered while
 	// setting up that schedule)
@@ -708,6 +704,9 @@ func min(a, b int) int {
 func validateTask(t task) error {
 	if err := validateScheduleExists(t.Schedule); err != nil {
 		return err
+	}
+	if t.Version != 1 {
+		return fmt.Errorf("Error: Invalid version provided for task manifest")
 	}
 	return nil
 }
