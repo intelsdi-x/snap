@@ -23,6 +23,7 @@ const (
 	AvailablePluginDead      = "Control.AvailablePluginDead"
 	AvailablePluginRestarted = "Control.RestartedAvailablePlugin"
 	PluginRestartsExceeded   = "Control.PluginRestartsExceeded"
+	PluginStarted            = "Control.PluginStarted"
 	PluginLoaded             = "Control.PluginLoaded"
 	PluginUnloaded           = "Control.PluginUnloaded"
 	PluginsSwapped           = "Control.PluginsSwapped"
@@ -35,6 +36,18 @@ const (
 	HealthCheckFailed        = "Control.PluginHealthCheckFailed"
 	MoveSubscription         = "Control.PluginSubscriptionMoved"
 )
+
+type StartPluginEvent struct {
+	Name    string
+	Version int
+	Type    int
+	Key     string
+	Id      uint32
+}
+
+func (e StartPluginEvent) Namespace() string {
+	return PluginStarted
+}
 
 type LoadPluginEvent struct {
 	Name    string

@@ -36,6 +36,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
@@ -85,6 +86,8 @@ type managesMetrics interface {
 	SubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
 	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
 	MatchQueryToNamespaces(core.Namespace) ([]core.Namespace, serror.SnapError)
+	AddTaskIDData(string, []core.RequestedMetric, *cdata.ConfigDataTree, []core.SubscribedPlugin)
+	RemoveTaskIDData(taskID string)
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -330,17 +333,22 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 	// Group dependencies by the node they live on
 	// and validate them.
 	depGroupMap := s.gatherMetricsAndPlugins(wf)
+
 	for k, val := range depGroupMap {
 		manager, err := task.RemoteManagers.Get(k)
 		if err != nil {
 			te.errs = append(te.errs, serror.New(err))
 			return nil, te
 		}
+
 		errs := manager.ValidateDeps(val.Metrics, val.Plugins)
 		if len(errs) > 0 {
 			te.errs = append(te.errs, errs...)
 			return nil, te
 		}
+
+		// Add task to control map
+		manager.AddTaskIDData(task.ID(), wf.metrics, wf.configTree, val.Plugins)
 	}
 
 	// Bind plugin content type selections in workflow
@@ -413,6 +421,17 @@ func (s *scheduler) removeTask(id, source string) error {
 		TaskID: t.id,
 		Source: source,
 	}
+
+	// Remove task from control module's task map
+	depGroupMap := s.gatherMetricsAndPlugins(t.workflow)
+	for k := range depGroupMap {
+		manager, err := t.RemoteManagers.Get(k)
+		if err != nil {
+			return err
+		}
+		manager.RemoveTaskIDData(id)
+	}
+
 	defer s.eventManager.Emit(event)
 	return s.tasks.remove(t)
 }

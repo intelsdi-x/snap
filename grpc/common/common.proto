@@ -57,6 +57,11 @@ message Metric {
 	}
 }
 
+message RequestedMetric {
+	repeated NamespaceElement Namespace = 1;
+	int64 Version = 2;
+}
+
 message NamespaceElement {
 	string Value = 1;
 	string Description = 2;
@@ -77,6 +82,10 @@ message ConfigMap {
 	// double is float64
 	map<string, double> FloatMap = 3;
 	map<string, bool> BoolMap = 4;
+}
+
+message ConfigTree {
+	repeated ConfigMap Node = 1;
 }
 
 // core.Plugin
