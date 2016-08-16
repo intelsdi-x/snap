@@ -343,6 +343,11 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 		return fmt.Errorf("Unsupported file type %s\n", ext)
 	}
 
+	// Validate task manifest includes schedule, workflow, and version
+	if err := validateTask(t); err != nil {
+		return err
+	}
+
 	// merge any CLI options specified by the user (if any) into the current task;
 	// if an error is encountered, return it
 	if err := t.mergeCliOptions(ctx); err != nil {
@@ -698,4 +703,21 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func validateTask(t task) error {
+	if err := validateScheduleExists(t.Schedule); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateScheduleExists(schedule *client.Schedule) error {
+	if schedule == nil {
+		return fmt.Errorf("Error: Task manifest did not include a schedule")
+	}
+	if *schedule == (client.Schedule{}) {
+		return fmt.Errorf("Error: Task manifest included an empty schedule. Task manifests need to include a schedule.")
+	}
+	return nil
 }
