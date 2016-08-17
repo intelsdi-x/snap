@@ -265,7 +265,7 @@ type Mock1 struct {
 	queue      map[string]int
 }
 
-func (m *Mock1) CollectMetrics([]core.Metric, time.Time, string, map[string]map[string]string) ([]core.Metric, []error) {
+func (m *Mock1) CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }
 

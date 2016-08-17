@@ -496,7 +496,6 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 
 // UnloadPlugin unloads a plugin from the LoadedPlugins table
 func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.SnapError) {
-
 	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
 		se := serror.New(ErrPluginNotFound, map[string]interface{}{
@@ -506,6 +505,10 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 		})
 		return nil, se
 	}
+	pmLogger.WithFields(log.Fields{
+		"_block": "unload-plugin",
+		"path":   filepath.Base(plugin.Details.Exec),
+	}).Info("plugin unload called")
 
 	if plugin.State != LoadedState {
 		se := serror.New(ErrPluginNotInLoadedState, map[string]interface{}{

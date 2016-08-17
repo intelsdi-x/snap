@@ -1,7 +1,7 @@
 {
     "collect": {
         "metrics": {
-            "/intel/mock/foo": {"version": 1}
+            "/intel/mock/foo": {"version": 2}
         },
         "config": {
 	    "/intel/mock/foo": {

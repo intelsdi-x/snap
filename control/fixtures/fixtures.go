@@ -115,15 +115,40 @@ func (m *mockMetric) Data() interface{} {
 	return m.data
 }
 
+func NewMockPlugin(plgType core.PluginType, name string, version int) MockPlugin {
+	return MockPlugin{
+		pluginType: plgType,
+		name:       name,
+		ver:        version,
+	}
+}
+
 // mocks a plugin
-type mockPlugin struct {
+type MockPlugin struct {
 	pluginType core.PluginType
 	name       string
 	ver        int
 	config     *cdata.ConfigDataNode
 }
 
-func (m mockPlugin) Name() string                  { return m.name }
-func (m mockPlugin) TypeName() string              { return m.pluginType.String() }
-func (m mockPlugin) Version() int                  { return m.ver }
-func (m mockPlugin) Config() *cdata.ConfigDataNode { return m.config }
+func (m MockPlugin) Name() string                  { return m.name }
+func (m MockPlugin) TypeName() string              { return m.pluginType.String() }
+func (m MockPlugin) Version() int                  { return m.ver }
+func (m MockPlugin) Config() *cdata.ConfigDataNode { return m.config }
+
+type MockRequestedMetric struct {
+	namespace core.Namespace
+	version   int
+}
+
+func NewMockRequestedMetric(ns core.Namespace, ver int) MockRequestedMetric {
+	return MockRequestedMetric{namespace: ns, version: ver}
+}
+
+func (m MockRequestedMetric) Version() int {
+	return m.version
+}
+
+func (m MockRequestedMetric) Namespace() core.Namespace {
+	return m.namespace
+}

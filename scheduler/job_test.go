@@ -36,7 +36,7 @@ import (
 
 type mockCollector struct{}
 
-func (m *mockCollector) CollectMetrics([]core.Metric, time.Time, string, map[string]map[string]string) ([]core.Metric, []error) {
+func (m *mockCollector) CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }
 

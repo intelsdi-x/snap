@@ -117,7 +117,9 @@ func (t *delegate) NotifyMsg(buf []byte) {
 		if err := decodeMessage(buf[1:], msg); err != nil {
 			panic(err)
 		}
+		t.tribe.mutex.RLock()
 		queryResp, ok := t.tribe.taskStateResponses[msg.UUID]
+		t.tribe.mutex.RUnlock()
 		if !ok {
 			logger.WithFields(log.Fields{
 				"_block":    "delegate-notify-msg",
