@@ -25,14 +25,12 @@ import "github.com/intelsdi-x/snap/grpc/common/common.proto";
 service MetricManager {
 	// managesMetrics from scheduler
 	rpc GetPluginContentTypes(GetPluginContentTypesRequest) returns (GetPluginContentTypesReply) {}
-	rpc ExpandWildcards(ExpandWildcardsRequest) returns (ExpandWildcardsReply) {}
 	rpc CollectMetrics(CollectMetricsRequest) returns (CollectMetricsResponse) {}
 	rpc PublishMetrics(PubProcMetricsRequest) returns (ErrorReply) {}
 	rpc ProcessMetrics(PubProcMetricsRequest) returns (ProcessMetricsReply) {}
 	rpc ValidateDeps(ValidateDepsRequest) returns (ValidateDepsReply) {}
 	rpc SubscribeDeps(SubscribeDepsRequest) returns (SubscribeDepsReply) {}
-	rpc UnsubscribeDeps(SubscribeDepsRequest) returns (SubscribeDepsReply) {}
-	rpc MatchQueryToNamespaces(ExpandWildcardsRequest) returns (ExpandWildcardsReply) {}
+	rpc UnsubscribeDeps(UnsubscribeDepsRequest) returns (UnsubscribeDepsReply) {}	
 	rpc GetAutodiscoverPaths(common.Empty) returns (GetAutodiscoverPathsReply) {}
 }
 
@@ -78,17 +76,26 @@ message ValidateDepsRequest {
 
 message ValidateDepsReply {
 	repeated common.SnapError Errors = 1;
-}
+} 
 
 message SubscribeDepsRequest {
-	repeated common.Metric Metrics = 1;
-	repeated common.Plugin Plugins = 2;
+	repeated common.Metric Requested = 1;
+	repeated common.SubscribedPlugin Plugins = 2;
 	string TaskId = 3;
 }
 
 message SubscribeDepsReply {
 	repeated common.SnapError Errors = 1;
 }
+
+message UnsubscribeDepsRequest {
+	string TaskId = 1;
+}
+
+message UnsubscribeDepsReply {
+	repeated common.SnapError Errors = 1;
+}
+
 message Map {
         repeated MapEntry Entries = 1;
 }
@@ -100,9 +107,7 @@ message MapEntry {
 
 message CollectMetricsRequest {
 	string TaskID = 1;
-	repeated common.Metric Metrics = 2;
-	common.Time Deadline = 3;
-        map<string, Map> AllTags = 4;
+	map<string, Map> AllTags = 2;
 }
 
 message CollectMetricsResponse {

@@ -25,6 +25,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/grpc/common"
@@ -56,20 +57,6 @@ func New(addr string, port int) (ControlProxy, error) {
 	return ControlProxy{Client: c}, nil
 }
 
-func (c ControlProxy) ExpandWildcards(namespace core.Namespace) ([]core.Namespace, serror.SnapError) {
-	req := &rpc.ExpandWildcardsRequest{
-		Namespace: common.ToNamespace(namespace),
-	}
-	reply, err := c.Client.ExpandWildcards(getContext(), req)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-	if reply.Error != nil {
-		return nil, common.ToSnapError(reply.Error)
-	}
-	nss := toNSS(reply.NSS)
-	return nss, nil
-}
 func (c ControlProxy) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	req := GetPubProcReq(contentType, content, pluginName, pluginVersion, config, taskID)
 	reply, err := c.Client.PublishMetrics(getContext(), req)
@@ -96,7 +83,7 @@ func (c ControlProxy) ProcessMetrics(contentType string, content []byte, pluginN
 	return reply.ContentType, reply.Content, errs
 }
 
-func (c ControlProxy) CollectMetrics(mts []core.Metric, deadline time.Time, taskID string, AllTags map[string]map[string]string) ([]core.Metric, []error) {
+func (c ControlProxy) CollectMetrics(taskID string, AllTags map[string]map[string]string) ([]core.Metric, []error) {
 	var allTags map[string]*rpc.Map
 	for k, v := range AllTags {
 		tags := &rpc.Map{}
@@ -110,11 +97,6 @@ func (c ControlProxy) CollectMetrics(mts []core.Metric, deadline time.Time, task
 		allTags[k] = tags
 	}
 	req := &rpc.CollectMetricsRequest{
-		Metrics: common.NewMetrics(mts),
-		Deadline: &common.Time{
-			Sec:  deadline.Unix(),
-			Nsec: int64(deadline.Nanosecond()),
-		},
 		TaskID:  taskID,
 		AllTags: allTags,
 	}
@@ -149,9 +131,9 @@ func (c ControlProxy) GetPluginContentTypes(n string, t core.PluginType, v int) 
 	return reply.AcceptedTypes, reply.ReturnedTypes, nil
 }
 
-func (c ControlProxy) ValidateDeps(mts []core.Metric, plugins []core.SubscribedPlugin) []serror.SnapError {
+func (c ControlProxy) ValidateDeps(mts []core.RequestedMetric, plugins []core.SubscribedPlugin, ctree *cdata.ConfigDataTree) []serror.SnapError {
 	req := &rpc.ValidateDepsRequest{
-		Metrics: common.NewMetrics(mts),
+		Metrics: common.RequestedToMetric(mts),
 		Plugins: common.ToSubPluginsMsg(plugins),
 	}
 	reply, err := c.Client.ValidateDeps(getContext(), req)
@@ -162,8 +144,8 @@ func (c ControlProxy) ValidateDeps(mts []core.Metric, plugins []core.SubscribedP
 	return serrs
 }
 
-func (c ControlProxy) SubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
-	req := depsRequest(taskID, mts, plugins)
+func (c ControlProxy) SubscribeDeps(taskID string, requested []core.RequestedMetric, plugins []core.SubscribedPlugin, configTree *cdata.ConfigDataTree) []serror.SnapError {
+	req := depsRequest(taskID, requested, plugins, configTree)
 	reply, err := c.Client.SubscribeDeps(getContext(), req)
 	if err != nil {
 		return []serror.SnapError{serror.New(err)}
@@ -172,29 +154,14 @@ func (c ControlProxy) SubscribeDeps(taskID string, mts []core.Metric, plugins []
 	return serrs
 }
 
-func (c ControlProxy) UnsubscribeDeps(taskID string, mts []core.Metric, plugins []core.Plugin) []serror.SnapError {
-	req := depsRequest(taskID, mts, plugins)
+func (c ControlProxy) UnsubscribeDeps(taskID string) []serror.SnapError {
+	req := &rpc.UnsubscribeDepsRequest{TaskId: taskID}
 	reply, err := c.Client.UnsubscribeDeps(getContext(), req)
 	if err != nil {
 		return []serror.SnapError{serror.New(err)}
 	}
 	serrs := common.ConvertSnapErrors(reply.Errors)
 	return serrs
-}
-
-func (c ControlProxy) MatchQueryToNamespaces(namespace core.Namespace) ([]core.Namespace, serror.SnapError) {
-	req := &rpc.ExpandWildcardsRequest{
-		Namespace: common.ToNamespace(namespace),
-	}
-	reply, err := c.Client.MatchQueryToNamespaces(getContext(), req)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-	if reply.Error != nil {
-		return nil, common.ToSnapError(reply.Error)
-	}
-	nss := toNSS(reply.NSS)
-	return nss, nil
 }
 
 func (c ControlProxy) GetAutodiscoverPaths() []string {
@@ -220,11 +187,11 @@ func getPluginType(t core.PluginType) int32 {
 	return val
 }
 
-func depsRequest(taskID string, mts []core.Metric, plugins []core.Plugin) *rpc.SubscribeDepsRequest {
+func depsRequest(taskID string, requested []core.RequestedMetric, plugins []core.SubscribedPlugin, configTree *cdata.ConfigDataTree) *rpc.SubscribeDepsRequest {
 	req := &rpc.SubscribeDepsRequest{
-		Metrics: common.NewMetrics(mts),
-		Plugins: common.ToCorePluginsMsg(plugins),
-		TaskId:  taskID,
+		Requested: common.RequestedToMetric(requested),
+		Plugins:   common.ToSubPluginsMsg(plugins),
+		TaskId:    taskID,
 	}
 	return req
 }

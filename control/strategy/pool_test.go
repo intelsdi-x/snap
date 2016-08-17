@@ -194,7 +194,7 @@ func TestPoolEligibility(t *testing.T) {
 					pool, _ := NewPool(plg.String(), plg)
 
 					for j := 0; j < tc.Subscriptions; j++ {
-						pool.Subscribe(strconv.Itoa(j), BoundSubscriptionType)
+						pool.Subscribe(strconv.Itoa(j))
 					}
 
 					Convey(fmt.Sprintf(

@@ -23,6 +23,7 @@ const (
 	AvailablePluginDead      = "Control.AvailablePluginDead"
 	AvailablePluginRestarted = "Control.RestartedAvailablePlugin"
 	PluginRestartsExceeded   = "Control.PluginRestartsExceeded"
+	PluginStarted            = "Control.PluginStarted"
 	PluginLoaded             = "Control.PluginLoaded"
 	PluginUnloaded           = "Control.PluginUnloaded"
 	PluginsSwapped           = "Control.PluginsSwapped"
@@ -35,6 +36,18 @@ const (
 	HealthCheckFailed        = "Control.PluginHealthCheckFailed"
 	MoveSubscription         = "Control.PluginSubscriptionMoved"
 )
+
+type StartPluginEvent struct {
+	Name    string
+	Version int
+	Type    int
+	Key     string
+	Id      uint32
+}
+
+func (e StartPluginEvent) Namespace() string {
+	return PluginStarted
+}
 
 type LoadPluginEvent struct {
 	Name    string
@@ -107,11 +120,10 @@ func (s SwapPluginsEvent) Namespace() string {
 }
 
 type PluginSubscriptionEvent struct {
-	PluginName       string
-	PluginVersion    int
-	PluginType       int
-	SubscriptionType int
-	TaskId           string
+	PluginName    string
+	PluginVersion int
+	PluginType    int
+	TaskId        string
 }
 
 func (ps PluginSubscriptionEvent) Namespace() string {
@@ -137,16 +149,4 @@ type HealthCheckFailedEvent struct {
 
 func (hfe HealthCheckFailedEvent) Namespace() string {
 	return HealthCheckFailed
-}
-
-type MovePluginSubscriptionEvent struct {
-	TaskId          string
-	PluginName      string
-	PreviousVersion int
-	NewVersion      int
-	PluginType      int
-}
-
-func (mse MovePluginSubscriptionEvent) Namespace() string {
-	return MoveSubscription
 }

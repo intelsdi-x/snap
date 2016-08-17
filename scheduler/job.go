@@ -239,31 +239,7 @@ func (c *collectorJob) Run() {
 		}
 	}
 
-	metrics := []core.Metric{}
-	for _, rmt := range c.metricTypes {
-		nss, err := c.collector.ExpandWildcards(rmt.Namespace())
-		if err != nil {
-			// use metric directly from the workflow
-			nss = []core.Namespace{rmt.Namespace()}
-		}
-
-		for _, ns := range nss {
-			config := c.configDataTree.Get(ns.Strings())
-
-			if config == nil {
-				config = cdata.NewNode()
-			}
-
-			metric := &metric{
-				namespace: ns,
-				version:   rmt.Version(),
-				config:    config,
-			}
-			metrics = append(metrics, metric)
-		}
-	}
-
-	ret, errs := c.collector.CollectMetrics(metrics, c.Deadline(), c.TaskID(), c.tags)
+	ret, errs := c.collector.CollectMetrics(c.TaskID(), c.tags)
 
 	log.WithFields(log.Fields{
 		"_module":      "scheduler-job",

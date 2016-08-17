@@ -404,6 +404,23 @@ func (w worker) createTask(taskID string, startOnCreate bool) {
 				logger.WithField("err", taskResult.Err.Error()).Debug("error getting task")
 				continue
 			}
+			// this block addresses the condition when we are creating and starting
+			// a task and the task is created but fails to start (deps were not yet met)
+			if startOnCreate {
+				if _, err := w.taskManager.GetTask(taskID); err == nil {
+					logger.Debug("starting task")
+					if errs := w.taskManager.StartTaskTribe(taskID); errs != nil {
+						fields := log.Fields{}
+						for idx, e := range errs {
+							fields[fmt.Sprintf("err-%d", idx)] = e.Error()
+						}
+						logger.WithFields(fields).Error("error starting task")
+						continue
+					}
+					done = true
+					break
+				}
+			}
 			logger.Debug("creating task")
 			opt := core.SetTaskID(taskID)
 			_, errs := w.taskManager.CreateTaskTribe(
