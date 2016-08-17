@@ -24,14 +24,12 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
-	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/pkg/aci"
@@ -190,13 +188,21 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	r.availablePlugins.insert(ap)
+
 	runnerLog.WithFields(log.Fields{
 		"_block":                "start-plugin",
 		"available-plugin":      ap.String(),
 		"available-plugin-type": ap.TypeName(),
 	}).Info("available plugin started")
+
+	defer r.emitter.Emit(&control_event.StartPluginEvent{
+		Name:    ap.Name(),
+		Version: ap.Version(),
+		Type:    int(ap.Type()),
+		Key:     ap.key,
+		Id:      ap.ID(),
+	})
 
 	return ap, nil
 }
@@ -284,205 +290,6 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		err := r.handleUnsubscription(core.PluginType(v.PluginType).String(), v.PluginName, v.PluginVersion, v.TaskId)
 		if err != nil {
 			return
-		}
-	case *control_event.UnloadPluginEvent:
-		// On plugin unload, first find the key and pool info for the plugin being unloaded
-		// so that we can determine what, if any, subscriptions need to be moved to another
-		// version of that plugin (if one is available).
-		r.availablePlugins.RLock()
-		var pool strategy.Pool
-		var k string
-		for key, p := range r.availablePlugins.table {
-			tnv := strings.Split(key, ":")
-			if core.PluginType(v.Type).String() == tnv[0] && v.Name == tnv[1] && v.Version == p.Version() {
-				pool = p
-				k = key
-				break
-			}
-		}
-
-		r.availablePlugins.RUnlock()
-		if pool == nil {
-			// if we didn't find the named plugin in one of our pools, then simply return
-			return
-		}
-		// Otherwise, we need to roll any subscriptions that may have existed for the plugin being
-		// unloaded to a new version (if we can find one). First, check for the highest version of the
-		// plugin being unloaded that is still available (if there is one)
-		plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", core.PluginType(v.Type).String(), v.Name, -1))
-		if err != nil {
-			if err == ErrPluginNotFound {
-				// if we got to here via a "PluginNotFoundError", then we can't find
-				// another version of this plugin, so we need to kill all instances
-				// of the plugin from this pool
-				pool.KillAll("Last version of plugin unloaded; no additional versions to roll over to")
-			}
-			return
-		}
-		// if we found another version, then move the subscriptions that are not currently bound to a
-		// plugin version to our pool
-		newPool, err := r.availablePlugins.getOrCreatePool(plugin.Key())
-		if err != nil {
-			return
-		}
-		subs := pool.MoveSubscriptions(newPool)
-		// Start new plugins in newPool if needed
-		if newPool.Eligible() {
-			e := r.restartPlugin(plugin.Key())
-			if e != nil {
-				runnerLog.WithFields(log.Fields{
-					"_block": "handle-events",
-				}).Error(e.Error())
-				return
-			}
-		}
-		// Finally, remove the unloaded plugin from available plugins
-		r.availablePlugins.Lock()
-		delete(r.availablePlugins.table, k)
-		r.availablePlugins.Unlock()
-		pool.RLock()
-		defer pool.RUnlock()
-		if len(subs) != 0 {
-			runnerLog.WithFields(log.Fields{
-				"_block":         "subscribe-pool",
-				"event":          v.Namespace(),
-				"plugin-name":    v.Name,
-				"plugin-version": v.Version,
-				"plugin-type":    core.PluginType(v.Type).String(),
-			}).Info("pool with subscriptions to move found")
-			for _, sub := range subs {
-				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
-					PluginName:       v.Name,
-					PluginVersion:    v.Version,
-					TaskId:           sub.TaskID,
-					PluginType:       v.Type,
-					SubscriptionType: int(strategy.UnboundSubscriptionType),
-				})
-				r.emitter.Emit(&control_event.PluginUnsubscriptionEvent{
-					PluginName:    v.Name,
-					PluginVersion: pool.Version(),
-					TaskId:        sub.TaskID,
-					PluginType:    v.Type,
-				})
-				r.emitter.Emit(&control_event.MovePluginSubscriptionEvent{
-					PluginName:      v.Name,
-					PreviousVersion: pool.Version(),
-					NewVersion:      v.Version,
-					TaskId:          sub.TaskID,
-					PluginType:      v.Type,
-				})
-			}
-		}
-	case *control_event.LoadPluginEvent:
-		// On loaded plugin event all subscriptions that are not bound to a specific version
-		// need to moved to the loaded version if it's version is greater than the currently
-		// available plugin.
-		var pool strategy.Pool
-		//k := fmt.Sprintf("%v:%v:%v", core.PluginType(v.Type).String(), v.Name, -1)
-		//pool, _ = r.availablePlugins.getPool(k)
-		r.availablePlugins.RLock()
-		currentHighestVersion := -1
-		for key, p := range r.availablePlugins.pools() {
-			// tuple of type name and version
-			// type @ index 0, name @ index 1, version @ index 2
-			tnv := strings.Split(key, ":")
-			// make sure we don't panic and crash the service if a junk key is retrieved
-			if len(tnv) != 3 {
-				runnerLog.WithFields(log.Fields{
-					"_block":         "subscribe-pool",
-					"event":          v.Namespace(),
-					"plugin-name":    v.Name,
-					"plugin-version": v.Version,
-					"plugin-type":    core.PluginType(v.Type).String(),
-					"plugin-signed":  v.Signed,
-				}).Info("pool has bad key ", key)
-				continue
-			}
-			// attempt to find a pool whose type and name are the same, and whose version is
-			// less than newly loaded plugin.
-			if core.PluginType(v.Type).String() == tnv[0] && v.Name == tnv[1] && v.Version > p.Version() {
-				// See if the pool version is higher than the current highest.
-				// We only want to move subscriptions from the currentHighest
-				// because that is where subscriptions that are bound to the
-				// latest version will be.
-				if p.Version() > currentHighestVersion {
-					pool = p
-					currentHighestVersion = p.Version()
-				}
-			}
-		}
-		r.availablePlugins.RUnlock()
-
-		// now check to see if anything was put where pool points.
-		// if not, there are no older pools whose subscriptions need to be
-		// moved.
-		if pool == nil {
-			runnerLog.WithFields(log.Fields{
-				"_block":         "subscribe-pool",
-				"event":          v.Namespace(),
-				"plugin-name":    v.Name,
-				"plugin-version": v.Version,
-				"plugin-type":    core.PluginType(v.Type).String(),
-			}).Info("No previous pool found for loaded plugin")
-			return
-		}
-		plugin, err := r.pluginManager.get(fmt.Sprintf("%s:%s:%d", core.PluginType(v.Type).String(), v.Name, v.Version))
-		if err != nil {
-			return
-		}
-		newPool, err := r.availablePlugins.getOrCreatePool(plugin.Key())
-		if err != nil {
-			return
-		}
-
-		// Move subscriptions to the new, higher versioned pool
-		subs := pool.MoveSubscriptions(newPool)
-		if newPool.Eligible() {
-			e := r.restartPlugin(plugin.Key())
-			if e != nil {
-				runnerLog.WithFields(log.Fields{
-					"_block": "handle-events",
-				}).Error(e.Error())
-				return
-			}
-			runnerLog.WithFields(log.Fields{
-				"_block": "pool eligible",
-			}).Info("starting plugin")
-		}
-
-		pool.RLock()
-		defer pool.RUnlock()
-
-		if len(subs) != 0 {
-			runnerLog.WithFields(log.Fields{
-				"_block":         "subscribe-pool",
-				"event":          v.Namespace(),
-				"plugin-name":    v.Name,
-				"plugin-version": v.Version,
-				"plugin-type":    core.PluginType(v.Type).String(),
-			}).Info("pool with subscriptions to move found")
-			for _, sub := range subs {
-				r.emitter.Emit(&control_event.PluginSubscriptionEvent{
-					PluginName:       v.Name,
-					PluginVersion:    v.Version,
-					TaskId:           sub.TaskID,
-					PluginType:       v.Type,
-					SubscriptionType: int(strategy.UnboundSubscriptionType),
-				})
-				r.emitter.Emit(&control_event.PluginUnsubscriptionEvent{
-					PluginName:    v.Name,
-					PluginVersion: pool.Version(),
-					TaskId:        sub.TaskID,
-					PluginType:    v.Type,
-				})
-				r.emitter.Emit(&control_event.MovePluginSubscriptionEvent{
-					PluginName:      v.Name,
-					PreviousVersion: pool.Version(),
-					NewVersion:      v.Version,
-					TaskId:          sub.TaskID,
-					PluginType:      v.Type,
-				})
-			}
 		}
 	default:
 		runnerLog.WithFields(log.Fields{

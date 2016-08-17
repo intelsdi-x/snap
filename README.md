@@ -230,6 +230,7 @@ Documentation for Snap will be kept in this repository for now with an emphasis 
 * [build and test](docs/BUILD_AND_TEST.md)
 * [REST API](docs/REST_API.md)
 * [tasks](docs/TASKS.md)
+* [plugin life cycle](docs/PLUGIN_LIFECYCLE.md)
 * [plugin signing](docs/PLUGIN_SIGNING.md)
 * [tribe](docs/TRIBE.md)
 

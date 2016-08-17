@@ -27,15 +27,15 @@ import (
 	"net"
 	"path"
 	"testing"
-	"time"
 
+	"github.com/intelsdi-x/gomit"
 	"golang.org/x/net/context"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
-	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/grpc/common"
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
@@ -43,6 +43,29 @@ import (
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+type listenPluginLoadEvent struct {
+	plugin *mockPluginEvent
+	done   chan struct{}
+}
+
+func newFoo() *listenPluginLoadEvent {
+	return &listenPluginLoadEvent{
+		done: make(chan struct{}),
+	}
+}
+
+func (l *listenPluginLoadEvent) HandleGomitEvent(e gomit.Event) {
+	switch v := e.Body.(type) {
+	case *control_event.LoadPluginEvent:
+		l.done <- struct{}{}
+	default:
+		controlLogger.WithFields(log.Fields{
+			"event:": v.Namespace(),
+			"_block": "HandleGomit",
+		}).Info("Unhandled Event")
+	}
+}
 
 // This test is meant to cover the grpc implementation of the subset of control
 // features that scheduler uses. It is not intended to test the control features
@@ -55,6 +78,9 @@ func TestGRPCServerScheduler(t *testing.T) {
 	cfg.ListenPort = l.Addr().(*net.TCPAddr).Port
 	c := New(cfg)
 	err := c.Start()
+
+	lpe := newFoo()
+	c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 
 	Convey("Starting control_proxy server/client", t, func() {
 		Convey("So err should be nil", func() {
@@ -69,18 +95,46 @@ func TestGRPCServerScheduler(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	c.Load(mock)
+	_, serr := c.Load(mock)
+	Convey("Loading mock collector", t, func() {
+		Convey("should not error", func() {
+			So(serr, ShouldBeNil)
+		})
+	})
+	<-lpe.done
 	passthru, err := core.NewRequestedPlugin(path.Join(fixtures.SnapPath, "plugin", "snap-plugin-processor-passthru"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	c.Load(passthru)
+	catalogedPassthru, serr := c.Load(passthru)
+	Convey("Loading passthru processor", t, func() {
+		Convey("should not error", func() {
+			So(serr, ShouldBeNil)
+		})
+	})
+	subscribedPassThruPlugin := subscribedPlugin{
+		name:     catalogedPassthru.Name(),
+		version:  catalogedPassthru.Version(),
+		typeName: catalogedPassthru.TypeName(),
+	}
+	<-lpe.done
 	filepub, err := core.NewRequestedPlugin(path.Join(fixtures.SnapPath, "plugin", "snap-plugin-publisher-mock-file"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	c.Load(filepub)
+	catalogedFile, serr := c.Load(filepub)
+	Convey("Loading file publisher", t, func() {
+		Convey("should not error", func() {
+			So(serr, ShouldBeNil)
+		})
+	})
+	subscribedFilePlugin := subscribedPlugin{
+		name:     catalogedFile.Name(),
+		version:  catalogedFile.Version(),
+		typeName: catalogedFile.TypeName(),
+	}
 
+	<-lpe.done
 	conn, err := rpcutil.GetClientConnection(c.Config.ListenAddr, c.Config.ListenPort)
 
 	Convey("Creating an rpc connection", t, func() {
@@ -151,9 +205,9 @@ func TestGRPCServerScheduler(t *testing.T) {
 	Convey("SubscribeDeps", t, func() {
 		Convey("Should Error with invalid inputs", func() {
 			req := &rpc.SubscribeDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{fixtures.InvalidMetric}),
-				Plugins: common.ToCorePluginsMsg([]core.Plugin{}),
-				TaskId:  "my-snowflake-id",
+				Requested: []*common.Metric{&common.Metric{Namespace: common.ToNamespace(fixtures.InvalidMetric.Namespace()), Version: int64(fixtures.InvalidMetric.Version())}},
+				Plugins:   common.ToSubPluginsMsg([]core.SubscribedPlugin{subscribedFilePlugin, subscribedPassThruPlugin}),
+				TaskId:    "my-snowflake-id",
 			}
 			reply, err := client.SubscribeDeps(context.Background(), req)
 			// we don't expect rpc errors
@@ -163,9 +217,9 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 		Convey("Should not error with valid inputs", func() {
 			req := &rpc.SubscribeDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
-				Plugins: common.ToCorePluginsMsg([]core.Plugin{}),
-				TaskId:  "my-snowflake-id",
+				Requested: []*common.Metric{&common.Metric{Namespace: common.ToNamespace(fixtures.ValidMetric.Namespace()), Version: int64(fixtures.ValidMetric.Version())}},
+				Plugins:   common.ToSubPluginsMsg([]core.SubscribedPlugin{}),
+				TaskId:    "my-snowflake-valid",
 			}
 			reply, err := client.SubscribeDeps(context.Background(), req)
 			// we don't expect rpc errors
@@ -173,121 +227,34 @@ func TestGRPCServerScheduler(t *testing.T) {
 			So(len(reply.Errors), ShouldEqual, 0)
 		})
 	})
-	// unsubscribedeps -- valid/invalid
-	Convey("UnsubscribeDeps", t, func() {
-		Convey("Should Error with invalid inputs", func() {
-			req := &rpc.SubscribeDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{fixtures.InvalidMetric}),
-				Plugins: common.ToCorePluginsMsg([]core.Plugin{}),
-				TaskId:  "my-snowflake-id",
-			}
-			reply, err := client.UnsubscribeDeps(context.Background(), req)
-			// we don't expect rpc errors
-			So(err, ShouldBeNil)
-			So(len(reply.Errors), ShouldNotEqual, 0)
-			So(reply.Errors[0].ErrorString, ShouldResemble, "Metric not found: /this/is/invalid")
-		})
-		Convey("Should not error with valid inputs", func() {
-			req := &rpc.SubscribeDepsRequest{
-				Metrics: common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
-				Plugins: common.ToCorePluginsMsg([]core.Plugin{}),
-				TaskId:  "my-snowflake-id",
-			}
-			reply, err := client.UnsubscribeDeps(context.Background(), req)
-			// we don't expect rpc errors
-			So(err, ShouldBeNil)
-			So(len(reply.Errors), ShouldEqual, 0)
-		})
-	})
-	//matchquerytonamespaces -- valid/invalid
-	Convey("MatchingQueryToNamespaces", t, func() {
-		Convey("Should error with invalid inputs", func() {
-			req := &rpc.ExpandWildcardsRequest{
-				Namespace: common.ToNamespace(fixtures.InvalidMetric.Namespace()),
-			}
-			reply, err := client.MatchQueryToNamespaces(context.Background(), req)
-			// we don't expect rpc.errors
-			So(err, ShouldBeNil)
-			So(reply.Error, ShouldNotBeNil)
-			So(reply.Error.ErrorString, ShouldResemble, "Metric not found: /this/is/invalid")
-		})
-		Convey("Should not error with invalid inputs", func() {
-			req := &rpc.ExpandWildcardsRequest{
-				Namespace: common.ToNamespace(fixtures.ValidMetric.Namespace()),
-			}
-			reply, err := client.MatchQueryToNamespaces(context.Background(), req)
-			// we don't expect rpc.errors
-			So(err, ShouldBeNil)
-			So(reply.Error, ShouldBeNil)
-		})
-	})
-	//expandwildcards -- valid/invalid
-	Convey("ExpandWildcards", t, func() {
-		Convey("Should error with invalid inputs", func() {
-			req := &rpc.ExpandWildcardsRequest{
-				Namespace: common.ToNamespace(fixtures.InvalidMetric.Namespace()),
-			}
-			reply, err := client.ExpandWildcards(context.Background(), req)
-			// we don't expect rpc errors
-			So(err, ShouldBeNil)
-			So(reply.Error, ShouldNotBeNil)
-			So(reply.Error.ErrorString, ShouldResemble, "Metric not found: /this/is/invalid")
-		})
-		Convey("Should not error with valid inputs", func() {
-			req := &rpc.ExpandWildcardsRequest{
-				Namespace: common.ToNamespace(fixtures.ValidMetric.Namespace()),
-			}
-			reply, err := client.ExpandWildcards(context.Background(), req)
-			// we don't expect rpc errors
-			So(err, ShouldBeNil)
-			So(reply.Error, ShouldBeNil)
-		})
-	})
-	// start plugin pools/provide task info so we can do collect/process/publishMetrics
-	// errors here indicate problems outside the scope of this test.
-	plugins := []string{"collector:mock:1", "processor:passthru:1", "publisher:mock-file:3"}
-	lps := make([]*loadedPlugin, len(plugins))
-	pools := make([]strategy.Pool, len(plugins))
-	for i, v := range plugins {
-		lps[i], err = c.pluginManager.get(v)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pools[i], err = c.pluginRunner.AvailablePlugins().getOrCreatePool(v)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pools[i].Subscribe("my-snowflake-id", strategy.BoundSubscriptionType)
-		err = c.pluginRunner.runPlugin(lps[i].Details)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
 	//our returned metrics
 	var mts []core.Metric
 	//collect
 	Convey("CollectMetrics", t, func() {
-		Convey("Should error with invalid inputs", func() {
+		req := &rpc.SubscribeDepsRequest{
+			Requested: []*common.Metric{&common.Metric{Namespace: common.ToNamespace(fixtures.ValidMetric.Namespace()), Version: int64(fixtures.ValidMetric.Version())}},
+			Plugins: common.ToSubPluginsMsg([]core.SubscribedPlugin{
+				subscribedPassThruPlugin,
+				subscribedFilePlugin,
+			},
+			),
+			TaskId: "my-snowflake-id",
+		}
+		_, err := client.SubscribeDeps(context.Background(), req)
+		So(err, ShouldBeNil)
+
+		Convey("should error with invalid inputs", func() {
 			req := &rpc.CollectMetricsRequest{
-				Metrics: common.NewMetrics([]core.Metric{fixtures.InvalidMetric}),
-				Deadline: &common.Time{
-					Sec:  int64(time.Now().Unix()),
-					Nsec: int64(time.Now().Nanosecond()),
-				},
-				TaskID: "my-snowflake-id",
+				TaskID: "my-fake-snowflake-id",
 			}
 			reply, err := client.CollectMetrics(context.Background(), req)
 			So(err, ShouldBeNil)
 			So(len(reply.Errors), ShouldNotEqual, 0)
 		})
+
 		Convey("should not error with valid inputs", func() {
 			req := &rpc.CollectMetricsRequest{
-				Metrics: common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
-				Deadline: &common.Time{
-					Sec:  int64(time.Now().Unix()),
-					Nsec: int64(time.Now().Nanosecond()),
-				},
-				TaskID: "my-snowflake-id",
+				TaskID: "my-snowflake-valid",
 			}
 			reply, err := client.CollectMetrics(context.Background(), req)
 			So(err, ShouldBeNil)
@@ -301,13 +268,32 @@ func TestGRPCServerScheduler(t *testing.T) {
 	var content []byte
 	//process
 	Convey("ProcessMetrics", t, func() {
-		Convey("Should error with invalid inputs", func() {
-			req := controlproxy.GetPubProcReq("snap.gob", []byte{}, "bad name", 1, map[string]ctypes.ConfigValue{}, "my-snowflake-id")
+		req := &rpc.SubscribeDepsRequest{
+			Requested: []*common.Metric{&common.Metric{Namespace: common.ToNamespace(fixtures.ValidMetric.Namespace()), Version: int64(fixtures.ValidMetric.Version())}},
+			Plugins: common.ToSubPluginsMsg([]core.SubscribedPlugin{
+				subscribedPassThruPlugin,
+				subscribedFilePlugin,
+			},
+			),
+			TaskId: "my-snowflake-id",
+		}
+		_, err := client.SubscribeDeps(context.Background(), req)
+		So(err, ShouldBeNil)
+		Convey("should error with invalid inputs", func() {
+			var buf bytes.Buffer
+			enc := gob.NewEncoder(&buf)
+			metrics := make([]plugin.MetricType, len(mts))
+			for i, m := range mts {
+				mt := plugin.NewMetricType(m.Namespace(), m.Timestamp(), m.Tags(), m.Unit(), m.Data())
+				metrics[i] = *mt
+			}
+			enc.Encode(metrics)
+			req := controlproxy.GetPubProcReq("snap.gob", buf.Bytes(), "passthru-invalid", 1, map[string]ctypes.ConfigValue{}, "my-snowflake-id")
 			reply, err := client.ProcessMetrics(context.Background(), req)
 			// we don't expect rpc errors
 			So(err, ShouldBeNil)
 			So(len(reply.Errors), ShouldNotEqual, 0)
-			So(reply.Errors[0], ShouldResemble, "bad key")
+			// content to pass to publisher
 		})
 		Convey("should not error with valid inputs", func() {
 			var buf bytes.Buffer
@@ -325,20 +311,32 @@ func TestGRPCServerScheduler(t *testing.T) {
 			So(len(reply.Errors), ShouldEqual, 0)
 			// content to pass to publisher
 			content = reply.Content
-
 		})
 	})
 	//publishmetrics
 	Convey("PublishMetrics", t, func() {
-		Convey("Should error with invalid inputs", func() {
-			req := controlproxy.GetPubProcReq("snap.gob", []byte{}, "bad name", 1, map[string]ctypes.ConfigValue{}, "my-snowflake-id")
+		req := &rpc.SubscribeDepsRequest{
+			Requested: []*common.Metric{&common.Metric{Namespace: common.ToNamespace(fixtures.ValidMetric.Namespace()), Version: int64(fixtures.ValidMetric.Version())}},
+			Plugins: common.ToSubPluginsMsg([]core.SubscribedPlugin{
+				subscribedPassThruPlugin,
+				subscribedFilePlugin,
+			},
+			),
+			TaskId: "my-snowflake-id",
+		}
+		_, err := client.SubscribeDeps(context.Background(), req)
+		So(err, ShouldBeNil)
+
+		Convey("should error with invalid inputs", func() {
+			config := make(map[string]ctypes.ConfigValue)
+			config["file"] = ctypes.ConfigValueStr{Value: "/tmp/grpcservertest.snap"}
+			req := controlproxy.GetPubProcReq("snap.gob", content, "mock-file-invalid", 3, config, "my-snowflake-id")
 			reply, err := client.PublishMetrics(context.Background(), req)
 			// we don't expect rpc errors
 			So(err, ShouldBeNil)
 			So(len(reply.Errors), ShouldNotEqual, 0)
-
-			So(reply.Errors[0], ShouldResemble, "bad key")
 		})
+
 		// Publish only returns no errors on success
 		Convey("should not error with valid inputs", func() {
 			config := make(map[string]ctypes.ConfigValue)

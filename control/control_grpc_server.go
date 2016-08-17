@@ -20,10 +20,8 @@ limitations under the License.
 package control
 
 import (
-	"time"
-
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/grpc/common"
 	"github.com/intelsdi-x/snap/grpc/controlproxy/rpc"
 	"golang.org/x/net/context"
@@ -71,8 +69,6 @@ func (pc *ControlGRPCServer) ProcessMetrics(ctx context.Context, r *rpc.PubProcM
 }
 
 func (pc *ControlGRPCServer) CollectMetrics(ctx context.Context, r *rpc.CollectMetricsRequest) (*rpc.CollectMetricsResponse, error) {
-	metrics := common.ToCoreMetrics(r.Metrics)
-	deadline := time.Unix(r.Deadline.Sec, r.Deadline.Nsec)
 	var AllTags map[string]map[string]string
 	for k, v := range r.AllTags {
 		AllTags[k] = make(map[string]string)
@@ -80,7 +76,7 @@ func (pc *ControlGRPCServer) CollectMetrics(ctx context.Context, r *rpc.CollectM
 			AllTags[k][entry.Key] = entry.Value
 		}
 	}
-	mts, errs := pc.control.CollectMetrics(metrics, deadline, r.TaskID, AllTags)
+	mts, errs := pc.control.CollectMetrics(r.TaskID, AllTags)
 	var reply *rpc.CollectMetricsResponse
 	if mts == nil {
 		reply = &rpc.CollectMetricsResponse{
@@ -95,49 +91,25 @@ func (pc *ControlGRPCServer) CollectMetrics(ctx context.Context, r *rpc.CollectM
 	return reply, nil
 }
 
-func (pc *ControlGRPCServer) ExpandWildcards(ctx context.Context, r *rpc.ExpandWildcardsRequest) (*rpc.ExpandWildcardsReply, error) {
-	nss, serr := pc.control.ExpandWildcards(common.ToCoreNamespace(r.Namespace))
-	reply := &rpc.ExpandWildcardsReply{}
-	if nss != nil {
-		reply.NSS = convertNSS(nss)
-	}
-	if serr != nil {
-		reply.Error = common.NewErrors([]serror.SnapError{serr})[0]
-	}
-	return reply, nil
-}
-
 func (pc *ControlGRPCServer) ValidateDeps(ctx context.Context, r *rpc.ValidateDepsRequest) (*rpc.ValidateDepsReply, error) {
-	metrics := common.ToCoreMetrics(r.Metrics)
+	metrics := common.ToRequestedMetrics(r.Metrics)
 	plugins := common.ToSubPlugins(r.Plugins)
-	serrors := pc.control.ValidateDeps(metrics, plugins)
+	configTree := cdata.NewTree()
+	serrors := pc.control.ValidateDeps(metrics, plugins, configTree)
 	return &rpc.ValidateDepsReply{Errors: common.NewErrors(serrors)}, nil
 }
 
 func (pc *ControlGRPCServer) SubscribeDeps(ctx context.Context, r *rpc.SubscribeDepsRequest) (*rpc.SubscribeDepsReply, error) {
-	metrics := common.ToCoreMetrics(r.Metrics)
-	plugins := common.MsgToCorePlugins(r.Plugins)
-	serrors := pc.control.SubscribeDeps(r.TaskId, metrics, plugins)
+	plugins := common.ToSubPlugins(r.Plugins)
+	configTree := cdata.NewTree()
+	requested := common.MetricToRequested(r.Requested)
+	serrors := pc.control.SubscribeDeps(r.TaskId, requested, plugins, configTree)
 	return &rpc.SubscribeDepsReply{Errors: common.NewErrors(serrors)}, nil
 }
 
-func (pc *ControlGRPCServer) UnsubscribeDeps(ctx context.Context, r *rpc.SubscribeDepsRequest) (*rpc.SubscribeDepsReply, error) {
-	metrics := common.ToCoreMetrics(r.Metrics)
-	plugins := common.MsgToCorePlugins(r.Plugins)
-	serrors := pc.control.UnsubscribeDeps(r.TaskId, metrics, plugins)
-	return &rpc.SubscribeDepsReply{Errors: common.NewErrors(serrors)}, nil
-}
-
-func (pc *ControlGRPCServer) MatchQueryToNamespaces(ctx context.Context, r *rpc.ExpandWildcardsRequest) (*rpc.ExpandWildcardsReply, error) {
-	nss, serr := pc.control.MatchQueryToNamespaces(common.ToCoreNamespace(r.Namespace))
-	reply := &rpc.ExpandWildcardsReply{}
-	if nss != nil {
-		reply.NSS = convertNSS(nss)
-	}
-	if serr != nil {
-		reply.Error = common.NewErrors([]serror.SnapError{serr})[0]
-	}
-	return reply, nil
+func (pc *ControlGRPCServer) UnsubscribeDeps(ctx context.Context, r *rpc.UnsubscribeDepsRequest) (*rpc.UnsubscribeDepsReply, error) {
+	serrors := pc.control.UnsubscribeDeps(r.TaskId)
+	return &rpc.UnsubscribeDepsReply{Errors: common.NewErrors(serrors)}, nil
 }
 
 func (pc *ControlGRPCServer) GetAutodiscoverPaths(ctx context.Context, _ *common.Empty) (*rpc.GetAutodiscoverPathsReply, error) {
