@@ -54,7 +54,6 @@ const (
 var (
 	ErrPoolNotFound = errors.New("plugin pool not found")
 	ErrBadKey       = errors.New("bad key")
-	ErrBadTaskId    = errors.New("bad task id")
 )
 
 // availablePlugin represents a plugin which is
@@ -539,8 +538,6 @@ func (ap *availablePlugins) findLatestPool(pType, name string) (strategy.Pool, s
 }
 
 func (ap *availablePlugins) getOrCreatePool(key string) (strategy.Pool, error) {
-	ap.Lock()
-	defer ap.Unlock()
 	var err error
 	pool, ok := ap.table[key]
 	if ok {

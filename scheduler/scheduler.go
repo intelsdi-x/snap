@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -35,7 +36,6 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
@@ -73,15 +73,6 @@ const (
 	schedulerStarted
 )
 
-type depGroupMap map[string]struct {
-	requestedMetrics  []core.RequestedMetric
-	subscribedPlugins []core.SubscribedPlugin
-}
-
-func newDepGroup() depGroupMap {
-	return depGroupMap{}
-}
-
 // ManagesMetric is implemented by control
 // On startup a scheduler will be created and passed a reference to control
 type managesMetrics interface {
@@ -90,9 +81,10 @@ type managesMetrics interface {
 	processesMetrics
 	managesPluginContentTypes
 	GetAutodiscoverPaths() []string
-	ValidateDeps([]core.RequestedMetric, []core.SubscribedPlugin, *cdata.ConfigDataTree) []serror.SnapError
-	SubscribeDeps(string, []core.RequestedMetric, []core.SubscribedPlugin, *cdata.ConfigDataTree) []serror.SnapError
-	UnsubscribeDeps(string) []serror.SnapError
+	ValidateDeps([]core.Metric, []core.SubscribedPlugin) []serror.SnapError
+	SubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
+	UnsubscribeDeps(string, []core.Metric, []core.Plugin) []serror.SnapError
+	MatchQueryToNamespaces(core.Namespace) ([]core.Namespace, serror.SnapError)
 }
 
 // ManagesPluginContentTypes is an interface to a plugin manager that can tell us what content accept and returns are supported.
@@ -101,7 +93,8 @@ type managesPluginContentTypes interface {
 }
 
 type collectsMetrics interface {
-	CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error)
+	ExpandWildcards(core.Namespace) ([]core.Namespace, serror.SnapError)
+	CollectMetrics([]core.Metric, time.Time, string, map[string]map[string]string) ([]core.Metric, []error)
 }
 
 type publishesMetrics interface {
@@ -292,9 +285,8 @@ func (s *scheduler) CreateTaskTribe(sch schedule.Schedule, wfMap *wmap.WorkflowM
 
 func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, startOnCreate bool, source string, opts ...core.TaskOption) (core.Task, core.TaskErrors) {
 	logger := schedulerLogger.WithFields(log.Fields{
-		"_block":          "create-task",
-		"source":          source,
-		"start-on-create": startOnCreate,
+		"_block": "create-task",
+		"source": source,
 	})
 	// Create a container for task errors
 	te := &taskErrors{
@@ -337,16 +329,14 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 
 	// Group dependencies by the node they live on
 	// and validate them.
-	depGroups := getWorkflowPlugins(wf.processNodes, wf.publishNodes, wf.metrics)
-	for k, group := range depGroups {
+	depGroupMap := s.gatherMetricsAndPlugins(wf)
+	for k, val := range depGroupMap {
 		manager, err := task.RemoteManagers.Get(k)
 		if err != nil {
 			te.errs = append(te.errs, serror.New(err))
 			return nil, te
 		}
-		var errs []serror.SnapError
-		errs = manager.ValidateDeps(group.requestedMetrics, group.subscribedPlugins, wf.configTree)
-
+		errs := manager.ValidateDeps(val.Metrics, val.Plugins)
 		if len(errs) > 0 {
 			te.errs = append(te.errs, errs...)
 			return nil, te
@@ -423,7 +413,6 @@ func (s *scheduler) removeTask(id, source string) error {
 		TaskID: t.id,
 		Source: source,
 	}
-
 	defer s.eventManager.Emit(event)
 	return s.tasks.remove(t)
 }
@@ -495,30 +484,30 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 			serror.New(ErrTaskAlreadyRunning),
 		}
 	}
-
 	// Group dependencies by the node they live on
 	// and subscribe to them.
-	depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
+	depGroupMap := s.gatherMetricsAndPlugins(t.workflow)
 	var subbedDeps []string
-	for k := range depGroups {
+	for k := range depGroupMap {
 		var errs []serror.SnapError
-		// cps := returnCorePlugin(depGroups[k].subscribedPlugins)
+		cps := returnCorePlugin(depGroupMap[k].Plugins)
 		mgr, err := t.RemoteManagers.Get(k)
 		if err != nil {
 			errs = append(errs, serror.New(err))
 		} else {
-			errs = mgr.SubscribeDeps(t.ID(), depGroups[k].requestedMetrics, depGroups[k].subscribedPlugins, t.workflow.configTree)
+			errs = mgr.SubscribeDeps(t.ID(), depGroupMap[k].Metrics, cps)
 		}
 		// If there are errors with subscribing any deps, go through and unsubscribe all other
 		// deps that may have already been subscribed then return the errors.
 		if len(errs) > 0 {
 			for _, key := range subbedDeps {
+				cps := returnCorePlugin(depGroupMap[key].Plugins)
+				mts := depGroupMap[key].Metrics
 				mgr, err := t.RemoteManagers.Get(key)
 				if err != nil {
 					errs = append(errs, serror.New(err))
 				} else {
-					// sending empty mts to unsubscribe to indicate task should not start
-					uerrs := mgr.UnsubscribeDeps(t.ID())
+					uerrs := mgr.UnsubscribeDeps(t.ID(), mts, cps)
 					errs = append(errs, uerrs...)
 				}
 			}
@@ -584,39 +573,38 @@ func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 			serror.New(ErrTaskDisabledNotStoppable),
 		}
 	default:
-		// Group dependencies by the host they live on and
-		// unsubscribe them since task is stopping.
-		depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
+		// Group depndencies by the host they live on and
+		// unsubscirbe them since task is stopping.
+		depGroupMap := s.gatherMetricsAndPlugins(t.workflow)
+
 		var errs []serror.SnapError
-		for k := range depGroups {
+		for k := range depGroupMap {
 			mgr, err := t.RemoteManagers.Get(k)
 			if err != nil {
 				errs = append(errs, serror.New(err))
 			} else {
-				uerrs := mgr.UnsubscribeDeps(t.ID())
+				uerrs := mgr.UnsubscribeDeps(t.ID(), depGroupMap[k].Metrics, returnCorePlugin(depGroupMap[k].Plugins))
 				if len(uerrs) > 0 {
 					errs = append(errs, uerrs...)
 				}
 			}
-			if len(errs) > 0 {
-				return errs
-			}
-
-			event := &scheduler_event.TaskStoppedEvent{
-				TaskID: t.ID(),
-				Source: source,
-			}
-			defer s.eventManager.Emit(event)
-			t.Stop()
-			logger.WithFields(log.Fields{
-				"task-id":    t.ID(),
-				"task-state": t.State(),
-			}).Info("task stopped")
-
 		}
-	}
+		if len(errs) > 0 {
+			return errs
+		}
 
-	return nil
+		event := &scheduler_event.TaskStoppedEvent{
+			TaskID: t.ID(),
+			Source: source,
+		}
+		defer s.eventManager.Emit(event)
+		t.Stop()
+		logger.WithFields(log.Fields{
+			"task-id":    t.ID(),
+			"task-state": t.State(),
+		}).Info("task stopped")
+		return nil
+	}
 }
 
 //EnableTask changes state from disabled to stopped
@@ -794,11 +782,12 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 		}).Debug("event received")
 		// We need to unsubscribe from deps when a task goes disabled
 		task, _ := s.getTask(v.TaskID)
-		depGroups := getWorkflowPlugins(task.workflow.processNodes, task.workflow.publishNodes, task.workflow.metrics)
-		for k := range depGroups {
+		depGroupMap := s.gatherMetricsAndPlugins(task.workflow)
+		for k := range depGroupMap {
+			cps := returnCorePlugin(depGroupMap[k].Plugins)
 			mgr, err := task.RemoteManagers.Get(k)
 			if err == nil {
-				mgr.UnsubscribeDeps(task.ID())
+				mgr.UnsubscribeDeps(task.ID(), depGroupMap[k].Metrics, cps)
 			}
 		}
 		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
@@ -819,39 +808,57 @@ func (s *scheduler) getTask(id string) (*task, error) {
 	return task, nil
 }
 
-func getWorkflowPlugins(prnodes []*processNode, pbnodes []*publishNode, requestedMetrics []core.RequestedMetric) depGroupMap {
-	depGroup := depGroupMap{}
-	// Add metrics to depGroup map under local host(signified by empty string)
-	// for now since remote collection not supported
-	depGroup[""] = struct {
-		requestedMetrics  []core.RequestedMetric
-		subscribedPlugins []core.SubscribedPlugin
-	}{requestedMetrics: requestedMetrics,
-		subscribedPlugins: nil}
-	return walkWorkflowForDeps(prnodes, pbnodes, requestedMetrics, depGroup)
+type depGroup struct {
+	Metrics []core.Metric
+	Plugins []core.SubscribedPlugin
 }
 
-func walkWorkflowForDeps(prnodes []*processNode, pbnodes []*publishNode, requestedMetrics []core.RequestedMetric, depGroup depGroupMap) depGroupMap {
-	for _, pr := range prnodes {
-		processors := depGroup[pr.Target]
-		if _, ok := depGroup[pr.Target]; ok {
-			processors.subscribedPlugins = append(processors.subscribedPlugins, pr)
-		} else {
-			processors.subscribedPlugins = []core.SubscribedPlugin{pr}
+func (s *scheduler) gatherMetricsAndPlugins(wf *schedulerWorkflow) map[string]depGroup {
+	var mts []core.Metric
+	depGroupMap := make(map[string]depGroup)
+	for _, m := range wf.metrics {
+		nss, err := s.metricManager.MatchQueryToNamespaces(m.Namespace())
+		if err != nil {
+			// use metric directly from the workflow
+			nss = []core.Namespace{m.Namespace()}
 		}
-		depGroup[pr.Target] = processors
-		walkWorkflowForDeps(pr.ProcessNodes, pr.PublishNodes, requestedMetrics, depGroup)
+
+		for _, ns := range nss {
+			mts = append(mts, &metric{
+				namespace: ns,
+				version:   m.Version(),
+				config:    wf.configTree.Get(ns.Strings()),
+			})
+		}
+	}
+	// Add metrics to depGroup map under local host(signified by empty string)
+	// for now since remote collection not supported
+	depGroupMap[""] = depGroup{Metrics: mts}
+	s.walkWorkflow(wf.processNodes, wf.publishNodes, depGroupMap)
+
+	return depGroupMap
+}
+
+func (s *scheduler) walkWorkflow(prnodes []*processNode, pbnodes []*publishNode, depGroupMap map[string]depGroup) {
+	for _, pr := range prnodes {
+		if _, ok := depGroupMap[pr.Target]; ok {
+			dg := depGroupMap[pr.Target]
+			dg.Plugins = append(dg.Plugins, pr)
+			depGroupMap[pr.Target] = dg
+		} else {
+			depGroupMap[pr.Target] = depGroup{Plugins: []core.SubscribedPlugin{pr}}
+		}
+		s.walkWorkflow(pr.ProcessNodes, pr.PublishNodes, depGroupMap)
 	}
 	for _, pb := range pbnodes {
-		publishers := depGroup[pb.Target]
-		if _, ok := depGroup[pb.Target]; ok {
-			publishers.subscribedPlugins = append(publishers.subscribedPlugins, pb)
+		if _, ok := depGroupMap[pb.Target]; ok {
+			dg := depGroupMap[pb.Target]
+			dg.Plugins = append(dg.Plugins, pb)
+			depGroupMap[pb.Target] = dg
 		} else {
-			publishers.subscribedPlugins = []core.SubscribedPlugin{pb}
+			depGroupMap[pb.Target] = depGroup{Plugins: []core.SubscribedPlugin{pb}}
 		}
-		depGroup[pb.Target] = publishers
 	}
-	return depGroup
 }
 
 func returnCorePlugin(plugins []core.SubscribedPlugin) []core.Plugin {

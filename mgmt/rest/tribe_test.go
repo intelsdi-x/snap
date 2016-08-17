@@ -201,7 +201,7 @@ func TestTribeTaskAgreements(t *testing.T) {
 					So(timedOut, ShouldEqual, false)
 
 					Convey("Plugins and a task are uploaded", func() {
-						resp := uploadPlugin(MOCK_PLUGIN_PATH2, mgtPorts[0])
+						resp := uploadPlugin(MOCK_PLUGIN_PATH1, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.PluginsLoadedType)
 						resp = getPluginList(mgtPorts[0])
@@ -212,14 +212,19 @@ func TestTribeTaskAgreements(t *testing.T) {
 						resp = getAgreement(mgtPorts[0], aName)
 						So(resp.Meta.Code, ShouldEqual, 200)
 						So(len(resp.Body.(*rbody.TribeGetAgreement).Agreement.PluginAgreement.Plugins), ShouldEqual, 1)
+						resp = createTask("3.json", "task1", "1s", true, mgtPorts[0])
+						So(resp.Meta.Code, ShouldEqual, 201)
+						So(resp.Meta.Type, ShouldEqual, rbody.AddScheduledTaskType)
+						So(resp.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
+						taskID := resp.Body.(*rbody.AddScheduledTask).ID
 
-						Convey("The cluster agrees on plugins", func(c C) {
+						Convey("The cluster agrees on tasks", func(c C) {
 							var wg sync.WaitGroup
 							timedOut := false
 							for _, i := range mgtPorts {
 								timer := time.After(15 * time.Second)
 								wg.Add(1)
-								go func(port int) {
+								go func(port int, name string) {
 									defer wg.Done()
 									for {
 										select {
@@ -227,66 +232,66 @@ func TestTribeTaskAgreements(t *testing.T) {
 											timedOut = true
 											return
 										default:
-											resp := getPluginList(port)
+											resp := getAgreement(port, name)
 											if resp.Meta.Code == 200 {
-												c.So(resp.Body.(*rbody.PluginList), ShouldHaveSameTypeAs, new(rbody.PluginList))
-												if len(resp.Body.(*rbody.PluginList).LoadedPlugins) == 1 {
+												c.So(resp.Body.(*rbody.TribeGetAgreement), ShouldHaveSameTypeAs, new(rbody.TribeGetAgreement))
+												if len(resp.Body.(*rbody.TribeGetAgreement).Agreement.TaskAgreement.Tasks) == 1 {
 													return
 												}
 											}
 											time.Sleep(200 * time.Millisecond)
 										}
 									}
-								}(i)
+								}(i, aName)
 							}
 							wg.Wait()
 							So(timedOut, ShouldEqual, false)
-
-							resp = createTask("3.json", "task1", "1s", true, mgtPorts[0])
-							So(resp.Meta.Code, ShouldEqual, 201)
-							So(resp.Meta.Type, ShouldEqual, rbody.AddScheduledTaskType)
-							So(resp.Body, ShouldHaveSameTypeAs, new(rbody.AddScheduledTask))
-							taskID := resp.Body.(*rbody.AddScheduledTask).ID
-
-							Convey("The cluster agrees on tasks", func(c C) {
-								var wg sync.WaitGroup
-								timedOut := false
-								for _, i := range mgtPorts {
-									timer := time.After(15 * time.Second)
-									wg.Add(1)
-									go func(port int, name string) {
-										defer wg.Done()
-										for {
-											select {
-											case <-timer:
-												timedOut = true
-												return
-											default:
-												resp := getAgreement(port, name)
-												if resp.Meta.Code == 200 {
-													c.So(resp.Body.(*rbody.TribeGetAgreement), ShouldHaveSameTypeAs, new(rbody.TribeGetAgreement))
-													if len(resp.Body.(*rbody.TribeGetAgreement).Agreement.TaskAgreement.Tasks) == 1 {
-														return
+							Convey("The task is started", func() {
+								resp := startTask(taskID, mgtPorts[0])
+								So(resp.Meta.Code, ShouldEqual, 200)
+								So(resp.Meta.Type, ShouldEqual, rbody.ScheduledTaskStartedType)
+								Convey("The task is started on all members of the tribe", func(c C) {
+									var wg sync.WaitGroup
+									timedOut := false
+									for i := 0; i < numOfNodes; i++ {
+										timer := time.After(15 * time.Second)
+										wg.Add(1)
+										go func(port int) {
+											defer wg.Done()
+											for {
+												select {
+												case <-timer:
+													timedOut = true
+													return
+												default:
+													resp := getTask(taskID, port)
+													if resp.Meta.Code == 200 {
+														if resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskSpinning.String() || resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskFiring.String() {
+															return
+														}
+														log.Debugf("port %v has task in state %v", port, resp.Body.(*rbody.ScheduledTaskReturned).State)
+													} else {
+														log.Debugf("node %v error getting task", port)
 													}
+													time.Sleep(400 * time.Millisecond)
 												}
-												time.Sleep(200 * time.Millisecond)
 											}
-										}
-									}(i, aName)
-								}
-								wg.Wait()
-								So(timedOut, ShouldEqual, false)
-								Convey("The task is started", func() {
-									resp := startTask(taskID, mgtPorts[0])
-									So(resp.Meta.Code, ShouldEqual, 200)
-									So(resp.Meta.Type, ShouldEqual, rbody.ScheduledTaskStartedType)
-									Convey("The task is started on all members of the tribe", func(c C) {
+										}(mgtPorts[i])
+									}
+									wg.Wait()
+									So(timedOut, ShouldEqual, false)
+									Convey("A new node joins the agreement", func() {
+										mgtPort, _, _ := startTribes(1, fmt.Sprintf("127.0.0.1:%d", tribePort))
+										j := joinAgreement(mgtPort[0], fmt.Sprintf("member-%d", mgtPort[0]), aName)
+										mgtPorts = append(mgtPorts, mgtPort[0])
+										So(j.Meta.Code, ShouldEqual, 200)
+										So(j.Body, ShouldHaveSameTypeAs, new(rbody.TribeJoinAgreement))
 										var wg sync.WaitGroup
 										timedOut := false
-										for i := 0; i < numOfNodes; i++ {
+										for _, i := range mgtPort {
 											timer := time.After(15 * time.Second)
 											wg.Add(1)
-											go func(port int) {
+											go func(port int, name string) {
 												defer wg.Done()
 												for {
 													select {
@@ -306,22 +311,22 @@ func TestTribeTaskAgreements(t *testing.T) {
 														time.Sleep(400 * time.Millisecond)
 													}
 												}
-											}(mgtPorts[i])
+											}(i, fmt.Sprintf("member-%d", i))
 										}
 										wg.Wait()
+										time.Sleep(1 * time.Second)
 										So(timedOut, ShouldEqual, false)
-										Convey("A new node joins the agreement", func() {
-											mgtPort, _, _ := startTribes(1, fmt.Sprintf("127.0.0.1:%d", tribePort))
-											j := joinAgreement(mgtPort[0], fmt.Sprintf("member-%d", mgtPort[0]), aName)
-											mgtPorts = append(mgtPorts, mgtPort[0])
-											So(j.Meta.Code, ShouldEqual, 200)
-											So(j.Body, ShouldHaveSameTypeAs, new(rbody.TribeJoinAgreement))
+										Convey("The task is stopped", func() {
+											resp := stopTask(taskID, mgtPorts[0])
+											So(resp.Meta.Code, ShouldEqual, 200)
+											So(resp.Meta.Type, ShouldEqual, rbody.ScheduledTaskStoppedType)
+											So(resp.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStopped))
 											var wg sync.WaitGroup
 											timedOut := false
-											for _, i := range mgtPort {
+											for i := 0; i < numOfNodes; i++ {
 												timer := time.After(15 * time.Second)
 												wg.Add(1)
-												go func(port int, name string) {
+												go func(port int) {
 													defer wg.Done()
 													for {
 														select {
@@ -331,26 +336,27 @@ func TestTribeTaskAgreements(t *testing.T) {
 														default:
 															resp := getTask(taskID, port)
 															if resp.Meta.Code == 200 {
-																if resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskSpinning.String() || resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskFiring.String() {
+																if resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskStopped.String() {
 																	return
 																}
-																log.Debugf("port %v has task in state %v", port, resp.Body.(*rbody.ScheduledTaskReturned).State)
-															} else {
-																log.Debugf("node %v error getting task", port)
 															}
 															time.Sleep(400 * time.Millisecond)
 														}
 													}
-												}(i, fmt.Sprintf("member-%d", i))
+												}(mgtPorts[i])
 											}
 											wg.Wait()
-											time.Sleep(1 * time.Second)
 											So(timedOut, ShouldEqual, false)
-											Convey("The task is stopped", func() {
-												resp := stopTask(taskID, mgtPorts[0])
+											Convey("The task is removed", func() {
+												for _, port := range mgtPorts {
+													resp := getTask(taskID, port)
+													So(resp.Meta.Code, ShouldEqual, 200)
+													So(resp.Body.(*rbody.ScheduledTaskReturned).State, ShouldResemble, core.TaskStopped.String())
+												}
+												resp := removeTask(taskID, mgtPorts[0])
 												So(resp.Meta.Code, ShouldEqual, 200)
-												So(resp.Meta.Type, ShouldEqual, rbody.ScheduledTaskStoppedType)
-												So(resp.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskStopped))
+												So(resp.Meta.Type, ShouldEqual, rbody.ScheduledTaskRemovedType)
+												So(resp.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskRemoved))
 												var wg sync.WaitGroup
 												timedOut := false
 												for i := 0; i < numOfNodes; i++ {
@@ -365,10 +371,8 @@ func TestTribeTaskAgreements(t *testing.T) {
 																return
 															default:
 																resp := getTask(taskID, port)
-																if resp.Meta.Code == 200 {
-																	if resp.Body.(*rbody.ScheduledTaskReturned).State == core.TaskStopped.String() {
-																		return
-																	}
+																if resp.Meta.Code == 404 {
+																	return
 																}
 																time.Sleep(400 * time.Millisecond)
 															}
@@ -377,16 +381,11 @@ func TestTribeTaskAgreements(t *testing.T) {
 												}
 												wg.Wait()
 												So(timedOut, ShouldEqual, false)
-												Convey("The task is removed", func() {
-													for _, port := range mgtPorts {
-														resp := getTask(taskID, port)
-														So(resp.Meta.Code, ShouldEqual, 200)
-														So(resp.Body.(*rbody.ScheduledTaskReturned).State, ShouldResemble, core.TaskStopped.String())
-													}
-													resp := removeTask(taskID, mgtPorts[0])
+												Convey("The plugins are unloaded", func(c C) {
+													resp := unloadPlugin(mgtPorts[0], pluginToUnload.Type, pluginToUnload.Name, pluginToUnload.Version)
 													So(resp.Meta.Code, ShouldEqual, 200)
-													So(resp.Meta.Type, ShouldEqual, rbody.ScheduledTaskRemovedType)
-													So(resp.Body, ShouldHaveSameTypeAs, new(rbody.ScheduledTaskRemoved))
+													So(resp.Meta.Type, ShouldEqual, rbody.PluginUnloadedType)
+													So(resp.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
 													var wg sync.WaitGroup
 													timedOut := false
 													for i := 0; i < numOfNodes; i++ {
@@ -400,8 +399,9 @@ func TestTribeTaskAgreements(t *testing.T) {
 																	timedOut = true
 																	return
 																default:
-																	resp := getTask(taskID, port)
-																	if resp.Meta.Code == 404 {
+																	resp = getPluginList(port)
+																	c.So(resp.Meta.Code, ShouldEqual, 200)
+																	if len(resp.Body.(*rbody.PluginList).LoadedPlugins) == 0 {
 																		return
 																	}
 																	time.Sleep(400 * time.Millisecond)
@@ -411,37 +411,6 @@ func TestTribeTaskAgreements(t *testing.T) {
 													}
 													wg.Wait()
 													So(timedOut, ShouldEqual, false)
-													Convey("The plugins are unloaded", func(c C) {
-														resp := unloadPlugin(mgtPorts[0], pluginToUnload.Type, pluginToUnload.Name, pluginToUnload.Version)
-														So(resp.Meta.Code, ShouldEqual, 200)
-														So(resp.Meta.Type, ShouldEqual, rbody.PluginUnloadedType)
-														So(resp.Body, ShouldHaveSameTypeAs, new(rbody.PluginUnloaded))
-														var wg sync.WaitGroup
-														timedOut := false
-														for i := 0; i < numOfNodes; i++ {
-															timer := time.After(15 * time.Second)
-															wg.Add(1)
-															go func(port int) {
-																defer wg.Done()
-																for {
-																	select {
-																	case <-timer:
-																		timedOut = true
-																		return
-																	default:
-																		resp = getPluginList(port)
-																		c.So(resp.Meta.Code, ShouldEqual, 200)
-																		if len(resp.Body.(*rbody.PluginList).LoadedPlugins) == 0 {
-																			return
-																		}
-																		time.Sleep(400 * time.Millisecond)
-																	}
-																}
-															}(mgtPorts[i])
-														}
-														wg.Wait()
-														So(timedOut, ShouldEqual, false)
-													})
 												})
 											})
 										})
@@ -511,7 +480,7 @@ func TestTribePluginAgreements(t *testing.T) {
 					So(timedOut, ShouldEqual, false)
 
 					Convey("A plugin is uploaded", func() {
-						resp := uploadPlugin(MOCK_PLUGIN_PATH2, mgtPorts[0])
+						resp := uploadPlugin(MOCK_PLUGIN_PATH1, mgtPorts[0])
 						So(resp.Meta.Code, ShouldEqual, 201)
 						So(resp.Meta.Type, ShouldEqual, rbody.PluginsLoadedType)
 						lpName = resp.Body.(*rbody.PluginsLoaded).LoadedPlugins[0].Name
@@ -743,10 +712,7 @@ func startTribes(count int, seed string) ([]int, int, *listenToSeedEvents) {
 			t.EventManager.RegisterHandler("tribe.tests", lpe)
 		}
 
-		cfg := control.GetDefaultConfig()
-		// get an available port to avoid conflicts (we aren't testing remote workflows here)
-		cfg.ListenPort = getAvailablePort()
-		c := control.New(cfg)
+		c := control.New(control.GetDefaultConfig())
 		c.RegisterEventHandler("tribe", t)
 		c.Start()
 		s := scheduler.New(scheduler.GetDefaultConfig())
@@ -785,7 +751,7 @@ func startTribes(count int, seed string) ([]int, int, *listenToSeedEvents) {
 	return mgtPorts, tribePort, lpe
 }
 
-var nextPort uint64 = 51234
+var nextPort uint64 = 55234
 
 func getAvailablePort() int {
 	atomic.AddUint64(&nextPort, 1)

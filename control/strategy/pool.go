@@ -38,6 +38,15 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 )
 
+type SubscriptionType int
+
+const (
+	// this subscription is bound to an explicit version
+	BoundSubscriptionType SubscriptionType = iota
+	// this subscription is akin to "latest" and must be moved if a newer version is loaded.
+	UnboundSubscriptionType
+)
+
 var (
 	// This defines the maximum running instances of a loaded plugin.
 	// It is initialized at runtime via the cli.
@@ -56,13 +65,14 @@ type Pool interface {
 	Eligible() bool
 	Insert(a AvailablePlugin) error
 	Kill(id uint32, reason string)
+	MoveSubscriptions(to Pool) []subscription
 	Plugins() MapAvailablePlugin
 	RLock()
 	RUnlock()
 	SelectAndKill(taskID, reason string)
 	SelectAP(taskID string, configID map[string]ctypes.ConfigValue) (AvailablePlugin, serror.SnapError)
 	Strategy() RoutingAndCaching
-	Subscribe(taskID string)
+	Subscribe(taskID string, subType SubscriptionType)
 	SubscriptionCount() int
 	Unsubscribe(taskID string)
 	Version() int
@@ -86,6 +96,7 @@ type AvailablePlugin interface {
 }
 
 type subscription struct {
+	SubType SubscriptionType
 	Version int
 	TaskID  string
 }
@@ -193,6 +204,7 @@ func (p *pool) Insert(a AvailablePlugin) error {
 
 	a.SetID(p.generatePID())
 	p.plugins[a.ID()] = a
+
 	return nil
 }
 
@@ -232,7 +244,7 @@ func (p *pool) applyPluginMeta(a AvailablePlugin) error {
 
 // subscribe adds a subscription to the pool.
 // Using subscribe is idempotent.
-func (p *pool) Subscribe(taskID string) {
+func (p *pool) Subscribe(taskID string, subType SubscriptionType) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -241,6 +253,7 @@ func (p *pool) Subscribe(taskID string) {
 		// to retrieve it for the subscription.
 		p.subs[taskID] = &subscription{
 			TaskID:  taskID,
+			SubType: subType,
 			Version: p.version,
 		}
 	}
@@ -312,7 +325,6 @@ func (p *pool) SelectAndKill(id, reason string) {
 			"taskID": id,
 			"reason": reason,
 		}).Error(err)
-		return
 	}
 	if err := rp.Stop(reason); err != nil {
 		log.WithFields(log.Fields{
@@ -401,6 +413,28 @@ func idFromCfg(cfg map[string]ctypes.ConfigValue) string {
 func (p *pool) generatePID() uint32 {
 	atomic.AddUint32(&p.pidCounter, 1)
 	return p.pidCounter
+}
+
+// MoveSubscriptions moves subscriptions to another pool
+func (p *pool) MoveSubscriptions(to Pool) []subscription {
+	var subs []subscription
+	// If attempting to move between the same pool
+	// bail to prevent deadlock.
+	if to.(*pool) == p {
+		return []subscription{}
+	}
+	p.Lock()
+	defer p.Unlock()
+
+	for task, sub := range p.subs {
+		// ensure that this sub was not bound to this pool specifically before moving
+		if sub.SubType == UnboundSubscriptionType {
+			subs = append(subs, *sub)
+			to.Subscribe(task, UnboundSubscriptionType)
+			delete(p.subs, task)
+		}
+	}
+	return subs
 }
 
 // CacheTTL returns the cacheTTL for the pool

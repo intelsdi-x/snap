@@ -32,7 +32,6 @@ import (
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
@@ -340,7 +339,7 @@ type subscriptionManager struct {
 	UnsubscribeCallCount int
 }
 
-func (m *subscriptionManager) SubscribeDeps(taskID string, reqs []core.RequestedMetric, cps []core.SubscribedPlugin, cdt *cdata.ConfigDataTree) []serror.SnapError {
+func (m *subscriptionManager) SubscribeDeps(taskID string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
 	if m.Fail {
 		return []serror.SnapError{serror.New(errors.New("error"))}
 	}
@@ -348,7 +347,7 @@ func (m *subscriptionManager) SubscribeDeps(taskID string, reqs []core.Requested
 	return nil
 }
 
-func (m *subscriptionManager) UnsubscribeDeps(taskID string) []serror.SnapError {
+func (m *subscriptionManager) UnsubscribeDeps(taskID string, mts []core.Metric, prs []core.Plugin) []serror.SnapError {
 	m.UnsubscribeCallCount += 1
 	return nil
 }

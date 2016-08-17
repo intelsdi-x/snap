@@ -493,7 +493,6 @@ func TestRunnerPluginRunning(t *testing.T) {
 			Convey("stopPlugin", func() {
 				Convey("should return an AvailablePlugin in a Running state", func() {
 					r := newRunner()
-					r.SetEmitter(new(MockEmitter))
 					a := plugin.Arg{
 						PluginLogPath: "/tmp/snap-test-plugin-stop.log",
 					}
