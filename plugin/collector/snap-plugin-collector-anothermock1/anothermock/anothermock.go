@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mock
+package anothermock
 
 import (
 	"fmt"
@@ -33,19 +33,19 @@ import (
 
 const (
 	// Name of plugin
-	Name = "mock"
+	Name = "anothermock"
 	// Version of plugin
-	Version = 2
+	Version = 1
 	// Type of plugin
 	Type = plugin.CollectorPluginType
 )
 
 // Mock collector implementation used for testing
-type Mock struct {
+type AnotherMock struct {
 }
 
 // CollectMetrics collects metrics for testing
-func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, error) {
+func (f *AnotherMock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, error) {
 	for _, p := range mts {
 		log.Printf("collecting %+v\n", p)
 	}
@@ -61,7 +61,7 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 				ns := make([]core.NamespaceElement, len(mts[i].Namespace()))
 				copy(ns, mts[i].Namespace())
 				ns[2].Value = fmt.Sprintf("host%d", j)
-				data := randInt(65, 90) + 1000
+				data := 9000 + randInt(65, 90)
 				mt := plugin.MetricType{
 					Data_:      data,
 					Namespace_: ns,
@@ -72,7 +72,7 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 				metrics = append(metrics, mt)
 			}
 		} else {
-			data := randInt(65, 90) + 1000
+			data := 9000 + randInt(65, 90)
 			mts[i].Data_ = data
 			mts[i].Timestamp_ = time.Now()
 			metrics = append(metrics, mts[i])
@@ -82,49 +82,47 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 }
 
 //GetMetricTypes returns metric types for testing
-func (f *Mock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error) {
+func (f *AnotherMock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error) {
 	mts := []plugin.MetricType{}
 	if _, ok := cfg.Table()["test-fail"]; ok {
 		return mts, fmt.Errorf("testing")
 	}
 	if _, ok := cfg.Table()["test"]; ok {
 		mts = append(mts, plugin.MetricType{
-			Namespace_:   core.NewNamespace("intel", "mock", "test"),
-			Description_: "mock description",
-			Unit_:        "mock unit",
-		})
-	}
-	if _, ok := cfg.Table()["test-less"]; !ok {
-		mts = append(mts, plugin.MetricType{
-			Namespace_:   core.NewNamespace("intel", "mock", "foo"),
-			Description_: "mock description",
-			Unit_:        "mock unit",
+			Namespace_:   core.NewNamespace("intel", "anothermock", "test"),
+			Description_: "anothermock description",
+			Unit_:        "anothermock unit",
 		})
 	}
 	mts = append(mts, plugin.MetricType{
-		Namespace_:   core.NewNamespace("intel", "mock", "bar"),
-		Description_: "mock description",
-		Unit_:        "mock unit",
+		Namespace_:   core.NewNamespace("intel", "anothermock", "foo"),
+		Description_: "anothermock description",
+		Unit_:        "anothermock unit",
 	})
 	mts = append(mts, plugin.MetricType{
-		Namespace_: core.NewNamespace("intel", "mock").
+		Namespace_:   core.NewNamespace("intel", "anothermock", "bar"),
+		Description_: "anothermock description",
+		Unit_:        "anothermock unit",
+	})
+	mts = append(mts, plugin.MetricType{
+		Namespace_: core.NewNamespace("intel", "anothermock").
 			AddDynamicElement("host", "name of the host").
 			AddStaticElement("baz"),
-		Description_: "mock description",
-		Unit_:        "mock unit",
+		Description_: "anothermock description",
+		Unit_:        "anothermock unit",
 	})
 	return mts, nil
 }
 
 //GetConfigPolicy returns a ConfigPolicy for testing
-func (f *Mock) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
+func (f *AnotherMock) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	c := cpolicy.New()
 	rule, _ := cpolicy.NewStringRule("name", false, "bob")
 	rule2, _ := cpolicy.NewStringRule("password", true)
 	p := cpolicy.NewPolicyNode()
 	p.Add(rule)
 	p.Add(rule2)
-	c.Add([]string{"intel", "mock", "foo"}, p)
+	c.Add([]string{"intel", "anothermock", "foo"}, p)
 	return c, nil
 }
 

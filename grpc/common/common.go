@@ -163,6 +163,18 @@ func ToCoreMetric(mt *Metric) core.Metric {
 	return ret
 }
 
+func MetricToRequested(mts []*Metric) []core.RequestedMetric {
+	ret := make([]core.RequestedMetric, len(mts))
+	for i, mt := range mts {
+		met := &metric{
+			namespace: ToCoreNamespace(mt.Namespace),
+			version:   int(mt.Version),
+		}
+		ret[i] = met
+	}
+	return ret
+}
+
 // Convert common.Namespace protobuf message to core.Namespace
 func ToCoreNamespace(n []*NamespaceElement) core.Namespace {
 	var namespace core.Namespace
@@ -184,6 +196,37 @@ func ToCoreMetrics(mts []*Metric) []core.Metric {
 		metrics[i] = ToCoreMetric(mt)
 	}
 	return metrics
+}
+
+// Convert slice of common.Metric to []core.RequestedMetric
+func ToRequestedMetrics(mts []*Metric) []core.RequestedMetric {
+	metrics := make([]core.RequestedMetric, len(mts))
+	for i, mt := range mts {
+		metrics[i] = ToCoreMetric(mt)
+	}
+	return metrics
+}
+
+func RequestedToMetric(requested []core.RequestedMetric) []*Metric {
+	reqMets := make([]*Metric, len(requested))
+	for i, r := range requested {
+		rm := &Metric{
+			Namespace: ToNamespace(r.Namespace()),
+			Version:   int64(r.Version()),
+			Config:    &ConfigMap{},
+			Tags:      map[string]string{},
+			Timestamp: &Time{
+				Sec:  time.Now().Unix(),
+				Nsec: int64(time.Now().Nanosecond()),
+			},
+			LastAdvertisedTime: &Time{
+				Sec:  time.Now().Unix(),
+				Nsec: int64(time.Now().Nanosecond()),
+			},
+		}
+		reqMets[i] = rm
+	}
+	return reqMets
 }
 
 // implements core.SubscribedPlugin

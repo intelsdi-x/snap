@@ -1139,7 +1139,7 @@ func getTribes(numOfTribes int, seedTribe *tribe) []*tribe {
 	return tribes
 }
 
-var nextPort uint64 = 55234
+var nextPort uint64 = 61234
 
 func getAvailablePort() int {
 	atomic.AddUint64(&nextPort, 1)

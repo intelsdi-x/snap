@@ -31,6 +31,7 @@ import (
 	"github.com/intelsdi-x/snap/grpc/common"
 	"github.com/intelsdi-x/snap/grpc/controlproxy/rpc"
 
+	"github.com/intelsdi-x/snap/core/cdata"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -49,7 +50,7 @@ type mockClient struct {
 	ContentTypeReply *rpc.GetPluginContentTypesReply
 	ValidateReply    *rpc.ValidateDepsReply
 	SubscribeReply   *rpc.SubscribeDepsReply
-	UnsubscribeReply *rpc.SubscribeDepsReply
+	UnsubscribeReply *rpc.UnsubscribeDepsReply
 	MatchReply       *rpc.ExpandWildcardsReply
 	AutoDiscoReply   *rpc.GetAutodiscoverPathsReply
 }
@@ -66,12 +67,6 @@ func (mc mockClient) GetPluginContentTypes(ctx context.Context, in *rpc.GetPlugi
 		return nil, rpcErr
 	}
 	return mc.ContentTypeReply, nil
-}
-func (mc mockClient) ExpandWildcards(ctx context.Context, in *rpc.ExpandWildcardsRequest, opts ...grpc.CallOption) (*rpc.ExpandWildcardsReply, error) {
-	if mc.RpcErr {
-		return nil, rpcErr
-	}
-	return mc.ExpandReply, nil
 }
 func (mc mockClient) CollectMetrics(ctx context.Context, in *rpc.CollectMetricsRequest, opts ...grpc.CallOption) (*rpc.CollectMetricsResponse, error) {
 	if mc.RpcErr {
@@ -103,76 +98,11 @@ func (mc mockClient) SubscribeDeps(ctx context.Context, in *rpc.SubscribeDepsReq
 	}
 	return mc.SubscribeReply, nil
 }
-func (mc mockClient) UnsubscribeDeps(ctx context.Context, in *rpc.SubscribeDepsRequest, opts ...grpc.CallOption) (*rpc.SubscribeDepsReply, error) {
+func (mc mockClient) UnsubscribeDeps(ctx context.Context, in *rpc.UnsubscribeDepsRequest, opts ...grpc.CallOption) (*rpc.UnsubscribeDepsReply, error) {
 	if mc.RpcErr {
 		return nil, rpcErr
 	}
 	return mc.UnsubscribeReply, nil
-}
-func (mc mockClient) MatchQueryToNamespaces(ctx context.Context, in *rpc.ExpandWildcardsRequest, opts ...grpc.CallOption) (*rpc.ExpandWildcardsReply, error) {
-	if mc.RpcErr {
-		return nil, rpcErr
-	}
-	return mc.MatchReply, nil
-}
-
-func TestExpandWildcards(t *testing.T) {
-	Convey("RPC client errors", t, func() {
-		input := core.NewNamespace("testing", "this")
-
-		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		ns, err := proxy.ExpandWildcards(input)
-
-		Convey("So the error should be passed through", func() {
-			So(err.Error(), ShouldResemble, rpcErr.Error())
-		})
-		Convey("So The namespace ShouldBeNil", func() {
-			So(ns, ShouldBeNil)
-		})
-	})
-
-	Convey("call to Control.ExpandWildcards returns error", t, func() {
-		input := core.NewNamespace("testing", "this")
-		reply := &rpc.ExpandWildcardsReply{
-			Error: &common.SnapError{
-				ErrorFields: map[string]string{},
-				ErrorString: "Error from control",
-			},
-		}
-
-		proxy := ControlProxy{Client: mockClient{ExpandReply: reply}}
-		ns, err := proxy.ExpandWildcards(input)
-
-		Convey("So the err should be: "+reply.Error.ErrorString, func() {
-			So(err.Error(), ShouldResemble, common.ToSnapError(reply.Error).Error())
-		})
-		Convey("So Namespaces should be nil", func() {
-			So(ns, ShouldBeNil)
-		})
-	})
-
-	Convey("Successful call", t, func() {
-		input := core.NewNamespace("testing", "this")
-		a := core.NewNamespace("testing", "this")
-		b := core.NewNamespace("stuff", "more")
-		proto_a := &rpc.ArrString{S: common.ToNamespace(a)}
-		proto_b := &rpc.ArrString{S: common.ToNamespace(b)}
-		reply := &rpc.ExpandWildcardsReply{
-			Error: nil,
-			NSS:   []*rpc.ArrString{proto_a, proto_b},
-		}
-
-		proxy := ControlProxy{Client: mockClient{ExpandReply: reply}}
-		ns, err := proxy.ExpandWildcards(input)
-
-		Convey("so the err Should be nil", func() {
-			So(err, ShouldBeNil)
-		})
-		Convey("So namespaces should resemble:"+a.String()+","+b.String(), func() {
-			So(ns, ShouldResemble, []core.Namespace{a, b})
-		})
-
-	})
 }
 
 func TestPublishMetrics(t *testing.T) {
@@ -270,7 +200,7 @@ func TestProcessMetrics(t *testing.T) {
 func TestCollectMetrics(t *testing.T) {
 	Convey("RPC client errors", t, func() {
 		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		_, errs := proxy.CollectMetrics([]core.Metric{}, time.Now(), "", map[string]map[string]string{})
+		_, errs := proxy.CollectMetrics("", map[string]map[string]string{})
 
 		Convey("So the error should be passed through", func() {
 			So(errs[0].Error(), ShouldResemble, rpcErr.Error())
@@ -284,7 +214,7 @@ func TestCollectMetrics(t *testing.T) {
 		}
 
 		proxy := ControlProxy{Client: mockClient{CollectReply: reply}}
-		_, errs := proxy.CollectMetrics([]core.Metric{}, time.Now(), "", map[string]map[string]string{})
+		_, errs := proxy.CollectMetrics("", map[string]map[string]string{})
 
 		Convey("So len of errs should be 1", func() {
 			So(len(errs), ShouldEqual, 1)
@@ -308,7 +238,7 @@ func TestCollectMetrics(t *testing.T) {
 		}
 
 		proxy := ControlProxy{Client: mockClient{CollectReply: reply}}
-		mts, errs := proxy.CollectMetrics([]core.Metric{}, time.Now(), "", map[string]map[string]string{})
+		mts, errs := proxy.CollectMetrics("", map[string]map[string]string{})
 
 		Convey("So len of errs should be 0", func() {
 			So(len(errs), ShouldEqual, 0)
@@ -380,7 +310,7 @@ func TestGetPluginContentTypes(t *testing.T) {
 func TestValidateDeps(t *testing.T) {
 	Convey("RPC client errors", t, func() {
 		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		errs := proxy.ValidateDeps([]core.Metric{}, []core.SubscribedPlugin{})
+		errs := proxy.ValidateDeps([]core.RequestedMetric{}, []core.SubscribedPlugin{}, cdata.NewTree())
 		So(errs, ShouldNotBeNil)
 		So(len(errs), ShouldBeGreaterThan, 0)
 		Convey("So the error should be passed through", func() {
@@ -394,7 +324,7 @@ func TestValidateDeps(t *testing.T) {
 		}
 
 		proxy := ControlProxy{Client: mockClient{ValidateReply: reply}}
-		errs := proxy.ValidateDeps([]core.Metric{}, []core.SubscribedPlugin{})
+		errs := proxy.ValidateDeps([]core.RequestedMetric{}, []core.SubscribedPlugin{}, cdata.NewTree())
 		So(errs, ShouldNotBeNil)
 		So(len(errs), ShouldEqual, 1)
 		Convey("So the error should resemble 'test'", func() {
@@ -407,7 +337,7 @@ func TestValidateDeps(t *testing.T) {
 		reply := &rpc.ValidateDepsReply{}
 
 		proxy := ControlProxy{Client: mockClient{ValidateReply: reply}}
-		errs := proxy.ValidateDeps([]core.Metric{}, []core.SubscribedPlugin{})
+		errs := proxy.ValidateDeps([]core.RequestedMetric{}, []core.SubscribedPlugin{}, cdata.NewTree())
 		Convey("So the there should be no errors", func() {
 			So(len(errs), ShouldEqual, 0)
 		})
@@ -418,7 +348,7 @@ func TestValidateDeps(t *testing.T) {
 func TestSubscribeDeps(t *testing.T) {
 	Convey("RPC client errors", t, func() {
 		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		errs := proxy.SubscribeDeps("", []core.Metric{}, []core.Plugin{})
+		errs := proxy.SubscribeDeps("", []core.RequestedMetric{}, []core.SubscribedPlugin{}, cdata.NewTree())
 		So(errs, ShouldNotBeNil)
 		So(len(errs), ShouldBeGreaterThan, 0)
 		Convey("So the error should be passed through", func() {
@@ -432,7 +362,7 @@ func TestSubscribeDeps(t *testing.T) {
 		}
 
 		proxy := ControlProxy{Client: mockClient{SubscribeReply: reply}}
-		errs := proxy.SubscribeDeps("", []core.Metric{}, []core.Plugin{})
+		errs := proxy.SubscribeDeps("", []core.RequestedMetric{}, []core.SubscribedPlugin{}, cdata.NewTree())
 		So(errs, ShouldNotBeNil)
 		So(len(errs), ShouldEqual, 1)
 		Convey("So the error should resemble 'test'", func() {
@@ -445,7 +375,7 @@ func TestSubscribeDeps(t *testing.T) {
 		reply := &rpc.SubscribeDepsReply{}
 
 		proxy := ControlProxy{Client: mockClient{SubscribeReply: reply}}
-		errs := proxy.SubscribeDeps("", []core.Metric{}, []core.Plugin{})
+		errs := proxy.SubscribeDeps("", []core.RequestedMetric{}, []core.SubscribedPlugin{}, cdata.NewTree())
 		Convey("So the there should be no errors", func() {
 			So(len(errs), ShouldEqual, 0)
 		})
@@ -456,7 +386,7 @@ func TestSubscribeDeps(t *testing.T) {
 func TestUnsubscribeDeps(t *testing.T) {
 	Convey("RPC client errors", t, func() {
 		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		errs := proxy.UnsubscribeDeps("", []core.Metric{}, []core.Plugin{})
+		errs := proxy.UnsubscribeDeps("")
 		So(errs, ShouldNotBeNil)
 		So(len(errs), ShouldBeGreaterThan, 0)
 		Convey("So the error should be passed through", func() {
@@ -465,12 +395,12 @@ func TestUnsubscribeDeps(t *testing.T) {
 	})
 
 	Convey("Control.UnsubscribeDeps returns an error", t, func() {
-		reply := &rpc.SubscribeDepsReply{
+		reply := &rpc.UnsubscribeDepsReply{
 			Errors: []*common.SnapError{&common.SnapError{ErrorFields: map[string]string{}, ErrorString: "test"}},
 		}
 
 		proxy := ControlProxy{Client: mockClient{UnsubscribeReply: reply}}
-		errs := proxy.UnsubscribeDeps("", []core.Metric{}, []core.Plugin{})
+		errs := proxy.UnsubscribeDeps("")
 		So(errs, ShouldNotBeNil)
 		So(len(errs), ShouldEqual, 1)
 		Convey("So the error should resemble 'test'", func() {
@@ -480,75 +410,15 @@ func TestUnsubscribeDeps(t *testing.T) {
 	})
 
 	Convey("Control.UnsubscribeDeps returns successfully", t, func() {
-		reply := &rpc.SubscribeDepsReply{}
+		reply := &rpc.UnsubscribeDepsReply{}
 
 		proxy := ControlProxy{Client: mockClient{UnsubscribeReply: reply}}
-		errs := proxy.UnsubscribeDeps("", []core.Metric{}, []core.Plugin{})
+		errs := proxy.UnsubscribeDeps("")
 		Convey("So the there should be no errors", func() {
 			So(len(errs), ShouldEqual, 0)
 		})
 
 	})
-}
-
-func TestMatchQueryToNamespaces(t *testing.T) {
-	Convey("RPC client errors", t, func() {
-		input := core.NewNamespace("testing", "this")
-
-		proxy := ControlProxy{Client: mockClient{RpcErr: true}}
-		ns, err := proxy.ExpandWildcards(input)
-
-		Convey("So the error should be passed through", func() {
-			So(err.Error(), ShouldResemble, rpcErr.Error())
-		})
-		Convey("So The namespace ShouldBeNil", func() {
-			So(ns, ShouldBeNil)
-		})
-	})
-
-	Convey("call to Control.MatchQueryToNamespaces returns error", t, func() {
-		input := core.NewNamespace("testing", "this")
-		reply := &rpc.ExpandWildcardsReply{
-			Error: &common.SnapError{
-				ErrorFields: map[string]string{},
-				ErrorString: "Error from control",
-			},
-		}
-
-		proxy := ControlProxy{Client: mockClient{MatchReply: reply}}
-		ns, err := proxy.MatchQueryToNamespaces(input)
-
-		Convey("So the err should be: "+reply.Error.ErrorString, func() {
-			So(err.Error(), ShouldResemble, common.ToSnapError(reply.Error).Error())
-		})
-		Convey("So Namespaces should be nil", func() {
-			So(ns, ShouldBeNil)
-		})
-	})
-
-	Convey("Control.MatchQueryToNamespaces returns successfully", t, func() {
-		input := core.NewNamespace("testing", "this")
-		a := core.NewNamespace("testing", "this")
-		b := core.NewNamespace("stuff", "more")
-		proto_a := &rpc.ArrString{S: common.ToNamespace(a)}
-		proto_b := &rpc.ArrString{S: common.ToNamespace(b)}
-		reply := &rpc.ExpandWildcardsReply{
-			Error: nil,
-			NSS:   []*rpc.ArrString{proto_a, proto_b},
-		}
-
-		proxy := ControlProxy{Client: mockClient{MatchReply: reply}}
-		ns, err := proxy.MatchQueryToNamespaces(input)
-
-		Convey("so the err Should be nil", func() {
-			So(err, ShouldBeNil)
-		})
-		Convey("So namespaces should resemble:"+a.String()+","+b.String(), func() {
-			So(ns, ShouldResemble, []core.Namespace{a, b})
-		})
-
-	})
-
 }
 
 func TestGetAutoDiscoverPaths(t *testing.T) {

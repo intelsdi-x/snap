@@ -131,6 +131,31 @@ type metricType struct {
 	unit               string
 }
 
+type metric struct {
+	namespace core.Namespace
+	version   int
+	config    *cdata.ConfigDataNode
+}
+
+func (m *metric) Namespace() core.Namespace {
+	return m.namespace
+}
+
+func (m *metric) Config() *cdata.ConfigDataNode {
+	return m.config
+}
+
+func (m *metric) Version() int {
+	return m.version
+}
+
+func (m *metric) Data() interface{}             { return nil }
+func (m *metric) Description() string           { return "" }
+func (m *metric) Unit() string                  { return "" }
+func (m *metric) Tags() map[string]string       { return nil }
+func (m *metric) LastAdvertisedTime() time.Time { return time.Unix(0, 0) }
+func (m *metric) Timestamp() time.Time          { return time.Unix(0, 0) }
+
 type processesConfigData interface {
 	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
 	HasRules() bool
@@ -260,9 +285,8 @@ func (mc *metricCatalog) GetQueriedNamespaces(ns core.Namespace) ([]core.Namespa
 	return mc.matchedNamespaces(wkey)
 }
 
-// MatchQuery matches given 'ns' which could contain an asterisk or a tuple and add them to matching map under key 'ns'
-// The matched metrics namespaces are also returned (as a []core.Namespace)
-func (mc *metricCatalog) MatchQuery(ns core.Namespace) ([]core.Namespace, error) {
+// UpdateQueriedNamespaces matches given 'ns' which could contain an asterisk or a tuple and add them to matching map under key 'ns'
+func (mc *metricCatalog) UpdateQueriedNamespaces(ns core.Namespace) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
@@ -271,8 +295,6 @@ func (mc *metricCatalog) MatchQuery(ns core.Namespace) ([]core.Namespace, error)
 
 	// adding matched namespaces to map
 	mc.addItemToMatchingMap(wkey)
-
-	return mc.matchedNamespaces(wkey)
 }
 
 func convertKeysToNamespaces(keys []string) []core.Namespace {
@@ -290,6 +312,16 @@ func convertKeysToNamespaces(keys []string) []core.Namespace {
 // addItemToMatchingMap adds `wkey` to matching map (or updates if `wkey` exists) with corresponding cataloged keys as a content;
 // if this 'wkey' does not match to any cataloged keys, it will be removed from matching map
 func (mc *metricCatalog) addItemToMatchingMap(wkey string) {
+	matchedKeys := mc.matchKeys(wkey)
+	if len(matchedKeys) == 0 {
+		mc.removeItemFromMatchingMap(wkey)
+	} else {
+		mc.mKeys[wkey] = matchedKeys
+	}
+}
+
+// matchKeys returns all keys matching with provided key
+func (mc *metricCatalog) matchKeys(wkey string) []string {
 	matchedKeys := []string{}
 
 	// wkey contains `.` which should not be interpreted as regexp tokens, but as a single character
@@ -306,11 +338,7 @@ func (mc *metricCatalog) addItemToMatchingMap(wkey string) {
 		}
 		matchedKeys = appendIfMissing(matchedKeys, key)
 	}
-	if len(matchedKeys) == 0 {
-		mc.removeItemFromMatchingMap(wkey)
-	} else {
-		mc.mKeys[wkey] = matchedKeys
-	}
+	return matchedKeys
 }
 
 // removeItemFromMatchingMap removes `wkey` from matching map
@@ -414,6 +442,14 @@ func (mc *metricCatalog) RmUnloadedPluginMetrics(lp *loadedPlugin) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 	mc.tree.DeleteByPlugin(lp)
+
+	// Update metric catalog keys
+	mc.keys = []string{}
+	mts := mc.tree.gatherMetricTypes()
+	for _, m := range mts {
+		mc.keys = append(mc.keys, m.Namespace().Key())
+	}
+
 	// update the contents of matching map (mKeys)
 	mc.updateMatchingMap()
 }
