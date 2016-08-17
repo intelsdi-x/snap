@@ -61,7 +61,7 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 				ns := make([]core.NamespaceElement, len(mts[i].Namespace()))
 				copy(ns, mts[i].Namespace())
 				ns[2].Value = fmt.Sprintf("host%d", j)
-				data := randInt(65, 90) + 1000
+				data := randInt(65, 90)
 				mt := plugin.MetricType{
 					Data_:      data,
 					Namespace_: ns,
@@ -72,7 +72,7 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 				metrics = append(metrics, mt)
 			}
 		} else {
-			data := randInt(65, 90) + 1000
+			data := randInt(65, 90)
 			mts[i].Data_ = data
 			mts[i].Timestamp_ = time.Now()
 			metrics = append(metrics, mts[i])
@@ -94,13 +94,11 @@ func (f *Mock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error
 			Unit_:        "mock unit",
 		})
 	}
-	if _, ok := cfg.Table()["test-less"]; !ok {
-		mts = append(mts, plugin.MetricType{
-			Namespace_:   core.NewNamespace("intel", "mock", "foo"),
-			Description_: "mock description",
-			Unit_:        "mock unit",
-		})
-	}
+	mts = append(mts, plugin.MetricType{
+		Namespace_:   core.NewNamespace("intel", "mock", "foo"),
+		Description_: "mock description",
+		Unit_:        "mock unit",
+	})
 	mts = append(mts, plugin.MetricType{
 		Namespace_:   core.NewNamespace("intel", "mock", "bar"),
 		Description_: "mock description",
