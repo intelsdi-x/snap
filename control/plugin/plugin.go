@@ -329,20 +329,19 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	e := rpc.Register(s)
 	if e != nil {
 		if e.Error() != "rpc: service already defined: SessionState" {
-			log.Println(e.Error())
-			s.Logger().Println(e.Error())
+			s.Logger().Error(e.Error())
 			return e, 2
 		}
 	}
 
 	l, err := net.Listen("tcp", "127.0.0.1:"+s.ListenPort())
 	if err != nil {
-		s.Logger().Println(err.Error())
+		s.Logger().Error(err.Error())
 		panic(err)
 	}
 	s.SetListenAddress(l.Addr().String())
-	s.Logger().Printf("Listening %s\n", l.Addr())
-	s.Logger().Printf("Session token %s\n", s.Token())
+	s.Logger().Debugf("Listening %s\n", l.Addr())
+	s.Logger().Debugf("Session token %s\n", s.Token())
 
 	switch r.Meta.RPCType {
 	case JSONRPC:

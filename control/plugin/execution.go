@@ -124,8 +124,10 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 				respReceived = true
 				close(doneChan)
 			} else {
-				execLogger.WithField("plugin", path.Base(e.cmd.Path())).
-					Debug(stdOutScanner.Text())
+				execLogger.WithFields(log.Fields{
+					"plugin": path.Base(e.cmd.Path()),
+					"io":     "stdout",
+				}).Debug(stdOutScanner.Text())
 			}
 		}
 	}()
@@ -157,7 +159,9 @@ func (e *ExecutablePlugin) captureStderr() {
 		for stdErrScanner.Scan() {
 			execLogger.
 				WithField("io", "stderr").
-				WithField("plugin", path.Base(e.cmd.Path())).Debug(stdErrScanner.Text())
+				WithField("plugin", path.Base(e.cmd.Path())).
+				Debug(stdErrScanner.Text())
+
 		}
 	}()
 }

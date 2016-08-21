@@ -100,7 +100,7 @@ type GetConfigPolicyReply struct {
 func (s *SessionState) GetConfigPolicy(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(s.Logger())
 
-	s.logger.Println("GetConfigPolicy called")
+	s.logger.Debug("GetConfigPolicy called")
 
 	policy, err := s.plugin.GetConfigPolicy()
 	if err != nil {
@@ -122,7 +122,7 @@ func (s *SessionState) Ping(arg []byte, reply *[]byte) error {
 	// down or otherwise in a state we should signal poor health.
 	// Reply should contain any context.
 	s.ResetHeartbeat()
-	s.logger.Println("Ping received")
+	s.logger.Debug("Ping received")
 	*reply = []byte{}
 	return nil
 }
@@ -134,7 +134,7 @@ func (s *SessionState) Kill(args []byte, reply *[]byte) error {
 	if err != nil {
 		return err
 	}
-	s.logger.Printf("Kill called by agent, reason: %s\n", a.Reason)
+	s.logger.Debug("Kill called by agent, reason: %s\n", a.Reason)
 	go func() {
 		time.Sleep(time.Second * 2)
 		s.killChan <- 0
@@ -186,7 +186,7 @@ type SetKeyArgs struct {
 }
 
 func (s *SessionState) SetKey(args SetKeyArgs, reply *[]byte) error {
-	s.logger.Println("SetKey called")
+	s.logger.Debug("SetKey called")
 	out, err := s.DecryptKey(args.Key)
 	if err != nil {
 		return err
@@ -208,19 +208,18 @@ func (s *SessionState) generateResponse(r *Response) []byte {
 }
 
 func (s *SessionState) heartbeatWatch(killChan chan int) {
-	s.logger.Println("Heartbeat started")
+	s.logger.Debug("Heartbeat started")
 	count := 0
 	for {
 		if time.Since(s.LastPing) >= s.PingTimeoutDuration {
 			count++
-			s.logger.Printf("Heartbeat timeout %v of %v.  (Duration between checks %v)", count, PingTimeoutLimit, s.PingTimeoutDuration)
+			s.logger.Infof("Heartbeat timeout %v of %v.  (Duration between checks %v)", count, PingTimeoutLimit, s.PingTimeoutDuration)
 			if count >= PingTimeoutLimit {
-				s.logger.Println("Heartbeat timeout expired!")
+				s.logger.Error("Heartbeat timeout expired")
 				defer close(killChan)
 				return
 			}
 		} else {
-			s.logger.Println("Heartbeat timeout reset")
 			// Reset count
 			count = 0
 		}

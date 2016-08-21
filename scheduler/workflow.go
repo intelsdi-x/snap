@@ -241,7 +241,7 @@ func (s *schedulerWorkflow) Start(t *task) {
 		"_block":    "workflow-start",
 		"task-id":   t.id,
 		"task-name": t.name,
-	}).Info(fmt.Sprintf("Starting workflow for task (%s\\%s)", t.id, t.name))
+	}).Debug("Starting workflow")
 	s.state = WorkflowStarted
 	j := newCollectorJob(s.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree, t.id, s.tags)
 
