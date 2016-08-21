@@ -20,6 +20,7 @@ limitations under the License.
 package plugin
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -27,10 +28,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
-	"runtime"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/control/plugin/encoding"
@@ -256,22 +257,12 @@ func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*Se
 	rand.Read(rb)
 	rs := base64.URLEncoding.EncodeToString(rb)
 
-	// Initialize a logger based on PluginLogPath
-	truncOrAppend := os.O_TRUNC // truncate log file explicitly given by user
-	// Empty or /tmp means use default tmp log (needs to be removed post-aAtruncOrAppendpha)
-	if pluginArg.PluginLogPath == "" || pluginArg.PluginLogPath == "/tmp" {
-		if runtime.GOOS == "windows" {
-			pluginArg.PluginLogPath = `c:\TEMP\snap_plugin.log`
-		} else {
-			pluginArg.PluginLogPath = "/tmp/snap_plugin.log"
-		}
-		truncOrAppend = os.O_APPEND
+	logger := &log.Logger{
+		Out:       os.Stderr,
+		Formatter: &simpleFormatter{},
+		Hooks:     make(log.LevelHooks),
+		Level:     pluginArg.LogLevel,
 	}
-	lf, err := os.OpenFile(pluginArg.PluginLogPath, os.O_WRONLY|os.O_CREATE|truncOrAppend, 0666)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
-	}
-	logger := log.New(lf, ">>>", log.Ldate|log.Ltime)
 
 	var enc encoding.Encoder
 	switch meta.RPCType {
@@ -318,4 +309,14 @@ func init() {
 	gob.RegisterName("conf_policy_int", &cpolicy.IntRule{})
 	gob.RegisterName("conf_policy_float", &cpolicy.FloatRule{})
 	gob.RegisterName("conf_policy_bool", &cpolicy.BoolRule{})
+}
+
+// simpleFormatter is a logrus formatter that includes only the message.
+type simpleFormatter struct{}
+
+func (_ *simpleFormatter) Format(entry *log.Entry) ([]byte, error) {
+	b := &bytes.Buffer{}
+	fmt.Fprintf(b, "%s", entry.Message)
+	b.WriteByte('\n')
+	return b.Bytes(), nil
 }

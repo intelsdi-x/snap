@@ -312,7 +312,7 @@ func (r *runner) runPlugin(details *pluginDetails) error {
 		}
 		details.ExecPath = path.Join(tempPath, "rootfs")
 	}
-	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(details.Exec), path.Join(details.ExecPath, details.Exec))
+	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())), path.Join(details.ExecPath, details.Exec))
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block": "run-plugin",

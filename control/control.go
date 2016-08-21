@@ -125,7 +125,7 @@ type managesPlugins interface {
 	LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, serror.SnapError)
 	UnloadPlugin(core.Plugin) (*loadedPlugin, serror.SnapError)
 	SetMetricCatalog(catalogsMetrics)
-	GenerateArgs(pluginPath string) plugin.Arg
+	GenerateArgs(logLevel int) plugin.Arg
 	SetPluginConfig(*pluginConfig)
 }
 

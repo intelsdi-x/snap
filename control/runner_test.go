@@ -40,8 +40,7 @@ type MockController struct {
 
 func (p *MockController) GenerateArgs(daemon bool) plugin.Arg {
 	a := plugin.Arg{
-		PluginLogPath: "/tmp/snap-test-plugin.log",
-		NoDaemon:      daemon,
+		NoDaemon: daemon,
 	}
 	return a
 }
@@ -353,10 +352,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					Convey("should return an AvailablePlugin", func() {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
-						a := plugin.Arg{
-							PluginLogPath: "/tmp/snap-test-plugin.log",
-							// Daemon:        true,
-						}
+						a := plugin.Arg{}
 						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
@@ -378,9 +374,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					Convey("availablePlugins should include returned availablePlugin", func() {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
-						a := plugin.Arg{
-							PluginLogPath: "/tmp/snap-test-plugin.log",
-						}
+						a := plugin.Arg{}
 						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
@@ -398,9 +392,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					Convey("healthcheck on healthy plugin does not increment failedHealthChecks", func() {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
-						a := plugin.Arg{
-							PluginLogPath: "/tmp/snap-test-plugin.log",
-						}
+						a := plugin.Arg{}
 						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
@@ -417,9 +409,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					Convey("healthcheck on unhealthy plugin increments failedHealthChecks", func() {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
-						a := plugin.Arg{
-							PluginLogPath: "/tmp/snap-test-plugin.log",
-						}
+						a := plugin.Arg{}
 						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
@@ -436,9 +426,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					Convey("successful healthcheck resets failedHealthChecks", func() {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
-						a := plugin.Arg{
-							PluginLogPath: "/tmp/snap-test-plugin-foo.log",
-						}
+						a := plugin.Arg{}
 						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
@@ -459,9 +447,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					Convey("three consecutive failedHealthChecks disables the plugin", func() {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
-						a := plugin.Arg{
-							PluginLogPath: "/tmp/snap-test-plugin.log",
-						}
+						a := plugin.Arg{}
 						exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 						if err != nil {
 							panic(err)
@@ -494,9 +480,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 				Convey("should return an AvailablePlugin in a Running state", func() {
 					r := newRunner()
 					r.SetEmitter(new(MockEmitter))
-					a := plugin.Arg{
-						PluginLogPath: "/tmp/snap-test-plugin-stop.log",
-					}
+					a := plugin.Arg{}
 					exPlugin, err := newExecutablePlugin(a, fixtures.PluginPath)
 					if err != nil {
 						panic(err)

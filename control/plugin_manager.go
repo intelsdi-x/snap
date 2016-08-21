@@ -285,7 +285,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		"_block": "load-plugin",
 		"path":   filepath.Base(lPlugin.Details.Exec),
 	}).Info("plugin load called")
-	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Details.Exec), path.Join(lPlugin.Details.ExecPath, lPlugin.Details.Exec))
+	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(int(log.GetLevel())), path.Join(lPlugin.Details.ExecPath, lPlugin.Details.Exec))
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -559,9 +559,8 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 }
 
 // GenerateArgs generates the cli args to send when stating a plugin
-func (p *pluginManager) GenerateArgs(pluginPath string) plugin.Arg {
-	pluginLog := filepath.Join(p.logPath, filepath.Base(pluginPath)) + ".log"
-	return plugin.NewArg(pluginLog)
+func (p *pluginManager) GenerateArgs(logLevel int) plugin.Arg {
+	return plugin.NewArg(logLevel)
 }
 
 func (p *pluginManager) teardown() {
