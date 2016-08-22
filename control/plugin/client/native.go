@@ -94,16 +94,26 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	return err
 }
 
+// Used to catch zero values for times and overwrite with current time
+// the 0 value for time.Time is year 1 which isn't a valid value for metric
+// collection (until we get a time machine).
+func checkTime(in time.Time) time.Time {
+	if in.Year() < 1970 {
+		return time.Now()
+	}
+	return in
+}
+
 func encodeMetrics(metrics []core.Metric) []byte {
 	mts := make([]plugin.MetricType, len(metrics))
 	for i, m := range metrics {
 		mts[i] = plugin.MetricType{
 			Namespace_:          m.Namespace(),
 			Tags_:               m.Tags(),
-			Timestamp_:          m.Timestamp(),
+			Timestamp_:          checkTime(m.Timestamp()),
 			Version_:            m.Version(),
 			Config_:             m.Config(),
-			LastAdvertisedTime_: m.LastAdvertisedTime(),
+			LastAdvertisedTime_: checkTime(m.LastAdvertisedTime()),
 			Unit_:               m.Unit(),
 			Description_:        m.Description(),
 			Data_:               m.Data(),
@@ -123,6 +133,8 @@ func decodeMetrics(bts []byte) ([]core.Metric, error) {
 	}
 	var cmetrics []core.Metric
 	for _, mt := range mts {
+		mt.Timestamp_ = checkTime(mt.Timestamp())
+		mt.LastAdvertisedTime_ = checkTime(mt.LastAdvertisedTime())
 		cmetrics = append(cmetrics, mt)
 	}
 	return cmetrics, nil

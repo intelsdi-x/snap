@@ -100,12 +100,10 @@ type collectsMetrics interface {
 
 type publishesMetrics interface {
 	PublishMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) []error
-	//PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error
 }
 
 type processesMetrics interface {
 	ProcessMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) ([]core.Metric, []error)
-	//ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error)
 }
 
 type scheduler struct {

@@ -3,8 +3,16 @@ package rpc
 import (
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/ctypes"
+)
+
+var (
+	rpcLogger = log.WithFields(log.Fields{
+		"_module": "rpc",
+	})
 )
 
 // NewGetConfigPolicyReply given a config *cpolicy.ConfigPolicy returns a GetConfigPolicyReply.
@@ -98,7 +106,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 				br, err = cpolicy.NewBoolRule(key, val.Required)
 			}
 			if err != nil {
-				// The only error that can be thrown is empty key error, ignore something with empty key
+				log.Warn("Empty key found with value %v", val)
 				continue
 			}
 			nodes[k].Add(br)
@@ -118,6 +126,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 				sr, err = cpolicy.NewStringRule(key, val.Required)
 			}
 			if err != nil {
+				log.Warn("Empty key found with value %v", val)
 				continue
 			}
 
@@ -138,6 +147,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 				ir, err = cpolicy.NewIntegerRule(key, val.Required)
 			}
 			if err != nil {
+				log.Warn("Empty key found with value %v", val)
 				continue
 			}
 			if val.HasMin {
@@ -165,6 +175,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 				fr, err = cpolicy.NewFloatRule(key, val.Required)
 			}
 			if err != nil {
+				log.Warn("Empty key found with value %v", val)
 				continue
 			}
 
