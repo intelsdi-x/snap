@@ -73,13 +73,13 @@ func okRoutine(sch schedule.Schedule,
 	return nil, nil
 }
 
-func TestMarshalBodyTask(t *testing.T) {
+func TestUnmarshalBodyTask(t *testing.T) {
 
 	Convey("Non existing file", t, func() {
 		file, err := os.Open(DUMMY_FILE)
 		So(file, ShouldBeNil)
 		So(err.Error(), ShouldEqual, fmt.Sprintf("open %s: no such file or directory", DUMMY_FILE))
-		code, err := MarshalBody(nil, file)
+		code, err := UnmarshalBody(nil, file)
 		So(code, ShouldEqual, 500)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid argument")
@@ -90,7 +90,7 @@ func TestMarshalBodyTask(t *testing.T) {
 		file, err := os.Open(YAML_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
-		code, err := MarshalBody(&tr, file)
+		code, err := UnmarshalBody(&tr, file)
 		So(code, ShouldEqual, 400)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid character '-' in numeric literal")
@@ -101,19 +101,19 @@ func TestMarshalBodyTask(t *testing.T) {
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
-		code, err := MarshalBody(&tr, file)
+		code, err := UnmarshalBody(&tr, file)
 		So(code, ShouldEqual, 0)
 		So(err, ShouldBeNil)
 	})
 }
 
-func TestMarshalTask(t *testing.T) {
+func TestCreateTaskRequest(t *testing.T) {
 
 	Convey("Non existing file", t, func() {
 		file, err := os.Open(DUMMY_FILE)
 		So(file, ShouldBeNil)
 		So(err.Error(), ShouldEqual, fmt.Sprintf("open %s: no such file or directory", DUMMY_FILE))
-		task, err := marshalTask(file)
+		task, err := createTaskRequest(file)
 		So(task, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid argument")
@@ -123,7 +123,7 @@ func TestMarshalTask(t *testing.T) {
 		file, err := os.Open(YAML_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
-		task, err := marshalTask(file)
+		task, err := createTaskRequest(file)
 		So(task, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid character '-' in numeric literal")
@@ -133,7 +133,7 @@ func TestMarshalTask(t *testing.T) {
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
-		task, err := marshalTask(file)
+		task, err := createTaskRequest(file)
 		So(err, ShouldBeNil)
 		So(task, ShouldNotBeNil)
 		So(task.Name, ShouldEqual, "")
