@@ -106,7 +106,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 				br, err = cpolicy.NewBoolRule(key, val.Required)
 			}
 			if err != nil {
-				log.Warn("Empty key found with value %v", val)
+				rpcLogger.Warn("Empty key found with value %v", val)
 				continue
 			}
 			nodes[k].Add(br)
@@ -126,7 +126,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 				sr, err = cpolicy.NewStringRule(key, val.Required)
 			}
 			if err != nil {
-				log.Warn("Empty key found with value %v", val)
+				rpcLogger.Warn("Empty key found with value %v", val)
 				continue
 			}
 
@@ -147,7 +147,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 				ir, err = cpolicy.NewIntegerRule(key, val.Required)
 			}
 			if err != nil {
-				log.Warn("Empty key found with value %v", val)
+				rpcLogger.Warn("Empty key found with value %v", val)
 				continue
 			}
 			if val.HasMin {
@@ -175,7 +175,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 				fr, err = cpolicy.NewFloatRule(key, val.Required)
 			}
 			if err != nil {
-				log.Warn("Empty key found with value %v", val)
+				rpcLogger.Warn("Empty key found with value %v", val)
 				continue
 			}
 
