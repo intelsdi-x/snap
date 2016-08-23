@@ -23,8 +23,6 @@ package plugin
 
 import (
 	"errors"
-	"log"
-	"os"
 	"testing"
 	"time"
 

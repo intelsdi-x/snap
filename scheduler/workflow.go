@@ -21,7 +21,6 @@ package scheduler
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"

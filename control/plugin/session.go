@@ -313,9 +313,8 @@ func init() {
 // simpleFormatter is a logrus formatter that includes only the message.
 type simpleFormatter struct{}
 
-func (_ *simpleFormatter) Format(entry *log.Entry) ([]byte, error) {
+func (*simpleFormatter) Format(entry *log.Entry) ([]byte, error) {
 	b := &bytes.Buffer{}
-	fmt.Fprintf(b, "%s", entry.Message)
-	b.WriteByte('\n')
+	fmt.Fprintf(b, "%s\n", entry.Message)
 	return b.Bytes(), nil
 }
