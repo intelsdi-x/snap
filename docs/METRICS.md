@@ -5,12 +5,12 @@ A metric in snap has the following fields.
 
 * Namespace `[]core.NamespaceElement`
  * Uniquely identifies the metric
-* LastAdertisedTime `time.Time`
+* LastAdvertisedTime `time.Time`
  * Describes when the metric was added to the metric catalog
 * Version `int`
  * Is bound to the version of the plugin
  * Multiple versions of the same metric can be added to the catalog
-  * Unless specified in the task manifest the latest available metric will collected
+  * Unless specified in the Task Manifest, the latest available metric will collected
 * Config `*cdata.ConfigDataNode`
  * Contains data needed to collect a metric
   * Examples include 'uri', 'username', 'password', 'paths'
@@ -18,10 +18,10 @@ A metric in snap has the following fields.
  * The collected data
 * Tags `map[string]string`
  * Are key value pairs that provide additional meta data about the metric
- * May be added by the framework or other plugins (processors) 
+ * May be added by the framework or other plugins (processors)
   * The framework currently adds the following standard tag to all metrics
    * `plugin_running_on` describing on which host the plugin is running
- * May be added by a task manifests as described [here](https://github.com/intelsdi-x/snap/pull/941) 
+ * May be added by a task manifests as described [here](https://github.com/intelsdi-x/snap/pull/941)
  * May be added by the snapd config as described [here](https://github.com/intelsdi-x/snap/issues/827)
 * Unit `string`
  * Describes the magnititude being measured
@@ -69,8 +69,8 @@ A `NamespaceElement` has the following fields.
 
 ### Static Metric Namespace Example
 
-Given a static metric identified by the namespace `/intel/psutil/load/load1` the `NamespaceElement`s would 
-have values of 'intel', 'psutil', 'load' and "load1" respectively.  The `Name` and `Description` fields would have 
+Given a static metric identified by the namespace `/intel/psutil/load/load1` the `NamespaceElement`s would
+have values of 'intel', 'psutil', 'load' and "load1" respectively.  The `Name` and `Description` fields would have
 empty values.
 
 The metric's namespace could be created using the following constructor function.
@@ -81,15 +81,15 @@ namespace := core.NewNamespace("intel", "psutil", "load", "load1")
 
 ### Dynamic Metric Namespace Example
 
-Dyanmic namespaces enable collector plugins to embed runtime data in the namespace with just enough meta data to enable
-downstrean plugins (processors and publishers) the ability to extract the data and transform the namespace into its 
+Dynamic namespaces enable collector plugins to embed runtime data in the namespace with just enough metadata to enable
+downstrean plugins (processors and publishers) the ability to extract the data and transform the namespace into its
  canonical form often required by some backends.     
 
 Given a dynamic metric identified by the namespace `/intel/libvirt/*/disk/*/wrreq` the `NamespaceElement`s would
 have values of 'intel', 'libvirt', '*', 'disk', '*' and 'wrreq' respectively.  The `Name` and `Description` fields
 of the 2nd and 4th elements would also contain non empty values.  
 
-The metric's namespace could be created using the following constructor function. 
+The metric's namespace could be created using the following constructor function.
 
 ```
 ns := core.NewNamespace("intel", "libvirt")
@@ -99,8 +99,8 @@ ns := core.NewNamespace("intel", "libvirt")
     .AddStaticElement("wrreq")
 ```
 
-It is *important* to note that the `NamespaceElement` fields `Name` and `Description` should *only* have non emtpy string 
-values when the element they are describing is dynamic in which case the `Value` field would contain the string vale "*". 
+It is *important* to note that the `NamespaceElement` fields `Name` and `Description` should *only* have non-empty string
+values when the element they are describing is dynamic in which case the `Value` field would contain the string value "*".
 
 You can find an example of the influxdb publisher creating tags out of the dynamic elements of the namespace and publishing
 to a time series [here](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb/blob/b253302ddfc94e3b444780328d0f503a6d73e3e0/influx/influx.go#L164-L176).

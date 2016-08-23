@@ -88,7 +88,7 @@ Example:
 Snap validates the metrics exposed by plugin and, if validation failed, return an error and not load the plugin.
 
 ##### c) static and dynamic metrics
-Snap supports both static and dynamic metrics.  You can find more detail about static and dynamic metrics [here](./METRICS.md). 
+Snap supports both static and dynamic metrics.  You can find more detail about static and dynamic metrics [here](./METRICS.md).
 
 ### Mandatory packages
 There are three mandatory packages that every plugin must use. Other than those three packages, you can use other packages as necessary. There is no danger of colliding dependencies as plugins are separated processes. The mandatory packages are:
@@ -148,7 +148,7 @@ func Meta() *plugin.PluginMeta {
 Snap uses [logrus](http://github.com/Sirupsen/logrus) to log. Your plugins can use it, or any standard Go log package. Each plugin has its log file. If no logging directory is specified, logs are in the /tmp directory of the running machine. INFO is the logging level for the release version of plugins. Loggers are excellent resources for debugging. You can also use Go GDB or [delve](https://github.com/derekparker/delve) to debug.
 
 ## Building and running the tests
-While developing a plugin, unit and integration tests need to be performed. Snap uses [goconvery](http://github.com/smartystreets/goconvey/convey) for unit tests. You are welcome to use it or any other unit test framework. For the integration tests, you have to set up $SNAP_PATH and some necessary direct, or indirect dependencies. Using Docker container for integration tests is an effective testing strategy. Integration tests may define an input workflow. Refer to a sample [integration test input](https://github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json).
+While developing a plugin, unit and integration tests need to be performed. Snap uses [goconvey](http://github.com/smartystreets/goconvey/convey) for unit tests. You are welcome to use it or any other unit test framework. For the integration tests, you have to set up $SNAP_PATH and some necessary direct, or indirect dependencies. Using Docker container for integration tests is an effective testing strategy. Integration tests may define an input workflow. Refer to a sample [integration test input](https://github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json).
 
 For example, to run a plugin integration test
 ```
