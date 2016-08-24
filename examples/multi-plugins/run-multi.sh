@@ -117,6 +117,7 @@ echo "Press enter to start viewing the snap.log${reset}"
 read
 tail -f /tmp/snap.out
 
+echo "${green} Push any key to exit."
 read 
 
 pkill snapd

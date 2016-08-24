@@ -1,0 +1,57 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {
+                "/intel/procfs/cpu/all/user_jiffies" : {},
+                "/intel/procfs/cpu/all/nice_jiffies" : {},
+                "/intel/procfs/cpu/all/system_jiffies" : {},
+                "/intel/procfs/cpu/all/idle_jiffies" : {},
+                "/intel/procfs/cpu/all/iowait_jiffies" : {},
+                "/intel/procfs/cpu/all/irq_jiffies" : {},
+                "/intel/procfs/cpu/all/softirq_jiffies" : {},
+                "/intel/procfs/cpu/all/steal_jiffies" : {},
+                "/intel/procfs/cpu/all/guest_jiffies" : {},
+                "/intel/procfs/cpu/all/guest_nice_jiffies" : {},
+
+               "/intel/linux/cgroups/cpuacct_stats/*/cpu_usage/total_usage" : {},
+               "/intel/linux/cgroups/cpuacct_stats/*/cpu_usage/usage_in_kernelmode" : {},
+               "/intel/linux/cgroups/cpuacct_stats/*/cpu_usage/usage_in_usermode" : {},
+               "/intel/linux/cgroups/cpu_stats/*/cpu_usage/total_usage" : {},
+               "/intel/linux/cgroups/cpu_stats/*/throttling_data/throttled_time": {},
+
+                "/intel/psutil/load/load1": {},
+                "/intel/psutil/load/load5": {},
+                "/intel/psutil/load/load15": {},
+                 "/intel/psutil/vm/available": {},
+                "/intel/psutil/vm/free": {},
+                "/intel/psutil/vm/used": {},
+                "/intel/psutil/vm/used_percent": {},
+                "/intel/psutil/vm/inactive": {},
+                "/intel/psutil/vm/cached": {},
+                "/intel/psutil/vm/buffers": {},
+                "/intel/psutil/vm/active": {},
+                "/intel/psutil/net/all/packets_recv": {},
+                "/intel/psutil/net/all/packets_sent": {}
+
+            },
+            "process": null,
+            "publish": [
+                {
+                  "plugin_name": "influx",
+                  "config": {
+                  "host": "localhost",
+                  "port": 8086,
+                  "database": "playground",
+                  "user": "admin",
+                  "password" : "admin"
+                        }
+                     }
+                ]
+          }
+     }
+}
