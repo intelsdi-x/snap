@@ -16,3 +16,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
+#PLEASE NOTE: These are not example plugins
+
+The contents of `plugin/` are used as part of our testing framework. If you are looking for examples of how to write a plugin for Snap, review the [Plugin Authoring documentation](/docs/PLUGIN_AUTHORING.md).
+
+Curious what plugins are under development? See the `plugin-wishlist` label in [our issue backlog](https://github.com/intelsdi-x/snap/labels/plugin-wishlist).
