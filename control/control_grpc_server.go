@@ -32,38 +32,28 @@ type ControlGRPCServer struct {
 }
 
 // --------- Scheduler's managesMetrics implementation ----------
-
-func (pc *ControlGRPCServer) GetPluginContentTypes(ctx context.Context, r *rpc.GetPluginContentTypesRequest) (*rpc.GetPluginContentTypesReply, error) {
-	accepted, returned, err := pc.control.GetPluginContentTypes(r.Name, core.PluginType(int(r.PluginType)), int(r.Version))
-	reply := &rpc.GetPluginContentTypesReply{
-		AcceptedTypes: accepted,
-		ReturnedTypes: returned,
-	}
-	if err != nil {
-		reply.Error = err.Error()
-	}
-	return reply, nil
-}
-
 func (pc *ControlGRPCServer) PublishMetrics(ctx context.Context, r *rpc.PubProcMetricsRequest) (*rpc.ErrorReply, error) {
-	errs := pc.control.PublishMetrics(r.ContentType, r.Content, r.PluginName, int(r.PluginVersion), common.ParseConfig(r.Config), r.TaskId)
-	erro := make([]string, len(errs))
-	for i, v := range errs {
-		erro[i] = v.Error()
-	}
-	return &rpc.ErrorReply{Errors: erro}, nil
+	metrics := common.ToCoreMetrics(r.Metrics)
+	errs := pc.control.PublishMetrics(
+		metrics,
+		common.ParseConfig(r.Config),
+		r.TaskId, r.PluginName,
+		int(r.PluginVersion))
+
+	return &rpc.ErrorReply{Errors: errorsToStrings(errs)}, nil
 }
 
 func (pc *ControlGRPCServer) ProcessMetrics(ctx context.Context, r *rpc.PubProcMetricsRequest) (*rpc.ProcessMetricsReply, error) {
-	contentType, content, errs := pc.control.ProcessMetrics(r.ContentType, r.Content, r.PluginName, int(r.PluginVersion), common.ParseConfig(r.Config), r.TaskId)
-	erro := make([]string, len(errs))
-	for i, v := range errs {
-		erro[i] = v.Error()
-	}
+	metrics := common.ToCoreMetrics(r.Metrics)
+	mts, errs := pc.control.ProcessMetrics(
+		metrics,
+		common.ParseConfig(r.Config),
+		r.TaskId, r.PluginName,
+		int(r.PluginVersion))
+
 	reply := &rpc.ProcessMetricsReply{
-		ContentType: contentType,
-		Content:     content,
-		Errors:      erro,
+		Metrics: common.NewMetrics(mts),
+		Errors:  errorsToStrings(errs),
 	}
 	return reply, nil
 }

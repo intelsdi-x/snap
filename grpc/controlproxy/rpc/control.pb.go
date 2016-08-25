@@ -32,8 +32,6 @@ It has these top-level messages:
 	PubProcMetricsRequest
 	ErrorReply
 	ProcessMetricsReply
-	GetPluginContentTypesRequest
-	GetPluginContentTypesReply
 	ValidateDepsRequest
 	ValidateDepsReply
 	SubscribeDepsRequest
@@ -44,9 +42,7 @@ It has these top-level messages:
 	MapEntry
 	CollectMetricsRequest
 	CollectMetricsResponse
-	ExpandWildcardsRequest
 	ArrString
-	ExpandWildcardsReply
 	GetAutodiscoverPathsReply
 */
 package rpc
@@ -81,18 +77,24 @@ func (*SerrorReply) ProtoMessage()               {}
 func (*SerrorReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
 type PubProcMetricsRequest struct {
-	ContentType   string            `protobuf:"bytes,1,opt,name=ContentType" json:"ContentType,omitempty"`
-	Content       []byte            `protobuf:"bytes,2,opt,name=Content,proto3" json:"Content,omitempty"`
-	PluginName    string            `protobuf:"bytes,3,opt,name=PluginName" json:"PluginName,omitempty"`
-	PluginVersion int64             `protobuf:"varint,4,opt,name=PluginVersion" json:"PluginVersion,omitempty"`
-	Config        *common.ConfigMap `protobuf:"bytes,5,opt,name=Config" json:"Config,omitempty"`
-	TaskId        string            `protobuf:"bytes,6,opt,name=TaskId" json:"TaskId,omitempty"`
+	Metrics       []*common.Metric  `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	PluginName    string            `protobuf:"bytes,2,opt,name=PluginName,json=pluginName" json:"PluginName,omitempty"`
+	PluginVersion int64             `protobuf:"varint,3,opt,name=PluginVersion,json=pluginVersion" json:"PluginVersion,omitempty"`
+	Config        *common.ConfigMap `protobuf:"bytes,4,opt,name=Config,json=config" json:"Config,omitempty"`
+	TaskId        string            `protobuf:"bytes,5,opt,name=TaskId,json=taskId" json:"TaskId,omitempty"`
 }
 
 func (m *PubProcMetricsRequest) Reset()                    { *m = PubProcMetricsRequest{} }
 func (m *PubProcMetricsRequest) String() string            { return proto.CompactTextString(m) }
 func (*PubProcMetricsRequest) ProtoMessage()               {}
 func (*PubProcMetricsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *PubProcMetricsRequest) GetMetrics() []*common.Metric {
+	if m != nil {
+		return m.Metrics
+	}
+	return nil
+}
 
 func (m *PubProcMetricsRequest) GetConfig() *common.ConfigMap {
 	if m != nil {
@@ -102,7 +104,7 @@ func (m *PubProcMetricsRequest) GetConfig() *common.ConfigMap {
 }
 
 type ErrorReply struct {
-	Errors []string `protobuf:"bytes,1,rep,name=Errors" json:"Errors,omitempty"`
+	Errors []string `protobuf:"bytes,1,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *ErrorReply) Reset()                    { *m = ErrorReply{} }
@@ -111,9 +113,8 @@ func (*ErrorReply) ProtoMessage()               {}
 func (*ErrorReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
 type ProcessMetricsReply struct {
-	ContentType string   `protobuf:"bytes,1,opt,name=ContentType" json:"ContentType,omitempty"`
-	Content     []byte   `protobuf:"bytes,2,opt,name=Content,proto3" json:"Content,omitempty"`
-	Errors      []string `protobuf:"bytes,3,rep,name=Errors" json:"Errors,omitempty"`
+	Metrics []*common.Metric `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	Errors  []string         `protobuf:"bytes,2,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *ProcessMetricsReply) Reset()                    { *m = ProcessMetricsReply{} }
@@ -121,37 +122,22 @@ func (m *ProcessMetricsReply) String() string            { return proto.CompactT
 func (*ProcessMetricsReply) ProtoMessage()               {}
 func (*ProcessMetricsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
-type GetPluginContentTypesRequest struct {
-	Name       string `protobuf:"bytes,1,opt,name=Name" json:"Name,omitempty"`
-	PluginType int32  `protobuf:"varint,2,opt,name=PluginType" json:"PluginType,omitempty"`
-	Version    int32  `protobuf:"varint,3,opt,name=Version" json:"Version,omitempty"`
+func (m *ProcessMetricsReply) GetMetrics() []*common.Metric {
+	if m != nil {
+		return m.Metrics
+	}
+	return nil
 }
-
-func (m *GetPluginContentTypesRequest) Reset()                    { *m = GetPluginContentTypesRequest{} }
-func (m *GetPluginContentTypesRequest) String() string            { return proto.CompactTextString(m) }
-func (*GetPluginContentTypesRequest) ProtoMessage()               {}
-func (*GetPluginContentTypesRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
-
-type GetPluginContentTypesReply struct {
-	AcceptedTypes []string `protobuf:"bytes,1,rep,name=AcceptedTypes" json:"AcceptedTypes,omitempty"`
-	ReturnedTypes []string `protobuf:"bytes,2,rep,name=ReturnedTypes" json:"ReturnedTypes,omitempty"`
-	Error         string   `protobuf:"bytes,3,opt,name=Error" json:"Error,omitempty"`
-}
-
-func (m *GetPluginContentTypesReply) Reset()                    { *m = GetPluginContentTypesReply{} }
-func (m *GetPluginContentTypesReply) String() string            { return proto.CompactTextString(m) }
-func (*GetPluginContentTypesReply) ProtoMessage()               {}
-func (*GetPluginContentTypesReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
 type ValidateDepsRequest struct {
-	Metrics []*common.Metric           `protobuf:"bytes,1,rep,name=Metrics" json:"Metrics,omitempty"`
-	Plugins []*common.SubscribedPlugin `protobuf:"bytes,2,rep,name=Plugins" json:"Plugins,omitempty"`
+	Metrics []*common.Metric           `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	Plugins []*common.SubscribedPlugin `protobuf:"bytes,2,rep,name=Plugins,json=plugins" json:"Plugins,omitempty"`
 }
 
 func (m *ValidateDepsRequest) Reset()                    { *m = ValidateDepsRequest{} }
 func (m *ValidateDepsRequest) String() string            { return proto.CompactTextString(m) }
 func (*ValidateDepsRequest) ProtoMessage()               {}
-func (*ValidateDepsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*ValidateDepsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
 func (m *ValidateDepsRequest) GetMetrics() []*common.Metric {
 	if m != nil {
@@ -168,13 +154,13 @@ func (m *ValidateDepsRequest) GetPlugins() []*common.SubscribedPlugin {
 }
 
 type ValidateDepsReply struct {
-	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors" json:"Errors,omitempty"`
+	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *ValidateDepsReply) Reset()                    { *m = ValidateDepsReply{} }
 func (m *ValidateDepsReply) String() string            { return proto.CompactTextString(m) }
 func (*ValidateDepsReply) ProtoMessage()               {}
-func (*ValidateDepsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+func (*ValidateDepsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
 func (m *ValidateDepsReply) GetErrors() []*common.SnapError {
 	if m != nil {
@@ -184,15 +170,15 @@ func (m *ValidateDepsReply) GetErrors() []*common.SnapError {
 }
 
 type SubscribeDepsRequest struct {
-	Requested []*common.Metric           `protobuf:"bytes,1,rep,name=Requested" json:"Requested,omitempty"`
-	Plugins   []*common.SubscribedPlugin `protobuf:"bytes,2,rep,name=Plugins" json:"Plugins,omitempty"`
-	TaskId    string                     `protobuf:"bytes,3,opt,name=TaskId" json:"TaskId,omitempty"`
+	Requested []*common.Metric           `protobuf:"bytes,1,rep,name=Requested,json=requested" json:"Requested,omitempty"`
+	Plugins   []*common.SubscribedPlugin `protobuf:"bytes,2,rep,name=Plugins,json=plugins" json:"Plugins,omitempty"`
+	TaskId    string                     `protobuf:"bytes,3,opt,name=TaskId,json=taskId" json:"TaskId,omitempty"`
 }
 
 func (m *SubscribeDepsRequest) Reset()                    { *m = SubscribeDepsRequest{} }
 func (m *SubscribeDepsRequest) String() string            { return proto.CompactTextString(m) }
 func (*SubscribeDepsRequest) ProtoMessage()               {}
-func (*SubscribeDepsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+func (*SubscribeDepsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
 
 func (m *SubscribeDepsRequest) GetRequested() []*common.Metric {
 	if m != nil {
@@ -209,13 +195,13 @@ func (m *SubscribeDepsRequest) GetPlugins() []*common.SubscribedPlugin {
 }
 
 type SubscribeDepsReply struct {
-	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors" json:"Errors,omitempty"`
+	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *SubscribeDepsReply) Reset()                    { *m = SubscribeDepsReply{} }
 func (m *SubscribeDepsReply) String() string            { return proto.CompactTextString(m) }
 func (*SubscribeDepsReply) ProtoMessage()               {}
-func (*SubscribeDepsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
+func (*SubscribeDepsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
 
 func (m *SubscribeDepsReply) GetErrors() []*common.SnapError {
 	if m != nil {
@@ -225,22 +211,22 @@ func (m *SubscribeDepsReply) GetErrors() []*common.SnapError {
 }
 
 type UnsubscribeDepsRequest struct {
-	TaskId string `protobuf:"bytes,1,opt,name=TaskId" json:"TaskId,omitempty"`
+	TaskId string `protobuf:"bytes,1,opt,name=TaskId,json=taskId" json:"TaskId,omitempty"`
 }
 
 func (m *UnsubscribeDepsRequest) Reset()                    { *m = UnsubscribeDepsRequest{} }
 func (m *UnsubscribeDepsRequest) String() string            { return proto.CompactTextString(m) }
 func (*UnsubscribeDepsRequest) ProtoMessage()               {}
-func (*UnsubscribeDepsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
+func (*UnsubscribeDepsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
 
 type UnsubscribeDepsReply struct {
-	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors" json:"Errors,omitempty"`
+	Errors []*common.SnapError `protobuf:"bytes,1,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *UnsubscribeDepsReply) Reset()                    { *m = UnsubscribeDepsReply{} }
 func (m *UnsubscribeDepsReply) String() string            { return proto.CompactTextString(m) }
 func (*UnsubscribeDepsReply) ProtoMessage()               {}
-func (*UnsubscribeDepsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
+func (*UnsubscribeDepsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
 
 func (m *UnsubscribeDepsReply) GetErrors() []*common.SnapError {
 	if m != nil {
@@ -250,13 +236,13 @@ func (m *UnsubscribeDepsReply) GetErrors() []*common.SnapError {
 }
 
 type Map struct {
-	Entries []*MapEntry `protobuf:"bytes,1,rep,name=Entries" json:"Entries,omitempty"`
+	Entries []*MapEntry `protobuf:"bytes,1,rep,name=Entries,json=entries" json:"Entries,omitempty"`
 }
 
 func (m *Map) Reset()                    { *m = Map{} }
 func (m *Map) String() string            { return proto.CompactTextString(m) }
 func (*Map) ProtoMessage()               {}
-func (*Map) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
+func (*Map) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
 
 func (m *Map) GetEntries() []*MapEntry {
 	if m != nil {
@@ -266,24 +252,24 @@ func (m *Map) GetEntries() []*MapEntry {
 }
 
 type MapEntry struct {
-	Key   string `protobuf:"bytes,1,opt,name=Key" json:"Key,omitempty"`
-	Value string `protobuf:"bytes,2,opt,name=Value" json:"Value,omitempty"`
+	Key   string `protobuf:"bytes,1,opt,name=Key,json=key" json:"Key,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=Value,json=value" json:"Value,omitempty"`
 }
 
 func (m *MapEntry) Reset()                    { *m = MapEntry{} }
 func (m *MapEntry) String() string            { return proto.CompactTextString(m) }
 func (*MapEntry) ProtoMessage()               {}
-func (*MapEntry) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
+func (*MapEntry) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
 
 type CollectMetricsRequest struct {
-	TaskID  string          `protobuf:"bytes,1,opt,name=TaskID" json:"TaskID,omitempty"`
-	AllTags map[string]*Map `protobuf:"bytes,2,rep,name=AllTags" json:"AllTags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	TaskID  string          `protobuf:"bytes,1,opt,name=TaskID,json=taskID" json:"TaskID,omitempty"`
+	AllTags map[string]*Map `protobuf:"bytes,2,rep,name=AllTags,json=allTags" json:"AllTags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
 func (m *CollectMetricsRequest) Reset()                    { *m = CollectMetricsRequest{} }
 func (m *CollectMetricsRequest) String() string            { return proto.CompactTextString(m) }
 func (*CollectMetricsRequest) ProtoMessage()               {}
-func (*CollectMetricsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{14} }
+func (*CollectMetricsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
 
 func (m *CollectMetricsRequest) GetAllTags() map[string]*Map {
 	if m != nil {
@@ -293,14 +279,14 @@ func (m *CollectMetricsRequest) GetAllTags() map[string]*Map {
 }
 
 type CollectMetricsResponse struct {
-	Metrics []*common.Metric `protobuf:"bytes,1,rep,name=Metrics" json:"Metrics,omitempty"`
-	Errors  []string         `protobuf:"bytes,2,rep,name=Errors" json:"Errors,omitempty"`
+	Metrics []*common.Metric `protobuf:"bytes,1,rep,name=Metrics,json=metrics" json:"Metrics,omitempty"`
+	Errors  []string         `protobuf:"bytes,2,rep,name=Errors,json=errors" json:"Errors,omitempty"`
 }
 
 func (m *CollectMetricsResponse) Reset()                    { *m = CollectMetricsResponse{} }
 func (m *CollectMetricsResponse) String() string            { return proto.CompactTextString(m) }
 func (*CollectMetricsResponse) ProtoMessage()               {}
-func (*CollectMetricsResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
+func (*CollectMetricsResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
 
 func (m *CollectMetricsResponse) GetMetrics() []*common.Metric {
 	if m != nil {
@@ -309,30 +295,14 @@ func (m *CollectMetricsResponse) GetMetrics() []*common.Metric {
 	return nil
 }
 
-type ExpandWildcardsRequest struct {
-	Namespace []*common.NamespaceElement `protobuf:"bytes,1,rep,name=Namespace" json:"Namespace,omitempty"`
-}
-
-func (m *ExpandWildcardsRequest) Reset()                    { *m = ExpandWildcardsRequest{} }
-func (m *ExpandWildcardsRequest) String() string            { return proto.CompactTextString(m) }
-func (*ExpandWildcardsRequest) ProtoMessage()               {}
-func (*ExpandWildcardsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{16} }
-
-func (m *ExpandWildcardsRequest) GetNamespace() []*common.NamespaceElement {
-	if m != nil {
-		return m.Namespace
-	}
-	return nil
-}
-
 type ArrString struct {
-	S []*common.NamespaceElement `protobuf:"bytes,1,rep,name=S" json:"S,omitempty"`
+	S []*common.NamespaceElement `protobuf:"bytes,1,rep,name=S,json=s" json:"S,omitempty"`
 }
 
 func (m *ArrString) Reset()                    { *m = ArrString{} }
 func (m *ArrString) String() string            { return proto.CompactTextString(m) }
 func (*ArrString) ProtoMessage()               {}
-func (*ArrString) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{17} }
+func (*ArrString) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{14} }
 
 func (m *ArrString) GetS() []*common.NamespaceElement {
 	if m != nil {
@@ -341,46 +311,20 @@ func (m *ArrString) GetS() []*common.NamespaceElement {
 	return nil
 }
 
-type ExpandWildcardsReply struct {
-	NSS   []*ArrString      `protobuf:"bytes,1,rep,name=NSS" json:"NSS,omitempty"`
-	Error *common.SnapError `protobuf:"bytes,2,opt,name=Error" json:"Error,omitempty"`
-}
-
-func (m *ExpandWildcardsReply) Reset()                    { *m = ExpandWildcardsReply{} }
-func (m *ExpandWildcardsReply) String() string            { return proto.CompactTextString(m) }
-func (*ExpandWildcardsReply) ProtoMessage()               {}
-func (*ExpandWildcardsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{18} }
-
-func (m *ExpandWildcardsReply) GetNSS() []*ArrString {
-	if m != nil {
-		return m.NSS
-	}
-	return nil
-}
-
-func (m *ExpandWildcardsReply) GetError() *common.SnapError {
-	if m != nil {
-		return m.Error
-	}
-	return nil
-}
-
 type GetAutodiscoverPathsReply struct {
-	Paths []string `protobuf:"bytes,1,rep,name=Paths" json:"Paths,omitempty"`
+	Paths []string `protobuf:"bytes,1,rep,name=Paths,json=paths" json:"Paths,omitempty"`
 }
 
 func (m *GetAutodiscoverPathsReply) Reset()                    { *m = GetAutodiscoverPathsReply{} }
 func (m *GetAutodiscoverPathsReply) String() string            { return proto.CompactTextString(m) }
 func (*GetAutodiscoverPathsReply) ProtoMessage()               {}
-func (*GetAutodiscoverPathsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{19} }
+func (*GetAutodiscoverPathsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
 
 func init() {
 	proto.RegisterType((*SerrorReply)(nil), "rpc.SerrorReply")
 	proto.RegisterType((*PubProcMetricsRequest)(nil), "rpc.PubProcMetricsRequest")
 	proto.RegisterType((*ErrorReply)(nil), "rpc.ErrorReply")
 	proto.RegisterType((*ProcessMetricsReply)(nil), "rpc.ProcessMetricsReply")
-	proto.RegisterType((*GetPluginContentTypesRequest)(nil), "rpc.GetPluginContentTypesRequest")
-	proto.RegisterType((*GetPluginContentTypesReply)(nil), "rpc.GetPluginContentTypesReply")
 	proto.RegisterType((*ValidateDepsRequest)(nil), "rpc.ValidateDepsRequest")
 	proto.RegisterType((*ValidateDepsReply)(nil), "rpc.ValidateDepsReply")
 	proto.RegisterType((*SubscribeDepsRequest)(nil), "rpc.SubscribeDepsRequest")
@@ -391,9 +335,7 @@ func init() {
 	proto.RegisterType((*MapEntry)(nil), "rpc.MapEntry")
 	proto.RegisterType((*CollectMetricsRequest)(nil), "rpc.CollectMetricsRequest")
 	proto.RegisterType((*CollectMetricsResponse)(nil), "rpc.CollectMetricsResponse")
-	proto.RegisterType((*ExpandWildcardsRequest)(nil), "rpc.ExpandWildcardsRequest")
 	proto.RegisterType((*ArrString)(nil), "rpc.ArrString")
-	proto.RegisterType((*ExpandWildcardsReply)(nil), "rpc.ExpandWildcardsReply")
 	proto.RegisterType((*GetAutodiscoverPathsReply)(nil), "rpc.GetAutodiscoverPathsReply")
 }
 
@@ -409,7 +351,6 @@ const _ = grpc.SupportPackageIsVersion2
 
 type MetricManagerClient interface {
 	// managesMetrics from scheduler
-	GetPluginContentTypes(ctx context.Context, in *GetPluginContentTypesRequest, opts ...grpc.CallOption) (*GetPluginContentTypesReply, error)
 	CollectMetrics(ctx context.Context, in *CollectMetricsRequest, opts ...grpc.CallOption) (*CollectMetricsResponse, error)
 	PublishMetrics(ctx context.Context, in *PubProcMetricsRequest, opts ...grpc.CallOption) (*ErrorReply, error)
 	ProcessMetrics(ctx context.Context, in *PubProcMetricsRequest, opts ...grpc.CallOption) (*ProcessMetricsReply, error)
@@ -425,15 +366,6 @@ type metricManagerClient struct {
 
 func NewMetricManagerClient(cc *grpc.ClientConn) MetricManagerClient {
 	return &metricManagerClient{cc}
-}
-
-func (c *metricManagerClient) GetPluginContentTypes(ctx context.Context, in *GetPluginContentTypesRequest, opts ...grpc.CallOption) (*GetPluginContentTypesReply, error) {
-	out := new(GetPluginContentTypesReply)
-	err := grpc.Invoke(ctx, "/rpc.MetricManager/GetPluginContentTypes", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *metricManagerClient) CollectMetrics(ctx context.Context, in *CollectMetricsRequest, opts ...grpc.CallOption) (*CollectMetricsResponse, error) {
@@ -503,7 +435,6 @@ func (c *metricManagerClient) GetAutodiscoverPaths(ctx context.Context, in *comm
 
 type MetricManagerServer interface {
 	// managesMetrics from scheduler
-	GetPluginContentTypes(context.Context, *GetPluginContentTypesRequest) (*GetPluginContentTypesReply, error)
 	CollectMetrics(context.Context, *CollectMetricsRequest) (*CollectMetricsResponse, error)
 	PublishMetrics(context.Context, *PubProcMetricsRequest) (*ErrorReply, error)
 	ProcessMetrics(context.Context, *PubProcMetricsRequest) (*ProcessMetricsReply, error)
@@ -515,24 +446,6 @@ type MetricManagerServer interface {
 
 func RegisterMetricManagerServer(s *grpc.Server, srv MetricManagerServer) {
 	s.RegisterService(&_MetricManager_serviceDesc, srv)
-}
-
-func _MetricManager_GetPluginContentTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetPluginContentTypesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MetricManagerServer).GetPluginContentTypes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rpc.MetricManager/GetPluginContentTypes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MetricManagerServer).GetPluginContentTypes(ctx, req.(*GetPluginContentTypesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _MetricManager_CollectMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -666,10 +579,6 @@ var _MetricManager_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*MetricManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetPluginContentTypes",
-			Handler:    _MetricManager_GetPluginContentTypes_Handler,
-		},
-		{
 			MethodName: "CollectMetrics",
 			Handler:    _MetricManager_CollectMetrics_Handler,
 		},
@@ -706,58 +615,52 @@ func init() {
 }
 
 var fileDescriptor0 = []byte{
-	// 840 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xa4, 0x56, 0xdb, 0x4e, 0xf3, 0x46,
-	0x10, 0x26, 0x31, 0x49, 0xc8, 0xe4, 0x80, 0x58, 0x42, 0x30, 0x06, 0x01, 0x71, 0xd5, 0x96, 0xb6,
-	0x6a, 0x52, 0x05, 0xa9, 0xa5, 0xbd, 0x68, 0x95, 0x42, 0x44, 0x11, 0x02, 0xa5, 0x04, 0xa8, 0x7a,
-	0xd1, 0x0b, 0xc7, 0xde, 0x06, 0x0b, 0xc7, 0x76, 0x77, 0xd7, 0x88, 0x3c, 0x4b, 0x1f, 0xb0, 0xaf,
-	0xd1, 0x3d, 0xd8, 0xce, 0x01, 0x73, 0x90, 0xfe, 0xab, 0x78, 0x67, 0x66, 0xbf, 0xf9, 0xe6, 0xb8,
-	0x81, 0x9f, 0xc7, 0x2e, 0x7b, 0x88, 0x46, 0x6d, 0x3b, 0x98, 0x74, 0x5c, 0x9f, 0x61, 0x8f, 0x3a,
-	0xee, 0xb7, 0xcf, 0x1d, 0xea, 0x5b, 0x61, 0x67, 0x4c, 0x42, 0xbb, 0x63, 0x07, 0x3e, 0x23, 0x81,
-	0x17, 0x92, 0xe0, 0x79, 0xda, 0x99, 0x13, 0xb4, 0xb9, 0x84, 0x05, 0x48, 0xe3, 0x22, 0xe3, 0xf8,
-	0x7d, 0x90, 0xc9, 0x24, 0xf0, 0xe3, 0x1f, 0x75, 0xd3, 0xac, 0x41, 0x65, 0x88, 0x09, 0x09, 0xc8,
-	0x0d, 0x0e, 0xbd, 0xa9, 0xf9, 0x6f, 0x0e, 0xb6, 0x06, 0xd1, 0x68, 0x40, 0x02, 0xfb, 0x0a, 0x33,
-	0xe2, 0xda, 0xf4, 0x06, 0xff, 0x13, 0x61, 0xca, 0xd0, 0x26, 0x54, 0x4e, 0xb9, 0x4f, 0xec, 0xb3,
-	0xdb, 0x69, 0x88, 0xf5, 0xdc, 0x61, 0xee, 0xa8, 0x8c, 0xd6, 0xa1, 0x14, 0x0b, 0xf5, 0x3c, 0x17,
-	0x54, 0x11, 0x02, 0x18, 0x78, 0xd1, 0xd8, 0xf5, 0xaf, 0xad, 0x09, 0xd6, 0x35, 0x69, 0xb4, 0x05,
-	0x35, 0x25, 0xbb, 0xc7, 0x84, 0xba, 0x81, 0xaf, 0xaf, 0x72, 0xb1, 0x86, 0x5a, 0x50, 0xe4, 0x77,
-	0xff, 0x76, 0xc7, 0x7a, 0x81, 0x9f, 0x2b, 0xdd, 0x8d, 0x76, 0x4c, 0x4c, 0x49, 0xaf, 0xac, 0x10,
-	0xd5, 0xa1, 0x78, 0x6b, 0xd1, 0xc7, 0x0b, 0x47, 0x2f, 0x0a, 0x24, 0x73, 0x0f, 0xa0, 0x9f, 0x72,
-	0x15, 0x5a, 0x79, 0xa2, 0x9c, 0x8c, 0xc6, 0xb5, 0x97, 0xb0, 0x29, 0x78, 0x63, 0x4a, 0x53, 0xea,
-	0xc2, 0xec, 0x63, 0xc4, 0x67, 0x60, 0x9a, 0x04, 0xfb, 0x1d, 0xf6, 0xce, 0x31, 0x53, 0xbc, 0xe7,
-	0xae, 0xa7, 0xe9, 0xa8, 0xc2, 0xaa, 0x0c, 0x51, 0xc1, 0xa5, 0x61, 0x4b, 0x17, 0x02, 0xb1, 0x20,
-	0x5c, 0x24, 0x01, 0x8b, 0x3c, 0x14, 0xcc, 0x3f, 0xc1, 0x78, 0x05, 0x52, 0xd0, 0xe4, 0x59, 0xea,
-	0xd9, 0x36, 0x0e, 0x19, 0x76, 0xa4, 0x54, 0x05, 0x25, 0xc4, 0x37, 0x98, 0x45, 0xc4, 0x4f, 0xc4,
-	0x79, 0x29, 0xae, 0x41, 0x41, 0xd2, 0x55, 0x29, 0x36, 0x2d, 0xd8, 0xbc, 0xb7, 0x3c, 0xd7, 0xb1,
-	0x18, 0x3e, 0xc3, 0x61, 0x4a, 0xf2, 0x00, 0x4a, 0x71, 0x2a, 0x24, 0x5a, 0xa5, 0x5b, 0x4f, 0x72,
-	0xac, 0xc4, 0xe8, 0x2b, 0x28, 0x29, 0x3e, 0x0a, 0xb7, 0xd2, 0xd5, 0x13, 0x83, 0x61, 0x34, 0xa2,
-	0x36, 0x71, 0x47, 0xd8, 0x51, 0x06, 0xe6, 0xf7, 0xb0, 0xb1, 0xe8, 0x42, 0x90, 0x6e, 0x2d, 0x94,
-	0x60, 0xae, 0x86, 0x43, 0xde, 0x74, 0x52, 0x63, 0x32, 0x68, 0xa4, 0x58, 0xf3, 0xdc, 0x5a, 0x50,
-	0x8e, 0x3f, 0xb1, 0xf3, 0xc9, 0xec, 0xe6, 0x3a, 0x45, 0x25, 0xe4, 0x07, 0x40, 0x4b, 0x5e, 0x3f,
-	0x48, 0xf7, 0x08, 0x9a, 0x77, 0x3e, 0xcd, 0x22, 0x3c, 0x73, 0x21, 0x6b, 0x6e, 0xfe, 0x08, 0x8d,
-	0x17, 0x96, 0x1f, 0x74, 0xf2, 0x39, 0x68, 0xa2, 0xbd, 0xf7, 0xa1, 0xd4, 0xe7, 0x53, 0xec, 0xe2,
-	0xc4, 0xb4, 0xd6, 0xe6, 0x63, 0xda, 0xe6, 0x2a, 0x21, 0x9e, 0x9a, 0x5f, 0xc0, 0x5a, 0xf2, 0x8d,
-	0x2a, 0xa0, 0x5d, 0xe2, 0x69, 0xdc, 0x6e, 0xbc, 0xfa, 0xbc, 0x16, 0x91, 0xea, 0xb4, 0xb2, 0x1c,
-	0xda, 0xd3, 0xc0, 0xf3, 0xb0, 0xcd, 0x96, 0x86, 0x36, 0xe1, 0x7c, 0x16, 0x5f, 0x3c, 0x81, 0x52,
-	0xcf, 0xf3, 0x6e, 0xad, 0x71, 0x92, 0xd1, 0x2f, 0xa5, 0xc7, 0xcc, 0xcb, 0xed, 0xd8, 0x52, 0xfa,
-	0x37, 0x4e, 0xa0, 0x3a, 0x7f, 0x16, 0x7c, 0x1e, 0x53, 0x3e, 0xdb, 0x50, 0x78, 0x4a, 0xf9, 0x54,
-	0xba, 0x6b, 0x49, 0x18, 0x3f, 0xe5, 0x4f, 0x72, 0xe6, 0x05, 0x34, 0x97, 0xf1, 0x69, 0x18, 0xf8,
-	0x14, 0xbf, 0xdf, 0x9e, 0xb3, 0xa1, 0x94, 0x5d, 0x6f, 0xf6, 0xa1, 0xd9, 0x7f, 0x0e, 0x2d, 0xdf,
-	0xf9, 0xc3, 0xf5, 0x1c, 0xdb, 0x22, 0x4e, 0x1a, 0xe8, 0x37, 0x50, 0x16, 0xe3, 0x48, 0x43, 0xcb,
-	0xc6, 0x31, 0x58, 0xda, 0x2c, 0xa9, 0xa2, 0xef, 0xe1, 0x09, 0x1f, 0x3a, 0xf3, 0x3b, 0x28, 0xf7,
-	0x08, 0x19, 0x72, 0x17, 0xfe, 0x18, 0x7d, 0x06, 0xb9, 0xe1, 0xbb, 0x37, 0xee, 0xa0, 0xf1, 0xc2,
-	0xb1, 0xa8, 0xf5, 0x2e, 0x68, 0xd7, 0xc3, 0x61, 0xca, 0x5e, 0x84, 0x3d, 0x43, 0x3e, 0x4c, 0x66,
-	0x34, 0xbf, 0xb8, 0xdf, 0x66, 0x7d, 0xf0, 0x35, 0xec, 0xf0, 0x8d, 0xd0, 0x8b, 0x58, 0xe0, 0xb8,
-	0xd4, 0x0e, 0x9e, 0x30, 0x19, 0x58, 0xec, 0x21, 0xc6, 0xe6, 0x45, 0x96, 0x27, 0xb5, 0x08, 0xba,
-	0xff, 0xad, 0x42, 0x4d, 0xa5, 0xe5, 0xca, 0xf2, 0xad, 0x31, 0x26, 0xe8, 0x2f, 0xd8, 0xca, 0xdc,
-	0x27, 0xa8, 0x25, 0x89, 0xbc, 0xb5, 0xbe, 0x8c, 0x83, 0xb7, 0x4c, 0xc4, 0x43, 0xb0, 0x82, 0x2e,
-	0xa1, 0xbe, 0x58, 0x37, 0x64, 0xbc, 0xde, 0x2c, 0xc6, 0x6e, 0xa6, 0x4e, 0x15, 0x9a, 0x83, 0xfd,
-	0x02, 0x75, 0xfe, 0xac, 0x78, 0x2e, 0x7d, 0x58, 0x04, 0xcb, 0x7c, 0x6b, 0x8c, 0x75, 0xa9, 0x9b,
-	0xad, 0x7a, 0x0e, 0xf0, 0x1b, 0x07, 0x58, 0x58, 0xee, 0x6f, 0x02, 0xe8, 0x4a, 0xf7, 0xf2, 0x35,
-	0xe0, 0x48, 0xbf, 0x42, 0x75, 0x7e, 0x91, 0x21, 0x65, 0x9b, 0xb1, 0x3e, 0x8d, 0x66, 0x86, 0x46,
-	0x61, 0xf4, 0xa1, 0xb6, 0xb0, 0x5e, 0xd0, 0x8e, 0x34, 0xcd, 0x5a, 0x74, 0xc6, 0x76, 0x96, 0x2a,
-	0x49, 0xf1, 0xfa, 0xd2, 0x0a, 0x41, 0x2a, 0x8f, 0xd9, 0x2b, 0xc8, 0xd8, 0xc9, 0x56, 0x2a, 0xb0,
-	0x73, 0x68, 0x64, 0x35, 0x13, 0xaa, 0x25, 0x7d, 0xd7, 0x9f, 0x84, 0x6c, 0x6a, 0xec, 0x27, 0x95,
-	0xcf, 0x6e, 0x3b, 0x73, 0x65, 0x54, 0x94, 0xff, 0x0c, 0x8e, 0xff, 0x0f, 0x00, 0x00, 0xff, 0xff,
-	0x4e, 0xc0, 0x13, 0x3e, 0x95, 0x08, 0x00, 0x00,
+	// 746 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xac, 0x55, 0xc1, 0x4e, 0xdb, 0x4c,
+	0x10, 0xc6, 0x98, 0x24, 0x64, 0x42, 0xe0, 0x67, 0xc9, 0x9f, 0x06, 0x57, 0x42, 0xc8, 0x42, 0x05,
+	0xa4, 0xd6, 0x69, 0xcd, 0xa5, 0xea, 0x01, 0x94, 0x92, 0x88, 0x56, 0x88, 0x2a, 0x72, 0x28, 0x95,
+	0x7a, 0x73, 0x9c, 0xad, 0xb1, 0xb0, 0xbd, 0xee, 0xae, 0x8d, 0xc8, 0x1b, 0xf4, 0xd8, 0xc7, 0xe9,
+	0x33, 0xf4, 0xa9, 0xba, 0xf6, 0xda, 0xc1, 0x0e, 0xa6, 0x2d, 0xa8, 0xa7, 0x78, 0x67, 0x66, 0xbf,
+	0xf9, 0xbe, 0x99, 0x9d, 0x09, 0x1c, 0xda, 0x4e, 0x78, 0x19, 0x8d, 0x35, 0x8b, 0x78, 0x5d, 0xc7,
+	0x0f, 0xb1, 0xcb, 0x26, 0xce, 0x8b, 0x9b, 0x2e, 0xf3, 0xcd, 0xa0, 0x6b, 0xd3, 0xc0, 0xea, 0x5a,
+	0xc4, 0x0f, 0x29, 0x71, 0x03, 0x4a, 0x6e, 0xa6, 0xdd, 0x9c, 0x41, 0xe3, 0x96, 0x90, 0x20, 0x99,
+	0x9b, 0x94, 0x83, 0x3f, 0x83, 0x78, 0x1e, 0xf1, 0xd3, 0x1f, 0x71, 0x53, 0x6d, 0x42, 0x63, 0x84,
+	0x29, 0x25, 0xd4, 0xc0, 0x81, 0x3b, 0x55, 0x7f, 0x4a, 0xf0, 0xff, 0x30, 0x1a, 0x0f, 0x29, 0xb1,
+	0xce, 0x70, 0x48, 0x1d, 0x8b, 0x19, 0xf8, 0x6b, 0x84, 0x59, 0x88, 0xf6, 0xa0, 0x96, 0x5a, 0x3a,
+	0xd2, 0xb6, 0xbc, 0xd7, 0xd0, 0x57, 0xb5, 0x14, 0x48, 0x98, 0x8d, 0x9a, 0x27, 0xdc, 0x68, 0x0b,
+	0x60, 0xe8, 0x46, 0xb6, 0xe3, 0x7f, 0x30, 0x3d, 0xdc, 0x59, 0xdc, 0x96, 0xf6, 0xea, 0x06, 0x04,
+	0x33, 0x0b, 0xda, 0x81, 0xa6, 0xf0, 0x5f, 0x60, 0xca, 0x1c, 0xe2, 0x77, 0x64, 0x1e, 0x22, 0x1b,
+	0xcd, 0x20, 0x6f, 0x44, 0xfb, 0x50, 0x3d, 0x26, 0xfe, 0x17, 0xc7, 0xee, 0x2c, 0x71, 0x77, 0x43,
+	0x5f, 0xcf, 0xd2, 0x09, 0xeb, 0x99, 0x19, 0x18, 0x55, 0x2b, 0xf9, 0x44, 0x6d, 0xa8, 0x9e, 0x9b,
+	0xec, 0xea, 0xfd, 0xa4, 0x53, 0x49, 0x92, 0x55, 0xc3, 0xe4, 0xa4, 0xee, 0x00, 0x0c, 0x66, 0xd2,
+	0xe2, 0xa8, 0xe4, 0x24, 0xf8, 0xf3, 0xa8, 0x44, 0x36, 0x53, 0x3f, 0xc1, 0x46, 0x2c, 0x17, 0x33,
+	0x36, 0x53, 0x1c, 0x87, 0xff, 0xbd, 0xde, 0x5b, 0xe0, 0xc5, 0x02, 0x30, 0x83, 0x8d, 0x0b, 0xd3,
+	0x75, 0x26, 0x66, 0x88, 0xfb, 0x38, 0x78, 0x44, 0x21, 0x75, 0xa8, 0x89, 0x42, 0x09, 0xe4, 0x86,
+	0xde, 0xc9, 0x22, 0x47, 0xd1, 0x98, 0x59, 0xd4, 0x19, 0xe3, 0x89, 0x08, 0x30, 0x6a, 0xa2, 0x78,
+	0x4c, 0x3d, 0x84, 0xf5, 0x62, 0xd2, 0x58, 0xcb, 0x7e, 0x41, 0x7a, 0xae, 0x96, 0x23, 0xfe, 0x36,
+	0x44, 0x89, 0x32, 0xd2, 0xdf, 0x25, 0x68, 0xcd, 0xd0, 0xf3, 0xb4, 0x9f, 0x43, 0x3d, 0xfd, 0xc4,
+	0x93, 0x7b, 0x88, 0xd7, 0x69, 0x16, 0xf0, 0x18, 0xea, 0xb9, 0x36, 0xca, 0x85, 0x36, 0x1e, 0x01,
+	0x9a, 0x63, 0xf4, 0x40, 0x4d, 0x2f, 0xa1, 0xfd, 0xd1, 0x67, 0x65, 0xa2, 0x6e, 0x53, 0x4a, 0x85,
+	0x94, 0x3d, 0x68, 0xdd, 0xb9, 0xf1, 0xc0, 0xa4, 0x1a, 0xc8, 0xfc, 0x8d, 0xa2, 0x5d, 0xa8, 0x0d,
+	0xf8, 0xa4, 0x3a, 0x38, 0xbb, 0xd2, 0xd4, 0xf8, 0x28, 0x6a, 0xdc, 0x15, 0x9b, 0xa7, 0x46, 0x0d,
+	0x0b, 0xaf, 0xaa, 0xc3, 0x72, 0x66, 0x44, 0xff, 0x81, 0x7c, 0x8a, 0xa7, 0x29, 0x27, 0xf9, 0x0a,
+	0x4f, 0x51, 0x0b, 0x2a, 0xbc, 0xad, 0x51, 0x36, 0x4e, 0x95, 0xeb, 0xf8, 0xa0, 0xfe, 0xe0, 0xd3,
+	0x7a, 0x4c, 0x5c, 0x17, 0x5b, 0xe1, 0xdc, 0xb4, 0x66, 0xc2, 0xfa, 0x05, 0x61, 0x7d, 0xd4, 0x83,
+	0x5a, 0xcf, 0x75, 0xcf, 0x4d, 0x3b, 0xeb, 0xcb, 0x6e, 0x42, 0xa7, 0x14, 0x44, 0x4b, 0x23, 0x53,
+	0xa2, 0xa6, 0x38, 0x29, 0x7d, 0x58, 0xc9, 0x3b, 0x62, 0xb2, 0x57, 0x45, 0xb2, 0x5b, 0x20, 0xf8,
+	0x25, 0x64, 0x1b, 0xfa, 0x72, 0xa6, 0x38, 0xa5, 0xfd, 0x66, 0xf1, 0xb5, 0xa4, 0x7e, 0x86, 0xf6,
+	0x7c, 0x52, 0x16, 0x10, 0x9f, 0xe1, 0x7f, 0x30, 0x78, 0x07, 0x50, 0xef, 0x51, 0x3a, 0xe2, 0x41,
+	0xbe, 0x8d, 0x9e, 0x81, 0x34, 0x4a, 0x81, 0x66, 0x6f, 0x30, 0x5e, 0x43, 0x2c, 0x30, 0x2d, 0x3c,
+	0x70, 0xb1, 0xc7, 0x1b, 0x60, 0x48, 0x4c, 0x7d, 0x05, 0x9b, 0x27, 0x38, 0xec, 0x45, 0x21, 0x99,
+	0x38, 0xcc, 0x22, 0xd7, 0x98, 0x0e, 0xcd, 0xf0, 0x32, 0xed, 0x3b, 0x2f, 0x7f, 0x72, 0x4a, 0x57,
+	0x47, 0x25, 0x88, 0x0f, 0xfa, 0xb7, 0x25, 0x68, 0x0a, 0x4e, 0x67, 0xa6, 0x6f, 0xda, 0x98, 0xa2,
+	0x53, 0x58, 0x2d, 0xaa, 0x42, 0xca, 0xfd, 0xf5, 0x55, 0x9e, 0x96, 0xfa, 0x44, 0x19, 0xd4, 0x05,
+	0x74, 0x04, 0xab, 0x7c, 0x15, 0xbb, 0x0e, 0xbb, 0x2c, 0x82, 0x95, 0xee, 0x67, 0x65, 0x2d, 0xf1,
+	0xdd, 0xee, 0x3b, 0x0e, 0xf0, 0x8e, 0x03, 0x14, 0x36, 0xdb, 0x6f, 0x01, 0x3a, 0xc2, 0x77, 0x77,
+	0x15, 0x72, 0xa4, 0xb7, 0xb0, 0x92, 0xdf, 0x2a, 0x48, 0xc4, 0x96, 0x6c, 0x37, 0xa5, 0x5d, 0xe2,
+	0x11, 0x18, 0x03, 0x68, 0x16, 0xc6, 0x18, 0x6d, 0x26, 0xa1, 0x65, 0xcb, 0x46, 0x79, 0x52, 0xe6,
+	0x12, 0x30, 0xa7, 0xb0, 0x36, 0x37, 0x9a, 0x48, 0xd4, 0xb1, 0x7c, 0xc4, 0x95, 0xcd, 0x72, 0xa7,
+	0x00, 0x3b, 0x81, 0x56, 0x59, 0xd3, 0x51, 0x33, 0x7b, 0x29, 0x03, 0x2f, 0x08, 0xa7, 0xca, 0x56,
+	0x82, 0x71, 0xef, 0xf3, 0x50, 0x17, 0xc6, 0xd5, 0xe4, 0xdf, 0xf4, 0xe0, 0x57, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0x1b, 0x5c, 0xfe, 0x59, 0xc9, 0x07, 0x00, 0x00,
 }

@@ -22,8 +22,6 @@ limitations under the License.
 package control
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -609,33 +607,6 @@ func TestPluginCatalog(t *testing.T) {
 
 	Convey("the loadedPlugins implement the interface CatalogedPlugin interface", t, func() {
 		So(lp1.Name(), ShouldEqual, "test1")
-	})
-
-	Convey("GetPluginContentTypes", t, func() {
-		Convey("Given a plugin that exists", func() {
-			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 1)
-			So(err, ShouldBeNil)
-			So(act, ShouldResemble, []string{"a", "b", "c"})
-			So(ret, ShouldResemble, []string{"a", "b", "c"})
-		})
-		Convey("Given a plugin with a version that does NOT exist", func() {
-			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 5)
-			So(err, ShouldNotBeNil)
-			So(act, ShouldBeEmpty)
-			So(ret, ShouldBeEmpty)
-		})
-		Convey("Given a plugin where the version provided is 0", func() {
-			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 0)
-			So(err, ShouldBeNil)
-			So(act, ShouldResemble, []string{"d", "e", "f"})
-			So(ret, ShouldResemble, []string{"d", "e", "f"})
-		})
-		Convey("Given no plugins for the name and type", func() {
-			act, ret, err := c.GetPluginContentTypes("test9", core.PluginType(0), 5)
-			So(err, ShouldNotBeNil)
-			So(act, ShouldBeEmpty)
-			So(ret, ShouldBeEmpty)
-		})
 	})
 
 }
@@ -1340,14 +1311,10 @@ func TestPublishMetrics(t *testing.T) {
 			time.Sleep(2500 * time.Millisecond)
 
 			Convey("Publish to file", func() {
-				metrics := []plugin.MetricType{
+				metrics := []core.Metric{
 					*plugin.NewMetricType(core.NewNamespace("foo"), time.Now(), nil, "", 1),
 				}
-				var buf bytes.Buffer
-				enc := gob.NewEncoder(&buf)
-				enc.Encode(metrics)
-				contentType := plugin.SnapGOBContentType
-				errs := c.PublishMetrics(contentType, buf.Bytes(), "mock-file", 3, n.Table(), "1")
+				errs := c.PublishMetrics(metrics, n.Table(), uuid.New(), "mock-file", 3)
 				So(errs, ShouldBeNil)
 				ap := c.AvailablePlugins()
 				So(ap, ShouldNotBeEmpty)
@@ -1390,21 +1357,12 @@ func TestProcessMetrics(t *testing.T) {
 			time.Sleep(2500 * time.Millisecond)
 
 			Convey("process metrics", func() {
-				metrics := []plugin.MetricType{
+				metrics := []core.Metric{
 					*plugin.NewMetricType(core.NewNamespace("foo"), time.Now(), nil, "", 1),
 				}
-				var buf bytes.Buffer
-				enc := gob.NewEncoder(&buf)
-				enc.Encode(metrics)
-				contentType := plugin.SnapGOBContentType
-				_, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table(), "1")
-				So(errs, ShouldBeEmpty)
-				mts := []plugin.MetricType{}
-				dec := gob.NewDecoder(bytes.NewBuffer(ct))
-				err := dec.Decode(&mts)
-				So(err, ShouldBeNil)
-				So(mts[0].Data_, ShouldEqual, 2)
+				mts, errs := c.ProcessMetrics(metrics, n.Table(), uuid.New(), "passthru", 1)
 				So(errs, ShouldBeNil)
+				So(mts[0].Data(), ShouldEqual, 2)
 			})
 		})
 
@@ -1771,7 +1729,9 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 		Convey("metrics are collected from mock1", func() {
 			for _, m := range mts1 {
 				if strings.Contains(m.Namespace().String(), "host") {
-					val, ok := m.Data().(int64)
+					// Because mock1 uses jsonrpc, all number typers are interpreted
+					// as float64
+					val, ok := m.Data().(float64)
 					So(ok, ShouldEqual, true)
 					So(val, ShouldBeLessThan, 100)
 				} else {
@@ -1780,9 +1740,6 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 				}
 			}
 		})
-		// ensure the data coming back is from v1. V1's data is type string
-		_, ok := mts1[0].Data().(string)
-		So(ok, ShouldEqual, true)
 		Convey("Loading higher plugin version with less metrics", func() {
 			// Load version snap-plugin-collector-mock2
 			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock2"))

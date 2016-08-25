@@ -3,8 +3,16 @@ package rpc
 import (
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/ctypes"
+)
+
+var (
+	rpcLogger = log.WithFields(log.Fields{
+		"_module": "rpc",
+	})
 )
 
 // NewGetConfigPolicyReply given a config *cpolicy.ConfigPolicy returns a GetConfigPolicyReply.
@@ -90,9 +98,15 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 			nodes[k] = cpolicy.NewPolicyNode()
 		}
 		for key, val := range v.Rules {
-			br, err := cpolicy.NewBoolRule(key, val.Required, val.Default)
+			var br *cpolicy.BoolRule
+			var err error
+			if val.HasDefault {
+				br, err = cpolicy.NewBoolRule(key, val.Required, val.Default)
+			} else {
+				br, err = cpolicy.NewBoolRule(key, val.Required)
+			}
 			if err != nil {
-				// The only error that can be thrown is empty key error, ignore something with empty key
+				rpcLogger.Warn("Empty key found with value %v", val)
 				continue
 			}
 			nodes[k].Add(br)
@@ -104,8 +118,15 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 			nodes[k] = cpolicy.NewPolicyNode()
 		}
 		for key, val := range v.Rules {
-			sr, err := cpolicy.NewStringRule(key, val.Required, val.Default)
+			var sr *cpolicy.StringRule
+			var err error
+			if val.HasDefault {
+				sr, err = cpolicy.NewStringRule(key, val.Required, val.Default)
+			} else {
+				sr, err = cpolicy.NewStringRule(key, val.Required)
+			}
 			if err != nil {
+				rpcLogger.Warn("Empty key found with value %v", val)
 				continue
 			}
 
@@ -118,12 +139,25 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 			nodes[k] = cpolicy.NewPolicyNode()
 		}
 		for key, val := range v.Rules {
-			sr, err := cpolicy.NewIntegerRule(key, val.Required, int(val.Default))
+			var ir *cpolicy.IntRule
+			var err error
+			if val.HasDefault {
+				ir, err = cpolicy.NewIntegerRule(key, val.Required, int(val.Default))
+			} else {
+				ir, err = cpolicy.NewIntegerRule(key, val.Required)
+			}
 			if err != nil {
+				rpcLogger.Warn("Empty key found with value %v", val)
 				continue
 			}
+			if val.HasMin {
+				ir.SetMinimum(int(val.Minimum))
+			}
+			if val.HasMax {
+				ir.SetMaximum(int(val.Maximum))
+			}
 
-			nodes[k].Add(sr)
+			nodes[k].Add(ir)
 		}
 	}
 
@@ -132,12 +166,27 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 			nodes[k] = cpolicy.NewPolicyNode()
 		}
 		for key, val := range v.Rules {
-			sr, err := cpolicy.NewFloatRule(key, val.Required, val.Default)
+			var fr *cpolicy.FloatRule
+			var err error
+			if val.HasDefault {
+				fr, err = cpolicy.NewFloatRule(key, val.Required)
+			} else {
+
+				fr, err = cpolicy.NewFloatRule(key, val.Required)
+			}
 			if err != nil {
+				rpcLogger.Warn("Empty key found with value %v", val)
 				continue
 			}
 
-			nodes[k].Add(sr)
+			if val.HasMin {
+				fr.SetMinimum(val.Minimum)
+			}
+			if val.HasMax {
+				fr.SetMaximum(val.Maximum)
+			}
+
+			nodes[k].Add(fr)
 		}
 	}
 
