@@ -37,6 +37,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	"github.com/robfig/cron"
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/ghodss/yaml"
 )
@@ -461,6 +462,8 @@ func mergeDateTime(tm, dt string) *time.Time {
 
 func listTask(ctx *cli.Context) error {
 	tasks := pClient.GetTasks()
+	termWidth, _, _ := terminal.GetSize(int(os.Stdout.Fd()))
+	verbose := ctx.Bool("verbose")
 	if tasks.Err != nil {
 		return fmt.Errorf("Error getting tasks:\n%v\n", tasks.Err)
 	}
@@ -477,20 +480,37 @@ func listTask(ctx *cli.Context) error {
 		"LAST FAILURE",
 	)
 	for _, task := range tasks.ScheduledTasks {
+		//165 is the width of the error message from ID - LAST FAILURE inclusive.
+		//If the header row wraps, then the error message will automatically wrap too
+		if termWidth < 165 {
+			verbose = true
+		}
 		printFields(w, false, 0,
 			task.ID,
-			task.Name,
+			fixSize(verbose, task.Name, 41),
 			task.State,
 			trunc(task.HitCount),
 			trunc(task.MissCount),
 			trunc(task.FailedCount),
 			task.CreationTime().Format(unionParseFormat),
-			task.LastFailureMessage,
+			/*153 is the width of the error message from ID up to LAST FAILURE*/
+			fixSize(verbose, task.LastFailureMessage, termWidth-153),
 		)
 	}
 	w.Flush()
 
 	return nil
+}
+
+func fixSize(verbose bool, msg string, width int) string {
+	if len(msg) < width {
+		for i := len(msg); i < width; i++ {
+			msg += " "
+		}
+	} else if len(msg) > width && !verbose {
+		return msg[:width-3] + "..."
+	}
+	return msg
 }
 
 func watchTask(ctx *cli.Context) error {

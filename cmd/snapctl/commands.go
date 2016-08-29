@@ -56,6 +56,9 @@ var (
 					Name:   "list",
 					Usage:  "list",
 					Action: listTask,
+					Flags: []cli.Flag{
+						flVerbose,
+					},
 				},
 				{
 					Name:   "start",
