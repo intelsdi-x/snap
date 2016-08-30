@@ -23,8 +23,6 @@ package plugin
 
 import (
 	"errors"
-	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -32,6 +30,7 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin/encoding"
 	"github.com/intelsdi-x/snap/core"
 
+	log "github.com/Sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -98,9 +97,7 @@ func (p *mockErrorPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 func TestCollectorProxy(t *testing.T) {
 	Convey("Test collector plugin proxy for get metric types ", t, func() {
 
-		logger := log.New(os.Stdout,
-			"test: ",
-			log.Ldate|log.Ltime|log.Lshortfile)
+		logger := log.New()
 		mockPlugin := &mockPlugin{}
 
 		mockSessionState := &MockSessionState{

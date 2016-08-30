@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io" // Don't use "fmt.Print*"
-	"log"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -34,6 +33,8 @@ import (
 	"regexp"
 	"runtime"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 )
@@ -225,8 +226,8 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 
 // Arguments passed to startup of Plugin
 type Arg struct {
-	// Plugin file path to binary
-	PluginLogPath string
+	// Plugin log level
+	LogLevel log.Level
 	// Ping timeout duration
 	PingTimeoutDuration time.Duration
 
@@ -235,9 +236,9 @@ type Arg struct {
 	listenPort string
 }
 
-func NewArg(logpath string) Arg {
+func NewArg(logLevel int) Arg {
 	return Arg{
-		PluginLogPath:       logpath,
+		LogLevel:            log.Level(logLevel),
 		PingTimeoutDuration: PingTimeoutDurationDefault,
 	}
 }
@@ -328,20 +329,19 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	e := rpc.Register(s)
 	if e != nil {
 		if e.Error() != "rpc: service already defined: SessionState" {
-			log.Println(e.Error())
-			s.Logger().Println(e.Error())
+			s.Logger().Error(e.Error())
 			return e, 2
 		}
 	}
 
 	l, err := net.Listen("tcp", "127.0.0.1:"+s.ListenPort())
 	if err != nil {
-		s.Logger().Println(err.Error())
+		s.Logger().Error(err.Error())
 		panic(err)
 	}
 	s.SetListenAddress(l.Addr().String())
-	s.Logger().Printf("Listening %s\n", l.Addr())
-	s.Logger().Printf("Session token %s\n", s.Token())
+	s.Logger().Debugf("Listening %s\n", l.Addr())
+	s.Logger().Debugf("Session token %s\n", s.Token())
 
 	switch r.Meta.RPCType {
 	case JSONRPC:

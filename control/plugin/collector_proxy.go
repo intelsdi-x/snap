@@ -54,7 +54,7 @@ type collectorPluginProxy struct {
 func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(c.Session.Logger())
 
-	c.Session.Logger().Println("GetMetricTypes called")
+	c.Session.Logger().Debugln("GetMetricTypes called")
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()
 
@@ -77,7 +77,7 @@ func (c *collectorPluginProxy) GetMetricTypes(args []byte, reply *[]byte) error 
 
 func (c *collectorPluginProxy) CollectMetrics(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(c.Session.Logger())
-	c.Session.Logger().Println("CollectMetrics called")
+	c.Session.Logger().Debugln("CollectMetrics called")
 	// Reset heartbeat
 	c.Session.ResetHeartbeat()
 

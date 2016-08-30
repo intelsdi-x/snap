@@ -20,6 +20,7 @@ limitations under the License.
 package plugin
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -27,10 +28,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
-	"runtime"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/control/plugin/encoding"
@@ -99,7 +100,7 @@ type GetConfigPolicyReply struct {
 func (s *SessionState) GetConfigPolicy(args []byte, reply *[]byte) error {
 	defer catchPluginPanic(s.Logger())
 
-	s.logger.Println("GetConfigPolicy called")
+	s.logger.Debug("GetConfigPolicy called")
 
 	policy, err := s.plugin.GetConfigPolicy()
 	if err != nil {
@@ -121,7 +122,7 @@ func (s *SessionState) Ping(arg []byte, reply *[]byte) error {
 	// down or otherwise in a state we should signal poor health.
 	// Reply should contain any context.
 	s.ResetHeartbeat()
-	s.logger.Println("Ping received")
+	s.logger.Debug("Ping received")
 	*reply = []byte{}
 	return nil
 }
@@ -133,7 +134,7 @@ func (s *SessionState) Kill(args []byte, reply *[]byte) error {
 	if err != nil {
 		return err
 	}
-	s.logger.Printf("Kill called by agent, reason: %s\n", a.Reason)
+	s.logger.Debug("Kill called by agent, reason: %s\n", a.Reason)
 	go func() {
 		time.Sleep(time.Second * 2)
 		s.killChan <- 0
@@ -185,7 +186,7 @@ type SetKeyArgs struct {
 }
 
 func (s *SessionState) SetKey(args SetKeyArgs, reply *[]byte) error {
-	s.logger.Println("SetKey called")
+	s.logger.Debug("SetKey called")
 	out, err := s.DecryptKey(args.Key)
 	if err != nil {
 		return err
@@ -207,19 +208,18 @@ func (s *SessionState) generateResponse(r *Response) []byte {
 }
 
 func (s *SessionState) heartbeatWatch(killChan chan int) {
-	s.logger.Println("Heartbeat started")
+	s.logger.Debug("Heartbeat started")
 	count := 0
 	for {
 		if time.Since(s.LastPing) >= s.PingTimeoutDuration {
 			count++
-			s.logger.Printf("Heartbeat timeout %v of %v.  (Duration between checks %v)", count, PingTimeoutLimit, s.PingTimeoutDuration)
+			s.logger.Infof("Heartbeat timeout %v of %v.  (Duration between checks %v)", count, PingTimeoutLimit, s.PingTimeoutDuration)
 			if count >= PingTimeoutLimit {
-				s.logger.Println("Heartbeat timeout expired!")
+				s.logger.Error("Heartbeat timeout expired")
 				defer close(killChan)
 				return
 			}
 		} else {
-			s.logger.Println("Heartbeat timeout reset")
 			// Reset count
 			count = 0
 		}
@@ -256,22 +256,12 @@ func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*Se
 	rand.Read(rb)
 	rs := base64.URLEncoding.EncodeToString(rb)
 
-	// Initialize a logger based on PluginLogPath
-	truncOrAppend := os.O_TRUNC // truncate log file explicitly given by user
-	// Empty or /tmp means use default tmp log (needs to be removed post-aAtruncOrAppendpha)
-	if pluginArg.PluginLogPath == "" || pluginArg.PluginLogPath == "/tmp" {
-		if runtime.GOOS == "windows" {
-			pluginArg.PluginLogPath = `c:\TEMP\snap_plugin.log`
-		} else {
-			pluginArg.PluginLogPath = "/tmp/snap_plugin.log"
-		}
-		truncOrAppend = os.O_APPEND
+	logger := &log.Logger{
+		Out:       os.Stderr,
+		Formatter: &simpleFormatter{},
+		Hooks:     make(log.LevelHooks),
+		Level:     pluginArg.LogLevel,
 	}
-	lf, err := os.OpenFile(pluginArg.PluginLogPath, os.O_WRONLY|os.O_CREATE|truncOrAppend, 0666)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("error opening log file: %v", err)), 3
-	}
-	logger := log.New(lf, ">>>", log.Ldate|log.Ltime)
 
 	var enc encoding.Encoder
 	switch meta.RPCType {
@@ -318,4 +308,13 @@ func init() {
 	gob.RegisterName("conf_policy_int", &cpolicy.IntRule{})
 	gob.RegisterName("conf_policy_float", &cpolicy.FloatRule{})
 	gob.RegisterName("conf_policy_bool", &cpolicy.BoolRule{})
+}
+
+// simpleFormatter is a logrus formatter that includes only the message.
+type simpleFormatter struct{}
+
+func (*simpleFormatter) Format(entry *log.Entry) ([]byte, error) {
+	b := &bytes.Buffer{}
+	fmt.Fprintf(b, "%s\n", entry.Message)
+	return b.Bytes(), nil
 }

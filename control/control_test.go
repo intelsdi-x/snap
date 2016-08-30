@@ -75,7 +75,7 @@ func (m *MockPluginManagerBadSwap) teardown()                         {}
 func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)     {}
 func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)  {}
 func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)          {}
-func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg    { return plugin.Arg{} }
+func (m *MockPluginManagerBadSwap) GenerateArgs(int) plugin.Arg       { return plugin.Arg{} }
 
 func (m *MockPluginManagerBadSwap) all() map[string]*loadedPlugin {
 	return m.loadedPlugins.table

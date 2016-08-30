@@ -24,10 +24,10 @@ package plugin
 import (
 	"encoding/json"
 	"errors"
-	"log"
-	"os"
 	"testing"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/control/plugin/encoding"
@@ -127,7 +127,7 @@ func TestSessionState(t *testing.T) {
 			Arg:      &Arg{PingTimeoutDuration: 500 * time.Millisecond},
 			Encoder:  encoding.NewJsonEncoder(),
 		}
-		ss.logger = log.New(os.Stdout, ">>>", log.Ldate|log.Ltime)
+		ss.logger = log.New()
 		Convey("Ping", func() {
 
 			ss.Ping([]byte{}, &[]byte{})
@@ -202,9 +202,7 @@ func TestSessionState(t *testing.T) {
 
 func TestGetConfigPolicy(t *testing.T) {
 	Convey("Get Config Policy", t, func() {
-		logger := log.New(os.Stdout,
-			"test: ",
-			log.Ldate|log.Ltime|log.Lshortfile)
+		logger := log.New()
 		mockPlugin := &mockPlugin{}
 
 		mockSessionState := &MockSessionState{
@@ -227,9 +225,7 @@ func TestGetConfigPolicy(t *testing.T) {
 		So(cpr.Policy, ShouldNotBeNil)
 	})
 	Convey("Get error in Config Policy ", t, func() {
-		logger := log.New(os.Stdout,
-			"test: ",
-			log.Ldate|log.Ltime|log.Lshortfile)
+		logger := log.New()
 		errSession := &errSessionState{
 			&MockSessionState{
 				Encoder:             encoding.NewGobEncoder(),

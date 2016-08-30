@@ -53,6 +53,14 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 	rand.Seed(time.Now().UTC().UnixNano())
 	metrics := []plugin.MetricType{}
 	for i := range mts {
+		if c, ok := mts[i].Config().Table()["long_print"]; ok && c.(ctypes.ConfigValueBool).Value {
+			letterBytes := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			longLine := []byte{}
+			for i := 0; i < 8193; i++ {
+				longLine = append(longLine, letterBytes[rand.Intn(len(letterBytes))])
+			}
+			fmt.Println(string(longLine))
+		}
 		if c, ok := mts[i].Config().Table()["panic"]; ok && c.(ctypes.ConfigValueBool).Value {
 			panic("Oops!")
 		}
