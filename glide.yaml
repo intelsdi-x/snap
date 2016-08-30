@@ -16,7 +16,7 @@ import:
 - package: github.com/ghodss/yaml
   version: c3eb24aeea63668ebdac08d2e252f20df8b6b1ae
 - package: github.com/golang/protobuf
-  version: 8616e8ee5e20a1704615e6c8d7afcdac06087a67
+  version: 888eb0692c857ec880338addf316bd662d5e630e
   subpackages:
   - proto
 - package: github.com/hashicorp/go-msgpack
@@ -48,6 +48,6 @@ import:
   - trace
   - http2
 - package: google.golang.org/grpc
-  version: 88aeffff979aa77aa502cb011423d0a08fa12c5a
+  version: 0032a855ba5c8a3c8e0d71c2deef354b70af1584
 - package: gopkg.in/yaml.v2
   version: c1cd2254a6dd314c9d73c338c12688c9325d85c6
