@@ -175,7 +175,7 @@ func CreateTaskFromContent(body io.ReadCloser,
 		startOnCreate bool,
 		opts ...TaskOption) (Task, TaskErrors)) (Task, error) {
 
-	tr, err := marshalTask(body)
+	tr, err := createTaskRequest(body)
 	if err != nil {
 		return nil, err
 	}
@@ -221,16 +221,16 @@ func CreateTaskFromContent(body io.ReadCloser,
 	return task, nil
 }
 
-func marshalTask(body io.ReadCloser) (*TaskCreationRequest, error) {
+func createTaskRequest(body io.ReadCloser) (*TaskCreationRequest, error) {
 	var tr TaskCreationRequest
-	errCode, err := MarshalBody(&tr, body)
+	errCode, err := UnmarshalBody(&tr, body)
 	if errCode != 0 && err != nil {
 		return nil, err
 	}
 	return &tr, nil
 }
 
-func MarshalBody(in interface{}, body io.ReadCloser) (int, error) {
+func UnmarshalBody(in interface{}, body io.ReadCloser) (int, error) {
 	b, err := ioutil.ReadAll(body)
 	if err != nil {
 		return 500, err
