@@ -329,6 +329,8 @@ func ToCoreMetric(mt *rpc.Metric) core.Metric {
 		ret.data = mt.GetInt32Data()
 	case *rpc.Metric_Int64Data:
 		ret.data = mt.GetInt64Data()
+	case *rpc.Metric_BoolData:
+		ret.data = mt.GetBoolData()
 	}
 
 	return ret
@@ -374,10 +376,12 @@ func ToMetric(co core.Metric) *rpc.Metric {
 		cm.Data = &rpc.Metric_Int64Data{t}
 	case []byte:
 		cm.Data = &rpc.Metric_BytesData{t}
+	case bool:
+		cm.Data = &rpc.Metric_BoolData{t}
 	case nil:
 		cm.Data = nil
 	default:
-		panic(fmt.Sprintf("unsupported type: %s", t))
+		log.Error(fmt.Sprintf("unsupported type: %s", t))
 	}
 	return cm
 }
