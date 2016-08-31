@@ -90,6 +90,7 @@ This is a wish list of plugins for Snap. If you see one here and want to start o
 - Intel NIC
 - Kubernetes Minion
 - JVM (via JMX)
+- Perfmon (windows performance monitor)
 
 #### Processor
 
