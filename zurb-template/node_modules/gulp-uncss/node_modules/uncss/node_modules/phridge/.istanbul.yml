@@ -1,0 +1,3 @@
+instrumentation:
+    # everything under lib/phantom/** runs within phantomjs and hence is difficult to include into our test coverage
+    excludes: ['lib/phantom/**']

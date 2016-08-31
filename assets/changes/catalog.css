@@ -1,0 +1,141 @@
+/*edits for catalog pg css*/
+
+button {
+  padding: 10px;
+  margin: 10px;
+}
+.blue {
+     /*background-color:#D9D9F3;  */
+     background-color:#e5ffe5; 
+}
+.red {
+     /*background-color:#f7f7f7;*/
+     background-color:#99ff99;   
+}
+
+
+.menu-text {
+height: 75px;
+vertical-align: middle;
+}
+
+i {
+  color: #696969;
+  }
+
+.box {
+  border-radius: 3px;
+  box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
+  padding: 10px 25px;
+  display: block;
+  margin-top: 20px; }
+
+.info h5 {
+  font-size: 22px;
+  letter-spacing: 2px;
+  text-transform: uppercase; 
+  text-align: left;}
+.info a {
+float: right;
+width: 30px;
+font-size: 20px;
+}
+.info i{
+float: right;
+font-size: 20px;
+padding-top: 5px;
+}
+.info p {
+  color: #717171;
+  font-size: 16px;
+  padding-top: 10px; }
+.info a { }
+  .info a:hover {
+    border-color: #545454; 
+    text-shadow: 1px 1px 2px black, 0 0 25px blue, 0 0 5px darkblue;
+    transition: all 0.5s ease 0s; }
+
+.column_collect{
+  overflow: scroll;
+  height: 500px;
+  border: 2px solid #d3d3d3;
+}
+.column_process{
+  overflow: scroll;
+  height: 500px;
+    border: 2px solid #d3d3d3;
+}
+.column_publish{
+  overflow: scroll;
+  height: 500px;
+    border: 2px solid #d3d3d3;
+}
+.headerbar{
+  position: fixed;
+  width: 100%;
+  z-index: 100;}
+
+.offset-for-headerbar{
+  padding-top: 98px;
+  padding-bottom: 20px;
+}
+.offset-for-headerbar p{
+ margin-bottom: 0px;
+}
+
+.dyn{
+  border: 2px solid #d3d3d3;
+}
+
+.image-wrapper {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  position: relative;
+  text-align: center;
+  border-radius: 4px; }
+
+.image-overlay-content {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  overflow: hidden;
+  top: 0;
+  left: 0; }
+
+.overlay-fade-in p {
+  letter-spacing: 0.15em;
+  color: #f4f4f4;
+  font-size: 28px;
+  opacity: 0;
+  transition: all 0.2s linear; }
+.overlay-fade-in img {
+  transition: all 0.2s linear; }
+.overlay-fade-in .image-overlay-content {
+  opacity: 0;
+  transition: all 0.4s ease-in-out; }
+.overlay-fade-in h2 {
+  color: #797979;
+/*  color: #0071C5;*/
+  font-size: 1.2rem;
+  padding-top: 40%;
+  opacity: 1;
+  transition: all 0.2s ease-in-out;}
+
+.overlay-fade-in a {
+width: 100%;
+height: 100%;
+display: block;}
+
+.overlay-fade-in:hover img {
+  transform: translateY(-25%) }
+.overlay-fade-in:hover .image-overlay-content {
+  opacity: 1; }
+.overlay-fade-in:hover h2, .overlay-fade-in p {
+  opacity: 1; }
+.overlay-fade-in:hover p {
+  transition-delay: 0.1s; }
+
+
+

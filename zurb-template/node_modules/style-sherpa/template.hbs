@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Style Guide</title>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/foundation/5.5.2/css/foundation.min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/default.min.css">
+
+    <!-- Style guide-specific CSS goes here. -->
+    <style>
+    /* This styles the vertical tabs used for the table of contents. */
+    .tabs.vertical {
+      width: 100%;
+      max-width: 100%;
+    }
+    /* This styles code blocks used for examples. */
+    .ss-code code {
+      display: block;
+      padding: 1rem;
+      overflow-x: scroll;
+      margin-bottom: 1.5rem;
+    }
+    /* This styles the example rows used in the grid documentation. */
+    .row.display {
+      background: #eee;
+      font-size: 11px;
+      margin-bottom: 10px;
+      line-height: 2rem;
+      border: solid 1px #c6c6c6;
+      margin-left: 0 !important;
+      margin-right: 0 !important; }
+      .row.display .columns:nth-child(2), .row.display .columns.small-centered, .row.display .columns.large-centered {
+        background: #e1e1e1; }
+      .row.display .columns.color-end {
+        background: #d4d4d4; }
+    /* This styles the color blocks used in the color documentation. */
+    .color-block {
+      border-radius: 2px;
+      display: block;
+      padding: 8px 8px 6px;
+      color: #333;
+      text-transform: uppercase;
+      border: 1px solid #ddd;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
+      .color-block span {
+        display: block;
+        width: 100%;
+        height: 100px;
+        margin-bottom: 0.42857rem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="row">
+      <div class="small-12 columns">
+        <h1>Client Style Guide</h1>
+        <p class="lead">This style guide was built with Foundation for Sites. For more information on how to use this responsive front-end framework, check out the documentation, get help from the Foundation community, or request immediate technical support.</p>
+        <a href="http://foundation.zurb.com/docs/" class="button">Visit the Docs</a>
+        <a href="http://foundation.zurb.com/forum/" class="secondary button">Foundation Forum</a>
+        <a href="http://foundation.zurb.com/business/business-support.html" class="secondary button">Technical Support</a>
+      </div>
+    </div>
+
+    <div class="row">
+      
+      <div class="large-3 medium-4 columns">
+        <dl class="vertical tabs" data-tab>
+          {{#each pages}}
+            <dd{{#if @first}} class="active"{{/if}}><a href="#{{ anchor }}">{{ title }}</a></dd>
+          {{/each}}
+        </dl>
+      </div>
+
+      <div class="large-9 medium-8 columns">
+        <div class="tabs-content">
+          {{#each pages}}
+            <section class="content {{#if @first}}active{{/if}}" id="{{ anchor }}">
+              {{ body }}
+            </section>
+          {{/each}}
+        </div>
+      </div>
+
+    </div>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/foundation/5.5.2/js/foundation.min.js"></script>
+    <script>
+      $(document).foundation();
+    </script>
+  </body>
+</html>

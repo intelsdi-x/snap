@@ -1,0 +1,60 @@
+{{!-- This is the base layout for your project, and will be used on every page. --}}
+
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snap | Welcome</title>
+        <link rel="stylesheet" href="{{root}}assets/css/app.css">
+                <link rel="stylesheet" href="{{root}}assets/changes/snap.css">
+                <link rel="stylesheet" href="{{root}}assets/changes/catalog.css">
+    <link rel="stylesheet" href="{{root}}assets/design/font-awesome-4.5.0/css/font-awesome.min.css">
+
+
+<!--     <link rel="stylesheet" href="../css/foundation.css" />
+    <link rel="stylesheet" href="../css/app.css" />
+    <link rel="stylesheet" href="../design/font-awesome-4.5.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/snap.css" />
+    <link rel="stylesheet" href="../css/catalog.css" /> -->
+    <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-77915954-1', 'auto');
+    ga('send', 'pageview');
+    </script>
+  
+  </head>
+
+
+  <body>
+
+
+
+
+    {{> navigation}}
+    {{> body}}
+    {{> footer}}
+
+
+
+
+
+    <script src="{{root}}assets/js/app.js"></script>
+
+
+    <script src="{{root}}assets/changes/catalog/catalog.js"></script>
+    <script src="{{root}}assets/changes/catalog/parsed_plugin_list.js"></script>
+    <script src="{{root}}assets/changes/catalog/parsed_committed_plugin_list.js"></script>
+    <script src="{{root}}assets/changes/catalog/wish_list.js"></script>
+    <script src="{{root}}assets/changes/catalog/toggle_options.js"></script>
+    <script src="{{root}}assets/changes/catalog/plugins.js"></script>   
+
+
+
+  </body>
+</html>

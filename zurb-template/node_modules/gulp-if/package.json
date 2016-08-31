@@ -1,0 +1,74 @@
+{
+  "name": "gulp-if",
+  "description": "Conditionally run a task",
+  "version": "2.0.1",
+  "homepage": "https://github.com/robrich/gulp-if",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/robrich/gulp-if.git"
+  },
+  "author": {
+    "name": "Rob Richardson",
+    "url": "http://robrich.org/"
+  },
+  "main": "./index.js",
+  "keywords": [
+    "gulpplugin",
+    "conditional",
+    "if",
+    "ternary"
+  ],
+  "dependencies": {
+    "gulp-match": "^1.0.2",
+    "ternary-stream": "^2.0.0",
+    "through2": "^2.0.1"
+  },
+  "devDependencies": {
+    "end-of-stream": "^1.1.0",
+    "graceful-fs": "^4.1.3",
+    "jshint": "^2.9.2",
+    "mkdirp": "^0.5.1",
+    "mocha": "^2.4.5",
+    "rimraf": "^2.5.2",
+    "should": "^8.3.1",
+    "stream-exhaust": "^1.0.1",
+    "vinyl-fs": "^2.4.3"
+  },
+  "scripts": {
+    "test": "mocha && jshint ."
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "license": "MIT",
+  "gitHead": "2e5213feabd6d420a90d8cc691568c5d740624b7",
+  "bugs": {
+    "url": "https://github.com/robrich/gulp-if/issues"
+  },
+  "_id": "gulp-if@2.0.1",
+  "_shasum": "55f3edf82cecdfcf6035aa5d0686979aab0dac28",
+  "_from": "gulp-if@>=2.0.0 <3.0.0",
+  "_npmVersion": "2.15.4",
+  "_nodeVersion": "6.0.0",
+  "_npmUser": {
+    "name": "robrich",
+    "email": "robrich@robrich.org"
+  },
+  "maintainers": [
+    {
+      "name": "robrich",
+      "email": "robrich@robrich.org"
+    }
+  ],
+  "dist": {
+    "shasum": "55f3edf82cecdfcf6035aa5d0686979aab0dac28",
+    "tarball": "https://registry.npmjs.org/gulp-if/-/gulp-if-2.0.1.tgz"
+  },
+  "_npmOperationalInternal": {
+    "host": "packages-16-east.internal.npmjs.com",
+    "tmp": "tmp/gulp-if-2.0.1.tgz_1462468955161_0.38128670351579785"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/gulp-if/-/gulp-if-2.0.1.tgz",
+  "readme": "ERROR: No README data found!"
+}
