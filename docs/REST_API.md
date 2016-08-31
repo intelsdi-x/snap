@@ -246,64 +246,35 @@ _**Example Response**_
     "type": "metrics_returned",
     "version": 1
   },
-  "body": [
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/*/baz",
-      "version": 1
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/*/baz",
-      "version": 2
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/bar",
-      "version": 1
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/bar",
-      "version": 2
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/foo",
-      "version": 1,
-      "policy": [
-        {
-          "name": "password",
-          "type": "string",
-          "required": true
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "default": "bob",
-          "required": false
-        }
-      ]
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/foo",
-      "version": 2,
-      "policy": [
-        {
-          "name": "name",
-          "type": "string",
-          "default": "bob",
-          "required": false
-        },
-        {
-          "name": "password",
-          "type": "string",
-          "required": true
-        }
-      ]
-    }
-  ]
+"body": {
+    "metrics": [
+      {
+        "last_advertised_timestamp": 1472667089,
+        "namespace": "/intel/anothermock/*/baz",
+        "version": 1,
+        "dynamic": true,
+        "dynamic_elements": [
+          {
+            "index": 2,
+            "name": "host",
+            "description": "name of the host"
+          }
+        ],
+        "description": "anothermock description",
+        "unit": "anothermock unit",
+        "href": "http://localhost:8181/v1/metrics?ns=%2Fintel%2Fanothermock%2F%2A%2Fbaz&ver=1"
+      },
+      {
+        "last_advertised_timestamp": 1472667089,
+        "namespace": "/intel/anothermock/bar",
+        "version": 1,
+        "dynamic": false,
+        "description": "anothermock description",
+        "unit": "anothermock unit",
+        "href": "http://localhost:8181/v1/metrics?ns=%2Fintel%2Fanothermock%2Fbar&ver=1"
+      }
+    ]
+  }
 }
 ```
 **GET /v1/metrics/:namespace**:

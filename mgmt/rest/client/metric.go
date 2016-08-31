@@ -68,7 +68,7 @@ func (c *Client) FetchMetrics(ns string, ver int) *GetMetricsResult {
 		r.Catalog = convertCatalog(mc)
 	case rbody.MetricReturnedType:
 		mc := resp.Body.(*rbody.MetricReturned)
-		r.Catalog = []*rbody.Metric{mc.Metric}
+		r.Catalog = []rbody.Metric{*mc.Metric}
 	case rbody.ErrorType:
 		r.Err = resp.Body.(*rbody.Error)
 	default:
@@ -129,7 +129,7 @@ func (c *Client) GetMetric(ns string, ver int) interface{} {
 
 // GetMetricsResult is the response from snap/client on a GetMetricCatalog call.
 type GetMetricsResult struct {
-	Catalog []*rbody.Metric
+	Catalog []rbody.Metric
 	Err     error
 }
 
@@ -144,19 +144,19 @@ func (g *GetMetricsResult) Len() int {
 	return len(g.Catalog)
 }
 
-func convertCatalog(c *rbody.MetricsReturned) []*rbody.Metric {
-	mci := make([]*rbody.Metric, len(*c))
-	for i := range *c {
-		mci[i] = &(*c)[i]
+func convertCatalog(c *rbody.MetricsReturned) []rbody.Metric {
+	mci := rbody.MetricList{Metrics: make([]rbody.Metric, len(c.Metrics))}
+	for i := range c.Metrics {
+		mci.Metrics[i] = c.Metrics[i]
 	}
-	return mci
+	return mci.Metrics
 }
 
-func convertMetrics(c *rbody.MetricsReturned) []*GetMetricResult {
-	mci := make([]*GetMetricResult, len(*c))
-	for i, _ := range *c {
-		r := &GetMetricResult{Metric: &(*c)[i]}
-		mci[i] = r
+func convertMetrics(c *rbody.MetricsReturned) []GetMetricResult {
+	mci := make([]GetMetricResult, len(c.Metrics))
+	for i, _ := range c.Metrics {
+		r := &GetMetricResult{Metric: &c.Metrics[i]}
+		mci[i] = *r
 	}
 	return mci
 }

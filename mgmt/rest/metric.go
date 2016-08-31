@@ -192,7 +192,7 @@ func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.Respons
 		if dyn {
 			dynamicElements = getDynamicElements(met.Namespace(), indexes)
 		}
-		b = append(b, rbody.Metric{
+		b.Metrics = append(b.Metrics, rbody.Metric{
 			Namespace:               met.Namespace().String(),
 			Version:                 met.Version(),
 			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
