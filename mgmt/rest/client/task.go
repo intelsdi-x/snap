@@ -50,7 +50,7 @@ type Schedule struct {
 // A ScheduledTask is returned if it succeeds, otherwise an error is returned.
 func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, deadline string, startTask bool, maxFailures int) *CreateTaskResult {
 	t := core.TaskCreationRequest{
-		Schedule: core.Schedule{
+		Schedule: &core.Schedule{
 			Type:     s.Type,
 			Interval: s.Interval,
 		},
