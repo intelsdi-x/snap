@@ -25,7 +25,7 @@ Snap exposes a list of RESTful APIs to perform various actions. All of Snap's AP
  * [Tribe API Response Parameters](#tribe-api-response-parameters)  
  * [Tribe APIs and Examples](#tribe-apis-and-examples)
 
-### Authentication
+### Authentication 
 Enabled in snapd
 ```
 curl -L http://localhost:8181/v1/plugins
@@ -367,7 +367,7 @@ _**Example Response**_
     "version": 1
   },
   "body": {
-    "ScheduledTasks": [
+    "scheduled_tasks": [
       {
         "id": "f573affa-9326-44a8-a64c-7a0d803d5121",
         "name": "Task-f573affa-9326-44a8-a64c-7a0d803d5121",
