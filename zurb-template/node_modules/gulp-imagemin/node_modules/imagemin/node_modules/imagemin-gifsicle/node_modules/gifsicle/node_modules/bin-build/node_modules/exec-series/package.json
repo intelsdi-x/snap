@@ -1,0 +1,78 @@
+{
+  "name": "exec-series",
+  "version": "1.0.3",
+  "description": "Run commands in order",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shinnn/exec-series.git"
+  },
+  "author": {
+    "name": "Shinnosuke Watanabe",
+    "url": "https://github.com/shinnn"
+  },
+  "scripts": {
+    "pretest": "eslint --fix --config @shinnn/node-legacy index.js test.js",
+    "test": "node --strong_mode test.js | tap-spec",
+    "coverage": "node --strong_mode  node_modules/.bin/istanbul cover test.js",
+    "coveralls": "${npm_package_scripts_coverage} && istanbul-coveralls"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "child_process",
+    "exec",
+    "series",
+    "serial",
+    "serially",
+    "command",
+    "sequence",
+    "sequential",
+    "sequentially",
+    "order"
+  ],
+  "dependencies": {
+    "async-each-series": "^1.1.0",
+    "object-assign": "^4.1.0"
+  },
+  "devDependencies": {
+    "@shinnn/eslint-config-node-legacy": "^2.0.0",
+    "eslint": "^3.0.1",
+    "istanbul": "^0.4.4",
+    "rimraf": "^2.5.3",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.6.0"
+  },
+  "gitHead": "cd2cb2d3d08bdae005ca4bc2535b85f5559e3b2e",
+  "bugs": {
+    "url": "https://github.com/shinnn/exec-series/issues"
+  },
+  "homepage": "https://github.com/shinnn/exec-series#readme",
+  "_id": "exec-series@1.0.3",
+  "_shasum": "6d257a9beac482a872c7783bc8615839fc77143a",
+  "_from": "exec-series@>=1.0.0 <2.0.0",
+  "_npmVersion": "3.10.5",
+  "_nodeVersion": "6.3.0",
+  "_npmUser": {
+    "name": "shinnn",
+    "email": "snnskwtnb@gmail.com"
+  },
+  "maintainers": [
+    {
+      "name": "shinnn",
+      "email": "snnskwtnb@gmail.com"
+    }
+  ],
+  "dist": {
+    "shasum": "6d257a9beac482a872c7783bc8615839fc77143a",
+    "tarball": "https://registry.npmjs.org/exec-series/-/exec-series-1.0.3.tgz"
+  },
+  "_npmOperationalInternal": {
+    "host": "packages-12-west.internal.npmjs.com",
+    "tmp": "tmp/exec-series-1.0.3.tgz_1468258048915_0.0962953690905124"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/exec-series/-/exec-series-1.0.3.tgz",
+  "readme": "ERROR: No README data found!"
+}

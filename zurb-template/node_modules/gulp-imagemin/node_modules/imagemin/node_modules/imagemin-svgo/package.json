@@ -1,0 +1,84 @@
+{
+  "name": "imagemin-svgo",
+  "version": "4.2.1",
+  "description": "SVGO imagemin plugin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imagemin/imagemin-svgo.git"
+  },
+  "author": {
+    "name": "Kevin Mårtensson",
+    "email": "kevinmartensson@gmail.com",
+    "url": "github.com/kevva"
+  },
+  "maintainers": [
+    {
+      "name": "kevva",
+      "email": "kevinmartensson@gmail.com"
+    },
+    {
+      "name": "shinnn",
+      "email": "snnskwtnb@gmail.com"
+    },
+    {
+      "name": "sindresorhus",
+      "email": "sindresorhus@gmail.com"
+    }
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "compress",
+    "gulpplugin",
+    "image",
+    "imageminplugin",
+    "img",
+    "minify",
+    "optimize",
+    "svg",
+    "svgo"
+  ],
+  "dependencies": {
+    "is-svg": "^1.0.0",
+    "svgo": "^0.6.0",
+    "through2": "^2.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "vinyl": "^1.1.0",
+    "xo": "*"
+  },
+  "gitHead": "7f17590a1211b794c54a603bc4ad4055f40f10bb",
+  "bugs": {
+    "url": "https://github.com/imagemin/imagemin-svgo/issues"
+  },
+  "homepage": "https://github.com/imagemin/imagemin-svgo#readme",
+  "_id": "imagemin-svgo@4.2.1",
+  "_shasum": "54f07dc56f47260462df6a61c54befb44b57be55",
+  "_from": "imagemin-svgo@>=4.0.0 <5.0.0",
+  "_npmVersion": "3.7.2",
+  "_nodeVersion": "5.6.0",
+  "_npmUser": {
+    "name": "shinnn",
+    "email": "snnskwtnb@gmail.com"
+  },
+  "dist": {
+    "shasum": "54f07dc56f47260462df6a61c54befb44b57be55",
+    "tarball": "https://registry.npmjs.org/imagemin-svgo/-/imagemin-svgo-4.2.1.tgz"
+  },
+  "_npmOperationalInternal": {
+    "host": "packages-6-west.internal.npmjs.com",
+    "tmp": "tmp/imagemin-svgo-4.2.1.tgz_1455542325525_0.8796581672504544"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/imagemin-svgo/-/imagemin-svgo-4.2.1.tgz",
+  "readme": "ERROR: No README data found!"
+}

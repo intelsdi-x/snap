@@ -1,0 +1,6 @@
+{
+    "extends": "peerigon/es5",
+    "env": {
+        "phantomjs": true
+    }
+}

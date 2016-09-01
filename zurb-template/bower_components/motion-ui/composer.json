@@ -1,0 +1,25 @@
+{
+  "name": "zurb/motion-ui",
+  "description": "Sass library for creating transitions and animations.",
+  "version": "1.2.1",
+  "keywords": [
+    "css",
+    "sass",
+    "motion",
+    "animation"
+  ],
+  "homepage": "http://foundation.zurb.com",
+  "authors": [
+    {
+      "name": "ZURB, Inc.",
+      "homepage": "http://zurb.com",
+      "email": "foundation@zurb.com"
+    }
+  ],
+  "support": {
+    "email": "foundation@zurb.com",
+    "issues": "https://github.com/zurb/motion-ui/issues",
+    "forum": "http://foundation.zurb.com/forum"
+  },
+  "license": "MIT"
+}

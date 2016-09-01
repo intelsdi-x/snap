@@ -1,0 +1,54 @@
+{
+  "name": "engine.io-parser",
+  "description": "Parser for the client for the realtime Engine",
+  "version": "1.2.4",
+  "homepage": "https://github.com/Automattic/engine.io-parser",
+  "devDependencies": {
+    "expect.js": "0.3.1",
+    "mocha": "2.2.5",
+    "zuul": "3.7.3",
+    "zuul-ngrok": "3.2.0"
+  },
+  "dependencies": {
+    "after": "0.8.1",
+    "arraybuffer.slice": "0.0.6",
+    "base64-arraybuffer": "0.1.2",
+    "blob": "0.0.4",
+    "has-binary": "0.1.6",
+    "utf8": "2.1.0"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Automattic/engine.io-parser.git"
+  },
+  "browser": "./lib/browser.js",
+  "gitHead": "ca248c5238a42d8383a4ab7de347adc2578abeac",
+  "bugs": {
+    "url": "https://github.com/Automattic/engine.io-parser/issues"
+  },
+  "_id": "engine.io-parser@1.2.4",
+  "_shasum": "e0897b0bf14e792d4cd2a5950553919c56948c42",
+  "_from": "engine.io-parser@1.2.4",
+  "_npmVersion": "3.4.1",
+  "_nodeVersion": "4.2.2",
+  "_npmUser": {
+    "name": "rauchg",
+    "email": "rauchg@gmail.com"
+  },
+  "maintainers": [
+    {
+      "name": "rauchg",
+      "email": "rauchg@gmail.com"
+    }
+  ],
+  "dist": {
+    "shasum": "e0897b0bf14e792d4cd2a5950553919c56948c42",
+    "tarball": "https://registry.npmjs.org/engine.io-parser/-/engine.io-parser-1.2.4.tgz"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/engine.io-parser/-/engine.io-parser-1.2.4.tgz",
+  "readme": "ERROR: No README data found!"
+}

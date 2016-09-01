@@ -1,0 +1,51 @@
+{
+  "name": "is-url",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/segmentio/is-url.git"
+  },
+  "version": "1.2.2",
+  "scripts": {
+    "test": "make test"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "gitHead": "1498b0da8e7b5084de523aada49f4bfc0ca7b391",
+  "description": "Check whether a string is a URL.",
+  "bugs": {
+    "url": "https://github.com/segmentio/is-url/issues"
+  },
+  "homepage": "https://github.com/segmentio/is-url#readme",
+  "_id": "is-url@1.2.2",
+  "_shasum": "498905a593bf47cc2d9e7f738372bbf7696c7f26",
+  "_from": "is-url@>=1.2.0 <2.0.0",
+  "_npmVersion": "3.9.5",
+  "_nodeVersion": "6.2.2",
+  "_npmUser": {
+    "name": "zeke",
+    "email": "zeke@sikelianos.com"
+  },
+  "dist": {
+    "shasum": "498905a593bf47cc2d9e7f738372bbf7696c7f26",
+    "tarball": "https://registry.npmjs.org/is-url/-/is-url-1.2.2.tgz"
+  },
+  "maintainers": [
+    {
+      "name": "segmentio",
+      "email": "friends@segment.io"
+    },
+    {
+      "name": "zeke",
+      "email": "zeke@sikelianos.com"
+    }
+  ],
+  "_npmOperationalInternal": {
+    "host": "packages-16-east.internal.npmjs.com",
+    "tmp": "tmp/is-url-1.2.2.tgz_1468002199250_0.8171985514927655"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/is-url/-/is-url-1.2.2.tgz",
+  "readme": "ERROR: No README data found!"
+}

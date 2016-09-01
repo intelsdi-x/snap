@@ -1,0 +1,78 @@
+{
+  "name": "gulp-autoprefixer",
+  "version": "3.1.0",
+  "description": "Prefix CSS",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sindresorhus/gulp-autoprefixer.git"
+  },
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.12.0"
+  },
+  "scripts": {
+    "test": "xo && mocha"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "gulpplugin",
+    "autoprefixer",
+    "postcss",
+    "css",
+    "prefix",
+    "prefixes",
+    "stylesheet",
+    "preprocess",
+    "postcss-runner"
+  ],
+  "dependencies": {
+    "autoprefixer": "^6.0.0",
+    "gulp-util": "^3.0.0",
+    "postcss": "^5.0.4",
+    "through2": "^2.0.0",
+    "vinyl-sourcemaps-apply": "^0.2.0"
+  },
+  "devDependencies": {
+    "gulp-sourcemaps": "^1.1.1",
+    "mocha": "*",
+    "xo": "*"
+  },
+  "gitHead": "8cc62f4fa3c8bc8ab1efe2c59fe7c13ee5c7b652",
+  "bugs": {
+    "url": "https://github.com/sindresorhus/gulp-autoprefixer/issues"
+  },
+  "homepage": "https://github.com/sindresorhus/gulp-autoprefixer",
+  "_id": "gulp-autoprefixer@3.1.0",
+  "_shasum": "2b3ada439fdb120ed4eb3a574b122234a8ba283a",
+  "_from": "gulp-autoprefixer@>=3.1.0 <4.0.0",
+  "_npmVersion": "2.14.4",
+  "_nodeVersion": "4.1.1",
+  "_npmUser": {
+    "name": "sindresorhus",
+    "email": "sindresorhus@gmail.com"
+  },
+  "dist": {
+    "shasum": "2b3ada439fdb120ed4eb3a574b122234a8ba283a",
+    "tarball": "https://registry.npmjs.org/gulp-autoprefixer/-/gulp-autoprefixer-3.1.0.tgz"
+  },
+  "maintainers": [
+    {
+      "name": "sindresorhus",
+      "email": "sindresorhus@gmail.com"
+    },
+    {
+      "name": "battaglr",
+      "email": "lucianobattagliero+npm@gmail.com"
+    }
+  ],
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/gulp-autoprefixer/-/gulp-autoprefixer-3.1.0.tgz",
+  "readme": "ERROR: No README data found!"
+}
