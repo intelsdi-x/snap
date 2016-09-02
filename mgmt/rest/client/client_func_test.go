@@ -427,7 +427,7 @@ func TestSnapClient(t *testing.T) {
 					//try stopping again to make sure channel is closed
 					t2 := c.StopTask(tt.ID)
 					So(t2.Err, ShouldNotBeNil)
-					So(t2.Err.Error(), ShouldEqual, "error 0: Task is already stopped. ")
+					So(t2.Err.Error(), ShouldBeIn, []string{"error 0: Task is already stopped. ", "error 0: Subscription does not exist "})
 
 					b := make([]byte, 5)
 					rsp, err := c.do("PUT", fmt.Sprintf("/tasks/%v/stop", tt.ID), ContentTypeJSON, b)
