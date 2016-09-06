@@ -133,6 +133,24 @@ type WorkflowMap struct {
 	CollectNode *CollectWorkflowMapNode `json:"collect"yaml:"collect"`
 }
 
+func (w *WorkflowMap) UnmarshalJSON(data []byte) error {
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	for k, v := range t {
+		switch k {
+		case "collect":
+			if err := json.Unmarshal(v, &w.CollectNode); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in workflow of task.", k)
+		}
+	}
+	return nil
+}
+
 func NewWorkflowMap() *WorkflowMap {
 	w := &WorkflowMap{}
 	c := &CollectWorkflowMapNode{
@@ -157,6 +175,40 @@ type CollectWorkflowMapNode struct {
 	Tags         map[string]map[string]string      `json:"tags,omitempty"yaml:"tags"`
 	ProcessNodes []ProcessWorkflowMapNode          `json:"process,omitempty"yaml:"process"`
 	PublishNodes []PublishWorkflowMapNode          `json:"publish,omitempty"yaml:"publish"`
+}
+
+func (cw *CollectWorkflowMapNode) UnmarshalJSON(data []byte) error {
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	for k, v := range t {
+		switch k {
+		case "metrics":
+			if err := json.Unmarshal(v, &cw.Metrics); err != nil {
+				return err
+			}
+		case "config":
+			if err := json.Unmarshal(v, &cw.Config); err != nil {
+				return fmt.Errorf("%v (while parsing 'config')", err)
+			}
+		case "tags":
+			if err := json.Unmarshal(v, &cw.Tags); err != nil {
+				return fmt.Errorf("%v (while parsing 'tags')", err)
+			}
+		case "process":
+			if err := json.Unmarshal(v, &cw.ProcessNodes); err != nil {
+				return err
+			}
+		case "publish":
+			if err := json.Unmarshal(v, &cw.PublishNodes); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in collect workflow of task.", k)
+		}
+	}
+	return nil
 }
 
 func (c *CollectWorkflowMapNode) GetMetrics() []Metric {
@@ -240,6 +292,45 @@ type ProcessWorkflowMapNode struct {
 	Target string                 `json:"target"yaml:"target"`
 }
 
+func (pw *ProcessWorkflowMapNode) UnmarshalJSON(data []byte) error {
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	for k, v := range t {
+		switch k {
+		case "plugin_name":
+			if err := json.Unmarshal(v, &pw.Name); err != nil {
+				return fmt.Errorf("%v (while parsing 'plugin_name')", err)
+			}
+		case "plugin_version":
+			if err := json.Unmarshal(v, &pw.Version); err != nil {
+				return fmt.Errorf("%v (while parsing 'plugin_version')", err)
+			}
+		case "process":
+			if err := json.Unmarshal(v, &pw.ProcessNodes); err != nil {
+				return err
+			}
+		case "publish":
+			if err := json.Unmarshal(v, &pw.PublishNodes); err != nil {
+				return err
+			}
+		case "config":
+			if err := json.Unmarshal(v, &pw.Config); err != nil {
+				return fmt.Errorf("%v (while parsing 'config')", err)
+			}
+		case "target":
+			if err := json.Unmarshal(v, &pw.Target); err != nil {
+				return fmt.Errorf("%v (while parsing 'target')", err)
+			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in process workflow of task.", k)
+		}
+	}
+	return nil
+
+}
+
 func NewProcessNode(name string, version int) *ProcessWorkflowMapNode {
 	p := &ProcessWorkflowMapNode{
 		Name:    name,
@@ -282,6 +373,36 @@ type PublishWorkflowMapNode struct {
 	Target string                 `json:"target"yaml:"target"`
 }
 
+func (pw *PublishWorkflowMapNode) UnmarshalJSON(data []byte) error {
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	for k, v := range t {
+		switch k {
+		case "plugin_name":
+			if err := json.Unmarshal(v, &pw.Name); err != nil {
+				return fmt.Errorf("%v (while parsing 'plugin_name')", err)
+			}
+		case "plugin_version":
+			if err := json.Unmarshal(v, &pw.Version); err != nil {
+				return fmt.Errorf("%v (while parsing 'plugin_version')", err)
+			}
+		case "config":
+			if err := json.Unmarshal(v, &pw.Config); err != nil {
+				return fmt.Errorf("%v (while parsing 'config')", err)
+			}
+		case "target":
+			if err := json.Unmarshal(v, &pw.Target); err != nil {
+				return fmt.Errorf("%v (while parsing 'target')", err)
+			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in publish workflow of task.", k)
+		}
+	}
+	return nil
+}
+
 func NewPublishNode(name string, version int) *PublishWorkflowMapNode {
 	p := &PublishWorkflowMapNode{
 		Name:    name,
@@ -306,6 +427,24 @@ func (p *PublishWorkflowMapNode) GetConfigNode() (*cdata.ConfigDataNode, error) 
 
 type metricInfo struct {
 	Version_ int `json:"version"yaml:"version"`
+}
+
+func (m *metricInfo) UnmarshalJSON(data []byte) error {
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	for k, v := range t {
+		switch k {
+		case "version":
+			if err := json.Unmarshal(v, &m.Version_); err != nil {
+				return fmt.Errorf("%v (while parsing 'version')", err)
+			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in metrics in collect workflow of task", k)
+		}
+	}
+	return nil
 }
 
 type Metric struct {
