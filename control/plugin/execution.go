@@ -160,8 +160,7 @@ func (e *ExecutablePlugin) captureStderr() {
 			execLogger.
 				WithField("io", "stderr").
 				WithField("plugin", path.Base(e.cmd.Path())).
-				Debug(stdErrScanner.Text())
-
+				Error(stdErrScanner.Text())
 		}
 	}()
 }
