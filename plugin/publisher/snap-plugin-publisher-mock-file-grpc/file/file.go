@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,10 +79,14 @@ func (f *filePublisher) Publish(metrics []plugin.Metric, config plugin.Config) e
 func (f *filePublisher) GetConfigPolicy() (plugin.ConfigPolicy, error) {
 	policy := plugin.NewConfigPolicy()
 	rule1, err := plugin.NewStringRule("file", true)
-	handleErr(err)
+	if err != nil {
+		return *policy, err
+	}
 
 	rule2, err := plugin.NewBoolRule(debug, false)
-	handleErr(err)
+	if err != nil {
+		return *policy, err
+	}
 
 	policy.AddStringRule([]string{""}, rule1)
 	policy.AddBoolRule([]string{}, rule2)
@@ -100,10 +104,4 @@ func formatMetricTagsAsString(metricTags map[string]string) string {
 	tags = strings.TrimSuffix(tags, "; ")
 
 	return "tags[" + tags + "]"
-}
-
-func handleErr(e error) {
-	if e != nil {
-		panic(e)
-	}
 }
