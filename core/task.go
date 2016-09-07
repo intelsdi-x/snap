@@ -161,7 +161,7 @@ type TaskCreationRequest struct {
 	Version     int               `json:"version"`
 	Deadline    string            `json:"deadline"`
 	Workflow    *wmap.WorkflowMap `json:"workflow"`
-	Schedule    Schedule          `json:"schedule"`
+	Schedule    *Schedule         `json:"schedule"`
 	Start       bool              `json:"start"`
 	MaxFailures int               `json:"max-failures"`
 }
@@ -224,7 +224,11 @@ func CreateTaskFromContent(body io.ReadCloser,
 		return nil, err
 	}
 
-	sch, err := makeSchedule(tr.Schedule)
+	if err := validateTaskRequest(tr); err != nil {
+		return nil, err
+	}
+
+	sch, err := makeSchedule(*tr.Schedule)
 	if err != nil {
 		return nil, err
 	}
@@ -284,4 +288,15 @@ func UnmarshalBody(in interface{}, body io.ReadCloser) (int, error) {
 		return 400, err
 	}
 	return 0, nil
+}
+
+func validateTaskRequest(tr *TaskCreationRequest) error {
+	if tr.Schedule == nil || *tr.Schedule == (Schedule{}) {
+		return fmt.Errorf("Task must include a schedule, and the schedule must not be empty")
+	}
+
+	if tr.Workflow == nil || *tr.Workflow == (wmap.WorkflowMap{}) {
+		return fmt.Errorf("Task must include a workflow, and the workflow must not be empty")
+	}
+	return nil
 }

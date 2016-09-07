@@ -252,7 +252,7 @@ func createTask(sample, name, interval string, noStart bool, port int) *rbody.AP
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks", port)
 
 	t := core.TaskCreationRequest{
-		Schedule: core.Schedule{Type: "simple", Interval: interval},
+		Schedule: &core.Schedule{Type: "simple", Interval: interval},
 		Workflow: wf,
 		Name:     name,
 		Start:    !noStart,
