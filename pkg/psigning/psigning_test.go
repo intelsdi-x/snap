@@ -34,7 +34,7 @@ func TestValidateSignature(t *testing.T) {
 	keyringFile := []string{"pubring.gpg"}
 	signedFile := "snap-plugin-collector-mock1"
 	signatureFile := signedFile + ".asc"
-	snapPath := os.Getenv("SNAP_PATH")
+	snapPath := os.ExpandEnv(os.Getenv("SNAP_PATH"))
 	unsignedFile := path.Join(snapPath, "plugin", "snap-plugin-collector-mock2")
 	s := SigningManager{}
 
