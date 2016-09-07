@@ -39,7 +39,7 @@ func (p *passthruProcessor) GetConfigPolicy() (plugin.ConfigPolicy, error) {
 	policy := plugin.NewConfigPolicy()
 	rule, err := plugin.NewBoolRule(debug, false)
 	if err != nil {
-		panic(err)
+		return *policy, err
 	}
 	policy.AddBoolRule([]string{""}, rule)
 	return *policy, nil
