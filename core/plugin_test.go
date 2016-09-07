@@ -33,7 +33,7 @@ import (
 
 var (
 	PluginName    = "snap-plugin-collector-mock1"
-	SnapPath      = os.Getenv("SNAP_PATH")
+	SnapPath      = os.ExpandEnv(os.Getenv("SNAP_PATH"))
 	PluginPath    = path.Join(SnapPath, "plugin", PluginName)
 	SignatureFile = path.Join(SnapPath, "../pkg/psigning", "snap-plugin-collector-mock1.asc")
 )

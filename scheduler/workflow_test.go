@@ -47,7 +47,7 @@ import (
 )
 
 var (
-	SnapPath                     = os.Getenv("SNAP_PATH")
+	SnapPath                     = os.ExpandEnv(os.Getenv("SNAP_PATH"))
 	snap_collector_mock1_path    = path.Join(SnapPath, "plugin", "snap-plugin-collector-mock1")
 	snap_collector_mock2_path    = path.Join(SnapPath, "plugin", "snap-plugin-collector-mock2")
 	snap_processor_passthru_path = path.Join(SnapPath, "plugin", "snap-plugin-processor-passthru")
