@@ -26,6 +26,7 @@ import (
 	"io"
 	"os/exec"
 	"path"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -146,6 +147,16 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 		// Kill the plugin if we failed to load it.
 		e.Kill()
 	}
+	lowerName := strings.ToLower(resp.Meta.Name)
+	if lowerName != resp.Meta.Name {
+		execLogger.WithFields(log.Fields{
+			"plugin-name":    resp.Meta.Name,
+			"plugin-version": resp.Meta.Version,
+			"plugin-type":    resp.Type.String(),
+		}).Warning("uppercase plugin name")
+	}
+	resp.Meta.Name = lowerName
+
 	return resp, err
 }
 
