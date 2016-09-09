@@ -134,7 +134,7 @@ func (s *SessionState) Kill(args []byte, reply *[]byte) error {
 	if err != nil {
 		return err
 	}
-	s.logger.Debug("Kill called by agent, reason: %s\n", a.Reason)
+	s.logger.Debugf("Kill called by agent, reason: %s\n", a.Reason)
 	go func() {
 		time.Sleep(time.Second * 2)
 		s.killChan <- 0
