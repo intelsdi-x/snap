@@ -168,7 +168,6 @@ func (p *PluginNativeClient) Publish(metrics []core.Metric, config map[string]ct
 	err = p.connection.Call("Publisher.Publish", out, &reply)
 	close(done)
 	return err
-	return nil
 }
 
 func (p *PluginNativeClient) Process(metrics []core.Metric, config map[string]ctypes.ConfigValue) ([]core.Metric, error) {

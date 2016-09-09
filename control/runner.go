@@ -57,7 +57,6 @@ const (
 	MaxPluginRestartCount = 3
 )
 
-// TBD
 type executablePlugin interface {
 	Run(time.Duration) (plugin.Response, error)
 	Kill() error
