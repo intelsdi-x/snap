@@ -21,6 +21,7 @@ package scheduler
 
 import (
 	"errors"
+	"strings"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -133,6 +134,7 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 		if p.Version < 1 {
 			p.Version = -1
 		}
+		p.Name = strings.ToLower(p.Name)
 		prNodes[i] = &processNode{
 			name:         p.Name,
 			version:      p.Version,
@@ -148,6 +150,7 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error) {
 	puNodes := make([]*publishNode, len(pu))
 	for i, p := range pu {
+
 		cdn, err := p.GetConfigNode()
 		if err != nil {
 			return nil, err
@@ -158,6 +161,7 @@ func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error
 		if p.Version < 1 {
 			p.Version = -1
 		}
+		p.Name = strings.ToLower(p.Name)
 		puNodes[i] = &publishNode{
 			name:    p.Name,
 			version: p.Version,
