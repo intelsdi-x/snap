@@ -65,16 +65,61 @@ func TestCollectMetric(t *testing.T) {
 				}
 			})
 
-			Convey("testing specified metics", func() {
-				mTypes := []plugin.MetricType{
-					plugin.MetricType{Namespace_: ns3, Config_: cfg.ConfigDataNode},
-				}
-				mts, _ := newPlg.CollectMetrics(mTypes)
+			Convey("testing dynamic metric", func() {
 
-				for _, mt := range mts {
-					_, ok := mt.Data_.(int)
-					So(ok, ShouldBeTrue)
-				}
+				mt := plugin.MetricType{Namespace_: ns3, Config_: cfg.ConfigDataNode}
+
+				Convey("for none specified instance", func() {
+					mts, _ := newPlg.CollectMetrics([]plugin.MetricType{mt})
+
+					// there is 10 available hosts (host0, host1, ..., host9)
+					So(len(mts), ShouldEqual, 10)
+
+					Convey("returned metrics should have data type integer", func() {
+						for _, mt := range mts {
+							_, ok := mt.Data_.(int)
+							So(ok, ShouldBeTrue)
+						}
+					})
+
+					Convey("returned metrics should remain dynamic", func() {
+						for _, mt := range mts {
+							isDynamic, _ := mt.Namespace().IsDynamic()
+							So(isDynamic, ShouldBeTrue)
+						}
+					})
+
+				})
+
+				Convey("for specified instance which is available - host0", func() {
+					mt.Namespace()[2].Value = "host0"
+					mts, _ := newPlg.CollectMetrics([]plugin.MetricType{mt})
+
+					// only one metric for this specific hostname should be returned
+					So(len(mts), ShouldEqual, 1)
+					So(mts[0].Namespace().String(), ShouldEqual, "/intel/mock/host0/baz")
+
+					Convey("returned metric should have data type integer", func() {
+						_, ok := mts[0].Data_.(int)
+						So(ok, ShouldBeTrue)
+					})
+
+					Convey("returned metric should remain dynamic", func() {
+						isDynamic, _ := mt.Namespace().IsDynamic()
+						So(isDynamic, ShouldBeTrue)
+					})
+
+				})
+
+				Convey("for specified instance which is not available - host10", func() {
+					mt.Namespace()[2].Value = "host10"
+					mts, err := newPlg.CollectMetrics([]plugin.MetricType{mt})
+
+					So(mts, ShouldBeNil)
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldStartWith, "requested hostname `host10` is not available")
+
+				})
 			})
 
 		})
@@ -98,16 +143,26 @@ func TestCollectMetric(t *testing.T) {
 				}
 			})
 
-			Convey("testing specified metics", func() {
+			Convey("testing dynamic metics", func() {
 				mTypes := []plugin.MetricType{
 					plugin.MetricType{Namespace_: ns3, Config_: cfg.ConfigDataNode},
 				}
 				mts, _ := newPlg.CollectMetrics(mTypes)
 
-				for _, mt := range mts {
-					_, ok := mt.Data_.(int)
-					So(ok, ShouldBeTrue)
-				}
+				Convey("returned metrics should have data type integer", func() {
+					for _, mt := range mts {
+						_, ok := mt.Data_.(int)
+						So(ok, ShouldBeTrue)
+					}
+				})
+
+				Convey("returned metrics should remain dynamic", func() {
+					for _, mt := range mts {
+						isDynamic, _ := mt.Namespace().IsDynamic()
+						So(isDynamic, ShouldBeTrue)
+					}
+				})
+
 			})
 
 		})
