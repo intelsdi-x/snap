@@ -127,6 +127,7 @@ type managesPlugins interface {
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(logLevel int) plugin.Arg
 	SetPluginConfig(*pluginConfig)
+	SetPluginLoadTimeout(int)
 }
 
 type catalogsMetrics interface {
@@ -172,6 +173,7 @@ func OptSetConfig(cfg *Config) PluginControlOpt {
 	return func(c *pluginControl) {
 		c.Config = cfg
 		c.pluginManager.SetPluginConfig(cfg.Plugins)
+		c.pluginManager.SetPluginLoadTimeout(c.Config.PluginLoadTimeout)
 	}
 }
 

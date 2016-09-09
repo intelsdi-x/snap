@@ -754,6 +754,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.LogColors = setBoolVal(cfg.LogColors, ctx, "log-colors")
 	// next for the flags related to the control package
 	cfg.Control.MaxRunningPlugins = setIntVal(cfg.Control.MaxRunningPlugins, ctx, "max-running-plugins")
+	cfg.Control.PluginLoadTimeout = setIntVal(cfg.Control.PluginLoadTimeout, ctx, "plugin-load-timeout")
 	cfg.Control.PluginTrust = setIntVal(cfg.Control.PluginTrust, ctx, "plugin-trust")
 	cfg.Control.AutoDiscoverPath = setStringVal(cfg.Control.AutoDiscoverPath, ctx, "auto-discover")
 	cfg.Control.KeyringPaths = setStringVal(cfg.Control.KeyringPaths, ctx, "keyring-paths")

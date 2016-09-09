@@ -31,6 +31,11 @@ var (
 		Usage:  fmt.Sprintf("The maximum number of instances of a loaded plugin to run (default: %v)", defaultMaxRunningPlugins),
 		EnvVar: "SNAP_MAX_PLUGINS",
 	}
+	flPluginLoadTimeout = cli.StringFlag{
+		Name:   "plugin-load-timeout",
+		Usage:  fmt.Sprintf("The maximum number seconds a plugin can take to load (default: %v)", defaultPluginLoadTimeout),
+		EnvVar: "SNAP_PLUGIN_LOAD_TIMEOUT",
+	}
 	flPluginTrust = cli.StringFlag{
 		Name:   "plugin-trust, t",
 		Usage:  fmt.Sprintf("0-2 (Disabled, Enabled, Warning; default: %v)", defaultPluginTrust),
@@ -65,5 +70,5 @@ var (
 		EnvVar: "SNAP_CONTROL_LISTEN_ADDR",
 	}
 
-	Flags = []cli.Flag{flNumberOfPLs, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr}
+	Flags = []cli.Flag{flNumberOfPLs, flPluginLoadTimeout, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr}
 )
