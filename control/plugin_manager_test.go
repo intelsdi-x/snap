@@ -58,7 +58,7 @@ func TestLoadedPlugins(t *testing.T) {
 		Convey("returns an error when index is out of range", func() {
 			lp := newLoadedPlugins()
 
-			_, err := lp.get("not:found:1")
+			_, err := lp.get("not" + core.Separator + "found" + core.Separator + "1")
 			So(err, ShouldResemble, errors.New("plugin not found"))
 
 		})
@@ -183,7 +183,7 @@ func TestUnloadPlugin(t *testing.T) {
 
 					numPluginsLoaded := len(p.all())
 					So(numPluginsLoaded, ShouldEqual, 1)
-					lp, _ := p.get("collector:mock:2")
+					lp, _ := p.get("collector" + core.Separator + "mock" + core.Separator + "2")
 					_, err = p.UnloadPlugin(lp)
 
 					So(err, ShouldBeNil)
@@ -196,7 +196,7 @@ func TestUnloadPlugin(t *testing.T) {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
 					lp, err := loadPlugin(p, fixtures.PluginPath)
-					glp, err2 := p.get("collector:mock:2")
+					glp, err2 := p.get("collector" + core.Separator + "mock" + core.Separator + "2")
 					So(err2, ShouldBeNil)
 					glp.State = DetectedState
 					_, err = p.UnloadPlugin(lp)
@@ -210,7 +210,7 @@ func TestUnloadPlugin(t *testing.T) {
 					p.SetMetricCatalog(newMetricCatalog())
 					_, err := loadPlugin(p, fixtures.PluginPath)
 
-					lp, err2 := p.get("collector:mock:2")
+					lp, err2 := p.get("collector" + core.Separator + "mock" + core.Separator + "2")
 					So(err2, ShouldBeNil)
 					_, err = p.UnloadPlugin(lp)
 

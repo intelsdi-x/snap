@@ -28,6 +28,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control/plugin"
 	. "github.com/intelsdi-x/snap/control/strategy/fixtures"
+	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 	. "github.com/smartystreets/goconvey/convey"
@@ -108,7 +109,7 @@ func TestPoolCreation(t *testing.T) {
 	Convey("Given available collector type plugin", t, func() {
 		plg := NewMockAvailablePlugin()
 		Convey("When new plugin pool is being created with incorrect key", func() {
-			badKey := plg.TypeName() + ":" + plg.Name()
+			badKey := plg.TypeName() + core.Separator + plg.Name()
 			pool, err := NewPool(badKey, plg)
 			Convey("Then pool is not created, error is not nil", func() {
 				So(pool, ShouldBeNil)

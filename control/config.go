@@ -433,7 +433,7 @@ func (p *pluginConfig) deletePluginConfigDataNodeField(pluginType core.PluginTyp
 
 func (p *pluginConfig) getPluginConfigDataNode(pluginType core.PluginType, name string, ver int) *cdata.ConfigDataNode {
 	// check cache
-	key := fmt.Sprintf("%d:%s:%d", pluginType, name, ver)
+	key := fmt.Sprintf("%d"+core.Separator+"%s"+core.Separator+"%d", pluginType, name, ver)
 	if res, ok := p.pluginCache[key]; ok {
 		return res
 	}

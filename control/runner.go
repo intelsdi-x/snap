@@ -339,7 +339,7 @@ func (r *runner) runPlugin(details *pluginDetails) error {
 }
 
 func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID string) error {
-	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s:%s:%d", pType, pName, pVersion))
+	pool, err := r.availablePlugins.getPool(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pType, pName, pVersion))
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block":         "handle-unsubscription",

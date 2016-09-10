@@ -106,7 +106,7 @@ func (l *loadedPlugins) get(key string) (*loadedPlugin, error) {
 
 	lp, ok := l.table[key]
 	if !ok {
-		tnv := strings.Split(key, ":")
+		tnv := strings.Split(key, core.Separator)
 		if len(tnv) != 3 {
 			return nil, ErrBadKey
 		}
@@ -191,7 +191,7 @@ func (lp *loadedPlugin) PluginPath() string {
 
 // Key returns plugin type, name and version
 func (lp *loadedPlugin) Key() string {
-	return fmt.Sprintf("%s:%s:%d", lp.TypeName(), lp.Name(), lp.Version())
+	return fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", lp.TypeName(), lp.Name(), lp.Version())
 }
 
 // Version returns plugin version
@@ -496,7 +496,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 
 // UnloadPlugin unloads a plugin from the LoadedPlugins table
 func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.SnapError) {
-	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
+	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
 		se := serror.New(ErrPluginNotFound, map[string]interface{}{
 			"plugin-name":    pl.Name(),
