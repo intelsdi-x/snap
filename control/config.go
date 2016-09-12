@@ -40,6 +40,7 @@ const (
 	defaultListenAddr        string        = "127.0.0.1"
 	defaultListenPort        int           = 8082
 	defaultMaxRunningPlugins int           = 3
+	defaultPluginLoadTimeout int           = 3
 	defaultPluginTrust       int           = 1
 	defaultAutoDiscoverPath  string        = ""
 	defaultKeyringPaths      string        = ""
@@ -70,6 +71,7 @@ type pluginConfigItem struct {
 //         match the field mapping that is defined here
 type Config struct {
 	MaxRunningPlugins int               `json:"max_running_plugins"yaml:"max_running_plugins"`
+	PluginLoadTimeout int               `json:"plugin_load_timeout"yaml:"plugin_load_timeout"`
 	PluginTrust       int               `json:"plugin_trust_level"yaml:"plugin_trust_level"`
 	AutoDiscoverPath  string            `json:"auto_discover_path"yaml:"auto_discover_path"`
 	KeyringPaths      string            `json:"keyring_paths"yaml:"keyring_paths"`
@@ -99,6 +101,11 @@ const (
 						"type": "integer",
 						"minimum": 1
 					},
+					"plugin_load_timeout": {
+						"type": "integer",
+						"minimum": 3,
+						"maximum": 60
+					},
 					"keyring_paths" : {
 						"type": "string"
 					},
@@ -125,6 +132,7 @@ func GetDefaultConfig() *Config {
 		ListenAddr:        defaultListenAddr,
 		ListenPort:        defaultListenPort,
 		MaxRunningPlugins: defaultMaxRunningPlugins,
+		PluginLoadTimeout: defaultPluginLoadTimeout,
 		PluginTrust:       defaultPluginTrust,
 		AutoDiscoverPath:  defaultAutoDiscoverPath,
 		KeyringPaths:      defaultKeyringPaths,
@@ -150,6 +158,10 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		case "max_running_plugins":
 			if err := json.Unmarshal(v, &(c.MaxRunningPlugins)); err != nil {
 				return fmt.Errorf("%v (while parsing 'control::max_running_plugins')", err)
+			}
+		case "plugin_load_timeout":
+			if err := json.Unmarshal(v, &(c.PluginLoadTimeout)); err != nil {
+				return fmt.Errorf("%v (while parsing 'control::plugin_load_timeout')", err)
 			}
 		case "plugin_trust_level":
 			if err := json.Unmarshal(v, &(c.PluginTrust)); err != nil {
@@ -179,7 +191,6 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, &(c.ListenPort)); err != nil {
 				return err
 			}
-
 		default:
 			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'control'", k)
 		}

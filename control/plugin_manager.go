@@ -231,10 +231,11 @@ func (lp *loadedPlugin) Policy() *cpolicy.ConfigPolicy {
 // the struct representing the object responsible for
 // loading and unloading plugins
 type pluginManager struct {
-	metricCatalog catalogsMetrics
-	loadedPlugins *loadedPlugins
-	logPath       string
-	pluginConfig  *pluginConfig
+	pluginLoadTimeout int
+	metricCatalog     catalogsMetrics
+	loadedPlugins     *loadedPlugins
+	logPath           string
+	pluginConfig      *pluginConfig
 }
 
 func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
@@ -243,9 +244,10 @@ func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 		logPath = `c:\temp`
 	}
 	p := &pluginManager{
-		loadedPlugins: newLoadedPlugins(),
-		logPath:       logPath,
-		pluginConfig:  newPluginConfig(),
+		pluginLoadTimeout: defaultPluginLoadTimeout,
+		loadedPlugins:     newLoadedPlugins(),
+		logPath:           logPath,
+		pluginConfig:      newPluginConfig(),
 	}
 
 	for _, opt := range opts {
@@ -262,6 +264,11 @@ func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
 	return func(p *pluginManager) {
 		p.pluginConfig = cf
 	}
+}
+
+// SetPluginLoadTimeout sets plugin load timeout
+func (p *pluginManager) SetPluginLoadTimeout(to int) {
+	p.pluginLoadTimeout = to
 }
 
 // SetPluginConfig sets plugin config
@@ -294,7 +301,11 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		return nil, serror.New(err)
 	}
 
-	resp, err := ePlugin.Run(time.Second * 3)
+	pmLogger.WithFields(log.Fields{
+		"_block": "load-plugin",
+		"path":   filepath.Base(lPlugin.Details.Exec),
+	}).Debug(fmt.Sprintf("plugin load timeout set to %ds", p.pluginLoadTimeout))
+	resp, err := ePlugin.Run(time.Second * time.Duration(p.pluginLoadTimeout))
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
