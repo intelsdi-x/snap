@@ -1,4 +1,4 @@
-This is the master catalog of plugins for snap. The plugins in this list may be written by multiple sources. Please examine the license and documentation of each plugin for more information.
+This is the master catalog of plugins for Snap. The plugins in this list may be written by multiple sources. Please examine the license and documentation of each plugin for more information.
 
 ## Maintained plugins
 | Name  | Type  | Description | Link | Download |
@@ -29,7 +29,7 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | Libvirt | Collector | Collects from libvirt | [snap-plugin-collector-libvirt](https://github.com/intelsdi-x/snap-plugin-collector-libvirt) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-libvirt)
 | Load | Collector | Collects plaform load metrics from Linux procfs | [snap-plugin-collector-load](https://github.com/intelsdi-x/snap-plugin-collector-load) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-load)
 | Meminfo | Collector | Collects memory related metrics from Linux procfs | [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-meminfo)
-| Mesos | Collector | Collects metrics from an Apache Mesos cluster | [snap-plugin-collector-mesos](https://github.com/intelsdi-x/snap-plugin-collector-mesos) | 
+| Mesos | Collector | Collects metrics from an Apache Mesos cluster | [snap-plugin-collector-mesos](https://github.com/intelsdi-x/snap-plugin-collector-mesos) |
 | MySQL | Collector | Collects metrics from MySQL DB | [snap-plugin-collector-mysql](https://github.com/intelsdi-x/snap-plugin-collector-mysql) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-publisher-mysql) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-publisher-mysql)
 | Neutron | Collector | Collect from OpenStack Neutron | [snap-plugin-collector-neutron](https://github.com/intelsdi-x/snap-plugin-collector-neutron) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-neutron)
 | NFS Client | Collector | Collect NFS client counters and RPC data | [snap-plugin-collector-nfsclient](https://github.com/intelsdi-x/snap-plugin-collector-nfsclient) |
@@ -42,7 +42,7 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 | PSUtil | Collector | Collects from psutil | [snap-plugin-collector-psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-psutil) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-collector-psutil)
 | RabbitMQ | Collector | Collects from RabbitMQ | [snap-plugin-collector-rabbitmq](https://github.com/intelsdi-x/snap-plugin-collector-rabbitmq) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-rabbitmq) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-collector-rabbitmq)
 | SMART | Collector | Collects SMART metrics from Intel SSDs | [snap-plugin-collector-smart](https://github.com/intelsdi-x/snap-plugin-collector-smart) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-smart)
-| SNMP | Collector | This plugin collects metrics using SNMP (Simple Network Management Protocol) | [snap-plugin-collector-snmp](https://github.com/intelsdi-x/snap-plugin-collector-snmp) 
+| SNMP | Collector | This plugin collects metrics using SNMP (Simple Network Management Protocol) | [snap-plugin-collector-snmp](https://github.com/intelsdi-x/snap-plugin-collector-snmp)
 | Swap | Collector | Collects swap related metrics from Linux procfs | [snap-plugin-collector-swap](https://github.com/intelsdi-x/snap-plugin-collector-swap) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-swap)
 | Users | Collector | Collects users related metrics from Linux utmp | [snap-plugin-collector-users](https://github.com/intelsdi-x/snap-plugin-collector-users) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-collector-users)
 | Movingaverage | Processor | Processes data and outputs moving average | [snap-plugin-processor-movingaverage](https://github.com/intelsdi-x/snap-plugin-processor-movingaverage) | [Linux](https://s3-us-west-1.amazonaws.com/snap-plugins-linux-latest/snap-plugin-processor-movingaverage) &#124; [Darwin](https://s3-us-west-1.amazonaws.com/snap-plugins-darwin-latest/snap-plugin-processor-movingaverage)
@@ -74,32 +74,22 @@ This is the master catalog of plugins for snap. The plugins in this list may be 
 ## Committed plugins
 These plugins are in planned/active development. This list is useful if you want to reach out and contribute to the development.
 
-| Name  | Type  | Description | Link | Authors |
-| :---- | :---- | :---------- | :--- | :------ |
-| Open vSwitch | Collector | Collects Open vSwitch performance data | -| [@sandlbn](https://github.com/sandlbn) |
-| Redfish | Collector | Collects metrics from Redfish API | - | [@candysmurf](https://github.com/candysmurf) |
-| Cassandra | Publisher | Publishes snap metrics into Cassandra | - | [@candysmurf](https://github.com/candysmurf) |
+| Name         | Type      | Description                            | Link | Authors                                      |
+|:-------------|:----------|:---------------------------------------|:-----|:---------------------------------------------|
+| Open vSwitch | Collector | Collects Open vSwitch performance data | -    | [@sandlbn](https://github.com/sandlbn)       |
+| Redfish      | Collector | Collects metrics from Redfish API      | -    | [@candysmurf](https://github.com/candysmurf) |
+| Cassandra    | Publisher | Publishes snap metrics into Cassandra  | -    | [@candysmurf](https://github.com/candysmurf) |
 
 ## Wish List
-This is a wish list of plugins for Snap. If you see one here and want to start on it please let us know.
-#### Collector
+There will always be more plugins we wish we had. To make sure others can contribute to our community goals, we keep a wish list of what people would like to see. If you see one here and want to start on it please let us know by commenting on the corresponding issue!
 
-- CollectD native
-- Prometheus
-- snap App Endpoint (needs event spec)
-- Intel NIC
-- Kubernetes Minion
-- JVM (via JMX)
-- Perfmon (windows performance monitor)
-
-#### Processor
-
-- Caffe
-- Oslo
-
-#### Publisher
-
-- 0MQ
-- ActiveMQ
-- SQLite
-- Ceilometer (possibly just OSLO proc + RMQ)
+| Name                                                                                  | Type      | Why                                   | Notes                                                                                    |
+|:--------------------------------------------------------------------------------------|:----------|:--------------------------------------|:-----------------------------------------------------------------------------------------|
+| Perfmon - [#1175](https://github.com/intelsdi-x/snap/issues/1175)                     | Collector | Performance monitoring on Windows     | Requires Windows Support - see [RFC #671](https://github.com/intelsdi-x/snap/issues/671) |
+| TPC/UDP - [#1003](https://github.com/intelsdi-x/snap/issues/1003)                     | Collector | Support shift from SNMP to Snap       |                                                                                          |
+| sflow/netflow - [#1030](https://github.com/intelsdi-x/snap/issues/1030)               | Collector | Support shift from SNMP to Snap       | Requires Windows Support - see [RFC #671](https://github.com/intelsdi-x/snap/issues/671) |
+| Collectd (native) - [Issue needed](https://github.com/intelsdi-x/snap/issues/)        | Collector | Compatibility for legacy environments |                                                                                          |
+| Prometheus    - [#1196](https://github.com/intelsdi-x/snap/issues/1196)               | Publisher | As part of a CNCF stack               |                                                                                          |
+| Kubernetes Node (Minion) - [Issue needed](https://github.com/intelsdi-x/snap/issues/) | Collector | Monitoring nodes in k8s               |                                                                                          |
+| JVM (via JMX) - [Issue needed](https://github.com/intelsdi-x/snap/issues/)            | Collector |                                       |                                                                                          |
+| Ceilometer - [Issue needed](https://github.com/intelsdi-x/snap/issues/)               | Publisher | possibly just OSLO proc + RMQ         |                                                                                          |
