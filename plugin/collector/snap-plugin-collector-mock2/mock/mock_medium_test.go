@@ -59,10 +59,12 @@ func TestCollectMetric(t *testing.T) {
 				}
 				mts, _ := newPlg.CollectMetrics(mTypes)
 
-				for _, mt := range mts {
-					_, ok := mt.Data_.(string)
-					So(ok, ShouldBeTrue)
-				}
+				Convey("returned metrics should have data type integer", func() {
+					for _, mt := range mts {
+						_, ok := mt.Data_.(int)
+						So(ok, ShouldBeTrue)
+					}
+				})
 			})
 
 			Convey("testing dynamic metric", func() {
@@ -137,10 +139,12 @@ func TestCollectMetric(t *testing.T) {
 				}
 				mts, _ := newPlg.CollectMetrics(mTypes)
 
-				for _, mt := range mts {
-					_, ok := mt.Data_.(string)
-					So(ok, ShouldBeTrue)
-				}
+				Convey("returned metrics should have data type integer", func() {
+					for _, mt := range mts {
+						_, ok := mt.Data_.(int)
+						So(ok, ShouldBeTrue)
+					}
+				})
 			})
 
 			Convey("testing dynamic metics", func() {
@@ -166,6 +170,7 @@ func TestCollectMetric(t *testing.T) {
 			})
 
 		})
+
 	})
 }
 
@@ -248,9 +253,9 @@ func TestMeta(t *testing.T) {
 		So(meta.Type, ShouldEqual, Type)
 		So(meta.AcceptedContentTypes[0], ShouldEqual, plugin.SnapGOBContentType)
 		So(meta.ReturnedContentTypes[0], ShouldEqual, plugin.SnapGOBContentType)
-		So(meta.Unsecure, ShouldEqual, true)
-		So(meta.RoutingStrategy, ShouldEqual, plugin.DefaultRouting)
-		So(meta.CacheTTL, ShouldEqual, 1100*time.Millisecond)
+		So(meta.Unsecure, ShouldEqual, false)
+		So(meta.RoutingStrategy, ShouldEqual, plugin.StickyRouting)
+		So(meta.CacheTTL, ShouldEqual, 100*time.Millisecond)
 	})
 }
 

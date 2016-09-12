@@ -44,6 +44,9 @@ const (
 type AnotherMock struct {
 }
 
+// list of available hosts
+var availableHosts = getAllHostnames()
+
 // CollectMetrics collects metrics for testing
 func (f *AnotherMock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, error) {
 	for _, p := range mts {
@@ -56,18 +59,44 @@ func (f *AnotherMock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricTy
 		if c, ok := mts[i].Config().Table()["panic"]; ok && c.(ctypes.ConfigValueBool).Value {
 			panic("Oops!")
 		}
-		if mts[i].Namespace()[2].Value == "*" {
-			for j := 0; j < 10; j++ {
+
+		if isDynamic, _ := mts[i].Namespace().IsDynamic(); isDynamic {
+			requestedHosts := []string{}
+
+			if mts[i].Namespace()[2].Value == "*" {
+				// when dynamic element is not specified (equals an asterisk)
+				// then consider all available hosts as requested hosts
+				requestedHosts = append(requestedHosts, availableHosts...)
+			} else {
+				// when the dynamic element is specified
+				// then consider this specified host as requested hosts
+				host := mts[i].Namespace()[2].Value
+
+				// check if specified host is available in system
+				if contains(availableHosts, host) {
+					requestedHosts = append(requestedHosts, host)
+				} else {
+					return nil, fmt.Errorf("requested hostname `%s` is not available (list of available hosts: %s)", host, availableHosts)
+				}
+
+			}
+			// collect data for each of requested hosts
+			for _, host := range requestedHosts {
+				//generate random data
+				data := 9000 + randInt(65, 90)
+				// prepare namespace as a copy of incoming dynamic namespace,
+				// but with the set value of dynamic element
 				ns := make([]core.NamespaceElement, len(mts[i].Namespace()))
 				copy(ns, mts[i].Namespace())
-				ns[2].Value = fmt.Sprintf("host%d", j)
-				data := 9000 + randInt(65, 90)
+				ns[2].Value = host
+
+				// metric with set data, ns, timestamp and the version of the plugin
 				mt := plugin.MetricType{
 					Data_:      data,
 					Namespace_: ns,
 					Timestamp_: time.Now(),
-					Version_:   mts[i].Version(),
 					Unit_:      mts[i].Unit(),
+					Version_:   mts[i].Version(),
 				}
 				metrics = append(metrics, mt)
 			}
@@ -81,7 +110,7 @@ func (f *AnotherMock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricTy
 	return metrics, nil
 }
 
-//GetMetricTypes returns metric types for testing
+// GetMetricTypes returns metric types for testing
 func (f *AnotherMock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error) {
 	mts := []plugin.MetricType{}
 	if _, ok := cfg.Table()["test-fail"]; ok {
@@ -114,7 +143,7 @@ func (f *AnotherMock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType
 	return mts, nil
 }
 
-//GetConfigPolicy returns a ConfigPolicy for testing
+// GetConfigPolicy returns a ConfigPolicy for testing
 func (f *AnotherMock) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	c := cpolicy.New()
 	rule, _ := cpolicy.NewStringRule("name", false, "bob")
@@ -126,7 +155,7 @@ func (f *AnotherMock) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	return c, nil
 }
 
-//Meta returns meta data for testing
+// Meta returns meta data for testing
 func Meta() *plugin.PluginMeta {
 	return plugin.NewPluginMeta(
 		Name,
@@ -139,7 +168,26 @@ func Meta() *plugin.PluginMeta {
 	)
 }
 
-//Random number generator
+// contains reports whether a given item is found in a slice
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+// getAllHostnames returns all available hostnames ('host0', 'host1', ..., 'host9')
+func getAllHostnames() []string {
+	res := []string{}
+	for j := 0; j < 10; j++ {
+		res = append(res, fmt.Sprintf("host%d", j))
+	}
+	return res
+}
+
+// random number generator
 func randInt(min int, max int) int {
 	return min + rand.Intn(max-min)
 }

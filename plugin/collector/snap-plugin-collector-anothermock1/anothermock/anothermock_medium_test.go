@@ -19,7 +19,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mock
+package anothermock
 
 import (
 	"math/rand"
@@ -35,14 +35,14 @@ import (
 )
 
 func TestCollectMetric(t *testing.T) {
-	ns0 := core.NewNamespace("intel", "mock", "test")
-	ns1 := core.NewNamespace("intel", "mock", "foo")
-	ns2 := core.NewNamespace("intel", "mock", "bar")
-	ns3 := core.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElement("baz")
+	ns0 := core.NewNamespace("intel", "anothermock", "test")
+	ns1 := core.NewNamespace("intel", "anothermock", "foo")
+	ns2 := core.NewNamespace("intel", "anothermock", "bar")
+	ns3 := core.NewNamespace("intel", "anothermock").AddDynamicElement("host", "name of the host").AddStaticElement("baz")
 
 	Convey("Testing CollectMetric", t, func() {
 
-		newPlg := new(Mock)
+		newPlg := new(AnotherMock)
 		So(newPlg, ShouldNotBeNil)
 
 		Convey("with 'test' config variable'", func() {
@@ -59,10 +59,12 @@ func TestCollectMetric(t *testing.T) {
 				}
 				mts, _ := newPlg.CollectMetrics(mTypes)
 
-				for _, mt := range mts {
-					_, ok := mt.Data_.(string)
-					So(ok, ShouldBeTrue)
-				}
+				Convey("returned metrics should have data type integer", func() {
+					for _, mt := range mts {
+						_, ok := mt.Data_.(int)
+						So(ok, ShouldBeTrue)
+					}
+				})
 			})
 
 			Convey("testing dynamic metric", func() {
@@ -97,7 +99,7 @@ func TestCollectMetric(t *testing.T) {
 
 					// only one metric for this specific hostname should be returned
 					So(len(mts), ShouldEqual, 1)
-					So(mts[0].Namespace().String(), ShouldEqual, "/intel/mock/host0/baz")
+					So(mts[0].Namespace().String(), ShouldEqual, "/intel/anothermock/host0/baz")
 
 					Convey("returned metric should have data type integer", func() {
 						_, ok := mts[0].Data_.(int)
@@ -137,10 +139,12 @@ func TestCollectMetric(t *testing.T) {
 				}
 				mts, _ := newPlg.CollectMetrics(mTypes)
 
-				for _, mt := range mts {
-					_, ok := mt.Data_.(string)
-					So(ok, ShouldBeTrue)
-				}
+				Convey("returned metrics should have data type integer", func() {
+					for _, mt := range mts {
+						_, ok := mt.Data_.(int)
+						So(ok, ShouldBeTrue)
+					}
+				})
 			})
 
 			Convey("testing dynamic metics", func() {
@@ -166,13 +170,14 @@ func TestCollectMetric(t *testing.T) {
 			})
 
 		})
+
 	})
 }
 
 func TestGetMetricTypes(t *testing.T) {
 	Convey("Tesing GetMetricTypes", t, func() {
 
-		newPlg := new(Mock)
+		newPlg := new(AnotherMock)
 		So(newPlg, ShouldNotBeNil)
 
 		Convey("with missing on-load plugin config entry", func() {
@@ -199,16 +204,16 @@ func TestGetMetricTypes(t *testing.T) {
 					metricNames = append(metricNames, m.Namespace().String())
 				}
 
-				ns := core.NewNamespace("intel", "mock", "test")
+				ns := core.NewNamespace("intel", "anothermock", "test")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = core.NewNamespace("intel", "mock", "foo")
+				ns = core.NewNamespace("intel", "anothermock", "foo")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = core.NewNamespace("intel", "mock", "bar")
+				ns = core.NewNamespace("intel", "anothermock", "bar")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = core.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElement("baz")
+				ns = core.NewNamespace("intel", "anothermock").AddDynamicElement("host", "name of the host").AddStaticElement("baz")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 			})
 		})
@@ -226,13 +231,13 @@ func TestGetMetricTypes(t *testing.T) {
 					metricNames = append(metricNames, m.Namespace().String())
 				}
 
-				ns := core.NewNamespace("intel", "mock", "foo")
+				ns := core.NewNamespace("intel", "anothermock", "foo")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = core.NewNamespace("intel", "mock", "bar")
+				ns = core.NewNamespace("intel", "anothermock", "bar")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = core.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElement("baz")
+				ns = core.NewNamespace("intel", "anothermock").AddDynamicElement("host", "name of the host").AddStaticElement("baz")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 			})
 		})
@@ -248,9 +253,9 @@ func TestMeta(t *testing.T) {
 		So(meta.Type, ShouldEqual, Type)
 		So(meta.AcceptedContentTypes[0], ShouldEqual, plugin.SnapGOBContentType)
 		So(meta.ReturnedContentTypes[0], ShouldEqual, plugin.SnapGOBContentType)
-		So(meta.Unsecure, ShouldEqual, true)
-		So(meta.RoutingStrategy, ShouldEqual, plugin.DefaultRouting)
-		So(meta.CacheTTL, ShouldEqual, 1100*time.Millisecond)
+		So(meta.Unsecure, ShouldEqual, false)
+		So(meta.RoutingStrategy, ShouldEqual, plugin.StickyRouting)
+		So(meta.CacheTTL, ShouldEqual, 100*time.Millisecond)
 	})
 }
 
@@ -264,7 +269,7 @@ func TestRandInt(t *testing.T) {
 
 func TestGetConfigPolicy(t *testing.T) {
 	Convey("Testing GetConfigPolicy", t, func() {
-		newPlg := new(Mock)
+		newPlg := new(AnotherMock)
 		So(newPlg, ShouldNotBeNil)
 
 		configPolicy, err := newPlg.GetConfigPolicy()
