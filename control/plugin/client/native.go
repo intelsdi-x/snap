@@ -52,6 +52,7 @@ type PluginNativeClient struct {
 	pluginType plugin.PluginType
 	encoder    encoding.Encoder
 	encrypter  *encrypter.Encrypter
+	timeout    time.Duration
 }
 
 func NewCollectorNativeClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginCollectorClient, error) {
@@ -140,6 +141,15 @@ func decodeMetrics(bts []byte) ([]core.Metric, error) {
 	return cmetrics, nil
 }
 
+func enforceTimeout(p *PluginNativeClient, dl time.Duration, done chan int) {
+	select {
+	case <-time.After(dl):
+		p.Kill("Passed deadline")
+	case <-done:
+		return
+	}
+}
+
 func (p *PluginNativeClient) Publish(metrics []core.Metric, config map[string]ctypes.ConfigValue) error {
 
 	args := plugin.PublishArgs{
@@ -152,11 +162,12 @@ func (p *PluginNativeClient) Publish(metrics []core.Metric, config map[string]ct
 	if err != nil {
 		return err
 	}
-
 	var reply []byte
+	done := make(chan int)
+	go enforceTimeout(p, p.timeout, done)
 	err = p.connection.Call("Publisher.Publish", out, &reply)
+	close(done)
 	return err
-	return nil
 }
 
 func (p *PluginNativeClient) Process(metrics []core.Metric, config map[string]ctypes.ConfigValue) ([]core.Metric, error) {
@@ -173,7 +184,10 @@ func (p *PluginNativeClient) Process(metrics []core.Metric, config map[string]ct
 	}
 
 	var reply []byte
+	done := make(chan int)
+	go enforceTimeout(p, p.timeout, done)
 	err = p.connection.Call("Processor.Process", out, &reply)
+	close(done)
 	if err != nil {
 		return nil, err
 	}
@@ -211,14 +225,16 @@ func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, e
 	}
 
 	args := plugin.CollectMetricsArgs{MetricTypes: metricsToCollect}
-
 	out, err := p.encoder.Encode(args)
 	if err != nil {
 		return nil, err
 	}
 
 	var reply []byte
+	done := make(chan int)
+	go enforceTimeout(p, p.timeout, done)
 	err = p.connection.Call("Collector.CollectMetrics", out, &reply)
+	close(done)
 	if err != nil {
 		return nil, err
 	}
@@ -303,6 +319,7 @@ func newNativeClient(address string, timeout time.Duration, t plugin.PluginType,
 	p := &PluginNativeClient{
 		connection: r,
 		pluginType: t,
+		timeout:    timeout,
 	}
 
 	p.encoder = encoding.NewGobEncoder()
