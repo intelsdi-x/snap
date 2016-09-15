@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -82,15 +82,8 @@ func (f *Mock) CollectMetrics(mts []plugin.Metric) ([]plugin.Metric, error) {
 				data := randInt(65, 90) + 1000
 				// prepare namespace as a copy of incoming dynamic namespace,
 				// but with the set value of dynamic element
-				ns := plugin.NewNamespace()
-				for j, ne := range mts[i].Namespace {
-					if ne.IsDynamic() {
-						ns = ns.AddDynamicElement(ne.Name, ne.Description)
-						ns[j].Value = host
-					} else {
-						ns = ns.AddStaticElement(ne.Value)
-					}
-				}
+				ns := plugin.CopyNamespace(mts[i].Namespace)
+				ns[2].Value = host
 				// metric with set data, ns, timestamp and the version of the plugin
 				mt := plugin.Metric{
 					Data:      data,
