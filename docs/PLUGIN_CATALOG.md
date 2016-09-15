@@ -66,10 +66,11 @@ This is the master catalog of plugins for Snap. The plugins in this list may be 
 ## Community Plugins
 | Name  | Type  | Description | Link |
 | :---- | :---- | :---------- | :--- |
-| CloudWatch | Publisher | Publishes snap metrics to AWS CloudWatch | [snap-plugin-publisher-cloudwatch](https://github.com/Ticketmaster/snap-plugin-publisher-cloudwatch) |
-| Ping | Collector | Collects Ping latency measurements | [snap-plugin-collector-ping](https://github.com/raintank/snap-plugin-collector-ping) |
-| Memcached | Collector | Collect Memcached performance stats | [snap-plugin-collector-memcache](https://github.com/raintank/snap-plugin-collector-memcache)|
 | Blueflood | Publisher | Publishes metrics to the Blueflood metrics processing system | [snap-plugin-publisher-blueflood](https://github.com/Staples-Inc/snap-plugin-publisher-blueflood)|
+| CloudWatch | Publisher | Publishes snap metrics to AWS CloudWatch | [snap-plugin-publisher-cloudwatch](https://github.com/Ticketmaster/snap-plugin-publisher-cloudwatch) |
+| Memcached | Collector | Collect Memcached performance stats | [snap-plugin-collector-memcache](https://github.com/raintank/snap-plugin-collector-memcache)|
+| Netstat | Collector | Collect TCP connection stats | [snap-plugin-collector-netstat](https://github.com/Staples-Inc/snap-plugin-collector-netstat)|
+| Ping | Collector | Collects Ping latency measurements | [snap-plugin-collector-ping](https://github.com/raintank/snap-plugin-collector-ping) |
 
 ## Committed plugins
 These plugins are in planned/active development. This list is useful if you want to reach out and contribute to the development.
