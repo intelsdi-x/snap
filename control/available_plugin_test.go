@@ -28,6 +28,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -84,7 +85,7 @@ func TestAvailablePlugins(t *testing.T) {
 			err := aps.insert(ap)
 			So(err, ShouldBeNil)
 
-			pool, err := aps.getPool("collector:test:1")
+			pool, err := aps.getPool("collector" + core.Separator + "test" + core.Separator + "1")
 			So(err, ShouldBeNil)
 			nap, ok := pool.Plugins()[ap.id]
 			So(ok, ShouldBeTrue)

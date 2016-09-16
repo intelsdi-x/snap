@@ -94,7 +94,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 		lastHitTime: time.Now(),
 		ePlugin:     ep,
 	}
-	ap.key = fmt.Sprintf("%s:%s:%d", ap.pluginType.String(), ap.name, ap.version)
+	ap.key = fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", ap.pluginType.String(), ap.name, ap.version)
 
 	listenURL := fmt.Sprintf("http://%v/rpc", resp.ListenAddress)
 	// Create RPC Client
@@ -327,7 +327,7 @@ func (ap *availablePlugins) insert(pl *availablePlugin) error {
 	ap.Lock()
 	defer ap.Unlock()
 
-	key := fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.name, pl.version)
+	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pl.TypeName(), pl.name, pl.version)
 	_, exists := ap.table[key]
 	if !exists {
 		p, err := strategy.NewPool(key, pl)
@@ -348,7 +348,7 @@ func (ap *availablePlugins) getPool(key string) (strategy.Pool, serror.SnapError
 	defer ap.RUnlock()
 	pool, ok := ap.table[key]
 	if !ok {
-		tnv := strings.Split(key, ":")
+		tnv := strings.Split(key, core.Separator)
 		if len(tnv) != 3 {
 			return nil, serror.New(ErrBadKey, map[string]interface{}{
 				"key": key,
@@ -441,7 +441,7 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 
 func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	var errs []error
-	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, ":")
+	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
 		errs = append(errs, serr)
@@ -476,7 +476,7 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 
 func (ap *availablePlugins) processMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) ([]core.Metric, []error) {
 	var errs []error
-	key := strings.Join([]string{plugin.ProcessorPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, ":")
+	key := strings.Join([]string{plugin.ProcessorPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
 		errs = append(errs, serr)
@@ -512,7 +512,7 @@ func (ap *availablePlugins) findLatestPool(pType, name string) (strategy.Pool, s
 	// see if there exists a pool at all which matches name version.
 	var latest strategy.Pool
 	for key, pool := range ap.table {
-		tnv := strings.Split(key, ":")
+		tnv := strings.Split(key, core.Separator)
 		if tnv[0] == pType && tnv[1] == name {
 			latest = pool
 			break
@@ -520,7 +520,7 @@ func (ap *availablePlugins) findLatestPool(pType, name string) (strategy.Pool, s
 	}
 	if latest != nil {
 		for key, pool := range ap.table {
-			tnv := strings.Split(key, ":")
+			tnv := strings.Split(key, core.Separator)
 			if tnv[0] == pType && tnv[1] == name && pool.Version() > latest.Version() {
 				latest = pool
 			}

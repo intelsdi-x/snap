@@ -126,7 +126,7 @@ type pool struct {
 }
 
 func NewPool(key string, plugins ...AvailablePlugin) (Pool, error) {
-	versl := strings.Split(key, ":")
+	versl := strings.Split(key, core.Separator)
 	ver, err := strconv.Atoi(versl[len(versl)-1])
 	if err != nil {
 		return nil, err
