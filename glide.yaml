@@ -52,3 +52,4 @@ import:
 - package: gopkg.in/yaml.v2
   version: c1cd2254a6dd314c9d73c338c12688c9325d85c6
 - package: github.com/intelsdi-x/snap-plugin-lib-go
+  version: 55956e53732655f4875708b15c25904090af41ec
