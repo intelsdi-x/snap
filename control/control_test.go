@@ -816,9 +816,6 @@ func TestMetricConfig(t *testing.T) {
 			errs := c.subscriptionGroups.validateMetric(m1)
 			So(errs, ShouldBeNil)
 		})
-		Convey("So mock should have name: bob config from defaults", func() {
-			So(c.Config.Plugins.pluginCache["0"+core.Separator+"mock"+core.Separator+"1"].Table()["name"], ShouldResemble, ctypes.ConfigValueStr{Value: "bob"})
-		})
 
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)

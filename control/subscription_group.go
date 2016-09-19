@@ -227,10 +227,10 @@ func (s *subscriptionGroups) ValidateDeps(requested []core.RequestedMetric,
 		if err != nil {
 			return []serror.SnapError{serror.New(err)}
 		}
-		plg.Config().ReverseMerge(
+		mergedConfig := plg.Config().ReverseMerge(
 			s.Config.Plugins.getPluginConfigDataNode(
 				typ, plg.Name(), plg.Version()))
-		errs := s.validatePluginSubscription(plg)
+		errs := s.validatePluginSubscription(plg, mergedConfig)
 		if len(errs) > 0 {
 			serrs = append(serrs, errs...)
 			return serrs
@@ -239,7 +239,7 @@ func (s *subscriptionGroups) ValidateDeps(requested []core.RequestedMetric,
 	return
 }
 
-func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin) []serror.SnapError {
+func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin, mergedConfig *cdata.ConfigDataNode) []serror.SnapError {
 	var serrs = []serror.SnapError{}
 	controlLogger.WithFields(log.Fields{
 		"_block": "validate-plugin-subscription",
@@ -259,7 +259,7 @@ func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin
 
 	if lp.ConfigPolicy != nil {
 		ncd := lp.ConfigPolicy.Get([]string{""})
-		_, errs := ncd.Process(pl.Config().Table())
+		_, errs := ncd.Process(mergedConfig.Table())
 		if errs != nil && errs.HasErrors() {
 			for _, e := range errs.Errors() {
 				se := serror.New(e)
@@ -300,7 +300,7 @@ func (s *subscriptionGroups) validateMetric(
 
 	// merge global plugin config
 	if m.config != nil {
-		m.config.ReverseMerge(
+		m.config.ReverseMergeInPlace(
 			s.Config.Plugins.getPluginConfigDataNode(typ,
 				m.Plugin.Name(), m.Plugin.Version()))
 	} else {
@@ -342,10 +342,20 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 		"metrics":    fmt.Sprintf("%+v", s.requestedMetrics),
 	}).Debug("gathered collectors")
 
-	//add processors and publishers to collectors just gathered
 	for _, plugin := range s.requestedPlugins {
+		//add processors and publishers to collectors just gathered
 		if plugin.TypeName() != core.CollectorPluginType.String() {
 			plugins = append(plugins, plugin)
+			// add defaults to plugins (exposed in a plugins ConfigPolicy)
+			if lp, err := s.pluginManager.get(
+				fmt.Sprintf("%s:%s:%d",
+					plugin.TypeName(),
+					plugin.Name(),
+					plugin.Version())); err == nil && lp.ConfigPolicy != nil {
+				if policy := lp.ConfigPolicy.Get([]string{""}); policy != nil && len(policy.Defaults()) > 0 {
+					plugin.Config().ApplyDefaults(policy.Defaults())
+				}
+			}
 		}
 	}
 

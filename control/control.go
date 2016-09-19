@@ -713,6 +713,12 @@ func (p *pluginControl) getMetricsAndCollectors(requested []core.RequestedMetric
 			// set config to metric
 			mt.config = cfg
 
+			// apply defaults to the metric that may be present in the plugins
+			// configpolicy
+			if pluginCfg := mt.Plugin.ConfigPolicy.Get(mt.Namespace().Strings()); pluginCfg != nil {
+				mt.config.ApplyDefaults(pluginCfg.Defaults())
+			}
+
 			// loaded plugin which exposes the metric
 			lp := mt.Plugin
 			key := lp.Key()
@@ -911,6 +917,12 @@ func (p *pluginControl) CollectMetrics(id string, allTags map[string]map[string]
 
 	// For each available plugin call available plugin using RPC client and wait for response (goroutines)
 	for pluginKey, pmt := range pluginToMetricMap {
+		// merge global plugin config into the config for the metric
+		for _, mt := range pmt.metricTypes {
+			if mt.Config() != nil {
+				mt.Config().ReverseMergeInPlace(p.Config.Plugins.getPluginConfigDataNode(core.CollectorPluginType, pmt.plugin.Name(), pmt.plugin.Version()))
+			}
+		}
 
 		wg.Add(1)
 
