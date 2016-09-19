@@ -36,7 +36,6 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/ghodss/yaml"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	"github.com/robfig/cron"
 	"golang.org/x/crypto/ssh/terminal"
@@ -461,13 +460,6 @@ func mergeDateTime(tm, dt string) *time.Time {
 	return &reTm
 }
 
-// taskSorter sorts tasks by CreationTime
-type TaskSorter []rbody.ScheduledTask
-
-func (t TaskSorter) Len() int           { return len(t) }
-func (t TaskSorter) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
-func (t TaskSorter) Less(i, j int) bool { return t[j].CreationTime().After(t[i].CreationTime()) }
-
 func listTask(ctx *cli.Context) error {
 	tasks := pClient.GetTasks()
 	termWidth, _, _ := terminal.GetSize(int(os.Stdout.Fd()))
@@ -487,9 +479,7 @@ func listTask(ctx *cli.Context) error {
 		"CREATED",
 		"LAST FAILURE",
 	)
-	sortTasks := tasks.ScheduledTasks
-	sort.Sort(TaskSorter(sortTasks))
-	for _, task := range sortTasks {
+	for _, task := range tasks.ScheduledTasks {
 		//165 is the width of the error message from ID - LAST FAILURE inclusive.
 		//If the header row wraps, then the error message will automatically wrap too
 		if termWidth < 165 {
