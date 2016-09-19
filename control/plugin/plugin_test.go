@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -60,7 +61,7 @@ func TestMetricType(t *testing.T) {
 
 func TestArg(t *testing.T) {
 	Convey("NewArg", t, func() {
-		arg := NewArg("/tmp/snap/plugin.log")
+		arg := NewArg(int(log.InfoLevel))
 		So(arg, ShouldNotBeNil)
 	})
 }

@@ -224,11 +224,17 @@ func (c ConfigPolicyNode) Merge(n ctree.Node) ctree.Node {
 	cd := n.(*ConfigPolicyNode)
 	// For the rules in the passed ConfigPolicyNode(converted) add each rule to
 	// this ConfigPolicyNode overwriting where needed.
+	no := NewPolicyNode()
+	for _, r := range c.rules {
+		no.Add(r)
+	}
+
 	for _, r := range cd.rules {
-		c.Add(r)
+
+		no.Add(r)
 	}
 	// Return modified version of ConfigPolicyNode(as ctree.Node)
-	return c
+	return no
 }
 
 // addRulesToConfigPolicyNode accepts a map of empty interfaces that will be

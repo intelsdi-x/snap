@@ -22,8 +22,6 @@ limitations under the License.
 package control
 
 import (
-	"bytes"
-	"encoding/gob"
 	"net"
 	"path"
 	"testing"
@@ -32,13 +30,12 @@ import (
 	"golang.org/x/net/context"
 
 	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/snap/control/fixtures"
-	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/grpc/common"
-	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/grpc/controlproxy/rpc"
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
 	. "github.com/smartystreets/goconvey/convey"
@@ -150,33 +147,6 @@ func TestGRPCServerScheduler(t *testing.T) {
 			So(client, ShouldNotBeNil)
 		})
 	})
-	//GetContentTypes
-	Convey("Getting Content Types", t, func() {
-		Convey("Should err if invalid plugin given", func() {
-			req := &rpc.GetPluginContentTypesRequest{
-				Name:       "bogus",
-				PluginType: int32(0),
-				Version:    int32(0),
-			}
-			reply, err := client.GetPluginContentTypes(context.Background(), req)
-			// We don't expect rpc errors
-			So(err, ShouldBeNil)
-			So(reply.Error, ShouldNotEqual, "")
-			So(reply.Error, ShouldResemble, "plugin not found")
-		})
-		Convey("Should return content types with valid plugin", func() {
-			req := &rpc.GetPluginContentTypesRequest{
-				Name:       "mock",
-				PluginType: int32(0),
-				Version:    0,
-			}
-			reply, err := client.GetPluginContentTypes(context.Background(), req)
-			So(err, ShouldBeNil)
-			So(reply.Error, ShouldEqual, "")
-			So(reply.AcceptedTypes, ShouldContain, "snap.gob")
-			So(reply.ReturnedTypes, ShouldContain, "snap.gob")
-		})
-	})
 
 	// Verify that validate deps is properly passing through errors
 	Convey("Validating Deps", t, func() {
@@ -264,8 +234,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 			mts = common.ToCoreMetrics(reply.Metrics)
 		})
 	})
-	//our content to pass to publish
-	var content []byte
+
 	//process
 	Convey("ProcessMetrics", t, func() {
 		req := &rpc.SubscribeDepsRequest{
@@ -280,15 +249,13 @@ func TestGRPCServerScheduler(t *testing.T) {
 		_, err := client.SubscribeDeps(context.Background(), req)
 		So(err, ShouldBeNil)
 		Convey("should error with invalid inputs", func() {
-			var buf bytes.Buffer
-			enc := gob.NewEncoder(&buf)
-			metrics := make([]plugin.MetricType, len(mts))
-			for i, m := range mts {
-				mt := plugin.NewMetricType(m.Namespace(), m.Timestamp(), m.Tags(), m.Unit(), m.Data())
-				metrics[i] = *mt
+			req := &rpc.PubProcMetricsRequest{
+				Metrics:       common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
+				PluginName:    "passthru-invalid",
+				PluginVersion: 1,
+				TaskId:        "my-snowflake-id",
+				Config:        common.ToConfigMap(map[string]ctypes.ConfigValue{}),
 			}
-			enc.Encode(metrics)
-			req := controlproxy.GetPubProcReq("snap.gob", buf.Bytes(), "passthru-invalid", 1, map[string]ctypes.ConfigValue{}, "my-snowflake-id")
 			reply, err := client.ProcessMetrics(context.Background(), req)
 			// we don't expect rpc errors
 			So(err, ShouldBeNil)
@@ -296,21 +263,18 @@ func TestGRPCServerScheduler(t *testing.T) {
 			// content to pass to publisher
 		})
 		Convey("should not error with valid inputs", func() {
-			var buf bytes.Buffer
-			enc := gob.NewEncoder(&buf)
-			metrics := make([]plugin.MetricType, len(mts))
-			for i, m := range mts {
-				mt := plugin.NewMetricType(m.Namespace(), m.Timestamp(), m.Tags(), m.Unit(), m.Data())
-				metrics[i] = *mt
+			req := &rpc.PubProcMetricsRequest{
+				Metrics:       common.NewMetrics(mts),
+				PluginName:    "passthru",
+				PluginVersion: 1,
+				TaskId:        "my-snowflake-id",
+				Config:        common.ToConfigMap(map[string]ctypes.ConfigValue{}),
 			}
-			enc.Encode(metrics)
-			req := controlproxy.GetPubProcReq("snap.gob", buf.Bytes(), "passthru", 1, map[string]ctypes.ConfigValue{}, "my-snowflake-id")
 			reply, err := client.ProcessMetrics(context.Background(), req)
 			// we don't expect rpc errors
 			So(err, ShouldBeNil)
 			So(len(reply.Errors), ShouldEqual, 0)
-			// content to pass to publisher
-			content = reply.Content
+
 		})
 	})
 	//publishmetrics
@@ -327,10 +291,14 @@ func TestGRPCServerScheduler(t *testing.T) {
 		_, err := client.SubscribeDeps(context.Background(), req)
 		So(err, ShouldBeNil)
 
-		Convey("should error with invalid inputs", func() {
-			config := make(map[string]ctypes.ConfigValue)
-			config["file"] = ctypes.ConfigValueStr{Value: "/tmp/grpcservertest.snap"}
-			req := controlproxy.GetPubProcReq("snap.gob", content, "mock-file-invalid", 3, config, "my-snowflake-id")
+		Convey("Should error with invalid inputs", func() {
+			req := &rpc.PubProcMetricsRequest{
+				Metrics:       common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
+				PluginName:    "mock-file-invalid",
+				PluginVersion: 3,
+				TaskId:        "my-snowflake-id",
+				Config:        common.ToConfigMap(map[string]ctypes.ConfigValue{}),
+			}
 			reply, err := client.PublishMetrics(context.Background(), req)
 			// we don't expect rpc errors
 			So(err, ShouldBeNil)
@@ -341,7 +309,13 @@ func TestGRPCServerScheduler(t *testing.T) {
 		Convey("should not error with valid inputs", func() {
 			config := make(map[string]ctypes.ConfigValue)
 			config["file"] = ctypes.ConfigValueStr{Value: "/tmp/grpcservertest.snap"}
-			req := controlproxy.GetPubProcReq("snap.gob", content, "mock-file", 3, config, "my-snowflake-id")
+			req := &rpc.PubProcMetricsRequest{
+				Metrics:       common.NewMetrics([]core.Metric{fixtures.ValidMetric}),
+				PluginName:    "mock-file",
+				PluginVersion: 3,
+				TaskId:        "my-snowflake-id",
+				Config:        common.ToConfigMap(config),
+			}
 			reply, err := client.PublishMetrics(context.Background(), req)
 			// we don't expect rpc errors
 			So(err, ShouldBeNil)

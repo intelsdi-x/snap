@@ -1,0 +1,54 @@
+package: github.com/intelsdi-x/snap
+import:
+- package: github.com/Sirupsen/logrus
+  version: be52937128b38f1d99787bb476c789e2af1147f1
+- package: github.com/appc/spec
+  version: db96f94ae6b227fe4d8288527ead8927181620f6
+  subpackages:
+  - aci
+  - schema
+- package: github.com/asaskevich/govalidator
+  version: 9699ab6b38bee2e02cd3fe8b99ecf67665395c96
+- package: github.com/codegangsta/cli
+  version: 01857ac33766ce0c93856370626f9799281c14f4
+- package: github.com/codegangsta/negroni
+  version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
+- package: github.com/ghodss/yaml
+  version: c3eb24aeea63668ebdac08d2e252f20df8b6b1ae
+- package: github.com/golang/protobuf
+  version: 888eb0692c857ec880338addf316bd662d5e630e
+  subpackages:
+  - proto
+- package: github.com/hashicorp/go-msgpack
+  version: fa3f63826f7c23912c15263591e65d54d080b458
+  subpackages:
+  - codec
+- package: github.com/hashicorp/memberlist
+  version: a93fbd426dd831f5a66db3adc6a5ffa6f44cc60a
+- package: github.com/intelsdi-x/gomit
+- package: github.com/julienschmidt/httprouter
+  version: 8c199fb6259ffc1af525cc3ad52ee60ba8359669
+- package: github.com/pborman/uuid
+  version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
+- package: github.com/robfig/cron
+  version: 32d9c273155a0506d27cf73dd1246e86a470997e
+- package: github.com/vrischmann/jsonutil
+  version: 694784f9315ee9fc763c1d30f28753cba21307aa
+- package: github.com/xeipuuv/gojsonschema
+  version: d3178baac32433047aa76f07317f84fbe2be6cda
+- package: golang.org/x/crypto
+  version: aedad9a179ec1ea11b7064c57cbc6dc30d7724ec
+  subpackages:
+  - openpgp
+  - ssh/terminal
+- package: golang.org/x/net
+  version: 04557861f124410b768b1ba5bb3a91b705afbfc6
+  subpackages:
+  - context
+  - trace
+  - http2
+- package: google.golang.org/grpc
+  version: 0032a855ba5c8a3c8e0d71c2deef354b70af1584
+- package: gopkg.in/yaml.v2
+  version: c1cd2254a6dd314c9d73c338c12688c9325d85c6
+- package: github.com/intelsdi-x/snap-plugin-lib-go

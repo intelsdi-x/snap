@@ -27,6 +27,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/snap/core"
 	. "github.com/intelsdi-x/snap/pkg/promise"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -115,6 +116,10 @@ func (mj *mockJob) Name() string {
 
 func (mj *mockJob) Version() int {
 	return 0
+}
+
+func (mj *mockJob) Metrics() []core.Metric {
+	return nil
 }
 
 func TestWorkerManager(t *testing.T) {

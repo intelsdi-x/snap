@@ -1,5 +1,3 @@
-// +build legacy
-
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
@@ -24,7 +22,6 @@ package client
 import (
 	crand "crypto/rand"
 	"crypto/rsa"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -277,78 +274,5 @@ func TestHTTPJSONRPC(t *testing.T) {
 				So(cserrs.Errors()[0].Error(), ShouldContainSubstring, "password")
 			})
 		})
-	})
-
-	Convey("Processor Client", t, func() {
-		session.c = false
-		p, _ := NewProcessorHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second, &key.PublicKey, true)
-		cl := p.(*httpJSONRPCClient)
-		cl.encrypter.Key = symkey
-		So(p, ShouldNotBeNil)
-
-		Convey("GetConfigPolicy", func() {
-			cp, err := p.GetConfigPolicy()
-			So(err, ShouldBeNil)
-			So(cp, ShouldNotBeNil)
-			cp_ := cpolicy.New()
-			cpn_ := cpolicy.NewPolicyNode()
-			r1, err := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
-			r2, _ := cpolicy.NewStringRule("password", true)
-			r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
-			So(err, ShouldBeNil)
-			cpn_.Add(r1, r2, r3)
-			cp_.Add([]string{""}, cpn_)
-			cpjson, _ := cp.MarshalJSON()
-			cp_json, _ := cp_.MarshalJSON()
-			So(string(cpjson), ShouldResemble, string(cp_json))
-		})
-
-		Convey("Process metrics", func() {
-			pmt := plugin.NewMetricType(core.NewNamespace("foo", "bar"), time.Now(), nil, "", 1)
-			b, _ := json.Marshal([]plugin.MetricType{*pmt})
-			contentType, content, err := p.Process(plugin.SnapJSONContentType, b, nil)
-			So(contentType, ShouldResemble, plugin.SnapJSONContentType)
-			So(content, ShouldNotBeNil)
-			So(err, ShouldEqual, nil)
-			var pmts []plugin.MetricType
-			err = json.Unmarshal(content, &pmts)
-			So(err, ShouldBeNil)
-			So(len(pmts), ShouldEqual, 1)
-			So(pmts[0].Data(), ShouldEqual, 1)
-			So(pmts[0].Namespace(), ShouldResemble, core.NewNamespace("foo", "bar"))
-		})
-	})
-
-	Convey("Publisher Client", t, func() {
-		session.c = false
-		p, _ := NewPublisherHttpJSONRPCClient(fmt.Sprintf("http://%v", addr), 1*time.Second, &key.PublicKey, true)
-		cl := p.(*httpJSONRPCClient)
-		cl.encrypter.Key = symkey
-		So(p, ShouldNotBeNil)
-
-		Convey("GetConfigPolicy", func() {
-			cp, err := p.GetConfigPolicy()
-			So(err, ShouldBeNil)
-			So(cp, ShouldNotBeNil)
-			cp_ := cpolicy.New()
-			cpn_ := cpolicy.NewPolicyNode()
-			r1, err := cpolicy.NewIntegerRule("SomeRequiredInt", true, 1)
-			r2, _ := cpolicy.NewStringRule("password", true)
-			r3, _ := cpolicy.NewFloatRule("somefloat", false, 3.14)
-			So(err, ShouldBeNil)
-			cpn_.Add(r1, r2, r3)
-			cp_.Add([]string{""}, cpn_)
-			cpjson, _ := cp.MarshalJSON()
-			cp_json, _ := cp_.MarshalJSON()
-			So(string(cpjson), ShouldResemble, string(cp_json))
-		})
-
-		Convey("Publish metrics", func() {
-			pmt := plugin.NewMetricType(core.NewNamespace("foo", "bar"), time.Now(), nil, "", 1)
-			b, _ := json.Marshal([]plugin.MetricType{*pmt})
-			err := p.Publish(plugin.SnapJSONContentType, b, nil)
-			So(err, ShouldBeNil)
-		})
-
 	})
 }

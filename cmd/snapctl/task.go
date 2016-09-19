@@ -38,6 +38,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	"github.com/robfig/cron"
+	"golang.org/x/crypto/ssh/terminal"
 	"github.com/ghodss/yaml"
 )
 
@@ -307,10 +308,6 @@ func (t *task) mergeCliOptions(ctx *cli.Context) error {
 		}
 		t.MaxFailures = maxFailures
 	}
-	// shouldn't ever happen, but...
-	if t.Version != 1 {
-		return fmt.Errorf("Invalid version provided while creating task")
-	}
 	// set the schedule for the task from the CLI options (and return the results
 	// of that method call, indicating whether or not an error was encountered while
 	// setting up that schedule)
@@ -341,6 +338,11 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 		}
 	default:
 		return fmt.Errorf("Unsupported file type %s\n", ext)
+	}
+
+	// Validate task manifest includes schedule, workflow, and version
+	if err := validateTask(t); err != nil {
+		return err
 	}
 
 	// merge any CLI options specified by the user (if any) into the current task;
@@ -469,6 +471,8 @@ func (t TaskSorter) Less(i, j int) bool { return t[j].CreationTime().After(t[i].
 
 func listTask(ctx *cli.Context) error {
 	tasks := pClient.GetTasks()
+	termWidth, _, _ := terminal.GetSize(int(os.Stdout.Fd()))
+	verbose := ctx.Bool("verbose")
 	if tasks.Err != nil {
 		return fmt.Errorf("Error getting tasks:\n%v\n", tasks.Err)
 	}
@@ -487,20 +491,37 @@ func listTask(ctx *cli.Context) error {
 	sortTasks := tasks.ScheduledTasks
 	sort.Sort(TaskSorter(sortTasks))
 	for _, task := range sortTasks {
+		//165 is the width of the error message from ID - LAST FAILURE inclusive.
+		//If the header row wraps, then the error message will automatically wrap too
+		if termWidth < 165 {
+			verbose = true
+		}
 		printFields(w, false, 0,
 			task.ID,
-			task.Name,
+			fixSize(verbose, task.Name, 41),
 			task.State,
 			trunc(task.HitCount),
 			trunc(task.MissCount),
 			trunc(task.FailedCount),
 			task.CreationTime().Format(unionParseFormat),
-			task.LastFailureMessage,
+			/*153 is the width of the error message from ID up to LAST FAILURE*/
+			fixSize(verbose, task.LastFailureMessage, termWidth-153),
 		)
 	}
 	w.Flush()
 
 	return nil
+}
+
+func fixSize(verbose bool, msg string, width int) string {
+	if len(msg) < width {
+		for i := len(msg); i < width; i++ {
+			msg += " "
+		}
+	} else if len(msg) > width && !verbose {
+		return msg[:width-3] + "..."
+	}
+	return msg
 }
 
 func watchTask(ctx *cli.Context) error {
@@ -708,4 +729,24 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func validateTask(t task) error {
+	if err := validateScheduleExists(t.Schedule); err != nil {
+		return err
+	}
+	if t.Version != 1 {
+		return fmt.Errorf("Error: Invalid version provided for task manifest")
+	}
+	return nil
+}
+
+func validateScheduleExists(schedule *client.Schedule) error {
+	if schedule == nil {
+		return fmt.Errorf("Error: Task manifest did not include a schedule")
+	}
+	if *schedule == (client.Schedule{}) {
+		return fmt.Errorf("Error: Task manifest included an empty schedule. Task manifests need to include a schedule.")
+	}
+	return nil
 }

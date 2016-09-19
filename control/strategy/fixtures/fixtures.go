@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/core"
 )
 
 const (
@@ -133,7 +134,7 @@ func (m MockAvailablePlugin) LastHit() time.Time {
 }
 
 func (m MockAvailablePlugin) String() string {
-	return strings.Join([]string{m.pluginType.String(), m.pluginName, strconv.Itoa(m.Version())}, ":")
+	return strings.Join([]string{m.pluginType.String(), m.pluginName, strconv.Itoa(m.Version())}, core.Separator)
 }
 
 func (m MockAvailablePlugin) Kill(string) error {

@@ -19,89 +19,83 @@ limitations under the License.
 syntax = "proto3";
 
 package rpc;
-import "github.com/intelsdi-x/snap/grpc/common/common.proto";
 
-service Collector { 
-    rpc CollectMetrics(CollectMetricsArg) returns (CollectMetricsReply) {}
-    rpc GetMetricTypes(GetMetricTypesArg) returns (GetMetricTypesReply) {}
-    rpc SetKey(SetKeyArg) returns (SetKeyReply) {}
-    rpc Ping(common.Empty) returns (PingReply) {}
-    rpc Kill(KillRequest) returns (KillReply) {}
-    rpc GetConfigPolicy(common.Empty) returns (GetConfigPolicyReply) {}
+service Collector {
+    rpc CollectMetrics(MetricsArg) returns (MetricsReply) {}
+    rpc GetMetricTypes(GetMetricTypesArg) returns (MetricsReply) {}
+    rpc Ping(Empty) returns (ErrReply) {}
+    rpc Kill(KillArg) returns (ErrReply) {}
+    rpc GetConfigPolicy(Empty) returns (GetConfigPolicyReply) {}
 }
 
 service Processor {
-    rpc Process(ProcessArg) returns (ProcessReply) {}
-    rpc SetKey(SetKeyArg) returns (SetKeyReply) {}
-    rpc Ping(common.Empty) returns (PingReply) {}
-    rpc Kill(KillRequest) returns (KillReply) {}
-    rpc GetConfigPolicy(common.Empty) returns (GetConfigPolicyReply) {}
+    rpc Process(PubProcArg) returns (MetricsReply) {}
+    rpc Ping(Empty) returns (ErrReply) {}
+    rpc Kill(KillArg) returns (ErrReply) {}
+    rpc GetConfigPolicy(Empty) returns (GetConfigPolicyReply) {}
 }
 
 service Publisher {
-    rpc Publish(PublishArg) returns (common.Empty) {}
-    rpc SetKey(SetKeyArg) returns (SetKeyReply) {}
-    rpc Ping(common.Empty) returns (PingReply) {}
-    rpc Kill(KillRequest) returns (KillReply) {}
-    rpc GetConfigPolicy(common.Empty) returns (GetConfigPolicyReply) {}
+    rpc Publish(PubProcArg) returns (ErrReply) {}
+    rpc Ping(Empty) returns (ErrReply) {}
+    rpc Kill(KillArg) returns (ErrReply) {}
+    rpc GetConfigPolicy(Empty) returns (GetConfigPolicyReply) {}
 }
 
-message ProcessArg{
-    string ContentType = 1;
-    bytes Content = 2;
-    common.ConfigMap Config = 3;
+message Empty{
 }
 
-message ProcessReply{
-    string ContentType = 1;
-    bytes Content = 2;
-    string Error = 3;
+message ErrReply {
+	string error = 1;
 }
 
-message PublishArg{
-    string ContentType = 1;
-    bytes Content = 2;
-    common.ConfigMap Config = 3;
+message Time{
+	int64 sec = 1;
+	int64 nsec = 2;
 }
 
-message Rule {
-    string rule_type = 1;
-    string key = 2;
-    bool required = 3;
-    string eescription = 4;
-
-    bool bool_default = 5;
-
-    double float_default = 6;
-    double float_minimum = 7;
-    double float_maximum = 8;
-
-    int64 int_default = 9;
-    int64 int_minimum = 10;
-    int64 int_maximum = 11;
-
-    string string_default = 12;
-
+message NamespaceElement {
+	string Value = 1;
+	string Description = 2;
+	string Name = 3;
 }
 
-message SetKeyArg {
-    bytes key = 1;
+message PubProcArg {
+	repeated Metric Metrics = 1;
+	ConfigMap Config = 2;
 }
 
-message SetKeyReply {
-    string error = 1;
+// core.Metric
+message Metric {
+	repeated NamespaceElement Namespace = 1;
+	int64 Version = 2;
+	ConfigMap Config = 3;
+	Time LastAdvertisedTime = 4;
+	map<string, string> Tags = 5;
+	Time Timestamp = 6;
+	string Unit = 7;
+	string Description = 8;
+	oneof data {
+		string string_data = 9;
+		float float32_data = 10;
+		double float64_data = 11;
+		int32 int32_data = 12;
+		int64 int64_data = 13;
+		bytes bytes_data = 14;
+		bool bool_data = 15;
+	}
 }
 
-message PingReply {
-    string error = 1;
+message ConfigMap {
+	map<string, int64> IntMap = 1;
+	map<string, string> StringMap = 2;
+	// double is float64
+	map<string, double> FloatMap = 3;
+	map<string, bool> BoolMap = 4;
 }
 
-message KillRequest {
+message KillArg {
 	string Reason = 1;
-}
-
-message KillReply {
-    string error = 1;
 }
 
 message GetConfigPolicyReply {
@@ -115,6 +109,7 @@ message GetConfigPolicyReply {
 message BoolRule {
     bool required = 1;
     bool default = 2;
+	bool has_default = 3;
 }
 
 message BoolPolicy {
@@ -126,6 +121,9 @@ message FloatRule {
     double minimum = 2;
     double maximum = 3;
     double default = 4;
+	bool has_default = 5;
+	bool has_min = 6;
+	bool has_max = 7;
 }
 
 message FloatPolicy {
@@ -137,6 +135,9 @@ message IntegerRule {
     int64 minimum = 2;
     int64 maximum = 3;
     int64 default = 4;
+	bool has_default = 5;
+	bool has_min = 6;
+	bool has_max = 7;
 }
 
 message IntegerPolicy {
@@ -146,27 +147,22 @@ message IntegerPolicy {
 message StringRule {
     bool required = 1;
     string default = 2;
+	bool has_default = 3;
 }
 
 message StringPolicy {
     map<string,  StringRule> rules = 1;
 }
 
-message CollectMetricsArg {
-    repeated common.Metric metrics = 1;
+message MetricsArg {
+    repeated Metric metrics = 1;
 }
 
-message CollectMetricsReply {
-    repeated common.Metric metrics = 1;
+message MetricsReply {
+    repeated Metric metrics = 1;
     string error = 2;
 }
 
 message GetMetricTypesArg {
-    common.ConfigMap config = 1;
+    ConfigMap config = 1;
 }
-
-message GetMetricTypesReply {
-    repeated common.Metric metrics = 1;
-    string error = 2;
-}
-

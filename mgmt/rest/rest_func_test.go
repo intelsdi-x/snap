@@ -55,7 +55,7 @@ var (
 	// Switching this turns on logging for all the REST API calls
 	LOG_LEVEL = log.WarnLevel
 
-	SNAP_PATH              = os.Getenv("SNAP_PATH")
+	SNAP_PATH              = os.ExpandEnv(os.Getenv("SNAP_PATH"))
 	SNAP_AUTODISCOVER_PATH = os.Getenv("SNAP_AUTODISCOVER_PATH")
 	MOCK_PLUGIN_PATH1      = SNAP_PATH + "/plugin/snap-plugin-collector-mock1"
 	MOCK_PLUGIN_PATH2      = SNAP_PATH + "/plugin/snap-plugin-collector-mock2"
@@ -252,7 +252,7 @@ func createTask(sample, name, interval string, noStart bool, port int) *rbody.AP
 	uri := fmt.Sprintf("http://localhost:%d/v1/tasks", port)
 
 	t := core.TaskCreationRequest{
-		Schedule: core.Schedule{Type: "simple", Interval: interval},
+		Schedule: &core.Schedule{Type: "simple", Interval: interval},
 		Workflow: wf,
 		Name:     name,
 		Start:    !noStart,

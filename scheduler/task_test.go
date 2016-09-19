@@ -25,7 +25,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -46,10 +45,6 @@ func TestTask(t *testing.T) {
 		wf, errs := wmapToWorkflow(sampleWFMap)
 		So(errs, ShouldBeEmpty)
 		c := &mockMetricManager{}
-		c.setAcceptedContentType("rabbitmq", core.PublisherPluginType, 5, []string{plugin.SnapGOBContentType})
-		mgrs := newManagers(c)
-		err := wf.BindPluginContentTypes(&mgrs)
-		So(err, ShouldBeNil)
 		Convey("task + simple schedule", func() {
 			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter)

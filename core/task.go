@@ -22,6 +22,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"time"
@@ -157,11 +158,54 @@ type TaskErrors interface {
 
 type TaskCreationRequest struct {
 	Name        string            `json:"name"`
+	Version     int               `json:"version"`
 	Deadline    string            `json:"deadline"`
 	Workflow    *wmap.WorkflowMap `json:"workflow"`
-	Schedule    Schedule          `json:"schedule"`
+	Schedule    *Schedule         `json:"schedule"`
 	Start       bool              `json:"start"`
 	MaxFailures int               `json:"max-failures"`
+}
+
+func (tr *TaskCreationRequest) UnmarshalJSON(data []byte) error {
+	t := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	for k, v := range t {
+		switch k {
+		case "name":
+			if err := json.Unmarshal(v, &(tr.Name)); err != nil {
+				return fmt.Errorf("%v (while parsing 'name')", err)
+			}
+		case "deadline":
+			if err := json.Unmarshal(v, &(tr.Deadline)); err != nil {
+				return fmt.Errorf("%v (while parsing 'deadline')", err)
+			}
+		case "workflow":
+			if err := json.Unmarshal(v, &(tr.Workflow)); err != nil {
+				return err
+			}
+		case "schedule":
+			if err := json.Unmarshal(v, &(tr.Schedule)); err != nil {
+				return err
+			}
+		case "start":
+			if err := json.Unmarshal(v, &(tr.Start)); err != nil {
+				return fmt.Errorf("%v (while parsing 'start')", err)
+			}
+		case "max-failures":
+			if err := json.Unmarshal(v, &(tr.MaxFailures)); err != nil {
+				return fmt.Errorf("%v (while parsing 'max-failures')", err)
+			}
+		case "version":
+			if err := json.Unmarshal(v, &(tr.Version)); err != nil {
+				return fmt.Errorf("%v (while parsing 'version')", err)
+			}
+		default:
+			return fmt.Errorf("Unrecognized key '%v' in task creation request", k)
+		}
+	}
+	return nil
 }
 
 // Function used to create a task according to content (1st parameter)
@@ -175,12 +219,16 @@ func CreateTaskFromContent(body io.ReadCloser,
 		startOnCreate bool,
 		opts ...TaskOption) (Task, TaskErrors)) (Task, error) {
 
-	tr, err := marshalTask(body)
+	tr, err := createTaskRequest(body)
 	if err != nil {
 		return nil, err
 	}
 
-	sch, err := makeSchedule(tr.Schedule)
+	if err := validateTaskRequest(tr); err != nil {
+		return nil, err
+	}
+
+	sch, err := makeSchedule(*tr.Schedule)
 	if err != nil {
 		return nil, err
 	}
@@ -221,16 +269,16 @@ func CreateTaskFromContent(body io.ReadCloser,
 	return task, nil
 }
 
-func marshalTask(body io.ReadCloser) (*TaskCreationRequest, error) {
+func createTaskRequest(body io.ReadCloser) (*TaskCreationRequest, error) {
 	var tr TaskCreationRequest
-	errCode, err := MarshalBody(&tr, body)
+	errCode, err := UnmarshalBody(&tr, body)
 	if errCode != 0 && err != nil {
 		return nil, err
 	}
 	return &tr, nil
 }
 
-func MarshalBody(in interface{}, body io.ReadCloser) (int, error) {
+func UnmarshalBody(in interface{}, body io.ReadCloser) (int, error) {
 	b, err := ioutil.ReadAll(body)
 	if err != nil {
 		return 500, err
@@ -240,4 +288,15 @@ func MarshalBody(in interface{}, body io.ReadCloser) (int, error) {
 		return 400, err
 	}
 	return 0, nil
+}
+
+func validateTaskRequest(tr *TaskCreationRequest) error {
+	if tr.Schedule == nil || *tr.Schedule == (Schedule{}) {
+		return fmt.Errorf("Task must include a schedule, and the schedule must not be empty")
+	}
+
+	if tr.Workflow == nil || *tr.Workflow == (wmap.WorkflowMap{}) {
+		return fmt.Errorf("Task must include a workflow, and the workflow must not be empty")
+	}
+	return nil
 }

@@ -47,6 +47,10 @@ control:
   # plugin loaded in the system. Default value is 3
   max_running_plugins: 1
 
+  # plugin_load_timeout sets the maximal time allowed for a plugin to load
+  # Default value is 3
+  plugin_load_timeout: 10
+
   # keyring_paths sets the directory(s) to search for keyring files for signed
   # plugins. This can be a comma separated list of directories
   keyring_paths: /some/path/with/keyring/files

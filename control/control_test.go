@@ -22,8 +22,6 @@ limitations under the License.
 package control
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -75,9 +73,10 @@ func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, s
 func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error) { return nil, nil }
 func (m *MockPluginManagerBadSwap) teardown()                         {}
 func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)     {}
+func (m *MockPluginManagerBadSwap) SetPluginLoadTimeout(int)          {}
 func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)  {}
 func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)          {}
-func (m *MockPluginManagerBadSwap) GenerateArgs(string) plugin.Arg    { return plugin.Arg{} }
+func (m *MockPluginManagerBadSwap) GenerateArgs(int) plugin.Arg       { return plugin.Arg{} }
 
 func (m *MockPluginManagerBadSwap) all() map[string]*loadedPlugin {
 	return m.loadedPlugins.table
@@ -611,33 +610,6 @@ func TestPluginCatalog(t *testing.T) {
 		So(lp1.Name(), ShouldEqual, "test1")
 	})
 
-	Convey("GetPluginContentTypes", t, func() {
-		Convey("Given a plugin that exists", func() {
-			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 1)
-			So(err, ShouldBeNil)
-			So(act, ShouldResemble, []string{"a", "b", "c"})
-			So(ret, ShouldResemble, []string{"a", "b", "c"})
-		})
-		Convey("Given a plugin with a version that does NOT exist", func() {
-			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 5)
-			So(err, ShouldNotBeNil)
-			So(act, ShouldBeEmpty)
-			So(ret, ShouldBeEmpty)
-		})
-		Convey("Given a plugin where the version provided is 0", func() {
-			act, ret, err := c.GetPluginContentTypes("test1", core.PluginType(0), 0)
-			So(err, ShouldBeNil)
-			So(act, ShouldResemble, []string{"d", "e", "f"})
-			So(ret, ShouldResemble, []string{"d", "e", "f"})
-		})
-		Convey("Given no plugins for the name and type", func() {
-			act, ret, err := c.GetPluginContentTypes("test9", core.PluginType(0), 5)
-			So(err, ShouldNotBeNil)
-			So(act, ShouldBeEmpty)
-			So(ret, ShouldBeEmpty)
-		})
-	})
-
 }
 
 type mc struct {
@@ -841,7 +813,7 @@ func TestMetricConfig(t *testing.T) {
 			So(errs, ShouldBeNil)
 		})
 		Convey("So mock should have name: bob config from defaults", func() {
-			So(c.Config.Plugins.pluginCache["0:mock:1"].Table()["name"], ShouldResemble, ctypes.ConfigValueStr{Value: "bob"})
+			So(c.Config.Plugins.pluginCache["0"+core.Separator+"mock"+core.Separator+"1"].Table()["name"], ShouldResemble, ctypes.ConfigValueStr{Value: "bob"})
 		})
 
 		c.Stop()
@@ -921,10 +893,10 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		cdt.Add([]string{"intel", "mock"}, node)
 
 		Convey("Start the plugins", func() {
-			lp, err := c.pluginManager.get("collector:mock:2")
+			lp, err := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(err, ShouldBeNil)
 			So(lp, ShouldNotBeNil)
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
 			So(pool, ShouldNotBeNil)
 			tasks := []string{
@@ -993,10 +965,10 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		cdt.Add([]string{"intel", "mock"}, node)
 
 		Convey("Start the plugins", func() {
-			lp, err := c.pluginManager.get("collector:mock:1")
+			lp, err := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(err, ShouldBeNil)
 			So(lp, ShouldNotBeNil)
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			time.Sleep(1 * time.Second)
 			So(errp, ShouldBeNil)
 			So(pool, ShouldNotBeNil)
@@ -1084,10 +1056,10 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		cdt := cdata.NewTree()
 
 		Convey("collects metrics from plugin using native client", func() {
-			lp, err := c.pluginManager.get("collector:mock:2")
+			lp, err := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(err, ShouldBeNil)
 			So(lp, ShouldNotBeNil)
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
 			So(pool, ShouldNotBeNil)
 			taskID := uuid.New()
@@ -1178,12 +1150,12 @@ func TestFailedPlugin(t *testing.T) {
 		So(serrs, ShouldBeNil)
 
 		// retrieve loaded plugin
-		lp, err := c.pluginManager.get("collector:mock:2")
+		lp, err := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "2")
 		So(err, ShouldBeNil)
 		So(lp, ShouldNotBeNil)
 
 		Convey("create a pool, add subscriptions and start plugins", func() {
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
 			Convey("collect metrics against a plugin that will panic", func() {
 				So(pool.Count(), ShouldEqual, 1)
@@ -1259,7 +1231,7 @@ func TestCollectMetrics(t *testing.T) {
 		}
 
 		// retrieve loaded plugin
-		lp, err := c.pluginManager.get("collector:mock:1")
+		lp, err := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err, ShouldBeNil)
 		So(lp, ShouldNotBeNil)
 
@@ -1279,7 +1251,7 @@ func TestCollectMetrics(t *testing.T) {
 			serrs = c.SubscribeDeps(taskNonHit, r, []core.SubscribedPlugin{subscribedPlugin{typeName: "collector", name: "mock", version: 1}}, cdt)
 			So(serrs, ShouldBeNil)
 
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 
 			Convey("collect metrics", func() {
@@ -1327,7 +1299,7 @@ func TestPublishMetrics(t *testing.T) {
 		So(err, ShouldBeNil)
 		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.get("publisher:mock-file:3")
+		lp, err2 := c.pluginManager.get("publisher" + core.Separator + "mock-file" + core.Separator + "3")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock-file")
 		So(lp.ConfigPolicy, ShouldNotBeNil)
@@ -1340,14 +1312,10 @@ func TestPublishMetrics(t *testing.T) {
 			time.Sleep(2500 * time.Millisecond)
 
 			Convey("Publish to file", func() {
-				metrics := []plugin.MetricType{
+				metrics := []core.Metric{
 					*plugin.NewMetricType(core.NewNamespace("foo"), time.Now(), nil, "", 1),
 				}
-				var buf bytes.Buffer
-				enc := gob.NewEncoder(&buf)
-				enc.Encode(metrics)
-				contentType := plugin.SnapGOBContentType
-				errs := c.PublishMetrics(contentType, buf.Bytes(), "mock-file", 3, n.Table(), "1")
+				errs := c.PublishMetrics(metrics, n.Table(), uuid.New(), "mock-file", 3)
 				So(errs, ShouldBeNil)
 				ap := c.AvailablePlugins()
 				So(ap, ShouldNotBeEmpty)
@@ -1378,7 +1346,7 @@ func TestProcessMetrics(t *testing.T) {
 		So(err, ShouldBeNil)
 		<-lpe.done
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.get("processor:passthru:1")
+		lp, err2 := c.pluginManager.get("processor" + core.Separator + "passthru" + core.Separator + "1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "passthru")
 		So(lp.ConfigPolicy, ShouldNotBeNil)
@@ -1390,21 +1358,12 @@ func TestProcessMetrics(t *testing.T) {
 			time.Sleep(2500 * time.Millisecond)
 
 			Convey("process metrics", func() {
-				metrics := []plugin.MetricType{
+				metrics := []core.Metric{
 					*plugin.NewMetricType(core.NewNamespace("foo"), time.Now(), nil, "", 1),
 				}
-				var buf bytes.Buffer
-				enc := gob.NewEncoder(&buf)
-				enc.Encode(metrics)
-				contentType := plugin.SnapGOBContentType
-				_, ct, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, n.Table(), "1")
-				So(errs, ShouldBeEmpty)
-				mts := []plugin.MetricType{}
-				dec := gob.NewDecoder(bytes.NewBuffer(ct))
-				err := dec.Decode(&mts)
-				So(err, ShouldBeNil)
-				So(mts[0].Data_, ShouldEqual, 2)
+				mts, errs := c.ProcessMetrics(metrics, n.Table(), uuid.New(), "passthru", 1)
 				So(errs, ShouldBeNil)
+				So(mts[0].Data(), ShouldEqual, 2)
 			})
 		})
 
@@ -1469,7 +1428,7 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		<-lpe.load
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.get("collector:mock:1")
+		lp, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
@@ -1506,11 +1465,11 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 				So(false, ShouldEqual, true)
 			}
 
-			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 			So(pool1.SubscriptionCount(), ShouldEqual, 0)
 
-			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
@@ -1535,7 +1494,7 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		<-lpe.load
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.get("collector:mock:2")
+		lp, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "2")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		requestedMetric := fixtures.NewMockRequestedMetric(
@@ -1581,11 +1540,11 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 			var pool1 strategy.Pool
 			var errp error
 			ap := c.pluginRunner.AvailablePlugins()
-			pool1, errp = ap.getOrCreatePool("collector:mock:2")
+			pool1, errp = ap.getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
 			So(pool1.SubscriptionCount(), ShouldEqual, 0)
 
-			pool2, errp := ap.getOrCreatePool("collector:mock:1")
+			pool2, errp := ap.getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
@@ -1612,7 +1571,7 @@ func TestDynamicMetricSubscriptionLoad(t *testing.T) {
 		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.get("collector:mock:1")
+		lp, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
@@ -1641,11 +1600,11 @@ func TestDynamicMetricSubscriptionLoad(t *testing.T) {
 			<-lpe.load // wait for load event
 			<-lpe.sub  // wait for subscription event
 
-			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 			So(pool1.SubscriptionCount(), ShouldEqual, 1)
 
-			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:anothermock:1")
+			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "anothermock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
@@ -1669,10 +1628,10 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 		_, err = load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-anothermock1"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 2)
-		lpMock, err2 := c.pluginManager.get("collector:mock:1")
+		lpMock, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err2, ShouldBeNil)
 		So(lpMock.Name(), ShouldResemble, "mock")
-		lpAMock, err3 := c.pluginManager.get("collector:anothermock:1")
+		lpAMock, err3 := c.pluginManager.get("collector" + core.Separator + "anothermock" + core.Separator + "1")
 		So(err3, ShouldBeNil)
 		So(lpAMock.Name(), ShouldResemble, "anothermock")
 
@@ -1707,7 +1666,7 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 		So(errs, ShouldBeNil)
 		So(len(mts1), ShouldBeGreaterThan, 1)
 		Convey("Unloading mock plugin should remove its subscriptions", func() {
-			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 			So(pool1.SubscriptionCount(), ShouldEqual, 1)
 			_, err = c.Unload(lpMock)
@@ -1715,7 +1674,7 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 			<-lpe.unsub
 			<-lpe.sub
 			So(pool1.SubscriptionCount(), ShouldEqual, 0)
-			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:anothermock:1")
+			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "anothermock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 			mts2, errs := c.CollectMetrics("testTaskID", nil)
@@ -1745,7 +1704,7 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 		_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
-		lp, err2 := c.pluginManager.get("collector:mock:1")
+		lp, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err2, ShouldBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
@@ -1761,7 +1720,7 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 		<-lpe.load // wait for load event
 		<-lpe.sub  // wait for subscription event
 		So(serr, ShouldBeNil)
-		lpMock, err2 := c.pluginManager.get("collector:mock:1")
+		lpMock, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err2, ShouldBeNil)
 		So(lpMock.Name(), ShouldResemble, "mock")
 		// collect metrics as a sanity check that everything is setup correctly
@@ -1771,7 +1730,9 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 		Convey("metrics are collected from mock1", func() {
 			for _, m := range mts1 {
 				if strings.Contains(m.Namespace().String(), "host") {
-					val, ok := m.Data().(int64)
+					// Because mock1 uses jsonrpc, all number typers are interpreted
+					// as float64
+					val, ok := m.Data().(float64)
 					So(ok, ShouldEqual, true)
 					So(val, ShouldBeLessThan, 100)
 				} else {
@@ -1780,9 +1741,6 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 				}
 			}
 		})
-		// ensure the data coming back is from v1. V1's data is type string
-		_, ok := mts1[0].Data().(string)
-		So(ok, ShouldEqual, true)
 		Convey("Loading higher plugin version with less metrics", func() {
 			// Load version snap-plugin-collector-mock2
 			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock2"))
@@ -1790,11 +1748,11 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 			<-lpe.load // wait for load event
 			<-lpe.sub  // wait for subscription event
 
-			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 			So(pool1.SubscriptionCount(), ShouldEqual, 1)
 
-			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
@@ -1821,11 +1779,11 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 				So(err, ShouldBeNil)
 				<-lpe.unsub
 
-				pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:1")
+				pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 				So(errp, ShouldBeNil)
 				So(pool1.SubscriptionCount(), ShouldEqual, 0)
 
-				pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector:mock:2")
+				pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 				So(errp, ShouldBeNil)
 				So(pool2.SubscriptionCount(), ShouldEqual, 1)
 

@@ -23,7 +23,6 @@ package scheduler
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -42,56 +41,19 @@ type mockMetricManager struct {
 	failValidatingMetrics      bool
 	failValidatingMetricsAfter int
 	failuredSoFar              int
-	acceptedContentTypes       map[string][]string
-	returnedContentTypes       map[string][]string
 	autodiscoverPaths          []string
-}
-
-func (m *mockMetricManager) lazyContentType(key string) {
-	if m.acceptedContentTypes == nil {
-		m.acceptedContentTypes = make(map[string][]string)
-	}
-	if m.returnedContentTypes == nil {
-		m.returnedContentTypes = make(map[string][]string)
-	}
-	if m.acceptedContentTypes[key] == nil {
-		m.acceptedContentTypes[key] = []string{"snap.gob"}
-	}
-	if m.returnedContentTypes[key] == nil {
-		m.returnedContentTypes[key] = []string{}
-	}
-}
-
-// Used to mock type from plugin
-func (m *mockMetricManager) setAcceptedContentType(n string, t core.PluginType, v int, s []string) {
-	key := fmt.Sprintf("%s:%d:%d", n, t, v)
-	m.lazyContentType(key)
-	m.acceptedContentTypes[key] = s
-}
-
-func (m *mockMetricManager) setReturnedContentType(n string, t core.PluginType, v int, s []string) {
-	key := fmt.Sprintf("%s:%d:%d", n, t, v)
-	m.lazyContentType(key)
-	m.returnedContentTypes[key] = s
-}
-
-func (m *mockMetricManager) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
-	key := fmt.Sprintf("%s:%d:%d", n, t, v)
-	m.lazyContentType(key)
-
-	return m.acceptedContentTypes[key], m.returnedContentTypes[key], nil
 }
 
 func (m *mockMetricManager) CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }
 
-func (m *mockMetricManager) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
+func (m *mockMetricManager) PublishMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) []error {
 	return nil
 }
 
-func (m *mockMetricManager) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
-	return "", nil, nil
+func (m *mockMetricManager) ProcessMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) ([]core.Metric, []error) {
+	return nil, nil
 }
 
 func (m *mockMetricManager) ValidateDeps(mts []core.RequestedMetric, prs []core.SubscribedPlugin, ctree *cdata.ConfigDataTree) []serror.SnapError {
@@ -169,10 +131,6 @@ func (m mockScheduleResponse) missedIntervals() uint {
 // Helper constructor functions for resuse amongst tests
 func newMockMetricManager() *mockMetricManager {
 	m := new(mockMetricManager)
-	m.setAcceptedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.*", "snap.gob", "foo.bar"})
-	m.setReturnedContentType("machine", core.ProcessorPluginType, 1, []string{"snap.gob"})
-	m.setAcceptedContentType("rmq", core.PublisherPluginType, -1, []string{"snap.json", "snap.gob"})
-	m.setAcceptedContentType("file", core.PublisherPluginType, -1, []string{"snap.json"})
 	return m
 }
 

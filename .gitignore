@@ -31,6 +31,8 @@ profile.cov
 gin-bin
 tags
 .vscode/
+vendor/
+glide.lock
 
 # we don't vendor godep _workspace
 **/Godeps/_workspace/**

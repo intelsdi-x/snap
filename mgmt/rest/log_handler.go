@@ -42,7 +42,7 @@ func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.Ha
 		"index":  l.counter,
 		"method": r.Method,
 		"url":    r.URL.Path,
-	}).Info("API request")
+	}).Debug("API request")
 	next(rw, r)
 	res := rw.(negroni.ResponseWriter)
 	restLogger.WithFields(log.Fields{
@@ -51,5 +51,5 @@ func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.Ha
 		"url":         r.URL.Path,
 		"status-code": res.Status(),
 		"status":      http.StatusText(res.Status()),
-	}).Info("API response")
+	}).Debug("API response")
 }

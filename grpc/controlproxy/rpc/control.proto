@@ -24,7 +24,6 @@ import "github.com/intelsdi-x/snap/grpc/common/common.proto";
 
 service MetricManager {
 	// managesMetrics from scheduler
-	rpc GetPluginContentTypes(GetPluginContentTypesRequest) returns (GetPluginContentTypesReply) {}
 	rpc CollectMetrics(CollectMetricsRequest) returns (CollectMetricsResponse) {}
 	rpc PublishMetrics(PubProcMetricsRequest) returns (ErrorReply) {}
 	rpc ProcessMetrics(PubProcMetricsRequest) returns (ProcessMetricsReply) {}
@@ -39,12 +38,11 @@ service MetricManager {
 message SerrorReply{}
 
 message PubProcMetricsRequest{
-	string ContentType = 1;
-	bytes Content = 2;
-	string PluginName = 3;
-	int64 PluginVersion = 4;
-	common.ConfigMap Config = 5;
-	string TaskId = 6;
+	repeated common.Metric Metrics = 1;
+	string PluginName = 2;
+	int64 PluginVersion = 3;
+	common.ConfigMap Config = 4;
+	string TaskId = 5;
 }
 
 message ErrorReply{
@@ -52,21 +50,8 @@ message ErrorReply{
 }
 
 message ProcessMetricsReply {
-	string ContentType = 1;
-	bytes Content = 2;
-	repeated string Errors = 3;
-}
-
-message GetPluginContentTypesRequest {
-	string Name = 1;
-	int32 PluginType = 2;
-	int32 Version = 3;
-}
-
-message GetPluginContentTypesReply {
-	repeated string AcceptedTypes = 1;
-	repeated string ReturnedTypes = 2;
-	string Error = 3;
+	repeated common.Metric Metrics = 1;
+	repeated string Errors = 2;
 }
 
 message ValidateDepsRequest {
@@ -115,17 +100,9 @@ message CollectMetricsResponse {
 	repeated string Errors = 2;
 }
 
-message ExpandWildcardsRequest {
-	repeated common.NamespaceElement Namespace = 1;
-}
 
 message ArrString {
 	repeated common.NamespaceElement S = 1;
-}
-
-message ExpandWildcardsReply {
-	repeated ArrString NSS = 1;
-	common.SnapError Error = 2;
 }
 
 message GetAutodiscoverPathsReply{

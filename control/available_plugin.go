@@ -44,7 +44,7 @@ import (
 
 const (
 	// DefaultClientTimeout - default timeout for a client connection attempt
-	DefaultClientTimeout = time.Second * 3
+	DefaultClientTimeout = time.Second * 10
 	// DefaultHealthCheckTimeout - default timeout for a health check
 	DefaultHealthCheckTimeout = time.Second * 1
 	// DefaultHealthCheckFailureLimit - how any consecutive health check timeouts must occur to trigger a failure
@@ -94,7 +94,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 		lastHitTime: time.Now(),
 		ePlugin:     ep,
 	}
-	ap.key = fmt.Sprintf("%s:%s:%d", ap.pluginType.String(), ap.name, ap.version)
+	ap.key = fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", ap.pluginType.String(), ap.name, ap.version)
 
 	listenURL := fmt.Sprintf("http://%v/rpc", resp.ListenAddress)
 	// Create RPC Client
@@ -119,16 +119,11 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
 			ap.client = c
-			//TODO(CDR): Add default cases to these switches to catch invalid rpctype?
+		default:
+			return nil, errors.New("Invalid RPCTYPE")
 		}
 	case plugin.PublisherPluginType:
 		switch resp.Meta.RPCType {
-		case plugin.JSONRPC:
-			c, e := client.NewPublisherHttpJSONRPCClient(listenURL, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
-			if e != nil {
-				return nil, errors.New("error while creating client connection: " + e.Error())
-			}
-			ap.client = c
 		case plugin.NativeRPC:
 			c, e := client.NewPublisherNativeClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
 			if e != nil {
@@ -141,15 +136,11 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
 			ap.client = c
+		default:
+			return nil, errors.New("Invalid RPCTYPE")
 		}
 	case plugin.ProcessorPluginType:
 		switch resp.Meta.RPCType {
-		case plugin.JSONRPC:
-			c, e := client.NewProcessorHttpJSONRPCClient(listenURL, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
-			if e != nil {
-				return nil, errors.New("error while creating client connection: " + e.Error())
-			}
-			ap.client = c
 		case plugin.NativeRPC:
 			c, e := client.NewProcessorNativeClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
 			if e != nil {
@@ -162,6 +153,8 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
 			ap.client = c
+		default:
+			return nil, errors.New("Invalid RPCTYPE")
 		}
 	default:
 		return nil, errors.New("Cannot create a client for a plugin of the type: " + resp.Type.String())
@@ -334,7 +327,7 @@ func (ap *availablePlugins) insert(pl *availablePlugin) error {
 	ap.Lock()
 	defer ap.Unlock()
 
-	key := fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.name, pl.version)
+	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pl.TypeName(), pl.name, pl.version)
 	_, exists := ap.table[key]
 	if !exists {
 		p, err := strategy.NewPool(key, pl)
@@ -355,7 +348,7 @@ func (ap *availablePlugins) getPool(key string) (strategy.Pool, serror.SnapError
 	defer ap.RUnlock()
 	pool, ok := ap.table[key]
 	if !ok {
-		tnv := strings.Split(key, ":")
+		tnv := strings.Split(key, core.Separator)
 		if len(tnv) != 3 {
 			return nil, serror.New(ErrBadKey, map[string]interface{}{
 				"key": key,
@@ -446,9 +439,9 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 	return results, nil
 }
 
-func (ap *availablePlugins) publishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
+func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
 	var errs []error
-	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, ":")
+	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
 		errs = append(errs, serr)
@@ -472,7 +465,7 @@ func (ap *availablePlugins) publishMetrics(contentType string, content []byte, p
 		return []error{errors.New("unable to cast client to PluginPublisherClient")}
 	}
 
-	errp := cli.Publish(contentType, content, config)
+	errp := cli.Publish(metrics, config)
 	if errp != nil {
 		return []error{errp}
 	}
@@ -481,16 +474,16 @@ func (ap *availablePlugins) publishMetrics(contentType string, content []byte, p
 	return nil
 }
 
-func (ap *availablePlugins) processMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
+func (ap *availablePlugins) processMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) ([]core.Metric, []error) {
 	var errs []error
-	key := strings.Join([]string{plugin.ProcessorPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, ":")
+	key := strings.Join([]string{plugin.ProcessorPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
 		errs = append(errs, serr)
-		return "", nil, errs
+		return nil, errs
 	}
 	if pool == nil {
-		return "", nil, []error{serror.New(ErrPoolNotFound, map[string]interface{}{"pool-key": key})}
+		return nil, []error{serror.New(ErrPoolNotFound, map[string]interface{}{"pool-key": key})}
 	}
 
 	pool.RLock()
@@ -498,28 +491,28 @@ func (ap *availablePlugins) processMetrics(contentType string, content []byte, p
 	p, err := pool.SelectAP(taskID, config)
 	if err != nil {
 		errs = append(errs, err)
-		return "", nil, errs
+		return nil, errs
 	}
 
 	cli, ok := p.(*availablePlugin).client.(client.PluginProcessorClient)
 	if !ok {
-		return "", nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
+		return nil, []error{errors.New("unable to cast client to PluginProcessorClient")}
 	}
 
-	ct, c, errp := cli.Process(contentType, content, config)
+	mts, errp := cli.Process(metrics, config)
 	if errp != nil {
-		return "", nil, []error{errp}
+		return nil, []error{errp}
 	}
 	p.(*availablePlugin).hitCount++
 	p.(*availablePlugin).lastHitTime = time.Now()
-	return ct, c, nil
+	return mts, nil
 }
 
 func (ap *availablePlugins) findLatestPool(pType, name string) (strategy.Pool, serror.SnapError) {
 	// see if there exists a pool at all which matches name version.
 	var latest strategy.Pool
 	for key, pool := range ap.table {
-		tnv := strings.Split(key, ":")
+		tnv := strings.Split(key, core.Separator)
 		if tnv[0] == pType && tnv[1] == name {
 			latest = pool
 			break
@@ -527,7 +520,7 @@ func (ap *availablePlugins) findLatestPool(pType, name string) (strategy.Pool, s
 	}
 	if latest != nil {
 		for key, pool := range ap.table {
-			tnv := strings.Split(key, ":")
+			tnv := strings.Split(key, core.Separator)
 			if tnv[0] == pType && tnv[1] == name && pool.Version() > latest.Version() {
 				latest = pool
 			}

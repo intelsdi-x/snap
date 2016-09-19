@@ -32,7 +32,7 @@ import (
 
 var (
 	PluginName = "snap-plugin-collector-mock2"
-	SnapPath   = os.Getenv("SNAP_PATH")
+	SnapPath   = os.ExpandEnv(os.Getenv("SNAP_PATH"))
 	PluginPath = path.Join(SnapPath, "plugin", PluginName)
 
 	JSONRPCPluginName = "snap-plugin-collector-mock1"

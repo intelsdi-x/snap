@@ -125,8 +125,9 @@ type managesPlugins interface {
 	LoadPlugin(*pluginDetails, gomit.Emitter) (*loadedPlugin, serror.SnapError)
 	UnloadPlugin(core.Plugin) (*loadedPlugin, serror.SnapError)
 	SetMetricCatalog(catalogsMetrics)
-	GenerateArgs(pluginPath string) plugin.Arg
+	GenerateArgs(logLevel int) plugin.Arg
 	SetPluginConfig(*pluginConfig)
+	SetPluginLoadTimeout(int)
 }
 
 type catalogsMetrics interface {
@@ -172,6 +173,7 @@ func OptSetConfig(cfg *Config) PluginControlOpt {
 	return func(c *pluginControl) {
 		c.Config = cfg
 		c.pluginManager.SetPluginConfig(cfg.Plugins)
+		c.pluginManager.SetPluginLoadTimeout(c.Config.PluginLoadTimeout)
 	}
 }
 
@@ -973,7 +975,7 @@ func (p *pluginControl) CollectMetrics(id string, allTags map[string]map[string]
 }
 
 // PublishMetrics
-func (p *pluginControl) PublishMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
+func (p *pluginControl) PublishMetrics(metrics []core.Metric, config map[string]ctypes.ConfigValue, taskID, pluginName string, pluginVersion int) []error {
 	// If control is not started we don't want tasks to be able to
 	// go through a workflow.
 	if !p.Started {
@@ -990,15 +992,15 @@ func (p *pluginControl) PublishMetrics(contentType string, content []byte, plugi
 		merged[k] = v
 	}
 
-	return p.pluginRunner.AvailablePlugins().publishMetrics(contentType, content, pluginName, pluginVersion, merged, taskID)
+	return p.pluginRunner.AvailablePlugins().publishMetrics(metrics, pluginName, pluginVersion, merged, taskID)
 }
 
 // ProcessMetrics
-func (p *pluginControl) ProcessMetrics(contentType string, content []byte, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) (string, []byte, []error) {
+func (p *pluginControl) ProcessMetrics(metrics []core.Metric, config map[string]ctypes.ConfigValue, taskID, pluginName string, pluginVersion int) ([]core.Metric, []error) {
 	// If control is not started we don't want tasks to be able to
 	// go through a workflow.
 	if !p.Started {
-		return "", nil, []error{ErrControllerNotStarted}
+		return nil, []error{ErrControllerNotStarted}
 	}
 	// merge global plugin config into the config for this request
 	// without over-writing the task specific config
@@ -1011,19 +1013,7 @@ func (p *pluginControl) ProcessMetrics(contentType string, content []byte, plugi
 		merged[k] = v
 	}
 
-	return p.pluginRunner.AvailablePlugins().processMetrics(contentType, content, pluginName, pluginVersion, merged, taskID)
-}
-
-// GetPluginContentTypes returns accepted and returned content types for the
-// loaded plugin matching the provided name, type and version.
-// If the version provided is 0 or less the newest plugin by version will be
-// returned.
-func (p *pluginControl) GetPluginContentTypes(n string, t core.PluginType, v int) ([]string, []string, error) {
-	lp, err := p.pluginManager.get(fmt.Sprintf("%s:%s:%d", t.String(), n, v))
-	if err != nil {
-		return nil, nil, err
-	}
-	return lp.Meta.AcceptedContentTypes, lp.Meta.ReturnedContentTypes, nil
+	return p.pluginRunner.AvailablePlugins().processMetrics(metrics, pluginName, pluginVersion, merged, taskID)
 }
 
 func (p *pluginControl) SetAutodiscoverPaths(paths []string) {

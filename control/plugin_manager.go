@@ -106,7 +106,7 @@ func (l *loadedPlugins) get(key string) (*loadedPlugin, error) {
 
 	lp, ok := l.table[key]
 	if !ok {
-		tnv := strings.Split(key, ":")
+		tnv := strings.Split(key, core.Separator)
 		if len(tnv) != 3 {
 			return nil, ErrBadKey
 		}
@@ -191,7 +191,7 @@ func (lp *loadedPlugin) PluginPath() string {
 
 // Key returns plugin type, name and version
 func (lp *loadedPlugin) Key() string {
-	return fmt.Sprintf("%s:%s:%d", lp.TypeName(), lp.Name(), lp.Version())
+	return fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", lp.TypeName(), lp.Name(), lp.Version())
 }
 
 // Version returns plugin version
@@ -231,10 +231,11 @@ func (lp *loadedPlugin) Policy() *cpolicy.ConfigPolicy {
 // the struct representing the object responsible for
 // loading and unloading plugins
 type pluginManager struct {
-	metricCatalog catalogsMetrics
-	loadedPlugins *loadedPlugins
-	logPath       string
-	pluginConfig  *pluginConfig
+	pluginLoadTimeout int
+	metricCatalog     catalogsMetrics
+	loadedPlugins     *loadedPlugins
+	logPath           string
+	pluginConfig      *pluginConfig
 }
 
 func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
@@ -243,9 +244,10 @@ func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 		logPath = `c:\temp`
 	}
 	p := &pluginManager{
-		loadedPlugins: newLoadedPlugins(),
-		logPath:       logPath,
-		pluginConfig:  newPluginConfig(),
+		pluginLoadTimeout: defaultPluginLoadTimeout,
+		loadedPlugins:     newLoadedPlugins(),
+		logPath:           logPath,
+		pluginConfig:      newPluginConfig(),
 	}
 
 	for _, opt := range opts {
@@ -262,6 +264,11 @@ func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
 	return func(p *pluginManager) {
 		p.pluginConfig = cf
 	}
+}
+
+// SetPluginLoadTimeout sets plugin load timeout
+func (p *pluginManager) SetPluginLoadTimeout(to int) {
+	p.pluginLoadTimeout = to
 }
 
 // SetPluginConfig sets plugin config
@@ -285,7 +292,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		"_block": "load-plugin",
 		"path":   filepath.Base(lPlugin.Details.Exec),
 	}).Info("plugin load called")
-	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(lPlugin.Details.Exec), path.Join(lPlugin.Details.ExecPath, lPlugin.Details.Exec))
+	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(int(log.GetLevel())), path.Join(lPlugin.Details.ExecPath, lPlugin.Details.Exec))
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -294,7 +301,11 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		return nil, serror.New(err)
 	}
 
-	resp, err := ePlugin.Run(time.Second * 3)
+	pmLogger.WithFields(log.Fields{
+		"_block": "load-plugin",
+		"path":   filepath.Base(lPlugin.Details.Exec),
+	}).Debug(fmt.Sprintf("plugin load timeout set to %ds", p.pluginLoadTimeout))
+	resp, err := ePlugin.Run(time.Second * time.Duration(p.pluginLoadTimeout))
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -496,7 +507,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 
 // UnloadPlugin unloads a plugin from the LoadedPlugins table
 func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.SnapError) {
-	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s:%s:%d", pl.TypeName(), pl.Name(), pl.Version()))
+	plugin, err := p.loadedPlugins.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
 		se := serror.New(ErrPluginNotFound, map[string]interface{}{
 			"plugin-name":    pl.Name(),
@@ -559,9 +570,8 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 }
 
 // GenerateArgs generates the cli args to send when stating a plugin
-func (p *pluginManager) GenerateArgs(pluginPath string) plugin.Arg {
-	pluginLog := filepath.Join(p.logPath, filepath.Base(pluginPath)) + ".log"
-	return plugin.NewArg(pluginLog)
+func (p *pluginManager) GenerateArgs(logLevel int) plugin.Arg {
+	return plugin.NewArg(logLevel)
 }
 
 func (p *pluginManager) teardown() {

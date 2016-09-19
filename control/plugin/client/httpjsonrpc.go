@@ -241,34 +241,12 @@ func (h *httpJSONRPCClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	return cpr.Policy, nil
 }
 
-func (h *httpJSONRPCClient) Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error {
-	args := plugin.PublishArgs{ContentType: contentType, Content: content, Config: config}
-	out, err := h.encoder.Encode(args)
-	if err != nil {
-		return nil
-	}
-	_, err = h.call("Publisher.Publish", []interface{}{out})
-	if err != nil {
-		return err
-	}
-	return nil
+func (h *httpJSONRPCClient) Publish([]core.Metric, map[string]ctypes.ConfigValue) error {
+	return errors.New("Not Implemented")
 }
 
-func (h *httpJSONRPCClient) Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error) {
-	args := plugin.ProcessorArgs{ContentType: contentType, Content: content, Config: config}
-	out, err := h.encoder.Encode(args)
-	if err != nil {
-		return "", nil, err
-	}
-	res, err := h.call("Processor.Process", []interface{}{out})
-	if err != nil {
-		return "", nil, err
-	}
-	processorReply := &plugin.ProcessorReply{}
-	if err := h.encoder.Decode(res.Result, processorReply); err != nil {
-		return "", nil, err
-	}
-	return processorReply.ContentType, processorReply.Content, nil
+func (h *httpJSONRPCClient) Process([]core.Metric, map[string]ctypes.ConfigValue) ([]core.Metric, error) {
+	return nil, errors.New("Not Implemented")
 }
 
 func (h *httpJSONRPCClient) GetType() string {

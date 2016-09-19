@@ -44,11 +44,11 @@ type PluginCollectorClient interface {
 // PluginProcessorClient A client providing processor specific plugin method calls.
 type PluginProcessorClient interface {
 	PluginClient
-	Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error)
+	Process([]core.Metric, map[string]ctypes.ConfigValue) ([]core.Metric, error)
 }
 
 // PluginPublisherClient A client providing publishing specific plugin method calls.
 type PluginPublisherClient interface {
 	PluginClient
-	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
+	Publish([]core.Metric, map[string]ctypes.ConfigValue) error
 }

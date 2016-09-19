@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io" // Don't use "fmt.Print*"
-	"log"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -35,9 +34,9 @@ import (
 	"runtime"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
-	myRPC "github.com/intelsdi-x/snap/control/plugin/rpc"
-	"google.golang.org/grpc"
 )
 
 // Plugin type
@@ -117,10 +116,11 @@ type Plugin interface {
 
 // PluginMeta for plugin
 type PluginMeta struct {
-	Name    string
-	Version int
-	Type    PluginType
-	RPCType RPCType
+	Name       string
+	Version    int
+	Type       PluginType
+	RPCType    RPCType
+	RPCVersion int
 	// AcceptedContentTypes are types accepted by this plugin in priority order.
 	// snap.* means any snap type.
 	AcceptedContentTypes []string
@@ -226,8 +226,8 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 
 // Arguments passed to startup of Plugin
 type Arg struct {
-	// Plugin file path to binary
-	PluginLogPath string
+	// Plugin log level
+	LogLevel log.Level
 	// Ping timeout duration
 	PingTimeoutDuration time.Duration
 
@@ -236,9 +236,9 @@ type Arg struct {
 	listenPort string
 }
 
-func NewArg(logpath string) Arg {
+func NewArg(logLevel int) Arg {
 	return Arg{
-		PluginLogPath:       logpath,
+		LogLevel:            log.Level(logLevel),
 		PingTimeoutDuration: PingTimeoutDurationDefault,
 	}
 }
@@ -262,10 +262,6 @@ type Response struct {
 // requestString - plugins arguments (marshaled json of control/plugin Arg struct)
 // returns an error and exitCode (exitCode from SessionState initilization or plugin termination code)
 func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
-	log.SetFlags(0)
-	if m.RPCType == GRPC {
-		return startGRPC(m, c, requestString)
-	}
 	s, sErr, retCode := NewSessionState(requestString, c, m)
 	if sErr != nil {
 		return sErr, retCode
@@ -333,20 +329,19 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	e := rpc.Register(s)
 	if e != nil {
 		if e.Error() != "rpc: service already defined: SessionState" {
-			log.Println(e.Error())
-			s.Logger().Println(e.Error())
+			s.Logger().Error(e.Error())
 			return e, 2
 		}
 	}
 
 	l, err := net.Listen("tcp", "127.0.0.1:"+s.ListenPort())
 	if err != nil {
-		s.Logger().Println(err.Error())
+		s.Logger().Error(err.Error())
 		panic(err)
 	}
 	s.SetListenAddress(l.Addr().String())
-	s.Logger().Printf("Listening %s\n", l.Addr())
-	s.Logger().Printf("Session token %s\n", s.Token())
+	s.Logger().Debugf("Listening %s\n", l.Addr())
+	s.Logger().Debugf("Session token %s\n", s.Token())
 
 	switch r.Meta.RPCType {
 	case JSONRPC:
@@ -388,105 +383,7 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	resp := s.generateResponse(r)
 	// Output response to stdout
 	fmt.Println(string(resp))
-
-	go s.heartbeatWatch(s.KillChan())
-
-	if s.isDaemon() {
-		exitCode = <-s.KillChan() // Closing of channel kills
-	}
-
-	return nil, exitCode
-}
-
-func startGRPC(m *PluginMeta, c Plugin, requestString string) (error, int) {
-	s, sErr, retCode := NewSessionState(requestString, c, m)
-	if sErr != nil {
-		return sErr, retCode
-	}
-
-	var (
-		r        *Response
-		exitCode int = 0
-	)
-	// Start grpc stuff
-	opts := []grpc.ServerOption{}
-	grpcServer := grpc.NewServer(opts...)
-	switch m.Type {
-	case CollectorPluginType:
-		r = &Response{
-			Type:  CollectorPluginType,
-			State: PluginSuccess,
-			Meta:  *m,
-		}
-		if !m.Unsecure {
-			r.PublicKey = &s.privateKey.PublicKey
-		}
-		collectProxy := &gRPCCollectorProxy{
-			Plugin:  c.(CollectorPlugin),
-			Session: s,
-			gRPCPluginProxy: gRPCPluginProxy{
-				plugin:  c,
-				session: s,
-			},
-		}
-
-		myRPC.RegisterCollectorServer(grpcServer, collectProxy)
-	case ProcessorPluginType:
-		r = &Response{
-			Type:  ProcessorPluginType,
-			State: PluginSuccess,
-			Meta:  *m,
-		}
-		if !m.Unsecure {
-			r.PublicKey = &s.privateKey.PublicKey
-		}
-		processProxy := &gRPCProcessorProxy{
-			Plugin:  c.(ProcessorPlugin),
-			Session: s,
-			gRPCPluginProxy: gRPCPluginProxy{
-				plugin:  c,
-				session: s,
-			},
-		}
-
-		myRPC.RegisterProcessorServer(grpcServer, processProxy)
-	case PublisherPluginType:
-		r = &Response{
-			Type:  PublisherPluginType,
-			State: PluginSuccess,
-			Meta:  *m,
-		}
-		if !m.Unsecure {
-			r.PublicKey = &s.privateKey.PublicKey
-		}
-		publishProxy := &gRPCPublisherProxy{
-			Plugin:  c.(PublisherPlugin),
-			Session: s,
-			gRPCPluginProxy: gRPCPluginProxy{
-				plugin:  c,
-				session: s,
-			},
-		}
-		myRPC.RegisterPublisherServer(grpcServer, publishProxy)
-	}
-
-	l, err := net.Listen("tcp", "127.0.0.1:"+s.ListenPort())
-	if err != nil {
-		s.Logger().Println(err.Error())
-		panic(err)
-	}
-	s.SetListenAddress(l.Addr().String())
-	go func() {
-		err := grpcServer.Serve(l)
-		if err != nil {
-			log.Print(err)
-		}
-	}()
-
-	resp := s.generateResponse(r)
-	// Output response to stdout
-	fmt.Println(string(resp))
-
+	s.Logger().Println(string(resp))
 	go s.heartbeatWatch(s.KillChan())
 
 	if s.isDaemon() {

@@ -21,13 +21,12 @@ package scheduler
 
 import (
 	"errors"
-	"fmt"
+	"strings"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 
-	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
@@ -135,6 +134,7 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 		if p.Version < 1 {
 			p.Version = -1
 		}
+		p.Name = strings.ToLower(p.Name)
 		prNodes[i] = &processNode{
 			name:         p.Name,
 			version:      p.Version,
@@ -150,6 +150,7 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error) {
 	puNodes := make([]*publishNode, len(pu))
 	for i, p := range pu {
+
 		cdn, err := p.GetConfigNode()
 		if err != nil {
 			return nil, err
@@ -160,6 +161,7 @@ func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error
 		if p.Version < 1 {
 			p.Version = -1
 		}
+		p.Name = strings.ToLower(p.Name)
 		puNodes[i] = &publishNode{
 			name:    p.Name,
 			version: p.Version,
@@ -236,93 +238,13 @@ func (p *publishNode) TypeName() string {
 
 type wfContentTypes map[string]map[string][]string
 
-// BindPluginContentTypes
-func (s *schedulerWorkflow) BindPluginContentTypes(mgrs *managers) error {
-	return bindPluginContentTypes(s.publishNodes, s.processNodes, []string{plugin.SnapGOBContentType}, mgrs)
-}
-
-func bindPluginContentTypes(pus []*publishNode, prs []*processNode, lct []string, mgrs *managers) error {
-	for _, pr := range prs {
-		mm, err := mgrs.Get(pr.Target)
-		if err != nil {
-			return err
-		}
-		act, rct, err := mm.GetPluginContentTypes(pr.Name(), core.ProcessorPluginType, pr.Version())
-		if err != nil {
-			return err
-		}
-
-		for _, ac := range act {
-			for _, lc := range lct {
-				// if the return contenet type from the previous node matches
-				// the accept content type for this node set it as the
-				// inbound content type
-				if ac == lc {
-					pr.InboundContentType = ac
-				}
-			}
-		}
-		// if the inbound content type isn't set yet snap may be able to do
-		// the conversion
-		if pr.InboundContentType == "" {
-			for _, ac := range act {
-				switch ac {
-				case plugin.SnapGOBContentType:
-					pr.InboundContentType = plugin.SnapGOBContentType
-				case plugin.SnapJSONContentType:
-					pr.InboundContentType = plugin.SnapJSONContentType
-				case plugin.SnapAllContentType:
-					pr.InboundContentType = plugin.SnapGOBContentType
-				}
-			}
-			// else we return an error
-			if pr.InboundContentType == "" {
-				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the snap content types or the types '%v' returned from the previous node.", pr.Name(), lct)
-			}
-		}
-		//continue the walk down the nodes
-		if err := bindPluginContentTypes(pr.PublishNodes, pr.ProcessNodes, rct, mgrs); err != nil {
-			return err
-		}
-	}
-	for _, pu := range pus {
-		mm, err := mgrs.Get(pu.Target)
-		if err != nil {
-			return err
-		}
-		act, _, err := mm.GetPluginContentTypes(pu.Name(), core.PublisherPluginType, pu.Version())
-		if err != nil {
-			return err
-		}
-		// if the inbound content type isn't set yet snap may be able to do
-		// the conversion
-		if pu.InboundContentType == "" {
-			for _, ac := range act {
-				switch ac {
-				case plugin.SnapGOBContentType:
-					pu.InboundContentType = plugin.SnapGOBContentType
-				case plugin.SnapJSONContentType:
-					pu.InboundContentType = plugin.SnapJSONContentType
-				case plugin.SnapAllContentType:
-					pu.InboundContentType = plugin.SnapGOBContentType
-				}
-			}
-			// else we return an error
-			if pu.InboundContentType == "" {
-				return fmt.Errorf("Invalid workflow.  Plugin '%s' does not accept the snap content types or the types '%v' returned from the previous node.", pu.Name(), lct)
-			}
-		}
-	}
-	return nil
-}
-
 // Start starts a workflow
 func (s *schedulerWorkflow) Start(t *task) {
 	workflowLogger.WithFields(log.Fields{
 		"_block":    "workflow-start",
 		"task-id":   t.id,
 		"task-name": t.name,
-	}).Info(fmt.Sprintf("Starting workflow for task (%s\\%s)", t.id, t.name))
+	}).Debug("Starting workflow")
 	s.state = WorkflowStarted
 	j := newCollectorJob(s.metrics, t.deadlineDuration, t.metricsManager, t.workflow.configTree, t.id, s.tags)
 

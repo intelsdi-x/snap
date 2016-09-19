@@ -23,11 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	"golang.org/x/net/context"
-
-	"github.com/intelsdi-x/snap/control/plugin/rpc"
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/grpc/common"
 )
 
 type PublishArgs struct {
@@ -61,6 +57,7 @@ func (p *publisherPluginProxy) Publish(args []byte, reply *[]byte) error {
 	return nil
 }
 
+/*
 type gRPCPublisherProxy struct {
 	Plugin  PublisherPlugin
 	Session Session
@@ -74,4 +71,4 @@ func (p *gRPCPublisherProxy) Publish(ctx context.Context, arg *rpc.PublishArg) (
 		return &common.Empty{}, err
 	}
 	return &common.Empty{}, nil
-}
+}*/
