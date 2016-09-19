@@ -34,12 +34,11 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
+	"github.com/ghodss/yaml"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	"github.com/robfig/cron"
 	"golang.org/x/crypto/ssh/terminal"
-
-	"github.com/ghodss/yaml"
 )
 
 var (
