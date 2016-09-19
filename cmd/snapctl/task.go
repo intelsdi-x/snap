@@ -35,9 +35,9 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
+	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	"github.com/robfig/cron"
-
 	"github.com/ghodss/yaml"
 )
 
@@ -459,6 +459,14 @@ func mergeDateTime(tm, dt string) *time.Time {
 	return &reTm
 }
 
+// taskSorter sorts tasks by CreationTime
+type TaskSorter []rbody.ScheduledTask
+
+func (t TaskSorter) Len() int           { return len(t) }
+func (t TaskSorter) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
+func (t TaskSorter) Less(i, j int) bool { return t[j].CreationTime().After(t[i].CreationTime()) }
+
+
 func listTask(ctx *cli.Context) error {
 	tasks := pClient.GetTasks()
 	if tasks.Err != nil {
@@ -476,7 +484,9 @@ func listTask(ctx *cli.Context) error {
 		"CREATED",
 		"LAST FAILURE",
 	)
-	for _, task := range tasks.ScheduledTasks {
+	sortTasks := tasks.ScheduledTasks
+	sort.Sort(TaskSorter(sortTasks))
+	for _, task := range sortTasks {
 		printFields(w, false, 0,
 			task.ID,
 			task.Name,
