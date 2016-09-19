@@ -57,7 +57,7 @@ func (s *ScheduledTaskListReturned) Len() int {
 }
 
 func (s *ScheduledTaskListReturned) Less(i, j int) bool {
-	return s.ScheduledTasks[i].Name < s.ScheduledTasks[j].Name
+	return s.ScheduledTasks[j].CreationTime().After(s.ScheduledTasks[i].CreationTime())
 }
 
 func (s *ScheduledTaskListReturned) Swap(i, j int) {
