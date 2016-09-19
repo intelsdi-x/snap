@@ -1,0 +1,29 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {
+                "/intel/mock/(host0;host1)/baz": {}
+            },
+            "config": {
+                "/intel/mock": {
+                    "user": "root",
+                    "password": "secret"
+                }
+            },
+            "process": null,
+	    "publish": [
+                        {
+                            "plugin_name": "mock-file",                            
+                            "config": {
+                                "file": "/tmp/snap_published_mock_file.log"
+                    }
+                }
+            ]
+        }
+    }
+}

@@ -114,20 +114,51 @@ An example json task that uses remote targets can be found under [examples](http
 
 #### collect
 
-The collect section describes which metrics to collect. Metrics can be enumerated explicitly via:
- - a concrete _namespace_
- - a wildcard, `*`
- - a tuple, `(m1|m2|m3)`
+The collect section describes which metrics are requested to be collected.
 
-The tuple begins and ends with brackets and items inside are separeted by vertical bar. It works like logical `or`, so it gives an error only if none of these metrics can be collected.
+Metrics can be enumerated using:
 
-| Metrics declared in task manifest | Collected metrics                                              |
-|:----------------------------------|:---------------------------------------------------------------|
-| /intel/mock/\*                    | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/\*/baz |
-| /intel/mock/(foo\|bar)            | /intel/mock/foo <br/> /intel/mock/bar <br/>                    |
-| /intel/mock/\*/baz                | /intel/mock/\*/baz                                             |
+ a) **concrete _namespace_**
+
+Declaring a metric's name exactly as it appears in the metric catalog (see `snapctl metric list`).
+
+    Metrics requested in task manifest          | Collected metrics
+    --------------------------------------------|------------------------
+    /intel/mock/foo                             |  /intel/mock/foo
+	|
+    /intel/mock/bar                             |  /intel/mock/bar
+	|
+    /intel/mock/\*/baz <br/> _(dynamic metric)_ |  /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/><br/> _(collect metrics for all instances of the dynamic metric)_
+
+ 
+ 
+ b) **_specified_ _instance_ of dynamic metrics**
+
+Specifying a dynamic metric refers to providing a `value` in place of the dynamic element in the namespace (e.g. hostname, cgroup id, etc.). It's important to remember that dynamic elements are represented by an asterisk when presented in the metric catalog.
+When a task manifest contains a specific instance of a dynamic metric only that instance will be collected. If the value does not exist the task will error.
+
+ Metrics requested in task manifest | Collected metrics
+------------------------------------|------------------------
+/intel/mock/host0/baz <br/><br/> _(specific instance of "/intel/mock/*/baz")_ |  /intel/mock/host0/baz <br/><br/> _(only this one metric will be collected)_
+
+
+ c) **dynamic _query_**
+
+Dynamic queries are those that contain:
+
+- **wildcards** `*` - that matches with any value in the metric namespace or, if the wildcard is in the end, with all metrics with the given prefix
+- and/or **tuples of values** `(x;y;z)` - that matches with all items separated by semicolon and works like logical _and_, so it gives an error if even one of these items cannot be collected
+
+Metrics requested in task manifest  | Collected metrics
+------------------------------------|------------------------
+/intel/mock/*                       | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/> <br/> _(collect all metrics with prefix "/intel/mock/")_
+|
+/intel/mock/(foo;bar)               | /intel/mock/foo <br/> /intel/mock/bar
+|
+/intel/mock/(host0;host1;host2)/baz | /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz <br/>
 
 The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
+
 
 ```yaml
 ---

@@ -635,25 +635,37 @@ func (m *mc) GetVersions(core.Namespace) ([]*metricType, error) {
 	return nil, nil
 }
 
-func (m *mc) Get(ns core.Namespace, ver int) (*metricType, error) {
+func (m *mc) GetMetric(ns core.Namespace, ver int) (*metricType, error) {
 	if m.e == 1 {
 		return &metricType{
 			policy: &mockCDProc{},
 		}, nil
 	}
-	return nil, serror.New(errorMetricNotFound(ns.String()))
+	return nil, serror.New(errorMetricNotFound(ns.String(), ver))
+}
+
+func (m *mc) GetMetrics(ns core.Namespace, ver int) ([]*metricType, error) {
+	if m.e == 1 {
+		metric := &metricType{
+			policy: &mockCDProc{},
+		}
+		return []*metricType{
+			metric,
+		}, nil
+	}
+	return nil, serror.New(errorMetricNotFound(ns.String(), ver))
 }
 
 func (m *mc) Subscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
-		return serror.New(errorMetricNotFound("/" + strings.Join(ns, "/")))
+		return serror.New(errorMetricNotFound("/"+strings.Join(ns, "/"), ver))
 	}
 	return nil
 }
 
 func (m *mc) Unsubscribe(ns []string, ver int) error {
 	if ns[0] == "nf" {
-		return serror.New(errorMetricNotFound("/" + strings.Join(ns, "/")))
+		return serror.New(errorMetricNotFound("/"+strings.Join(ns, "/"), ver))
 	}
 	if ns[0] == "neg" {
 		return errNegativeSubCount
@@ -680,17 +692,6 @@ func (m *mc) RmUnloadedPluginMetrics(lp *loadedPlugin) {
 
 }
 
-func (m *mc) GetQueriedNamespaces(ns core.Namespace) ([]core.Namespace, error) {
-	return []core.Namespace{ns}, nil
-}
-
-func (m *mc) UpdateQueriedNamespaces(ns core.Namespace) {
-}
-
-func (m *mc) MatchNamespaces(ns core.Namespace) ([]core.Namespace, error) {
-	return []core.Namespace{ns}, nil
-}
-
 type mockCDProc struct {
 }
 
@@ -707,37 +708,18 @@ func (m *mockCDProc) HasRules() bool {
 	return true
 }
 
-// TODO move to metricCatalog
-// func TestResolvePlugin(t *testing.T) {
-// 	Convey(".resolvePlugin()", t, func() {
-// 		c := New()
-// 		lp := &loadedPlugin{}
-// 		mt := newMetricType([]string{"foo", "bar"}, time.Now(), lp)
-// 		c.metricCatalog.Add(mt)
-// 		Convey("it resolves the plugin", func() {
-// 			p, err := c.resolvePlugin([]string{"foo", "bar"}, -1)
-// 			So(err, ShouldBeNil)
-// 			So(p, ShouldEqual, lp)
-// 		})
-// 		Convey("it returns an error if the metricType cannot be found", func() {
-// 			p, err := c.resolvePlugin([]string{"baz", "qux"}, -1)
-// 			So(p, ShouldBeNil)
-// 			So(err, ShouldResemble, errors.New("metric not found"))
-// 		})
-// 	})
-// }
-
 func TestExportedMetricCatalog(t *testing.T) {
 	Convey(".MetricCatalog()", t, func() {
 		c := New(getTestConfig())
 		lp := &loadedPlugin{}
+		lp.ConfigPolicy = cpolicy.New()
 		mt := newMetricType(core.NewNamespace("foo", "bar"), time.Now(), lp)
 		c.metricCatalog.Add(mt)
 		Convey("it returns a collection of core.MetricTypes", func() {
 			t, err := c.MetricCatalog()
 			So(err, ShouldBeNil)
 			So(len(t), ShouldEqual, 1)
-			So(t[0].Namespace(), ShouldResemble, core.NewNamespace("foo", "bar"))
+			So(t[0].Namespace(), ShouldResemble, mt.Namespace())
 		})
 		Convey("If metric catalog fetch fails", func() {
 			c.metricCatalog = &mc{e: 2}
@@ -750,9 +732,34 @@ func TestExportedMetricCatalog(t *testing.T) {
 
 func TestMetricExists(t *testing.T) {
 	Convey("MetricExists()", t, func() {
-		c := New(getTestConfig())
-		c.metricCatalog = &mc{}
-		So(c.MetricExists(core.NewNamespace("hi"), -1), ShouldEqual, false)
+		Convey("adding metric to metric catalog", func() {
+			c := New(getTestConfig())
+			lp := &loadedPlugin{}
+			lp.ConfigPolicy = cpolicy.New()
+			lp.Meta.Version = 2
+
+			mt := newMetricType(core.NewNamespace("foo", "bar"), time.Now(), lp)
+			c.metricCatalog.Add(mt)
+
+			Convey("it returns true if metric exists in metric catalog", func() {
+				Convey("for the latest version", func() {
+					So(c.MetricExists(mt.Namespace(), -1), ShouldEqual, true)
+				})
+				Convey("for the queried version", func() {
+					So(c.MetricExists(mt.Namespace(), lp.Version()), ShouldEqual, true)
+				})
+			})
+			Convey("it returns false if metric cannot be found in metric catalog", func() {
+				Convey("invalid name of metric", func() {
+					notExistingNs := core.NewNamespace("invalid")
+					So(c.MetricExists(notExistingNs, -1), ShouldEqual, false)
+				})
+				Convey("invalid version of metric", func() {
+					notExistingVersion := 100
+					So(c.MetricExists(mt.Namespace(), notExistingVersion), ShouldEqual, false)
+				})
+			})
+		})
 	})
 }
 
@@ -765,7 +772,7 @@ func TestMetricConfig(t *testing.T) {
 		_, err := load(c, fixtures.JSONRPCPluginPath)
 		So(err, ShouldBeNil)
 		<-lpe.done
-		cd := cdata.NewNode()
+
 		m1 := fixtures.MockMetricType{
 			Namespace_: core.NewNamespace("intel", "mock", "foo"),
 		}
@@ -774,15 +781,12 @@ func TestMetricConfig(t *testing.T) {
 			errs := c.subscriptionGroups.validateMetric(m1)
 			So(errs, ShouldNotBeNil)
 		})
-		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
-
 		Convey("So metric should be valid with config", func() {
 			m1.Cfg = cdata.NewNode()
-			m1.Cfg.AddItem("password", ctypes.ConfigValueStr{Value: "password"})
+			m1.Cfg.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 			errs := c.subscriptionGroups.validateMetric(m1)
 			So(errs, ShouldBeNil)
 		})
-
 		Convey("So metric should not be valid if does not occur in the catalog", func() {
 			m := fixtures.MockMetricType{
 				Namespace_: core.NewNamespace("intel", "mock", "bad"),
@@ -794,7 +798,6 @@ func TestMetricConfig(t *testing.T) {
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	})
-
 	Convey("config provided by defaults", t, func() {
 		c := New(getTestConfig())
 		c.Config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "pwd"})
@@ -819,7 +822,6 @@ func TestMetricConfig(t *testing.T) {
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	})
-
 	Convey("nil config provided by task", t, func() {
 		config := getTestConfig()
 		c := New(config)
@@ -950,9 +952,11 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		if e != nil {
 			t.FailNow()
 		}
-		metric, err := c.metricCatalog.Get(core.NewNamespace("intel", "mock", "foo"), 1)
-		metric.config = cdata.NewNode()
+
+		mts, err := c.metricCatalog.GetMetrics(core.NewNamespace("intel", "mock", "foo"), 1)
 		So(err, ShouldBeNil)
+		So(len(mts), ShouldEqual, 1)
+		metric := mts[0]
 		So(metric.Namespace().String(), ShouldResemble, "/intel/mock/foo")
 		So(err, ShouldBeNil)
 		<-lpe.done
@@ -1046,11 +1050,10 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		metrics, err := c.metricCatalog.Fetch(core.NewNamespace())
 		So(err, ShouldBeNil)
 		So(len(metrics), ShouldEqual, 6)
-
-		m, err := c.metricCatalog.Get(core.NewNamespace("intel", "mock", "*", "baz"), 2)
+		mts, err := c.metricCatalog.GetMetrics(core.NewNamespace("intel", "mock", "*", "baz"), 2)
 		So(err, ShouldBeNil)
-		So(m, ShouldNotBeNil)
-
+		So(len(mts), ShouldEqual, 1)
+		m := mts[0]
 		errs := c.subscriptionGroups.validateMetric(m)
 		So(errs, ShouldBeNil)
 		cdt := cdata.NewTree()
@@ -1130,7 +1133,7 @@ func TestFailedPlugin(t *testing.T) {
 		// metrics to collect
 		cfg := cdata.NewNode()
 		cfg.AddItem("panic", ctypes.ConfigValueBool{Value: true})
-		mets := []core.Metric{
+		mts := []core.Metric{
 			fixtures.MockMetricType{
 				Namespace_: core.NewNamespace("intel", "mock", "foo"),
 				Cfg:        cfg,
@@ -1138,7 +1141,7 @@ func TestFailedPlugin(t *testing.T) {
 		}
 
 		r := []core.RequestedMetric{}
-		for _, m := range mets {
+		for _, m := range mts {
 			r = append(r, m)
 		}
 
@@ -1160,12 +1163,12 @@ func TestFailedPlugin(t *testing.T) {
 			Convey("collect metrics against a plugin that will panic", func() {
 				So(pool.Count(), ShouldEqual, 1)
 
-				var err []error
+				var errs []error
 				var cr []core.Metric
 				eventMap := map[string]int{}
 				for i := 0; i < MaxPluginRestartCount+1; i++ {
-					cr, err = c.CollectMetrics(taskID, nil)
-					So(err, ShouldNotBeNil)
+					cr, errs = c.CollectMetrics(taskID, nil)
+					So(errs, ShouldNotBeNil)
 					So(cr, ShouldBeNil)
 					<-lpe.done
 
@@ -1215,8 +1218,9 @@ func TestCollectMetrics(t *testing.T) {
 
 		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		cd.AddItem("name", ctypes.ConfigValueStr{Value: "bob"})
+		cd.AddItem("test", ctypes.ConfigValueBool{Value: true})
 
-		//m := []core.Metric{}
 		m1 := fixtures.MockMetricType{
 			Namespace_: core.NewNamespace("intel", "mock", "foo"),
 			Cfg:        cd,
@@ -1280,6 +1284,167 @@ func TestCollectMetrics(t *testing.T) {
 	})
 }
 
+func TestCollectNonSpecifiedDynamicMetrics(t *testing.T) {
+	Convey("given a loaded plugin", t, func() {
+		// adjust HB timeouts for test
+		plugin.PingTimeoutLimit = 1
+		plugin.PingTimeoutDurationDefault = time.Second * 1
+
+		// Create controller
+		config := getTestConfig()
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		c := New(config)
+		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+
+		// Add a global plugin config
+		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
+
+		// Load plugin
+		_, e := load(c, fixtures.JSONRPCPluginPath)
+		So(e, ShouldBeNil)
+		<-lpe.done
+		mts, err := c.MetricCatalog()
+		So(err, ShouldBeNil)
+		So(len(mts), ShouldEqual, 4)
+
+		cd := cdata.NewNode()
+
+		// retrieve loaded plugin
+		lp, err := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
+		So(err, ShouldBeNil)
+		So(lp, ShouldNotBeNil)
+
+		cdt := cdata.NewTree()
+		cdt.Add([]string{"intel", "mock"}, cd)
+		taskHit := "hitting-dynamic-metric"
+		taskNonHit := "not-hitting-dynamic-metric"
+
+		m := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("intel", "mock", "*", "baz"),
+			Cfg:        cd,
+		}
+		requested := []core.RequestedMetric{m}
+
+		Convey("create a pool, add subscriptions and start plugins", func() {
+			serrs := c.SubscribeDeps(taskHit, requested, []core.SubscribedPlugin{subscribedPlugin{typeName: "collector", name: "mock", version: 1}}, cdt)
+			So(serrs, ShouldBeNil)
+			serrs = c.SubscribeDeps(taskNonHit, requested, []core.SubscribedPlugin{subscribedPlugin{typeName: "collector", name: "mock", version: 1}}, cdt)
+			So(serrs, ShouldBeNil)
+
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
+			So(errp, ShouldBeNil)
+
+			Convey("collect metrics", func() {
+				for x := 0; x < 4; x++ {
+					mts, err := c.CollectMetrics(taskHit, nil)
+					So(err, ShouldBeNil)
+					So(mts, ShouldNotBeEmpty)
+					So(len(mts), ShouldBeGreaterThan, len(requested))
+					// expected 10 metrics "/intel/mock/[host_id]/baz
+					// for hosts in range (0 - 9)
+					So(len(mts), ShouldEqual, 10)
+					for _, m := range mts {
+						// ensure the collected metric's namespace starts with /intel/mock/host...
+						So(m.Namespace().String(), ShouldStartWith, core.NewNamespace("intel", "mock", "host").String())
+
+						// ensure the collected data coming back is from v1
+						So(m.Version(), ShouldEqual, 1)
+						// ensure the collected data is dynamic
+						isDynamic, _ := m.Namespace().IsDynamic()
+						So(isDynamic, ShouldBeTrue)
+					}
+				}
+
+				ap := c.AvailablePlugins()
+				So(ap, ShouldNotBeEmpty)
+				So(pool.Strategy().String(), ShouldEqual, plugin.DefaultRouting.String())
+				So(len(pool.Plugins()), ShouldEqual, 2)
+				// when the first first plugin is hit the cache is populated the
+				// cache satisfies the next 3 collect calls that come in within the
+				// cache duration
+				So(pool.Plugins()[1].HitCount(), ShouldEqual, 1)
+				So(pool.Plugins()[2].HitCount(), ShouldEqual, 0)
+				c.Stop()
+			})
+		})
+	})
+}
+
+func TestCollectSpecifiedDynamicMetrics(t *testing.T) {
+	Convey("given a loaded plugin", t, func() {
+		// Create controller
+		config := getTestConfig()
+		config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
+		c := New(config)
+		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
+		c.Start()
+
+		// Load plugin
+		_, e := load(c, fixtures.JSONRPCPluginPath)
+		So(e, ShouldBeNil)
+
+		mts, err := c.MetricCatalog()
+		So(err, ShouldBeNil)
+		// metric catalog should contain the 3 following metrics:
+		// /intel/mock/foo; /intel/mock/bar; /intel/mock/*/baz
+		So(len(mts), ShouldEqual, 3)
+
+		Convey("collection for specified host id - positive", func() {
+			taskID := "task-01"
+			m := fixtures.MockMetricType{
+				Namespace_: core.NewNamespace("intel", "mock", "host0", "baz"),
+			}
+			requested := []core.RequestedMetric{m}
+
+			Convey("create a pool, add subscriptions and start plugins", func() {
+				serrs := c.SubscribeDeps(taskID, requested, []core.SubscribedPlugin{subscribedPlugin{typeName: "collector", name: "mock", version: 1}}, cdata.NewTree())
+				So(serrs, ShouldBeNil)
+
+				Convey("collect metrics", func() {
+					for x := 0; x < 4; x++ {
+						mts, err := c.CollectMetrics(taskID, nil)
+						So(err, ShouldBeNil)
+						So(mts, ShouldNotBeEmpty)
+						So(len(mts), ShouldEqual, len(requested))
+						// expected 1 metrics "/intel/mock/host0/baz
+						So(len(mts), ShouldEqual, 1)
+						So(mts[0].Namespace().String(), ShouldEqual, core.NewNamespace("intel", "mock", "host0", "baz").String())
+						// ensure the collected data coming back is from v1 and is dynamic
+						So(mts[0].Version(), ShouldEqual, 1)
+						isDynamic, _ := mts[0].Namespace().IsDynamic()
+						So(isDynamic, ShouldBeTrue)
+					}
+				})
+			})
+		})
+		Convey("collection for specified host id - negative", func() {
+			taskID := "task-02"
+			m := fixtures.MockMetricType{
+				Namespace_: core.NewNamespace("intel", "mock", "host10", "baz"),
+			}
+			requested := []core.RequestedMetric{m}
+
+			Convey("create a pool, add subscriptions and start plugins", func() {
+				serrs := c.SubscribeDeps(taskID, requested, []core.SubscribedPlugin{subscribedPlugin{typeName: "collector", name: "mock", version: 1}}, cdata.NewTree())
+				So(serrs, ShouldBeNil)
+
+				Convey("collect metrics", func() {
+					for x := 0; x < 4; x++ {
+						mts, err := c.CollectMetrics(taskID, nil)
+						So(err, ShouldNotBeNil)
+						So(mts, ShouldBeNil)
+						So(err[0].Error(), ShouldContainSubstring, "requested hostname `host10` is not available")
+					}
+				})
+			})
+		})
+		c.Stop()
+	})
+}
+
 func TestPublishMetrics(t *testing.T) {
 	Convey("Given an available file publisher plugin", t, func() {
 		// adjust HB timeouts for test
@@ -1326,6 +1491,7 @@ func TestPublishMetrics(t *testing.T) {
 
 	})
 }
+
 func TestProcessMetrics(t *testing.T) {
 	Convey("Given an available file processor plugin", t, func() {
 		// adjust HB timeouts for test
@@ -1450,9 +1616,13 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		mts, errs := c.CollectMetrics("testTaskID", nil)
 		So(errs, ShouldBeNil)
 		So(len(mts), ShouldEqual, 1)
-		// ensure the data coming back is from v1. V1's data is type string
-		_, ok := mts[0].Data().(string)
-		So(ok, ShouldEqual, true)
+		Convey("ensure the data coming back is from v1", func() {
+			// ensure the data coming back is from v1.
+			So(mts[0].Version(), ShouldEqual, 1)
+			//V1'data for /intel/mock/foo is type string
+			_, ok := mts[0].Data().(string)
+			So(ok, ShouldBeTrue)
+		})
 		Convey("Loading v2 of that plugin should move subscriptions to newer version", func() {
 			// Load version snap-plugin-collector-mock2
 			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock2"))
@@ -1475,10 +1645,12 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 
 			mts, errs = c.CollectMetrics("testTaskID", nil)
 			So(len(mts), ShouldEqual, 1)
-
-			// ensure the data coming back is from v2, V2's data is type int
-			_, ok = mts[0].Data().(int)
-			So(ok, ShouldEqual, true)
+			Convey("ensure the data coming back is from v2", func() {
+				So(mts[0].Version(), ShouldEqual, 2)
+				// V2's data is type int
+				_, ok := mts[0].Data().(int)
+				So(ok, ShouldBeTrue)
+			})
 		})
 		c.Stop()
 	})
@@ -1509,17 +1681,22 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		mts, errs := c.CollectMetrics("testTaskID", nil)
 		So(errs, ShouldBeNil)
 		So(len(mts), ShouldEqual, 1)
-		// ensure the data coming back is from v2. V2's data is type int
-		_, ok := mts[0].Data().(int)
-		So(ok, ShouldEqual, true)
+		Convey("ensure the data coming back is from v2", func() {
+			So(mts[0].Version(), ShouldEqual, 2)
+			// V2's data is type int
+			_, ok := mts[0].Data().(int)
+			So(ok, ShouldEqual, true)
+		})
+
 		// grab plugin for mock v2
 		pc := c.PluginCatalog()
 		mockv2 := pc[0]
 		Convey("Loading v1 of that plugin and unloading v2 should move subscriptions to older version", func() {
-			// Load version snap-plugin-collector-mock2
+			// Load version snap-plugin-collector-mock1
 			_, err = load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock1"))
 			<-lpe.load
 			So(err, ShouldBeNil)
+			// Unload version snap-plugin-collector-mock2
 			unloadedPlugin, err := c.Unload(mockv2)
 			So(err, ShouldBeNil)
 			So(unloadedPlugin, ShouldNotBeNil)
@@ -1551,14 +1728,15 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 			mts, errs := c.CollectMetrics("testTaskID", nil)
 			So(errs, ShouldBeEmpty)
 			So(len(mts), ShouldEqual, 1)
-
-			// ensure the data coming back is from v1, V1's data is type string
-			_, ok := mts[0].Data().(string)
-			So(ok, ShouldEqual, true)
+			Convey("ensure the data coming back is from v1", func() {
+				So(mts[0].Version(), ShouldEqual, 1)
+				// V1's data for /intel/mock/foo is type string
+				_, ok := mts[0].Data().(string)
+				So(ok, ShouldEqual, true)
+			})
 		})
 		c.Stop()
 	})
-
 }
 
 func TestDynamicMetricSubscriptionLoad(t *testing.T) {
@@ -1590,28 +1768,72 @@ func TestDynamicMetricSubscriptionLoad(t *testing.T) {
 		mts1, errs := c.CollectMetrics("testTaskID", nil)
 		So(errs, ShouldBeNil)
 		So(len(mts1), ShouldBeGreaterThan, 1)
-		// ensure the data coming back is from v1. V1's data is type string
-		_, ok := mts1[0].Data().(string)
-		So(ok, ShouldEqual, true)
-		Convey("Loading another plugin should add subscriptions", func() {
-			// Load version snap-plugin-collector-anothermock
-			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-anothermock1"))
+		Convey("ensure the data coming back is from v1", func() {
+			for _, m := range mts1 {
+				So(m.Version(), ShouldEqual, 1)
+				if ok, _ := m.Namespace().IsDynamic(); ok {
+					// V1's data for no dynamic metric
+					// Because mock1 uses jsonrpc, all number typers are interpreted
+					// as float64
+					val, ok := m.Data().(float64)
+					So(ok, ShouldEqual, true)
+					So(val, ShouldBeLessThan, 100)
+				} else {
+					// V1's data for no dynamic metric is type string
+					_, ok := m.Data().(string)
+					So(ok, ShouldEqual, true)
+				}
+			}
+		})
+		Convey("Loading mock plugin in version 2 should swap subscriptions to latest version", func() {
+			// Load version snap-plugin-collector-mock2
+			_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-mock2"))
 			So(err, ShouldBeNil)
 			<-lpe.load // wait for load event
 			<-lpe.sub  // wait for subscription event
 
 			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
-			So(pool1.SubscriptionCount(), ShouldEqual, 1)
+			So(pool1.SubscriptionCount(), ShouldEqual, 0)
 
-			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "anothermock" + core.Separator + "1")
+			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
 			mts2, errs := c.CollectMetrics("testTaskID", nil)
 			So(errs, ShouldBeNil)
-			So(len(mts2), ShouldBeGreaterThan, len(mts1))
+			So(len(mts2), ShouldEqual, len(mts1))
+			Convey("ensure the data coming back is from v2", func() {
+				for _, m := range mts2 {
+					So(m.Version(), ShouldEqual, 2)
+					// V2's data is type int (for all metrics)
+					_, ok := m.Data().(int)
+					So(ok, ShouldBeTrue)
+				}
+			})
+			Convey("Loading another plugin should add subscriptions", func() {
+				// Load version snap-plugin-collector-anothermock1
+				_, err := load(c, path.Join(fixtures.SnapPath, "plugin", "snap-plugin-collector-anothermock1"))
+				So(err, ShouldBeNil)
+				<-lpe.load // wait for load event
+				<-lpe.sub  // wait for subscription event
 
+				pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
+				So(errp, ShouldBeNil)
+				So(pool1.SubscriptionCount(), ShouldEqual, 0)
+
+				pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
+				So(errp, ShouldBeNil)
+				So(pool2.SubscriptionCount(), ShouldEqual, 1)
+
+				pool3, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "anothermock" + core.Separator + "1")
+				So(errp, ShouldBeNil)
+				So(pool3.SubscriptionCount(), ShouldEqual, 1)
+
+				mts3, errs := c.CollectMetrics("testTaskID", nil)
+				So(errs, ShouldBeNil)
+				So(len(mts3), ShouldBeGreaterThan, len(mts1))
+			})
 		})
 		c.Stop()
 	})
@@ -1681,10 +1903,15 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 			So(errs, ShouldBeNil)
 			So(len(mts2), ShouldBeLessThan, len(mts1))
 
-			// ensure the data coming back is from another mock (values over 9000)
-			val, ok := mts2[0].Data().(int)
-			So(ok, ShouldEqual, true)
-			So(val, ShouldBeGreaterThan, 9000)
+			Convey("ensure the data coming back is from another mock", func() {
+				// ensure the data coming back is from another mock (version 1, values over 9000)
+				for _, m := range mts2 {
+					So(m.Version(), ShouldEqual, 1)
+					val, ok := m.Data().(int)
+					So(ok, ShouldEqual, true)
+					So(val, ShouldBeGreaterThan, 9000)
+				}
+			})
 		})
 		c.Stop()
 	})

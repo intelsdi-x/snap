@@ -51,13 +51,12 @@ type ManagesSubscriptionGroups interface {
 	Add(id string, requested []core.RequestedMetric,
 		configTree *cdata.ConfigDataTree,
 		plugins []core.SubscribedPlugin) []serror.SnapError
-	Get(id string) ([]core.Metric, []serror.SnapError, error)
+	Get(id string) (map[string]metricTypes, []serror.SnapError, error)
 	Remove(id string) []serror.SnapError
 	ValidateDeps(requested []core.RequestedMetric,
 		plugins []core.SubscribedPlugin,
 		configTree *cdata.ConfigDataTree) (serrs []serror.SnapError)
-	validateMetric(
-		metric core.Metric) (serrs []serror.SnapError)
+	validateMetric(metric core.Metric) (serrs []serror.SnapError)
 }
 
 type subscriptionGroup struct {
@@ -69,8 +68,8 @@ type subscriptionGroup struct {
 	requestedPlugins []core.SubscribedPlugin
 	// config from request - never updated
 	configTree *cdata.ConfigDataTree
-	// resulting metrics - updated after plugin load/unload events
-	metrics []core.Metric
+	// resulting metrics - updated after plugin load/unload events; they are grouped by plugin
+	metrics map[string]metricTypes
 	// resulting plugins - updated after plugin load/unload events
 	plugins []core.SubscribedPlugin
 	// errors generated the last time the subscription was processed
@@ -158,13 +157,13 @@ func (s subscriptionGroups) remove(id string) []serror.SnapError {
 // the caller of the subscription group on the next `CollectMetrics`.
 // Returns `ErrSubscriptionGroupDoesNotExist` when the subscription group
 // does not exist.
-func (s subscriptionGroups) Get(id string) ([]core.Metric, []serror.SnapError, error) {
+func (s subscriptionGroups) Get(id string) (map[string]metricTypes, []serror.SnapError, error) {
 	s.Lock()
 	defer s.Unlock()
 	return s.get(id)
 }
 
-func (s subscriptionGroups) get(id string) ([]core.Metric, []serror.SnapError, error) {
+func (s subscriptionGroups) get(id string) (map[string]metricTypes, []serror.SnapError, error) {
 	if _, ok := s.subscriptionMap[id]; !ok {
 		return nil, nil, ErrSubscriptionGroupDoesNotExist
 	}
@@ -180,7 +179,7 @@ func (s subscriptionGroups) get(id string) ([]core.Metric, []serror.SnapError, e
 // mapping requested metrics to collector plugins and getting a core.Plugin
 // from a core.Requested.Plugin.
 
-// When processing a subscription group the resulting metrics
+// When processing a subscription group the resulting metrics grouped by plugin
 // (subscriptionGroup.metrics) for all subscription groups are updated based
 // on the requested metrics (subscriptionGroup.requestedMetrics).  Similarly
 // the required plugins (subscriptionGroup.plugins) are also updated.
@@ -200,31 +199,21 @@ func (s *subscriptionGroups) ValidateDeps(requested []core.RequestedMetric,
 	configTree *cdata.ConfigDataTree) (serrs []serror.SnapError) {
 
 	// resolve requested metrics and map to collectors
-	metrics, collectors, errs := s.getMetricsAndCollectors(requested, configTree)
+	pluginToMetricMap, collectors, errs := s.getMetricsAndCollectors(requested, configTree)
 	if errs != nil {
 		serrs = append(serrs, errs...)
 	}
 
-	// validateMetrics
-	for _, m := range metrics {
-		config := configTree.Get(m.Namespace().Strings())
-		// in case there is not config tree doesn't have configuration for current ns
-		// initialize config node, so it does not panic later on
-		if config == nil {
-			config = cdata.NewNode()
-		}
-		mt := &metric{
-			namespace: m.Namespace(),
-			version:   m.Version(),
-			config:    config,
-		}
-		errs := s.validateMetric(mt)
-		if len(errs) > 0 {
-			serrs = append(serrs, errs...)
+	// validateMetricsTypes
+	for _, pmt := range pluginToMetricMap {
+		for _, mt := range pmt.Metrics() {
+			errs := s.validateMetric(mt)
+			if len(errs) > 0 {
+				serrs = append(serrs, errs...)
+			}
 		}
 	}
-
-	// add collectors to plugins (process and publishers)
+	// add collectors to plugins (processors and publishers)
 	for _, collector := range collectors {
 		plugins = append(plugins, collector)
 	}
@@ -281,8 +270,7 @@ func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin
 
 func (s *subscriptionGroups) validateMetric(
 	metric core.Metric) (serrs []serror.SnapError) {
-	m, err := s.metricCatalog.Get(metric.Namespace(),
-		metric.Version())
+	m, err := s.metricCatalog.GetMetric(metric.Namespace(), metric.Version())
 	if err != nil {
 		serrs = append(serrs, serror.New(err, map[string]interface{}{
 			"name":    metric.Namespace().String(),
@@ -345,8 +333,7 @@ func (s *subscriptionGroups) validateMetric(
 
 func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 	// gathers collectors based on requested metrics
-	metrics, plugins, serrs := s.getMetricsAndCollectors(
-		s.requestedMetrics, s.configTree)
+	pluginToMetricMap, plugins, serrs := s.getMetricsAndCollectors(s.requestedMetrics, s.configTree)
 	controlLogger.WithFields(log.Fields{
 		"collectors": fmt.Sprintf("%+v", plugins),
 		"metrics":    fmt.Sprintf("%+v", s.requestedMetrics),
@@ -377,7 +364,8 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 	}
 
 	//updating view
-	s.metrics = metrics
+	// metrics are grouped by plugin
+	s.metrics = pluginToMetricMap
 	s.plugins = plugins
 	s.errors = serrs
 
