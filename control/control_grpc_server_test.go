@@ -183,7 +183,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 			// we don't expect rpc errors
 			So(err, ShouldBeNil)
 			So(len(reply.Errors), ShouldNotEqual, 0)
-			So(reply.Errors[0].ErrorString, ShouldResemble, "Metric not found: /this/is/invalid")
+			So(reply.Errors[0].ErrorString, ShouldResemble, "Metric not found: /this/is/invalid (version: 1000)")
 		})
 		Convey("Should not error with valid inputs", func() {
 			req := &rpc.SubscribeDepsRequest{

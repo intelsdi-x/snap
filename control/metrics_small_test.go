@@ -48,6 +48,86 @@ func TestAddTagsFromWorkflow(t *testing.T) {
 	})
 }
 
+func TestContainsTuplePositive(t *testing.T) {
+	Convey("when tuple contains two items", t, func() {
+		dut := "(host0;host1)"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeTrue)
+		So(len(tuple), ShouldEqual, 2)
+		So(tuple, ShouldContain, "host0")
+		So(tuple, ShouldContain, "host1")
+	})
+	Convey("when tuple contains three items", t, func() {
+		dut := "(host0;host1;host2)"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeTrue)
+		So(len(tuple), ShouldEqual, 3)
+		So(tuple, ShouldContain, "host0")
+		So(tuple, ShouldContain, "host2")
+		So(tuple, ShouldContain, "host2")
+
+	})
+	Convey("when tuple contains white spaces", t, func() {
+		dut := "( host0 ; host1 ; host2 )"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeTrue)
+		So(len(tuple), ShouldEqual, 3)
+		So(tuple, ShouldContain, "host0")
+		So(tuple, ShouldContain, "host2")
+		So(tuple, ShouldContain, "host2")
+
+	})
+	Convey("when tuple contains multiple-word items", t, func() {
+		dut := "(mock host0;the mock host1;this is mock host2)"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeTrue)
+		So(len(tuple), ShouldEqual, 3)
+		So(tuple, ShouldContain, "mock host0")
+		So(tuple, ShouldContain, "the mock host1")
+		So(tuple, ShouldContain, "this is mock host2")
+
+	})
+	Convey("when tuple's item contains brackets by itself", t, func() {
+		dut := "(host0(some details);host1(some details))"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeTrue)
+		So(len(tuple), ShouldEqual, 2)
+		So(tuple, ShouldContain, "host0(some details)")
+		So(tuple, ShouldContain, "host1(some details)")
+	})
+}
+
+func TestContainsTupleNegative(t *testing.T) {
+	Convey("for one-word namespace's element", t, func() {
+		dut := "host0"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeFalse)
+		So(tuple, ShouldBeNil)
+	})
+	Convey("for two-word namespace's element", t, func() {
+		dut := "my host0"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeFalse)
+		So(tuple, ShouldBeNil)
+	})
+	Convey("missing brackets in tuple", t, func() {
+		// that also means that using semicolon in metric namespace is allowed
+		// because without brackets it won't be recognized as a tuple
+		dut := "host0;host1"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeFalse)
+		So(tuple, ShouldBeNil)
+	})
+	Convey("missing semicolon in tuple", t, func() {
+		// that also means that using brackets in metric namespace is allowed
+		// because without semicolon used as separator it won't be recognized as a tuple
+		dut := "(host0, host1)"
+		hasTuple, tuple := containsTuple(dut)
+		So(hasTuple, ShouldBeFalse)
+		So(tuple, ShouldBeNil)
+	})
+}
+
 type mockHostnameReader struct{}
 
 func (m *mockHostnameReader) Hostname() (string, error) {

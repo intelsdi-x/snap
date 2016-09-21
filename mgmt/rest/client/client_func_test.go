@@ -134,8 +134,9 @@ func TestSnapClient(t *testing.T) {
 			})
 			Convey("empty catalog", func() {
 				m := c.GetMetricCatalog()
-				So(m.Err, ShouldBeNil)
+				So(m.Err, ShouldNotBeNil)
 				So(m.Len(), ShouldEqual, 0)
+				So(m.Err.Error(), ShouldEqual, "metric catalog is empty, no plugin loaded")
 			})
 			Convey("load directory error", func() {
 				p := c.LoadPlugin(DIRECTORY_PATH)
@@ -163,7 +164,7 @@ func TestSnapClient(t *testing.T) {
 				Convey("invalid task (missing metric)", func() {
 					tt := c.CreateTask(sch, wf, "baron", "", true, 0)
 					So(tt.Err, ShouldNotBeNil)
-					So(tt.Err.Error(), ShouldContainSubstring, "Metric not found: /intel/mock/foo")
+					So(tt.Err.Error(), ShouldContainSubstring, "Metric not found: /intel/mock/foo (version: 0)")
 				})
 			})
 		})

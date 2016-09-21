@@ -64,12 +64,6 @@ func (n Namespace) Strings() []string {
 	return ns
 }
 
-// Key returns a string representation of the namespace with "." joining
-// the elements of the namespace.
-func (n Namespace) Key() string {
-	return strings.Join(n.Strings(), ".")
-}
-
 // IsDynamic returns true if there is any element of the namespace which is
 // dynamic.  If the namespace is dynamic the second return value will contain
 // an array of namespace elements (indexes) where there are dynamic namespace
