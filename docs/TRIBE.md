@@ -59,7 +59,7 @@ Since tribe is implemented on top of a gossip based protocol there is no "master
 
 Start another instance of snapd to join to our existing tribe. The local IP address is 192.168.136.176 in our example. Note that we need a few more parameters to avoid conflicting ports on a single system:
 ```
-$ snapd --tribe -t 0 --tribe-port 6001 --api-port 8182 --tribe-node-name secondnodename --tribe-seed 192.168.136.176:6000
+$ snapd --tribe -t 0 --tribe-port 6001 --api-port 8182 --tribe-node-name secondnodename --tribe-seed 192.168.136.176:6000 --control-listen-port 8083
 ```
 
 Both snapd instances will see each other in their member list:
