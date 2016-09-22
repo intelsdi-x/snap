@@ -134,9 +134,8 @@ func TestSnapClient(t *testing.T) {
 			})
 			Convey("empty catalog", func() {
 				m := c.GetMetricCatalog()
-				So(m.Err, ShouldNotBeNil)
+				So(m.Err, ShouldBeNil)
 				So(m.Len(), ShouldEqual, 0)
-				So(m.Err.Error(), ShouldEqual, "metric catalog is empty, no plugin loaded")
 			})
 			Convey("load directory error", func() {
 				p := c.LoadPlugin(DIRECTORY_PATH)

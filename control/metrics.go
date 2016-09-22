@@ -38,10 +38,9 @@ import (
 )
 
 var (
-	errMetricNotFound     = errors.New("metric not found")
-	errEmptyMetricCatalog = errors.New("metric catalog is empty, no plugin loaded")
-	errNegativeSubCount   = serror.New(errors.New("subscription count cannot be < 0"))
-	hostnameReader        hostnamer
+	errMetricNotFound   = errors.New("metric not found")
+	errNegativeSubCount = serror.New(errors.New("subscription count cannot be < 0"))
+	hostnameReader      hostnamer
 )
 
 // hostnameReader, hostnamer created for mocking
@@ -96,10 +95,6 @@ func errorMetricNotFound(ns string, ver ...int) error {
 }
 
 func errorMetricsNotFound(ns string, ver ...int) error {
-	if ns == "/" {
-		// when fetching all cataloged metrics failed
-		return errEmptyMetricCatalog
-	}
 	if len(ver) > 0 {
 		return fmt.Errorf("No metric found below the given namespace: %s (version: %d)", ns, ver[0])
 	}
@@ -428,9 +423,7 @@ func (mc *metricCatalog) GetMetrics(requested core.Namespace, version int) ([]*m
 			returnedmts = append(returnedmts, returnedmt)
 		}
 	}
-	if len(returnedmts) == 0 {
-		return nil, errorMetricsNotFound(requested.String(), version)
-	}
+
 	return returnedmts, nil
 }
 

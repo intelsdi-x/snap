@@ -148,7 +148,7 @@ func (mtt *mttNode) Fetch(ns []string) ([]*metricType, error) {
 			mts = append(mts, mt)
 		}
 	}
-	if len(mts) == 0 {
+	if len(mts) == 0 && len(ns) > 0 {
 		return nil, errorMetricsNotFound("/" + strings.Join(ns, "/"))
 	}
 	return mts, nil
