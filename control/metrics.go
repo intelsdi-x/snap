@@ -46,17 +46,46 @@ var (
 
 // hostnameReader, hostnamer created for mocking
 func init() {
-	hostnameReader = &hostnameReaderType{}
+	host, err := os.Hostname()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "addStandardAndWorkflowTags",
+			"error":   err.Error(),
+		}).Error("Unable to determine hostname")
+		host = "not_found"
+	}
+	hostnameReader = &hostnameReaderType{hostname: host, hostnameRefreshTTL: time.Hour, lastRefresh: time.Now()}
 }
 
 type hostnamer interface {
-	Hostname() (name string, err error)
+	Hostname() (name string)
 }
 
-type hostnameReaderType struct{}
+type hostnameReaderType struct {
+	hostname           string
+	hostnameRefreshTTL time.Duration
+	lastRefresh        time.Time
+}
 
-func (h *hostnameReaderType) Hostname() (name string, err error) {
-	return os.Hostname()
+func (h *hostnameReaderType) Hostname() (name string) {
+	if time.Now().After(h.lastRefresh.Add(h.hostnameRefreshTTL)) {
+		host, err := os.Hostname()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"_module": "control",
+				"_file":   "metrics.go,",
+				"_block":  "addStandardAndWorkflowTags",
+				"error":   err.Error(),
+			}).Error("Unable to determine hostname")
+			host = "not_found"
+		}
+
+		h.hostname = host
+		h.lastRefresh = time.Now()
+	}
+	return h.hostname
 }
 
 func errorMetricNotFound(ns string, ver ...int) error {
@@ -513,15 +542,8 @@ func appendIfMissing(keys []string, ns string) []string {
 }
 
 func addStandardAndWorkflowTags(m core.Metric, allTags map[string]map[string]string) core.Metric {
-	hostname, err := hostnameReader.Hostname()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"_module": "control",
-			"_file":   "metrics.go,",
-			"_block":  "addStandardAndWorkflowTags",
-			"error":   err.Error(),
-		}).Error("Unable to determine hostname")
-	}
+	hostname := hostnameReader.Hostname()
+
 	tags := m.Tags()
 	if tags == nil {
 		tags = map[string]string{}
