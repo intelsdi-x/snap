@@ -20,7 +20,7 @@ A metric in snap has the following fields.
  * Are key value pairs that provide additional meta data about the metric
  * May be added by the framework or other plugins (processors)
   * The framework currently adds the following standard tag to all metrics
-   * `plugin_running_on` describing on which host the plugin is running
+   * `plugin_running_on` describing on which host the plugin is running. This value is updated every hour due to a TTL set internally.
  * May be added by a task manifests as described [here](https://github.com/intelsdi-x/snap/pull/941)
  * May be added by the snapd config as described [here](https://github.com/intelsdi-x/snap/issues/827)
 * Unit `string`

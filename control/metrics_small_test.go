@@ -130,8 +130,8 @@ func TestContainsTupleNegative(t *testing.T) {
 
 type mockHostnameReader struct{}
 
-func (m *mockHostnameReader) Hostname() (string, error) {
-	return "hostname", nil
+func (m *mockHostnameReader) Hostname() string {
+	return "hostname"
 }
 
 type testCase struct {
@@ -141,7 +141,7 @@ type testCase struct {
 }
 
 func prepareTestCases() []testCase {
-	hostname, _ := hostnameReader.Hostname()
+	hostname := hostnameReader.Hostname()
 	fooTags := map[string]string{
 		"foo_tag": "foo_val",
 	}
