@@ -815,6 +815,9 @@ func TestMetricConfig(t *testing.T) {
 		Convey("So metric should be valid with config", func() {
 			errs := c.subscriptionGroups.validateMetric(m1)
 			So(errs, ShouldBeNil)
+			Convey("So mock should have name: bob config from defaults", func() {
+				So(c.Config.Plugins.pluginCache["0"+core.Separator+"mock"+core.Separator+"1"].Table()["name"], ShouldResemble, ctypes.ConfigValueStr{Value: "bob"})
+			})
 		})
 
 		c.Stop()
@@ -1047,10 +1050,10 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		<-lpe.done
 		metrics, err := c.metricCatalog.Fetch(core.NewNamespace())
 		So(err, ShouldBeNil)
-		So(len(metrics), ShouldEqual, 6)
+		So(len(metrics), ShouldEqual, 8)
 		mts, err := c.metricCatalog.GetMetrics(core.NewNamespace("intel", "mock", "*", "baz"), 2)
 		So(err, ShouldBeNil)
-		So(len(mts), ShouldEqual, 1)
+		So(len(mts), ShouldEqual, 2)
 		m := mts[0]
 		errs := c.subscriptionGroups.validateMetric(m)
 		So(errs, ShouldBeNil)
@@ -1093,7 +1096,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 0)
 			So(errs, ShouldBeNil)
-			So(len(mts), ShouldEqual, 10)
+			So(len(mts), ShouldEqual, 11)
 			mts, errs = c.CollectMetrics(taskID, nil)
 			hits, err = pool.CacheHits(m.namespace.String(), 2, taskID)
 			So(err, ShouldBeNil)
@@ -1102,7 +1105,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			// So(hits, ShouldEqual, 1)
 
 			So(errs, ShouldBeNil)
-			So(len(mts), ShouldEqual, 10)
+			So(len(mts), ShouldEqual, 11)
 			pool.Unsubscribe(taskID)
 			pool.SelectAndKill(taskID, "unsubscription event")
 			So(pool.Count(), ShouldEqual, 0)
@@ -1212,7 +1215,7 @@ func TestCollectMetrics(t *testing.T) {
 		<-lpe.done
 		mts, err := c.MetricCatalog()
 		So(err, ShouldBeNil)
-		So(len(mts), ShouldEqual, 4)
+		So(len(mts), ShouldEqual, 5)
 
 		cd := cdata.NewNode()
 		cd.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
@@ -1306,7 +1309,7 @@ func TestCollectNonSpecifiedDynamicMetrics(t *testing.T) {
 		<-lpe.done
 		mts, err := c.MetricCatalog()
 		So(err, ShouldBeNil)
-		So(len(mts), ShouldEqual, 4)
+		So(len(mts), ShouldEqual, 5)
 
 		cd := cdata.NewNode()
 
@@ -1343,16 +1346,19 @@ func TestCollectNonSpecifiedDynamicMetrics(t *testing.T) {
 					So(len(mts), ShouldBeGreaterThan, len(requested))
 					// expected 10 metrics "/intel/mock/[host_id]/baz
 					// for hosts in range (0 - 9)
-					So(len(mts), ShouldEqual, 10)
+					So(len(mts), ShouldEqual, 11)
 					for _, m := range mts {
 						// ensure the collected metric's namespace starts with /intel/mock/host...
-						So(m.Namespace().String(), ShouldStartWith, core.NewNamespace("intel", "mock", "host").String())
+						So(m.Namespace().String(), ShouldStartWith, core.NewNamespace("intel", "mock").String())
+						So(m.Namespace().String(), ShouldContainSubstring, "baz")
 
 						// ensure the collected data coming back is from v1
 						So(m.Version(), ShouldEqual, 1)
 						// ensure the collected data is dynamic
-						isDynamic, _ := m.Namespace().IsDynamic()
-						So(isDynamic, ShouldBeTrue)
+						if !strings.Contains(m.Namespace().String(), "all") {
+							isDynamic, _ := m.Namespace().IsDynamic()
+							So(isDynamic, ShouldBeTrue)
+						}
 					}
 				}
 
@@ -1386,9 +1392,9 @@ func TestCollectSpecifiedDynamicMetrics(t *testing.T) {
 
 		mts, err := c.MetricCatalog()
 		So(err, ShouldBeNil)
-		// metric catalog should contain the 3 following metrics:
-		// /intel/mock/foo; /intel/mock/bar; /intel/mock/*/baz
-		So(len(mts), ShouldEqual, 3)
+		// metric catalog should contain the 4 following metrics:
+		// /intel/mock/foo; /intel/mock/bar; /intel/mock/*/baz; /intel/mock/all/baz
+		So(len(mts), ShouldEqual, 4)
 
 		Convey("collection for specified host id - positive", func() {
 			taskID := "task-01"
@@ -1988,7 +1994,9 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 			Convey("metrics are collected from mock1 and mock2", func() {
 				// ensure the data coming back is from mock 1 and mock 2
 				for _, m := range mts2 {
-					if strings.Contains(m.Namespace().String(), "host") || strings.Contains(m.Namespace().String(), "bar") {
+					if strings.Contains(m.Namespace().String(), "host") ||
+						strings.Contains(m.Namespace().String(), "bar") ||
+						strings.Contains(m.Namespace().String(), "all") {
 						val, ok := m.Data().(int)
 						So(ok, ShouldEqual, true)
 						So(val, ShouldBeGreaterThan, 1000)

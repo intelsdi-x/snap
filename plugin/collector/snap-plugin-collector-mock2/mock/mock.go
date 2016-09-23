@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin"
@@ -108,7 +109,10 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 				}
 				metrics = append(metrics, mt)
 			}
-
+		} else if strings.Contains(mts[i].Namespace().String(), "all") {
+			mts[i].Data_ = 1001
+			mts[i].Timestamp_ = time.Now()
+			metrics = append(metrics, mts[i])
 		} else {
 			data := randInt(65, 90) + 1000
 			mts[i].Data_ = data
@@ -151,6 +155,14 @@ func (f *Mock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error
 		Description_: "mock description",
 		Unit_:        "mock unit",
 	})
+	mts = append(mts, plugin.MetricType{
+		Namespace_: core.NewNamespace("intel", "mock").
+			AddStaticElement("all").
+			AddStaticElement("baz"),
+		Description_: "mock description",
+		Unit_:        "mock unit",
+	})
+
 	return mts, nil
 }
 

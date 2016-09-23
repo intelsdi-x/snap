@@ -191,7 +191,7 @@ func TestGetMetricTypes(t *testing.T) {
 			mts, err := newPlg.GetMetricTypes(plugin.ConfigType{ConfigDataNode: node})
 
 			So(err, ShouldBeNil)
-			So(len(mts), ShouldEqual, 4)
+			So(len(mts), ShouldEqual, 5)
 
 			Convey("checking namespaces", func() {
 				metricNames := []string{}
@@ -218,7 +218,7 @@ func TestGetMetricTypes(t *testing.T) {
 			mts, err := newPlg.GetMetricTypes(plugin.ConfigType{ConfigDataNode: node})
 
 			So(err, ShouldBeNil)
-			So(len(mts), ShouldEqual, 3)
+			So(len(mts), ShouldEqual, 4)
 
 			Convey("checking namespaces", func() {
 				metricNames := []string{}
