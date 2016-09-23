@@ -25,7 +25,6 @@ _testmain.go
 tmp/
 *.tmp
 scratch/
-build/
 *.swp
 profile.cov
 gin-bin
@@ -40,3 +39,8 @@ vendor/
 .DS_Store
 
 *.cov
+
+# build and release artifacts
+build/
+s3/
+release/

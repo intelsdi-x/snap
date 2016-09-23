@@ -46,6 +46,7 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
+	"github.com/intelsdi-x/snap/plugin/helper"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
@@ -55,11 +56,11 @@ var (
 	// Switching this turns on logging for all the REST API calls
 	LOG_LEVEL = log.WarnLevel
 
-	SNAP_PATH              = os.ExpandEnv(os.Getenv("SNAP_PATH"))
+	SNAP_PATH              = helper.BuildPath
 	SNAP_AUTODISCOVER_PATH = os.Getenv("SNAP_AUTODISCOVER_PATH")
-	MOCK_PLUGIN_PATH1      = SNAP_PATH + "/plugin/snap-plugin-collector-mock1"
-	MOCK_PLUGIN_PATH2      = SNAP_PATH + "/plugin/snap-plugin-collector-mock2"
-	FILE_PLUGIN_PATH       = SNAP_PATH + "/plugin/snap-plugin-publisher-mock-file"
+	MOCK_PLUGIN_PATH1      = helper.PluginFilePath("snap-plugin-collector-mock1")
+	MOCK_PLUGIN_PATH2      = helper.PluginFilePath("snap-plugin-collector-mock2")
+	FILE_PLUGIN_PATH       = helper.PluginFilePath("snap-plugin-publisher-mock-file")
 
 	CompressedUpload = true
 	TotalUploadSize  = 0
@@ -584,8 +585,9 @@ func TestPluginRestCalls(t *testing.T) {
 				So(err, ShouldBeNil)
 				if len(SNAP_AUTODISCOVER_PATH) == 0 {
 					if len(SNAP_PATH) != 0 {
-						SNAP_AUTODISCOVER_PATH = fmt.Sprintf("%s/plugin", SNAP_PATH)
-						log.Warning(fmt.Sprintf("SNAP_AUTODISCOVER_PATH has been set to SNAP_PATH/plugin (%s). This might cause test failures", SNAP_AUTODISCOVER_PATH))
+
+						SNAP_AUTODISCOVER_PATH = helper.PluginPath()
+						log.Warning(fmt.Sprintf("SNAP_AUTODISCOVER_PATH has been set to plugin build path (%s). This might cause test failures", SNAP_AUTODISCOVER_PATH))
 					}
 				} else {
 					log.Warning(fmt.Sprintf("SNAP_AUTODISCOVER_PATH is set to %s. This might cause test failures", SNAP_AUTODISCOVER_PATH))

@@ -23,7 +23,6 @@ package control
 
 import (
 	"net"
-	"path"
 	"testing"
 
 	"github.com/intelsdi-x/gomit"
@@ -38,6 +37,7 @@ import (
 	"github.com/intelsdi-x/snap/grpc/common"
 	"github.com/intelsdi-x/snap/grpc/controlproxy/rpc"
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
+	"github.com/intelsdi-x/snap/plugin/helper"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -99,7 +99,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 	})
 	<-lpe.done
-	passthru, err := core.NewRequestedPlugin(path.Join(fixtures.SnapPath, "plugin", "snap-plugin-processor-passthru"))
+	passthru, err := core.NewRequestedPlugin(helper.PluginFilePath("snap-plugin-processor-passthru"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		typeName: catalogedPassthru.TypeName(),
 	}
 	<-lpe.done
-	filepub, err := core.NewRequestedPlugin(path.Join(fixtures.SnapPath, "plugin", "snap-plugin-publisher-mock-file"))
+	filepub, err := core.NewRequestedPlugin(helper.PluginFilePath("snap-plugin-publisher-mock-file"))
 	if err != nil {
 		log.Fatal(err)
 	}

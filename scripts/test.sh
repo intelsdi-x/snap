@@ -45,12 +45,6 @@ if [[ "${SNAP_TEST_TYPE}" == "build" ]]; then
   exit 0
 fi
 
-# If the following plugins don't exist, exit
-[ -f $SNAP_PATH/plugin/snap-plugin-collector-mock1 ] || { _error 'Error: $SNAP_PATH/plugin/snap-plugin-collector-mock1 does not exist. Run make to build it.'; }
-[ -f $SNAP_PATH/plugin/snap-plugin-collector-mock2 ] || { _error 'Error: $SNAP_PATH/plugin/snap-plugin-collector-mock2 does not exist. Run make to build it.';  }
-[ -f $SNAP_PATH/plugin/snap-plugin-processor-passthru ] || { _error 'Error: $SNAP_PATH/plugin/snap-plugin-processor-passthru does not exist. Run make to build it.'; }
-[ -f $SNAP_PATH/plugin/snap-plugin-publisher-mock-file ] || { _error 'Error: $SNAP_PATH/plugin/snap-plugin-publisher-mock-file does not exist. Run make to build it.'; }
-
 _go_path
 # If the following tools don't exist, get them
 _go_get github.com/smartystreets/goconvey

@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"path"
 	"testing"
 	"time"
 
@@ -37,12 +36,13 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/plugin/helper"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	PluginPath = path.Join(SnapPath, "plugin")
+	PluginPath = helper.PluginPath()
 )
 
 func TestDistributedWorkflow(t *testing.T) {
@@ -65,9 +65,9 @@ func TestDistributedWorkflow(t *testing.T) {
 		err := sch.Start()
 		So(err, ShouldBeNil)
 		// Load appropriate plugins into each control.
-		mock2Path := path.Join(PluginPath, "snap-plugin-collector-mock2")
-		passthruPath := path.Join(PluginPath, "snap-plugin-processor-passthru")
-		filePath := path.Join(PluginPath, "snap-plugin-publisher-mock-file")
+		mock2Path := helper.PluginFilePath("snap-plugin-collector-mock2")
+		passthruPath := helper.PluginFilePath("snap-plugin-processor-passthru")
+		filePath := helper.PluginFilePath("snap-plugin-publisher-mock-file")
 
 		// mock2 and file onto c1
 
@@ -204,9 +204,9 @@ func TestDistributedSubscriptions(t *testing.T) {
 		err := sch.Start()
 		So(err, ShouldBeNil)
 		// Load appropriate plugins into each control.
-		mock2Path := path.Join(PluginPath, "snap-plugin-collector-mock2")
-		passthruPath := path.Join(PluginPath, "snap-plugin-processor-passthru")
-		filePath := path.Join(PluginPath, "snap-plugin-publisher-mock-file")
+		mock2Path := helper.PluginFilePath("snap-plugin-collector-mock2")
+		passthruPath := helper.PluginFilePath("snap-plugin-processor-passthru")
+		filePath := helper.PluginFilePath("snap-plugin-publisher-mock-file")
 
 		// mock2 and file onto c1
 

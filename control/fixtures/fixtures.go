@@ -22,21 +22,20 @@ package fixtures
 
 import (
 	"encoding/json"
-	"os"
-	"path"
 	"time"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/plugin/helper"
 )
 
 var (
 	PluginName = "snap-plugin-collector-mock2"
-	SnapPath   = os.ExpandEnv(os.Getenv("SNAP_PATH"))
-	PluginPath = path.Join(SnapPath, "plugin", PluginName)
+	SnapPath   = helper.BuildPath
+	PluginPath = helper.PluginFilePath(PluginName)
 
 	JSONRPCPluginName = "snap-plugin-collector-mock1"
-	JSONRPCPluginPath = path.Join(SnapPath, "plugin", JSONRPCPluginName)
+	JSONRPCPluginPath = helper.PluginFilePath(JSONRPCPluginName)
 )
 
 // mocks a metric type

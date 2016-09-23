@@ -1,8 +1,8 @@
 sudo: false
 language: go
 go:
-- 1.5.4
-- 1.6.2
+- 1.6.3
+- 1.7.1
 before_install:
 - bash scripts/gitcookie.sh
 - go get github.com/smartystreets/goconvey/convey
@@ -11,7 +11,6 @@ env:
   global:
   - SNAP_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/snap
   - GO15VENDOREXPERIMENT=1
-  - secure: kSsbBOCrSRyWx6yhSwhTYIWRId4WNMkO9OhMphBPXb5kDEd+asanCybuBKdOSgzuqrzBbQsuQjzhw+iZwdiPoQInZyDxeVl7frroNvg94n+q4tpPQOPzJ6gN15MCHSq3m1lCk3XVrESGEBTqmdmUtZhY+RfxSXuq1xkDMesst2f+gONd5Bl+QFiboRqvjUXwGC+e3JnZI2LxWjYZspNh2ZS6c5mvbhufDPV5MD6+jlZppzHcNkHAtHOt3KNoTFai8X0U8MYiEax3mSIAHjYzQQayS5al54MfgcVo1r4gWmPOybkyb5+/DyNSUT4KY+XVIrxV68fSOuCnLxLEaQZ9W0c0WuetmUU1fOT8Iy9q0qLQq9IknXNnfsCEGdwB2XKfyNvKEtkWbi6b6idrok5d1y7b8Qt5olveczGx0cRbpXQ0BTZ/bnQMhL9tpUeRltbDey6dsSsTJjnatqH7CdeEAV0ZeY+LjBgTukps4TlEHTn0ddEzhR1rrRsQ3OB0kT59Y3BCJ4kstzpMsTFWKUTMr/75UR1g5XETfOt0BtXkM3I343AIjJt+MQg/bW26ZOTbqPbqVO3Z7eDf0MaRC4Mugm809ekMZARTLAmq4FMIutDsTTT741IgWZQrMDI37WUztDUE1WFDzcTkAk99yc6gBjZ+0dZd1Qc7RQR0RMBi4M4=
   matrix:
   - SNAP_TEST_TYPE=legacy
   - SNAP_TEST_TYPE=small
@@ -19,7 +18,7 @@ env:
   - SNAP_TEST_TYPE=build
 matrix:
   exclude:
-  - go: 1.5.4
+  - go: 1.6.3
     env: SNAP_TEST_TYPE=build
 install:
 - export TMPDIR=$HOME/tmp
@@ -42,12 +41,10 @@ deploy:
   bucket: snap.ci.snap-telemetry.io
   region: us-west-2
   skip_cleanup: true
-  local-dir: build
+  local-dir: s3
   upload-dir: snap
   acl: public_read
   on:
     repo: intelsdi-x/snap
     branch: master
-    condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.6.2"
-after_deploy:
-- "./scripts/post_deploy.sh"
+    condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.7.1"

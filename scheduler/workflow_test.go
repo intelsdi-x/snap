@@ -24,8 +24,6 @@ package scheduler
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path"
 	"sync"
 	"testing"
 	"time"
@@ -40,6 +38,7 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/promise"
 	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/plugin/helper"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 
 	log "github.com/Sirupsen/logrus"
@@ -47,11 +46,11 @@ import (
 )
 
 var (
-	SnapPath                     = os.ExpandEnv(os.Getenv("SNAP_PATH"))
-	snap_collector_mock1_path    = path.Join(SnapPath, "plugin", "snap-plugin-collector-mock1")
-	snap_collector_mock2_path    = path.Join(SnapPath, "plugin", "snap-plugin-collector-mock2")
-	snap_processor_passthru_path = path.Join(SnapPath, "plugin", "snap-plugin-processor-passthru")
-	snap_publisher_file_path     = path.Join(SnapPath, "plugin", "snap-plugin-publisher-mock-file")
+	SnapPath                     = helper.BuildPath
+	snap_collector_mock1_path    = helper.PluginFilePath("snap-plugin-collector-mock1")
+	snap_collector_mock2_path    = helper.PluginFilePath("snap-plugin-collector-mock2")
+	snap_processor_passthru_path = helper.PluginFilePath("snap-plugin-processor-passthru")
+	snap_publisher_file_path     = helper.PluginFilePath("snap-plugin-publisher-mock-file")
 
 	metricsToCollect = 3
 )

@@ -23,14 +23,13 @@ package control
 
 import (
 	"net"
-	"os"
-	"path"
 	"testing"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/plugin/helper"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
@@ -128,7 +127,7 @@ func TestSubscriptionGroups_ProcessStaticNegative(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugin", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -166,7 +165,7 @@ func TestSubscriptionGroups_ProcessStaticNegative(t *testing.T) {
 					config:   cdata.NewNode(),
 				}
 
-				_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-anothermock1"))
+				_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-anothermock1"))
 				So(err, ShouldBeNil)
 				<-lpe.load
 				serrs := sg.Process()
@@ -199,7 +198,7 @@ func TestSubscriptionGroups_ProcessStaticPositive(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugin", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -236,7 +235,7 @@ func TestSubscriptionGroups_ProcessStaticPositive(t *testing.T) {
 					version:  2,
 					config:   cdata.NewNode(),
 				}
-				_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock2"))
+				_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock2"))
 				So(err, ShouldBeNil)
 				<-lpe.load
 				serrs := sg.Process()
@@ -269,7 +268,7 @@ func TestSubscriptionGroups_ProcessDynamicPositive(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugin", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 
 		<-lpe.load
@@ -307,7 +306,7 @@ func TestSubscriptionGroups_ProcessDynamicPositive(t *testing.T) {
 					version:  1,
 					config:   cdata.NewNode(),
 				}
-				_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-anothermock1"))
+				_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-anothermock1"))
 				So(err, ShouldBeNil)
 				<-lpe.load
 				serrs := sg.Process()
@@ -345,7 +344,7 @@ func TestSubscriptionGroups_ProcessDynamicNegative(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugin", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -382,7 +381,7 @@ func TestSubscriptionGroups_ProcessDynamicNegative(t *testing.T) {
 					version:  1,
 					config:   cdata.NewNode(),
 				}
-				_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-anothermock1"))
+				_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-anothermock1"))
 				So(err, ShouldBeNil)
 				<-lpe.load
 				serrs := sg.Process()
@@ -416,7 +415,7 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicPositive(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugin", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 
 		<-lpe.load
@@ -459,7 +458,7 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicPositive(t *testing.T) {
 					version:  1,
 					config:   cdata.NewNode(),
 				}
-				_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-anothermock1"))
+				_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-anothermock1"))
 				So(err, ShouldBeNil)
 				<-lpe.load
 				serrs := sg.Process()
@@ -499,7 +498,7 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicNegative(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugin", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -540,7 +539,7 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicNegative(t *testing.T) {
 					version:  1,
 					config:   cdata.NewNode(),
 				}
-				_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-anothermock1"))
+				_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-anothermock1"))
 				So(err, ShouldBeNil)
 				<-lpe.load
 				serrs := sg.Process()
@@ -576,7 +575,7 @@ func TestSubscriptionGroups_AddRemoveStatic(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugn", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -615,7 +614,7 @@ func TestSubscriptionGroups_AddRemoveDynamic(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugn", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -657,7 +656,7 @@ func TestSubscriptionGroups_AddRemoveSpecifiedDynamic(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugn", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -702,7 +701,7 @@ func TestSubscriptionGroups_GetStatic(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugn", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -751,7 +750,7 @@ func TestSubscriptionGroups_GetDynamic(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugn", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
@@ -800,7 +799,7 @@ func TestSubscriptionGroups_GetSpecifiedDynamic(t *testing.T) {
 	c.Start()
 
 	Convey("Loading a mock collector plugn", t, func() {
-		_, err := loadPlg(c, path.Join(os.ExpandEnv(os.Getenv("SNAP_PATH")), "plugin", "snap-plugin-collector-mock1"))
+		_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
 		So(err, ShouldBeNil)
 		<-lpe.load
 
