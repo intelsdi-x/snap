@@ -128,8 +128,11 @@ func (s subscriptionGroups) add(id string, requested []core.RequestedMetric,
 	}
 
 	errs := subscriptionGroup.process(id)
+	if errs != nil {
+		return errs
+	}
 	s.subscriptionMap[id] = subscriptionGroup
-	return errs
+	return nil
 }
 
 // Remove removes a subscription group given a subscription group ID.
@@ -374,73 +377,53 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 
 func (s *subscriptionGroup) subscribePlugins(id string,
 	plugins []core.SubscribedPlugin) (serrs []serror.SnapError) {
-	for _, sub := range plugins {
-		controlLogger.WithFields(log.Fields{
-			"name":    sub.Name(),
-			"type":    sub.TypeName(),
-			"version": sub.Version(),
-			"_block":  "subscriptionGroup.subscribePlugins",
-		}).Debug("plugin subscription")
-		if sub.Version() < 1 {
-			latest, err := s.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", sub.TypeName(),
-				sub.Name(), sub.Version()))
-			if err != nil {
-				serrs = append(serrs, serror.New(err))
-				return serrs
-			}
-			pool, err := s.pluginRunner.AvailablePlugins().getOrCreatePool(latest.Key())
-			if err != nil {
-				serrs = append(serrs, serror.New(err))
-				return serrs
-			}
-			pool.Subscribe(id)
-			if pool.Eligible() {
-				err = s.verifyPlugin(latest)
-				if err != nil {
-					serrs = append(serrs, serror.New(err))
-					return serrs
-				}
-				err = s.pluginRunner.runPlugin(latest.Details)
-				if err != nil {
-					serrs = append(serrs, serror.New(err))
-					return serrs
-				}
-			}
-		} else {
-			pool, err := s.pluginRunner.AvailablePlugins().getOrCreatePool(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d",
-				sub.TypeName(), sub.Name(), sub.Version()))
-			if err != nil {
-				serrs = append(serrs, serror.New(err))
-				return serrs
-			}
-			pool.Subscribe(id)
-			if pool.Eligible() {
-				pl, err := s.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d",
-					sub.TypeName(), sub.Name(), sub.Version()))
-				if err != nil {
-					serrs = append(serrs, serror.New(err))
-					return serrs
-				}
-				err = s.verifyPlugin(pl)
-				if err != nil {
-					serrs = append(serrs, serror.New(err))
-					return serrs
-				}
-				err = s.pluginRunner.runPlugin(pl.Details)
-				if err != nil {
-					serrs = append(serrs, serror.New(err))
-					return serrs
-				}
-			}
+	plgs := make([]*loadedPlugin, len(plugins))
+	// First range through plugins to verify if all required plugins
+	// are available
+	for i, sub := range plugins {
+		plg, err := s.pluginManager.get(key(sub))
+		if err != nil {
+			serrs = append(serrs, serror.New(err))
+			return serrs
 		}
-
-		serr := s.sendPluginSubscriptionEvent(id, sub)
-		if serr != nil {
-			serrs = append(serrs, serr)
-		}
+		plgs[i] = plg
 	}
 
-	return
+	// If all plugins are available, subscribe to pools and start
+	// plugins as needed
+	for _, plg := range plgs {
+		controlLogger.WithFields(log.Fields{
+			"name":    plg.Name(),
+			"type":    plg.TypeName(),
+			"version": plg.Version(),
+			"_block":  "subscriptionGroup.subscribePlugins",
+		}).Debug("plugin subscription")
+		pool, err := s.pluginRunner.AvailablePlugins().getOrCreatePool(plg.Key())
+		if err != nil {
+			serrs = append(serrs, serror.New(err))
+			return serrs
+		}
+		pool.Subscribe(id)
+		if pool.Eligible() {
+			err = s.verifyPlugin(plg)
+			if err != nil {
+				serrs = append(serrs, serror.New(err))
+				return serrs
+			}
+			err = s.pluginRunner.runPlugin(plg.Details)
+			if err != nil {
+				serrs = append(serrs, serror.New(err))
+				return serrs
+			}
+		}
+
+		serr := s.sendPluginSubscriptionEvent(id, plg)
+		if serr != nil {
+			serrs = append(serrs, serr)
+			return serrs
+		}
+	}
+	return serrs
 }
 
 func (p *subscriptionGroup) unsubscribePlugins(id string,
