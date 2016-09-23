@@ -64,28 +64,18 @@ func loadPlugin(ctx *cli.Context) error {
 }
 
 func unloadPlugin(ctx *cli.Context) error {
-	pDetails := filepath.SplitList(ctx.Args().First())
-	var pType, pName string
-	var pVer int
-	var err error
+	pType := ctx.Args().Get(0)
+	pName := ctx.Args().Get(1)
+	pVer, err := strconv.Atoi(ctx.Args().Get(2))
 
-	if len(pDetails) == 3 {
-		pType = pDetails[0]
-		pName = pDetails[1]
-		pVer, err = strconv.Atoi(pDetails[2])
-		if err != nil {
-			return newUsageError("Can't convert version string to integer", ctx)
-		}
-	} else {
-		pType = ctx.String("plugin-type")
-		pName = ctx.String("plugin-name")
-		pVer = ctx.Int("plugin-version")
-	}
 	if pType == "" {
 		return newUsageError("Must provide plugin type", ctx)
 	}
 	if pName == "" {
 		return newUsageError("Must provide plugin name", ctx)
+	}
+	if err != nil {
+		return newUsageError("Can't convert version string to integer", ctx)
 	}
 	if pVer < 1 {
 		return newUsageError("Must provide plugin version", ctx)
