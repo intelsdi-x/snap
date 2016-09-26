@@ -61,11 +61,6 @@ func (c *ConfigDataTree) Add(ns []string, cdn *ConfigDataNode) {
 
 // Returns a ConfigDataNode that is a merged version of the namespace provided.
 func (c *ConfigDataTree) Get(ns []string) *ConfigDataNode {
-	// Automatically freeze on first Get
-	if !c.cTree.Frozen() {
-		c.cTree.Freeze()
-	}
-
 	n := c.cTree.Get(ns)
 	if n == nil {
 		return nil
@@ -77,10 +72,4 @@ func (c *ConfigDataTree) Get(ns []string) *ConfigDataNode {
 		return t.(*ConfigDataNode)
 
 	}
-}
-
-// Freezes the ConfigDataTree from future writes (adds) and triggers compression
-// of tree into read-performant version.
-func (c *ConfigDataTree) Freeze() {
-	c.cTree.Freeze()
 }

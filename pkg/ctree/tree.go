@@ -24,7 +24,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -33,9 +32,7 @@ import (
 type ConfigTree struct {
 	// Debug turns on verbose logging of the tree functions to stdout
 	Debug bool
-
-	freezeFlag bool
-	root       *node
+	root  *node
 }
 
 // New returns a new instance of ConfigTree
@@ -62,9 +59,6 @@ func (c *ConfigTree) GobEncode() ([]byte, error) {
 	if err := encoder.Encode(c.root); err != nil {
 		return nil, err
 	}
-	if err := encoder.Encode(c.freezeFlag); err != nil {
-		return nil, err
-	}
 	return w.Bytes(), nil
 }
 
@@ -75,7 +69,7 @@ func (c *ConfigTree) GobDecode(buf []byte) error {
 	if err := decoder.Decode(&c.root); err != nil {
 		return err
 	}
-	return decoder.Decode(&c.freezeFlag)
+	return nil
 }
 
 // MarshalJSON marshals ConfigTree
@@ -120,41 +114,44 @@ func (c *ConfigTree) Add(ns []string, inNode Node) {
 
 }
 
-func (c *ConfigTree) GetAll() map[string]Node {
-	ret := map[string]Node{}
-	if !c.Frozen() {
-		panic("must freeze before getting")
-	}
+type keyNode struct {
+	Key []string
+	N   Node
+}
+
+func (c *ConfigTree) GetAll() []keyNode {
+	var ret []keyNode
 	if c.root == nil {
 		c.log(fmt.Sprintln("ctree: no root - returning nil"))
 		return nil
 	}
-	return c.getAll(c.root, "", ret)
+	return c.getAll(c.root, []string{}, &ret)
 }
 
-func (c *ConfigTree) getAll(node *node, base string, results map[string]Node) map[string]Node {
+func (c *ConfigTree) getAll(node *node, key []string, res *[]keyNode) []keyNode {
 	if len(node.keys) > 0 {
-		if base != "" {
-			base = base + "." + strings.Join(node.keys, ".")
+		if key != nil {
+			key = append(key, node.keys[0])
 		} else {
-			base = strings.Join(node.keys, ".")
+			key = []string{node.keys[0]}
 		}
 		if node.Node != nil {
-			results[base] = node.Node
+			k := keyNode{
+				Key: key,
+				N:   node.Node,
+			}
+			*res = append(*res, k)
 		}
 	}
 	for _, child := range node.nodes {
-		c.getAll(child, base, results)
+		c.getAll(child, key, res)
 	}
-	return results
+	return *res
 }
 
 // Get returns a tree node given the namespace
 func (c *ConfigTree) Get(ns []string) Node {
 	c.log(fmt.Sprintf("Get on ns (%s)\n", ns))
-	if !c.Frozen() {
-		panic("must freeze before getting")
-	}
 	retNodes := new([]Node)
 	// Return if no root exists (no tree without a root)
 	if c.root == nil {
@@ -203,25 +200,6 @@ func (c *ConfigTree) Get(ns []string) Node {
 		rn = rn.Merge(n)
 	}
 	return rn
-}
-
-// Freeze sets the ConfigTree's freezeFlag to true
-func (c *ConfigTree) Freeze() {
-	if !c.freezeFlag {
-		c.freezeFlag = true
-		c.compact()
-	}
-}
-
-// Frozen returns the bool value of ConfigTree freezeFlag
-func (c *ConfigTree) Frozen() bool {
-	return c.freezeFlag
-}
-
-func (c *ConfigTree) compact() {
-	if c.root != nil {
-		c.root.compact()
-	}
 }
 
 // Print prints out the ConfigTree

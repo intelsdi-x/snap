@@ -51,9 +51,6 @@ func TestConfigDataTree(t *testing.T) {
 			cdt.Add([]string{"1"}, cd1)
 			cdt.Add([]string{"1", "2"}, cd2)
 
-			So(func() {
-				cdt.Freeze()
-			}, ShouldNotPanic)
 		})
 
 		Convey("get", func() {

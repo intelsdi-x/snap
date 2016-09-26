@@ -74,7 +74,6 @@ func (p *mockPlugin) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	cpn.Add(r1, r2, r3, r4, r5, r6)
 	ns := []string{"one", "two", "potato"}
 	cp.Add(ns, cpn)
-	cp.Freeze()
 
 	return cp, nil
 }
