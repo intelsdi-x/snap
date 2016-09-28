@@ -1,4 +1,32 @@
 ---
+#####################
+# We're excited you wrote a plugin! Here's how you share it with others:
+#
+# Notes:
+#   * This file is in YAML format
+#   * Plugin repositories MUST have the format of snap-plugin-<TYPE>-<NAME>
+#     please rename your repository to match.
+#
+# How to use:
+#   1. Add a newline anywhere in the list below
+#   2. List your plugin following the <user>/<repo> format
+#   3. Open a Pull Request on intelsdi-x/snap (with a clear commit message)
+#
+# After merging, we run a job to update PLUGIN_CATALOG.md and
+# the list available on our website: http://snap-telemetry.io/plugins.html
+#####################
+- Staples-Inc/snap-plugin-collector-jmx
+- Staples-Inc/snap-plugin-collector-couchbase
+- Staples-Inc/snap-plugin-collector-nginx
+- Staples-Inc/snap-plugin-collector-netstat
+- Staples-Inc/snap-plugin-collector-procstat
+- raintank/snap-plugin-collector-procnum
+- raintank/snap-plugin-collector-ping
+- raintank/snap-plugin-collector-memcache
+- Staples-Inc/snap-plugin-publisher-blueflood
+- Ticketmaster/snap-plugin-publisher-cloudwatch
+- intelsdi-x/snap-plugin-processor-statistics
+- intelsdi-x/snap-plugin-processor-anomalydetection
 - intelsdi-x/snap-plugin-collector-apache
 - intelsdi-x/snap-plugin-collector-ceph
 - intelsdi-x/snap-plugin-collector-cinder
