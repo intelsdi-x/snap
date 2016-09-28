@@ -247,13 +247,7 @@ func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin
 	}).Info(fmt.Sprintf("validating dependencies for plugin %s:%d", pl.Name(), pl.Version()))
 	lp, err := p.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
-		se := serror.New(fmt.Errorf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version()))
-		se.SetFields(map[string]interface{}{
-			"name":    pl.Name(),
-			"version": pl.Version(),
-			"type":    pl.TypeName(),
-		})
-		serrs = append(serrs, se)
+		serrs = append(serrs, pluginNotFoundError(pl))
 		return serrs
 	}
 
@@ -383,7 +377,7 @@ func (s *subscriptionGroup) subscribePlugins(id string,
 	for i, sub := range plugins {
 		plg, err := s.pluginManager.get(key(sub))
 		if err != nil {
-			serrs = append(serrs, serror.New(err))
+			serrs = append(serrs, pluginNotFoundError(sub))
 			return serrs
 		}
 		plgs[i] = plg
@@ -523,6 +517,16 @@ func comparePlugins(newPlugins,
 	}
 
 	return
+}
+
+func pluginNotFoundError(pl core.SubscribedPlugin) serror.SnapError {
+	se := serror.New(fmt.Errorf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version()))
+	se.SetFields(map[string]interface{}{
+		"name":    pl.Name(),
+		"version": pl.Version(),
+		"type":    pl.TypeName(),
+	})
+	return se
 }
 
 func key(p core.SubscribedPlugin) string {
