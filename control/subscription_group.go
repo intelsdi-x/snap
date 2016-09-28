@@ -245,7 +245,7 @@ func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin
 		"_block": "validate-plugin-subscription",
 		"plugin": fmt.Sprintf("%s:%d", pl.Name(), pl.Version()),
 	}).Info(fmt.Sprintf("validating dependencies for plugin %s:%d", pl.Name(), pl.Version()))
-	lp, err := p.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pl.TypeName(), pl.Name(), pl.Version()))
+	lp, err := p.pluginManager.get(key(pl))
 	if err != nil {
 		serrs = append(serrs, pluginNotFoundError(pl))
 		return serrs
@@ -429,9 +429,7 @@ func (p *subscriptionGroup) unsubscribePlugins(id string,
 			"version": plugin.Version(),
 			"_block":  "subscriptionGroup.unsubscribePlugins",
 		}).Debug("plugin unsubscription")
-		pool, err := p.pluginRunner.AvailablePlugins().getPool(
-			fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", plugin.TypeName(),
-				plugin.Name(), plugin.Version()))
+		pool, err := p.pluginRunner.AvailablePlugins().getPool(key(plugin))
 		if err != nil {
 			serrs = append(serrs, err)
 			return serrs
