@@ -144,20 +144,14 @@ func (f *Mock) GetMetricTypes(cfg plugin.Config) ([]plugin.Metric, error) {
 func (f *Mock) GetConfigPolicy() (plugin.ConfigPolicy, error) {
 	p := plugin.NewConfigPolicy()
 
-	rule1, err := plugin.NewStringRule("name", false, plugin.SetDefaultString("bob"))
+	err := p.AddNewStringRule([]string{"intel", "mock", "foo"}, "name", false, plugin.SetDefaultString("bob"))
 	if err != nil {
 		return *p, err
 	}
 
-	rule2, err := plugin.NewStringRule("password", true)
-	if err != nil {
-		return *p, err
-	}
+	err = p.AddNewStringRule([]string{"intel", "mock", "foo"}, "password", true)
 
-	p.AddStringRule([]string{"intel", "mock", "foo"}, rule1)
-	p.AddStringRule([]string{"intel", "mock", "foo"}, rule2)
-
-	return *p, nil
+	return *p, err
 }
 
 // contains reports whether a given item is found in a slice

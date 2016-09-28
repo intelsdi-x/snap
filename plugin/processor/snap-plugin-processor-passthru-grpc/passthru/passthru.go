@@ -37,12 +37,7 @@ type passthruProcessor struct{}
 
 func (p *passthruProcessor) GetConfigPolicy() (plugin.ConfigPolicy, error) {
 	policy := plugin.NewConfigPolicy()
-	rule, err := plugin.NewBoolRule(debug, false)
-	if err != nil {
-		return *policy, err
-	}
-	policy.AddBoolRule([]string{""}, rule)
-	return *policy, nil
+	return *policy, policy.AddNewBoolRule([]string{""}, debug, false)
 }
 
 func (p *passthruProcessor) Process(metrics []plugin.Metric, config plugin.Config) ([]plugin.Metric, error) {
