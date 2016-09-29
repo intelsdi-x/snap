@@ -169,7 +169,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 			var fr *cpolicy.FloatRule
 			var err error
 			if val.HasDefault {
-				fr, err = cpolicy.NewFloatRule(key, val.Required)
+				fr, err = cpolicy.NewFloatRule(key, val.Required, val.Default)
 			} else {
 
 				fr, err = cpolicy.NewFloatRule(key, val.Required)
