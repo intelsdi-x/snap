@@ -471,7 +471,41 @@ func action(ctx *cli.Context) error {
 		log.Fields{
 			"block":   "main",
 			"_module": "snapd",
-		}).Info("snapd started")
+		}).Info("snapd started", `
+                                        ss                  ss
+	                             odyssyhhyo         oyhysshhoyo
+                                 ddddyssyyysssssyyyyyyyssssyyysssyhy+-
+                           ssssssooosyhhysssyyyyyyyyyyyyyyyyyyyyyyyyyyyyssyhh+.
+                          ssss lhyssssssyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyssydo
+                sssssssssshhhhs lsyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyshh.
+           ssyyyysssssssssssyhdo syyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyd.
+       syyyyyyyyhhyyyyyyyyyyyyhdo syyyyyyyyyyyyydddhyyyyyyyyyyyyyhhhyyyyyyyyyyyyhh
+     ssyyyyyyyh  hhyyyyyyyyyyyyhdo syyyyyyyyyyyddyddddhhhhhhhhdddhhddyyyyyyyyyyyydo
+     ddyyyyyyh |  hyyyyyyyyyyyyydds syyyyyyyhhdhyyyhhhhhhhhhhyyyyyyhhdhyyyyyyyyyyym+
+     dhyyyyyyyhhhhyyyyyyyyyyyyyyhmds shyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyydyyl
+     dhddhyyyyyyhdhyyyyyyyyyyyyyydhmo yhyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyhdhsh
+     dhyyhysshhdmdhyyyyyyyyyyyyyyhhdh  hhyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyhhdyoohmh ylo
+      yy       dmyyyyyyyyyyyyyyyyhhhm  odhyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyhdhsoshdyyhdddy ylo
+            odhhyyyyyyyyyyyyyyyyyyhhdy  oyhhhyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyhhmhyhdhhyyyyyhddoyddy ylo
+           dddhhyyyyyyyyyyyyyyyhhhyhhdhs ooosydhhhhyyyyyyyyyyyyyyyyyyyyhhhhhyso+oymyyyyyyyyyyyhhddydmmyys
+             ohdyyyyyyyyyyyyyyyhdhyyhhhddyoooohhhhhhhhhhhhhhhhhhhhhdhhyysooosyhhhhhyhhhhhhyyyhyyyhhhhddyy
+                dyhyyyyyyyyyyyyydhyyyyyhhdddoooooooooooooooooooooooyysyyhddddhhyyyyydmdddddddmmddddhyyy
+               dmmmmoNddddddmddhhhhyyyyyhhhdddddddhhhhhhhhhdddddddddhhhyyyyyyyyyyhNmmmooooooooyyy
+                     Nhhhhhhhdmmddmhyyyyyyyyyhhhhhhhhhhhhhhhhhhhhyyyyyyyyyyyyyyyhhm
+                     NhhhhhhhhhdmyhdyyyyyyyyyyyyhyyyyyyyyyyyyyyyhhhdhyyyyyyyyyyyhhN
+                     NhyyyyyyyyyN dmyyyyyyyyyyhdmdhhhhhhhhhhdhhmmmmN NyyyyyyyyyyhhN
+                     NhyyyyyyyyyN  Nyyyyyyyyyhhm               NmddmH Nyyyyyyyyyhdm
+       .d8888b.      dmomomommmmh  dhhhhhhyyhhmh               NddddmH Nyyyyyyyyhdh
+      d88P  Y88b                   dmomomommmmmh                dmomoH dmomomommmmh
+      Y88b.
+      "Y888b.   88888b.   8888b.  88888b.
+         "Y88b. 888 "88b     "88b 888 "88b
+           "888 888  888 .d888888 888  888
+     Y88b  d88P 888  888 888  888 888 d88P
+      "Y8888P"  888  888 "Y888888 88888P"
+                                  888
+                                  888
+                                  888      `)
 
 	select {} //run forever and ever
 }
