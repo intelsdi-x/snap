@@ -78,20 +78,15 @@ func (f *filePublisher) Publish(metrics []plugin.Metric, config plugin.Config) e
 
 func (f *filePublisher) GetConfigPolicy() (plugin.ConfigPolicy, error) {
 	policy := plugin.NewConfigPolicy()
-	rule1, err := plugin.NewStringRule("file", true)
+
+	err := policy.AddNewStringRule([]string{""}, "file", true)
 	if err != nil {
 		return *policy, err
 	}
 
-	rule2, err := plugin.NewBoolRule(debug, false)
-	if err != nil {
-		return *policy, err
-	}
+	err = policy.AddNewBoolRule([]string{}, debug, false)
 
-	policy.AddStringRule([]string{""}, rule1)
-	policy.AddBoolRule([]string{}, rule2)
-
-	return *policy, nil
+	return *policy, err
 }
 
 // formatMetricTagsAsString returns metric's tags as a string in the following format tagKey:tagValue where the next tags are separated by semicolon
