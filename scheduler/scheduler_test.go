@@ -217,15 +217,6 @@ func TestScheduler(t *testing.T) {
 
 		})
 
-		Convey("returns an error when wrong namespace is given wo workflowmap ", func() {
-			w.CollectNode.AddMetric("****/&&&", 3)
-			w.CollectNode.AddConfigItem("****/&&&", "username", "user")
-			_, err := s.CreateTask(schedule.NewSimpleSchedule(time.Second*1), w, false)
-
-			So(len(err.Errors()), ShouldBeGreaterThan, 0)
-
-		})
-
 		// TODO NICK
 		Convey("returns an error when a schedule does not validate", func() {
 			s1 := New(GetDefaultConfig())
