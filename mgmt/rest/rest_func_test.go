@@ -445,29 +445,6 @@ func deletePluginConfigItem(port int, typ string, name, ver string, fields []str
 	return getAPIResponse(resp)
 }
 
-// Since we do not have a global snap package that could be imported
-// we create a mock config struct to mock what is in snapd.go
-
-type mockConfig struct {
-	LogLevel   int    `json:"-"yaml:"-"`
-	GoMaxProcs int    `json:"-"yaml:"-"`
-	LogPath    string `json:"-"yaml:"-"`
-	Control    *control.Config
-	Scheduler  *scheduler.Config `json:"-",yaml:"-"`
-	RestAPI    *Config           `json:"-",yaml:"-"`
-}
-
-func getDefaultMockConfig() *mockConfig {
-	return &mockConfig{
-		LogLevel:   3,
-		GoMaxProcs: 1,
-		LogPath:    "",
-		Control:    control.GetDefaultConfig(),
-		Scheduler:  scheduler.GetDefaultConfig(),
-		RestAPI:    GetDefaultConfig(),
-	}
-}
-
 // REST API instances that are started are killed when the tests end.
 // When we eventually have a REST API Stop command this can be killed.
 func startAPI(cfg *mockConfig) *restAPIInstance {
