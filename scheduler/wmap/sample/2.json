@@ -1,0 +1,35 @@
+{
+    "collect": {
+        "metrics": {
+            "㊽foo㊽bar": {
+                "version": 1
+            },
+            "大foo大baz": {},
+            "/a0/b0": {},
+            "-a1-b1": {},
+            "_a2_b2": {},
+            "㊽a3㊽b3": {},
+            "Äa4Äb4": {},
+            "大a5大b5": {},
+            "小a6小b6": {},
+            "ᵹa7ᵹb7": {},
+            "☍a8☍b8": {},
+            "ヒa9ヒb9": {}
+        },
+        "config": {
+            "%foo%bar": {
+                "password": "drowssap",
+                "user": "root"
+            }
+        },
+        "tags": {
+            "㊽foo㊽bar": {
+                "tag1": "val1",
+                "tag2": "val2"
+            },
+            "大foo大baz": {
+                "tag3": "val3"
+            }
+        }
+    }
+}

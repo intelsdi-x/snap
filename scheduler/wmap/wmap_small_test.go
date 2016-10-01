@@ -22,6 +22,8 @@ limitations under the License.
 package wmap
 
 import (
+	"io/ioutil"
+	"strconv"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -221,5 +223,24 @@ func TestStringByteConvertion(t *testing.T) {
 		p, err = inStringBytes(1)
 		So(p, ShouldBeEmpty)
 		So(err, ShouldNotBeNil)
+	})
+}
+
+func TestMetricSeparator(t *testing.T) {
+	jsonP, _ := ioutil.ReadFile("./sample/2.json")
+
+	Convey("Get Metric", t, func() {
+		Convey("from json", func() {
+			wmap, err := FromJson(jsonP)
+			So(err, ShouldBeNil)
+			So(wmap, ShouldNotBeNil)
+
+			mts := wmap.CollectNode.GetMetrics()
+			for i, m := range mts {
+				Convey("namespace "+strconv.Itoa(i), func() {
+					So(len(m.Namespace()), ShouldEqual, 2)
+				})
+			}
+		})
 	})
 }
