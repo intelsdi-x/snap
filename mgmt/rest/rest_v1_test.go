@@ -55,17 +55,26 @@ type restAPIInstance struct {
 	server *Server
 }
 
-func startV1API(cfg *mockConfig) *restAPIInstance {
+func startV1API(cfg *mockConfig, testType string) *restAPIInstance {
 	log.SetLevel(LOG_LEVEL)
 	r, _ := New(cfg.RestAPI)
-	mockMetricManager := &fixtures.MockManagesMetrics{}
-	mockTaskManager := &fixtures.MockTaskManager{}
-	mockConfigManager := &fixtures.MockConfigManager{}
-	mockTribeManager := &fixtures.MockTribeManager{}
-	r.BindMetricManager(mockMetricManager)
-	r.BindTaskManager(mockTaskManager)
-	r.BindConfigManager(mockConfigManager)
-	r.BindTribeManager(mockTribeManager)
+	switch testType {
+	case "tribe":
+		mockTribeManager := &fixtures.MockTribeManager{}
+		r.BindTribeManager(mockTribeManager)
+	case "plugin":
+		mockMetricManager := &fixtures.MockManagesMetrics{}
+		mockConfigManager := &fixtures.MockConfigManager{}
+		r.BindMetricManager(mockMetricManager)
+		r.BindConfigManager(mockConfigManager)
+	case "metric":
+		mockMetricManager := &fixtures.MockManagesMetrics{}
+		r.BindMetricManager(mockMetricManager)
+	case "task":
+		mockTaskManager := &fixtures.MockTaskManager{}
+		r.BindTaskManager(mockTaskManager)
+	}
+
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or
 		// just return if the channel closes.
@@ -83,11 +92,9 @@ func startV1API(cfg *mockConfig) *restAPIInstance {
 	}
 }
 
-func TestV1(t *testing.T) {
-	r := startV1API(getDefaultMockConfig())
-	Convey("Test REST API V1", t, func() {
-
-		//////////TEST-PLUGIN-ROUTES/////////////////
+func TestV1Plugin(t *testing.T) {
+	r := startV1API(getDefaultMockConfig(), "plugin")
+	Convey("Test Plugin REST API V1", t, func() {
 		Convey("Get plugins - v1/plugins", func() {
 			resp, err := http.Get(
 				fmt.Sprintf("http://localhost:%d/v1/plugins", r.port))
@@ -264,9 +271,12 @@ func TestV1(t *testing.T) {
 				string(body))
 
 		})
+	})
+}
 
-		//////////TEST-METRIC-ROUTES/////////////////
-
+func TestV1Metric(t *testing.T) {
+	r := startV1API(getDefaultMockConfig(), "metric")
+	Convey("Test Metric REST API V1", t, func() {
 		Convey("Get metrics - v1/metrics", func() {
 			resp, err := http.Get(
 				fmt.Sprintf("http://localhost:%d/v1/metrics", r.port))
@@ -296,9 +306,12 @@ func TestV1(t *testing.T) {
 				ShouldResemble,
 				resp1)
 		})
+	})
+}
 
-		//////////TEST-TASK-ROUTES/////////////////
-
+func TestV1Task(t *testing.T) {
+	r := startV1API(getDefaultMockConfig(), "task")
+	Convey("Test Task REST API V1", t, func() {
 		Convey("Get tasks - v1/tasks", func() {
 			resp, err := http.Get(
 				fmt.Sprintf("http://localhost:%d/v1/tasks", r.port))
@@ -452,9 +465,12 @@ func TestV1(t *testing.T) {
 				ShouldResemble,
 				string(body))
 		})
+	})
+}
 
-		//////////TEST-TRIBE-ROUTES/////////////////
-
+func TestV1Tribe(t *testing.T) {
+	r := startV1API(getDefaultMockConfig(), "tribe")
+	Convey("Test Tribe REST API V1", t, func() {
 		Convey("Get tribe agreements - v1/tribe/agreements", func() {
 			resp, err := http.Get(
 				fmt.Sprintf("http://localhost:%d/v1/tribe/agreements", r.port))
@@ -507,6 +523,20 @@ func TestV1(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(
 				fmt.Sprintf(fixtures.GET_TRIBE_MEMBERS_RESPONSE),
+				ShouldResemble,
+				string(body))
+		})
+
+		Convey("Get tribe member - v1/tribe/member/:name", func() {
+			tribeName := "Imma_Mock"
+			resp, err := http.Get(
+				fmt.Sprintf("http://localhost:%d/v1/tribe/member/%s", r.port, tribeName))
+			So(err, ShouldBeNil)
+			So(resp.StatusCode, ShouldEqual, 200)
+			body, err := ioutil.ReadAll(resp.Body)
+			So(err, ShouldBeNil)
+			So(
+				fmt.Sprintf(fixtures.GET_TRIBE_MEMBER_NAME),
 				ShouldResemble,
 				string(body))
 		})
