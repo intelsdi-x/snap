@@ -54,7 +54,6 @@ const (
 var (
 	ErrPoolNotFound = errors.New("plugin pool not found")
 	ErrBadKey       = errors.New("bad key")
-	ErrBadTaskId    = errors.New("bad task id")
 )
 
 // availablePlugin represents a plugin which is
