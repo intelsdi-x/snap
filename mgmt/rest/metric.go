@@ -31,6 +31,7 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	apiV2 "github.com/intelsdi-x/snap/mgmt/rest/v2"
 )
 
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -40,6 +41,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 	// perform a query
 	q := r.URL.Query()
 	v := q.Get("ver")
+	apiVersion := r.URL.Path[1:3]
 	ns_query := q.Get("ns")
 	if ns_query != "" {
 		ver = 0 // 0: get all versions
@@ -62,7 +64,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mets, w)
+		respondWithMetrics(r.Host, mets, w, apiVersion)
 		return
 	}
 
@@ -71,7 +73,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	respondWithMetrics(r.Host, mets, w)
+	respondWithMetrics(r.Host, mets, w, apiVersion)
 }
 
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -94,6 +96,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	)
 	q := r.URL.Query()
 	v := q.Get("ver")
+	apiVersion := r.URL.Path[1:3]
 
 	if ns[len(ns)-1] == "*" {
 		if v == "" {
@@ -111,7 +114,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mets, w)
+		respondWithMetrics(r.Host, mets, w, apiVersion)
 		return
 	}
 
@@ -122,7 +125,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mets, w)
+		respondWithMetrics(r.Host, mets, w, apiVersion)
 		return
 	}
 
@@ -171,7 +174,11 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	respond(200, b, w)
 }
 
-func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.ResponseWriter) {
+func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.ResponseWriter, version string) {
+	if version == "v2" {
+		apiV2.RespondWithMetrics(host, mets, w)
+		return
+	}
 	b := rbody.NewMetricsReturned()
 
 	for _, met := range mets {

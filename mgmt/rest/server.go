@@ -470,8 +470,13 @@ func (s *Server) addRoutes() {
 	s.r.GET("/v1/metrics", s.getMetrics)
 	s.r.GET("/v1/metrics/*namespace", s.getMetricsFromTree)
 
+	s.r.GET("/v2/metrics", s.getMetrics)
+	s.r.GET("/v2/metrics/*namespace", s.getMetricsFromTree)
+
 	// task routes
 	s.r.GET("/v1/tasks", s.getTasks)
+	s.r.GET("/v2/tasks", s.getTasks)
+
 	s.r.GET("/v1/tasks/:id", s.getTask)
 	s.r.GET("/v1/tasks/:id/watch", s.watchTask)
 	s.r.POST("/v1/tasks", s.addTask)
