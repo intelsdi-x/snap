@@ -47,6 +47,10 @@ type Metric struct {
 	Href                    string           `json:"href"`
 }
 
+type MetricList struct {
+	Metrics []Metric `json:"metrics,omitempty"`
+}
+
 type DynamicElement struct {
 	Index       int    `json:"index,omitempty"`
 	Name        string `json:"name,omitempty"`
@@ -65,22 +69,22 @@ func (m *MetricReturned) ResponseBodyType() string {
 	return MetricReturnedType
 }
 
-type MetricsReturned []Metric
+type MetricsReturned MetricList
 
 func (m MetricsReturned) Len() int {
-	return len(m)
+	return len(m.Metrics)
 }
 
 func (m MetricsReturned) Less(i, j int) bool {
-	return (fmt.Sprintf("%s:%d", m[i].Namespace, m[i].Version)) < (fmt.Sprintf("%s:%d", m[j].Namespace, m[j].Version))
+	return (fmt.Sprintf("%s:%d", m.Metrics[i].Namespace, m.Metrics[i].Version)) < (fmt.Sprintf("%s:%d", m.Metrics[j].Namespace, m.Metrics[j].Version))
 }
 
 func (m MetricsReturned) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
+	m.Metrics[i], m.Metrics[j] = m.Metrics[j], m.Metrics[i]
 }
 
 func NewMetricsReturned() MetricsReturned {
-	return make([]Metric, 0)
+	return MetricsReturned{Metrics: []Metric{}}
 }
 
 func (m MetricsReturned) ResponseBodyMessage() string {

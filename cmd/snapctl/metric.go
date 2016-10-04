@@ -70,7 +70,7 @@ func listMetrics(ctx *cli.Context) error {
 
 		printFields(w, false, 0, "NAMESPACE", "VERSION", "UNIT", "DESCRIPTION")
 		for _, mt := range mts.Catalog {
-			namespace := getNamespace(mt)
+			namespace := getNamespace(&mt)
 			printFields(w, false, 0, namespace, mt.Version, mt.Unit, mt.Description)
 		}
 		w.Flush()
