@@ -35,6 +35,19 @@ var (
 )
 
 func init() {
+	mockTribeMember = agreement.NewMember(&memberlist.Node{
+		Name: "Imma_Mock",
+		Addr: net.ParseIP("193.11.22.11"),
+		Port: uint16(0),
+		Meta: []byte("meta"), // Metadata from the delegate for this node.
+		PMin: uint8(0),       // Minimum protocol version this understands
+		PMax: uint8(0),       // Maximum protocol version this understands
+		PCur: uint8(0),       // Current version node is speaking
+		DMin: uint8(0),       // Min protocol version for the delegate to understand
+		DMax: uint8(0),       // Max protocol version for the delegate to understand
+		DCur: uint8(0),       // Current version delegate is speaking
+	})
+
 	mockTribeAgreement = agreement.New("Agree1")
 	mockTribeAgreement.PluginAgreement.Add(
 		agreement.Plugin{Name_: "mockVersion", Version_: 1, Type_: core.CollectorPluginType})
@@ -80,7 +93,7 @@ func (m *MockTribeManager) GetMembers() []string {
 	return []string{"one", "two", "three"}
 }
 func (m *MockTribeManager) GetMember(name string) *agreement.Member {
-	return &agreement.Member{}
+	return mockTribeMember
 }
 
 // These constants are the expected tribe responses from running
@@ -209,7 +222,7 @@ const (
     "version": 1
   },
   "body": {
-    "name": "",
+    "name": "Imma_Mock",
     "plugin_agreement": "",
     "tags": null,
     "task_agreements": null

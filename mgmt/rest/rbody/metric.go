@@ -19,21 +19,20 @@ limitations under the License.
 
 package rbody
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+)
 
 const (
 	MetricsReturnedType = "metrics_returned"
 	MetricReturnedType  = "metric_returned"
 )
 
-type PolicyTable struct {
-	Name     string      `json:"name"`
-	Type     string      `json:"type"`
-	Default  interface{} `json:"default,omitempty"`
-	Required bool        `json:"required"`
-	Minimum  interface{} `json:"minimum,omitempty"`
-	Maximum  interface{} `json:"maximum,omitempty"`
-}
+type PolicyTable cpolicy.RuleTable
+
+type PolicyTableSlice []cpolicy.RuleTable
 
 type Metric struct {
 	LastAdvertisedTimestamp int64            `json:"last_advertised_timestamp,omitempty"`
@@ -43,7 +42,7 @@ type Metric struct {
 	DynamicElements         []DynamicElement `json:"dynamic_elements,omitempty"`
 	Description             string           `json:"description,omitempty"`
 	Unit                    string           `json:"unit,omitempty"`
-	Policy                  []PolicyTable    `json:"policy,omitempty"`
+	Policy                  PolicyTableSlice `json:"policy,omitempty"`
 	Href                    string           `json:"href"`
 }
 

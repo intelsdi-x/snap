@@ -57,6 +57,8 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 
 func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	sts := s.mt.GetTasks()
+	// apiVersion should be "v1" or "v2".
+	// If apiVersion != "v2" calls default to V1 functionality
 	apiVersion := r.URL.Path[1:3]
 	if apiVersion == "v2" {
 		apiV2.GetTasks(w, r, sts)

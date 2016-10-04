@@ -14,38 +14,27 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody/v2"
 )
 
-func RespondWithMetrics(host string, mets []core.CatalogedMetric, w http.ResponseWriter) {
+func RespondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
 	b := v2.NewMetricsReturned()
-
-	for _, met := range mets {
-		rt := met.Policy().RulesAsTable()
-		policies := make([]rbody.PolicyTable, 0, len(rt))
-		for _, r := range rt {
-			policies = append(policies, rbody.PolicyTable{
-				Name:     r.Name,
-				Type:     r.Type,
-				Default:  r.Default,
-				Required: r.Required,
-				Minimum:  r.Minimum,
-				Maximum:  r.Maximum,
-			})
-		}
-		dyn, indexes := met.Namespace().IsDynamic()
+	for _, m := range mts {
+		var policies rbody.PolicyTableSlice
+		p := m.Policy().RulesAsTable()
+		policies = rbody.PolicyTableSlice(p)
+		dyn, indexes := m.Namespace().IsDynamic()
 		var dynamicElements []rbody.DynamicElement
 		if dyn {
-			dynamicElements = getDynamicElements(met.Namespace(), indexes)
+			dynamicElements = getDynamicElements(m.Namespace(), indexes)
 		}
-
 		b.Metrics = append(b.Metrics, rbody.Metric{
-			Namespace:               met.Namespace().String(),
-			Version:                 met.Version(),
-			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
-			Description:             met.Description(),
+			Namespace:               m.Namespace().String(),
+			Version:                 m.Version(),
+			LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
+			Description:             m.Description(),
 			Dynamic:                 dyn,
 			DynamicElements:         dynamicElements,
-			Unit:                    met.Unit(),
+			Unit:                    m.Unit(),
 			Policy:                  policies,
-			Href:                    catalogedMetricURI(host, met),
+			Href:                    catalogedMetricURI(host, m),
 		})
 	}
 	sort.Sort(b)
