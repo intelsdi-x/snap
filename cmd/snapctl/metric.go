@@ -53,7 +53,10 @@ func listMetrics(ctx *cli.Context) error {
 	if mts.Err != nil {
 		return fmt.Errorf("Error getting metrics: %v\n", mts.Err)
 	}
-
+	if mts.Len() == 0 {
+		fmt.Println("No metrics found. Have you loaded any collectors yet?")
+		return nil
+	}
 	/*
 		NAMESPACE               VERSION
 		/intel/mock/foo         1,2
