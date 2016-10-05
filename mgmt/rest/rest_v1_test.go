@@ -41,13 +41,13 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/mgmt/rest/fixtures"
+	"github.com/intelsdi-x/snap/plugin/helper"
 )
 
 var (
 	LOG_LEVEL         = log.WarnLevel
-	SNAP_PATH         = os.ExpandEnv(os.Getenv("SNAP_PATH"))
-	MOCK_PLUGIN_PATH1 = SNAP_PATH + "/plugin/snap-plugin-collector-mock1"
-	MOCK_TASK_PATH1   = SNAP_PATH + "/tasks/snap-task-collector-mock1"
+	SNAP_PATH         = helper.BuildPath
+	MOCK_PLUGIN_PATH1 = helper.PluginFilePath("snap-plugin-collector-mock1")
 )
 
 type restAPIInstance struct {
