@@ -34,9 +34,7 @@ __proj_dir="$(dirname "$__dir")"
 
 _info "project path: ${__proj_dir}"
 
-build_dir="${__proj_dir}/build"
-bin_dir="${build_dir}/bin"
-plugin_dir="${build_dir}/plugin"
+build_path="${__proj_dir}/build"
 go_build=(go build -ldflags "-w -X main.gitversion=${git_version}")
 
 _info "snap build version: ${git_version}"
@@ -46,20 +44,24 @@ _info "git commit: $(git log --pretty=format:"%H" -1)"
 export CGO_ENABLED=0
 
 # rebuild binaries:
-_debug "removing: ${bin_dir:?}/*"
-rm -rf "${bin_dir:?}/"*
-mkdir -p "${bin_dir}"
+export GOOS=linux
+export GOARCH=amd64
+bin_path="${build_path}/${GOOS}/x86_64"
+mkdir -p "${bin_path}"
+_info "building snapd/snapctl for ${GOOS}/${GOARCH}"
+"${go_build[@]}" -o "${bin_path}/snapd" . || exit 1
+(cd "${__proj_dir}/cmd/snapctl" && "${go_build[@]}" -o "${bin_path}/snapctl" . || exit 1)
 
-_info "building snapd"
-"${go_build[@]}" -o "${bin_dir}/snapd" . || exit 1
+_info "building plugins for ${GOOS}/${GOARCH}"
+find "${__proj_dir}/plugin/" -type d -iname "snap-*" -print0 | xargs -0 -n 1 -I{} "${__dir}/build_plugin.sh" {}
 
-_info "building snapctl"
-(cd "${__proj_dir}/cmd/snapctl" && "${go_build[@]}" -o "${bin_dir}/snapctl" . || exit 1)
+export GOOS=darwin
+export GOARCH=amd64
+bin_path="${build_path}/${GOOS}/x86_64"
+mkdir -p "${bin_path}"
+_info "building snapd/snapctl for ${GOOS}/${GOARCH}"
+"${go_build[@]}" -o "${bin_path}/snapd" . || exit 1
+(cd "${__proj_dir}/cmd/snapctl" && "${go_build[@]}" -o "${bin_path}/snapctl" . || exit 1)
 
-# rebuild plugins:
-_debug "removing: ${plugin_dir:?}/*"
-rm -rf "${plugin_dir:?}/"*
-mkdir -p "${plugin_dir}"
-
-_info "building plugins"
+_info "building plugins for ${GOOS}/${GOARCH}"
 find "${__proj_dir}/plugin/" -type d -iname "snap-*" -print0 | xargs -0 -n 1 -I{} "${__dir}/build_plugin.sh" {}

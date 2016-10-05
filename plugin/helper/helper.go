@@ -1,7 +1,6 @@
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
-
 Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,19 +22,40 @@ package helper
 import (
 	"fmt"
 	"os"
+	"path"
+	"runtime"
 )
 
-//SNAP_PATH should be set to Snap's build directory
+var (
+	BuildPath = os.ExpandEnv(os.Getenv("SNAP_PATH"))
+)
 
-//CheckPluginBuilt checks if PluginName has been built.
-func CheckPluginBuilt(SnapPath string, PluginName string) error {
-	if SnapPath == "" {
-		return fmt.Errorf("SNAP_PATH not set. Cannot test %s plugin.\n", PluginName)
+func PluginFileCheck(name string) error {
+	if BuildPath == "" {
+		return fmt.Errorf("$SNAP_PATH environment variable not set. Cannot test plugins.\n")
 	}
-	bPath := fmt.Sprintf("%s/plugin/%s", SnapPath, PluginName)
-	if _, err := os.Stat(bPath); os.IsNotExist(err) {
+
+	fpath := PluginFilePath(name)
+	if _, err := os.Stat(fpath); os.IsNotExist(err) {
 		//the binary has not been built yet
-		return fmt.Errorf("Error: $SNAP_PATH/plugin/%s does not exist. Run make to build it.", PluginName)
+		return fmt.Errorf("Error: %s does not exist in %s. Run make to build it.", name, fpath)
 	}
 	return nil
+}
+
+func PluginPath() string {
+	var arch string
+	if runtime.GOARCH == "amd64" {
+		arch = "x86_64"
+	} else {
+		arch = runtime.GOARCH
+	}
+
+	fpath := path.Join(BuildPath, runtime.GOOS, arch)
+	return fpath
+}
+
+func PluginFilePath(name string) string {
+	fpath := path.Join(PluginPath(), name)
+	return fpath
 }

@@ -26,7 +26,6 @@ package client
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -36,6 +35,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/mgmt/rest"
+	"github.com/intelsdi-x/snap/plugin/helper"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
@@ -45,12 +45,11 @@ var (
 	// Change to set the REST API logging to debug
 	LOG_LEVEL = log.FatalLevel
 
-	SNAP_PATH               = os.ExpandEnv(os.Getenv("SNAP_PATH"))
-	MOCK_PLUGIN_PATH1       = []string{SNAP_PATH + "/plugin/snap-plugin-collector-mock1"}
-	MOCK_PLUGIN_PATH2       = []string{SNAP_PATH + "/plugin/snap-plugin-collector-mock2"}
-	ANOTHERMOCK_PLUGIN_PATH = []string{SNAP_PATH + "/plugin/snap-plugin-collector-anothermock1"}
-	FILE_PLUGIN_PATH        = []string{SNAP_PATH + "/plugin/snap-plugin-publisher-mock-file"}
-	DIRECTORY_PATH          = []string{SNAP_PATH + "/plugin/"}
+	MOCK_PLUGIN_PATH1       = []string{helper.PluginFilePath("snap-plugin-collector-mock1")}
+	MOCK_PLUGIN_PATH2       = []string{helper.PluginFilePath("snap-plugin-collector-mock2")}
+	ANOTHERMOCK_PLUGIN_PATH = []string{helper.PluginFilePath("snap-plugin-collector-anothermock1")}
+	FILE_PLUGIN_PATH        = []string{helper.PluginFilePath("snap-plugin-publisher-mock-file")}
+	DIRECTORY_PATH          = []string{helper.PluginPath()}
 
 	NextPort = 45000
 

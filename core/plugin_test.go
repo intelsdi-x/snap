@@ -24,17 +24,17 @@ package core
 import (
 	"crypto/sha256"
 	"io/ioutil"
-	"os"
 	"path"
 	"testing"
 
+	"github.com/intelsdi-x/snap/plugin/helper"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
 	PluginName    = "snap-plugin-collector-mock1"
-	SnapPath      = os.ExpandEnv(os.Getenv("SNAP_PATH"))
-	PluginPath    = path.Join(SnapPath, "plugin", PluginName)
+	SnapPath      = helper.BuildPath
+	PluginPath    = helper.PluginFilePath(PluginName)
 	SignatureFile = path.Join(SnapPath, "../pkg/psigning", "snap-plugin-collector-mock1.asc")
 )
 

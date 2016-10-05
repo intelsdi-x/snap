@@ -22,8 +22,6 @@ limitations under the License.
 package main
 
 import (
-	"os"
-	"path"
 	"testing"
 
 	"github.com/intelsdi-x/snap/control"
@@ -35,8 +33,7 @@ import (
 var (
 	PluginName = "snap-plugin-collector-anothermock1"
 	PluginType = "collector"
-	SnapPath   = os.ExpandEnv(os.Getenv("SNAP_PATH"))
-	PluginPath = path.Join(SnapPath, "plugin", PluginName)
+	PluginPath = helper.PluginFilePath(PluginName)
 )
 
 func TestMockPluginLoad(t *testing.T) {
@@ -44,7 +41,7 @@ func TestMockPluginLoad(t *testing.T) {
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
 	Convey("make sure plugin has been built", t, func() {
-		err := helper.CheckPluginBuilt(SnapPath, PluginName)
+		err := helper.PluginFileCheck(PluginName)
 		So(err, ShouldBeNil)
 
 		Convey("ensure plugin loads and responds", func() {

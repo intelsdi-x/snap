@@ -23,10 +23,9 @@ package psigning
 
 import (
 	"io/ioutil"
-	"os"
-	"path"
 	"testing"
 
+	"github.com/intelsdi-x/snap/plugin/helper"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -34,8 +33,7 @@ func TestValidateSignature(t *testing.T) {
 	keyringFile := []string{"pubring.gpg"}
 	signedFile := "snap-plugin-collector-mock1"
 	signatureFile := signedFile + ".asc"
-	snapPath := os.ExpandEnv(os.Getenv("SNAP_PATH"))
-	unsignedFile := path.Join(snapPath, "plugin", "snap-plugin-collector-mock2")
+	unsignedFile := helper.PluginFilePath("snap-plugin-collector-mock2")
 	s := SigningManager{}
 
 	signature, _ := ioutil.ReadFile(signatureFile)

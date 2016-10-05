@@ -28,7 +28,7 @@ __proj_dir="$(dirname "$__dir")"
 . "${__dir}/common.sh"
 
 build_dir="${__proj_dir}/build"
-plugin_dir="${build_dir}/plugin"
+plugin_dir="${build_dir}/${GOOS}/x86_64"
 
 plugin_src_path=$1
 plugin_name=$(basename "${plugin_src_path}")
