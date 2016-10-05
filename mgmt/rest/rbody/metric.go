@@ -54,7 +54,7 @@ type DynamicElement struct {
 }
 
 type MetricReturned struct {
-	Metric *Metric
+	Metric *Metric `json:"metric,omitempty"`
 }
 
 func (m *MetricReturned) ResponseBodyMessage() string {

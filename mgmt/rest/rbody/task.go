@@ -49,7 +49,7 @@ const (
 )
 
 type ScheduledTaskListReturned struct {
-	ScheduledTasks []ScheduledTask
+	ScheduledTasks []ScheduledTask `json:"scheduled_task,omitempty"`
 }
 
 func (s *ScheduledTaskListReturned) Len() int {
