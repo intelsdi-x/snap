@@ -41,7 +41,7 @@ deploy:
   bucket: snap.ci.snap-telemetry.io
   region: us-west-2
   skip_cleanup: true
-  local-dir: s3
+  local-dir: s3/snap
   upload-dir: snap
   acl: public_read
   on:
