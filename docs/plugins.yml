@@ -15,18 +15,15 @@
 # After merging, we run a job to update PLUGIN_CATALOG.md and
 # the list available on our website: http://snap-telemetry.io/plugins.html
 #####################
-- Staples-Inc/snap-plugin-collector-jmx
-- Staples-Inc/snap-plugin-collector-couchbase
-- Staples-Inc/snap-plugin-collector-nginx
-- Staples-Inc/snap-plugin-collector-netstat
-- Staples-Inc/snap-plugin-collector-procstat
-- raintank/snap-plugin-collector-procnum
 - raintank/snap-plugin-collector-ping
+- raintank/snap-plugin-collector-procnum
 - raintank/snap-plugin-collector-memcache
+- Staples-Inc/snap-plugin-collector-couchbase
+- Staples-Inc/snap-plugin-collector-netstat
+- Staples-Inc/snap-plugin-collector-nginx
+- Staples-Inc/snap-plugin-collector-procstat
 - Staples-Inc/snap-plugin-publisher-blueflood
 - Ticketmaster/snap-plugin-publisher-cloudwatch
-- intelsdi-x/snap-plugin-processor-statistics
-- intelsdi-x/snap-plugin-processor-anomalydetection
 - intelsdi-x/snap-plugin-collector-apache
 - intelsdi-x/snap-plugin-collector-ceph
 - intelsdi-x/snap-plugin-collector-cinder
@@ -62,10 +59,13 @@
 - intelsdi-x/snap-plugin-collector-psutil
 - intelsdi-x/snap-plugin-collector-rabbitmq
 - intelsdi-x/snap-plugin-collector-scaleio
+- intelsdi-x/snap-plugin-collector-snmp
 - intelsdi-x/snap-plugin-collector-smart
 - intelsdi-x/snap-plugin-collector-swap
 - intelsdi-x/snap-plugin-collector-users
+- intelsdi-x/snap-plugin-processor-anomalydetection
 - intelsdi-x/snap-plugin-processor-movingaverage
+- intelsdi-x/snap-plugin-processor-statistics
 - intelsdi-x/snap-plugin-processor-tag
 - intelsdi-x/snap-plugin-publisher-file
 - intelsdi-x/snap-plugin-publisher-graphite
