@@ -33,7 +33,7 @@ type mockCmd struct{}
 
 func (mc *mockCmd) Path() string { return "" }
 func (mc *mockCmd) Kill() error  { return nil }
-func (mc *mockCmd) Start()       {}
+func (mc *mockCmd) Start() error { return nil }
 
 func setupMockExec(resp []byte, timeout bool) *ExecutablePlugin {
 	stdout, stdoutw := io.Pipe()
