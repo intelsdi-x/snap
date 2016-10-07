@@ -215,14 +215,27 @@ func (c *CollectWorkflowMapNode) GetMetrics() []Metric {
 	metrics := make([]Metric, len(c.Metrics))
 	i := 0
 	for k, v := range c.Metrics {
-		ns := strings.Trim(k, `/`)
+		// Identify the character to split on by peaking
+		// at the first character of each metric.
+		firstChar := getFirstChar(k)
+		ns := strings.Trim(k, firstChar)
 		metrics[i] = Metric{
-			namespace: strings.Split(ns, "/"),
+			namespace: strings.Split(ns, firstChar),
 			version:   v.Version_,
 		}
 		i++
 	}
 	return metrics
+}
+
+// GetFirstChar returns the first character from the input string.
+func getFirstChar(s string) string {
+	firstChar := ""
+	for _, r := range s {
+		firstChar = fmt.Sprintf("%c", r)
+		break
+	}
+	return firstChar
 }
 
 func (c *CollectWorkflowMapNode) GetTags() map[string]map[string]string {

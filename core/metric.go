@@ -20,6 +20,7 @@ limitations under the License.
 package core
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -31,6 +32,7 @@ var (
 	// Standard Tags are in added to the metric by the framework on plugin load.
 	// STD_TAG_PLUGIN_RUNNING_ON describes where the plugin is running (hostname).
 	STD_TAG_PLUGIN_RUNNING_ON = "plugin_running_on"
+	nsPriorityList            = []string{"/", "|", "%", ":", "-", ";", "_", "^", ">", "<", "+", "=", "&", "㊽", "Ä", "大", "小", "ᵹ", "☍", "ヒ"}
 )
 
 // Metric represents a snap metric collected or to be collected
@@ -51,7 +53,8 @@ type Namespace []NamespaceElement
 // the elements of the namespace.  A leading "/" is added.
 func (n Namespace) String() string {
 	ns := n.Strings()
-	return "/" + strings.Join(ns, "/")
+	s := n.getSeparator()
+	return s + strings.Join(ns, s)
 }
 
 // Strings returns an array of strings that represent the elements of the
@@ -62,6 +65,40 @@ func (n Namespace) Strings() []string {
 		ns = append(ns, namespaceElement.Value)
 	}
 	return ns
+}
+
+// getSeparator returns the highest suitable separator from the nsPriorityList.
+// Otherwise the core separator is returned.
+func (n Namespace) getSeparator() string {
+	smap := initSeparatorMap()
+
+	for _, e := range n {
+		// look at each char
+		for _, r := range e.Value {
+			ch := fmt.Sprintf("%c", r)
+			if v, ok := smap[ch]; ok && !v {
+				smap[ch] = true
+			}
+		}
+	}
+
+	// Go through our separator list
+	for _, s := range nsPriorityList {
+		if v, ok := smap[s]; ok && !v {
+			return s
+		}
+	}
+	return Separator
+}
+
+// initSeparatorMap populates the local map of nsPriorityList.
+func initSeparatorMap() map[string]bool {
+	m := map[string]bool{}
+
+	for _, s := range nsPriorityList {
+		m[s] = false
+	}
+	return m
 }
 
 // IsDynamic returns true if there is any element of the namespace which is
