@@ -27,7 +27,7 @@ func NewGetConfigPolicyReply(policy *cpolicy.ConfigPolicy) (*GetConfigPolicyRepl
 	for _, node := range policy.GetAll() {
 		key := strings.Join(node.Key, ".")
 
-		for _, rule := range node.Node.RulesAsTable() {
+		for _, rule := range node.RulesAsTable() {
 			switch rule.Type {
 			case cpolicy.BoolType:
 				r := &BoolRule{

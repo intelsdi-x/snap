@@ -140,8 +140,8 @@ func (c *ConfigPolicy) Get(ns []string) *ConfigPolicyNode {
 }
 
 type keyNode struct {
-	Key  []string
-	Node *ConfigPolicyNode
+	Key []string
+	*ConfigPolicyNode
 }
 
 func (c *ConfigPolicy) GetAll() []keyNode {
@@ -149,9 +149,9 @@ func (c *ConfigPolicy) GetAll() []keyNode {
 	ret := make([]keyNode, 0)
 	for _, node := range c.config.GetAll() {
 		key := node.Key
-		switch t := node.N.(type) {
+		switch t := node.Node.(type) {
 		case *ConfigPolicyNode:
-			ret = append(ret, keyNode{Key: key, Node: t})
+			ret = append(ret, keyNode{Key: key, ConfigPolicyNode: t})
 		}
 	}
 	return ret

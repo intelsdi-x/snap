@@ -116,7 +116,7 @@ func (c *ConfigTree) Add(ns []string, inNode Node) {
 
 type keyNode struct {
 	Key []string
-	N   Node
+	Node
 }
 
 func (c *ConfigTree) GetAll() []keyNode {
@@ -137,8 +137,8 @@ func (c *ConfigTree) getAll(node *node, key []string, res *[]keyNode) []keyNode 
 		}
 		if node.Node != nil {
 			k := keyNode{
-				Key: key,
-				N:   node.Node,
+				Key:  key,
+				Node: node.Node,
 			}
 			*res = append(*res, k)
 		}
