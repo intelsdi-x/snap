@@ -84,7 +84,6 @@ func TestConfigTree(t *testing.T) {
 		c.Add([]string{"intel", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, newMockNode())
 		c.Add([]string{"intel", "sdilabs", "joel", "dan"}, newMockNode())
 		c.Add([]string{"intel", "manhole", "joel", "dan"}, newMockNode())
-		c.Freeze()
 		results := c.GetAll()
 		So(results, ShouldNotBeNil)
 		So(len(results), ShouldEqual, 3)
@@ -105,7 +104,6 @@ func TestConfigTree(t *testing.T) {
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan"}, d2)
 			c.Add([]string{"intel", "foo", "manhole", "joel", "dan"}, d3)
 			c.Add([]string{"intel", "foo", "manhole", "joel", "dan", "mark"}, d4)
-			c.Freeze()
 			c.Print()
 			g := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 			So(g, ShouldNotBeNil)
@@ -132,7 +130,6 @@ func TestConfigTree(t *testing.T) {
 			d1.data = "a"
 			c := New()
 			c.Add([]string{"1"}, d1)
-			c.Freeze()
 			g := c.Get([]string{"1"})
 			So(g, ShouldNotBeNil)
 			So(g.(*mockNode).data, ShouldResemble, "a")
@@ -147,7 +144,6 @@ func TestConfigTree(t *testing.T) {
 			c.Debug = true
 			c.Add([]string{"1"}, d1)
 			c.Add([]string{"1", "2"}, d2)
-			c.Freeze()
 			g := c.Get([]string{"1", "2"})
 			So(g, ShouldNotBeNil)
 			So(g.(mockNode).data, ShouldResemble, "a/b")
@@ -155,7 +151,6 @@ func TestConfigTree(t *testing.T) {
 
 		Convey("blank tree return nil", func() {
 			c := New()
-			c.Freeze()
 			n := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 			So(n, ShouldBeNil)
 		})
@@ -164,7 +159,6 @@ func TestConfigTree(t *testing.T) {
 			d1 := newMockNode()
 			d1.data = "a"
 			c := New()
-			c.Freeze()
 			c.Add([]string{"1"}, d1)
 			n := c.Get([]string{"2"})
 			So(n, ShouldBeNil)
@@ -176,7 +170,6 @@ func TestConfigTree(t *testing.T) {
 			d1 := newMockNode()
 			d1.data = "a"
 			c.Add([]string{"intel"}, d1)
-			c.Freeze()
 			n := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 			So(n, ShouldNotBeNil)
 		})
@@ -186,7 +179,6 @@ func TestConfigTree(t *testing.T) {
 			d1 := newMockNode()
 			d1.data = "a"
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
-			c.Freeze()
 			n := c.Get([]string{"intel"})
 			So(n, ShouldBeNil)
 		})
@@ -199,7 +191,6 @@ func TestConfigTree(t *testing.T) {
 			c := New()
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan"}, d2)
-			c.Freeze()
 			g := c.Get([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"})
 			So(g, ShouldNotBeNil)
 		})
@@ -212,7 +203,6 @@ func TestConfigTree(t *testing.T) {
 			c := New()
 			c.Add([]string{"intel", "foo", "sdilabs", "joel", "dan", "nick", "justin", "sarah"}, d1)
 			c.Add([]string{"intel", "foo", "sdilabs"}, d2)
-			c.Freeze()
 			g := c.Get([]string{"intel", "foo", "sdilabs", "joel"})
 			So(g, ShouldNotBeNil)
 		})
@@ -238,7 +228,6 @@ func TestConfigTree(t *testing.T) {
 			c := New()
 			c.Add([]string{"intel", "foo", "sdi-x", "cody"}, d1)
 			c.Add([]string{"intel", "foo", "sdi-x", "nan"}, d2)
-			c.Freeze()
 			So(func() {
 				g := c.Get([]string{"intel", "foo", "sdi-x", "emily", "tiffany", "matt"})
 				So(g, ShouldBeNil)
@@ -251,28 +240,9 @@ func TestConfigTree(t *testing.T) {
 			c := New()
 			So(func() {
 				c.Add([]string{}, d1)
-				c.Freeze()
 				g := c.Get([]string{})
 				So(g, ShouldBeNil)
 			}, ShouldNotPanic)
 		})
-
-		Convey("should panic on non frozen get", func() {
-			d1 := newMockNode()
-			d1.data = "a"
-			c := New()
-			So(func() {
-				c.Add([]string{}, d1)
-				g := c.Get([]string{})
-				So(g, ShouldBeNil)
-			}, ShouldPanic)
-		})
 	})
-
-	Convey("Frozen()", t, func() {
-		c := New()
-		c.Freeze()
-		So(c.Frozen(), ShouldBeTrue)
-	})
-
 }

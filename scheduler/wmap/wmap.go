@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
@@ -255,10 +254,6 @@ func (c *CollectWorkflowMapNode) GetConfigTree() (*cdata.ConfigDataTree, error) 
 	// Iterate over config and attempt to convert into data nodes in the tree
 	for ns_, cmap := range c.Config {
 
-		// Attempt to convert namespace string to proper namespace
-		if !isValidNamespaceString(ns_) {
-			return nil, errors.New(fmt.Sprintf("Invalid namespace: %v", ns_))
-		}
 		ns := strings.Split(ns_, "/")[1:]
 		cdn, err := configtoConfigDataNode(cmap, ns_)
 		if err != nil {
@@ -471,15 +466,6 @@ func (m Metric) Namespace() []string {
 
 func (m Metric) Version() int {
 	return m.version
-}
-
-func isValidNamespaceString(ns string) bool {
-	b, err := regexp.MatchString("^(/[a-z0-9]+)+$", ns)
-	if err != nil {
-		// Just safety in case regexp packages changes in some way to break this in the future.
-		panic(err)
-	}
-	return b
 }
 
 func configtoConfigDataNode(cmap map[string]interface{}, ns string) (*cdata.ConfigDataNode, error) {

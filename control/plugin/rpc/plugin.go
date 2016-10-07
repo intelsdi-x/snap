@@ -24,7 +24,9 @@ func NewGetConfigPolicyReply(policy *cpolicy.ConfigPolicy) (*GetConfigPolicyRepl
 		StringPolicy:  map[string]*StringPolicy{},
 	}
 
-	for key, node := range policy.GetAll() {
+	for _, node := range policy.GetAll() {
+		key := strings.Join(node.Key, ".")
+
 		for _, rule := range node.RulesAsTable() {
 			switch rule.Type {
 			case cpolicy.BoolType:
@@ -35,7 +37,10 @@ func NewGetConfigPolicyReply(policy *cpolicy.ConfigPolicy) (*GetConfigPolicyRepl
 					r.Default = rule.Default.(ctypes.ConfigValueBool).Value
 				}
 				if ret.BoolPolicy[key] == nil {
-					ret.BoolPolicy[key] = &BoolPolicy{Rules: map[string]*BoolRule{}}
+					ret.BoolPolicy[key] = &BoolPolicy{
+						Rules: map[string]*BoolRule{},
+						Key:   node.Key,
+					}
 				}
 				ret.BoolPolicy[key].Rules[rule.Name] = r
 			case cpolicy.StringType:
@@ -46,7 +51,10 @@ func NewGetConfigPolicyReply(policy *cpolicy.ConfigPolicy) (*GetConfigPolicyRepl
 					r.Default = rule.Default.(ctypes.ConfigValueStr).Value
 				}
 				if ret.StringPolicy[key] == nil {
-					ret.StringPolicy[key] = &StringPolicy{Rules: map[string]*StringRule{}}
+					ret.StringPolicy[key] = &StringPolicy{
+						Rules: map[string]*StringRule{},
+						Key:   node.Key,
+					}
 				}
 				ret.StringPolicy[key].Rules[rule.Name] = r
 			case cpolicy.IntegerType:
@@ -63,7 +71,10 @@ func NewGetConfigPolicyReply(policy *cpolicy.ConfigPolicy) (*GetConfigPolicyRepl
 					r.Minimum = int64(rule.Minimum.(ctypes.ConfigValueInt).Value)
 				}
 				if ret.IntegerPolicy[key] == nil {
-					ret.IntegerPolicy[key] = &IntegerPolicy{Rules: map[string]*IntegerRule{}}
+					ret.IntegerPolicy[key] = &IntegerPolicy{
+						Rules: map[string]*IntegerRule{},
+						Key:   node.Key,
+					}
 				}
 				ret.IntegerPolicy[key].Rules[rule.Name] = r
 			case cpolicy.FloatType:
@@ -80,7 +91,10 @@ func NewGetConfigPolicyReply(policy *cpolicy.ConfigPolicy) (*GetConfigPolicyRepl
 					r.Minimum = rule.Minimum.(ctypes.ConfigValueFloat).Value
 				}
 				if ret.FloatPolicy[key] == nil {
-					ret.FloatPolicy[key] = &FloatPolicy{Rules: map[string]*FloatRule{}}
+					ret.FloatPolicy[key] = &FloatPolicy{
+						Rules: map[string]*FloatRule{},
+						Key:   node.Key,
+					}
 				}
 				ret.FloatPolicy[key].Rules[rule.Name] = r
 			}
@@ -169,7 +183,7 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 			var fr *cpolicy.FloatRule
 			var err error
 			if val.HasDefault {
-				fr, err = cpolicy.NewFloatRule(key, val.Required)
+				fr, err = cpolicy.NewFloatRule(key, val.Required, val.Default)
 			} else {
 
 				fr, err = cpolicy.NewFloatRule(key, val.Required)
@@ -191,7 +205,20 @@ func ToConfigPolicy(reply *GetConfigPolicyReply) *cpolicy.ConfigPolicy {
 	}
 
 	for key, node := range nodes {
-		keys := strings.Split(key, ".")
+		var keys []string
+		// if the []string is present, use it.
+		// if not, fall back to dot separated key
+		if val, ok := reply.BoolPolicy[key]; ok && val != nil && val.Key != nil {
+			keys = val.Key
+		} else if val, ok := reply.StringPolicy[key]; ok && val != nil && val.Key != nil {
+			keys = val.Key
+		} else if val, ok := reply.FloatPolicy[key]; ok && val != nil && val.Key != nil {
+			keys = val.Key
+		} else if val, ok := reply.IntegerPolicy[key]; ok && val != nil && val.Key != nil {
+			keys = val.Key
+		} else {
+			keys = strings.Split(key, ".")
+		}
 		result.Add(keys, node)
 	}
 

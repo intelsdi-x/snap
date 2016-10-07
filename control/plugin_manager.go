@@ -362,8 +362,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		if lPlugin.ConfigPolicy != nil {
 			// Get plugin config defaults
 			defaults := cdata.NewNode()
-			cpolicies := lPlugin.ConfigPolicy.GetAll()
-			for _, cpolicy := range cpolicies {
+			for _, cpolicy := range lPlugin.ConfigPolicy.GetAll() {
 				_, errs := cpolicy.AddDefaults(defaults.Table())
 				if len(errs.Errors()) > 0 {
 					for _, err := range errs.Errors() {

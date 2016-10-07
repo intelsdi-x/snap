@@ -45,7 +45,6 @@ func TestConfigPolicy(t *testing.T) {
 			ns := []string{"one", "two", "potato"}
 
 			cp.Add(ns, cpn)
-			cp.Freeze()
 			Convey("retrieves store policy", func() {
 				gc := cp.Get(ns)
 				So(gc.rules["username"].Required(), ShouldEqual, false)

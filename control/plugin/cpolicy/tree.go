@@ -126,10 +126,6 @@ func (c *ConfigPolicy) Add(ns []string, cpn *ConfigPolicyNode) {
 
 // Returns a ConfigPolicyNode that is a merged version of the namespace provided.
 func (c *ConfigPolicy) Get(ns []string) *ConfigPolicyNode {
-	// Automatically freeze on first Get
-	if !c.config.Frozen() {
-		c.config.Freeze()
-	}
 
 	n := c.config.Get(ns)
 	if n == nil {
@@ -140,28 +136,23 @@ func (c *ConfigPolicy) Get(ns []string) *ConfigPolicyNode {
 		return &t
 	default:
 		return t.(*ConfigPolicyNode)
-
 	}
 }
 
-func (c *ConfigPolicy) GetAll() map[string]*ConfigPolicyNode {
-	// Automatically freeze on first Get
-	if !c.config.Frozen() {
-		c.config.Freeze()
-	}
+type keyNode struct {
+	Key []string
+	*ConfigPolicyNode
+}
 
-	ret := map[string]*ConfigPolicyNode{}
-	for key, node := range c.config.GetAll() {
-		switch t := node.(type) {
+func (c *ConfigPolicy) GetAll() []keyNode {
+
+	ret := make([]keyNode, 0)
+	for _, node := range c.config.GetAll() {
+		key := node.Key
+		switch t := node.Node.(type) {
 		case *ConfigPolicyNode:
-			ret[key] = t
+			ret = append(ret, keyNode{Key: key, ConfigPolicyNode: t})
 		}
 	}
 	return ret
-}
-
-// Freezes the ConfigPolicy from future writes (adds) and triggers compression
-// of tree into read-performant version.
-func (c *ConfigPolicy) Freeze() {
-	c.config.Freeze()
 }
