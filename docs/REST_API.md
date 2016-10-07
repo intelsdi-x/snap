@@ -449,7 +449,7 @@ _**Example Response**_
 }
 ```
 **GET /v1/tasks/:id/watch**:
-Watch a task activity stream given a task ID
+Watch a task activity stream given a task ID. Watch is an event stream sent over a long running HTTP connection.
 
 _**Example Request**_
 ```
