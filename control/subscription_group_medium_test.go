@@ -23,11 +23,13 @@ package control
 
 import (
 	"net"
+	"path"
 	"testing"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/control_event"
+	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/plugin/helper"
 
@@ -273,7 +275,7 @@ func TestSubscriptionGroups_ProcessDynamicPositive(t *testing.T) {
 
 		<-lpe.load
 
-		Convey("Subscription group created for requested metric with wildcards", func() {
+		Convey("ValidateDeps", func() {
 			requested := mockRequestedMetric{namespace: core.NewNamespace("intel").AddDynamicElement("wild", "wild description")}
 			mock1 := mockSubscribedPlugin{
 				typeName: core.CollectorPluginType,
@@ -281,55 +283,62 @@ func TestSubscriptionGroups_ProcessDynamicPositive(t *testing.T) {
 				version:  1,
 				config:   cdata.NewNode(),
 			}
-
+			cnode := cdata.NewNode()
+			cnode.AddItem("password", ctypes.ConfigValueStr{Value: "secret"})
+			ctree := cdata.NewTree()
+			ctree.Add([]string{"intel", "mock"}, cnode)
 			sg := newSubscriptionGroups(c)
 			So(sg, ShouldNotBeNil)
-			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{mock1})
-			<-lpe.sub
-			So(len(sg.subscriptionMap), ShouldEqual, 1)
-			group, ok := sg.subscriptionMap["task-id"]
-			So(ok, ShouldBeTrue)
-			So(group, ShouldNotBeNil)
-			So(len(group.plugins), ShouldEqual, 1)
-			So(subscribedPluginsContain(group.plugins, mock1), ShouldBeTrue)
-			plgKey := key(group.plugins[0])
-			So(group.metrics, ShouldContainKey, plgKey)
-			metrics := group.metrics[plgKey].Metrics()
-			So(len(metrics), ShouldBeGreaterThan, 1)
-			So(len(group.requestedMetrics), ShouldEqual, 1)
-			mts1 := len(metrics)
-
-			Convey("loading another mock", func() {
-				anotherMock1 := mockSubscribedPlugin{
-					typeName: core.CollectorPluginType,
-					name:     "anothermock",
-					version:  1,
-					config:   cdata.NewNode(),
-				}
-				_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-anothermock1"))
-				So(err, ShouldBeNil)
-				<-lpe.load
-				serrs := sg.Process()
-				So(len(serrs), ShouldEqual, 0)
-
+			errs := sg.ValidateDeps([]core.RequestedMetric{requested}, []core.SubscribedPlugin{mock1}, ctree)
+			So(errs, ShouldBeNil)
+			Convey("Subscription group created for requested metric with wildcards", func() {
+				sg.Add("task-id", []core.RequestedMetric{requested}, ctree, []core.SubscribedPlugin{mock1})
+				<-lpe.sub
 				So(len(sg.subscriptionMap), ShouldEqual, 1)
 				group, ok := sg.subscriptionMap["task-id"]
 				So(ok, ShouldBeTrue)
 				So(group, ShouldNotBeNil)
-				So(len(group.plugins), ShouldEqual, 2)
+				So(len(group.plugins), ShouldEqual, 1)
 				So(subscribedPluginsContain(group.plugins, mock1), ShouldBeTrue)
-				So(subscribedPluginsContain(group.plugins, anotherMock1), ShouldBeTrue)
-				plgKey1 := key(group.plugins[0])
-				plgKey2 := key(group.plugins[1])
-				So(group.metrics, ShouldContainKey, plgKey1)
-				So(group.metrics, ShouldContainKey, plgKey2)
-				metricsPlg1 := group.metrics[plgKey1].Metrics()
-				metricsPlg2 := group.metrics[plgKey2].Metrics()
-				So(len(metricsPlg1), ShouldBeGreaterThan, 1)
-				So(len(metricsPlg2), ShouldBeGreaterThan, 1)
+				plgKey := key(group.plugins[0])
+				So(group.metrics, ShouldContainKey, plgKey)
+				metrics := group.metrics[plgKey].Metrics()
+				So(len(metrics), ShouldBeGreaterThan, 1)
 				So(len(group.requestedMetrics), ShouldEqual, 1)
-				mts2 := len(metricsPlg1) + len(metricsPlg2)
-				So(mts2, ShouldBeGreaterThan, mts1)
+				mts1 := len(metrics)
+
+				Convey("loading another mock", func() {
+					anotherMock1 := mockSubscribedPlugin{
+						typeName: core.CollectorPluginType,
+						name:     "anothermock",
+						version:  1,
+						config:   cdata.NewNode(),
+					}
+					_, err := loadPlg(c, path.Join(helper.PluginFilePath("snap-plugin-collector-anothermock1")))
+					So(err, ShouldBeNil)
+					<-lpe.load
+					serrs := sg.Process()
+					So(len(serrs), ShouldEqual, 0)
+
+					So(len(sg.subscriptionMap), ShouldEqual, 1)
+					group, ok := sg.subscriptionMap["task-id"]
+					So(ok, ShouldBeTrue)
+					So(group, ShouldNotBeNil)
+					So(len(group.plugins), ShouldEqual, 2)
+					So(subscribedPluginsContain(group.plugins, mock1), ShouldBeTrue)
+					So(subscribedPluginsContain(group.plugins, anotherMock1), ShouldBeTrue)
+					plgKey1 := key(group.plugins[0])
+					plgKey2 := key(group.plugins[1])
+					So(group.metrics, ShouldContainKey, plgKey1)
+					So(group.metrics, ShouldContainKey, plgKey2)
+					metricsPlg1 := group.metrics[plgKey1].Metrics()
+					metricsPlg2 := group.metrics[plgKey2].Metrics()
+					So(len(metricsPlg1), ShouldBeGreaterThan, 1)
+					So(len(metricsPlg2), ShouldBeGreaterThan, 1)
+					So(len(group.requestedMetrics), ShouldEqual, 1)
+					mts2 := len(metricsPlg1) + len(metricsPlg2)
+					So(mts2, ShouldBeGreaterThan, mts1)
+				})
 			})
 		})
 	})
@@ -407,7 +416,7 @@ func TestSubscriptionGroups_ProcessDynamicNegative(t *testing.T) {
 }
 
 func TestSubscriptionGroups_ProcessSpecifiedDynamicPositive(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.WarnLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -419,8 +428,7 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicPositive(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		<-lpe.load
-
-		Convey("Subscription group created for requested metric with specified instance of dynamic element and with wildcards", func() {
+		Convey("ValidateDeps", func() {
 			requested := mockRequestedMetric{namespace: core.NewNamespace("intel").AddDynamicElement("wild", "wild description").AddDynamicElement("host", "name of the host").AddStaticElement("baz")}
 			// specified dynamic element
 			requested.Namespace()[2].Value = "host0"
@@ -433,57 +441,60 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicPositive(t *testing.T) {
 
 			sg := newSubscriptionGroups(c)
 			So(sg, ShouldNotBeNil)
-
-			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{mock1})
-			<-lpe.sub
-
-			So(len(sg.subscriptionMap), ShouldEqual, 1)
-			group, ok := sg.subscriptionMap["task-id"]
-			So(ok, ShouldBeTrue)
-			So(group, ShouldNotBeNil)
-			So(subscribedPluginsContain(group.plugins, mock1), ShouldBeTrue)
-			So(len(group.plugins), ShouldEqual, 1)
-			plgKey := key(group.plugins[0])
-			So(group.metrics, ShouldContainKey, plgKey)
-			metrics := group.metrics[plgKey].Metrics()
-			// expected 1 subscribed metric: `/intel/mock/host0/baz`
-			So(len(metrics), ShouldEqual, 1)
-			So(len(group.requestedMetrics), ShouldEqual, 1)
-			mts1 := len(metrics)
-
-			Convey("loading another mock", func() {
-				anotherMock1 := mockSubscribedPlugin{
-					typeName: core.CollectorPluginType,
-					name:     "anothermock",
-					version:  1,
-					config:   cdata.NewNode(),
-				}
-				_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-anothermock1"))
-				So(err, ShouldBeNil)
-				<-lpe.load
-				serrs := sg.Process()
-				So(len(serrs), ShouldEqual, 0)
+			serrs := sg.ValidateDeps([]core.RequestedMetric{requested}, []core.SubscribedPlugin{mock1}, cdata.NewTree())
+			So(serrs, ShouldBeNil)
+			Convey("Subscription group created for requested metric with specified instance of dynamic element and with wildcards", func() {
+				sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{mock1})
+				<-lpe.sub
 
 				So(len(sg.subscriptionMap), ShouldEqual, 1)
 				group, ok := sg.subscriptionMap["task-id"]
 				So(ok, ShouldBeTrue)
 				So(group, ShouldNotBeNil)
-				So(len(group.plugins), ShouldEqual, 2)
 				So(subscribedPluginsContain(group.plugins, mock1), ShouldBeTrue)
-				So(subscribedPluginsContain(group.plugins, anotherMock1), ShouldBeTrue)
-				plgKey1 := key(group.plugins[0])
-				plgKey2 := key(group.plugins[1])
-				So(group.metrics, ShouldContainKey, plgKey1)
-				So(group.metrics, ShouldContainKey, plgKey2)
-				metricsPlg1 := group.metrics[plgKey1].Metrics()
-				metricsPlg2 := group.metrics[plgKey2].Metrics()
-				// expected 1 subscribed metric per each plugin:
-				// `/intel/mock/host0/baz` and `/intel/anothermock/host0/baz`
-				So(len(metricsPlg1), ShouldEqual, 1)
-				So(len(metricsPlg2), ShouldEqual, 1)
+				So(len(group.plugins), ShouldEqual, 1)
+				plgKey := key(group.plugins[0])
+				So(group.metrics, ShouldContainKey, plgKey)
+				metrics := group.metrics[plgKey].Metrics()
+				// expected 1 subscribed metric: `/intel/mock/host0/baz`
+				So(len(metrics), ShouldEqual, 1)
+				So(len(group.requestedMetrics), ShouldEqual, 1)
+				mts1 := len(metrics)
 
-				mts2 := len(metricsPlg1) + len(metricsPlg2)
-				So(mts2, ShouldBeGreaterThan, mts1)
+				Convey("loading another mock", func() {
+					anotherMock1 := mockSubscribedPlugin{
+						typeName: core.CollectorPluginType,
+						name:     "anothermock",
+						version:  1,
+						config:   cdata.NewNode(),
+					}
+					_, err := loadPlg(c, path.Join(helper.PluginFilePath("snap-plugin-collector-anothermock1")))
+					So(err, ShouldBeNil)
+					<-lpe.load
+					serrs := sg.Process()
+					So(len(serrs), ShouldEqual, 0)
+
+					So(len(sg.subscriptionMap), ShouldEqual, 1)
+					group, ok := sg.subscriptionMap["task-id"]
+					So(ok, ShouldBeTrue)
+					So(group, ShouldNotBeNil)
+					So(len(group.plugins), ShouldEqual, 2)
+					So(subscribedPluginsContain(group.plugins, mock1), ShouldBeTrue)
+					So(subscribedPluginsContain(group.plugins, anotherMock1), ShouldBeTrue)
+					plgKey1 := key(group.plugins[0])
+					plgKey2 := key(group.plugins[1])
+					So(group.metrics, ShouldContainKey, plgKey1)
+					So(group.metrics, ShouldContainKey, plgKey2)
+					metricsPlg1 := group.metrics[plgKey1].Metrics()
+					metricsPlg2 := group.metrics[plgKey2].Metrics()
+					// expected 1 subscribed metric per each plugin:
+					// `/intel/mock/host0/baz` and `/intel/anothermock/host0/baz`
+					So(len(metricsPlg1), ShouldEqual, 1)
+					So(len(metricsPlg2), ShouldEqual, 1)
+
+					mts2 := len(metricsPlg1) + len(metricsPlg2)
+					So(mts2, ShouldBeGreaterThan, mts1)
+				})
 			})
 		})
 	})

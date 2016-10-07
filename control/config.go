@@ -482,7 +482,6 @@ func (p *pluginConfig) getPluginConfigDataNode(pluginType core.PluginType, name 
 		}
 	}
 
-	//todo change to debug
 	log.WithFields(log.Fields{
 		"_block_":            "getPluginConfigDataNode",
 		"_module":            "config",

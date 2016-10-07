@@ -380,7 +380,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			}
 
 			// Update config policy with defaults
-			cfgNode.ReverseMerge(defaults)
+			cfgNode = cfgNode.ReverseMerge(defaults)
 			cp, err = c.GetConfigPolicy()
 			if err != nil {
 				pmLogger.WithFields(log.Fields{

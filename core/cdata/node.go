@@ -142,7 +142,7 @@ func (c ConfigDataNode) Merge(n ctree.Node) ctree.Node {
 
 // Merges a ConfigDataNode with this one but does not overwrite any
 // conflicting values. Any conflicts are decided by the callers value.
-func (c *ConfigDataNode) ReverseMerge(n ctree.Node) ctree.Node {
+func (c *ConfigDataNode) ReverseMergeInPlace(n ctree.Node) ctree.Node {
 	cd := n.(*ConfigDataNode)
 	new_table := make(map[string]ctypes.ConfigValue)
 	// Lock here since we are modifying c.table
@@ -158,6 +158,35 @@ func (c *ConfigDataNode) ReverseMerge(n ctree.Node) ctree.Node {
 	}
 	c.table = new_table
 	return c
+}
+
+// Merges a ConfigDataNode with a copy of the current ConfigDataNode and returns
+// the copy.  The merge does not overwrite any conflicting values.
+// Any conflicts are decided by the callers value.
+func (c *ConfigDataNode) ReverseMerge(n ctree.Node) *ConfigDataNode {
+	cd := n.(*ConfigDataNode)
+	copy := NewNode()
+	t2 := c.table
+	for k, v := range cd.Table() {
+		copy.table[k] = v
+	}
+	for k, v := range t2 {
+		copy.table[k] = v
+	}
+	return copy
+}
+
+// ApplyDefaults will set default values if the given ConfigDataNode doesn't
+// already have a value for the given configuration.
+func (c *ConfigDataNode) ApplyDefaults(defaults map[string]ctypes.ConfigValue) {
+	// Lock here since we are modifying c.table
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	for name, def := range defaults {
+		if _, ok := c.table[name]; !ok {
+			c.table[name] = def
+		}
+	}
 }
 
 // Deletes a field in ConfigDataNode. If the field does not exist Delete is

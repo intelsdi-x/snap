@@ -227,10 +227,10 @@ func (s *subscriptionGroups) ValidateDeps(requested []core.RequestedMetric,
 		if err != nil {
 			return []serror.SnapError{serror.New(err)}
 		}
-		plg.Config().ReverseMerge(
+		mergedConfig := plg.Config().ReverseMerge(
 			s.Config.Plugins.getPluginConfigDataNode(
 				typ, plg.Name(), plg.Version()))
-		errs := s.validatePluginSubscription(plg)
+		errs := s.validatePluginSubscription(plg, mergedConfig)
 		if len(errs) > 0 {
 			serrs = append(serrs, errs...)
 			return serrs
@@ -239,7 +239,7 @@ func (s *subscriptionGroups) ValidateDeps(requested []core.RequestedMetric,
 	return
 }
 
-func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin) []serror.SnapError {
+func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin, mergedConfig *cdata.ConfigDataNode) []serror.SnapError {
 	var serrs = []serror.SnapError{}
 	controlLogger.WithFields(log.Fields{
 		"_block": "validate-plugin-subscription",
@@ -259,7 +259,7 @@ func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin
 
 	if lp.ConfigPolicy != nil {
 		ncd := lp.ConfigPolicy.Get([]string{""})
-		_, errs := ncd.Process(pl.Config().Table())
+		_, errs := ncd.Process(mergedConfig.Table())
 		if errs != nil && errs.HasErrors() {
 			for _, e := range errs.Errors() {
 				se := serror.New(e)
@@ -273,7 +273,7 @@ func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin
 
 func (s *subscriptionGroups) validateMetric(
 	metric core.Metric) (serrs []serror.SnapError) {
-	m, err := s.metricCatalog.GetMetric(metric.Namespace(), metric.Version())
+	mts, err := s.metricCatalog.GetMetrics(metric.Namespace(), metric.Version())
 	if err != nil {
 		serrs = append(serrs, serror.New(err, map[string]interface{}{
 			"name":    metric.Namespace().String(),
@@ -281,54 +281,57 @@ func (s *subscriptionGroups) validateMetric(
 		}))
 		return serrs
 	}
+	for _, m := range mts {
 
-	// No metric found return error.
-	if m == nil {
-		serrs = append(
-			serrs, serror.New(
-				fmt.Errorf("no metric found cannot subscribe: (%s) version(%d)",
-					metric.Namespace(), metric.Version())))
-		return serrs
-	}
-
-	m.config = metric.Config()
-
-	typ, serr := core.ToPluginType(m.Plugin.TypeName())
-	if serr != nil {
-		return []serror.SnapError{serror.New(err)}
-	}
-
-	// merge global plugin config
-	if m.config != nil {
-		m.config.ReverseMerge(
-			s.Config.Plugins.getPluginConfigDataNode(typ,
-				m.Plugin.Name(), m.Plugin.Version()))
-	} else {
-		m.config = s.Config.Plugins.getPluginConfigDataNode(typ,
-			m.Plugin.Name(), m.Plugin.Version())
-	}
-
-	// When a metric is added to the MetricCatalog, the policy of rules defined by the plugin is added to the metric's policy.
-	// If no rules are defined for a metric, we set the metric's policy to an empty ConfigPolicyNode.
-	// Checking m.policy for nil will not work, we need to check if rules are nil.
-	if m.policy.HasRules() {
-		if m.Config() == nil {
-			fields := log.Fields{
-				"metric":  m.Namespace(),
-				"version": m.Version(),
-				"plugin":  m.Plugin.Name(),
-			}
-			serrs = append(serrs, serror.New(ErrConfigRequiredForMetric, fields))
-			return serrs
+		// No metric found return error.
+		if m == nil {
+			serrs = append(
+				serrs, serror.New(
+					fmt.Errorf("no metric found cannot subscribe: (%s) version(%d)",
+						metric.Namespace(), metric.Version())))
+			continue
 		}
-		ncdTable, errs := m.policy.Process(m.Config().Table())
-		if errs != nil && errs.HasErrors() {
-			for _, e := range errs.Errors() {
-				serrs = append(serrs, serror.New(e))
-			}
-			return serrs
+
+		m.config = metric.Config()
+
+		typ, serr := core.ToPluginType(m.Plugin.TypeName())
+		if serr != nil {
+			serrs = append(serrs, serror.New(err))
+			continue
 		}
-		m.config = cdata.FromTable(*ncdTable)
+
+		// merge global plugin config
+		if m.config != nil {
+			m.config.ReverseMergeInPlace(
+				s.Config.Plugins.getPluginConfigDataNode(typ,
+					m.Plugin.Name(), m.Plugin.Version()))
+		} else {
+			m.config = s.Config.Plugins.getPluginConfigDataNode(typ,
+				m.Plugin.Name(), m.Plugin.Version())
+		}
+
+		// When a metric is added to the MetricCatalog, the policy of rules defined by the plugin is added to the metric's policy.
+		// If no rules are defined for a metric, we set the metric's policy to an empty ConfigPolicyNode.
+		// Checking m.policy for nil will not work, we need to check if rules are nil.
+		if m.policy.HasRules() {
+			if m.Config() == nil {
+				fields := log.Fields{
+					"metric":  m.Namespace(),
+					"version": m.Version(),
+					"plugin":  m.Plugin.Name(),
+				}
+				serrs = append(serrs, serror.New(ErrConfigRequiredForMetric, fields))
+				continue
+			}
+			ncdTable, errs := m.policy.Process(m.Config().Table())
+			if errs != nil && errs.HasErrors() {
+				for _, e := range errs.Errors() {
+					serrs = append(serrs, serror.New(e))
+				}
+				continue
+			}
+			m.config = cdata.FromTable(*ncdTable)
+		}
 	}
 
 	return serrs
@@ -342,10 +345,20 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 		"metrics":    fmt.Sprintf("%+v", s.requestedMetrics),
 	}).Debug("gathered collectors")
 
-	//add processors and publishers to collectors just gathered
 	for _, plugin := range s.requestedPlugins {
+		//add processors and publishers to collectors just gathered
 		if plugin.TypeName() != core.CollectorPluginType.String() {
 			plugins = append(plugins, plugin)
+			// add defaults to plugins (exposed in a plugins ConfigPolicy)
+			if lp, err := s.pluginManager.get(
+				fmt.Sprintf("%s:%s:%d",
+					plugin.TypeName(),
+					plugin.Name(),
+					plugin.Version())); err == nil && lp.ConfigPolicy != nil {
+				if policy := lp.ConfigPolicy.Get([]string{""}); policy != nil && len(policy.Defaults()) > 0 {
+					plugin.Config().ApplyDefaults(policy.Defaults())
+				}
+			}
 		}
 	}
 

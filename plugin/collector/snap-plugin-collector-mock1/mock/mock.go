@@ -118,6 +118,10 @@ func (f *Mock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error
 	mts = append(mts, plugin.MetricType{Namespace_: core.NewNamespace("intel", "mock").
 		AddDynamicElement("host", "name of the host").
 		AddStaticElement("baz")})
+	mts = append(mts, plugin.MetricType{
+		Namespace_: core.NewNamespace("intel", "mock").
+			AddStaticElement("all").
+			AddStaticElement("baz")})
 	return mts, nil
 }
 

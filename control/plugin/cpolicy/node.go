@@ -153,6 +153,18 @@ func (c *ConfigPolicyNode) HasRules() bool {
 	return false
 }
 
+// Defaults returns a map[string]ctypes.ConfigValue for all of the rules that
+// have defaults.
+func (c *ConfigPolicyNode) Defaults() map[string]ctypes.ConfigValue {
+	defaults := map[string]ctypes.ConfigValue{}
+	for name, rule := range c.rules {
+		if def := rule.Default(); def != nil {
+			defaults[name] = def
+		}
+	}
+	return defaults
+}
+
 // Validates and returns a processed policy node or nil and error if validation has failed
 func (c *ConfigPolicyNode) Process(m map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *ProcessingErrors) {
 	c.mutex.Lock()
