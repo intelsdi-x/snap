@@ -15,6 +15,9 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
+OS = $(shell uname -s | tr '[:upper:]' '[:lower:]')
+ARCH = $(shell uname -m)
+
 default:
 	$(MAKE) deps
 	$(MAKE) all
@@ -35,7 +38,7 @@ check:
 all:
 	bash -c "./scripts/build_snap.sh"
 install:
-	cp build/bin/snapd /usr/local/bin/
-	cp build/bin/snapctl /usr/local/bin/
+	cp build/$(OS)/$(ARCH)/snapd /usr/local/bin/
+	cp build/$(OS)/$(ARCH)/snapctl /usr/local/bin/
 proto:
 	cd `echo $(GOPATH) | cut -d: -f 1`; bash -c "./src/github.com/intelsdi-x/snap/scripts/gen-proto.sh"
