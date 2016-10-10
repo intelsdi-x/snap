@@ -19,7 +19,7 @@ Contributions are always welcome and accepted via Github pull requests.
 * compile a production build with: `npm run build` (inside zurb-template/ folder)
     * this will populate the zurb-template/dist/ folder with finished website files
     * you should copy over these files to the top layer of your repo (same level as zurb-template/ folder)
-
+* to update banner text edit the [event.json](zurb-template/src/data/event.json) file in the zurb-template/src/data folder and compile a production build as specified above.
 
 ##troubleshooting:
 * if you run into errors, see [troubleshooting](troubleshooting.md)

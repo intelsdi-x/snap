@@ -5,7 +5,7 @@ myfcn3(
 },
 {
 "name": "Prometheus",
-"type": "Collector",
+"type": "Publisher",
 },
 {
 "name": "Perfmon",
