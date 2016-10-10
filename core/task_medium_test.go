@@ -48,9 +48,82 @@ func (t *taskErrors) Errors() []serror.SnapError {
 
 const (
 	DUMMY_FILE = "dummy.txt"
-	YAML_FILE  = "../examples/tasks/mock-file.yaml"
-	JSON_FILE  = "../examples/tasks/mock-file.json"
+	YAML_FILE  = "./mock-file.yaml"
+	JSON_FILE  = "./mock-file.json"
 	DUMMY_TYPE = "dummy"
+)
+
+var (
+	YAML_FILE_CONTENT = []byte(`
+	---
+	  version: 1
+	  schedule:
+	    type: "simple"
+	    interval: "1s"
+	  max-failures: 10
+	  workflow:
+	    collect:
+	      metrics:
+		/intel/mock/foo: {}
+		/intel/mock/bar: {}
+		/intel/mock/*/baz: {}
+	      config:
+		/intel/mock:
+		  name: "root"
+		  password: "secret"
+	      process:
+		-
+		  plugin_name: "passthru"
+		  config:
+		    debug: true
+		  process: null
+		  publish:
+		    -
+		      plugin_name: "file"
+		      config:
+			file: "/tmp/snap_published_mock_file.log"
+			debug: true
+	`)
+
+	JSON_FILE_CONTENT = []byte(`
+	{
+	    "version": 1,
+	    "schedule": {
+		"type": "simple",
+		"interval": "1s"
+	    },
+	    "max-failures": 10,
+	    "workflow": {
+		"collect": {
+		    "metrics": {
+			"/intel/mock/foo": {},
+			"/intel/mock/bar": {},
+			"/intel/mock/*/baz": {}
+		    },
+		    "config": {
+			"/intel/mock": {
+			    "name": "root",
+			    "password": "secret"
+			}
+		    },
+		    "process": [
+			{
+			    "plugin_name": "passthru",
+			    "process": null,
+			    "publish": [
+				{
+				    "plugin_name": "file",
+				    "config": {
+					"file": "/tmp/snap_published_mock_file.log"
+				    }
+				}
+			    ]
+			}
+		    ]
+		}
+	    }
+	}
+	`)
 )
 
 func koRoutine(sch schedule.Schedule,
@@ -72,8 +145,21 @@ func okRoutine(sch schedule.Schedule,
 	return nil, nil
 }
 
-func TestUnmarshalBodyTask(t *testing.T) {
+func createTaskFile(name string, content []byte) error {
+	f, err := os.Create(name)
+	if err != nil {
+		return err
+	}
+	f.Write(content)
+	return nil
+}
 
+func deleteTaskFile(name string) error {
+	err := os.Remove(name)
+	return err
+}
+
+func TestUnmarshalBodyTask(t *testing.T) {
 	Convey("Non existing file", t, func() {
 		file, err := os.Open(DUMMY_FILE)
 		So(file, ShouldBeNil)
@@ -85,6 +171,9 @@ func TestUnmarshalBodyTask(t *testing.T) {
 	})
 
 	Convey("Bad JSON file", t, func() {
+		err := createTaskFile(YAML_FILE, YAML_FILE_CONTENT)
+		So(err, ShouldBeNil)
+
 		var tr TaskReq1
 		file, err := os.Open(YAML_FILE)
 		So(file, ShouldNotBeNil)
@@ -93,15 +182,24 @@ func TestUnmarshalBodyTask(t *testing.T) {
 		So(code, ShouldEqual, 400)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid character '-' in numeric literal")
+
+		err = deleteTaskFile(YAML_FILE)
+		So(err, ShouldBeNil)
 	})
 
 	Convey("Proper JSON file", t, func() {
+		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
+		So(err, ShouldBeNil)
+
 		var tr TaskReq1
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 		code, err := UnmarshalBody(&tr, file)
 		So(code, ShouldEqual, 0)
+		So(err, ShouldBeNil)
+
+		err = deleteTaskFile(JSON_FILE)
 		So(err, ShouldBeNil)
 	})
 }
@@ -119,6 +217,9 @@ func TestCreateTaskRequest(t *testing.T) {
 	})
 
 	Convey("Bad JSON file", t, func() {
+		err := createTaskFile(YAML_FILE, YAML_FILE_CONTENT)
+		So(err, ShouldBeNil)
+
 		file, err := os.Open(YAML_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
@@ -126,9 +227,15 @@ func TestCreateTaskRequest(t *testing.T) {
 		So(task, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid character '-' in numeric literal")
+
+		err = deleteTaskFile(YAML_FILE)
+		So(err, ShouldBeNil)
 	})
 
 	Convey("Proper JSON file", t, func() {
+		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
+		So(err, ShouldBeNil)
+
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
@@ -142,6 +249,9 @@ func TestCreateTaskRequest(t *testing.T) {
 		So(task.Schedule.StartTimestamp, ShouldBeNil)
 		So(task.Schedule.StopTimestamp, ShouldBeNil)
 		So(task.Start, ShouldEqual, false)
+
+		err = deleteTaskFile(JSON_FILE)
+		So(err, ShouldBeNil)
 	})
 }
 
@@ -159,6 +269,9 @@ func TestCreateTaskFromContent(t *testing.T) {
 	})
 
 	Convey("Bad JSON file", t, func() {
+		err := createTaskFile(YAML_FILE, YAML_FILE_CONTENT)
+		So(err, ShouldBeNil)
+
 		file, err := os.Open(YAML_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
@@ -167,9 +280,15 @@ func TestCreateTaskFromContent(t *testing.T) {
 		So(task, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid character '-' in numeric literal")
+
+		err = deleteTaskFile(YAML_FILE)
+		So(err, ShouldBeNil)
 	})
 
 	Convey("Proper JSON file no workflow routine", t, func() {
+		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
+		So(err, ShouldBeNil)
+
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
@@ -178,9 +297,15 @@ func TestCreateTaskFromContent(t *testing.T) {
 		So(task, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "Missing workflow creation routine")
+
+		err = deleteTaskFile(JSON_FILE)
+		So(err, ShouldBeNil)
 	})
 
 	Convey("Proper JSON file erroring routine", t, func() {
+		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
+		So(err, ShouldBeNil)
+
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
@@ -189,15 +314,24 @@ func TestCreateTaskFromContent(t *testing.T) {
 		So(task, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "Dummy error")
+
+		err = deleteTaskFile(JSON_FILE)
+		So(err, ShouldBeNil)
 	})
 
 	Convey("Proper JSON file proper routine", t, func() {
+		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
+		So(err, ShouldBeNil)
+
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 		autoStart := true
 		task, err := CreateTaskFromContent(file, &autoStart, okRoutine)
 		So(task, ShouldBeNil)
+		So(err, ShouldBeNil)
+
+		err = deleteTaskFile(JSON_FILE)
 		So(err, ShouldBeNil)
 	})
 }

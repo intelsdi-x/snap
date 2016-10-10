@@ -17,11 +17,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# Examples
-Example package contains a collection of snap examples that demonstrate the snap libraries and usages.
+ [configs](./configs) folder contains examples of [the global configuration file](../docs/SNAPD_CONFIGURATION.md#snapd-configuration-file) that powers your plugins.
 
-* [configs](./configs) is an example of the global configuration file that powers your plugins
-* [influxdb-grafana](./influxdb-grafana) Has an example that shows
-  publishing [psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil) (Processes and System Utilization) data into [Influxdb](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb) and using Grafana to view the results 
-* [riemann](./riemann) has an example of [snap Riemann publisher plugin](https://github.com/intelsdi-x/snap-plugin-publisher-riemann) 
-* [tasks](./tasks) has JSON and YAML formatted execution requests for snap tasks
+ For more examples of using Snap, checkout the examples in these repositories:
+ - [snap-plugin-collector-docker](https://github.com/intelsdi-x/snap-plugin-collector-docker),
+ - [snap-plugin-collector-ethtool](https://github.com/intelsdi-x/snap-plugin-collector-ethtool),
+ - [snap-plugin-collector-cpu](https://github.com/intelsdi-x/snap-plugin-collector-cpu),
+ - [snap-plugin-collector-disk](https://github.com/intelsdi-x/snap-plugin-collector-disk),
+ - [snap-plugin-collector-psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil),
+ - [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo),
+ - [snap-plugin-processor-statistics](https://github.com/intelsdi-x/snap-plugin-processor-statistics),
+ - [snap-plugin-publisher-influxdb](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb),
+ - [snap-plugin-publisher-graphite](https://github.com/intelsdi-x/snap-plugin-publisher-graphite),
+ - [snap-plugin-publisher-file](https://github.com/intelsdi-x/snap-plugin-publisher-file).

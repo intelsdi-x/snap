@@ -27,7 +27,7 @@ The schedule describes the schedule type and interval for running the task.  The
 - **simple schedule** which is described above,
 - **window schedule** which adds a start and stop time,
 - **cron schedule** which supports cron-like entries in ```interval``` field, like in this example (workflow will fire every hour on the half hour):
-```
+```json
     "version": 1,
     "schedule": {
         "type": "cron",
@@ -38,9 +38,9 @@ The schedule describes the schedule type and interval for running the task.  The
 More on cron expressions can be found here: https://godoc.org/github.com/robfig/cron
 
 #### Max-Failures
-By default, snap will disable a task if there is 10 consecutive errors from any plugins within the workflow.  The configuration
-can be changed by specifying the number of failures value in the task header.  If the max-failures value is -1, snap will
-not disable a task with consecutive failure.  Instead, snap will sleep for 1 second for every 10 consective failures
+By default, Snap will disable a task if there is 10 consecutive errors from any plugins within the workflow.  The configuration
+can be changed by specifying the number of failures value in the task header.  If the max-failures value is -1, Snap will
+not disable a task with consecutive failure.  Instead, Snap will sleep for 1 second for every 10 consective failures
 and retry again.
 
 For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
@@ -77,7 +77,7 @@ The workflow is a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph) wh
 
 #### Remote Targets
 
-Process and Publish nodes in the workflow can also target remote snap nodes via the 'target' key. The purpose of this is to allow offloading of resource intensive workflow steps from the node where data collection is occuring. Modifying the example above we have:
+Process and Publish nodes in the workflow can also target remote Snap nodes via the 'target' key. The purpose of this is to allow offloading of resource intensive workflow steps from the node where data collection is occuring. Modifying the example above we have:
 
 ```yaml
 ---
@@ -108,9 +108,53 @@ Process and Publish nodes in the workflow can also target remote snap nodes via 
 
 ```
 
-If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of it's steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the snap rest-api and port 8082.
+If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of it's steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the Snap rest-api and port 8082.
 
-An example json task that uses remote targets can be found under [examples](https://github.com/intelsdi-x/snap/blob/master/examples/tasks/distributed-mock-file.json). More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
+An example json task that uses remote targets:
+```json
+{
+  "version": 1,
+  "schedule": {
+    "type": "simple",
+    "interval": "1s"
+  },
+  "max-failures": 10,
+  "workflow": {
+    "collect": {
+      "metrics": {
+        "/intel/mock/foo": {},
+        "/intel/mock/bar": {},
+        "/intel/mock/*/baz": {}
+      },
+      "config": {
+        "/intel/mock": {
+          "user": "root",
+          "password": "secret"
+        }
+      },
+      "process": [
+        {
+          "plugin_name": "passthru",
+          "target": "127.0.0.1:9999",
+          "process": null,
+          "publish": [
+            {
+              "plugin_name": "file",
+              "target": "127.0.0.1:9992",
+              "config": {
+                "file": "/tmp/snap_published_mock_file.log"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+```
+
+More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
 
 #### collect
 

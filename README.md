@@ -155,11 +155,44 @@ file             3               publisher       false           loaded         
 You now have one of each plugin type loaded into the framework. To begin collecting data, you need to create a task.
 
 ### Running Tasks
-Tasks are most often shared as a Task Manifest and is written in JSON or YAML format. Make a copy of [this example task](./examples/tasks/mock-file.yaml) from the `examples/tasks/` directory on your local system and then start the task:
+[Tasks](docs/TASKS.md) are most often shared as a Task Manifest and is written in JSON or YAML format.
+
+Create a task manifest file, for example `mock-file.yaml` with following content:
+```yaml
+---
+  version: 1
+  schedule:
+    type: "simple"
+    interval: "1s"
+  max-failures: 10
+  workflow:
+    collect:
+      metrics:
+        /intel/mock/foo: {}
+        /intel/mock/bar: {}
+        /intel/mock/*/baz: {}
+      config:
+        /intel/mock:
+          name: "root"
+          password: "secret"
+      process:
+        -
+          plugin_name: "passthru"
+          config:
+            debug: true
+          process: null
+          publish:
+            -
+              plugin_name: "mock-file"
+              config:
+                file: "/tmp/snap_published_mock_file.log"
+                debug: true
+```
+
+and then start the task:
 
 ```
 $ cd ~/snap
-$ curl https://raw.githubusercontent.com/intelsdi-x/snap/master/examples/tasks/mock-file.yaml > mock-file.yaml
 $ snapctl task create -t mock-file.yaml
 Using task manifest to create task
 Task created
