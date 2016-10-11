@@ -1,6 +1,60 @@
 myfcn(
 [
   {
+    "name": "Ping",
+    "type": "Collector",
+    "description": "",
+    "url": "https://github.com/raintank/snap-plugin-collector-ping"
+  },
+  {
+    "name": "Procnum",
+    "type": "Collector",
+    "description": "No description available.",
+    "url": "https://github.com/raintank/snap-plugin-collector-procnum"
+  },
+  {
+    "name": "Memcache",
+    "type": "Collector",
+    "description": "Memcach stat collector plugin for Snap",
+    "url": "https://github.com/raintank/snap-plugin-collector-memcache"
+  },
+  {
+    "name": "Couchbase",
+    "type": "Collector",
+    "description": "No description available.",
+    "url": "https://github.com/Staples-Inc/snap-plugin-collector-couchbase"
+  },
+  {
+    "name": "Netstat",
+    "type": "Collector",
+    "description": "Collect TCP connection metrics for the snap telemetry framework",
+    "url": "https://github.com/Staples-Inc/snap-plugin-collector-netstat"
+  },
+  {
+    "name": "Nginx",
+    "type": "Collector",
+    "description": "Collect nginx metrics from the status endpoint",
+    "url": "https://github.com/Staples-Inc/snap-plugin-collector-nginx"
+  },
+  {
+    "name": "Procstat",
+    "type": "Collector",
+    "description": "Collect process metrics using the snap telemetry framework",
+    "url": "https://github.com/Staples-Inc/snap-plugin-collector-procstat"
+  },
+  {
+    "name": "Blueflood",
+    "type": "Publisher",
+    "description": "A snap blueflood publisher",
+    "url": "https://github.com/Staples-Inc/snap-plugin-publisher-blueflood"
+  },
+  {
+    "name": "Cloudwatch",
+    "type": "Publisher",
+    "description": "A publisher plugin for intelsdi-x/snap framework",
+    "url": "https://github.com/Ticketmaster/snap-plugin-publisher-cloudwatch"
+  },
+  {
     "name": "Apache",
     "type": "Collector",
     "description": "Collects Apache webserver mod_status metrics",
@@ -21,7 +75,7 @@ myfcn(
   {
     "name": "CPU",
     "type": "Collector",
-    "description": "Collects Linux CPU metrics from /proc/stat",
+    "description": "Collects Linux cpu metrics from /proc/stat.",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-cpu"
   },
   {
@@ -39,19 +93,19 @@ myfcn(
   {
     "name": "Disk",
     "type": "Collector",
-    "description": "Collects Linux disk metrics from /proc/diskstats",
+    "description": "Collects Linux disk metrics from /proc/diskstats.",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-disk"
   },
   {
     "name": "Docker",
     "type": "Collector",
-    "description": "Collects Docker container runtime metrics",
+    "description": "Collects Docker container runtime metrics.",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-docker"
   },
   {
     "name": "Elasticsearch",
     "type": "Collector",
-    "description": "Collects Elasticsearch cluster and nodes statistics",
+    "description": "Collects Elasticsearch cluster and node statistics.",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-elasticsearch"
   },
   {
@@ -63,7 +117,7 @@ myfcn(
   {
     "name": "Ethtool",
     "type": "Collector",
-    "description": "Collects ethtool interface stats & registry dump",
+    "description": "Collect ethtool interface statistics.",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-ethtool"
   },
   {
@@ -123,7 +177,7 @@ myfcn(
   {
     "name": "Meminfo",
     "type": "Collector",
-    "description": "Collects Linux memory metrics from /proc/meminfo",
+    "description": "Collects Linux memory metrics from /proc/meminfo.",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-meminfo"
   },
   {
@@ -195,7 +249,7 @@ myfcn(
   {
     "name": "PSUtil",
     "type": "Collector",
-    "description": "Collects Linux psutil metrics",
+    "description": "Collects Linux psutil metrics.",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-psutil"
   },
   {
@@ -209,6 +263,12 @@ myfcn(
     "type": "Collector",
     "description": "Collects ScaleIO performance metrics",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-scaleio"
+  },
+  {
+    "name": "Snmp",
+    "type": "Collector",
+    "description": "Collects metrics using SNMP.",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-snmp"
   },
   {
     "name": "Smart",
@@ -229,10 +289,22 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-users"
   },
   {
+    "name": "Anomalydetection",
+    "type": "Processor",
+    "description": "snap plugin intended to process data and highlight outliers",
+    "url": "https://github.com/intelsdi-x/snap-plugin-processor-anomalydetection"
+  },
+  {
     "name": "Movingaverage",
     "type": "Processor",
     "description": "Process snap metrics and return a moving average",
     "url": "https://github.com/intelsdi-x/snap-plugin-processor-movingaverage"
+  },
+  {
+    "name": "Processor",
+    "type": "Statistics",
+    "description": "Process metrics and return statistics over sliding window.",
+    "url": "https://github.com/intelsdi-x/snap-plugin-processor-statistics"
   },
   {
     "name": "Tag",
@@ -243,13 +315,13 @@ myfcn(
   {
     "name": "File",
     "type": "Publisher",
-    "description": "Publishes snap metrics to a file",
+    "description": "Publishes metrics to a local file in json format.",
     "url": "https://github.com/intelsdi-x/snap-plugin-publisher-file"
   },
   {
     "name": "Graphite",
     "type": "Publisher",
-    "description": "Publishes snap metrics to Graphite",
+    "description": "Publishes metrics to graphite.",
     "url": "https://github.com/intelsdi-x/snap-plugin-publisher-graphite"
   },
   {
@@ -267,7 +339,7 @@ myfcn(
   {
     "name": "InfluxDB",
     "type": "Publisher",
-    "description": "Publishes snap metrics to InfluxDB",
+    "description": "Publishes metrics to Influxdb.",
     "url": "https://github.com/intelsdi-x/snap-plugin-publisher-influxdb"
   },
   {
