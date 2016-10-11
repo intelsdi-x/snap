@@ -115,21 +115,41 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 	e.cmd.Start()
 	e.captureStderr()
 	go func() {
-		for stdOutScanner.Scan() {
-			// The first chunk from the scanner is the plugin's response to the
-			// handshake.  Once we've received that, we can begin to forward
-			// logs on to snapd's log.
-			if !respReceived {
-				respBytes := stdOutScanner.Bytes()
-				err = json.Unmarshal(respBytes, &resp)
-				respReceived = true
-				close(doneChan)
-			} else {
-				execLogger.WithFields(log.Fields{
-					"plugin": path.Base(e.cmd.Path()),
-					"io":     "stdout",
-				}).Debug(stdOutScanner.Text())
+		for {
+			for stdOutScanner.Scan() {
+				// The first chunk from the scanner is the plugin's response to the
+				// handshake.  Once we've received that, we can begin to forward
+				// logs on to snapd's log.
+				if !respReceived {
+					respBytes := stdOutScanner.Bytes()
+					err = json.Unmarshal(respBytes, &resp)
+					respReceived = true
+					close(doneChan)
+				} else {
+					execLogger.WithFields(log.Fields{
+						"plugin": path.Base(e.cmd.Path()),
+						"io":     "stdout",
+					}).Debug(stdOutScanner.Text())
+				}
 			}
+
+			if errScanner := stdOutScanner.Err(); errScanner != nil {
+				reader := bufio.NewReader(e.stdout)
+				log, errRead := reader.ReadString('\n')
+				if errRead == io.EOF {
+					break
+				}
+
+				execLogger.
+					WithField("plugin", path.Base(e.cmd.Path())).
+					WithField("io", "stdout").
+					WithField("scanner_err", errScanner).
+					WithField("read_string_err", errRead).
+					Warn(log)
+
+				continue //scanner finished with errors so try to scan once again
+			}
+			break //scanner finished scanning without errors so break the loop
 		}
 	}()
 
@@ -167,12 +187,31 @@ func (e *ExecutablePlugin) Kill() error {
 func (e *ExecutablePlugin) captureStderr() {
 	stdErrScanner := bufio.NewScanner(e.stderr)
 	go func() {
-		for stdErrScanner.Scan() {
-			execLogger.
-				WithField("io", "stderr").
-				WithField("plugin", path.Base(e.cmd.Path())).
-				Debug(stdErrScanner.Text())
+		for {
+			for stdErrScanner.Scan() {
+				execLogger.
+					WithField("plugin", path.Base(e.cmd.Path())).
+					WithField("io", "stderr").
+					Debug(stdErrScanner.Text())
+			}
 
+			if errScanner := stdErrScanner.Err(); errScanner != nil {
+				reader := bufio.NewReader(e.stderr)
+				log, errRead := reader.ReadString('\n')
+				if errRead == io.EOF {
+					break
+				}
+
+				execLogger.
+					WithField("plugin", path.Base(e.cmd.Path())).
+					WithField("io", "stderr").
+					WithField("scanner_err", errScanner).
+					WithField("read_string_err", errRead).
+					Warn(log)
+
+				continue //scanner finished with errors so try to scan once again
+			}
+			break //scanner finished scanning without errors so break the loop
 		}
 	}()
 }
