@@ -73,7 +73,6 @@ func startV1API(cfg *mockConfig, testType string) *restAPIInstance {
 		mockTaskManager := &fixtures.MockTaskManager{}
 		r.BindTaskManager(mockTaskManager)
 	}
-
 	go func(ch <-chan error) {
 		// Block on the error channel. Will return exit status 1 for an error or
 		// just return if the channel closes.
