@@ -470,6 +470,10 @@ func listTask(ctx *cli.Context) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
+	if tasks.Len() == 0 {
+		fmt.Println("No task found. Have you created a task?")
+		return nil
+	}
 	printFields(w, false, 0,
 		"ID",
 		"NAME",

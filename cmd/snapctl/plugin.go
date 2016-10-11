@@ -169,11 +169,19 @@ func listPlugins(ctx *cli.Context) error {
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	if ctx.Bool("running") {
+		if len(plugins.AvailablePlugins) == 0 {
+			fmt.Println("No running plugins found. Have you started a task?")
+			return nil
+		}
 		printFields(w, false, 0, "NAME", "HIT COUNT", "LAST HIT", "TYPE")
 		for _, rp := range plugins.AvailablePlugins {
 			printFields(w, false, 0, rp.Name, rp.HitCount, time.Unix(rp.LastHitTimestamp, 0).Format(timeFormat), rp.Type)
 		}
 	} else {
+		if len(plugins.LoadedPlugins) == 0 {
+			fmt.Println("No plugins found. Have you loaded a plugin?")
+			return nil
+		}
 		printFields(w, false, 0, "NAME", "VERSION", "TYPE", "SIGNED", "STATUS", "LOADED TIME")
 		for _, lp := range plugins.LoadedPlugins {
 			printFields(w, false, 0, lp.Name, lp.Version, lp.Type, lp.Signed, lp.Status, lp.LoadedTime().Format(timeFormat))
