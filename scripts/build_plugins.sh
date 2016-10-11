@@ -32,7 +32,6 @@ _info "project path: ${__proj_dir}"
 git_version=$(_git_version)
 go_build=(go build -ldflags "-w -X main.gitversion=${git_version}")
 
-_info "snap build version: ${git_version}"
 _info "git commit: $(git log --pretty=format:"%H" -1)"
 
 # Disable CGO for builds.
@@ -42,13 +41,22 @@ export CGO_ENABLED=0
 export GOOS=${GOOS:-$(uname -s | tr '[:upper:]' '[:lower:]')}
 export GOARCH=${GOARCH:-"amd64"}
 
+OS=$(uname -s)
+if [[ "${OS}" == "Darwin" ]]; then
+  p=$(type -p sysctl > /dev/null && sysctl -n hw.ncpu || echo "1")
+elif [[ "${OS}" == "Linux" ]]; then
+  p=$(type -p nproc > /dev/null && nproc || echo "1")
+else
+  p="1"
+fi
+p=${BUILD_JOBS:-"${p}"}
+
 if [[ "${GOARCH}" == "amd64" ]]; then
   build_path="${__proj_dir}/build/${GOOS}/x86_64"
 else
   build_path="${__proj_dir}/build/${GOOS}/${GOARCH}"
 fi
 
-mkdir -p "${build_path}"
-_info "building snapd/snapctl for ${GOOS}/${GOARCH}"
-"${go_build[@]}" -o "${build_path}/snapd" . || exit 1
-(cd "${__proj_dir}/cmd/snapctl" && "${go_build[@]}" -o "${build_path}/snapctl" . || exit 1)
+mkdir -p "${build_path}/plugins"
+_info "building plugins for ${GOOS}/${GOARCH} in ${p} parallels"
+find "${__proj_dir}/plugin/" -type d -iname "snap-*" -print0 | xargs -0 -n 1 -P $p -I{} "${__dir}/build_plugin.sh" {}

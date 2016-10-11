@@ -20,7 +20,8 @@ ARCH = $(shell uname -m)
 
 default:
 	$(MAKE) deps
-	$(MAKE) all
+	$(MAKE) snap
+	$(MAKE) plugins
 deps:
 	bash -c "./scripts/deps.sh"
 test:
@@ -33,10 +34,19 @@ test-medium:
 	bash -c "./scripts/test.sh medium"
 test-large:
 	bash -c "./scripts/test.sh large"
-check:
-	$(MAKE) test
-all:
+# NOTE:
+# By default compiles will use all cpu cores, use BUILD_JOBS to control number
+# of parallel builds: `BUILD_JOBS=2 make plugins`
+#
+# Build only snapd/snapctl
+snap:
 	bash -c "./scripts/build_snap.sh"
+# Build only plugins
+plugins:
+	bash -c "./scripts/build_plugins.sh"
+# Build snap and plugins for all platforms
+all:
+	bash -c "./scripts/build_all.sh"
 install:
 	cp build/$(OS)/$(ARCH)/snapd /usr/local/bin/
 	cp build/$(OS)/$(ARCH)/snapctl /usr/local/bin/
