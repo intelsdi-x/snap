@@ -43,7 +43,7 @@ type ExecutablePlugin struct {
 // An interface for the interactions ExecutablePlugin has with an exec.Cmd
 // This way, the underlying Cmd can be mocked.
 type command interface {
-	Start()
+	Start() error
 	Kill() error
 	Path() string
 }
@@ -73,7 +73,7 @@ func (cw *commandWrapper) Kill() error {
 	_, err := cw.cmd.Process.Wait()
 	return err
 }
-func (cw *commandWrapper) Start() { cw.cmd.Start() }
+func (cw *commandWrapper) Start() error { return cw.cmd.Start() }
 
 // Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
 func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
@@ -112,7 +112,10 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 	stdOutScanner := bufio.NewScanner(e.stdout)
 
 	// Start the command and begin reading its output.
-	e.cmd.Start()
+	if err = e.cmd.Start(); err != nil {
+		return resp, err
+	}
+
 	e.captureStderr()
 	go func() {
 		for {
