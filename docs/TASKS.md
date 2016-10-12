@@ -1,11 +1,37 @@
 Tasks
 =====
 
-A task describes the how, what, and when to do for a Snap job.  A task is described in a task _manifest_, which can be either JSON or YAML<sup>1</sup>.
+A task describes the how, what, and when to do for a Snap job.
 
 _Skip to the TL;DR example [here](#tldr)_.
+ 
 
-The manifest can be divided into two parts: Header and Workflow.
+## Task States
+
+A task can be in the following states:
+- **running:** a running task
+- **stopped:** a task that is not running
+- **disabled:** a task in a state not allowed to start. This happens when the task produces consecutive errors. A disabled task must be re-enabled before it can be started again. 
+
+
+![newtaskstatediagram2](https://cloud.githubusercontent.com/assets/21182867/19282545/a4179520-8fa3-11e6-9056-4fc3aa610983.png)
+
+
+	    How To				                        |  Command
+    ----------------------------------------|------------------------
+      Create task                           |  snapctl task create _[command options] [arguments...]_ <br/>  Find more details [here](https://github.com/intelsdi-x/snap/blob/master/docs/SNAPCTL.md#task)
+      List					                        |  snapctl task list
+      Start task                     		    |  snapctl task start _\<task_id>_
+      Stop task                        		  |  snapctl task stop _\<task_id>_
+      Remove task                       		|  snapctl task remove _\<task_id>_
+      Export task                       		|  snapctl task export _\<task_id>_
+      Watch task                        		|  snapctl task watch _\<task_id>_
+      Enable task                       		|  snapctl task enable _\<task_id>_
+
+
+## Task Manifest
+
+A task is described in a task _manifest_, which can be either JSON or YAML<sup>1</sup>. The manifest is divided into two parts: Header and Workflow.
 
 ### The Header
 
