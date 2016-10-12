@@ -3,7 +3,7 @@ myfcn(
   {
     "name": "Ping",
     "type": "Collector",
-    "description": "",
+    "description": "Collects Ping latency metrics",
     "url": "https://github.com/raintank/snap-plugin-collector-ping"
   },
   {
