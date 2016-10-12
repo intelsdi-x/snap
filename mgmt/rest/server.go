@@ -516,11 +516,17 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 }
 
 func parseNamespace(ns string) []string {
-	if strings.Index(ns, "/") == 0 {
-		ns = ns[1:]
+	fc := getFirstChar(ns)
+	ns = strings.Trim(ns, fc)
+	return strings.Split(ns, fc)
+}
+
+// GetFirstChar returns the first character from the input string.
+func getFirstChar(s string) string {
+	firstChar := ""
+	for _, r := range s {
+		firstChar = fmt.Sprintf("%c", r)
+		break
 	}
-	if ns[len(ns)-1] == '/' {
-		ns = ns[:len(ns)-1]
-	}
-	return strings.Split(ns, "/")
+	return firstChar
 }

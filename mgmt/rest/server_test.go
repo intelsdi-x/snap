@@ -145,3 +145,44 @@ func TestRestAPIDefaultConfig(t *testing.T) {
 		})
 	})
 }
+
+func TestParseNamespace(t *testing.T) {
+	tcs := getNsTestCases()
+
+	Convey("Test parseNamespace", t, func() {
+		for _, c := range tcs {
+			Convey("Test parseNamespace "+c.input, func() {
+				So(c.output, ShouldResemble, parseNamespace(c.input))
+			})
+		}
+	})
+}
+
+type nsTestCase struct {
+	input  string
+	output []string
+}
+
+func getNsTestCases() []nsTestCase {
+	tcs := []nsTestCase{
+		{
+			input:  "小a小b小c",
+			output: []string{"a", "b", "c"}},
+		{
+			input:  "%a%b%c",
+			output: []string{"a", "b", "c"}},
+		{
+			input:  "-aヒ-b/-c|",
+			output: []string{"aヒ", "b/", "c|"}},
+		{
+			input:  ">a>b=>c=",
+			output: []string{"a", "b=", "c="}},
+		{
+			input:  ">a>b<>c<",
+			output: []string{"a", "b<", "c<"}},
+		{
+			input:  "㊽a㊽b%㊽c/|",
+			output: []string{"a", "b%", "c/|"}},
+	}
+	return tcs
+}
