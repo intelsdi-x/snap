@@ -122,3 +122,11 @@ _go_test() {
 _go_cover() {
   go tool cover -func "profile-${TEST_TYPE}.cov"
 }
+
+_git_version() {
+  git_branch=$(git symbolic-ref HEAD 2> /dev/null | cut -b 12-)
+  git_branch="${git_branch:-test}"
+  git_sha=$(git log --pretty=format:"%h" -1)
+  git_version=$(git describe --always --exact-match 2> /dev/null || echo "${git_branch}-${git_sha}")
+  echo "${git_version}"
+}
