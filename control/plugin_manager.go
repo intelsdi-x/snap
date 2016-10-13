@@ -314,6 +314,16 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		return nil, serror.New(err)
 	}
 
+	// check if plugin is already loaded
+	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", resp.Meta.Type.String(), resp.Meta.Name, resp.Meta.Version)
+	if _, exists := p.loadedPlugins.table[key]; exists {
+		return nil, serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
+			"plugin-name":    resp.Meta.Name,
+			"plugin-version": resp.Meta.Version,
+			"plugin-type":    resp.Type.String(),
+		})
+	}
+
 	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
