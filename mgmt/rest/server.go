@@ -41,6 +41,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/pkg/stringutils"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -516,17 +517,7 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 }
 
 func parseNamespace(ns string) []string {
-	fc := getFirstChar(ns)
+	fc := stringutils.GetFirstChar(ns)
 	ns = strings.Trim(ns, fc)
 	return strings.Split(ns, fc)
-}
-
-// GetFirstChar returns the first character from the input string.
-func getFirstChar(s string) string {
-	firstChar := ""
-	for _, r := range s {
-		firstChar = fmt.Sprintf("%c", r)
-		break
-	}
-	return firstChar
 }

@@ -3,9 +3,9 @@
 package core
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/intelsdi-x/snap/pkg/stringutils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -14,21 +14,11 @@ func TestMetricSeparator(t *testing.T) {
 	Convey("Test namespace separator", t, func() {
 		for _, c := range tc {
 			Convey("namespace "+c.input.String(), func() {
-				firstChar := getFirstChar(c.input.String())
+				firstChar := stringutils.GetFirstChar(c.input.String())
 				So(firstChar, ShouldEqual, c.expected)
 			})
 		}
 	})
-}
-
-// GetFirstChar returns the first character from the input string.
-func getFirstChar(s string) string {
-	firstChar := ""
-	for _, r := range s {
-		firstChar = fmt.Sprintf("%c", r)
-		break
-	}
-	return firstChar
 }
 
 type testCase struct {

@@ -189,7 +189,7 @@ func TestGetMetricTypes(t *testing.T) {
 			mts, err := newPlg.GetMetricTypes(cfg)
 
 			So(err, ShouldBeNil)
-			So(len(mts), ShouldEqual, 4)
+			So(len(mts), ShouldEqual, 6)
 
 			Convey("checking namespaces", func() {
 				metricNames := []string{}
@@ -197,16 +197,16 @@ func TestGetMetricTypes(t *testing.T) {
 					metricNames = append(metricNames, m.Namespace.String())
 				}
 
-				ns := plugin.NewNamespace("intel", "mock", "test")
+				ns := plugin.NewNamespace("intel", "mock", "test%>")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = plugin.NewNamespace("intel", "mock", "foo")
+				ns = plugin.NewNamespace("intel", "mock", "/foo=㊽")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = plugin.NewNamespace("intel", "mock", "bar")
+				ns = plugin.NewNamespace("intel", "mock", "/bar⽔")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = plugin.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElement("baz")
+				ns = plugin.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElements("baz㊽", "/bar⽔")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 			})
 		})
@@ -215,7 +215,7 @@ func TestGetMetricTypes(t *testing.T) {
 			mts, err := newPlg.GetMetricTypes(plugin.Config{})
 
 			So(err, ShouldBeNil)
-			So(len(mts), ShouldEqual, 3)
+			So(len(mts), ShouldEqual, 5)
 
 			Convey("checking namespaces", func() {
 				metricNames := []string{}
@@ -223,13 +223,13 @@ func TestGetMetricTypes(t *testing.T) {
 					metricNames = append(metricNames, m.Namespace.String())
 				}
 
-				ns := plugin.NewNamespace("intel", "mock", "foo")
+				ns := plugin.NewNamespace("intel", "mock", "/foo=㊽")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = plugin.NewNamespace("intel", "mock", "bar")
+				ns = plugin.NewNamespace("intel", "mock", "/bar⽔")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 
-				ns = plugin.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElement("baz")
+				ns = plugin.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElements("baz㊽", "|barᵹÄ☍")
 				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 			})
 		})

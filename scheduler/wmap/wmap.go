@@ -29,6 +29,7 @@ import (
 
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/pkg/stringutils"
 )
 
 var (
@@ -216,7 +217,7 @@ func (c *CollectWorkflowMapNode) GetMetrics() []Metric {
 	for k, v := range c.Metrics {
 		// Identify the character to split on by peaking
 		// at the first character of each metric.
-		firstChar := getFirstChar(k)
+		firstChar := stringutils.GetFirstChar(k)
 		ns := strings.Trim(k, firstChar)
 		metrics[i] = Metric{
 			namespace: strings.Split(ns, firstChar),
@@ -225,16 +226,6 @@ func (c *CollectWorkflowMapNode) GetMetrics() []Metric {
 		i++
 	}
 	return metrics
-}
-
-// GetFirstChar returns the first character from the input string.
-func getFirstChar(s string) string {
-	firstChar := ""
-	for _, r := range s {
-		firstChar = fmt.Sprintf("%c", r)
-		break
-	}
-	return firstChar
 }
 
 func (c *CollectWorkflowMapNode) GetTags() map[string]map[string]string {
