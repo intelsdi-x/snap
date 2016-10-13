@@ -468,10 +468,15 @@ func (s *Server) addRoutes() {
 
 	// metric routes
 	s.r.GET("/v1/metrics", s.getMetrics)
+	s.r.GET("/v2/metrics", s.getMetrics)
+
 	s.r.GET("/v1/metrics/*namespace", s.getMetricsFromTree)
+	s.r.GET("/v2/metrics/*namespace", s.getMetricsFromTree)
 
 	// task routes
 	s.r.GET("/v1/tasks", s.getTasks)
+	s.r.GET("/v2/tasks", s.getTasks)
+
 	s.r.GET("/v1/tasks/:id", s.getTask)
 	s.r.GET("/v1/tasks/:id/watch", s.watchTask)
 	s.r.POST("/v1/tasks", s.addTask)
@@ -483,13 +488,28 @@ func (s *Server) addRoutes() {
 	// tribe routes
 	if s.tr != nil {
 		s.r.GET("/v1/tribe/agreements", s.getAgreements)
+		s.r.GET("/v2/tribes/agreements", s.getAgreements)
+
 		s.r.POST("/v1/tribe/agreements", s.addAgreement)
+		s.r.POST("/v2/tribes/agreements", s.addAgreement)
+
 		s.r.GET("/v1/tribe/agreements/:name", s.getAgreement)
+		s.r.GET("/v2/tribes/agreements/:name", s.getAgreement)
+
 		s.r.DELETE("/v1/tribe/agreements/:name", s.deleteAgreement)
+		s.r.DELETE("/v2/tribes/agreements/:name", s.deleteAgreement)
+
 		s.r.PUT("/v1/tribe/agreements/:name/join", s.joinAgreement)
+		s.r.PUT("/v2/tribes/agreements/:name/join", s.joinAgreement)
+
 		s.r.DELETE("/v1/tribe/agreements/:name/leave", s.leaveAgreement)
+		s.r.DELETE("/v2/tribes/agreements/:name/leave", s.leaveAgreement)
+
 		s.r.GET("/v1/tribe/members", s.getMembers)
+		s.r.GET("/v2/tribes/members", s.getMembers)
+
 		s.r.GET("/v1/tribe/member/:name", s.getMember)
+		s.r.GET("/v2/tribes/members/:name", s.getMember)
 	}
 }
 

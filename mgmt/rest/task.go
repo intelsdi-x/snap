@@ -28,6 +28,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	apiV2 "github.com/intelsdi-x/snap/mgmt/rest/v2"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/snap/core"
@@ -56,6 +57,13 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 
 func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	sts := s.mt.GetTasks()
+	// apiVersion should be "v1" or "v2".
+	// If apiVersion != "v2" calls default to V1 functionality
+	apiVersion := r.URL.Path[1:3]
+	if apiVersion == "v2" {
+		apiV2.GetTasks(w, r, sts)
+		return
+	}
 
 	tasks := &rbody.ScheduledTaskListReturned{}
 	tasks.ScheduledTasks = make([]rbody.ScheduledTask, len(sts))
