@@ -462,11 +462,50 @@ _**Example Response**_
 {"type":"metric-event","message":"","event":[{"namespace":"/intel/mock/host0/baz","data":87,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:42.075605924-08:00"},{"namespace":"/intel/mock/host1/baz","data":89,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:42.075609242-08:00"},{"namespace":"/intel/mock/host2/baz","data":84,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:42.075611747-08:00"},{"namespace":"/intel/mock/host3/baz","data":82,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:42.075613786-08:00"}...
 ```
 **POST /v1/tasks**:
-Create a task with the JSON input
+Create a task with the JSON input, using for example mock-file.json with following content:
+```json
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "max-failures": 10,
+    "workflow": {
+        "collect": {
+            "metrics": {
+                "/intel/mock/foo": {},
+                "/intel/mock/bar": {},
+                "/intel/mock/*/baz": {}
+            },
+            "config": {
+                "/intel/mock": {
+                    "name": "root",
+                    "password": "secret"
+                }
+            },
+            "process": [
+                {
+                    "plugin_name": "passthru",
+                    "process": null,
+                    "publish": [
+                        {
+                            "plugin_name": "mock-file",
+                            "config": {
+                                "file": "/tmp/published"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
+```
 
 _**Example Request**_
 ```
-curl -vXPOST http://localhost:8181/v1/tasks -d @../examples/tasks/mock-file.json --header "Content-Type: application/json"
+curl -vXPOST http://localhost:8181/v1/tasks -d @mock-file.json --header "Content-Type: application/json"
 ```
 _**Example Response**_
 ```json
@@ -496,8 +535,8 @@ _**Example Response**_
         },
         "config": {
           "/intel/mock": {
-            "password": "secret",
-            "user": "root"
+            "user": "root",
+            "password": "secret"
           }
         },
         "process": [
@@ -506,7 +545,7 @@ _**Example Response**_
             "plugin_version": 0,
             "publish": [
               {
-                "plugin_name": "file",
+                "plugin_name": "mock-file",
                 "plugin_version": 0,
                 "config": {
                   "file": "/tmp/published"

@@ -100,11 +100,79 @@ Example Usage
 -------------
 
 ### Load and unload plugins, create and start a task
-(Log level is set to 1 and signing is turned off for this example.)
 
+In one terminal window, run snapd (log level is set to 1 and signing is turned off for this example):
 ```
 $ $SNAP_PATH/bin/snapd -l 1 -t 0
 ```
+
+prepare a task manifest file, for example task.json with following content:
+```json
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "max-failures": 10,
+    "workflow": {
+        "collect": {
+            "metrics": {
+                "/intel/mock/foo": {},
+                "/intel/mock/bar": {},
+                "/intel/mock/*/baz": {}
+            },
+            "config": {
+                "/intel/mock": {
+                    "name": "root",
+                    "password": "secret"
+                }
+            },
+            "process": [
+                {
+                    "plugin_name": "passthru",
+                    "process": null,
+                    "publish": [
+                        {
+                            "plugin_name": "mock-file",
+                            "config": {
+                                "file": "/tmp/snap_published_mock_file.log"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
+```
+
+prepare a workflow manifest file, for example workflow.json with following content:
+```json
+{
+    "collect": {
+        "metrics": {
+            "/intel/mock/foo": {}
+        },
+        "config": {
+	    "/intel/mock/foo": {
+		"password": "testval"
+            }
+	},
+        "process": [],
+        "publish": [
+            {
+                "plugin_name": "mock-file",
+                "config": {
+                    "file": "/tmp/rest.test"
+                }
+            }
+        ]
+    }
+}
+```
+
+and then:
 
 1. load a collector plugin
 2. load a processing plugin
@@ -112,17 +180,16 @@ $ $SNAP_PATH/bin/snapd -l 1 -t 0
 4. list the plugins
 5. start a task with a task manifest
 6. start a task with a workflow manifest
-8. list the tasks
-9. unload a plugins
+7. list the tasks
+8. unload a plugins
 
 ```
-
 $ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-plugin-collector-mock1
 $ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-plugin-processor-passthru
 $ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-plugin-publisher-mock-file
 $ $SNAP_PATH/bin/snapctl plugin list
-$ $SNAP_PATH/bin/snapctl task create -t $SNAP_PATH/../examples/tasks/mock-file.json
-$ $SNAP_PATH/bin/snapctl task create -w $SNAP_PATH/../mgmt/rest/wmap_sample/1.json -i 1s -d 10s
+$ $SNAP_PATH/bin/snapctl task create -t mock-file.json
+$ $SNAP_PATH/bin/snapctl task create -w workflow.json -i 1s -d 10s
 $ $SNAP_PATH/bin/snapctl task list
 $ $SNAP_PATH/bin/snapctl plugin unload -t collector -n mock -v <version>
 $ $SNAP_PATH/bin/snapctl plugin unload -t processor -n passthru -v <version>
