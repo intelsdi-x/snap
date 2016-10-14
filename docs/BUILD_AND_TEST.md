@@ -17,13 +17,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 # Build and Test
+
 This guide gets you started with building and testing Snap. If you have commits you want to contribute, review the [CONTRIBUTING file](../CONTRIBUTING.md) for a shorter list of what we look for and come back here if you need to verify your environment is configured correctly.
 
 ## Getting Started
-If you prefer a video walkthrough of this process, watch this video: https://vimeo.com/161561815
+
+If you prefer a video walkthrough of this process, watch this [tutorial](https://vimeo.com/161561815).
 
 To build the Snap Framework you'll need:
-* [Golang >= 1.5](https://golang.org)
+* [Golang >= 1.6](https://golang.org)
     * Should be [downloaded](https://golang.org/dl/) and [installed](https://golang.org/doc/install)
 * [GNU Make](https://www.gnu.org/software/make/)
 * [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
@@ -38,28 +40,22 @@ $ go get -d github.com/intelsdi-x/snap
 $ cd $GOPATH/src/github.com/intelsdi-x/snap
 ```
 
-For Go 1.5.x, enable GOVENDOREXPERIMENT. This is not required in GO 1.6+:
-```
-$ export GOVENDOREXPERIMENT=1
-```
-
 In the `snap/` directory there's a `Makefile` that builds all dependencies and then the Snap Framework binaries. To get dependencies and build Snap run:  
 ```
 $ cd $GOPATH/src/github.com/intelsdi-x/snap
 $ make
 ```
 
-By default `make` runs `make deps` and `make all` commands for you. Alternatively, you can run `make` with any of these other targets:
+By default `make` runs `make deps`, `make snap`, and `make plugins` commands for you. Alternatively, you can run `make` with any of these other targets:
 
 * `deps`: fetches all dependencies using glide
-* `check`: runs test suite
-* `all`: builds snapd, snapctl, and the test plugins
-* `snap` builds snapd and snapctl
+* `test-(legacy|small|medium|large)`: runs test suite
+* `all`: builds snapd, snapctl, and test plugins for all platforms (MacOS and Linux)
+* `snap` builds snapd and snapctl for local operating system
+* `plugins` builds test plugins for local operating system
 * `install`: installs snapd and snapctl binaries in /usr/local/bin
-* `release`: cuts a Snap release
 
-
-To see how to use Snap, look at [Running Snap](../README.md#running-snap), [SNAPD.md](SNAPD.md), and [SNAPCTL.md](SNAPCTL.md).
+To see how to use Snap, look at [gettings started](../README.md#getting-started), [SNAPD.md](SNAPD.md), and [SNAPCTL.md](SNAPCTL.md).
 
 ## Test
 ### Creating Tests

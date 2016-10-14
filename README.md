@@ -29,7 +29,6 @@ limitations under the License.
 
 1. [Overview](#overview)
 2. [Getting Started](#getting-started)
-  * [In Active Development](#in-active-development)
   * [System Requirements](#system-requirements)
   * [Installation](#installation)
   * [Running Snap](#running-snap)
@@ -86,114 +85,152 @@ Some additionally important notes about how snap works:
 
 ## Getting Started
 
-### In Active Development
-The master branch is used for new feature development. Our goal is to keep it in a deployable state. If you're looking for the most recent binary that is versioned, please [see the latest release](https://github.com/intelsdi-x/snap/releases).
-
 ### System Requirements
-Snap deploys as a binary, which makes requirements quite simple. We've tested on a subset of Linux and OS X versions.
+
+Snap does not have external dependencies since it is compiled into a statically linked binary. At this time, we build snap binaries for Linux and MacOS. We also provide Linux RPM/Deb packages and MacOS X .pkg installer.
 
 ### Installation
 
-You can get the pre-built binaries for your OS and architecture at Snap's [GitHub Releases](https://github.com/intelsdi-x/snap/releases) page. This isn't the comprehensive list of plugins. Right now, snap only supports Linux and OS X (Darwin).
+You can obtain Linux RPM/Deb packages from [Snap's packagecloud.io respository](https://packagecloud.io/intelsdi-x/snap). Snap binaries in `.tar.gz` bundles and MacOS `.pkg` installer are available at Snap's [GitHub release page](https://github.com/intelsdi-x/snap/releases).
+
+RedHat 6/7:
+```
+$ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.rpm.sh | sudo bash
+$ sudo yum install -y snap-telemetry
+```
+
+Ubuntu 14.04/16.04 (see known issue with Ubuntu 16.04.1 below)
+```
+$ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.deb.sh | sudo bash
+$ sudo apt-get install -y snap-telemetry
+```
+
+
+MacOS X (homebrew support pending 1.0.0 release):
+```
+$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/v0.16.1-beta/snap-telemetry-0.16.1.pkg
+$ sudo installer -pkg ./snap-telemetry-0.16.1.pkg
+```
+
+Tarball (choose the appropriate version and platform):
+```
+$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/v0.16.1-beta/snap-v0.16.1-beta-linux-amd64.tar.gz
+$ tar xf snap-v0.16.1-beta-linux-amd64.tar.gz
+$ cp snap-v0.16.1-beta/bin/snap* /usr/local/bin
+```
+
+Ubuntu 16.04.1 [snapd package version 2.13+](https://launchpad.net/ubuntu/+source/snapd) installs snapd/snapctl binary in /usr/bin. These executables are not related to snap-telemetry. Running `snapctl` from snapd package will result in the following error message:
+
+```
+$ snapctl
+error: snapctl requires SNAP_CONTEXT environment variable
+```
+
+Please make sure you invoke the snap-telemetry snapd/snapctl binary using fully qualified path (i.e. /usr/local/bin/{snapd|snapctl} if you installed the snap-telemetry package).
+
+NOTE: If you prefer to build from source, follow the steps in the [build documentation](docs/BUILD_AND_TEST.md). The _alpha_ binaries containing the latest master branch are available here for bleeding edge testing purposes:
+* snapd: [linux](http://snap.ci.snap-telemetry.io/snap/latest_build/linux/x86_64/snapd) | [darwin](http://snap.ci.snap-telemetry.io/snap/latest_build/darwin/x86_64/snapd)
+* snapctl: [linux](http://snap.ci.snap-telemetry.io/snap/latest_build/linux/x86_64/snapctl) | [darwin](http://snap.ci.snap-telemetry.io/snap/latest_build/darwin/x86_64/snapctl)
 
 ### Running Snap
-We're going to assume you downloaded the latest packaged release of Snap and its plugins from here on. If you prefer to build from source, follow the steps in [BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
 
-Untar the version of Snap you downloaded and move its binaries, `snapd` and `snapctl`, to a place in your path. Here is an example of doing so (on Linux):
+If you installed snap from RPM/Deb package, you can start/stop Snap daemon as a service:
+
+RedHat 6/Ubuntu 14.04:
 ```
-$ tar -xvf snap-v0.13.0-beta-linux-amd64.tar
-$ mv snap-v0.13.0-beta/bin/* /usr/local/bin/
-$ rm -rf snap-v0.13.0-beta
+$ service snap-telemetry start
 ```
 
-Start a standalone Snap agent (`snapd`):
+RedHat 7/Ubuntu 16.04:
 ```
-$ snapd --plugin-trust 0 --log-level 1
+$ systemctl start snap-telemetry
 ```
-This will bring up a Snap agent without requiring plugin signing (trust-level 0) and set the logging level to debug (log level 1). Snap's REST API will be listening on port 8181. To learn more about the snap agent and how to use it look at [SNAPD.md](docs/SNAPD.md) and/or run `snapd -h`.
 
-Snap can also be run in a clustered mode called `tribe`. Checkout the [tribe documentation](docs/TRIBE.md) for more info.
+If you installed snap from binary, you can start Snap daemon via the command:
+```
+$ sudo mkdir -p /var/log/snap
+$ sudo snapd --plugin-trust 0 --log-level 1 -o /var/log/snap &
+```
+
+To view the service logs:
+```
+$ tail -f /var/log/snap/snapd.log
+```
+
+By default Snap daemon will be running in standalone mode and listening on port 8181. To enable gossip mode, checkout the [tribe documentation](docs/TRIBE.md). For additional configuration options such as plugin signing and port configuration see [snapd documentation](docs/SNAPD.md).
+
 
 ### Load Plugins
-Snap gets its power from the use of plugins. The [Plugin Catalog](#plugin-catalog) is a collection of all known plugins for Snap with links to the binaries. You can download individual plugins or pull down a package of starter plugins for your operating system under [GitHub Releases](https://github.com/intelsdi-x/snap/releases). This isn't the comprehensive list of plugins, but they will help you get started.
 
-Open a separate window from the one running `snapd`, then unpack the downloaded plugins (example is on Linux):
-```
-$ tar -xvf snap-plugins-v0.13.0-beta-linux-amd64.tar.gz
-$ mkdir -p ~/snap/plugins/
-$ mv snap-v0.13.0-beta/plugin/* ~/snap/plugins/
-$ rm -rf snap-v0.13.0-beta
-```
+Snap gets its power from the use of plugins. The [plugin catalog](#plugin-catalog) contains a collection of all known Snap plugins with links to their repo and release pages. (NOTE: Plugin bundles are deprecated in favor of independent plugin releases.)
 
-Next, load the plugins. This can be achieved through the REST API directly or by using the helper command `snapctl`.
+First, let's download the file and psutil plugins (also make sure [psutil is installed](https://github.com/giampaolo/psutil/blob/master/INSTALL.rst)):
 
-Using the API directly with cURL:
 ```
-$ cd ~/snap/plugins/
-$ curl -X POST -F plugin=@snap-plugin-collector-mock1 http://localhost:8181/v1/plugins
-$ curl -X POST -F plugin=@snap-plugin-processor-passthru http://localhost:8181/v1/plugins
-$ curl -X POST -F plugin=@snap-plugin-publisher-file http://localhost:8181/v1/plugins
+$ export OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+$ export ARCH=$(uname -m)
+$ curl -sfL "https://github.com/intelsdi-x/snap-plugin-publisher-file/releases/download/2/snap-plugin-publisher-file_${OS}_${ARCH}" -o snap-plugin-publisher-file
+$ curl -sfL "https://github.com/intelsdi-x/snap-plugin-collector-psutil/releases/download/8/snap-plugin-collector-psutil_${OS}_${ARCH}" -o snap-plugin-collector-psutil
 ```
 
-Every interaction with `snapd` can be done through the REST API. To see what else you can do with the API, view our [API Documentation](docs/REST_API.md). We will continue on using `snapctl`:
+Next load the plugins into Snap daemon using `snapctl`:
 ```
-$ cd ~/snap/plugins/
-$ snapctl plugin load snap-plugin-collector-mock1
-$ snapctl plugin load snap-plugin-processor-passthru
 $ snapctl plugin load snap-plugin-publisher-file
+Plugin loaded
+Name: file
+Version: 2
+Type: publisher
+Signed: false
+Loaded Time: Fri, 14 Oct 2016 10:53:59 PDT
+
+$ snapctl plugin load snap-plugin-collector-psutil
+Plugin loaded
+Name: psutil
+Version: 8
+Type: collector
+Signed: false
+Loaded Time: Fri, 14 Oct 2016 10:54:07 PDT
 ```
 
-Let's look at what plugins you have loaded now:
+Verify plugins are loaded:
 ```
 $ snapctl plugin list
-NAME             VERSION         TYPE            SIGNED          STATUS          LOADED TIME
-mock             1               collector       false           loaded          Tue, 17 Nov 2015 14:08:17 PST
-passthru         1               processor       false           loaded          Tue, 17 Nov 2015 14:16:12 PST
-file             3               publisher       false           loaded          Tue, 17 Nov 2015 14:16:19 PST
+NAME      VERSION    TYPE         SIGNED     STATUS    LOADED TIME
+file      2          publisher    false      loaded    Fri, 14 Oct 2016 10:55:20 PDT
+psutil    8          collector    false      loaded    Fri, 14 Oct 2016 10:55:29 PDT
 ```
 
-You now have one of each plugin type loaded into the framework. To begin collecting data, you need to create a task.
+See which metrics are available:
+```
+$ snapctl metric list
+NAMESPACE                                VERSIONS
+/intel/psutil/cpu/cpu-total/guest        8
+/intel/psutil/cpu/cpu-total/guest_nice   8
+/intel/psutil/cpu/cpu-total/idle         8
+/intel/psutil/cpu/cpu-total/iowait       8
+/intel/psutil/cpu/cpu-total/irq          8
+/intel/psutil/cpu/cpu-total/nice         8
+/intel/psutil/cpu/cpu-total/softirq      8
+/intel/psutil/cpu/cpu-total/steal        8
+/intel/psutil/cpu/cpu-total/stolen       8
+/intel/psutil/cpu/cpu-total/system       8
+/intel/psutil/cpu/cpu-total/user         8
+/intel/psutil/load/load1                 8
+/intel/psutil/load/load15                8
+/intel/psutil/load/load5                 8
+...
+```
+
+NOTE: Plugin bundles are available for convenience in the Snap [GitHub release page](https://github.com/intelsdi-x/snap/releases), for the latest up to date version use the release/download in the [plugin catalog](#plugin-catalog).
 
 ### Running Tasks
-[Tasks](docs/TASKS.md) are most often shared as a Task Manifest and is written in JSON or YAML format.
 
-Create a task manifest file, for example `mock-file.yaml` with following content:
-```yaml
----
-  version: 1
-  schedule:
-    type: "simple"
-    interval: "1s"
-  max-failures: 10
-  workflow:
-    collect:
-      metrics:
-        /intel/mock/foo: {}
-        /intel/mock/bar: {}
-        /intel/mock/*/baz: {}
-      config:
-        /intel/mock:
-          name: "root"
-          password: "secret"
-      process:
-        -
-          plugin_name: "passthru"
-          config:
-            debug: true
-          process: null
-          publish:
-            -
-              plugin_name: "mock-file"
-              config:
-                file: "/tmp/snap_published_mock_file.log"
-                debug: true
+To collect data, you need to create a [task](docs/TASKS.md) by loading a `Task Manifest`. The manifest contains a specification for what interval a set of metrics are gathered, how the data is transformed, and where the information is published. For more information see [task](docs/TASKS.md) documentation.
+
+Now, download and load the [psutil example](examples/psutil-file.yaml):
 ```
-
-and then start the task:
-
-```
-$ cd ~/snap
-$ snapctl task create -t mock-file.yaml
+$ curl https://raw.githubusercontent.com/intelsdi-x/snap/master/examples/tasks/psutil-file.yaml -o /tmp/psutil-file.yaml
+$ snapctl task create -t /tmp/psutil-file.yaml
 Using task manifest to create task
 Task created
 ID: 8b9babad-b3bc-4a16-9e06-1f35664a7679
@@ -201,48 +238,30 @@ Name: Task-8b9babad-b3bc-4a16-9e06-1f35664a7679
 State: Running
 ```
 
-This task generates mock data, "processes" it through a passthrough mechanism and then publishes it to a file. Now with a running task, you should be able to do two things:
+NOTE: in subsequent commands use the task ID from your CLI output, not the example task ID shown below.
 
-See the data that is being published to the file:
+This starts a task collecting metrics via psutil, then publishes the data to a file. To see the data published to the file (CTRL+C to exit):
 ```
-$ tail -f /tmp/snap_published_mock_file.log
-^C
+$ tail -f /tmp/psutil_metrics.log
 ```
 
-Or tap into the data that Snap is collecting using the Task ID to watch the task (note: your Task ID will be different):
+Or directly tap into the data stream that Snap is collecting using `snapctl task watch <task_id>`:
 ```
 $ snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
+NAMESPACE                             DATA             TIMESTAMP
+/intel/psutil/cpu/cpu-total/idle      451176.5         2016-10-14 11:01:44.666137773 -0700 PDT
+/intel/psutil/cpu/cpu-total/system    33749.2734375    2016-10-14 11:01:44.666139698 -0700 PDT
+/intel/psutil/cpu/cpu-total/user      65653.2578125    2016-10-14 11:01:44.666145594 -0700 PDT
+/intel/psutil/load/load1              1.81             2016-10-14 11:01:44.666072208 -0700 PDT
+/intel/psutil/load/load15             2.62             2016-10-14 11:01:44.666074302 -0700 PDT
+/intel/psutil/load/load5              2.38             2016-10-14 11:01:44.666074098 -0700 PDT
 ```
 
-If the Task ID already scrolled by, you can list it with:
-```
-$ snapctl task list
-```
+Nice work - you're all done with this example. Depending on how you started `snap-telemetry` service earlier, use the appropriate command to stop the daemon:
 
-Nice work - you're all done with this example. You ran `snapd` manually, so stopping the daemon process will stop any running tasks and unload any plugins we loaded.
-```
-$ pkill snapd
-```
-
-Or you can continue to run more tasks using the loaded plugins (why not create a new Task Manifest that publishes mock data to another file?). Alternatively, you can stop any running tasks and unload any plugins you no longer wish to use manually:
-```
-$ snapctl task stop 8b9babad-b3bc-4a16-9e06-1f35664a7679
-$ snapctl plugin unload processor:passthru:1
-Plugin unloaded
-Name: passthru
-Version: 1
-Type: processor
-$ snapctl plugin unload publisher:file:3
-Plugin unloaded
-Name: file
-Version: 3
-Type: publisher
-$ snapctl plugin unload collector:mock:1
-Plugin unloaded
-Name: mock
-Version: 1
-Type: collector
-```
+* init.d service: `service snap-telemetry stop`
+* systemd service: `systemctl stop snap-telemetry`
+* ran `snapd` manually: `sudo pkill snapd`
 
 When you're ready to move on, walk through other uses of Snap available in the [Examples folder](examples/).
 
@@ -314,7 +333,7 @@ The power of Snap comes from its open architecture. Add to the ecosystem by buil
 * Recommendations to make effective, well-designed plugins are in [PLUGIN_BEST_PRACTICES.md](docs/PLUGIN_BEST_PRACTICES.md)
 
 ## License
-Snap is Open Source software released under the Apache 2.0 [License](LICENSE).
+Snap is Open Source software released under the [Apache 2.0 License](LICENSE).
 
 ## Contributors
 ### Initial Authors
