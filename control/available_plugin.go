@@ -107,6 +107,11 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 			}
 			ap.client = c
 		case plugin.NativeRPC:
+			log.WithFields(log.Fields{
+				"_module":     "control-aplugin",
+				"_block":      "newAvailablePlugin",
+				"plugin_name": ap.name,
+			}).Warning("This plugin is using a deprecated RPC protocol. Find more information here: https://github.com/intelsdi-x/snap/issues/1289 ")
 			c, e := client.NewCollectorNativeClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
