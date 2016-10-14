@@ -41,6 +41,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/pkg/stringutils"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -516,11 +517,7 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 }
 
 func parseNamespace(ns string) []string {
-	if strings.Index(ns, "/") == 0 {
-		ns = ns[1:]
-	}
-	if ns[len(ns)-1] == '/' {
-		ns = ns[:len(ns)-1]
-	}
-	return strings.Split(ns, "/")
+	fc := stringutils.GetFirstChar(ns)
+	ns = strings.Trim(ns, fc)
+	return strings.Split(ns, fc)
 }

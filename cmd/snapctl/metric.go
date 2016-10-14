@@ -31,6 +31,8 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+
+	"github.com/intelsdi-x/snap/pkg/stringutils"
 )
 
 func listMetrics(ctx *cli.Context) error {
@@ -189,11 +191,12 @@ func getMetric(ctx *cli.Context) error {
 func getNamespace(mt *rbody.Metric) string {
 	ns := mt.Namespace
 	if mt.Dynamic {
-		slice := strings.Split(ns, "/")
+		fc := stringutils.GetFirstChar(ns)
+		slice := strings.Split(ns, fc)
 		for _, v := range mt.DynamicElements {
 			slice[v.Index+1] = "[" + v.Name + "]"
 		}
-		ns = strings.Join(slice, "/")
+		ns = strings.Join(slice, fc)
 	}
 	return ns
 }
