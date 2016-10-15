@@ -152,7 +152,7 @@ type managesTribe interface {
 	RemoveAgreement(name string) serror.SnapError
 	JoinAgreement(agreementName, memberName string) serror.SnapError
 	LeaveAgreement(agreementName, memberName string) serror.SnapError
-	GetMembers() []string
+	GetMembers() []*agreement.Member
 	GetMember(name string) *agreement.Member
 }
 

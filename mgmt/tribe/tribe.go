@@ -452,10 +452,12 @@ func (t *tribe) GetMember(name string) *agreement.Member {
 	return nil
 }
 
-func (t *tribe) GetMembers() []string {
-	var members []string
+func (t *tribe) GetMembers() []*agreement.Member {
+	members := []*agreement.Member{}
+
 	for _, member := range t.memberlist.Members() {
-		members = append(members, member.Name)
+		m := agreement.NewMember(member)
+		members = append(members, m)
 	}
 	return members
 }

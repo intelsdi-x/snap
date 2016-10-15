@@ -106,7 +106,7 @@ func (t *TribeLeaveAgreement) ResponseBodyType() string {
 }
 
 type TribeMemberList struct {
-	Members []string `json:"members"`
+	Members []*agreement.Member `json:"members"`
 }
 
 func (t *TribeMemberList) ResponseBodyMessage() string {
