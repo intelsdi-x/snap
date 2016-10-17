@@ -48,6 +48,8 @@ if [ -z "$TRAVIS_TAG" ]; then
   cp -rp "${build_path}/"* "${git_path}"
   _info "copying plugin binaries to ${latest_path}"
   cp -rp "${build_path}/"* "${latest_path}"
+
+  find "${s3_path}" -type directory -name 'plugins' -exec sh -c  'mv $1/* $1/..' _ {} \; -delete
 else
   set -u
   tag_path="${s3_path}/${TRAVIS_TAG}"
@@ -59,22 +61,9 @@ else
   cp -rp "${build_path}/"* "${tag_path}"
   _info "copying plugin binaries to ${latest_path}"
   cp -rp "${build_path}/"* "${latest_path}"
+
+  find "${s3_path}" -type directory -name 'plugins' -exec sh -c  'mv $1/* $1/..' _ {} \; -delete
 fi
-
-release_path="${SNAP_PATH:-"${__proj_dir}/release"}"
-mkdir -p "${release_path}"
-
-_info "moving plugin binaries to ${release_path}"
-
-for file in "${build_path}"/**/*/snap-plugin-* ; do
-  filename="${file##*/}"
-  parent="${file%/*}"
-  arch="${parent##*/}"
-  parent="${parent%/*}"
-  os="${parent##*/}"
-  cp "${file}" "${release_path}/${filename}_${os}_${arch}"
-done
 
 _debug "$(find "${build_path}")"
 _debug "$(find "${s3_path}")"
-_debug "$(find "${release_path}")"
