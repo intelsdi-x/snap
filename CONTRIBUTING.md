@@ -60,6 +60,14 @@ When reporting an issue, details are key. Include the following:
 - Actual results
 - Expected results
 
+## Reporting Security Issues
+
+The Snap team take security very seriously. If you have any issue regarding security,
+please notify us by sending an email to snap-security@intel.com and not by creating a GitHub issue.
+We will follow up with you promptly with more information and a plan for remediation.
+While we are not offering a security bounty, we would love to send some Snap swag your way along with our
+deepest gratitude for your assistance in making Snap a more secure product.
+
 ## Notes on GitHub Usage
 It's worth noting that we don't use all the native GitHub features for issue management. For instance, it's uncommon for us to assign issues to the developer who will address it. Here are notes on what we do use.
 
