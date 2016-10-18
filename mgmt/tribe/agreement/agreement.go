@@ -82,6 +82,8 @@ func New(name string) *Agreement {
 type Member struct {
 	Tags            map[string]string         `json:"tags,omitempty"`
 	Name            string                    `json:"name"`
+	Host            string                    `json:"host"`
+	Port            uint16                    `json:"port"`
 	Node            *memberlist.Node          `json:"-"`
 	PluginAgreement *pluginAgreement          `json:"-"`
 	TaskAgreements  map[string]*taskAgreement `json:"-"`
@@ -90,6 +92,8 @@ type Member struct {
 func NewMember(node *memberlist.Node) *Member {
 	return &Member{
 		Name:           node.Name,
+		Host:           node.Addr.String(),
+		Port:           node.Port,
 		Node:           node,
 		TaskAgreements: map[string]*taskAgreement{},
 	}
