@@ -1777,9 +1777,7 @@ func TestDynamicMetricSubscriptionLoad(t *testing.T) {
 				So(m.Version(), ShouldEqual, 1)
 				if ok, _ := m.Namespace().IsDynamic(); ok {
 					// V1's data for no dynamic metric
-					// Because mock1 uses jsonrpc, all number typers are interpreted
-					// as float64
-					val, ok := m.Data().(float64)
+					val, ok := m.Data().(int)
 					So(ok, ShouldEqual, true)
 					So(val, ShouldBeLessThan, 100)
 				} else {
@@ -1961,9 +1959,7 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 		Convey("metrics are collected from mock1", func() {
 			for _, m := range mts1 {
 				if strings.Contains(m.Namespace().String(), "host") {
-					// Because mock1 uses jsonrpc, all number typers are interpreted
-					// as float64
-					val, ok := m.Data().(float64)
+					val, ok := m.Data().(int)
 					So(ok, ShouldEqual, true)
 					So(val, ShouldBeLessThan, 100)
 				} else {
