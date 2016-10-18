@@ -49,7 +49,7 @@ if [ -z "$TRAVIS_TAG" ]; then
   _info "copying plugin binaries to ${latest_path}"
   cp -rp "${build_path}/"* "${latest_path}"
 
-  find "${s3_path}" -type directory -name 'plugins' -exec sh -c  'mv $1/* $1/..' _ {} \; -delete
+  find "${s3_path}" -type d -name 'plugins' -exec sh -c  'mv $1/* $1/..' _ {} \; -delete
 else
   set -u
   tag_path="${s3_path}/${TRAVIS_TAG}"
@@ -62,7 +62,7 @@ else
   _info "copying plugin binaries to ${latest_path}"
   cp -rp "${build_path}/"* "${latest_path}"
 
-  find "${s3_path}" -type directory -name 'plugins' -exec sh -c  'mv $1/* $1/..' _ {} \; -delete
+  find "${s3_path}" -type d -name 'plugins' -exec sh -c  'mv $1/* $1/..' _ {} \; -delete
 fi
 
 _debug "$(find "${build_path}")"
