@@ -1068,6 +1068,7 @@ func (t *tribe) handleMemberJoin(n *memberlist.Node) {
 	if _, ok := t.members[n.Name]; !ok {
 		t.members[n.Name] = agreement.NewMember(n)
 		t.members[n.Name].Tags = t.decodeTags(n.Meta)
+		t.members[n.Name].Tags["host"] = n.Addr.String()
 	}
 	t.processIntents()
 }
