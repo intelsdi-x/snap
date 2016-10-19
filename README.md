@@ -43,11 +43,12 @@ limitations under the License.
 3. [Community Support](#community-support)
 4. [Contributing](#contributing)
   * [Author a Plugin](#author-a-plugin)
-5. [License](#license)
-6. [Contributors](#contributors)
+5. [Security Disclosure](#security-disclosure)
+6. [License](#license)
+7. [Contributors](#contributors)
   * [Initial Authors](#initial-authors)
   * [Maintainers](#maintainers)
-7. [Thank You](#thank-you)
+8. [Thank You](#thank-you)
 
 ## Overview
 
@@ -312,6 +313,11 @@ The power of Snap comes from its open architecture. Add to the ecosystem by buil
 
 * The definitive how-to is in [PLUGIN_AUTHORING.md](docs/PLUGIN_AUTHORING.md)
 * Recommendations to make effective, well-designed plugins are in [PLUGIN_BEST_PRACTICES.md](docs/PLUGIN_BEST_PRACTICES.md)
+
+## Security Disclosure
+
+The Snap team take security very seriously. If you have any issue regarding security, please notify us by sending an email to snap-security@intel.com
+and not by creating a GitHub issue. We will follow up with you promptly with more information and a plan for remediation.
 
 ## License
 Snap is Open Source software released under the Apache 2.0 [License](LICENSE).
