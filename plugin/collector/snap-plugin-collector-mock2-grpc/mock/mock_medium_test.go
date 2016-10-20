@@ -23,11 +23,11 @@ package mock
 
 import (
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/intelsdi-x/snap-plugin-lib-go/v1/plugin"
-	"github.com/intelsdi-x/snap-plugin-utilities/str"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -96,7 +96,7 @@ func TestCollectMetric(t *testing.T) {
 
 					// only one metric for this specific hostname should be returned
 					So(len(mts), ShouldEqual, 1)
-					So(mts[0].Namespace.String(), ShouldEqual, "/intel/mock/host0/baz")
+					So(mts[0].Namespace.Strings(), ShouldResemble, []string{"intel", "mock", "host0", "baz"})
 
 					Convey("returned metric should have data type integer", func() {
 						_, ok := mts[0].Data.(int)
@@ -192,22 +192,12 @@ func TestGetMetricTypes(t *testing.T) {
 			So(len(mts), ShouldEqual, 6)
 
 			Convey("checking namespaces", func() {
-				metricNames := []string{}
-				for _, m := range mts {
-					metricNames = append(metricNames, m.Namespace.String())
+				nsRes := getNsResultHavingConfig()
+				for i, m := range mts {
+					Convey("checking namespaces: "+strings.Join(m.Namespace.Strings(), "%"), func() {
+						So(m.Namespace.Strings(), ShouldResemble, nsRes[i])
+					})
 				}
-
-				ns := plugin.NewNamespace("intel", "mock", "test%>")
-				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
-
-				ns = plugin.NewNamespace("intel", "mock", "/foo=㊽")
-				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
-
-				ns = plugin.NewNamespace("intel", "mock", "/bar⽔")
-				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
-
-				ns = plugin.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElements("baz㊽", "/bar⽔")
-				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 			})
 		})
 
@@ -218,22 +208,14 @@ func TestGetMetricTypes(t *testing.T) {
 			So(len(mts), ShouldEqual, 5)
 
 			Convey("checking namespaces", func() {
-				metricNames := []string{}
-				for _, m := range mts {
-					metricNames = append(metricNames, m.Namespace.String())
+				nsRes := getNsResultWithoutConfig()
+				for i, m := range mts {
+					Convey("checking namespaces: "+strings.Join(m.Namespace.Strings(), "%"), func() {
+						So(m.Namespace.Strings(), ShouldResemble, nsRes[i])
+					})
 				}
-
-				ns := plugin.NewNamespace("intel", "mock", "/foo=㊽")
-				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
-
-				ns = plugin.NewNamespace("intel", "mock", "/bar⽔")
-				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
-
-				ns = plugin.NewNamespace("intel", "mock").AddDynamicElement("host", "name of the host").AddStaticElements("baz㊽", "|barᵹÄ☍")
-				So(str.Contains(metricNames, ns.String()), ShouldBeTrue)
 			})
 		})
-
 	})
 }
 
@@ -255,4 +237,27 @@ func TestGetConfigPolicy(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(configPolicy, ShouldNotBeNil)
 	})
+}
+
+func getNsResultHavingConfig() [][]string {
+	nss := [][]string{
+		{"intel", "mock", "test%>"},
+		{"intel", "mock", "/foo=㊽"},
+		{"intel", "mock", "/bar⽔"},
+		{"intel", "mock", "*", "/baz⽔"},
+		{"intel", "mock", "*", "baz㊽", "/bar⽔"},
+		{"intel", "mock", "*", "baz㊽", "|barᵹÄ☍"},
+	}
+	return nss
+}
+
+func getNsResultWithoutConfig() [][]string {
+	nss := [][]string{
+		{"intel", "mock", "/foo=㊽"},
+		{"intel", "mock", "/bar⽔"},
+		{"intel", "mock", "*", "/baz⽔"},
+		{"intel", "mock", "*", "baz㊽", "/bar⽔"},
+		{"intel", "mock", "*", "baz㊽", "|barᵹÄ☍"},
+	}
+	return nss
 }
