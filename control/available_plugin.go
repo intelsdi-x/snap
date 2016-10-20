@@ -217,9 +217,9 @@ func (a *availablePlugin) LastHit() time.Time {
 // Stop halts a running availablePlugin
 func (a *availablePlugin) Stop(r string) error {
 	log.WithFields(log.Fields{
-		"_module": "control-aplugin",
-		"block":   "stop",
-		"aplugin": a,
+		"_module":     "control-aplugin",
+		"block":       "stop",
+		"plugin_name": a,
 	}).Info("stopping available plugin")
 	return a.client.Kill(r)
 }
@@ -227,16 +227,16 @@ func (a *availablePlugin) Stop(r string) error {
 // Kill assumes aplugin is not able to here a Kill RPC call
 func (a *availablePlugin) Kill(r string) error {
 	log.WithFields(log.Fields{
-		"_module": "control-aplugin",
-		"block":   "kill",
-		"aplugin": a,
+		"_module":     "control-aplugin",
+		"block":       "kill",
+		"plugin_name": a,
 	}).Info("hard killing available plugin")
 	if a.fromPackage {
 		log.WithFields(log.Fields{
-			"_module":    "control-aplugin",
-			"block":      "kill",
-			"aplugin":    a,
-			"pluginPath": path.Join(a.execPath, a.exec),
+			"_module":     "control-aplugin",
+			"block":       "kill",
+			"plugin_name": a,
+			"pluginPath":  path.Join(a.execPath, a.exec),
 		}).Debug("deleting available plugin path")
 		os.RemoveAll(filepath.Dir(a.execPath))
 	}
@@ -255,9 +255,9 @@ func (a *availablePlugin) CheckHealth() {
 			if a.failedHealthChecks > 0 {
 				// only log on first ok health check
 				log.WithFields(log.Fields{
-					"_module": "control-aplugin",
-					"block":   "check-health",
-					"aplugin": a,
+					"_module":     "control-aplugin",
+					"block":       "check-health",
+					"plugin_name": a,
 				}).Debug("health is ok")
 			}
 			a.failedHealthChecks = 0
@@ -273,16 +273,16 @@ func (a *availablePlugin) CheckHealth() {
 // and a HealthCheckFailedEvent
 func (a *availablePlugin) healthCheckFailed() {
 	log.WithFields(log.Fields{
-		"_module": "control-aplugin",
-		"block":   "check-health",
-		"aplugin": a,
+		"_module":     "control-aplugin",
+		"block":       "check-health",
+		"plugin_name": a,
 	}).Warning("heartbeat missed")
 	a.failedHealthChecks++
 	if a.failedHealthChecks >= DefaultHealthCheckFailureLimit {
 		log.WithFields(log.Fields{
-			"_module": "control-aplugin",
-			"block":   "check-health",
-			"aplugin": a,
+			"_module":     "control-aplugin",
+			"block":       "check-health",
+			"plugin_name": a,
 		}).Warning("heartbeat failed")
 		pde := &control_event.DeadAvailablePluginEvent{
 			Name:    a.name,
