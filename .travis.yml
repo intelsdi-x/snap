@@ -35,7 +35,7 @@ before_deploy:
 - make all
 - "./scripts/pre_deploy.sh"
 deploy:
-  provider: s3
+- provider: s3
   access_key_id: AKIAINMB43VSSPFZISAA
   secret_access_key:
     secure: vEWq7ImahLeJ3n+RsazhuCuzRV5b8biZRy3HpqJlNasSAqUPvugGD8TrhaK/3fru931flVLsLdFJObG3cIHmJrJDaLS+Zv7707+yAPHOLrATedO530P89CPlJpDmbPNuqU2e+6NfCu7DZQdceXF5hSQRIVeVloHcsnoo7XG4VFHPrIOCB+JbWnVquH7wtOn3h0RcOtzQQgdehqKB2c6Yi68wFkgKIEyIQHL63m28biMn1nMH1i0lYCN4rk8kxhPWar6e86JPeDvyhUbXixokXsy0H3J819yWwZIejb0UCucJmXMG+m9jMNXwh1DoC4+HMvFnzUdB61G6nYCPFz0GRyw363sXCg2rBizkTyhVF1Bd039gWgGFm6rb5cUKTlvNuvWe+x1E0lX8G3pPa8ZFX7/i2P9GPJCt8LHnZnskIHv0Yic/+6Kt89veS0YWgQRUuSGDnhaMuJHeyZppiFr4ALUi032/qTCuTj6z/v7UMpDSkPGpCh4505mMVsx11lT7zoZnK5/1Qxfd8ysJgfPKcptJXMfYjX/8QFT9EPok4KMx6E2k8hS82rT5i1pjjE9Kw18xqJNlWOUatfX5jzzoCYxuj/d99Zu4gD0n7UUN5rcNY7xrrBwYPmPaIKOTp+k+RdwlRIhxaXr2j5GFCaSPrtDobULioJIHfdbxVjrThQY=
@@ -48,4 +48,18 @@ deploy:
   on:
     repo: intelsdi-x/snap
     branch: master
+    condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.7.1"
+- provider: s3
+  access_key_id: AKIAINMB43VSSPFZISAA
+  secret_access_key:
+    secure: vEWq7ImahLeJ3n+RsazhuCuzRV5b8biZRy3HpqJlNasSAqUPvugGD8TrhaK/3fru931flVLsLdFJObG3cIHmJrJDaLS+Zv7707+yAPHOLrATedO530P89CPlJpDmbPNuqU2e+6NfCu7DZQdceXF5hSQRIVeVloHcsnoo7XG4VFHPrIOCB+JbWnVquH7wtOn3h0RcOtzQQgdehqKB2c6Yi68wFkgKIEyIQHL63m28biMn1nMH1i0lYCN4rk8kxhPWar6e86JPeDvyhUbXixokXsy0H3J819yWwZIejb0UCucJmXMG+m9jMNXwh1DoC4+HMvFnzUdB61G6nYCPFz0GRyw363sXCg2rBizkTyhVF1Bd039gWgGFm6rb5cUKTlvNuvWe+x1E0lX8G3pPa8ZFX7/i2P9GPJCt8LHnZnskIHv0Yic/+6Kt89veS0YWgQRUuSGDnhaMuJHeyZppiFr4ALUi032/qTCuTj6z/v7UMpDSkPGpCh4505mMVsx11lT7zoZnK5/1Qxfd8ysJgfPKcptJXMfYjX/8QFT9EPok4KMx6E2k8hS82rT5i1pjjE9Kw18xqJNlWOUatfX5jzzoCYxuj/d99Zu4gD0n7UUN5rcNY7xrrBwYPmPaIKOTp+k+RdwlRIhxaXr2j5GFCaSPrtDobULioJIHfdbxVjrThQY=
+  bucket: snap.ci.snap-telemetry.io
+  region: us-west-2
+  skip_cleanup: true
+  local-dir: s3/snap
+  upload-dir: snap
+  acl: public_read
+  on:
+    repo: intelsdi-x/snap
+    tags: true
     condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.7.1"
