@@ -1,3 +1,8 @@
+/*          **  DEPRECATED  **
+For more information, see our deprecation notice
+on Github: https://github.com/intelsdi-x/snap/issues/1289
+*/
+
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
 

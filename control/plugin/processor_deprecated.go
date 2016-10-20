@@ -1,3 +1,8 @@
+/*          **  DEPRECATED  **
+For more information, see our deprecation notice
+on Github: https://github.com/intelsdi-x/snap/issues/1289
+*/
+
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
@@ -21,8 +26,8 @@ package plugin
 
 import "github.com/intelsdi-x/snap/core/ctypes"
 
-// Publisher plugin
-type PublisherPlugin interface {
+// Processor plugin
+type ProcessorPlugin interface {
 	Plugin
-	Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
+	Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error)
 }
