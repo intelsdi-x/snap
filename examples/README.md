@@ -17,16 +17,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
- [configs](./configs) folder contains examples of [the global configuration file](../docs/SNAPD_CONFIGURATION.md#snapd-configuration-file) that powers your plugins.
+This directory contains examples for Snap:
 
- For more examples of using Snap, checkout the examples in these repositories:
- - [snap-plugin-collector-docker](https://github.com/intelsdi-x/snap-plugin-collector-docker),
- - [snap-plugin-collector-ethtool](https://github.com/intelsdi-x/snap-plugin-collector-ethtool),
- - [snap-plugin-collector-cpu](https://github.com/intelsdi-x/snap-plugin-collector-cpu),
- - [snap-plugin-collector-disk](https://github.com/intelsdi-x/snap-plugin-collector-disk),
- - [snap-plugin-collector-psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil),
- - [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo),
- - [snap-plugin-processor-statistics](https://github.com/intelsdi-x/snap-plugin-processor-statistics),
- - [snap-plugin-publisher-influxdb](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb),
- - [snap-plugin-publisher-graphite](https://github.com/intelsdi-x/snap-plugin-publisher-graphite),
- - [snap-plugin-publisher-file](https://github.com/intelsdi-x/snap-plugin-publisher-file).
+* [configs](./configs) folder contains examples of [the global configuration file](../docs/SNAPD_CONFIGURATION.md#snapd-configuration-file) that powers your plugins.
+* [tasks](./tasks) folder contains examples of [Snap tasks](../docs/TASKS.md).
+
+For additional examples of using Snap, checkout the examples in these repositories:
+ - [snap-plugin-collector-docker](https://github.com/intelsdi-x/snap-plugin-collector-docker)
+ - [snap-plugin-collector-ethtool](https://github.com/intelsdi-x/snap-plugin-collector-ethtool)
+ - [snap-plugin-collector-cpu](https://github.com/intelsdi-x/snap-plugin-collector-cpu)
+ - [snap-plugin-collector-disk](https://github.com/intelsdi-x/snap-plugin-collector-disk)
+ - [snap-plugin-collector-psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil)
+ - [snap-plugin-collector-meminfo](https://github.com/intelsdi-x/snap-plugin-collector-meminfo)
+ - [snap-plugin-processor-statistics](https://github.com/intelsdi-x/snap-plugin-processor-statistics)
+ - [snap-plugin-publisher-influxdb](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb)
+ - [snap-plugin-publisher-graphite](https://github.com/intelsdi-x/snap-plugin-publisher-graphite)
+ - [snap-plugin-publisher-file](https://github.com/intelsdi-x/snap-plugin-publisher-file)
