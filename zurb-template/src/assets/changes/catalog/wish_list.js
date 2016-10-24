@@ -5,54 +5,26 @@ myfcn3(
 },
 {
 "name": "Prometheus",
-"type": "Collector",
-},
-{
-"name": "snap App Endpoint (needs event spec)",
-"type": "Collector",
-},
-{
-"name": "Intel NIC",
-"type": "Collector",
-},
-{
-"name": "Kubernetes Minion",
-"type": "Collector",
-},
-{
-"name": "Mesos Slave",
-"type": "Collector",
-},
-{
-"name": "Mesos Master",
-"type": "Collector",
-},
-{
-"name": "JVM (via JMX)",
-"type": "Collector",
-},
-{
-"name": "Caffe",
-"type": "Processor",
-},
-{
-"name": "Oslo",
-"type": "Processor",
-},
-{
-"name": "0MQ",
 "type": "Publisher",
 },
 {
-"name": "ActiveMQ",
-"type": "Publisher",
+"name": "Perfmon",
+"type": "Collector",
 },
 {
-"name": "SQLite",
-"type": "Publisher",
+"name": "TPC/UDP",
+"type": "Collector",
 },
 {
-"name": "Ceilometer (possibly OSLO proc + RMQ)",
+"name": "sflow/netflow",
+"type": "Collector",
+},
+{
+"name": "Kubernetes Node (Minion)",
+"type": "Collector",
+},
+{
+"name": "Ceilometer",
 "type": "Publisher",
 }]
 )

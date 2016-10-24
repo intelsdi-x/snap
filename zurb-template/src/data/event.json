@@ -1,0 +1,22 @@
+[ 
+{ 
+"text": "Snap and Kubernetes Integration for better monitoring and scale", 
+"link": "https://medium.com/intel-sdi/how-we-integrated-kubernetes-with-snap-and-come-up-with-kubesnap-466ac25fc0ff#.61rotoqqw" 
+},
+
+{ 
+"text": "Snap Reaches 1000 Stars on Github! Thank you!", 
+"link": "" 
+},
+
+{ 
+"text": "Plugin Authors: Go RPC now deprecated", 
+"link": "https://github.com/intelsdi-x/snap/issues/1289"
+}, 
+
+{ 
+"text": "Plugin Authors: JSON RPC now deprecated and will be removed as of release 0.18", 
+"link": "https://github.com/intelsdi-x/snap/issues/1296" 
+}
+
+] 

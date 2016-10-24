@@ -139,3 +139,42 @@ display: block;}
 
 
 
+
+
+.button_link {
+    font-size: .8rem;
+    /* font-weight: bold; */
+    width: 10em;
+    letter-spacing: 2px;
+    background: linear-gradient(45deg, #00CC66, #00CC66);
+    text-fill-color: transparent;
+    transition: all 0.2s ease;
+    color: white;
+    display: inline-block;
+    text-align: center;
+    line-height: 1;
+    padding: 0.5em 0.5em;
+    border-radius: 5px;
+    margin-left: 10px;
+}
+
+ .button_link:hover {
+    color: white;
+    text-shadow: 0 0 15px #000000;
+}
+
+
+.orbit-box{
+  height: 206px; 
+  border: 2px solid rgba(0,0,0, 0.15);
+}
+
+.orbit-layout{
+  max-height: 206px; 
+  display: block; 
+  position: relative; 
+  top: 0px; 
+  text-align: center;
+}
+
+

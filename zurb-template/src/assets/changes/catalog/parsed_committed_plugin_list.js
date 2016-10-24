@@ -1,8 +1,8 @@
 myfcn2(
 [{
-"name": "Open vSwitch",
+"name": "Openfoam",
 "type": "Collector",
-"description": "Collect Open vSwitch performance data",
+"description": "Collects OpenFOAM performance metrics",
 "author_url": "https://github.com/sandlbn",
 "github_id": "@sandlbn"
 },
