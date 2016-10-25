@@ -141,7 +141,7 @@ type catalogsMetrics interface {
 	Keys() []string
 	Subscribe([]string, int) error
 	Unsubscribe([]string, int) error
-	GetPlugin(core.Namespace, int) (*loadedPlugin, error)
+	GetPlugin(core.Namespace, int) (core.CatalogedPlugin, error)
 }
 
 type managesSigning interface {
@@ -715,26 +715,26 @@ func (p *pluginControl) getMetricsAndCollectors(requested []core.RequestedMetric
 
 			// apply defaults to the metric that may be present in the plugins
 			// configpolicy
-			if pluginCfg := mt.Plugin.ConfigPolicy.Get(mt.Namespace().Strings()); pluginCfg != nil {
+			if pluginCfg := mt.Plugin.Policy().Get(mt.Namespace().Strings()); pluginCfg != nil {
 				mt.config.ApplyDefaults(pluginCfg.Defaults())
 			}
 
-			// loaded plugin which exposes the metric
-			lp := mt.Plugin
-			key := lp.Key()
+			// cataloged plugin which exposes the metric
+			cp := mt.Plugin
+			key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", cp.TypeName(), cp.Name(), cp.Version())
 
 			// groups metricTypes by a plugin.Key()
 			pmt, _ := newMetricsGroupedByPlugin[key]
 
 			// pmt (plugin-metric-type) contains plugin and metrics types grouped to this plugin
-			pmt.plugin = lp
+			pmt.plugin = cp
 			pmt.metricTypes = append(pmt.metricTypes, mt)
 			newMetricsGroupedByPlugin[key] = pmt
 
 			plugin := subscribedPlugin{
-				name:     lp.Name(),
-				typeName: lp.TypeName(),
-				version:  lp.Version(),
+				name:     cp.Name(),
+				typeName: cp.TypeName(),
+				version:  cp.Version(),
 				config:   cdata.NewNode(),
 			}
 
@@ -1046,7 +1046,7 @@ func (r *requestedPlugin) Config() *cdata.ConfigDataNode {
 
 // just a tuple of loadedPlugin and metricType slice
 type metricTypes struct {
-	plugin      *loadedPlugin
+	plugin      core.CatalogedPlugin
 	metricTypes []core.Metric
 }
 
@@ -1058,7 +1058,7 @@ func (mts metricTypes) Metrics() []core.Metric {
 	return mts.metricTypes
 }
 
-func (mts metricTypes) Plugin() *loadedPlugin {
+func (mts metricTypes) Plugin() core.CatalogedPlugin {
 	return mts.plugin
 }
 

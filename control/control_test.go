@@ -628,7 +628,7 @@ func (m *mc) resolvePlugin(mns []string, ver int) (*loadedPlugin, error) {
 	return nil, nil
 }
 
-func (m *mc) GetPlugin(core.Namespace, int) (*loadedPlugin, error) {
+func (m *mc) GetPlugin(core.Namespace, int) (core.CatalogedPlugin, error) {
 	return nil, nil
 }
 
