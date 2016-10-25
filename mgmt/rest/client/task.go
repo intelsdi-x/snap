@@ -35,13 +35,13 @@ import (
 
 type Schedule struct {
 	// Type specifies the type of the schedule. Currently, the type of "simple", "windowed" and "cron" are supported.
-	Type string
+	Type string `json:"type,omitempty"`
 	// Interval specifies the time duration.
-	Interval string
-	// StartTime specifies the beginning time.
-	StartTime *time.Time
-	// StopTime specifies the end time.
-	StopTime *time.Time
+	Interval string `json:"interval,omitempty"`
+	// StartTimestamp specifies the beginning time.
+	StartTimestamp *time.Time `json:"start_timestamp,omitempty"`
+	// StopTimestamp specifies the end time.
+	StopTimestamp *time.Time `json:"stop_timestamp,omitempty"`
 }
 
 // CreateTask creates a task given the schedule, workflow, task name, and task state.
@@ -51,21 +51,14 @@ type Schedule struct {
 func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, deadline string, startTask bool, maxFailures int) *CreateTaskResult {
 	t := core.TaskCreationRequest{
 		Schedule: &core.Schedule{
-			Type:     s.Type,
-			Interval: s.Interval,
+			Type:           s.Type,
+			Interval:       s.Interval,
+			StartTimestamp: s.StartTimestamp,
+			StopTimestamp:  s.StopTimestamp,
 		},
 		Workflow:    wf,
 		Start:       startTask,
 		MaxFailures: maxFailures,
-	}
-	// Add start and/or stop timestamps if they exist
-	if s.StartTime != nil {
-		u := s.StartTime.Unix()
-		t.Schedule.StartTimestamp = &u
-	}
-	if s.StopTime != nil {
-		u := s.StopTime.Unix()
-		t.Schedule.StopTimestamp = &u
 	}
 
 	if name != "" {

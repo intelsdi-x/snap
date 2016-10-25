@@ -170,15 +170,15 @@ func (t *task) setWindowedSchedule(start *time.Time, stop *time.Time, duration *
 		// if start is set and stop is not then use duration to create stop
 		if start != nil && stop == nil {
 			newStop := start.Add(*duration)
-			t.Schedule.StartTime = start
-			t.Schedule.StopTime = &newStop
+			t.Schedule.StartTimestamp = start
+			t.Schedule.StopTimestamp = &newStop
 			return nil
 		}
 		// if stop is set and start is not then use duration to create start
 		if stop != nil && start == nil {
 			newStart := stop.Add(*duration * -1)
-			t.Schedule.StartTime = &newStart
-			t.Schedule.StopTime = stop
+			t.Schedule.StartTimestamp = &newStart
+			t.Schedule.StopTimestamp = stop
 			return nil
 		}
 		// otherwise, the start and stop are both undefined but a duration was passed in,
@@ -187,19 +187,19 @@ func (t *task) setWindowedSchedule(start *time.Time, stop *time.Time, duration *
 		// and the duration
 		newStart := time.Now().Add(createTaskNowPad)
 		newStop := newStart.Add(*duration)
-		t.Schedule.StartTime = &newStart
-		t.Schedule.StopTime = &newStop
+		t.Schedule.StartTimestamp = &newStart
+		t.Schedule.StopTimestamp = &newStop
 		return nil
 	}
 	// if a start date/time was specified, we will use it to replace
 	// the current schedule's start date/time
 	if start != nil {
-		t.Schedule.StartTime = start
+		t.Schedule.StartTimestamp = start
 	}
 	// if a stop date/time was specified, we will use it to replace the
 	// current schedule's stop date/time
 	if stop != nil {
-		t.Schedule.StopTime = stop
+		t.Schedule.StopTimestamp = stop
 	}
 	// if we get this far, then just return a nil error (indicating success)
 	return nil
