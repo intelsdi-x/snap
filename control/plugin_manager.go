@@ -322,6 +322,15 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		return nil, serror.New(err)
 	}
 
+	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", resp.Meta.Type.String(), resp.Meta.Name, resp.Meta.Version)
+	if _, exists := p.loadedPlugins.table[key]; exists {
+		return nil, serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
+			"plugin-name":    resp.Meta.Name,
+			"plugin-version": resp.Meta.Version,
+			"plugin-type":    resp.Type.String(),
+		})
+	}
+
 	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
@@ -362,7 +371,13 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		}).Error("error in getting config policy")
 		return nil, serror.New(err)
 	}
+
 	lPlugin.ConfigPolicy = cp
+	lPlugin.Meta = resp.Meta
+	lPlugin.Type = resp.Type
+	lPlugin.Token = resp.Token
+	lPlugin.LoadedTime = time.Now()
+	lPlugin.State = LoadedState
 
 	if resp.Type == plugin.CollectorPluginType {
 		cfgNode := p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version)
@@ -493,12 +508,6 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		}).Error("load plugin error")
 		return nil, serror.New(e)
 	}
-
-	lPlugin.Meta = resp.Meta
-	lPlugin.Type = resp.Type
-	lPlugin.Token = resp.Token
-	lPlugin.LoadedTime = time.Now()
-	lPlugin.State = LoadedState
 
 	aErr := p.loadedPlugins.add(lPlugin)
 	if aErr != nil {
