@@ -106,18 +106,18 @@ $ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.de
 $ sudo apt-get install -y snap-telemetry
 ```
 
-
-MacOS X (homebrew support pending 1.0.0 release):
+MacOS X (homebrew support pending 1.0.0 release, use the appropriate url from github release page):
 ```
-$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/v0.16.1-beta/snap-telemetry-0.16.1.pkg
-$ sudo installer -pkg ./snap-telemetry-0.16.1.pkg
+$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.17.0/snap-telemetry-0.17.0.pkg
+$ sudo installer -pkg ./snap-telemetry-0.17.0.pkg -target /
 ```
 
 Tarball (choose the appropriate version and platform):
 ```
-$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/v0.16.1-beta/snap-v0.16.1-beta-linux-amd64.tar.gz
-$ tar xf snap-v0.16.1-beta-linux-amd64.tar.gz
-$ cp snap-v0.16.1-beta/bin/snap* /usr/local/bin
+$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.17.0/snap-0.17.0-linux-amd64.tar.gz
+$ tar xf snap-0.17.0-linux-amd64.tar.gz
+$ cp snapd /usr/local/bin
+$ cp snapctl /usr/local/bin
 ```
 
 Ubuntu 16.04.1 [snapd package version 2.13+](https://launchpad.net/ubuntu/+source/snapd) installs snapd/snapctl binary in /usr/bin. These executables are not related to snap-telemetry. Running `snapctl` from snapd package will result in the following error message:
