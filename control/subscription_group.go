@@ -345,7 +345,7 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 			plugins = append(plugins, plugin)
 			// add defaults to plugins (exposed in a plugins ConfigPolicy)
 			if lp, err := s.pluginManager.get(
-				fmt.Sprintf("%s:%s:%d",
+				fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d",
 					plugin.TypeName(),
 					plugin.Name(),
 					plugin.Version())); err == nil && lp.ConfigPolicy != nil {
