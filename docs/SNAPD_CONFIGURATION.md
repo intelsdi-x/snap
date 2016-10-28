@@ -93,8 +93,8 @@ control:
 
   # plugin_trust_level sets the plugin trust level for snapd. The default state
   # for plugin trust level is enabled (1). When enabled, only signed plugins that can
-  # be verified will be loaded into snapd. Signatures are verifed from
-  # keyring files specided in keyring_path. Plugin trust can be disabled (0) which
+  # be verified will be loaded into snapd. Signatures are verified from
+  # keyring files specified in keyring_path. Plugin trust can be disabled (0) which
   # will allow loading of all plugins whether signed or not. The warning state allows
   # for loading of signed and unsigned plugins. Warning messages will be displayed if
   # an unsigned plugin is loaded. Any signed plugins that can not be verified will
@@ -166,7 +166,7 @@ restapi:
   # rest_auth enables authentication for the REST API. Default value is false
   rest_auth: false
 
-  # rest_auth_password sets the password to use for the REST API. Currently user and password
+  # rest_auth_password sets the password to use the REST API. Currently user and password
   # combinations are not supported.
   rest_auth_password: changeme
 
@@ -195,7 +195,7 @@ tribe:
   bind_port: 6000
 
   # name sets the name to use for this snapd instance in the tribe
-  # membership. Default value defaults to local hostname of the system.
+  # membership. Default value defaults to the local hostname of the system.
   name: snaphost-01
 
   # seed sets the snapd instance to use as the seed for tribe communications

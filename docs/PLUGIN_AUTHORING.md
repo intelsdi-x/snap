@@ -85,7 +85,8 @@ Example:
 | /intel/mock/bar.no            | not allowed characters | /intel/mock/bar_no                        |
 | /intel/mock/bar!?             | not allowed characters | /intel/mock/bar                           |
 
-Snap validates the metrics exposed by plugin and, if validation failed, return an error and not load the plugin.
+
+Snap validates the metrics exposed by the plugin and, if validation fails, an error is returned and the plugin is not loaded.
 
 ##### c) static and dynamic metrics
 Snap supports both static and dynamic metrics.  You can find more detail about static and dynamic metrics [here](./METRICS.md).

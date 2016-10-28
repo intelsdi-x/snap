@@ -10,21 +10,21 @@ A metric in snap has the following fields.
 * Version `int`
  * Is bound to the version of the plugin
  * Multiple versions of the same metric can be added to the catalog
-  * Unless specified in the Task Manifest, the latest available metric will collected
+  * Unless specified in the Task Manifest, the latest available metric will be collected
 * Config `*cdata.ConfigDataNode`
  * Contains data needed to collect a metric
   * Examples include 'uri', 'username', 'password', 'paths'
 * Data `interface{}`
  * The collected data
 * Tags `map[string]string`
- * Are key value pairs that provide additional meta data about the metric
+ * Are key value pairs that provide additional metadata about the metric
  * May be added by the framework or other plugins (processors)
   * The framework currently adds the following standard tag to all metrics
    * `plugin_running_on` describing on which host the plugin is running. This value is updated every hour due to a TTL set internally.
  * May be added by a task manifests as described [here](https://github.com/intelsdi-x/snap/pull/941)
  * May be added by the snapd config as described [here](https://github.com/intelsdi-x/snap/issues/827)
 * Unit `string`
- * Describes the magnititude being measured
+ * Describes the magnitude being measured
  * Can be an empty string for unitless data
  * See [Metrics20.org](http://metrics20.org/spec/) for more guidance on units
 * Description `string`

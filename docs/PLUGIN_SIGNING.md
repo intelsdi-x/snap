@@ -273,7 +273,7 @@ gpg: Good signature from "Tiffany Jernigan (Plugin signing key) <my.email@intel.
 ```
 
 ###Signing file using key in your default keyring
-If you already have a key, you can use that. Otherwise you can create a key and directly add to your keyring  
+If you already have a key, you can use that. Otherwise, you can create a key and directly add to your keyring  
 Create a file named `gpg-batch` with the following
 ```
 %echo Generating a default key
@@ -325,7 +325,7 @@ $ gpg --import pubkeys.gpg
 ```
 ####Validating a public key from someone else
 From the [GPG Handbook](https://www.gnupg.org/gph/en/manual/x56.html):  
-Once a key is imported it should be validated. GnuPG uses a powerful and flexible trust model that does not require you to personally validate each key you import. Some keys may need to be personally validated, however. A key is validated by verifying the key's fingerprint and then signing the key to certify it as a valid key. A key's fingerprint can be quickly viewed with the --fingerprint command-line option, but in order to certify the key you must edit it.
+Once a key is imported it should be validated. GnuPG uses a powerful and flexible trust model that does not require you to personally validate each key you import. Some keys may need to be personally validated, however. A key is validated by verifying the key's fingerprint and then signing the key to certify it as a valid key. A key's fingerprint can be quickly viewed with the --fingerprint command-line option, but in order to certify the key, you must edit it.
 
 Add --no-default-keyring --keyring <keyringFile> to all commands below if you are editing a specific keyring that isn't your gnupg default one.
 ```

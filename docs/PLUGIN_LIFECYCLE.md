@@ -79,7 +79,7 @@ subscription group are unsubscribed and the subscription group is removed.
 processing of all subscription groups.  When a subscription group is processed the
 requested metrics are evaluated and mapped to collector plugins.  The required
 plugins are compared with the previous state of the subscription group 
-triggering the appropriate subscribe or unsubscribe calls. Finally the 
+triggering the appropriate subscribe or unsubscribe calls. Finally, the 
 subscription group view is updated with the current plugin dependencies and
 the metrics that will be collected based on the requested metrics (query).
 

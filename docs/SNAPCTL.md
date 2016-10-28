@@ -106,7 +106,7 @@ In one terminal window, run snapd (log level is set to 1 and signing is turned o
 $ $SNAP_PATH/bin/snapd -l 1 -t 0
 ```
 
-prepare a task manifest file, for example task.json with following content:
+prepare a task manifest file, for example, task.json with following content:
 ```json
 {
     "version": 1,
@@ -147,7 +147,7 @@ prepare a task manifest file, for example task.json with following content:
 }
 ```
 
-prepare a workflow manifest file, for example workflow.json with following content:
+prepare a workflow manifest file, for example, workflow.json with the following content:
 ```json
 {
     "collect": {
@@ -181,7 +181,7 @@ and then:
 5. start a task with a task manifest
 6. start a task with a workflow manifest
 7. list the tasks
-8. unload a plugins
+8. unload the plugins
 
 ```
 $ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-plugin-collector-mock1

@@ -75,7 +75,7 @@ would identify that file as a file that contains *small* tests, while a line lik
 
 	 // +build medium
 
-would identify that file as a file that contains *medium* tests. Once those build tags are have been added to the test files in the Snap codebase, it is relative simple to run a specific set of tests (by type) by simply adding a `-tags [TAG]` command-line flag to the `go test` command (where the `[TAG]` value is replaced by one of our test types). For example, this command will run all of the tests in the current working directory or any of it’s subdirectories that have been tagged as *small* tests:
+would identify that file as a file that contains *medium* tests. Once those build tags are have been added to the test files in the Snap codebase, it is relative simple to run a specific set of tests (by type) by simply adding a `-tags [TAG]` command-line flag to the `go test` command (where the `[TAG]` value is replaced by one of our test types). For example, this command will run all of the tests in the current working directory or any of its subdirectories that have been tagged as *small* tests:
 
 	 $ go test -v  -tags=small ./...
 
@@ -143,7 +143,7 @@ Any `small` tests added to the Snap framework must conform to the following cons
 
 When complete, the full set of `small` tests for any given function or method should provide sufficient code coverage to ensure that any changes made to that function or method will not 'break the build'. This will assure the Snap maintainers that any pull requests that are made to modify or add to the framework can be safely merged (provided that there is sufficient code coverage and the associated tests pass).
 
-It should be noted here that the maintainers will refuse to merge any pull requests that trigger a failure of any of the `small` or `legacy` tests that cover the code being modified or added to the framework. As such, we highly recommend that contributors run the tests that cover their contributions locally before submitting their contribution as a pull request. Maintainers may also  ask that contributors add tests to their pull requests to ensure adequate code coverage before the they are willing to accept a given pull request, even if all existing tests pass. Our hope is that you, as a contributor, will understand the need for this requirement.
+It should be noted here that the maintainers will refuse to merge any pull requests that trigger a failure of any of the `small` or `legacy` tests that cover the code being modified or added to the framework. As such, we highly recommend that contributors run the tests that cover their contributions locally before submitting their contribution as a pull request. Maintainers may also  ask that contributors add tests to their pull requests to ensure adequate code coverage before they are willing to accept a given pull request, even if all existing tests pass. Our hope is that you, as a contributor, will understand the need for this requirement.
 
 #### In Docker
 The Snap Framework supports running tests in an isolated container as opposed to your local host. Run the test script, which calls a `Dockerfile` located at `./scripts/Dockerfile`:

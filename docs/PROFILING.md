@@ -59,7 +59,7 @@ go get github.com/uber/go-torch
 ```
 
 ## Generating a profile
-Before exploiting any result with go-torch and pprof we need to generate a profile - in our case a CPU profile. In this example we'll use the package `github.com/pkg/profile`.
+Before exploiting any result with go-torch and pprof we need to generate a profile - in our case a CPU profile. In this example, we'll use the package `github.com/pkg/profile`.
 
 ### Implement the code
 So on your main function start the profile:
@@ -90,7 +90,7 @@ func startInterruptHandling(modules ...coreModule) {
 ```
 
 ## Launch your program
-Now launch your program - in this example we started snapd and ran a task. The longer you run your task, the deeper your graph will go into the subroutines.
+Now launch your program - in this example, we started snapd and ran a task. The longer you run your task, the deeper your graph will go into the subroutines.
 
 When your program quits you should have a `cpu.pprof` file generated in your current folder.
 
