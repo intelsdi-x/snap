@@ -28,7 +28,7 @@ A distributed workflow is a workflow where one or more steps have a remote targe
 
 ## Architecture
 
-Distributed workflow is accomplished by allowing remote targets to be specified as part of a task workflow. This is done by having a gRPC server running that can handle actions needed by the scheduler to run a task. These are defined in the [managesMetrics](https://github.com/intelsdi-x/snap/blob/distributed-workflow/scheduler/scheduler.go) interface defined in scheduler/scheduler.go. This interface is implemented by both pluginControl in control/control.go and  ControlProxy in grpc/controlproxy/controlproxy.go. This allows the scheduler to not know/care where a step in the workflow is running. On task creation the workflow is walked and the appropriate type is selected or created for each step in the workflow.
+Distributed workflow is accomplished by allowing remote targets to be specified as part of a task workflow. This is done by having a gRPC server running that can handle actions needed by the scheduler to run a task. These are defined in the [managesMetrics](https://github.com/intelsdi-x/snap/blob/distributed-workflow/scheduler/scheduler.go) interface defined in scheduler/scheduler.go. This interface is implemented by both pluginControl in control/control.go and  ControlProxy in grpc/controlproxy/controlproxy.go. This allows the scheduler to not know/care where a step in the workflow is running. On task creation, the workflow is walked and the appropriate type is selected or created for each step in the workflow.
 
 ## Performance considerations
 
