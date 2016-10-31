@@ -17,6 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
+<img src="https://cloud.githubusercontent.com/assets/6523391/19813910/24b75b66-9d3c-11e6-98ed-e6897faafd1c.png" width="20%" align="right">
+</br>
+</br>
+</br>
+</br>
+
 # Tribe
 
 Tribe is the name of the clustering feature in Snap.  When it is enabled, snapd instances can join to one another through an `agreement`. When an action is taken by one snapd instance that is a member of an agreement, that action will be carried out by all other members of the agreement. When a new snapd joins an existing agreement it will retrieve plugins and tasks from the members of the agreement.
