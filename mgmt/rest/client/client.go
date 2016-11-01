@@ -172,6 +172,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			}
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		defer rsp.Body.Close()
 	case "PUT":
 		var b *bytes.Reader
 		if len(body) == 0 {
@@ -193,6 +194,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			}
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		defer rsp.Body.Close()
 	case "DELETE":
 		var b *bytes.Reader
 		if len(body) == 0 {
@@ -214,6 +216,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			}
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		defer rsp.Body.Close()
 	case "POST":
 		var b *bytes.Reader
 		if len(body) == 0 {
@@ -234,6 +237,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			}
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		defer rsp.Body.Close()
 	}
 
 	return httpRespToAPIResp(rsp)
