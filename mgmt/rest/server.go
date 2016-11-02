@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"strings"
 	"sync"
 	"time"
@@ -60,6 +61,7 @@ const (
 	defaultAuth            bool   = false
 	defaultAuthPassword    string = ""
 	defaultPortSetByConfig bool   = false
+	defaultPprof           bool   = false
 )
 
 var (
@@ -83,6 +85,7 @@ type Config struct {
 	RestAuth         bool   `json:"rest_auth"yaml:"rest_auth"`
 	RestAuthPassword string `json:"rest_auth_password"yaml:"rest_auth_password"`
 	portSetByConfig  bool   ``
+	Pprof            bool   `json:"pprof"yaml:"pprof"`
 }
 
 const (
@@ -115,6 +118,9 @@ const (
 					},
 					"addr" : {
 						"type": "string"
+					},
+					"pprof": {
+						"type": "boolean"
 					}
 				},
 				"additionalProperties": false
@@ -174,6 +180,7 @@ type Server struct {
 	r          *httprouter.Router
 	snapTLS    *snapTLS
 	auth       bool
+	pprof      bool
 	authpwd    string
 	addrString string
 	addr       net.Addr
@@ -191,10 +198,12 @@ func New(cfg *Config) (*Server, error) {
 	https := cfg.HTTPS
 	cpath := cfg.RestCertificate
 	kpath := cfg.RestKey
+	pprof := cfg.Pprof
 	s := &Server{
 		err:        make(chan error),
 		killChan:   make(chan struct{}),
 		addrString: cfg.Address,
+		pprof:      pprof,
 	}
 	if https {
 		var err error
@@ -229,6 +238,7 @@ func GetDefaultConfig() *Config {
 		RestAuth:         defaultAuth,
 		RestAuthPassword: defaultAuthPassword,
 		portSetByConfig:  defaultPortSetByConfig,
+		Pprof:            defaultPprof,
 	}
 }
 
@@ -284,6 +294,10 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		case "rest_auth_password":
 			if err := json.Unmarshal(v, &(c.RestAuthPassword)); err != nil {
 				return fmt.Errorf("%v (while parsing 'restapi::rest_auth_password')", err)
+			}
+		case "pprof":
+			if err := json.Unmarshal(v, &(c.Pprof)); err != nil {
+				return fmt.Errorf("%v (while parsing 'restapi::pprof')", err)
 			}
 		default:
 			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'restapi'", k)
@@ -456,6 +470,7 @@ func (s *Server) BindConfigManager(c managesConfig) {
 }
 
 func (s *Server) addRoutes() {
+
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
 	s.r.GET("/v1/plugins/:type", s.getPlugins)
@@ -492,6 +507,37 @@ func (s *Server) addRoutes() {
 		s.r.GET("/v1/tribe/members", s.getMembers)
 		s.r.GET("/v1/tribe/member/:name", s.getMember)
 	}
+
+	// profiling tools routes
+	if s.pprof {
+		s.r.GET("/v1/debug/pprof/", s.index)
+		s.r.GET("/v1/debug/pprof/cmdline", s.cmdline)
+		s.r.GET("/v1/debug/pprof/profile", s.profile)
+		s.r.GET("/v1/debug/pprof/symbol", s.symbol)
+		s.r.GET("/v1/debug/pprof/trace", s.trace)
+	}
+}
+
+// profiling tools handlers
+
+func (s *Server) index(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	pprof.Index(w, r)
+}
+
+func (s *Server) cmdline(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	pprof.Cmdline(w, r)
+}
+
+func (s *Server) profile(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	pprof.Profile(w, r)
+}
+
+func (s *Server) symbol(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	pprof.Symbol(w, r)
+}
+
+func (s *Server) trace(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	pprof.Trace(w, r)
 }
 
 func respond(code int, b rbody.Body, w http.ResponseWriter) {

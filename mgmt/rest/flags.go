@@ -56,7 +56,11 @@ var (
 		Name:  "rest-auth",
 		Usage: "Enables snap's REST API authentication",
 	}
+	flPProf = cli.BoolFlag{
+		Name:  "pprof",
+		Usage: "Enables profiling tools",
+	}
 
 	// Flags consumed by snapd
-	Flags = []cli.Flag{flAPIDisabled, flAPIAddr, flAPIPort, flRestHTTPS, flRestCert, flRestKey, flRestAuth}
+	Flags = []cli.Flag{flAPIDisabled, flAPIAddr, flAPIPort, flRestHTTPS, flRestCert, flRestKey, flRestAuth, flPProf}
 )

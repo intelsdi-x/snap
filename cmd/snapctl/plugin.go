@@ -173,9 +173,9 @@ func listPlugins(ctx *cli.Context) error {
 			fmt.Println("No running plugins found. Have you started a task?")
 			return nil
 		}
-		printFields(w, false, 0, "NAME", "HIT COUNT", "LAST HIT", "TYPE")
+		printFields(w, false, 0, "NAME", "HIT COUNT", "LAST HIT", "TYPE", "PPROF PORT")
 		for _, rp := range plugins.AvailablePlugins {
-			printFields(w, false, 0, rp.Name, rp.HitCount, time.Unix(rp.LastHitTimestamp, 0).Format(timeFormat), rp.Type)
+			printFields(w, false, 0, rp.Name, rp.HitCount, time.Unix(rp.LastHitTimestamp, 0).Format(timeFormat), rp.Type, rp.PprofPort)
 		}
 	} else {
 		if len(plugins.LoadedPlugins) == 0 {

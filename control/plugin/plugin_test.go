@@ -61,7 +61,7 @@ func TestMetricType(t *testing.T) {
 
 func TestArg(t *testing.T) {
 	Convey("NewArg", t, func() {
-		arg := NewArg(int(log.InfoLevel))
+		arg := NewArg(int(log.InfoLevel), false)
 		So(arg, ShouldNotBeNil)
 	})
 }

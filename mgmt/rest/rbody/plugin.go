@@ -107,4 +107,5 @@ type AvailablePlugin struct {
 	LastHitTimestamp int64  `json:"last_hit_timestamp"`
 	ID               uint32 `json:"id"`
 	Href             string `json:"href"`
+	PprofPort        string `json:"pprof_port"`
 }
