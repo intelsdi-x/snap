@@ -57,7 +57,7 @@ func TestAvailablePlugin(t *testing.T) {
 			r.SetEmitter(new(MockEmitter))
 			a := plugin.Arg{}
 
-			exPlugin, _ := plugin.NewExecutablePlugin(a, fixtures.PluginPath)
+			exPlugin, _ := plugin.NewExecutablePlugin(a, fixtures.PluginPathMock2)
 			ap, err := r.startPlugin(exPlugin)
 			So(err, ShouldBeNil)
 
