@@ -270,7 +270,7 @@ type catalogedPlugin struct {
 	state        pluginState
 	path         string
 	loadedTime   time.Time
-	configPolicy cpolicy.ConfigPolicy
+	configPolicy *cpolicy.ConfigPolicy
 }
 
 func (cp *catalogedPlugin) TypeName() string {
@@ -302,10 +302,16 @@ func (cp *catalogedPlugin) LoadedTimestamp() *time.Time {
 }
 
 func (cp *catalogedPlugin) Policy() *cpolicy.ConfigPolicy {
-	return &cp.configPolicy
+	return cp.configPolicy
 }
 
 func newCatalogedPlugin(lp *loadedPlugin) core.CatalogedPlugin {
+	cp := cpolicy.New()
+	for _, keyNode := range lp.Policy().GetAll() {
+		node := cpolicy.NewPolicyNode()
+		node.Add(keyNode.ConfigPolicyNode.CopyRules()...)
+		cp.Add(keyNode.Key, node)
+	}
 	return &catalogedPlugin{
 		name:         lp.Name(),
 		version:      lp.Version(),
@@ -314,7 +320,7 @@ func newCatalogedPlugin(lp *loadedPlugin) core.CatalogedPlugin {
 		state:        lp.State,
 		path:         lp.PluginPath(),
 		loadedTime:   lp.LoadedTime,
-		configPolicy: *lp.Policy(),
+		configPolicy: cp,
 	}
 }
 

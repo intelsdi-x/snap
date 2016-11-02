@@ -71,6 +71,16 @@ func NewPolicyNode() *ConfigPolicyNode {
 	}
 }
 
+func (c *ConfigPolicyNode) CopyRules() []Rule {
+	rules := make([]Rule, len(c.rules))
+	i := 0
+	for _, rule := range c.rules {
+		rules[i] = rule
+		i++
+	}
+	return rules
+}
+
 // UnmarshalJSON unmarshals JSON into a ConfigPolicyNode
 func (c *ConfigPolicyNode) UnmarshalJSON(data []byte) error {
 	m := map[string]interface{}{}
