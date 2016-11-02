@@ -25,14 +25,9 @@ limitations under the License.
 package plugin
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net"
-	"net/http"
 	"net/rpc"
-	"net/rpc/jsonrpc"
 	"regexp"
 	"runtime"
 	"time"
@@ -130,7 +125,7 @@ func NewPluginMeta(name string, version int, pluginType PluginType, acceptConten
 // PluginMeta - base information about plugin
 // Plugin - CollectorPlugin, ProcessorPlugin or PublisherPlugin
 // requestString - plugins arguments (marshaled json of control/plugin Arg struct)
-// returns an error and exitCode (exitCode from SessionState initilization or plugin termination code)
+// returns an error and exitCode (exitCode from SessionState initialization or plugin termination code)
 func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	s, sErr, retCode := NewSessionState(requestString, c, m)
 	if sErr != nil {
@@ -214,28 +209,6 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	s.Logger().Debugf("Session token %s\n", s.Token())
 
 	switch r.Meta.RPCType {
-	case JSONRPC:
-		rpc.HandleHTTP()
-		http.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
-			defer req.Body.Close()
-			w.Header().Set("Content-Type", "application/json")
-			if req.ContentLength == 0 {
-				encoder := json.NewEncoder(w)
-				encoder.Encode(&struct {
-					Id     interface{} `json:"id"`
-					Result interface{} `json:"result"`
-					Error  interface{} `json:"error"`
-				}{
-					Id:     nil,
-					Result: nil,
-					Error:  "rpc: method request ill-formed",
-				})
-				return
-			}
-			res := NewRPCRequest(req.Body).Call()
-			io.Copy(w, res)
-		})
-		go http.Serve(l, nil)
 	case NativeRPC:
 		go func() {
 			for {
@@ -261,45 +234,6 @@ func Start(m *PluginMeta, c Plugin, requestString string) (error, int) {
 	}
 
 	return nil, exitCode
-}
-
-// rpcRequest represents a RPC request.
-// rpcRequest implements the io.ReadWriteCloser interface.
-type rpcRequest struct {
-	r    io.Reader     // holds the JSON formated RPC request
-	rw   io.ReadWriter // holds the JSON formated RPC response
-	done chan bool     // signals then end of the RPC request
-}
-
-// NewRPCRequest returns a new rpcRequest.
-func NewRPCRequest(r io.Reader) *rpcRequest {
-	var buf bytes.Buffer
-	done := make(chan bool)
-	return &rpcRequest{r, &buf, done}
-}
-
-// Read implements the io.ReadWriteCloser Read method.
-func (r *rpcRequest) Read(p []byte) (n int, err error) {
-	return r.r.Read(p)
-}
-
-// Write implements the io.ReadWriteCloser Write method.
-func (r *rpcRequest) Write(p []byte) (n int, err error) {
-	n, err = r.rw.Write(p)
-	defer func(done chan bool) { done <- true }(r.done)
-	return
-}
-
-// Close implements the io.ReadWriteCloser Close method.
-func (r *rpcRequest) Close() error {
-	return nil
-}
-
-// Call invokes the RPC request, waits for it to complete, and returns the results.
-func (r *rpcRequest) Call() io.Reader {
-	go jsonrpc.ServeConn(r)
-	<-r.done
-	return r.rw
 }
 
 func catchPluginPanic(l *log.Logger) {

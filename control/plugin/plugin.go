@@ -72,9 +72,9 @@ const (
 type RPCType int
 
 const (
-	NativeRPC RPCType = iota
-	JSONRPC
-	GRPC
+	// IMPORTANT: keep consistency across snap-plugin-lib, GRPC must be equal 2
+	NativeRPC RPCType = 0
+	GRPC      RPCType = 2
 )
 
 var (

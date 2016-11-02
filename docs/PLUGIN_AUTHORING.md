@@ -35,9 +35,9 @@ Bon Appétit! :stew:
 ## Plugin Authoring
 Snap itself runs as a master daemon with the core functionality that may load and unload plugin processes via either CLI or HTTP APIs.
 
-A Snap plugin is a program, or a set of functions or services, written in Go or any language; that may seamlessly integrate with snap as executables.
+A Snap plugin is a program, or a set of functions or services, written in Go or any language; that may seamlessly integrate with snap as executables. 
 
-Communication between Snap and plugins uses RPC either through HTTP or TCP protocols. HTTP JSON-RPC is good for any language to use due to its nature of JSON representation of data while the native client is only suitable for plugins written in Golang. The data that plugins report to snap is in the form of JSON or GOB CODEC.
+Communication between Snap and plugins uses RPC either through HTTP or TCP protocols. HTTP gRPC is good for any language to use that gRPC supports (see [gRPC docs](http://grpc.io/docs)) while the native client is only suitable for plugins written in Golang. When a plugin is written using one of the available snap-plugin-libs ([snap-plugin-lib-go](https://github.com/intelsdi-x/snap-plugin-lib-go), [snap-plugin-lib-py](https://github.com/intelsdi-x/snap-plugin-lib-py), or [snap-plugin-lib-cpp](https://github.com/intelsdi-x/snap-plugin-lib-cpp)) Google Protobuf, a binary serialization format, is used to encode/decode the data (see [plugin.proto](https://github.com/intelsdi-x/snap/blob/master/control/plugin/rpc/plugin.proto)). 
 
 Before starting writing Snap plugins, check out the [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) to see if any suit your needs. If not, you need to reference the plugin packages that defines the type of structures and interfaces inside snap and then write plugin endpoints to implement the defined interfaces.
 

@@ -152,7 +152,7 @@ func TestSessionState(t *testing.T) {
 		Convey("InitSessionState", func() {
 			var mockPluginArgs string = "{\"RunAsDaemon\": true, \"PingTimeoutDuration\": 2000000000}"
 			m := PluginMeta{
-				RPCType: JSONRPC,
+				RPCType: NativeRPC,
 				Type:    CollectorPluginType,
 			}
 			sessionState, err, rc := NewSessionState(mockPluginArgs, &MockPlugin{Meta: m}, &m)
@@ -165,7 +165,7 @@ func TestSessionState(t *testing.T) {
 		Convey("InitSessionState with invalid args", func() {
 			var mockPluginArgs string
 			m := PluginMeta{
-				RPCType: JSONRPC,
+				RPCType: NativeRPC,
 				Type:    CollectorPluginType,
 			}
 			_, err, _ := NewSessionState(mockPluginArgs, &MockPlugin{Meta: m}, &m)
@@ -174,7 +174,7 @@ func TestSessionState(t *testing.T) {
 		Convey("InitSessionState with a custom log path", func() {
 			var mockPluginArgs string = "{\"RunAsDaemon\": false, \"PluginLogPath\": \"/var/tmp/snap_plugin.log\"}"
 			m := PluginMeta{
-				RPCType: JSONRPC,
+				RPCType: NativeRPC,
 				Type:    CollectorPluginType,
 			}
 			sess, err, rc := NewSessionState(mockPluginArgs, &MockPlugin{Meta: m}, &m)
