@@ -51,7 +51,28 @@ The header contains a version, used to differentiate between versions of the tas
 
 The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  Snap is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, Snap has three schedules:
 - **simple schedule** which is described above,
-- **window schedule** which adds a start and stop time,
+- **window schedule** which adds a start and stop time for the task. The time must be given as a quoted string in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format, for example with specific timezone offset:
+```json
+    "version": 1,
+    "schedule": {
+        "type": "windowed",
+        "interval": "1s",
+        "start_timestamp": "2016-10-27T16:39:57+01:00",
+        "stop_timestamp": "2016-10-28T16:39:57+01:00"
+    },
+    "max-failures": 10,
+```
+or without timezone offset (in that cases uppercase'Z' must be present):
+```json
+    "version": 1,
+    "schedule": {
+        "type": "windowed",
+        "interval": "1s",
+        "start_timestamp": "2016-10-27T16:39:57Z",
+        "stop_timestamp": "2016-10-28T16:39:57Z"
+    },
+    "max-failures": 10,
+```
 - **cron schedule** which supports cron-like entries in ```interval``` field, like in this example (workflow will fire every hour on the half hour):
 ```json
     "version": 1,
