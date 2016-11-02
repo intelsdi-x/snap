@@ -30,12 +30,13 @@ import (
 )
 
 var (
-	PluginName = "snap-plugin-collector-mock2"
-	SnapPath   = helper.BuildPath
-	PluginPath = helper.PluginFilePath(PluginName)
+	SnapPath = helper.BuildPath
 
-	JSONRPCPluginName = "snap-plugin-collector-mock1"
-	JSONRPCPluginPath = helper.PluginFilePath(JSONRPCPluginName)
+	PluginNameMock1 = "snap-plugin-collector-mock1"
+	PluginPathMock1 = helper.PluginFilePath(PluginNameMock1)
+
+	PluginNameMock2 = "snap-plugin-collector-mock2"
+	PluginPathMock2 = helper.PluginFilePath(PluginNameMock2)
 )
 
 // mocks a metric type

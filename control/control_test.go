@@ -157,7 +157,7 @@ func TestSwapPlugin(t *testing.T) {
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginsSwapped", lpe)
 
-		_, e := load(c, fixtures.PluginPath)
+		_, e := load(c, fixtures.PluginPathMock2)
 		Convey("Loading first plugin", t, func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
@@ -177,8 +177,7 @@ func TestSwapPlugin(t *testing.T) {
 				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
 			})
 		})
-		mock1Path := strings.Replace(fixtures.PluginPath, "snap-plugin-collector-mock2", "snap-plugin-collector-mock1", 1)
-		mockRP, mErr := core.NewRequestedPlugin(mock1Path)
+		mockRP, mErr := core.NewRequestedPlugin(fixtures.PluginPathMock1)
 		Convey("Loading a plugin should not error", t, func() {
 			So(mErr, ShouldBeNil)
 		})
@@ -224,7 +223,7 @@ func TestSwapPlugin(t *testing.T) {
 			})
 		})
 
-		filePath := strings.Replace(fixtures.PluginPath, "snap-plugin-collector-mock2", "snap-plugin-publisher-mock-file", 1)
+		filePath := strings.Replace(fixtures.PluginPathMock2, "snap-plugin-collector-mock2", "snap-plugin-publisher-mock-file", 1)
 		fileRP, pErr := core.NewRequestedPlugin(filePath)
 		Convey("Loading a plugin should not error", t, func() {
 			So(pErr, ShouldBeNil)
@@ -248,7 +247,7 @@ func TestSwapPlugin(t *testing.T) {
 			pm.ExistingPlugin = lp
 			c.pluginManager = pm
 
-			mockRP, mErr := core.NewRequestedPlugin(mock1Path)
+			mockRP, mErr := core.NewRequestedPlugin(fixtures.PluginPathMock1)
 			So(mErr, ShouldBeNil)
 			err := c.SwapPlugins(mockRP, lp)
 			Convey("So err should be received if rollback fails", func() {
@@ -357,7 +356,7 @@ func TestLoad(t *testing.T) {
 
 		// Testing trying to load before starting pluginControl
 		Convey("pluginControl before being started", t, func() {
-			_, err := load(c, fixtures.PluginPath)
+			_, err := load(c, fixtures.PluginPathMock2)
 			Convey("should return an error when loading a plugin", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -371,7 +370,7 @@ func TestLoad(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, fixtures.PluginPath)
+		_, err := load(c, fixtures.PluginPathMock2)
 		Convey("pluginControl.Load on successful load", t, func() {
 			Convey("Should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -400,7 +399,7 @@ func TestLoad(t *testing.T) {
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginNameMock2)
 	}
 }
 
@@ -414,7 +413,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, fixtures.PluginPath, "mock.asc")
+			_, err := load(c, fixtures.PluginPathMock2, "mock.asc")
 			Convey("so error on loading a signed plugin should be nil", func() {
 				So(err, ShouldBeNil)
 			})
@@ -430,7 +429,7 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, fixtures.PluginPath)
+			_, err := load(c, fixtures.PluginPathMock2)
 			Convey("so error on loading an unsigned plugin should be nil", func() {
 				So(err, ShouldBeNil)
 			})
@@ -443,14 +442,14 @@ func TestLoadWithSignedPlugins(t *testing.T) {
 			c.signingManager = &mocksigningManager{signed: false}
 			c.Start()
 			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, fixtures.PluginPath)
+			_, err := load(c, fixtures.PluginPathMock2)
 			Convey("so error should not be nil when loading an unsigned plugin with trust enabled", func() {
 				So(err, ShouldNotBeNil)
 			})
 			c.Stop()
 		})
 	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginNameMock2)
 	}
 }
 
@@ -464,7 +463,7 @@ func TestUnload(t *testing.T) {
 		c.eventManager.RegisterHandler("TestUnload", lpe)
 		c.Start()
 		time.Sleep(100 * time.Millisecond)
-		_, e := load(c, fixtures.PluginPath)
+		_, e := load(c, fixtures.PluginPathMock2)
 		Convey("Loading a plugin to test unload", t, func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
@@ -516,7 +515,7 @@ func TestUnload(t *testing.T) {
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
 	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginName)
+		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginNameMock2)
 	}
 }
 
@@ -770,7 +769,7 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, fixtures.JSONRPCPluginPath)
+		_, err := load(c, fixtures.PluginPathMock1)
 		So(err, ShouldBeNil)
 		<-lpe.done
 
@@ -805,7 +804,7 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, fixtures.JSONRPCPluginPath)
+		_, err := load(c, fixtures.PluginPathMock1)
 		So(err, ShouldBeNil)
 		<-lpe.done
 		m1 := fixtures.MockMetricType{
@@ -829,7 +828,7 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, fixtures.JSONRPCPluginPath)
+		_, err := load(c, fixtures.PluginPathMock1)
 		So(err, ShouldBeNil)
 		<-lpe.done
 
@@ -854,7 +853,7 @@ func TestMetricConfig(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, fixtures.JSONRPCPluginPath)
+		_, err := load(c, fixtures.PluginPathMock1)
 		So(err, ShouldBeNil)
 		<-lpe.done
 		m1 := fixtures.MockMetricType{
@@ -878,7 +877,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		c.Start()
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, e := load(c, fixtures.PluginPath)
+		_, e := load(c, fixtures.PluginPathMock2)
 		So(e, ShouldBeNil)
 		if e != nil {
 			t.FailNow()
@@ -948,7 +947,7 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		)
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, e := load(c, fixtures.JSONRPCPluginPath)
+		_, e := load(c, fixtures.PluginPathMock1)
 		So(e, ShouldBeNil)
 		if e != nil {
 			t.FailNow()
@@ -1028,8 +1027,8 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		So(strategy.GlobalCacheExpiration, ShouldResemble, time.Second*1)
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, e := load(c, fixtures.PluginPath)
-		Convey("Loading native client plugin", func() {
+		_, e := load(c, fixtures.PluginPathMock2)
+		Convey("Loading the first native client plugin", func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
 			})
@@ -1038,8 +1037,9 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			t.FailNow()
 		}
 		<-lpe.done
-		_, e = load(c, fixtures.JSONRPCPluginPath)
-		Convey("Loading JSONRPC client plugin", func() {
+
+		_, e = load(c, fixtures.PluginPathMock1)
+		Convey("Loading the second native client plugin", func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
 			})
@@ -1126,7 +1126,7 @@ func TestFailedPlugin(t *testing.T) {
 		c.Config.Plugins.All.AddItem("password", ctypes.ConfigValueStr{Value: "testval"})
 
 		// Load plugin
-		_, e := load(c, fixtures.PluginPath)
+		_, e := load(c, fixtures.PluginPathMock2)
 		So(e, ShouldBeNil)
 		<-lpe.done
 		_, err := c.MetricCatalog()
@@ -1210,7 +1210,7 @@ func TestCollectMetrics(t *testing.T) {
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		_, e := load(c, fixtures.JSONRPCPluginPath)
+		_, e := load(c, fixtures.PluginPathMock1)
 		So(e, ShouldBeNil)
 		<-lpe.done
 		mts, err := c.MetricCatalog()
@@ -1304,7 +1304,7 @@ func TestCollectNonSpecifiedDynamicMetrics(t *testing.T) {
 		c.Config.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 
 		// Load plugin
-		_, e := load(c, fixtures.JSONRPCPluginPath)
+		_, e := load(c, fixtures.PluginPathMock1)
 		So(e, ShouldBeNil)
 		<-lpe.done
 		mts, err := c.MetricCatalog()
@@ -1387,7 +1387,7 @@ func TestCollectSpecifiedDynamicMetrics(t *testing.T) {
 		c.Start()
 
 		// Load plugin
-		_, e := load(c, fixtures.JSONRPCPluginPath)
+		_, e := load(c, fixtures.PluginPathMock1)
 		So(e, ShouldBeNil)
 
 		mts, err := c.MetricCatalog()

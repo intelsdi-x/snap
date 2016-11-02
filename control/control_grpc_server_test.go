@@ -88,7 +88,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	// collector -- mock
 	// processor -- passthru
 	// publisher -- file
-	mock, err := core.NewRequestedPlugin(fixtures.JSONRPCPluginPath)
+	mock, err := core.NewRequestedPlugin(fixtures.PluginPathMock1)
 	if err != nil {
 		log.Fatal(err)
 	}
