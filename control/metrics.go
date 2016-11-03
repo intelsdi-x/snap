@@ -309,7 +309,17 @@ func newCatalogedPlugin(lp *loadedPlugin) core.CatalogedPlugin {
 	cp := cpolicy.New()
 	for _, keyNode := range lp.Policy().GetAll() {
 		node := cpolicy.NewPolicyNode()
-		node.Add(keyNode.ConfigPolicyNode.CopyRules()...)
+		rules, err := keyNode.ConfigPolicyNode.CopyRules()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"_module": "control",
+				"_file":   "metrics.go,",
+				"_block":  "newCatalogedPlugin",
+				"error":   err.Error(),
+			}).Error("Unable to copy rules")
+			return nil
+		}
+		node.Add(rules...)
 		cp.Add(keyNode.Key, node)
 	}
 	return &catalogedPlugin{
