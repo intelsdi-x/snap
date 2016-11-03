@@ -136,64 +136,75 @@ func getPort() int {
 
 func TestPluginControlGenerateArgs(t *testing.T) {
 	c := New(getTestConfig())
-	err := c.Start()
-	Convey("pluginControl starts successfully", t, func() {
+	Convey("starts pluginControl", t, func() {
+		err := c.Start()
+		So(err, ShouldBeNil)
 		So(c.Started, ShouldBeTrue)
 		So(err, ShouldBeNil)
 		So(c.Name(), ShouldResemble, "control")
+		Convey("sets monitor duration", func() {
+			c.SetMonitorOptions(MonitorDurationOption(time.Millisecond * 100))
+			So(c.pluginRunner.Monitor().duration, ShouldResemble, 100*time.Millisecond)
+		})
+		c.Stop()
 	})
-	c.SetMonitorOptions(MonitorDurationOption(time.Millisecond * 100))
-	Convey("sets monitor duration", t, func() {
-		So(c.pluginRunner.Monitor().duration, ShouldResemble, 100*time.Millisecond)
-	})
-	c.Stop()
 }
 
 func TestSwapPlugin(t *testing.T) {
-	if fixtures.SnapPath != "" {
+	// These tests only work if SNAP_PATH is known.
+	// It is the responsibility of the testing framework to
+	// build the plugins first into the build dir.
+	if fixtures.SnapPath == "" {
+		t.Fatal("SNAP_PATH not set. Cannot test swapping plugins.")
+	}
+	Convey("Starting plugin control", t, func() {
 		c := New(getTestConfig())
-		c.Start()
+		err := c.Start()
+		So(err, ShouldBeNil)
 		time.Sleep(100 * time.Millisecond)
+
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginsSwapped", lpe)
 
 		_, e := load(c, fixtures.PluginPathMock2)
-		Convey("Loading first plugin", t, func() {
+		Convey("Loading first plugin", func() {
 			Convey("Should not error", func() {
 				So(e, ShouldBeNil)
 			})
 		})
-		// Travis optimization: If for some reason we can not load
-		// the plugin three times, we will fail the test immediately
-		// as we wait on a channel to be closed before proceeding with
-		// additional tests. If the plugin never loads, the channel will not
-		// close and just hang the test indefinitely.
+
 		if e != nil {
-			t.FailNow()
+			t.Fatal(err)
 		}
 		<-lpe.done
-		Convey("First plugin in catalog", t, func() {
+
+		// available one plugin in plugin catalog
+		So(len(c.PluginCatalog()), ShouldEqual, 1)
+		Convey("First plugin in catalog", func() {
 			Convey("Should have name mock", func() {
 				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
 			})
 		})
+
 		mockRP, mErr := core.NewRequestedPlugin(fixtures.PluginPathMock1)
-		Convey("Loading a plugin should not error", t, func() {
+		Convey("Requested collector plugin should not error", func() {
 			So(mErr, ShouldBeNil)
 		})
-		err := c.SwapPlugins(mockRP, c.PluginCatalog()[0])
-		Convey("Swapping plugins", t, func() {
+
+		err = c.SwapPlugins(mockRP, c.PluginCatalog()[0])
+		Convey("Swapping plugins with a different version", func() {
 			Convey("Should not error", func() {
 				So(err, ShouldBeNil)
 			})
 		})
+
 		if err != nil {
-			t.FailNow()
+			t.Fatal(err)
 		}
 		<-lpe.done
 
 		// Swap plugin that was loaded with a different version of the plugin
-		Convey("Swapping plugins", t, func() {
+		Convey("Successfull swapping plugins", func() {
 			Convey("Should generate a swapped plugins event", func() {
 				Convey("So first plugin in catalog after swap should have name mock", func() {
 					So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
@@ -214,24 +225,20 @@ func TestSwapPlugin(t *testing.T) {
 					So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 				})
 			})
-		})
 
-		// Swap plugin with a different type of plugin
-		Convey("First plugin in catalog", t, func() {
-			Convey("Should have name mock", func() {
-				So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
-			})
 		})
-
-		filePath := strings.Replace(fixtures.PluginPathMock2, "snap-plugin-collector-mock2", "snap-plugin-publisher-mock-file", 1)
-		fileRP, pErr := core.NewRequestedPlugin(filePath)
-		Convey("Loading a plugin should not error", t, func() {
-			So(pErr, ShouldBeNil)
-		})
-		err = c.SwapPlugins(fileRP, c.PluginCatalog()[0])
-		Convey("Swapping mock and file plugins", t, func() {
-			Convey("Should error", func() {
-				So(err, ShouldNotBeNil)
+		Convey("Swap plugin with a different type of plugin", func() {
+			filePath := helper.PluginFilePath("snap-plugin-publisher-mock-file")
+			So(filePath, ShouldNotBeEmpty)
+			fileRP, pErr := core.NewRequestedPlugin(fixtures.PluginPathMock1)
+			Convey("Requested publisher plugin should not error", func() {
+				So(pErr, ShouldBeNil)
+				Convey("Swapping collector and publisher plugins", func() {
+					err := c.SwapPlugins(fileRP, c.PluginCatalog()[0])
+					Convey("Should error", func() {
+						So(err, ShouldNotBeNil)
+					})
+				})
 			})
 		})
 
@@ -240,8 +247,7 @@ func TestSwapPlugin(t *testing.T) {
 		//
 
 		// Rollback will throw an error if a plugin can not unload
-
-		Convey("Rollback failure returns error", t, func() {
+		Convey("Rollback failure returns error", func() {
 			lp := c.PluginCatalog()[0]
 			pm := new(MockPluginManagerBadSwap)
 			pm.ExistingPlugin = lp
@@ -254,10 +260,9 @@ func TestSwapPlugin(t *testing.T) {
 				So(err, ShouldNotBeNil)
 			})
 		})
-
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
-	}
+	})
 }
 
 type mockPluginEvent struct {
@@ -339,8 +344,8 @@ type mocksigningManager struct {
 	signed bool
 }
 
-func (ps *mocksigningManager) ValidateSignature([]string, string, []byte) error {
-	if ps.signed {
+func (ps *mocksigningManager) ValidateSignature(_ []string, _ string, signature []byte) error {
+	if signature != nil {
 		return nil
 	}
 	return errors.New("fake")
@@ -351,172 +356,218 @@ func TestLoad(t *testing.T) {
 	// These tests only work if SNAP_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
-	if fixtures.SnapPath != "" {
-		c := New(getTestConfig())
+	if fixtures.SnapPath == "" {
+		t.Fatal("SNAP_PATH not set. Cannot test loading plugins.")
+	}
+	c := New(getTestConfig())
+	// Testing trying to load before starting pluginControl
+	Convey("pluginControl before being started", t, func() {
+		_, err := load(c, fixtures.PluginPathMock2)
+		Convey("should return an error when loading a plugin", func() {
+			So(err, ShouldNotBeNil)
+		})
+		Convey("and there should be no plugin loaded", func() {
+			So(len(c.pluginManager.all()), ShouldEqual, 0)
+		})
+	})
+	// Start pluginControl and load our mock plugin
+	c.Start()
+	lpe := newListenToPluginEvent()
+	c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 
-		// Testing trying to load before starting pluginControl
-		Convey("pluginControl before being started", t, func() {
-			_, err := load(c, fixtures.PluginPathMock2)
-			Convey("should return an error when loading a plugin", func() {
-				So(err, ShouldNotBeNil)
+	_, err := load(c, fixtures.PluginPathMock2)
+	Convey("Loading collector mock2", t, func() {
+		Convey("Should not return an error", func() {
+			So(err, ShouldBeNil)
+		})
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-lpe.done
+
+	Convey("pluginControl.Load on successful load plugin mock2", t, func() {
+		Convey("should emit a plugin event message", func() {
+			Convey("with loaded plugin name is mock", func() {
+				So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock")
 			})
-			Convey("and there should be no plugin loaded", func() {
-				So(len(c.pluginManager.all()), ShouldEqual, 0)
+			Convey("with loaded plugin version as 2", func() {
+				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 2)
+			})
+			Convey("with loaded plugin type as collector", func() {
+				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
 			})
 		})
+	})
 
-		// Start pluginControl and load our mock plugin
+	_, err = load(c, fixtures.PluginPathMock1)
+	Convey("Loading collector mock1", t, func() {
+		Convey("Should not return an error", func() {
+			So(err, ShouldBeNil)
+		})
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-lpe.done
+
+	Convey("pluginControl.Load on successful load plugin mock1", t, func() {
+		Convey("should emit a plugin event message", func() {
+			Convey("with loaded plugin name is mock", func() {
+				So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock")
+			})
+			Convey("with loaded plugin version as 1", func() {
+				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
+			})
+			Convey("with loaded plugin type as collector", func() {
+				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
+			})
+		})
+	})
+
+	// Stop our controller so the plugins are unloaded and cleaned up from the system
+	c.Stop()
+	time.Sleep(100 * time.Millisecond)
+}
+
+func TestLoadWithSetPluginTrustLevel(t *testing.T) {
+	if fixtures.SnapPath == "" {
+		t.Fatal("SNAP_PATH not set. Cannot test loading plugins with set trust level.")
+	}
+	Convey("pluginControl.Load with trust enabled", t, func() {
+		c := New(getTestConfig())
+		c.pluginTrust = PluginTrustEnabled
+		c.signingManager = &mocksigningManager{}
 		c.Start()
-		time.Sleep(100 * time.Millisecond)
-		lpe := newListenToPluginEvent()
-		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-		_, err := load(c, fixtures.PluginPathMock2)
-		Convey("pluginControl.Load on successful load", t, func() {
+		Convey("Loading a signed plugin", func() {
+			_, err := load(c, fixtures.PluginPathMock2, "mock.asc")
 			Convey("Should not return an error", func() {
 				So(err, ShouldBeNil)
 			})
 		})
-		if err != nil {
-			t.FailNow()
-		}
-		<-lpe.done
-
-		Convey("pluginControl.Load on successful load", t, func() {
-			Convey("should emit a plugin event message", func() {
-				Convey("with loaded plugin name is mock", func() {
-					So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock")
-				})
-				Convey("with loaded plugin version as 2", func() {
-					So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 2)
-				})
-				Convey("with loaded plugin type as collector", func() {
-					So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
-				})
-			})
-		})
-
-		// Stop our controller so the plugins are unloaded and cleaned up from the system
-		c.Stop()
-		time.Sleep(100 * time.Millisecond)
-	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginNameMock2)
-	}
-}
-
-func TestLoadWithSignedPlugins(t *testing.T) {
-	if fixtures.SnapPath != "" {
-		Convey("pluginControl.Load should successufully load a signed plugin with trust enabled", t, func() {
-			c := New(getTestConfig())
-			c.pluginTrust = PluginTrustEnabled
-			c.signingManager = &mocksigningManager{signed: true}
-			lpe := newListenToPluginEvent()
-			c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-			c.Start()
-			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, fixtures.PluginPathMock2, "mock.asc")
-			Convey("so error on loading a signed plugin should be nil", func() {
-				So(err, ShouldBeNil)
-			})
-			// Stop our controller to clean up our plugin
-			c.Stop()
-			time.Sleep(100 * time.Millisecond)
-		})
-		Convey("pluginControl.Load should successfully load unsigned plugin when trust level set to warning", t, func() {
-			c := New(getTestConfig())
-			c.pluginTrust = PluginTrustWarn
-			c.signingManager = &mocksigningManager{signed: false}
-			lpe := newListenToPluginEvent()
-			c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
-			c.Start()
-			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, fixtures.PluginPathMock2)
-			Convey("so error on loading an unsigned plugin should be nil", func() {
-				So(err, ShouldBeNil)
-			})
-			c.Stop()
-			time.Sleep(100 * time.Millisecond)
-		})
-		Convey("pluginControl.Load returns error with trust enabled and signing not validated", t, func() {
-			c := New(getTestConfig())
-			c.pluginTrust = PluginTrustEnabled
-			c.signingManager = &mocksigningManager{signed: false}
-			c.Start()
-			time.Sleep(100 * time.Millisecond)
-			_, err := load(c, fixtures.PluginPathMock2)
-			Convey("so error should not be nil when loading an unsigned plugin with trust enabled", func() {
+		Convey("Loading an unsigned plugin", func() {
+			_, err := load(c, fixtures.PluginPathMock1)
+			Convey("Should return an error", func() {
 				So(err, ShouldNotBeNil)
 			})
-			c.Stop()
 		})
-	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginNameMock2)
-	}
+		// Stop our controller to clean up our plugin
+		c.Stop()
+	})
+	Convey("pluginControl.Load when trust level set to warning", t, func() {
+		c := New(getTestConfig())
+		c.pluginTrust = PluginTrustWarn
+		c.signingManager = &mocksigningManager{}
+		c.Start()
+		Convey("Loading a signed plugin", func() {
+			_, err := load(c, fixtures.PluginPathMock2, "mock.asc")
+			Convey("Should not return an error", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+		Convey("Loading an unsigned plugin", func() {
+			_, err := load(c, fixtures.PluginPathMock1)
+			Convey("Should not return an error", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+		c.Stop()
+	})
+	Convey("pluginControl.Load with trust disabled", t, func() {
+		c := New(getTestConfig())
+		c.pluginTrust = PluginTrustDisabled
+		c.signingManager = &mocksigningManager{}
+		c.Start()
+		Convey("Loading a signed plugin", func() {
+			_, err := load(c, fixtures.PluginPathMock2, "mock.asc")
+			Convey("Should not return an error", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+		Convey("Loading an unsigned plugin", func() {
+			_, err := load(c, fixtures.PluginPathMock1)
+			Convey("Should not return an error", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+		c.Stop()
+	})
 }
 
 func TestUnload(t *testing.T) {
 	// These tests only work if SNAP_PATH is known.
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir.
-	if fixtures.SnapPath != "" {
-		c := New(getTestConfig())
-		lpe := newListenToPluginEvent()
-		c.eventManager.RegisterHandler("TestUnload", lpe)
-		c.Start()
-		time.Sleep(100 * time.Millisecond)
-		_, e := load(c, fixtures.PluginPathMock2)
-		Convey("Loading a plugin to test unload", t, func() {
-			Convey("Should not error", func() {
-				So(e, ShouldBeNil)
-			})
-		})
-		if e != nil {
-			t.FailNow()
-		}
-		<-lpe.done
-		Convey("And our plugin catalog", t, func() {
-			Convey("Should not be empty", func() {
-				So(len(c.pluginManager.all()), ShouldEqual, 1)
-			})
-		})
-
-		// Test unloading the plugin we just loaded
-		pc := c.PluginCatalog()
-		_, err := c.Unload(pc[0])
-		<-lpe.done
-		Convey("pluginControl.Unload when unloading a loaded plugin", t, func() {
-			Convey("should not error", func() {
-				So(err, ShouldBeNil)
-			})
-			Convey("should generate an unloaded plugin event", func() {
-				Convey("where unloaded plugin name is mock", func() {
-					So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock")
-				})
-				Convey("where unloaded plugin version should equal 2", func() {
-					So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
-				})
-				Convey("where unloaded plugin type should equal collector", func() {
-					So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
-				})
-			})
-		})
-
-		// Test unloading the plugin again should result in an error
-		_, err = c.Unload(pc[0])
-		Convey("pluginControl.Unload when unloading a plugin that does not exist or has already been unloaded", t, func() {
-			Convey("should return an error", func() {
-				So(err, ShouldNotBeNil)
-			})
-			Convey("and error should say 'plugin not found'", func() {
-				So(err.Error(), ShouldResemble, "plugin not found")
-			})
-		})
-
-		// Stop our controller
-		c.Stop()
-		time.Sleep(100 * time.Millisecond)
-	} else {
-		fmt.Printf("SNAP_PATH not set. Cannot test %s plugin.\n", fixtures.PluginNameMock2)
+	if fixtures.SnapPath == "" {
+		t.Fatal("SNAP_PATH not set. Cannot test unloading plugins.")
 	}
+	c := New(getTestConfig())
+	lpe := newListenToPluginEvent()
+	c.eventManager.RegisterHandler("TestUnload", lpe)
+	c.Start()
+	plg, e := load(c, fixtures.PluginPathMock2)
+	Convey("Loading collector plugin to test unload", t, func() {
+		Convey("Should not error", func() {
+			So(e, ShouldBeNil)
+		})
+	})
+
+	if e != nil {
+		t.Fatal(e)
+	}
+	<-lpe.done
+
+	Convey("Single plugin in catalog", t, func() {
+		So(len(c.PluginCatalog()), ShouldEqual, 1)
+		Convey("Should have name mock", func() {
+			So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")
+		})
+		Convey("Should have version 2", func() {
+			So(c.PluginCatalog()[0].Version(), ShouldEqual, 2)
+		})
+	})
+
+	// Test unloading the plugin we just loaded
+	_, err := c.Unload(plg)
+	Convey("Unloading loaded plugin", t, func() {
+		Convey("Should not error", func() {
+			So(err, ShouldBeNil)
+		})
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-lpe.done
+
+	Convey("pluginControl.Unload when unloading a loaded plugin", t, func() {
+		Convey("should emit a plugin event message", func() {
+			Convey("where unloaded plugin name is mock", func() {
+				So(lpe.plugin.UnloadedPluginName, ShouldEqual, "mock")
+			})
+			Convey("where unloaded plugin version should equal 2", func() {
+				So(lpe.plugin.UnloadedPluginVersion, ShouldEqual, 2)
+			})
+			Convey("where unloaded plugin type should equal collector", func() {
+				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
+			})
+		})
+	})
+
+	// Test unloading the plugin again should result in an error
+	_, err = c.Unload(plg)
+	Convey("Unloading unloaded plugin", t, func() {
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldResemble, "plugin not found")
+		})
+	})
+
+	// Stop our controller
+	c.Stop()
+	time.Sleep(100 * time.Millisecond)
 }
 
 func TestStop(t *testing.T) {
@@ -532,10 +583,12 @@ func TestStop(t *testing.T) {
 		})
 		So(err, ShouldBeNil)
 		c.pluginManager = &MockPluginManagerBadSwap{loadedPlugins: lps}
-		c.Start()
+		e := c.Start()
+		So(e, ShouldBeNil)
+		So(c.Started, ShouldBeTrue)
 		So(c.pluginManager.all(), ShouldNotBeEmpty)
-		c.Stop()
 
+		c.Stop()
 		Convey("stops", func() {
 			So(c.Started, ShouldBeFalse)
 		})
@@ -879,9 +932,6 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 		_, e := load(c, fixtures.PluginPathMock2)
 		So(e, ShouldBeNil)
-		if e != nil {
-			t.FailNow()
-		}
 		metric := fixtures.MockMetricType{
 			Namespace_: core.NewNamespace("intel", "mock", "foo"),
 			Ver:        2,
@@ -936,7 +986,6 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		})
 		c.Stop()
 	})
-
 	Convey("Given loaded plugins that use least-recently-used routing", t, func() {
 		c := New(getTestConfig())
 		c.Start()
@@ -949,9 +998,6 @@ func TestRoutingCachingStrategy(t *testing.T) {
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 		_, e := load(c, fixtures.PluginPathMock1)
 		So(e, ShouldBeNil)
-		if e != nil {
-			t.FailNow()
-		}
 
 		mts, err := c.metricCatalog.GetMetrics(core.NewNamespace("intel", "mock", "foo"), 1)
 		So(err, ShouldBeNil)
@@ -1024,7 +1070,9 @@ func TestCollectDynamicMetrics(t *testing.T) {
 		config.CacheExpiration = jsonutil.Duration{time.Second * 1}
 		c := New(config)
 		c.Start()
-		So(strategy.GlobalCacheExpiration, ShouldResemble, time.Second*1)
+		Convey("Global cache expiration should be set", func() {
+			So(strategy.GlobalCacheExpiration, ShouldEqual, time.Second*1)
+		})
 		lpe := newListenToPluginEvent()
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 		_, e := load(c, fixtures.PluginPathMock2)
@@ -1033,8 +1081,9 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				So(e, ShouldBeNil)
 			})
 		})
+
 		if e != nil {
-			t.FailNow()
+			t.Fatal(e)
 		}
 		<-lpe.done
 
@@ -1044,21 +1093,39 @@ func TestCollectDynamicMetrics(t *testing.T) {
 				So(e, ShouldBeNil)
 			})
 		})
+
 		if e != nil {
-			t.FailNow()
+			t.Fatal(e)
 		}
 		<-lpe.done
+
 		metrics, err := c.metricCatalog.Fetch(core.NewNamespace())
 		So(err, ShouldBeNil)
+		// 8 metrics are expected to be exposed by loaded 2 plugins
 		So(len(metrics), ShouldEqual, 8)
+
 		mts, err := c.metricCatalog.GetMetrics(core.NewNamespace("intel", "mock", "*", "baz"), 2)
 		So(err, ShouldBeNil)
+		// two metrics should be returned: /intel/mock/*/baz and /intel/mock/all/baz
 		So(len(mts), ShouldEqual, 2)
-		m := mts[0]
-		errs := c.subscriptionGroups.validateMetric(m)
+		// both in version equals 2
+		So(mts[0].Version(), ShouldEqual, 2)
+		So(mts[1].Version(), ShouldEqual, 2)
+
+		// take a dynamic metric as a metric-under-test
+		var mut *metricType
+
+		if isDynamic, _ := mts[0].Namespace().IsDynamic(); isDynamic {
+			mut = mts[0]
+		} else {
+			if isDynamic, _ := mts[1].Namespace().IsDynamic(); isDynamic {
+				mut = mts[1]
+			}
+		}
+		So(mut, ShouldNotBeNil)
+		errs := c.subscriptionGroups.validateMetric(mut)
 		So(errs, ShouldBeNil)
 		cdt := cdata.NewTree()
-
 		Convey("collects metrics from plugin using native client", func() {
 			lp, err := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(err, ShouldBeNil)
@@ -1074,7 +1141,7 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(pool.Count(), ShouldEqual, 0)
 			So(pool.SubscriptionCount(), ShouldEqual, 0)
 
-			serrs := c.SubscribeDeps(taskID, []core.RequestedMetric{m},
+			serrs := c.SubscribeDeps(taskID, []core.RequestedMetric{mut},
 				[]core.SubscribedPlugin{subscribedPlugin{
 					typeName: "collector",
 					name:     "mock",
@@ -1089,23 +1156,34 @@ func TestCollectDynamicMetrics(t *testing.T) {
 			So(pool.Count(), ShouldEqual, 1)
 			So(pool.SubscriptionCount(), ShouldEqual, 1)
 
-			// The minimum TTL advertised by the plugin is 100ms therefore the TTL for th			// pool should be the global cache expiration
+			// The minimum TTL advertised by the plugin is 100ms therefore the TTL
+			// for the pool should be the global cache expiration
 			So(ttl, ShouldEqual, strategy.GlobalCacheExpiration)
+
+			// first collection
 			mts, errs := c.CollectMetrics(taskID, nil)
-			hits, err := pool.CacheHits(m.namespace.String(), 2, taskID)
+			So(errs, ShouldBeNil)
+			So(len(mts), ShouldEqual, 11)
+			hits, err := pool.CacheHits(mut.Namespace().String(), 2, taskID)
 			So(err, ShouldBeNil)
 			So(hits, ShouldEqual, 0)
-			So(errs, ShouldBeNil)
-			So(len(mts), ShouldEqual, 11)
+
+			// second collection
 			mts, errs = c.CollectMetrics(taskID, nil)
-			hits, err = pool.CacheHits(m.namespace.String(), 2, taskID)
-			So(err, ShouldBeNil)
-
-			// todo resolve problem with caching for dynamic metrics
-			// So(hits, ShouldEqual, 1)
-
 			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 11)
+			hits, err = pool.CacheHits(mut.Namespace().String(), 2, taskID)
+			So(err, ShouldBeNil)
+			So(hits, ShouldEqual, 1)
+
+			// third collection
+			mts, errs = c.CollectMetrics(taskID, nil)
+			So(errs, ShouldBeNil)
+			So(len(mts), ShouldEqual, 11)
+			hits, err = pool.CacheHits(mut.Namespace().String(), 2, taskID)
+			So(err, ShouldBeNil)
+			So(hits, ShouldEqual, 2)
+
 			pool.Unsubscribe(taskID)
 			pool.SelectAndKill(taskID, "unsubscription event")
 			So(pool.Count(), ShouldEqual, 0)
@@ -1258,6 +1336,7 @@ func TestCollectMetrics(t *testing.T) {
 
 			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
+			So(pool, ShouldNotBeNil)
 
 			Convey("collect metrics", func() {
 				for x := 0; x < 4; x++ {
@@ -1344,8 +1423,8 @@ func TestCollectNonSpecifiedDynamicMetrics(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(mts, ShouldNotBeEmpty)
 					So(len(mts), ShouldBeGreaterThan, len(requested))
-					// expected 10 metrics "/intel/mock/[host_id]/baz
-					// for hosts in range (0 - 9)
+					// expected 11 metrics:  10 metrics from hosts in range (0 - 9) "/intel/mock/[host_id]/baz"
+					// and 1 metric /intel/mock/all/baz
 					So(len(mts), ShouldEqual, 11)
 					for _, m := range mts {
 						// ensure the collected metric's namespace starts with /intel/mock/host...
@@ -1536,7 +1615,6 @@ func TestProcessMetrics(t *testing.T) {
 				So(mts[0].Data(), ShouldEqual, 2)
 			})
 		})
-
 		Convey("Count()", func() {
 			pmt := &metricTypes{}
 			count := pmt.Count()
@@ -1545,7 +1623,6 @@ func TestProcessMetrics(t *testing.T) {
 		})
 		c.Stop()
 		time.Sleep(100 * time.Millisecond)
-
 	})
 }
 
@@ -1641,13 +1718,16 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 
 			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
+			So(pool1, ShouldNotBeNil)
 			So(pool1.SubscriptionCount(), ShouldEqual, 0)
 
 			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
+			So(pool2, ShouldNotBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
 			mts, errs = c.CollectMetrics("testTaskID", nil)
+			So(errs, ShouldBeNil)
 			So(len(mts), ShouldEqual, 1)
 			Convey("ensure the data coming back is from v2", func() {
 				So(mts[0].Version(), ShouldEqual, 2)
@@ -1694,12 +1774,13 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 
 		// grab plugin for mock v2
 		pc := c.PluginCatalog()
+		So(pc, ShouldNotBeEmpty)
 		mockv2 := pc[0]
 		Convey("Loading v1 of that plugin and unloading v2 should move subscriptions to older version", func() {
 			// Load version snap-plugin-collector-mock1
 			_, err = load(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
-			<-lpe.load
 			So(err, ShouldBeNil)
+			<-lpe.load
 			// Unload version snap-plugin-collector-mock2
 			unloadedPlugin, err := c.Unload(mockv2)
 			So(err, ShouldBeNil)
@@ -1723,10 +1804,12 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 			ap := c.pluginRunner.AvailablePlugins()
 			pool1, errp = ap.getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 			So(errp, ShouldBeNil)
+			So(pool1, ShouldNotBeNil)
 			So(pool1.SubscriptionCount(), ShouldEqual, 0)
 
 			pool2, errp := ap.getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
+			So(pool2, ShouldNotBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
 			mts, errs := c.CollectMetrics("testTaskID", nil)
@@ -1755,6 +1838,7 @@ func TestDynamicMetricSubscriptionLoad(t *testing.T) {
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err2, ShouldBeNil)
+		So(lp, ShouldNotBeNil)
 		So(lp.Name(), ShouldResemble, "mock")
 		//Subscribe deps to create pools.
 		metric := fixtures.MockMetricType{
@@ -1809,8 +1893,9 @@ func TestDynamicMetricSubscriptionLoad(t *testing.T) {
 				for _, m := range mts2 {
 					So(m.Version(), ShouldEqual, 2)
 					// V2's data is type int (for all metrics)
-					_, ok := m.Data().(int)
+					val, ok := m.Data().(int)
 					So(ok, ShouldBeTrue)
+					So(val, ShouldBeGreaterThan, 1000)
 				}
 			})
 			Convey("Loading another plugin should add subscriptions", func() {
@@ -1822,19 +1907,35 @@ func TestDynamicMetricSubscriptionLoad(t *testing.T) {
 
 				pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 				So(errp, ShouldBeNil)
+				So(pool1, ShouldNotBeNil)
 				So(pool1.SubscriptionCount(), ShouldEqual, 0)
 
 				pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "2")
 				So(errp, ShouldBeNil)
+				So(pool2, ShouldNotBeNil)
 				So(pool2.SubscriptionCount(), ShouldEqual, 1)
 
 				pool3, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "anothermock" + core.Separator + "1")
 				So(errp, ShouldBeNil)
+				So(pool3, ShouldNotBeNil)
 				So(pool3.SubscriptionCount(), ShouldEqual, 1)
 
 				mts3, errs := c.CollectMetrics("testTaskID", nil)
 				So(errs, ShouldBeNil)
-				So(len(mts3), ShouldBeGreaterThan, len(mts1))
+				So(len(mts3), ShouldBeGreaterThan, len(mts2))
+				Convey("ensure the data coming back from both mock(v2) and anothermock(v1)", func() {
+					for _, m := range mts3 {
+						val, ok := m.Data().(int)
+						So(ok, ShouldBeTrue)
+						if strings.HasPrefix(m.Namespace().String(), "/intel/anothermock/") {
+							So(m.Version(), ShouldEqual, 1)
+							So(val, ShouldBeGreaterThan, 9000)
+						} else {
+							So(m.Version(), ShouldEqual, 2)
+							So(val, ShouldBeGreaterThan, 1000)
+						}
+					}
+				})
 			})
 		})
 		c.Stop()
@@ -1854,9 +1955,11 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 		So(len(c.pluginManager.all()), ShouldEqual, 2)
 		lpMock, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err2, ShouldBeNil)
+		So(lpMock, ShouldNotBeNil)
 		So(lpMock.Name(), ShouldResemble, "mock")
 		lpAMock, err3 := c.pluginManager.get("collector" + core.Separator + "anothermock" + core.Separator + "1")
 		So(err3, ShouldBeNil)
+		So(lpAMock, ShouldNotBeNil)
 		So(lpAMock.Name(), ShouldResemble, "anothermock")
 
 		//Subscribe deps to create pools.
@@ -1868,6 +1971,7 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 		n.AddItem("pass", ctypes.ConfigValueBool{true})
 		ct.Add([]string{""}, n)
 		serr := c.SubscribeDeps("testTaskID", []core.RequestedMetric{metric}, []core.SubscribedPlugin{}, ct)
+		So(serr, ShouldBeNil)
 		<-lpe.sub
 		subsCount := 0
 	L:
@@ -1884,7 +1988,6 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 				}
 			}
 		}
-		So(serr, ShouldBeNil)
 		// collect metrics as a sanity check that everything is setup correctly
 		mts1, errs := c.CollectMetrics("testTaskID", nil)
 		So(errs, ShouldBeNil)
@@ -1892,6 +1995,7 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 		Convey("Unloading mock plugin should remove its subscriptions", func() {
 			pool1, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "mock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
+			So(pool1, ShouldNotBeNil)
 			So(pool1.SubscriptionCount(), ShouldEqual, 1)
 			_, err = c.Unload(lpMock)
 			So(err, ShouldBeNil)
@@ -1900,13 +2004,13 @@ func TestDynamicMetricSubscriptionUnload(t *testing.T) {
 			So(pool1.SubscriptionCount(), ShouldEqual, 0)
 			pool2, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "anothermock" + core.Separator + "1")
 			So(errp, ShouldBeNil)
+			So(pool2, ShouldNotBeNil)
 			So(pool2.SubscriptionCount(), ShouldEqual, 1)
 			mts2, errs := c.CollectMetrics("testTaskID", nil)
 			So(errs, ShouldBeNil)
 			So(len(mts2), ShouldBeLessThan, len(mts1))
-
-			Convey("ensure the data coming back is from another mock", func() {
-				// ensure the data coming back is from another mock (version 1, values over 9000)
+			Convey("ensure te data coming back is from anothermock", func() {
+				// ensure the data coming back is from anothermock (version 1, values over 9000)
 				for _, m := range mts2 {
 					So(m.Version(), ShouldEqual, 1)
 					val, ok := m.Data().(int)
@@ -2002,7 +2106,6 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 					}
 				}
 			})
-
 			Convey("Unloading lower plugin version", func() {
 				_, err = c.Unload(lpMock)
 				So(err, ShouldBeNil)
