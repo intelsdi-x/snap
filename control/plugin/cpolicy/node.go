@@ -72,8 +72,7 @@ func NewPolicyNode() *ConfigPolicyNode {
 }
 
 func (c *ConfigPolicyNode) CopyRules() ([]Rule, error) {
-	rules := make([]Rule, len(c.rules))
-	i := 0
+	rules := []Rule{}
 	for _, rule := range c.rules {
 		var err error
 		switch rule.(type) {
@@ -84,7 +83,7 @@ func (c *ConfigPolicyNode) CopyRules() ([]Rule, error) {
 			} else {
 				newBoolRule, err = NewBoolRule(rule.Key(), rule.Required())
 			}
-			rules[i] = newBoolRule
+			rules = append(rules, newBoolRule)
 		case *StringRule:
 			var newStringRule *StringRule
 			if rule.Default() != nil {
@@ -92,7 +91,7 @@ func (c *ConfigPolicyNode) CopyRules() ([]Rule, error) {
 			} else {
 				newStringRule, err = NewStringRule(rule.Key(), rule.Required())
 			}
-			rules[i] = newStringRule
+			rules = append(rules, newStringRule)
 		case *FloatRule:
 			var newFloatRule *FloatRule
 			if rule.Default() != nil {
@@ -100,7 +99,7 @@ func (c *ConfigPolicyNode) CopyRules() ([]Rule, error) {
 			} else {
 				newFloatRule, err = NewFloatRule(rule.Key(), rule.Required())
 			}
-			rules[i] = newFloatRule
+			rules = append(rules, newFloatRule)
 		case *IntRule:
 			var newIntRule *IntRule
 			if rule.Default() != nil {
@@ -108,7 +107,7 @@ func (c *ConfigPolicyNode) CopyRules() ([]Rule, error) {
 			} else {
 				newIntRule, err = NewIntegerRule(rule.Key(), rule.Required())
 			}
-			rules[i] = newIntRule
+			rules = append(rules, newIntRule)
 		default:
 			return []Rule{}, errors.New(fmt.Sprint("Unknown rule type"))
 		}
@@ -116,7 +115,6 @@ func (c *ConfigPolicyNode) CopyRules() ([]Rule, error) {
 		if err != nil {
 			return []Rule{}, errors.New(fmt.Sprintf("Could not create rule %s type %s ", rule.Key(), rule.Type()))
 		}
-		i++
 	}
 	return rules, nil
 }
