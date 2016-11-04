@@ -106,7 +106,12 @@ $ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.de
 $ sudo apt-get install -y snap-telemetry
 ```
 
-MacOS X (homebrew support pending 1.0.0 release, use the appropriate url from github release page):
+MacOS X [![homebrew](https://img.shields.io/homebrew/v/snap-telemetry.svg)](http://brew.sh/):
+```
+$ brew install snap-telemetry
+```
+
+MacOS X pkg:
 ```
 $ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.17.0/snap-telemetry-0.17.0.pkg
 $ sudo installer -pkg ./snap-telemetry-0.17.0.pkg -target /
