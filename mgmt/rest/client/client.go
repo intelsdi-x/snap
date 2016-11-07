@@ -101,6 +101,15 @@ func Username(u string) metaOp {
 	}
 }
 
+var (
+	secureTransport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
+	}
+	insecureTransport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+)
+
 // New returns a pointer to a snap api client
 // if ver is an empty string, v1 is used by default
 func New(url, ver string, insecure bool, opts ...metaOp) (*Client, error) {
@@ -110,16 +119,18 @@ func New(url, ver string, insecure bool, opts ...metaOp) (*Client, error) {
 	if ver == "" {
 		ver = "v1"
 	}
+	var t *http.Transport
+	if insecure {
+		t = insecureTransport
+	} else {
+		t = secureTransport
+	}
 	c := &Client{
 		URL:     url,
 		Version: ver,
 
 		http: &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: insecure,
-				},
-			},
+			Transport: t,
 		},
 	}
 	for _, opt := range opts {
@@ -249,7 +260,6 @@ func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, error) {
 	}
 	resp := new(rbody.APIResponse)
 	b, err := ioutil.ReadAll(rsp.Body)
-	rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
