@@ -258,8 +258,6 @@ func NewSessionState(pluginArgsMsg string, plugin Plugin, meta *PluginMeta) (*Se
 
 	var enc encoding.Encoder
 	switch meta.RPCType {
-	case JSONRPC:
-		enc = encoding.NewJsonEncoder()
 	case NativeRPC:
 		enc = encoding.NewGobEncoder()
 	case GRPC:

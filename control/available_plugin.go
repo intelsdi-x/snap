@@ -95,22 +95,10 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 	}
 	ap.key = fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", ap.pluginType.String(), ap.name, ap.version)
 
-	listenURL := fmt.Sprintf("http://%v/rpc", resp.ListenAddress)
 	// Create RPC Client
 	switch resp.Type {
 	case plugin.CollectorPluginType:
 		switch resp.Meta.RPCType {
-		case plugin.JSONRPC:
-			log.WithFields(log.Fields{
-				"_module":     "control-aplugin",
-				"_block":      "newAvailablePlugin",
-				"plugin_name": ap.name,
-			}).Warning("This plugin is using a deprecated JSON RPC protocol. Find more information here: https://github.com/intelsdi-x/snap/issues/1296 ")
-			c, e := client.NewCollectorHttpJSONRPCClient(listenURL, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
-			if e != nil {
-				return nil, errors.New("error while creating client connection: " + e.Error())
-			}
-			ap.client = c
 		case plugin.NativeRPC:
 			log.WithFields(log.Fields{
 				"_module":     "control-aplugin",
