@@ -204,7 +204,7 @@ func TestSwapPlugin(t *testing.T) {
 		<-lpe.done
 
 		// Swap plugin that was loaded with a different version of the plugin
-		Convey("Successfull swapping plugins", func() {
+		Convey("Successful swapping plugins", func() {
 			Convey("Should generate a swapped plugins event", func() {
 				Convey("So first plugin in catalog after swap should have name mock", func() {
 					So(c.PluginCatalog()[0].Name(), ShouldEqual, "mock")

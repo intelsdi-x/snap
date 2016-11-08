@@ -59,7 +59,7 @@ func TestConfigPolicyNode(t *testing.T) {
 		So(errorsMsg(pe.Errors()), ShouldContain, "required key missing (password)")
 	})
 
-	Convey("returns errors for missing required data (mutliple)", t, func() {
+	Convey("returns errors for missing required data (multiple)", t, func() {
 		n := NewPolicyNode()
 		So(n, ShouldNotBeNil)
 
