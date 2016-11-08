@@ -277,7 +277,7 @@ func TestDistributedSubscriptions(t *testing.T) {
 			})
 		})
 
-		Convey("Starting task should suceed if all deps are available", func() {
+		Convey("Starting task should succeed if all deps are available", func() {
 			//Create a task
 			//Create a workflowmap
 			wf := dsWFMap(port1)

@@ -583,7 +583,7 @@ func TestV1Tribe(t *testing.T) {
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.LEAVE_TRIBE_AGREEMENT_REPSONSE_NAME_LEAVE),
+				fmt.Sprintf(fixtures.LEAVE_TRIBE_AGREEMENT_RESPONSE_NAME_LEAVE),
 				ShouldResemble,
 				string(body))
 		})

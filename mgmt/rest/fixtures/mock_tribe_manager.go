@@ -315,7 +315,7 @@ const (
   }
 }`
 
-	LEAVE_TRIBE_AGREEMENT_REPSONSE_NAME_LEAVE = `{
+	LEAVE_TRIBE_AGREEMENT_RESPONSE_NAME_LEAVE = `{
   "meta": {
     "code": 200,
     "message": "Tribe agreement left",
