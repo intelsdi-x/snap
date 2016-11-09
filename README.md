@@ -113,14 +113,14 @@ $ brew install snap-telemetry
 
 MacOS X pkg:
 ```
-$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.17.0/snap-telemetry-0.17.0.pkg
-$ sudo installer -pkg ./snap-telemetry-0.17.0.pkg -target /
+$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.18.0/snap-telemetry-0.18.0.pkg
+$ sudo installer -pkg ./snap-telemetry-0.18.0.pkg -target /
 ```
 
 Tarball (choose the appropriate version and platform):
 ```
-$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.17.0/snap-0.17.0-linux-amd64.tar.gz
-$ tar xf snap-0.17.0-linux-amd64.tar.gz
+$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.18.0/snap-0.18.0-linux-amd64.tar.gz
+$ tar xf snap-0.18.0-linux-amd64.tar.gz
 $ cp snapd /usr/local/bin
 $ cp snapctl /usr/local/bin
 ```
@@ -132,7 +132,9 @@ $ snapctl
 error: snapctl requires SNAP_CONTEXT environment variable
 ```
 
-Please make sure you invoke the snap-telemetry snapd/snapctl binary using fully qualified path (i.e. /usr/local/bin/{snapd|snapctl} if you installed the snap-telemetry package).
+If you installed snap-telemetry package, please make sure `/usr/local/bin` is part of your $PATH and has higher priority than `/usr/bin`, or invoke the snap-telemetry snapd/snapctl binary using fully qualified path.
+
+NOTE: snap-telemetry packages prior to 0.18.0 symlinked `/usr/bin/{snapctl|snapd}` to `/opt/snap/bin/{snapctl|snapd}` and may cause conflicts with [Ubuntu's `snapd` package](http://packages.ubuntu.com/xenial-updates/snapd).
 
 NOTE: If you prefer to build from source, follow the steps in the [build documentation](docs/BUILD_AND_TEST.md). The _alpha_ binaries containing the latest master branch are available here for bleeding edge testing purposes:
 * snapd: [linux](http://snap.ci.snap-telemetry.io/snap/latest_build/linux/x86_64/snapd) | [darwin](http://snap.ci.snap-telemetry.io/snap/latest_build/darwin/x86_64/snapd)
@@ -233,7 +235,7 @@ NOTE: Plugin bundles are available for convenience in the Snap [GitHub release p
 
 To collect data, you need to create a [task](docs/TASKS.md) by loading a `Task Manifest`. The manifest contains a specification for what interval a set of metrics are gathered, how the data is transformed, and where the information is published. For more information see [task](docs/TASKS.md) documentation.
 
-Now, download and load the [psutil example](examples/psutil-file.yaml):
+Now, download and load the [psutil example](examples/tasks/psutil-file.yaml):
 ```
 $ curl https://raw.githubusercontent.com/intelsdi-x/snap/master/examples/tasks/psutil-file.yaml -o /tmp/psutil-file.yaml
 $ snapctl task create -t /tmp/psutil-file.yaml
