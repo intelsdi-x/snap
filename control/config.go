@@ -45,6 +45,7 @@ const (
 	defaultAutoDiscoverPath  string        = ""
 	defaultKeyringPaths      string        = ""
 	defaultCacheExpiration   time.Duration = 500 * time.Millisecond
+	defaultPprof             bool          = false
 )
 
 type pluginConfig struct {
@@ -79,6 +80,7 @@ type Config struct {
 	Plugins           *pluginConfig     `json:"plugins"yaml:"plugins"`
 	ListenAddr        string            `json:"listen_addr,omitempty"yaml:"listen_addr"`
 	ListenPort        int               `json:"listen_port,omitempty"yaml:"listen_port"`
+	Pprof             bool              `json:"pprof"yaml:"pprof"`
 }
 
 const (
@@ -119,6 +121,9 @@ const (
 					},
 					"listen_port": {
 						"type": "integer"
+					},
+					"pprof": {
+						"type": "boolean"
 					}
 				},
 				"additionalProperties": false
@@ -138,6 +143,7 @@ func GetDefaultConfig() *Config {
 		KeyringPaths:      defaultKeyringPaths,
 		CacheExpiration:   jsonutil.Duration{defaultCacheExpiration},
 		Plugins:           newPluginConfig(),
+		Pprof:             defaultPprof,
 	}
 }
 
@@ -189,6 +195,10 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			}
 		case "listen_port":
 			if err := json.Unmarshal(v, &(c.ListenPort)); err != nil {
+				return err
+			}
+		case "pprof":
+			if err := json.Unmarshal(v, &(c.Pprof)); err != nil {
 				return err
 			}
 		default:

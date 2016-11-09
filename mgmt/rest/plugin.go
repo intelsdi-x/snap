@@ -295,6 +295,7 @@ func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType 
 				LastHitTimestamp: p.LastHit().Unix(),
 				ID:               p.ID(),
 				Href:             pluginURI(h, p),
+				PprofPort:        p.Port(),
 			}
 		}
 	}

@@ -75,6 +75,7 @@ type availablePlugin struct {
 	exec               string
 	execPath           string
 	fromPackage        bool
+	pprofPort          string
 }
 
 // newAvailablePlugin returns an availablePlugin with information from a
@@ -92,6 +93,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 		healthChan:  make(chan error, 1),
 		lastHitTime: time.Now(),
 		ePlugin:     ep,
+		pprofPort:   resp.PprofAddress,
 	}
 	ap.key = fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", ap.pluginType.String(), ap.name, ap.version)
 
@@ -158,6 +160,10 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 	}
 
 	return ap, nil
+}
+
+func (a *availablePlugin) Port() string {
+	return a.pprofPort
 }
 
 func (a *availablePlugin) ID() uint32 {

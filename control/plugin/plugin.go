@@ -140,12 +140,16 @@ type Arg struct {
 	NoDaemon bool
 	// The listen port
 	listenPort string
+
+	// enable pprof
+	Pprof bool
 }
 
-func NewArg(logLevel int) Arg {
+func NewArg(logLevel int, pprof bool) Arg {
 	return Arg{
 		LogLevel:            log.Level(logLevel),
 		PingTimeoutDuration: PingTimeoutDurationDefault,
+		Pprof:               pprof,
 	}
 }
 
@@ -153,6 +157,7 @@ func NewArg(logLevel int) Arg {
 type Response struct {
 	Meta          PluginMeta
 	ListenAddress string
+	PprofAddress  string
 	Token         string
 	Type          PluginType
 	// State is a signal from plugin to control that it passed

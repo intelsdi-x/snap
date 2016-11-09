@@ -236,6 +236,7 @@ type pluginManager struct {
 	loadedPlugins     *loadedPlugins
 	logPath           string
 	pluginConfig      *pluginConfig
+	pprof             bool
 }
 
 func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
@@ -258,6 +259,13 @@ func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 }
 
 type pluginManagerOpt func(*pluginManager)
+
+// OptSetPprof sets the pprof flag on the plugin manager
+func OptSetPprof(pprof bool) pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.pprof = pprof
+	}
+}
 
 // OptSetPluginConfig sets the config on the plugin manager
 func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
@@ -570,7 +578,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 
 // GenerateArgs generates the cli args to send when stating a plugin
 func (p *pluginManager) GenerateArgs(logLevel int) plugin.Arg {
-	return plugin.NewArg(logLevel)
+	return plugin.NewArg(logLevel, p.pprof)
 }
 
 func (p *pluginManager) teardown() {

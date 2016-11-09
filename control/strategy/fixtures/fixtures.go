@@ -42,6 +42,7 @@ const (
 	processorType      = plugin.ProcessorPluginType
 	version            = 1
 	name               = "mock"
+	port               = ""
 )
 
 var lastHit = time.Unix(1460027570, 0)
@@ -57,6 +58,7 @@ type MockAvailablePlugin struct {
 	strategy   plugin.RoutingStrategyType
 	pluginType plugin.PluginType
 	version    int
+	port       string
 }
 
 func NewMockAvailablePlugin() *MockAvailablePlugin {
@@ -71,6 +73,7 @@ func NewMockAvailablePlugin() *MockAvailablePlugin {
 		strategy:   lruRouting,
 		pluginType: plugin.CollectorPluginType,
 		version:    version,
+		port:       port,
 	}
 	return mock
 }
@@ -185,4 +188,8 @@ func (m MockAvailablePlugin) Name() string {
 
 func (m MockAvailablePlugin) Version() int {
 	return m.version
+}
+
+func (m MockAvailablePlugin) Port() string {
+	return m.port
 }
