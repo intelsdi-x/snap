@@ -310,9 +310,8 @@ More complex examples of using Snap Framework configuration, Task Manifest files
 We have a few known features we want to take on from here while we remain open for feedback after public release. They are:
 
 * Authentication, authorization, and auditing (see issue [#286](https://github.com/intelsdi-x/snap/issues/286))
-* Workflow Routing (see issue [#539](https://github.com/intelsdi-x/snap/issues/539))
 * Windows support (see [#671](https://github.com/intelsdi-x/snap/issues/671))
-* Distributed Workflows (see [#539](https://github.com/intelsdi-x/snap/issues/539) and [#640](https://github.com/intelsdi-x/snap/issues/640))
+* Enhacements to Tribe (see [#640](https://github.com/intelsdi-x/snap/issues/640))
 
 If you would like to propose a feature, please [open an Issue](https://github.com/intelsdi-x/snap/issues)) that includes RFC in it (for [request for comments](https://en.wikipedia.org/wiki/Request_for_Comments)).
 
