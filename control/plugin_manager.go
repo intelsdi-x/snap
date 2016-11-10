@@ -158,7 +158,7 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 // the struct representing a plugin that is loaded into snap
 type pluginDetails struct {
 	CheckSum     [sha256.Size]byte
-	Exec         string
+	Exec         []string
 	ExecPath     string
 	IsPackage    bool
 	IsAutoLoaded bool
@@ -298,9 +298,18 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 
 	pmLogger.WithFields(log.Fields{
 		"_block": "load-plugin",
-		"path":   filepath.Base(lPlugin.Details.Exec),
+		"path":   filepath.Base(lPlugin.Details.Exec[0]),
 	}).Info("plugin load called")
-	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(int(log.GetLevel())), path.Join(lPlugin.Details.ExecPath, lPlugin.Details.Exec))
+	// We will create commands by appending the ExecPath to the actual command.
+	// The ExecPath is a temporary location where the plugin/package will be
+	// run from.
+	commands := make([]string, len(lPlugin.Details.Exec))
+	for i, e := range lPlugin.Details.Exec {
+		commands[i] = path.Join(lPlugin.Details.ExecPath, e)
+	}
+	ePlugin, err := plugin.NewExecutablePlugin(
+		p.GenerateArgs(int(log.GetLevel())),
+		commands...)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -311,7 +320,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 
 	pmLogger.WithFields(log.Fields{
 		"_block": "load-plugin",
-		"path":   filepath.Base(lPlugin.Details.Exec),
+		"path":   lPlugin.Details.Exec,
 	}).Debug(fmt.Sprintf("plugin load timeout set to %ds", p.pluginLoadTimeout))
 	resp, err := ePlugin.Run(time.Second * time.Duration(p.pluginLoadTimeout))
 	if err != nil {
@@ -321,6 +330,8 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		}).Error("load plugin error when starting plugin")
 		return nil, serror.New(err)
 	}
+
+	ePlugin.SetName(resp.Meta.Name)
 
 	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", resp.Meta.Type.String(), resp.Meta.Name, resp.Meta.Version)
 	if _, exists := p.loadedPlugins.table[key]; exists {
@@ -534,7 +545,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 	}
 	pmLogger.WithFields(log.Fields{
 		"_block": "unload-plugin",
-		"path":   filepath.Base(plugin.Details.Exec),
+		"path":   plugin.Details.Exec,
 	}).Info("plugin unload called")
 
 	if plugin.State != LoadedState {

@@ -35,6 +35,7 @@ import (
 var execLogger = log.WithField("_module", "plugin-exec")
 
 type ExecutablePlugin struct {
+	name   string
 	cmd    command
 	stdout io.Reader
 	stderr io.Reader
@@ -75,15 +76,15 @@ func (cw *commandWrapper) Kill() error {
 }
 func (cw *commandWrapper) Start() error { return cw.cmd.Start() }
 
-// Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
-func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
+// NewExecutablePlugin returns a new ExecutablePlugin.
+func NewExecutablePlugin(a Arg, commands ...string) (*ExecutablePlugin, error) {
 	jsonArgs, err := json.Marshal(a)
 	if err != nil {
 		return nil, err
 	}
 	cmd := &exec.Cmd{
-		Path: path,
-		Args: []string{path, string(jsonArgs)},
+		Path: commands[0],
+		Args: append(commands, string(jsonArgs)),
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -130,7 +131,7 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 					close(doneChan)
 				} else {
 					execLogger.WithFields(log.Fields{
-						"plugin": path.Base(e.cmd.Path()),
+						"plugin": e.name,
 						"io":     "stdout",
 					}).Debug(stdOutScanner.Text())
 				}
@@ -183,6 +184,10 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 	return resp, err
 }
 
+func (e *ExecutablePlugin) SetName(name string) {
+	e.name = name
+}
+
 func (e *ExecutablePlugin) Kill() error {
 	return e.cmd.Kill()
 }
@@ -193,7 +198,7 @@ func (e *ExecutablePlugin) captureStderr() {
 		for {
 			for stdErrScanner.Scan() {
 				execLogger.
-					WithField("plugin", path.Base(e.cmd.Path())).
+					WithField("plugin", e.name).
 					WithField("io", "stderr").
 					Debug(stdErrScanner.Text())
 			}
@@ -206,7 +211,7 @@ func (e *ExecutablePlugin) captureStderr() {
 				}
 
 				execLogger.
-					WithField("plugin", path.Base(e.cmd.Path())).
+					WithField("plugin", e.name).
 					WithField("io", "stderr").
 					WithField("scanner_err", errScanner).
 					WithField("read_string_err", errRead).
