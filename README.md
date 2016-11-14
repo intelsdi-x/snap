@@ -36,18 +36,19 @@ limitations under the License.
   * [Running Tasks](#running-tasks)
   * [Building Tasks](#building-tasks)
   * [Plugin Catalog](#plugin-catalog)
-2. [Documentation](#documentation)
+3. [Documentation](#documentation)
   * [Examples](#examples)
   * [Roadmap](#roadmap)
-3. [Community Support](#community-support)
-4. [Contributing](#contributing)
+4. [Community Support](#community-support)
+5. [Contributing](#contributing)
   * [Author a Plugin](#author-a-plugin)
-5. [Security Disclosure](#security-disclosure)
-6. [License](#license)
-7. [Contributors](#contributors)
+6. [Code of Conduct](#code-of-conduct)
+7. [Security Disclosure](#security-disclosure)
+8. [License](#license)
+9. [Contributors](#contributors)
   * [Initial Authors](#initial-authors)
   * [Maintainers](#maintainers)
-8. [Thank You](#thank-you)
+10. [Thank You](#thank-you)
 
 ## Overview
 
@@ -338,6 +339,9 @@ The power of Snap comes from its open architecture. Add to the ecosystem by buil
 
 * The definitive how-to is in [PLUGIN_AUTHORING.md](docs/PLUGIN_AUTHORING.md)
 * Recommendations to make effective, well-designed plugins are in [PLUGIN_BEST_PRACTICES.md](docs/PLUGIN_BEST_PRACTICES.md)
+
+## Code of Conduct
+All contributors to Snap are expected to be helpful and encouraging to all members of the community, treating everyone with a high level of professionalism and respect. See our [code of conduct](CODE_OF_CONDUCT.md) for more details.
 
 ## Security Disclosure
 
