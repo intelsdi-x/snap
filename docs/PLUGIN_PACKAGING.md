@@ -5,10 +5,10 @@ Image) format defined in the
 [App Container spec (appc)](https://github.com/appc/spec) for packaging a 
 plugin.
 
-When snap loads a plugin it detects the plugins type.  If the plugin is a binary
+When Snap loads a plugin it detects the plugins type.  If the plugin is a binary
 the plugin is run by snapd which handshakes with the plugin via reading its 
 standard output.  If the plugin is packaged as an ACI image it is extracted
-and snap executes the program referenced by the `exec` field.
+and Snap executes the program referenced by the `exec` field.
 
 ## Why  
 
@@ -31,7 +31,7 @@ loaded the binary version of the plugin.
     * Download the latest binary 
     [release](https://github.com/appc/acbuild/releases) and install into your 
     PATH.
-2. Make snap
+2. Make Snap
     * From the root of snap run: `make`
 4. Using the acbuild tool create an image containing the mock collector plugin.
     * From the `build/plugin` directory run the following commands.

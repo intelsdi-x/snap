@@ -40,12 +40,12 @@ This section comprises of configuration settings that are specific for the Snap 
 
 ```yaml
 ---
-# log_level for the snap daemon. Supported values are
+# log_level for the Snap daemon. Supported values are
 # 1 - Debug, 2 - Info, 3 - Warning, 4 - Error, 5 - Fatal.
 # Default value is 3.
 log_level: 3
 
-# log_path sets the path for logs for the snap daemon. By
+# log_path sets the path for logs for the Snap daemon. By
 # default snapd prints all logs to stdout. Any provided
 # path will send snapd logs to a file called snapd.log in
 # the provided directory.
@@ -72,7 +72,7 @@ The control section contains settings for configuring the Control module within 
 ```yaml
 control:
   # auto_discover_path sets a directory to auto load plugins on the start
-  # of the snap daemon
+  # of the Snap daemon
   auto_discover_path: /opt/snap/plugins
 
   # cache_expiration sets the time interval for the plugin cache to use before

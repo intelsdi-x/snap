@@ -5,7 +5,7 @@ will cover how to contribute code, report issues, build the project and run the 
 
 ## Contributing Code
 
-Contribution of code to snap is a snap (pun intended):
+Contributing code to Snap is a snap (pun intended):
 - Fork the project to your own repository
 - Create a topic branch from where you want to base your work (usually master)
 - Make commit(s) (following commit guidelines below)

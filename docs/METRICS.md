@@ -1,7 +1,7 @@
 
 # Snap Metrics
 
-A metric in snap has the following fields.
+A metric in Snap has the following fields.
 
 * Namespace `[]core.NamespaceElement`
  * Uniquely identifies the metric

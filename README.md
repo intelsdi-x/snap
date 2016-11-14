@@ -61,19 +61,19 @@ limitations under the License.
 * Allow flexible processing of telemetry data on agent (e.g. filtering and decoration)
 * Provide powerful clustered control of telemetry workflows across small or large clusters
 
-The key features of snap are:
+The key features of Snap are:
 
-* **Plugin Architecture**: snap has a simple and smart modular design. The three types of plugins (collectors, processors, and publishers) allow snap to mix and match functionality based on user need. All plugins are designed with versioning, signing and deployment at scale in mind. The **open plugin model** allows for loading built-in, community, or proprietary plugins into snap.
+* **Plugin Architecture**: Snap has a simple and smart modular design. The three types of plugins (collectors, processors, and publishers) allow Snap to mix and match functionality based on user need. All plugins are designed with versioning, signing and deployment at scale in mind. The **open plugin model** allows for loading built-in, community, or proprietary plugins into Snap.
   * **Collectors** - Collectors consume telemetry data. Collectors are built-in plugins for leveraging existing telemetry solutions (Facter, CollectD, Ohai) as well as specific plugins for consuming Intel telemetry (Node, DCM, NIC, Disk) and can reach into new architectures through additional plugins (see [Plugin Authoring below](#author-a-plugin)). Telemetry data is organized into a dynamically generated catalog of available data points.
   * **Processors** - Extensible workflow injection. Convert telemetry into another data model for consumption by existing consumption systems (like OpenStack Ceilometer). Allows encryption of all or part of the telemetry payload before publishing. Inject remote queries into workflow for tokens, filtering, or other external calls. Implement filtering at an agent level reducing injection load on telemetry consumer.
-  * **Publishers** - Store telemetry into a wide array of systems. snap decouples the collection of telemetry from the implementation of where to send it. snap comes with a large library of publisher plugins that allow exposure to telemetry analytics systems both custom and common. This flexibility allows snap to be valuable to open source and commercial ecosystems alike by writing a publisher for their architectures.
+  * **Publishers** - Store telemetry into a wide array of systems. Snap decouples the collection of telemetry from the implementation of where to send it. Snap comes with a large library of publisher plugins that allow exposure to telemetry analytics systems both custom and common. This flexibility allows Snap to be valuable to open source and commercial ecosystems alike by writing a publisher for their architectures.
 
 
-* **Dynamic Updates**: snap is designed to evolve. Each scheduled workflow automatically uses the most mature plugin for that step, unless the collection is pinned to a specific version (e.g. get /intel/psutil/load/load1/v1). Loading a new plugin automatically upgrades running workflows in tasks. Load plugins dynamically, without a restart to the service or server. This dynamically extends the metric catalog when loaded, giving access to new measurements immediately. Swapping a newer version plugin for an old one in a safe transaction. All of these behaviors allow for simple and secure bug fixes, security patching, and improving accuracy in production.
+* **Dynamic Updates**: Snap is designed to evolve. Each scheduled workflow automatically uses the most mature plugin for that step, unless the collection is pinned to a specific version (e.g. get /intel/psutil/load/load1/v1). Loading a new plugin automatically upgrades running workflows in tasks. Load plugins dynamically, without a restart to the service or server. This dynamically extends the metric catalog when loaded, giving access to new measurements immediately. Swapping a newer version plugin for an old one in a safe transaction. All of these behaviors allow for simple and secure bug fixes, security patching, and improving accuracy in production.
 
-* **Snap tribe**: snap is designed for ease of administration. With snap tribe, nodes work in groups (aka tribes). Requests are made through agreement- or task-based node groups, designed as a scalable gossip-based node-to-node communication process. Administrators can control all snap nodes in a tribe agreement by messaging just one of them. There is auto-discovery of new nodes and import of tasks and plugins from nodes within a given tribe. It is cluster configuration management made simple.
+* **Snap tribe**: Snap is designed for ease of administration. With Snap tribe, nodes work in groups (aka tribes). Requests are made through agreement- or task-based node groups, designed as a scalable gossip-based node-to-node communication process. Administrators can control all Snap nodes in a tribe agreement by messaging just one of them. There is auto-discovery of new nodes and import of tasks and plugins from nodes within a given tribe. It is cluster configuration management made simple.
 
-Some additionally important notes about how snap works:
+Some additionally important notes about how Snap works:
 
 * Multiple management modules including: [CLI](docs/SNAPCTL.md) (snapctl) and [REST API](docs/REST_API.md) (each of which can be turned on or off)
 * Secure validation occurs via plugin signing, SSL encryption for APIs and payload encryption for communication between components
@@ -88,7 +88,7 @@ Some additionally important notes about how snap works:
 
 ### System Requirements
 
-Snap does not have external dependencies since it is compiled into a statically linked binary. At this time, we build snap binaries for Linux and MacOS. We also provide Linux RPM/Deb packages and MacOS X .pkg installer.
+Snap does not have external dependencies since it is compiled into a statically linked binary. At this time, we build Snap binaries for Linux and MacOS. We also provide Linux RPM/Deb packages and MacOS X .pkg installer.
 
 ### Installation
 
@@ -142,7 +142,7 @@ NOTE: If you prefer to build from source, follow the steps in the [build documen
 
 ### Running Snap
 
-If you installed snap from RPM/Deb package, you can start/stop Snap daemon as a service:
+If you installed Snap from RPM/Deb package, you can start/stop Snap daemon as a service:
 
 RedHat 6/Ubuntu 14.04:
 ```
@@ -154,7 +154,7 @@ RedHat 7/Ubuntu 16.04:
 $ systemctl start snap-telemetry
 ```
 
-If you installed snap from binary, you can start Snap daemon via the command:
+If you installed Snap from binary, you can start Snap daemon via the command:
 ```
 $ sudo mkdir -p /var/log/snap
 $ sudo snapd --plugin-trust 0 --log-level 1 -o /var/log/snap &
@@ -284,7 +284,7 @@ If you would like to write your own, read through [Author a Plugin](#author-a-pl
 ## Documentation
 Documentation for Snap will be kept in this repository for now with an emphasis of filling out the `docs/` directory. We would also like to link to external how-to blog posts as people write them. [Read about contributing to the project](#contributing) for more details.
 
-* [snapd (snap agent)](docs/SNAPD.md)
+* [snapd (Snap agent)](docs/SNAPD.md)
 * [configuring snapd](docs/SNAPD_CONFIGURATION.md)
 * [snapctl (Snap CLI)](docs/SNAPCTL.md)
 * [build and test](docs/BUILD_AND_TEST.md)
@@ -316,7 +316,7 @@ We have a few known features we want to take on from here while we remain open f
 If you would like to propose a feature, please [open an Issue](https://github.com/intelsdi-x/snap/issues)) that includes RFC in it (for [request for comments](https://en.wikipedia.org/wiki/Request_for_Comments)).
 
 ## Community Support
-This repository is one of **many** projects in the **Snap framework**. Discuss your questions about snap by reaching out to us:
+This repository is one of **many** projects in the **Snap framework**. Discuss your questions about Snap by reaching out to us:
 
 * Through GitHub Issues. Issues is our home for **all** needs: Q&A on everything - installation, request for events, integrations, bug issues, futures. [Open up an Issue](https://github.com/intelsdi-x/snap/issues) and know there's no wrong question for us.
 * We also have a [Slack team](https://intelsdi-x.herokuapp.com/) where we hang out
@@ -349,7 +349,7 @@ Snap is Open Source software released under the [Apache 2.0 License](LICENSE).
 
 ## Contributors
 ### Initial Authors
-All contributors are equally important to us, but we would like to thank the [initial authors](AUTHORS.md#initial-authors) for helping make open sourcing snap possible.
+All contributors are equally important to us, but we would like to thank the [initial authors](AUTHORS.md#initial-authors) for helping make open sourcing Snap possible.
 
 ### Maintainers
 Amongst the many awesome contributors, there are the maintainers. These maintainers may change over time, but they are all members of the **@intelsdi-x/snap-maintainers** team. This group will help you by:
