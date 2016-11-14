@@ -32,4 +32,4 @@ Distributed workflow is accomplished by allowing remote targets to be specified 
 
 ## Performance considerations
 
-The main performance penalty for using remote targets is that data is now sent over the network instead of locally. This is minimized since snap will only make remote calls for steps in the workflow that specify a remote target.
+The main performance penalty for using remote targets is that data is now sent over the network instead of locally. This is minimized since Snap will only make remote calls for steps in the workflow that specify a remote target.

@@ -35,7 +35,7 @@ The instructions below assume that the `GOPATH` environment variable has been se
 Now you can download Snap into your `$GOPATH`:
 
 ```
-$ # -d is used to download snap without building it
+$ # -d is used to download Snap without building it
 $ go get -d github.com/intelsdi-x/snap
 $ cd $GOPATH/src/github.com/intelsdi-x/snap
 ```

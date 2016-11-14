@@ -33,18 +33,18 @@ $ $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
 --log-path, -o                               Path for logs. Empty path logs to stdout. [$SNAP_LOG_PATH]
 --log-truncate                               Log file truncating mode. Default is false => append (true => truncate).
 --log-colors                                 Log file coloring mode. Default is true => colored (--log-colors=false => no colors).
---max-procs, -c '1'                          Set max cores to use for snap Agent. Default is 1 core. [$GOMAXPROCS]
+--max-procs, -c '1'                          Set max cores to use for Snap Agent. Default is 1 core. [$GOMAXPROCS]
 --auto-discover, -a                          Auto discover paths separated by colons. [$SNAP_AUTODISCOVER_PATH]
 --max-running-plugins, -m '3'                The maximum number of instances of a loaded plugin to run [$SNAP_MAX_PLUGINS]
 --plugin-load-timeout '3'                    The maximum number of seconds a plugin can take to load [$SNAP_PLUGIN_LOAD_TIMEOUT]
 --cache-expiration '500ms'                   The time limit for which a metric cache entry is valid [$SNAP_CACHE_EXPIRATION]
 --plugin-trust, -t '1'                       0-2 (Disabled, Enabled, Warning) [$SNAP_TRUST_LEVEL]
 --keyring-paths, -k                          Keyring paths for signing verification separated by colons [$SNAP_KEYRING_PATHS]
---rest-cert                                  A path to a certificate to use for HTTPS deployment of snap's REST API
+--rest-cert                                  A path to a certificate to use for HTTPS deployment of Snap's REST API
 --config                                     A path to a config file
---rest-https                                 start snap's API as https
---rest-key                                   A path to a key file to use for HTTPS deployment of snap's REST API
---rest-auth                                  Enables snap's REST API authentication
+--rest-https                                 start Snap's API as https
+--rest-key                                   A path to a key file to use for HTTPS deployment of Snap's REST API
+--rest-auth                                  Enables Snap's REST API authentication
 --work-manager-queue-size "0"                Size of the work manager queue (default: 25) [$WORK_MANAGER_QUEUE_SIZE]
 --work-manager-pool-size "0"                 Size of the work manager pool (default 4) [$WORK_MANAGER_POOL_SIZE]
 --tribe-node-name 'tjerniga-mac01.local'     Name of this node in tribe cluster (default: hostname) [$SNAP_TRIBE_NODE_NAME]

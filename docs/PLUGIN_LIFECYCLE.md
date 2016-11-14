@@ -18,7 +18,7 @@ limitations under the License.
 -->
 # Plugin life cycle
 
-A snap plugin can be in a `Loaded` or `Running` state.  A plugin can be loaded
+A Snap plugin can be in a `Loaded` or `Running` state.  A plugin can be loaded
 in the following two ways.
 
 1. `snapd` was started with an auto discover path `snapd -a /etc/snapd/plugins`
