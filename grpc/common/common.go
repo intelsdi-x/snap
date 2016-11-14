@@ -63,6 +63,10 @@ func ToMetric(co core.Metric) *Metric {
 		cm.Data = &Metric_Int64Data{int64(t)}
 	case int64:
 		cm.Data = &Metric_Int64Data{t}
+	case uint32:
+		cm.Data = &Metric_Uint32Data{t}
+	case uint64:
+		cm.Data = &Metric_Uint64Data{t}
 	case []byte:
 		cm.Data = &Metric_BytesData{t}
 	case bool:
@@ -161,6 +165,10 @@ func ToCoreMetric(mt *Metric) core.Metric {
 		ret.data = mt.GetInt32Data()
 	case *Metric_Int64Data:
 		ret.data = mt.GetInt64Data()
+	case *Metric_Uint32Data:
+		ret.data = mt.GetUint32Data()
+	case *Metric_Uint64Data:
+		ret.data = mt.GetUint64Data()
 	case *Metric_BoolData:
 		ret.data = mt.GetBoolData()
 	}

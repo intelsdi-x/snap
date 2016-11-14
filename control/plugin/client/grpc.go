@@ -331,8 +331,11 @@ func ToCoreMetric(mt *rpc.Metric) core.Metric {
 		ret.data = mt.GetInt64Data()
 	case *rpc.Metric_BoolData:
 		ret.data = mt.GetBoolData()
+	case *rpc.Metric_Uint32Data:
+		ret.data = mt.GetUint32Data()
+	case *rpc.Metric_Uint64Data:
+		ret.data = mt.GetUint64Data()
 	}
-
 	return ret
 }
 
@@ -374,6 +377,10 @@ func ToMetric(co core.Metric) *rpc.Metric {
 		cm.Data = &rpc.Metric_Int64Data{int64(t)}
 	case int64:
 		cm.Data = &rpc.Metric_Int64Data{t}
+	case uint32:
+		cm.Data = &rpc.Metric_Uint32Data{t}
+	case uint64:
+		cm.Data = &rpc.Metric_Uint64Data{t}
 	case []byte:
 		cm.Data = &rpc.Metric_BytesData{t}
 	case bool:

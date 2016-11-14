@@ -1,5 +1,5 @@
 hash: 8fe2627eadf03d4c3aa9f8fac38b26a29340921c25ccc5b62490f91824014ace
-updated: 2016-09-16T15:09:24.221590931-07:00
+updated: 2016-11-16T15:41:06.279309067-08:00
 imports:
 - name: github.com/appc/spec
   version: db96f94ae6b227fe4d8288527ead8927181620f6
@@ -22,10 +22,6 @@ imports:
   version: 6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa
   subpackages:
   - semver
-- name: github.com/dnsimple/dnsimple-go
-  version: a68f2550482a24820c47c7046bb87402a94ea299
-  subpackages:
-  - dnsimple
 - name: github.com/ghodss/yaml
   version: c3eb24aeea63668ebdac08d2e252f20df8b6b1ae
 - name: github.com/gogo/protobuf
@@ -36,10 +32,6 @@ imports:
   version: 888eb0692c857ec880338addf316bd662d5e630e
   subpackages:
   - proto
-- name: github.com/google/go-querystring
-  version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
-  subpackages:
-  - query
 - name: github.com/hashicorp/go-msgpack
   version: fa3f63826f7c23912c15263591e65d54d080b458
   subpackages:
@@ -55,6 +47,8 @@ imports:
   - v1/plugin/rpc
 - name: github.com/intelsdi-x/snap-plugin-utilities
   version: 925bafffac36edcfaf4aff937dcb7d3d5659782d
+  subpackages:
+  - str
 - name: github.com/julienschmidt/httprouter
   version: 8c199fb6259ffc1af525cc3ad52ee60ba8359669
 - name: github.com/pborman/uuid
