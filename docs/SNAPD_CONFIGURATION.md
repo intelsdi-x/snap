@@ -21,7 +21,7 @@ limitations under the License.
 
 snapd supports being configured through a configuration file located at a default location of `/etc/snap/snapd.conf` on Linux systems or by passing a configuration file in through the `--config` command line flag when starting snapd. YAML and JSON are currently supported for configuration file types.
 
-snapd runs without a configuration file provided and will use the default values defined inside the daemon (shown below). There is an order of precedence when it come to default values, configuration files, and flags when snapd starts. Any value defined in the default configuration file located at `/etc/snap/snapd.conf` will take precedence over default values. Any value defined in a configuration file passed via the `--config` flag will be used in place of any default configuration file on the system and override default values. Any flags passed in on the command line during the start up of snapd will override any values defined in configuration files and default values.
+snapd runs without a configuration file provided and will use the default values defined inside the daemon (shown below). There is an order of precedence when it comes to default values, configuration files, and flags when snapd starts. Any value defined in the default configuration file located at `/etc/snap/snapd.conf` will take precedence over default values. Any value defined in a configuration file passed via the `--config` flag will be used in place of any default configuration file on the system and override default values. Any flags passed in on the command line during the start up of snapd will override any values defined in configuration files and default values.
 
 In order of precedence (from greatest to least):
 - Command-line flags
@@ -97,7 +97,7 @@ control:
   # keyring files specified in keyring_path. Plugin trust can be disabled (0) which
   # will allow loading of all plugins whether signed or not. The warning state allows
   # for loading of signed and unsigned plugins. Warning messages will be displayed if
-  # an unsigned plugin is loaded. Any signed plugins that can not be verified will
+  # an unsigned plugin is loaded. Any signed plugins that cannot be verified will
   # not be loaded. Valid values are 0 - Off, 1 - Enabled, 2 - Warning
   plugin_trust_level: 1
 

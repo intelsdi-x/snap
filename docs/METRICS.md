@@ -82,8 +82,8 @@ namespace := core.NewNamespace("intel", "psutil", "load", "load1")
 ### Dynamic Metric Namespace Example
 
 Dynamic namespaces enable collector plugins to embed runtime data in the namespace with just enough metadata to enable
-downstrean plugins (processors and publishers) the ability to extract the data and transform the namespace into its
- canonical form often required by some backends.     
+downstream plugins (processors and publishers) the ability to extract the data and transform the namespace into its
+ canonical form often required by some back ends.     
 
 Given a dynamic metric identified by the namespace `/intel/libvirt/*/disk/*/wrreq` the `NamespaceElement`s would
 have values of 'intel', 'libvirt', '*', 'disk', '*' and 'wrreq' respectively.  The `Name` and `Description` fields

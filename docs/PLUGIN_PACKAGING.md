@@ -12,7 +12,7 @@ and Snap executes the program referenced by the `exec` field.
 
 ## Why  
 
-In cases where we can not or do not want to compile our plugin into a statically 
+In cases where we cannot or do not want to compile our plugin into a statically 
 linked binary we can load a plugin packaged as an ACI image.  This provides 
 an obvious advantage for plugins written in Python, Ruby, Java, etc where the 
 plugins dependencies, potentially including an entire Python virtualenv, could 

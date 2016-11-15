@@ -6,7 +6,7 @@ Using pprof and go-torch is a good way to bring to light on how your application
 If you have **Docker** installed, jump to [generate a profile](#generating-a-profile).
 
 ### System Requirements
-Nativaly supported OS:
+Natively supported OS:
 - Linux
 - OS X 10.11+ ([patch for 10.6 - 10.10](https://github.com/rsc/pprof_mac_fix))
 
