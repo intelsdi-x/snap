@@ -17,13 +17,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# **snap** <sup><sub>_the open telemetry framework_</sub></sup>
+# **The Snap Telemetry Framework** [![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap) [![Join the chat on Slack](https://intelsdi-x.herokuapp.com/badge.svg)](https://intelsdi-x.herokuapp.com/) [![Go Report Card](https://goreportcard.com/badge/intelsdi-x/snap)](https://goreportcard.com/report/intelsdi-x/snap)
 
-[![Join the chat on Slack](https://intelsdi-x.herokuapp.com/badge.svg)](https://intelsdi-x.herokuapp.com/)
-[![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap)
-[![Go Report Card](https://goreportcard.com/badge/intelsdi-x/snap)](https://goreportcard.com/report/intelsdi-x/snap)
+<img src="https://cloud.githubusercontent.com/assets/1744971/20331694/e07e9148-ab5b-11e6-856a-e4e956540077.png" width="70%">
 
-<img src="https://cloud.githubusercontent.com/assets/1744971/16677455/f1d4e9de-448a-11e6-9afb-c31dcc7e3274.png" width="50%">
+**Snap** is an open telemetry framework designed to simplify the collection, processing and publishing of system data through a single API. The goals of this project are to:
+
+* Empower systems to expose a consistent set of telemetry data
+* Simplify telemetry ingestion across ubiquitous storage systems
+* Allow flexible processing of telemetry data on agent (e.g. filtering and decoration)
+* Provide powerful clustered control of telemetry workflows across small or large clusters
 
 ----
 
@@ -51,25 +54,24 @@ limitations under the License.
 
 ## Overview
 
+**The Snap Telemetry Framework** is a project made up of multiple parts: 
+
+* A hardened, extensively tested daemon, `snapteld`, and CLI, `snaptel` (in this repo)
+* A growing number of maturing `plugins` (found in the [Plugin Catalog](#plugin-catalog))
+* Lots of example `tasks` to gather and publish metrics (found in the [Examples folder](examples/))
+
+These and other terminology are explained in the [glossary](docs/GLOSSARY.md).
+
 ![workflow-collect-process-publish](https://cloud.githubusercontent.com/assets/1744971/14644683/be49a6b6-0607-11e6-8621-14f7b54e2192.png)
-
-**Snap** is an open telemetry framework designed to simplify the collection, processing and publishing of system data through a single API. The goals of this project are to:
-
-* Empower systems to expose a consistent set of telemetry data
-* Simplify telemetry ingestion across ubiquitous storage systems
-* Improve the deployment model, packaging and flexibility for collecting telemetry
-* Allow flexible processing of telemetry data on agent (e.g. filtering and decoration)
-* Provide powerful clustered control of telemetry workflows across small or large clusters
 
 The key features of Snap are:
 
 * **Plugin Architecture**: Snap has a simple and smart modular design. The three types of plugins (collectors, processors, and publishers) allow Snap to mix and match functionality based on user need. All plugins are designed with versioning, signing and deployment at scale in mind. The **open plugin model** allows for loading built-in, community, or proprietary plugins into Snap.
-  * **Collectors** - Collectors consume telemetry data. Collectors are built-in plugins for leveraging existing telemetry solutions (Facter, CollectD, Ohai) as well as specific plugins for consuming Intel telemetry (Node, DCM, NIC, Disk) and can reach into new architectures through additional plugins (see [Plugin Authoring below](#author-a-plugin)). Telemetry data is organized into a dynamically generated catalog of available data points.
-  * **Processors** - Extensible workflow injection. Convert telemetry into another data model for consumption by existing consumption systems (like OpenStack Ceilometer). Allows encryption of all or part of the telemetry payload before publishing. Inject remote queries into workflow for tokens, filtering, or other external calls. Implement filtering at an agent level reducing injection load on telemetry consumer.
+  * **Collectors** - Collectors consume telemetry data. Collectors are plugins for leveraging existing telemetry solutions (Facter, CollectD, Ohai) as well as specific plugins for consuming Intel telemetry (Node, DCM, NIC, Disk) and can reach into new architectures through additional plugins (see [Plugin Authoring below](#author-a-plugin)). Telemetry data is organized into a dynamically generated catalog of available data points.
+  * **Processors** - Extensible workflow injection. Convert telemetry into another data model for consumption by existing systems. Allows encryption of all or part of the telemetry payload before publishing. Inject remote queries into workflow for tokens, filtering, or other external calls. Implement filtering at an agent level reducing injection load on telemetry consumer.
   * **Publishers** - Store telemetry into a wide array of systems. Snap decouples the collection of telemetry from the implementation of where to send it. Snap comes with a large library of publisher plugins that allow exposure to telemetry analytics systems both custom and common. This flexibility allows Snap to be valuable to open source and commercial ecosystems alike by writing a publisher for their architectures.
 
-
-* **Dynamic Updates**: Snap is designed to evolve. Each scheduled workflow automatically uses the most mature plugin for that step, unless the collection is pinned to a specific version (e.g. get /intel/psutil/load/load1/v1). Loading a new plugin automatically upgrades running workflows in tasks. Load plugins dynamically, without a restart to the service or server. This dynamically extends the metric catalog when loaded, giving access to new measurements immediately. Swapping a newer version plugin for an old one in a safe transaction. All of these behaviors allow for simple and secure bug fixes, security patching, and improving accuracy in production.
+* **Dynamic Updates**: Snap is designed to evolve. Each scheduled workflow automatically uses the most mature plugin for that step, unless the collection is pinned to a specific version (e.g. get `/intel/psutil/load/load1/v1`). Loading a new plugin automatically upgrades running workflows in tasks. Load plugins dynamically, without a restart to the service or server. This dynamically extends the metric catalog when loaded, giving access to new measurements immediately. Swapping a newer version plugin for an old one in a safe transaction. All of these behaviors allow for simple and secure bug fixes, security patching, and improving accuracy in production.
 
 * **Snap tribe**: Snap is designed for ease of administration. With Snap tribe, nodes work in groups (aka tribes). Requests are made through agreement- or task-based node groups, designed as a scalable gossip-based node-to-node communication process. Administrators can control all Snap nodes in a tribe agreement by messaging just one of them. There is auto-discovery of new nodes and import of tasks and plugins from nodes within a given tribe. It is cluster configuration management made simple.
 
@@ -77,7 +79,7 @@ Some additionally important notes about how Snap works:
 
 * Multiple management modules including: [CLI](docs/SNAPCTL.md) (snapctl) and [REST API](docs/REST_API.md) (each of which can be turned on or off)
 * Secure validation occurs via plugin signing, SSL encryption for APIs and payload encryption for communication between components
-* CLI control from Linux or OS X
+* CLI control from Linux or MacOS
 
 **Snap** is not intended to:
 
@@ -229,11 +231,11 @@ NAMESPACE                                VERSIONS
 ...
 ```
 
-NOTE: Plugin bundles are available for convenience in the Snap [GitHub release page](https://github.com/intelsdi-x/snap/releases), for the latest up to date version use the release/download in the [plugin catalog](#plugin-catalog).
+NOTE: Plugin bundles are available for convenience in the Snap [GitHub release page](https://github.com/intelsdi-x/snap/releases), for the latest up-to-date version use the release/download in the [plugin catalog](#plugin-catalog).
 
 ### Running Tasks
 
-To collect data, you need to create a [task](docs/TASKS.md) by loading a `Task Manifest`. The manifest contains a specification for what interval a set of metrics are gathered, how the data is transformed, and where the information is published. For more information see [task](docs/TASKS.md) documentation.
+To collect data, you need to create a task by loading a `Task Manifest`. The Task Manifest contains a specification for what interval a set of metrics are gathered, how the data is transformed, and where the information is published. For more information see [task](docs/TASKS.md) documentation.
 
 Now, download and load the [psutil example](examples/tasks/psutil-file.yaml):
 ```
@@ -316,28 +318,26 @@ We have a few known features we want to take on from here while we remain open f
 If you would like to propose a feature, please [open an Issue](https://github.com/intelsdi-x/snap/issues)) that includes RFC in it (for [request for comments](https://en.wikipedia.org/wiki/Request_for_Comments)).
 
 ## Community Support
-This repository is one of **many** projects in the **Snap framework**. Discuss your questions about Snap by reaching out to us:
+This repository is one of many in the Snap framework and [has maintainers supporting it](docs/MAINTAINERS.md). We love contributions from our community along the way. No improvement is too small.
 
-* Through GitHub Issues. Issues is our home for **all** needs: Q&A on everything - installation, request for events, integrations, bug issues, futures. [Open up an Issue](https://github.com/intelsdi-x/snap/issues) and know there's no wrong question for us.
-* We also have a [Slack team](https://intelsdi-x.herokuapp.com/) where we hang out
-* Submit a blog post on your use of Snap to [our Medium.com publication](https://medium.com/intel-sdi)
-
-The full project lives here, at http://github.com/intelsdi-x/snap.
+This note is especially important for plugins. While the Snap framework is hardened through tons of use, **plugins mature at their own pace**. If you have subject matter expertise related to a plugin, please share your feedback on that repository. 
 
 ## Contributing
-We encourage contributions from the community. No improvement is too small. Snap needs:
+We encourage contributions from the community. Snap needs:
 
-* _Feedback_: try it and tell us about it through issues, blog posts or Twitter
-* _Contributors_: We can always use more eyes on the core framework and its testing
+* _Contributors_: We always appreciate more eyes on the core framework and plugins
+* _Feedback_: try it and tell us about it on [our Slack team](https://intelsdi-x.herokuapp.com/), through [a blog posts](https://medium.com/intel-sdi/) or Twitter with #SnapTelemetry
 * _Integrations_: Snap can collect from and publish to almost anything by [authoring a plugin](#author-a-plugin)
 
 To contribute to the Snap framework, see [our CONTRIBUTING file](CONTRIBUTING.md). To give back to a specific plugin, open an issue on its repository.
 
+
 ### Author a Plugin
-The power of Snap comes from its open architecture. Add to the ecosystem by building your own plugins to collect, process or publish telemetry.
+The power of Snap comes from its open architecture and its growing community of contributors. You can be one of them:
 
 * The definitive how-to is in [PLUGIN_AUTHORING.md](docs/PLUGIN_AUTHORING.md)
-* Recommendations to make effective, well-designed plugins are in [PLUGIN_BEST_PRACTICES.md](docs/PLUGIN_BEST_PRACTICES.md)
+
+Add to the ecosystem by building your own plugins to collect, process or publish telemetry.
 
 ## Security Disclosure
 
