@@ -51,7 +51,7 @@ The header contains a version, used to differentiate between versions of the tas
 
 The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  Snap is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, Snap has three schedules:
 - **simple schedule** which is described above,
-- **window schedule** which adds a start and stop time for the task. The time must be given as a quoted string in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format, for example with specific timezone offset:
+- **window schedule** which adds a start and stop time for the task. The time must be given as a quoted string in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format, for example with specific time zone offset:
 ```json
     "version": 1,
     "schedule": {
@@ -62,7 +62,7 @@ The schedule describes the schedule type and interval for running the task.  The
     },
     "max-failures": 10,
 ```
-or without timezone offset (in that cases uppercase'Z' must be present):
+or without time zone offset (in that cases uppercase'Z' must be present):
 ```json
     "version": 1,
     "schedule": {
@@ -155,7 +155,7 @@ Process and Publish nodes in the workflow can also target remote Snap nodes via 
 
 ```
 
-If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of it's steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the Snap rest-api and port 8082.
+If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of its steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the Snap rest-api and port 8082.
 
 An example json task that uses remote targets:
 ```json
@@ -275,7 +275,7 @@ config:
 
 Applying the config at `/intel/perf` means that all leaves of `/intel/perf` (`/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz` in this case) will receive the config.
 
-The tag section describes additional meta data for metrics.  Similary to config, tags can also be described at a branch, and all leaves of that branch will receive the given tag(s).  For example, say a task is going to collect `/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz`, all metrics should be tagged with experiment number, additonally one metric `/intel/perf/bar` should be tagged with OS name.  That tags could be described like so:
+The tag section describes additional meta data for metrics.  Similar to config, tags can also be described at a branch, and all leaves of that branch will receive the given tag(s).  For example, say a task is going to collect `/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz`, all metrics should be tagged with experiment number, additionally one metric `/intel/perf/bar` should be tagged with OS name.  That tags could be described like so:
 
 ```yaml
 ---
