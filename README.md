@@ -10,9 +10,17 @@ visit us at: http://snap-telemetry.io
 Contributions are always welcome and accepted via Github pull requests.
 
 ##to download repo:
-* have npm installed ([install directions](https://docs.npmjs.com/getting-started/installing-node))
-* install bower (`npm install bower`)
 * `git clone` repo
+* install npm ([install directions](https://docs.npmjs.com/getting-started/installing-node)) and bower
+* directions summary:
+```
+npm install 
+npm install -g bower
+bower install
+npm rebuild node-sass
+npm start
+npm run build
+```
 
 ##to test & edit:
 * view changes as you edit with: `npm start` (inside zurb-template/ folder via [BrowserSync](https://www.browsersync.io/))
@@ -26,8 +34,6 @@ Contributions are always welcome and accepted via Github pull requests.
 
 
 ##Design Notes:
-* npm version 2.15.8
-* bower version 1.7.9
 * uses front end framework: [ZURB foundation 6](http://foundation.zurb.com/)
 * uses the [ZURB template](http://foundation.zurb.com/sites/docs/starter-projects.html#zurb-template)
 * uses [Panini Library](http://foundation.zurb.com/sites/docs/panini.html) (A flat file compiler that powers the ZURB prototyping template)
@@ -39,10 +45,9 @@ Contributions are always welcome and accepted via Github pull requests.
     * includes dist/ folder which contains finished website files 
         * populates when you run `npm run build`
         * you should copy these files over to the top layer of your repo (same level as zurb-template/ folder)
-* edits and additions to default foundation css and js can be found in zurb-template/src/assets/changes
-    * can also edit default foundation css and js found in zurb-template/bower_components/foundation-sites/scss and  zurb-template/bower_components/foundation-sites/js
+* edits and additions to default foundation css and js can be found in zurb-template/src/assets/scss & zurb-template/src/assets/catalog
 * images and graphics can be found in zurb-template/src/assets/img
-* font awesome files in zurb-template/src/assets/design
+* font awesome files in zurb-template/src/assets/font-awesome-4.7.0
 * overall page template used for every page on site
     * file in zurb-template/src/layouts/default.html
     * default.html pg template includes links to css and js file updates and google analytics code
@@ -62,8 +67,9 @@ Contributions are always welcome and accepted via Github pull requests.
 |   |__src/
 |       |__assets/
 |       |   |__img/
-|       |   |__design/
-|       |   |__changes/
+|       |   |__catalog/
+|       |   |__scss/
+|       |   |__font-awesome-4.7.0
 |       |__layouts/
 |       |   |__default.html
 |       |
@@ -80,9 +86,10 @@ Contributions are always welcome and accepted via Github pull requests.
 |__download.html
 |__plugins.html
 |__assets/
-|   |__changes/
 |   |__img/
-|   |__
+|   |__catalog/
+|   |__scss/
+|   |__font-awesome-4.7.0
 |
 |__README.md
 ```
