@@ -43,7 +43,7 @@ test-all:
 # By default compiles will use all cpu cores, use BUILD_JOBS to control number
 # of parallel builds: `BUILD_JOBS=2 make plugins`
 #
-# Build only snapd/snapctl
+# Build only snapteld/snaptel
 snap:
 	bash -c "./scripts/build_snap.sh"
 # Build only plugins

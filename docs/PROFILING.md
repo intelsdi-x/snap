@@ -57,10 +57,10 @@ go get github.com/uber/go-torch
 ```
 
 ## Generating a profile
-### Run snapd
-Start snapd with the `--pprof` flag:
+### Run snapteld
+Start snapteld with the `--pprof` flag:
 ```bash
-snapd -t 0 --pprof
+snapteld -t 0 --pprof
 ```
 
 Just doing that will create endpoints on the port used by Snap API. If you use the default port like in the example above, you should be able to access this url from your web browser: http://127.0.0.1:8181/debug/pprof
@@ -85,26 +85,26 @@ From your terminal, you can now generate the flame graphs:
 
 ### Without Docker
 ```bash
-go-torch --binaryinput cpu.pprof --binaryname `which snapd`
+go-torch --binaryinput cpu.pprof --binaryname `which snapteld`
 ```
 
 ### For Docker user
 ```bash
-cp `which snapd` .
-docker run -v `pwd`:/tmp uber/go-torch --binaryinput /tmp/cpu.pprof --binaryname /tmp/snapd -p > torch.svg
+cp `which snapteld` .
+docker run -v `pwd`:/tmp uber/go-torch --binaryinput /tmp/cpu.pprof --binaryname /tmp/snapteld -p > torch.svg
 ```
 
 ### Pprof tool
 Once again, I highly encourage you to read about pprof in [this blog post](https://software.intel.com/en-us/blogs/2014/05/10/debugging-performance-issues-in-go-programs).
 (requires [Go](https://golang.org/doc/install)) 
 ```bash
-go tool pprof `which snapd` cpu.pprof
+go tool pprof `which snapteld` cpu.pprof
 ```
 
 ## BONUS: using pprof tools for plugin
 Plugins that use the [new Go library](https://github.com/intelsdi-x/snap-plugin-lib-go/tree/master/v1/plugin) will have their own endpoint.
 ```bash
-$ snapctl plugin list --running
+$ snaptel plugin list --running
 NAME 		 HIT COUNT 	 LAST HIT 			 TYPE 		 PPROF PORT
 mock-grpc 	 54 		 Tue, 08 Nov 2016 13:08:38 PST 	 collector 	 62143
 statistics 	 266 		 Tue, 08 Nov 2016 13:08:38 PST 	 processor 	 62148

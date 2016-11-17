@@ -19,7 +19,7 @@ limitations under the License.
 
 This directory contains examples for Snap:
 
-* [configs](./configs) folder contains examples of [the global configuration file](../docs/SNAPD_CONFIGURATION.md#snapd-configuration-file) that powers your plugins.
+* [configs](./configs) folder contains examples of [the global configuration file](../docs/SNAPTELD_CONFIGURATION.md#snapteld-configuration-file) that powers your plugins.
 * [tasks](./tasks) folder contains examples of [Snap tasks](../docs/TASKS.md).
 
 For additional examples of using Snap, checkout the examples in these repositories:

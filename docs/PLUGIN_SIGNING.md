@@ -1,7 +1,7 @@
 Plugin Signing
 ==============
 # Security
-By default, the Snap daemon (snapd) has plugin signing verification enabled. To disable it or turn it to warning, the flag `--plugin-trust, -t` can be set to 0 or 2 respectively.
+By default, the Snap daemon (snapteld) has plugin signing verification enabled. To disable it or turn it to warning, the flag `--plugin-trust, -t` can be set to 0 or 2 respectively.
 
 ##How it works
 ![How it works](https://cloud.githubusercontent.com/assets/14298289/19846788/de129a2a-9f4a-11e6-8275-fdd5fac63c82.png)  
@@ -14,52 +14,52 @@ openpgp.CheckArmoredDetachedSignature(keyring, signed, signature)
 
 ##Usage
 ```
-snapd
+snapteld
   --plugin-trust, -t '1'		0-2 (Disabled, Enabled, Warning) [$SNAP_TRUST_LEVEL]
   --keyring-paths, -k 			Keyring files for signing verification separated by colons [$SNAP_KEYRING_FILES]
 ```
 One keyring (-t flag is not needed for signing enabled)
 ```
-$ $SNAP_PATH/bin/snapd -k <keyringFileOrDirectory>
-$ $SNAP_PATH/bin/snapd -t <trustLevel> -k <keyringFileOrDirectory>
-$ $SNAP_PATH/bin/snapd -t <trustLevel> -k someDirectory/someFile.gpg
-$ $SNAP_PATH/bin/snapd -t <trustLevel> -k someDirectory/
+$ $SNAP_PATH/bin/snapteld -k <keyringFileOrDirectory>
+$ $SNAP_PATH/bin/snapteld -t <trustLevel> -k <keyringFileOrDirectory>
+$ $SNAP_PATH/bin/snapteld -t <trustLevel> -k someDirectory/someFile.gpg
+$ $SNAP_PATH/bin/snapteld -t <trustLevel> -k someDirectory/
 ```
 Multiple keyrings (may need full path, not ~)
 ```
-$ $SNAP_PATH/bin/snapd -t <trustLevel> -k <keyringFile1>:<keyringFile2>
+$ $SNAP_PATH/bin/snapteld -t <trustLevel> -k <keyringFile1>:<keyringFile2>
 ```  
 By default, plugin-trust is 1 (enabled), so the flag is only needed for 0 (disabled) and 2 (warning)
 You can make an export to avoid needing the `-k` flag:
 ```
 $ export SNAP_KEYRING_FILE=<keyringFile>
-$ $SNAP_PATH/bin/snapd -t <trustLevel>
+$ $SNAP_PATH/bin/snapteld -t <trustLevel>
 ```
 
-Loading a single plugin using $SNAP_PATH/bin/snapctl
+Loading a single plugin using $SNAP_PATH/bin/snaptel
 ```
-$ $SNAP_PATH/bin/snapctl plugin load <pluginFile> -a <pluginFile>.asc
+$ $SNAP_PATH/bin/snaptel plugin load <pluginFile> -a <pluginFile>.asc
 ```
 
 ####Examples
 #####No keyring, trust enabled/warning
 ```
-$ $SNAP_PATH/bin/snapd -l 1
+$ $SNAP_PATH/bin/snapteld -l 1
 
 INFO[0000] setting plugin trust level to: enabled
-FATA[0000] need keyring file when trust is on (--keyring-file or -k)  _module=snapd block=main
+FATA[0000] need keyring file when trust is on (--keyring-file or -k)  _module=snapteld block=main
 ```
 #####Invalid Keyring
 Keyring doesn't exist
 ```    
-$ $SNAP_PATH/bin/snapd -l 1 -k /Users/tiffany/.gnupg/pubring.gpg:/Users/tiffany/.gnupg/stuff.gpg
+$ $SNAP_PATH/bin/snapteld -l 1 -k /Users/tiffany/.gnupg/pubring.gpg:/Users/tiffany/.gnupg/stuff.gpg
 INFO[0000] adding keyring file /Users/tiffany/.gnupg/pubring.gpg
-FATA[0000] bad keyring file                              _module=snapd block=main error=stat /Users/tiffany/.gnupg/stuff.gpg: no such file or directory keyringPath=/Users/tiffany/.gnupg/stuff.gpg
+FATA[0000] bad keyring file                              _module=snapteld block=main error=stat /Users/tiffany/.gnupg/stuff.gpg: no such file or directory keyringPath=/Users/tiffany/.gnupg/stuff.gpg
 ```
 #####Correct Keyring, trust enabled
 Valid signature
 ```
-$ $SNAP_PATH/bin/snapd -l 1 -k /Users/tiffany/.gnupg/
+$ $SNAP_PATH/bin/snapteld -l 1 -k /Users/tiffany/.gnupg/
 
 INFO[0000] setting plugin trust level to: enabled
 INFO[0000] Adding keyrings from: /Users/tiffany/.gnupg
@@ -71,7 +71,7 @@ INFO[0000] adding keyring file: /Users/tiffany/.gnupg/secring.gpg
 INFO[0000] adding keyring file: /Users/tiffany/.gnupg/trustdb.gpg
 ```
 ```
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
+$ $SNAP_PATH/bin/snaptel plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
 Plugin loaded
 Name: mock
 Version: 1
@@ -89,7 +89,7 @@ Good signature from Tiffany Jernigan (Main signing key) <my.email@intel.com>
 ```
 No signature
 ```
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock2
+$ $SNAP_PATH/bin/snaptel plugin load build/plugin/snap-plugin-collector-mock2
 Error loading plugin:
 Signature file (.asc) not found:
 open : no such file or directory
@@ -103,7 +103,7 @@ DEBU[0033] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/18054
 ```
 Invalid signature
 ```
-$SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock2 -a build/plugin/snap-plugin-collector-mock1.asc
+$SNAP_PATH/bin/snaptel plugin load build/plugin/snap-plugin-collector-mock2 -a build/plugin/snap-plugin-collector-mock1.asc
 Error loading plugin:
 Error checking signature
 openpgp: invalid signature: hash tag doesn't match
@@ -119,7 +119,7 @@ DEBU[0003] Removing file (/var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/70050
 ```
 Wrong keyring
 ```
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
+$ $SNAP_PATH/bin/snaptel plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
 Error loading plugin:
 Error checking signature
 openpgp: signature made by unknown entity
@@ -132,12 +132,12 @@ openpgp: signature made by unknown entity  _module=_mgmt-rest
 ```
 #####Correct keyring, trust warning
 ```
-$ $SNAP_PATH/bin/snapd -l 1 -k ~/.gnupg/pubring.gpg -t 2
+$ $SNAP_PATH/bin/snapteld -l 1 -k ~/.gnupg/pubring.gpg -t 2
 INFO[0000] setting plugin trust level to: warning
 INFO[0000] adding keyring file /Users/tiffany/.gnupg/pubring.gpg
 ```
 ```
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
+$ $SNAP_PATH/bin/snaptel plugin load build/plugin/snap-plugin-collector-mock1 -a build/plugin/snap-plugin-collector-mock1.asc
 
 Plugin loaded
 Name: mock
@@ -146,7 +146,7 @@ Type: collector
 Signed: true
 Loaded Time: Thu, 12 Nov 2015 14:08:32 PST
 
-$ $SNAP_PATH/bin/snapctl plugin load build/plugin/snap-plugin-collector-mock2
+$ $SNAP_PATH/bin/snaptel plugin load build/plugin/snap-plugin-collector-mock2
 
 Plugin loaded
 Name: mock

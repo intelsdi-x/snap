@@ -17,12 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# snapctl
+# snaptel
 A powerful telemetry framework
 
 ## Usage
 ```
-$ $SNAP_PATH/bin/snapctl [global options] command [command options] [arguments...]
+$ $SNAP_PATH/bin/snaptel [global options] command [command options] [arguments...]
 ```
 ### Global Options
 ```
@@ -30,7 +30,7 @@ $ $SNAP_PATH/bin/snapctl [global options] command [command options] [arguments..
 --insecure                           Ignore certificate errors when Snap's API is running HTTPS
 --api-version, -a 'v1'               The Snap API version
 --password, -p			             Password for REST API authentication
---config, -c 			             Path to a config file [$SNAPCTL_CONFIG_PATH]
+--config, -c 			             Path to a config file [$SNAPTEL_CONFIG_PATH]
 --help, -h                           show help
 --version, -v                        print the version
 ```
@@ -44,7 +44,7 @@ help, h      Shows a list of commands or help for one command
 ### Command Options
 #### task
 ```
-$ $SNAP_PATH/bin/snapctl task command [command options] [arguments...]
+$ $SNAP_PATH/bin/snaptel task command [command options] [arguments...]
 ```
 ```
 create      There are two ways to create a task.
@@ -74,7 +74,7 @@ help, h      Shows a list of commands or help for one command
 ```
 #### plugin
 ```
-$ $SNAP_PATH/bin/snapctl plugin command [command options] [arguments...]
+$ $SNAP_PATH/bin/snaptel plugin command [command options] [arguments...]
 ```
 ```
 load		load <plugin path>
@@ -88,7 +88,7 @@ help, h		Shows a list of commands or help for one command
 ```
 #### metric
 ```
-$ $SNAP_PATH/bin/snapctl metric command [command options] [arguments...]
+$ $SNAP_PATH/bin/snaptel metric command [command options] [arguments...]
 ```
 ```
 list         list
@@ -101,9 +101,9 @@ Example Usage
 
 ### Load and unload plugins, create and start a task
 
-In one terminal window, run snapd (log level is set to 1 and signing is turned off for this example):
+In one terminal window, run snapteld (log level is set to 1 and signing is turned off for this example):
 ```
-$ $SNAP_PATH/bin/snapd -l 1 -t 0
+$ $SNAP_PATH/bin/snapteld -l 1 -t 0
 ```
 
 prepare a task manifest file, for example, task.json with following content:
@@ -184,14 +184,14 @@ and then:
 8. unload the plugins
 
 ```
-$ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-plugin-collector-mock1
-$ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-plugin-processor-passthru
-$ $SNAP_PATH/bin/snapctl plugin load $SNAP_PATH/plugin/snap-plugin-publisher-mock-file
-$ $SNAP_PATH/bin/snapctl plugin list
-$ $SNAP_PATH/bin/snapctl task create -t mock-file.json
-$ $SNAP_PATH/bin/snapctl task create -w workflow.json -i 1s -d 10s
-$ $SNAP_PATH/bin/snapctl task list
-$ $SNAP_PATH/bin/snapctl plugin unload -t collector -n mock -v <version>
-$ $SNAP_PATH/bin/snapctl plugin unload -t processor -n passthru -v <version>
-$ $SNAP_PATH/bin/snapctl plugin unload -t publisher -n publisher -v <version>
+$ $SNAP_PATH/bin/snaptel plugin load $SNAP_PATH/plugin/snap-plugin-collector-mock1
+$ $SNAP_PATH/bin/snaptel plugin load $SNAP_PATH/plugin/snap-plugin-processor-passthru
+$ $SNAP_PATH/bin/snaptel plugin load $SNAP_PATH/plugin/snap-plugin-publisher-mock-file
+$ $SNAP_PATH/bin/snaptel plugin list
+$ $SNAP_PATH/bin/snaptel task create -t mock-file.json
+$ $SNAP_PATH/bin/snaptel task create -w workflow.json -i 1s -d 10s
+$ $SNAP_PATH/bin/snaptel task list
+$ $SNAP_PATH/bin/snaptel plugin unload -t collector -n mock -v <version>
+$ $SNAP_PATH/bin/snaptel plugin unload -t processor -n passthru -v <version>
+$ $SNAP_PATH/bin/snaptel plugin unload -t publisher -n publisher -v <version>
 ```

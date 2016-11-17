@@ -61,6 +61,6 @@ var (
 		Usage: "Enables profiling tools",
 	}
 
-	// Flags consumed by snapd
+	// Flags consumed by snapteld
 	Flags = []cli.Flag{flAPIDisabled, flAPIAddr, flAPIPort, flRestHTTPS, flRestCert, flRestKey, flRestAuth, flPProf}
 )

@@ -50,12 +50,12 @@ By default `make` runs `make deps`, `make snap`, and `make plugins` commands for
 
 * `deps`: fetches all dependencies using glide
 * `test-(legacy|small|medium|large)`: runs test suite
-* `all`: builds snapd, snapctl, and test plugins for all platforms (MacOS and Linux)
-* `snap` builds snapd and snapctl for local operating system
+* `all`: builds snapteld, snaptel, and test plugins for all platforms (MacOS and Linux)
+* `snap` builds snapteld and snaptel for local operating system
 * `plugins` builds test plugins for local operating system
-* `install`: installs snapd and snapctl binaries in /usr/local/bin
+* `install`: installs snapteld and snaptel binaries in /usr/local/bin
 
-To see how to use Snap, look at [getting started](../README.md#getting-started), [SNAPD.md](SNAPD.md), and [SNAPCTL.md](SNAPCTL.md).
+To see how to use Snap, look at [getting started](../README.md#getting-started), [SNAPTELD.md](SNAPTELD.md), and [SNAPTEL.md](SNAPTEL.md).
 
 ## Test
 ### Creating Tests

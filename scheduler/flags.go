@@ -38,6 +38,6 @@ var (
 		EnvVar: "WORK_MANAGER_POOL_SIZE",
 	}
 
-	// Flags consumed by snapd
+	// Flags consumed by snapteld
 	Flags = []cli.Flag{flSchedulerQueueSize, flSchedulerPoolSize}
 )

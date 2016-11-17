@@ -92,7 +92,7 @@ func beforeAction(ctx *cli.Context) error {
 }
 
 // Checks if a tribe command was issued when tribe mode was not
-// enabled on the specified snapd instance.
+// enabled on the specified snapteld instance.
 func checkTribeCommand(ctx *cli.Context) error {
 	tribe := false
 	for _, a := range os.Args {
@@ -114,7 +114,7 @@ func checkTribeCommand(ctx *cli.Context) error {
 		if resp.Err.Error() == "Invalid credentials" {
 			return resp.Err
 		}
-		return fmt.Errorf("Tribe mode must be enabled in snapd to use tribe command")
+		return fmt.Errorf("Tribe mode must be enabled in snapteld to use tribe command")
 	}
 	return nil
 }

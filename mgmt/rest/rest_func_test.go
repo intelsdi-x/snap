@@ -70,7 +70,7 @@ var (
 const (
 	MOCK_CONSTRAINTS = `{
 		"$schema": "http://json-schema.org/draft-04/schema#",
-		"title": "snapd global config schema",
+		"title": "snapteld global config schema",
 		"type": ["object", "null"],
 		"properties": {
 			"control": { "$ref": "#/definitions/control" },

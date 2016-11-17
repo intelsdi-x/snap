@@ -123,7 +123,7 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 			for stdOutScanner.Scan() {
 				// The first chunk from the scanner is the plugin's response to the
 				// handshake.  Once we've received that, we can begin to forward
-				// logs on to snapd's log.
+				// logs on to snapteld's log.
 				if !respReceived {
 					respBytes := stdOutScanner.Bytes()
 					err = json.Unmarshal(respBytes, &resp)

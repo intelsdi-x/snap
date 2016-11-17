@@ -75,7 +75,7 @@ The key features of Snap are:
 
 Some additionally important notes about how Snap works:
 
-* Multiple management modules including: [CLI](docs/SNAPCTL.md) (snapctl) and [REST API](docs/REST_API.md) (each of which can be turned on or off)
+* Multiple management modules including: [CLI](docs/SNAPTEL.md) (snaptel) and [REST API](docs/REST_API.md) (each of which can be turned on or off)
 * Secure validation occurs via plugin signing, SSL encryption for APIs and payload encryption for communication between components
 * CLI control from Linux or MacOS
 
@@ -121,24 +121,20 @@ Tarball (choose the appropriate version and platform):
 ```
 $ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.18.0/snap-0.18.0-linux-amd64.tar.gz
 $ tar xf snap-0.18.0-linux-amd64.tar.gz
-$ cp snapd /usr/local/bin
-$ cp snapctl /usr/local/bin
+$ cp snapteld /usr/local/sbin
+$ cp snaptel /usr/local/bin
 ```
 
-Ubuntu 16.04.1 [snapd package version 2.13+](https://launchpad.net/ubuntu/+source/snapd) installs snapd/snapctl binary in /usr/bin. These executables are not related to snap-telemetry. Running `snapctl` from snapd package will result in the following error message:
+NOTE: snap-telemetry packages prior to 0.19.0 installed `/usr/local/bin/{snapctl|snapd}` and these binaries have been renamed to `snaptel` and `snapteld`. snap-telemetry packages prior to 0.18.0 symlinked `/usr/bin/{snapctl|snapd}` to `/opt/snap/bin/{snapctl|snapd}` and may cause conflicts with [Ubuntu's `snapd` package](http://packages.ubuntu.com/xenial-updates/snapd). Ubuntu 16.04.1 [snapteld package version 2.13+](https://launchpad.net/ubuntu/+source/snapd) installs snapd/snapctl binary in /usr/bin. These executables are not related to snap-telemetry. Running `snapctl` from snapd package will result in the following error message:
 
 ```
 $ snapctl
 error: snapctl requires SNAP_CONTEXT environment variable
 ```
 
-If you installed snap-telemetry package, please make sure `/usr/local/bin` is part of your $PATH and has higher priority than `/usr/bin`, or invoke the snap-telemetry snapd/snapctl binary using fully qualified path.
-
-NOTE: snap-telemetry packages prior to 0.18.0 symlinked `/usr/bin/{snapctl|snapd}` to `/opt/snap/bin/{snapctl|snapd}` and may cause conflicts with [Ubuntu's `snapd` package](http://packages.ubuntu.com/xenial-updates/snapd).
-
 NOTE: If you prefer to build from source, follow the steps in the [build documentation](docs/BUILD_AND_TEST.md). The _alpha_ binaries containing the latest master branch are available here for bleeding edge testing purposes:
-* snapd: [linux](http://snap.ci.snap-telemetry.io/snap/latest_build/linux/x86_64/snapd) | [darwin](http://snap.ci.snap-telemetry.io/snap/latest_build/darwin/x86_64/snapd)
-* snapctl: [linux](http://snap.ci.snap-telemetry.io/snap/latest_build/linux/x86_64/snapctl) | [darwin](http://snap.ci.snap-telemetry.io/snap/latest_build/darwin/x86_64/snapctl)
+* snapteld: [linux](http://snap.ci.snap-telemetry.io/snap/latest_build/linux/x86_64/snapteld) | [darwin](http://snap.ci.snap-telemetry.io/snap/latest_build/darwin/x86_64/snapteld)
+* snaptel: [linux](http://snap.ci.snap-telemetry.io/snap/latest_build/linux/x86_64/snaptel) | [darwin](http://snap.ci.snap-telemetry.io/snap/latest_build/darwin/x86_64/snaptel)
 
 ### Running Snap
 
@@ -157,16 +153,15 @@ $ systemctl start snap-telemetry
 If you installed Snap from binary, you can start Snap daemon via the command:
 ```
 $ sudo mkdir -p /var/log/snap
-$ sudo snapd --plugin-trust 0 --log-level 1 -o /var/log/snap &
+$ sudo snapteld --plugin-trust 0 --log-level 1 --log-path /var/log/snap &
 ```
 
 To view the service logs:
 ```
-$ tail -f /var/log/snap/snapd.log
+$ tail -f /var/log/snap/snapteld.log
 ```
 
-By default, Snap daemon will be running in standalone mode and listening on port 8181. To enable gossip mode, checkout the [tribe documentation](docs/TRIBE.md). For additional configuration options such as plugin signing and port configuration see [snapd documentation](docs/SNAPD.md).
-
+By default, Snap daemon will be running in standalone mode and listening on port 8181. To enable gossip mode, checkout the [tribe documentation](docs/TRIBE.md). For additional configuration options such as plugin signing and port configuration see [snapteld documentation](docs/SNAPTELD.md).
 
 ### Load Plugins
 
@@ -181,9 +176,9 @@ $ curl -sfL "https://github.com/intelsdi-x/snap-plugin-publisher-file/releases/d
 $ curl -sfL "https://github.com/intelsdi-x/snap-plugin-collector-psutil/releases/download/8/snap-plugin-collector-psutil_${OS}_${ARCH}" -o snap-plugin-collector-psutil
 ```
 
-Next load the plugins into Snap daemon using `snapctl`:
+Next load the plugins into Snap daemon using `snaptel`:
 ```
-$ snapctl plugin load snap-plugin-publisher-file
+$ snaptel plugin load snap-plugin-publisher-file
 Plugin loaded
 Name: file
 Version: 2
@@ -191,7 +186,7 @@ Type: publisher
 Signed: false
 Loaded Time: Fri, 14 Oct 2016 10:53:59 PDT
 
-$ snapctl plugin load snap-plugin-collector-psutil
+$ snaptel plugin load snap-plugin-collector-psutil
 Plugin loaded
 Name: psutil
 Version: 8
@@ -202,7 +197,7 @@ Loaded Time: Fri, 14 Oct 2016 10:54:07 PDT
 
 Verify plugins are loaded:
 ```
-$ snapctl plugin list
+$ snaptel plugin list
 NAME      VERSION    TYPE         SIGNED     STATUS    LOADED TIME
 file      2          publisher    false      loaded    Fri, 14 Oct 2016 10:55:20 PDT
 psutil    8          collector    false      loaded    Fri, 14 Oct 2016 10:55:29 PDT
@@ -210,7 +205,7 @@ psutil    8          collector    false      loaded    Fri, 14 Oct 2016 10:55:29
 
 See which metrics are available:
 ```
-$ snapctl metric list
+$ snaptel metric list
 NAMESPACE                                VERSIONS
 /intel/psutil/cpu/cpu-total/guest        8
 /intel/psutil/cpu/cpu-total/guest_nice   8
@@ -238,7 +233,7 @@ To collect data, you need to create a task by loading a `Task Manifest`. The Tas
 Now, download and load the [psutil example](examples/tasks/psutil-file.yaml):
 ```
 $ curl https://raw.githubusercontent.com/intelsdi-x/snap/master/examples/tasks/psutil-file.yaml -o /tmp/psutil-file.yaml
-$ snapctl task create -t /tmp/psutil-file.yaml
+$ snaptel task create -t /tmp/psutil-file.yaml
 Using task manifest to create task
 Task created
 ID: 8b9babad-b3bc-4a16-9e06-1f35664a7679
@@ -253,9 +248,9 @@ This starts a task collecting metrics via psutil, then publishes the data to a f
 $ tail -f /tmp/psutil_metrics.log
 ```
 
-Or directly tap into the data stream that Snap is collecting using `snapctl task watch <task_id>`:
+Or directly tap into the data stream that Snap is collecting using `snaptel task watch <task_id>`:
 ```
-$ snapctl task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
+$ snaptel task watch 8b9babad-b3bc-4a16-9e06-1f35664a7679
 NAMESPACE                             DATA             TIMESTAMP
 /intel/psutil/cpu/cpu-total/idle      451176.5         2016-10-14 11:01:44.666137773 -0700 PDT
 /intel/psutil/cpu/cpu-total/system    33749.2734375    2016-10-14 11:01:44.666139698 -0700 PDT
@@ -269,7 +264,7 @@ Nice work - you're all done with this example. Depending on how you started `sna
 
 * init.d service: `service snap-telemetry stop`
 * systemd service: `systemctl stop snap-telemetry`
-* ran `snapd` manually: `sudo pkill snapd`
+* ran `snapteld` manually: `sudo pkill snapteld`
 
 When you're ready to move on, walk through other uses of Snap available in the [Examples folder](examples/).
 
@@ -284,9 +279,9 @@ If you would like to write your own, read through [Author a Plugin](#author-a-pl
 ## Documentation
 Documentation for Snap will be kept in this repository for now with an emphasis of filling out the `docs/` directory. We would also like to link to external how-to blog posts as people write them. [Read about contributing to the project](#contributing) for more details.
 
-* [snapd (Snap agent)](docs/SNAPD.md)
-* [configuring snapd](docs/SNAPD_CONFIGURATION.md)
-* [snapctl (Snap CLI)](docs/SNAPCTL.md)
+* [snapteld (Snap agent)](docs/SNAPTELD.md)
+* [configuring snapteld](docs/SNAPTELD_CONFIGURATION.md)
+* [snaptel (Snap CLI)](docs/SNAPTEL.md)
 * [build and test](docs/BUILD_AND_TEST.md)
 * [REST API](docs/REST_API.md)
 * [tasks](docs/TASKS.md)

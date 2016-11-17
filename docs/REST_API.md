@@ -26,7 +26,7 @@ Snap exposes a list of RESTful APIs to perform various actions. All of Snap's AP
  * [Tribe APIs and Examples](#tribe-apis-and-examples)
 
 ### Authentication
-Enabled in snapd
+Enabled in snapteld
 ```
 curl -L http://localhost:8181/v1/plugins
 ```

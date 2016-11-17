@@ -6,7 +6,7 @@ Image) format defined in the
 plugin.
 
 When Snap loads a plugin it detects the plugins type.  If the plugin is a binary
-the plugin is run by snapd which handshakes with the plugin via reading its 
+the plugin is run by snapteld which handshakes with the plugin via reading its 
 standard output.  If the plugin is packaged as an ACI image it is extracted
 and Snap executes the program referenced by the `exec` field.
 
