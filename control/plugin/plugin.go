@@ -80,7 +80,7 @@ const (
 var (
 	// Timeout settings
 	// How much time must elapse before a lack of Ping results in a timeout
-	PingTimeoutDurationDefault = time.Millisecond * 1500
+	PingTimeoutDurationDefault = time.Second * 10
 
 	// Array matching plugin type enum to a string
 	// note: in string representation we use lower case

@@ -98,7 +98,7 @@ func TestMonitor(t *testing.T) {
 			oldOpt := m.Option(MonitorDurationOption(time.Millisecond * 200))
 			So(m.duration, ShouldResemble, time.Millisecond*200)
 			m.Option(oldOpt)
-			So(m.duration, ShouldResemble, time.Second*1)
+			So(m.duration, ShouldResemble, time.Second*5)
 		})
 	})
 }
