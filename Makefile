@@ -53,7 +53,7 @@ plugins:
 all:
 	bash -c "./scripts/build_all.sh"
 install:
-	cp build/$(OS)/$(ARCH)/snapd /usr/local/bin/
-	cp build/$(OS)/$(ARCH)/snapctl /usr/local/bin/
+	cp build/$(OS)/$(ARCH)/snapteld /usr/local/sbin/
+	cp build/$(OS)/$(ARCH)/snaptel /usr/local/bin/
 proto:
 	cd `echo $(GOPATH) | cut -d: -f 1`; bash -c "./src/github.com/intelsdi-x/snap/scripts/gen-proto.sh"

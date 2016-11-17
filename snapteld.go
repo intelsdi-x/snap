@@ -109,7 +109,7 @@ const (
 	defaultLogPath     string = ""
 	defaultLogTruncate bool   = false
 	defaultLogColors   bool   = true
-	defaultConfigPath  string = "/etc/snap/snapd.conf"
+	defaultConfigPath  string = "/etc/snap/snapteld.conf"
 )
 
 // holds the configuration passed in through the SNAP config file
@@ -131,17 +131,17 @@ type Config struct {
 const (
 	CONFIG_CONSTRAINTS = `{
 		"$schema": "http://json-schema.org/draft-04/schema#",
-		"title": "snapd global config schema",
+		"title": "snapteld global config schema",
 		"type": ["object", "null"],
 		"properties": {
 			"log_level": {
-				"description": "log verbosity level for snapd. Range between 1: debug, 2: info, 3: warning, 4: error, 5: fatal",
+				"description": "log verbosity level for snapteld. Range between 1: debug, 2: info, 3: warning, 4: error, 5: fatal",
 				"type": "integer",
 				"minimum": 1,
 				"maximum": 5
 			},
 			"log_path": {
-				"description": "path to log file for snapd to use",
+				"description": "path to log file for snapteld to use",
 				"type": "string"
 			},
 			"log_truncate": {
@@ -170,6 +170,7 @@ const (
 		tribe.CONFIG_CONSTRAINTS +
 		`}` +
 		`}`
+	logModule = "snapteld"
 )
 
 type coreModule interface {
@@ -196,7 +197,7 @@ func main() {
 	}
 
 	cliApp = cli.NewApp()
-	cliApp.Name = "snapd"
+	cliApp.Name = "snapteld"
 	cliApp.Version = gitversion
 	cliApp.Usage = "The open telemetry framework"
 	cliApp.Flags = []cli.Flag{
@@ -259,7 +260,7 @@ func action(ctx *cli.Context) error {
 		if cfg.LogTruncate {
 			aMode = os.O_TRUNC
 		}
-		file, err := os.OpenFile(fmt.Sprintf("%s/snapd.log", logPath), os.O_RDWR|os.O_CREATE|aMode, 0666)
+		file, err := os.OpenFile(fmt.Sprintf("%s/snapteld.log", logPath), os.O_RDWR|os.O_CREATE|aMode, 0666)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -273,23 +274,23 @@ func action(ctx *cli.Context) error {
 	//
 	// We could also restrict this command line parameter to only apply when no logpath is given
 	// and forcing the coloring to off when using a file but this might not please users who like to use
-	// redirect mechanisms like # snapd -t 0 -l 1 2>&1 | tee my.log
+	// redirect mechanisms like # snapteld -t 0 -l 1 2>&1 | tee my.log
 	if !cfg.LogColors {
 		log.SetFormatter(&log.TextFormatter{FullTimestamp: true, DisableColors: true})
 	} else {
 		log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	}
 
-	// Validate log level and trust level settings for snapd
+	// Validate log level and trust level settings for snapteld
 	validateLevelSettings(cfg.LogLevel, cfg.Control.PluginTrust)
 
 	// Switch log level to user defined
 	log.SetLevel(getLevel(cfg.LogLevel))
 	log.Info("setting log level to: ", l[cfg.LogLevel])
 
-	log.Info("Starting snapd (version: ", gitversion, ")")
+	log.Info("Starting snapteld (version: ", gitversion, ")")
 
-	// Set Max Processors for snapd.
+	// Set Max Processors for snapteld.
 	setMaxProcs(cfg.GoMaxProcs)
 
 	c := control.New(cfg.Control)
@@ -389,7 +390,7 @@ func action(ctx *cli.Context) error {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
-					"_module": "snapd",
+					"_module": logModule,
 				}).Fatal("need keyring file when trust is on (--keyring-file or -k)")
 		}
 		for _, k := range keyrings {
@@ -398,7 +399,7 @@ func action(ctx *cli.Context) error {
 				log.WithFields(
 					log.Fields{
 						"block":       "main",
-						"_module":     "snapd",
+						"_module":     logModule,
 						"error":       err.Error(),
 						"keyringPath": keyringPath,
 					}).Fatal("Unable to determine absolute path to keyring file")
@@ -408,7 +409,7 @@ func action(ctx *cli.Context) error {
 				log.WithFields(
 					log.Fields{
 						"block":       "main",
-						"_module":     "snapd",
+						"_module":     logModule,
 						"error":       err.Error(),
 						"keyringPath": keyringPath,
 					}).Fatal("bad keyring file")
@@ -420,7 +421,7 @@ func action(ctx *cli.Context) error {
 					log.WithFields(
 						log.Fields{
 							"_block":      "main",
-							"_module":     "snapd",
+							"_module":     logModule,
 							"error":       err.Error(),
 							"keyringPath": keyringPath,
 						}).Fatal(err)
@@ -438,7 +439,7 @@ func action(ctx *cli.Context) error {
 							log.WithFields(
 								log.Fields{
 									"block":       "main",
-									"_module":     "snapd",
+									"_module":     logModule,
 									"error":       err.Error(),
 									"keyringPath": keyringPath,
 								}).Warning("unable to open keyring file. not adding to keyring path")
@@ -455,7 +456,7 @@ func action(ctx *cli.Context) error {
 					log.WithFields(
 						log.Fields{
 							"block":       "main",
-							"_module":     "snapd",
+							"_module":     logModule,
 							"error":       err.Error(),
 							"keyringPath": keyringPath,
 						}).Fatal("unable to open keyring file.")
@@ -470,8 +471,8 @@ func action(ctx *cli.Context) error {
 	log.WithFields(
 		log.Fields{
 			"block":   "main",
-			"_module": "snapd",
-		}).Info("snapd started", `
+			"_module": logModule,
+		}).Info("snapteld started", `
                                         ss                  ss
 	                             odyssyhhyo         oyhysshhoyo
                                  ddddyssyyysssssyyyyyyyssssyyysssyhy+-
@@ -510,7 +511,7 @@ func action(ctx *cli.Context) error {
 	select {} //run forever and ever
 }
 
-// get the default snapd configuration
+// get the default snapteld configuration
 func getDefaultConfig() *Config {
 	return &Config{
 		LogLevel:    defaultLogLevel,
@@ -525,7 +526,7 @@ func getDefaultConfig() *Config {
 	}
 }
 
-// Read the snapd configuration from a configuration file
+// Read the snapteld configuration from a configuration file
 func readConfig(cfg *Config, fpath string) {
 	var path string
 	if !defaultConfigFile() && fpath == "" {
@@ -780,7 +781,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	}
 	invertBoolean := true
 	// apply any command line flags that might have been set, first for the
-	// snapd-related flags
+	// snapteld-related flags
 	cfg.GoMaxProcs = setIntVal(cfg.GoMaxProcs, ctx, "max-procs")
 	cfg.LogLevel = setIntVal(cfg.LogLevel, ctx, "log-level")
 	cfg.LogPath = setStringVal(cfg.LogPath, ctx, "log-path")
@@ -850,9 +851,9 @@ func monitorErrors(ch <-chan error) {
 	log.Fatal(err)
 }
 
-// setMaxProcs configures runtime.GOMAXPROCS for snapd. GOMAXPROCS can be set by using
-// the env variable GOMAXPROCS and snapd will honor this setting. A user can override the env
-// variable by setting max-procs flag on the command line. Snapd will be limited to the max CPUs
+// setMaxProcs configures runtime.GOMAXPROCS for snapteld. GOMAXPROCS can be set by using
+// the env variable GOMAXPROCS and snapteld will honor this setting. A user can override the env
+// variable by setting max-procs flag on the command line. snapteld will be limited to the max CPUs
 // on the system even if the env variable or the command line setting is set above the max CPUs.
 // The default value if the env variable or the command line option is not set is 1.
 func setMaxProcs(maxProcs int) {
@@ -863,14 +864,14 @@ func setMaxProcs(maxProcs int) {
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
-				"_module":  "snapd",
+				"_module":  logModule,
 				"maxprocs": maxProcs,
 			}).Error("Trying to set GOMAXPROCS to an invalid value")
 		_maxProcs = 1
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
-				"_module":  "snapd",
+				"_module":  logModule,
 				"maxprocs": _maxProcs,
 			}).Warning("Setting GOMAXPROCS to 1")
 		_maxProcs = 1
@@ -880,14 +881,14 @@ func setMaxProcs(maxProcs int) {
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
-				"_module":  "snapd",
+				"_module":  logModule,
 				"maxprocs": maxProcs,
 			}).Error("Trying to set GOMAXPROCS larger than number of CPUs available on system")
 		_maxProcs = numProcs
 		log.WithFields(
 			log.Fields{
 				"_block":   "main",
-				"_module":  "snapd",
+				"_module":  logModule,
 				"maxprocs": _maxProcs,
 			}).Warning("Setting GOMAXPROCS to number of CPUs on host")
 	}
@@ -900,7 +901,7 @@ func setMaxProcs(maxProcs int) {
 		log.WithFields(
 			log.Fields{
 				"block":          "main",
-				"_module":        "snapd",
+				"_module":        logModule,
 				"given maxprocs": _maxProcs,
 				"real maxprocs":  actualNumProcs,
 			}).Warning("not using given maxprocs")
@@ -970,7 +971,7 @@ func startModule(m coreModule) error {
 		log.WithFields(
 			log.Fields{
 				"block":       "main",
-				"_module":     "snapd",
+				"_module":     logModule,
 				"snap-module": m.Name(),
 			}).Info("module started")
 	}
@@ -981,7 +982,7 @@ func printErrorAndExit(name string, err error) {
 	log.WithFields(
 		log.Fields{
 			"block":       "main",
-			"_module":     "snapd",
+			"_module":     logModule,
 			"error":       err.Error(),
 			"snap-module": name,
 		}).Fatal("error starting module")
@@ -997,14 +998,14 @@ func startInterruptHandling(modules ...coreModule) {
 		log.WithFields(
 			log.Fields{
 				"block":   "main",
-				"_module": "snapd",
+				"_module": logModule,
 			}).Info("shutting down modules")
 
 		for _, m := range modules {
 			log.WithFields(
 				log.Fields{
 					"block":       "main",
-					"_module":     "snapd",
+					"_module":     logModule,
 					"snap-module": m.Name(),
 				}).Info("stopping module")
 			m.Stop()
@@ -1014,7 +1015,7 @@ func startInterruptHandling(modules ...coreModule) {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
-					"_module": "snapd",
+					"_module": logModule,
 					"signal":  sig.String(),
 				}).Info("restarting app")
 			// and restart the app (with the current configuration)
@@ -1026,7 +1027,7 @@ func startInterruptHandling(modules ...coreModule) {
 			log.WithFields(
 				log.Fields{
 					"block":   "main",
-					"_module": "snapd",
+					"_module": logModule,
 					"signal":  sig.String(),
 				}).Info("exiting on signal")
 			os.Exit(0)
@@ -1056,7 +1057,7 @@ func validateLevelSettings(logLevel, pluginTrust int) {
 		log.WithFields(
 			log.Fields{
 				"block":   "main",
-				"_module": "snapd",
+				"_module": logModule,
 				"level":   logLevel,
 			}).Fatal("log level was invalid (needs: 1-5)")
 	}
@@ -1064,7 +1065,7 @@ func validateLevelSettings(logLevel, pluginTrust int) {
 		log.WithFields(
 			log.Fields{
 				"block":   "main",
-				"_module": "snapd",
+				"_module": logModule,
 				"level":   pluginTrust,
 			}).Fatal("Plugin trust was invalid (needs: 0-2)")
 	}

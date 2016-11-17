@@ -58,7 +58,7 @@ func newUsageError(s string, ctx *cli.Context) usageError {
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "snapctl"
+	app.Name = "snaptel"
 	app.Version = gitversion
 	app.Usage = "The open telemetry framework"
 	app.Flags = []cli.Flag{flURL, flSecure, flAPIVer, flPassword, flConfig}
