@@ -5,6 +5,7 @@ PORT: 8000
 COMPATIBILITY:
   - "last 2 versions"
   - "ie >= 9"
+  - "ios >= 7"
 
 # UnCSS will use these settings
 UNCSS_OPTIONS:
@@ -28,7 +29,7 @@ PATHS:
     - "bower_components/motion-ui/src"
   # Paths to JavaScript libraries, which are compined into one file
   javascript:
-    # Libraries requried by Foundation
+    # Libraries required by Foundation
     - "bower_components/jquery/dist/jquery.js"
     - "bower_components/what-input/what-input.js"
     # Core Foundation files

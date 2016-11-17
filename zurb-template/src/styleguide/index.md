@@ -18,7 +18,7 @@ In the Grid you can nest columns down as far as you'd like. Just embed rows insi
 
 ## How to Use
 
-Using this framework is easy. Here's how your code will look when you use a series of <div> tags to create vertical columns.
+Using this framework is easy. Here's how your code will look when you use a series of `<div>` tags to create vertical columns.
 
 ```html
 <div class="row">
