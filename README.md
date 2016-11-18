@@ -51,12 +51,8 @@ limitations under the License.
 10. [Thank You](#thank-you)
 
 ## Overview
-<<<<<<< Updated upstream
 
 **The Snap Telemetry Framework** is a project made up of multiple parts: 
-=======
-![workflow-collect-process-publish](https://cloud.githubusercontent.com/assets/1744971/14644683/be49a6b6-0607-11e6-8621-14f7b54e2192.png)
->>>>>>> Stashed changes
 
 * A hardened, extensively tested daemon, `snapteld`, and CLI, `snaptel` (in this repo)
 * A growing number of maturing `plugins` (found in the [Plugin Catalog](#plugin-catalog))
@@ -335,7 +331,7 @@ Add to the ecosystem by building your own plugins to collect, process or publish
 ### Become a Maintainer
 Snap maintainers are here to help guide Snap, the plugins, and the community forward in a positive direction. Maintainers of Snap and the Intel created plugins are selected based on contributions to the project and recommendations from other maintainers. The full list of active maintainers can be found [here](docs/MAINTAINERS.md).
 
-Think you're ready to be a maintainer? Check out [Responsibilities of a Maintainer](docs/MAINTAINERS.md#responsibilities-of-maintainers) and open an issue on github to discuss your interest.
+Interested in becoming a maintainer? Check out [Responsibilities of a Maintainer](docs/MAINTAINERS.md#responsibilities-of-maintainers) and open an issue [here](https://github.com/intelsdi-x/snap/issues/new?title=interested+in+becoming+a+maintainer&body=About+me) to discuss your interest.
 
 ## Code of Conduct
 All contributors to Snap are expected to be helpful and encouraging to all members of the community, treating everyone with a high level of professionalism and respect. See our [code of conduct](CODE_OF_CONDUCT.md) for more details.
