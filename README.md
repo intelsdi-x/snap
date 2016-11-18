@@ -44,12 +44,10 @@ limitations under the License.
 4. [Community Support](#community-support)
 5. [Contributing](#contributing)
   * [Author a Plugin](#author-a-plugin)
+  * [Become a Maintainer](#become-a-maintainer)
 6. [Code of Conduct](#code-of-conduct)
 7. [Security Disclosure](#security-disclosure)
 8. [License](#license)
-9. [Contributors](#contributors)
-  * [Initial Authors](#initial-authors)
-  * [Maintainers](#maintainers)
 10. [Thank You](#thank-you)
 
 ## Overview
@@ -94,7 +92,7 @@ Snap does not have external dependencies since it is compiled into a statically 
 
 ### Installation
 
-You can obtain Linux RPM/Deb packages from [Snap's packagecloud.io respository](https://packagecloud.io/intelsdi-x/snap). Snap binaries in `.tar.gz` bundles and MacOS `.pkg` installer are available at Snap's [GitHub release page](https://github.com/intelsdi-x/snap/releases).
+You can obtain Linux RPM/Deb packages from [Snap's packagecloud.io repository](https://packagecloud.io/intelsdi-x/snap). Snap binaries in `.tar.gz` bundles and MacOS `.pkg` installer are available at Snap's [GitHub release page](https://github.com/intelsdi-x/snap/releases).
 
 RedHat 6/7:
 ```
@@ -167,7 +165,7 @@ To view the service logs:
 $ tail -f /var/log/snap/snapd.log
 ```
 
-By default Snap daemon will be running in standalone mode and listening on port 8181. To enable gossip mode, checkout the [tribe documentation](docs/TRIBE.md). For additional configuration options such as plugin signing and port configuration see [snapd documentation](docs/SNAPD.md).
+By default, Snap daemon will be running in standalone mode and listening on port 8181. To enable gossip mode, checkout the [tribe documentation](docs/TRIBE.md). For additional configuration options such as plugin signing and port configuration see [snapd documentation](docs/SNAPD.md).
 
 
 ### Load Plugins
@@ -320,7 +318,7 @@ We encourage contributions from the community. Snap needs:
 * _Feedback_: try it and tell us about it on [our Slack team](https://intelsdi-x.herokuapp.com/), through [a blog posts](https://medium.com/intel-sdi/) or Twitter with #SnapTelemetry
 * _Integrations_: Snap can collect from and publish to almost anything by [authoring a plugin](#author-a-plugin)
 
-To contribute to the Snap framework, see [our CONTRIBUTING file](CONTRIBUTING.md). To give back to a specific plugin, open an issue on its repository.
+To contribute to the Snap framework, see our [CONTRIBUTING.md](CONTRIBUTING.md) file. To give back to a specific plugin, open an issue on its repository. Snap maintainers aim to address comments and questions as quickly as possible. To get some attention on an issue, reach out to us [on Slack](http://slack.snap-telemetry.io), or open an issue to get a conversation started. 
 
 
 ### Author a Plugin
@@ -330,27 +328,21 @@ The power of Snap comes from its open architecture and its growing community of 
 
 Add to the ecosystem by building your own plugins to collect, process or publish telemetry.
 
+### Become a Maintainer
+Snap maintainers are here to help guide Snap, the plugins, and the community forward in a positive direction. Maintainers of Snap and the Intel created plugins are selected based on contributions to the project and recommendations from other maintainers. The full list of active maintainers can be found [here](docs/MAINTAINERS.md).
+
+Interested in becoming a maintainer? Check out [Responsibilities of a Maintainer](docs/MAINTAINERS.md#responsibilities-of-maintainers) and open an issue [here](https://github.com/intelsdi-x/snap/issues/new?title=interested+in+becoming+a+maintainer&body=About+me) to discuss your interest.
+
 ## Code of Conduct
 All contributors to Snap are expected to be helpful and encouraging to all members of the community, treating everyone with a high level of professionalism and respect. See our [code of conduct](CODE_OF_CONDUCT.md) for more details.
 
 ## Security Disclosure
 
-The Snap team take security very seriously. If you have any issue regarding security, please notify us by sending an email to snap-security@intel.com
+The Snap team takes security very seriously. If you have any issue regarding security, please notify us by sending an email to snap-security@intel.com
 and not by creating a GitHub issue. We will follow up with you promptly with more information and a plan for remediation.
 
 ## License
 Snap is Open Source software released under the [Apache 2.0 License](LICENSE).
-
-## Contributors
-### Initial Authors
-All contributors are equally important to us, but we would like to thank the [initial authors](AUTHORS.md#initial-authors) for helping make open sourcing Snap possible.
-
-### Maintainers
-Amongst the many awesome contributors, there are the maintainers. These maintainers may change over time, but they are all members of the **@intelsdi-x/snap-maintainers** team. This group will help you by:
-* Committing to reviewing pull requests, issues, and addressing comments/questions as quickly as possible
-* Acting as a point of contact for questions
-
-Just tag **@intelsdi-x/snap-maintainers** if you need to get some attention on an issue. If at any time, you don't get a quick enough response, reach out to us [on Slack](http://slack.snap-telemetry.io)
 
 ## Thank You
 And **thank you!** Your contribution, through code and participation, is incredibly important to us.
