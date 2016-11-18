@@ -34,6 +34,11 @@ test-medium:
 	bash -c "./scripts/test.sh medium"
 test-large:
 	bash -c "./scripts/test.sh large"
+test-all:
+	$(MAKE) test-legacy
+	$(MAKE) test-medium
+	$(MAKE) test-small
+	$(MAKE) test-large
 # NOTE:
 # By default compiles will use all cpu cores, use BUILD_JOBS to control number
 # of parallel builds: `BUILD_JOBS=2 make plugins`
