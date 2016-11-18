@@ -137,25 +137,33 @@ We recommend releasing new binaries to Github Release page whenever the plugin v
 
 In the plugin repo root directory, the `metadata.yml` file provides Snap project additional information about your plugin when we generate the [plugin catalog](./PLUGIN_CATALOG.md) page.
 
-* name: plugin full name
-* type: plugin type
-* maintainer: your github org or username
-* license: the plugin software licence
-* description: paragraph describing the plugin's purpose
-* badge: a list of [badges](https://shields.io/) to display
-* ci: a list of ci services running for this repo
+* **name**: plugin full name
+* **type**: plugin type
+* **maintainer**: your github org or username
+* **license**: the plugin software license
+* **description**: paragraph describing the plugin's purpose
+* **badge**: a list of [badges](https://shields.io/) to display
+* **ci**: a list of ci services running for this repo
+* **status**: one of the three statuses [described below](#plugin-status)
 
 All metadata fields are optional, but recommended to help users discover your plugin. Please check out the file plugin's [metadata.yml](https://github.com/intelsdi-x/snap-plugin-publisher-file/blob/master/metadata.yml) file for a working example.
 
-To list your plugin in the catalog, please submit a PR and update [plugins.yml](./plugins.yml) file to include the plugin's github `organization/repo_name`.
+We recommend sharing your plugins early and often by adding them to the list of known plugins. To list your plugin in the plugin catalog, please submit a PR and update [plugins.yml](./plugins.yml) file to include the plugin's github `organization/repo_name`.
+
+### Plugin Status
+
+While the Snap framework is hardened through tons of testing, **plugins mature at their own pace**. We want our community to share plugins early and update them often. We are defining categories of maturity of a plugin and will roll them out with the resolution of [#1322](https://github.com/intelsdi-x/snap/issues/1322).
 
 ### Documentation
 
 All plugins should include a README with the following information:
 
 1. Supported Platforms
-2. Snap Version dependencies
-3. Installation
-4. Usage
-5. Contributors
-6. License
+1. Known Issues
+1. Snap Version dependencies
+1. Installation
+1. Usage
+1. Contributors
+1. License
+
+You are welcome to copy an existing README.md (and CONTRIBUTING.md) to get started. I recommend looking at [psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil). 
