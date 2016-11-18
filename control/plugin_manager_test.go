@@ -74,7 +74,7 @@ func loadPlugin(p *pluginManager, path string) (*loadedPlugin, serror.SnapError)
 	details := &pluginDetails{
 		Path:         path,
 		ExecPath:     filepath.Dir(path),
-		Exec:         filepath.Base(path),
+		Exec:         []string{filepath.Base(path)},
 		IsAutoLoaded: true,
 	}
 	for i := 0; i < 3; i++ {

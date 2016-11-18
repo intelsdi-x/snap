@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -72,7 +71,6 @@ type availablePlugin struct {
 	failedHealthChecks int
 	healthChan         chan error
 	ePlugin            executablePlugin
-	exec               string
 	execPath           string
 	fromPackage        bool
 	pprofPort          string
@@ -240,8 +238,8 @@ func (a *availablePlugin) Kill(r string) error {
 			"_module":     "control-aplugin",
 			"block":       "kill",
 			"plugin_name": a,
-			"pluginPath":  path.Join(a.execPath, a.exec),
-		}).Debug("deleting available plugin path")
+			"pluginPath":  a.execPath,
+		}).Debug("deleting available plugin package")
 		os.RemoveAll(filepath.Dir(a.execPath))
 	}
 	return a.ePlugin.Kill()

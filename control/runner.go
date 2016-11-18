@@ -298,7 +298,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 	}
 }
 
-func (r *runner) runPlugin(details *pluginDetails) error {
+func (r *runner) runPlugin(name string, details *pluginDetails) error {
 	if details.IsPackage {
 		f, err := os.Open(details.Path)
 		if err != nil {
@@ -311,25 +311,29 @@ func (r *runner) runPlugin(details *pluginDetails) error {
 		}
 		details.ExecPath = path.Join(tempPath, "rootfs")
 	}
-	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())), path.Join(details.ExecPath, details.Exec))
+	commands := make([]string, len(details.Exec))
+	for i, e := range details.Exec {
+		commands[i] = path.Join(details.ExecPath, e)
+	}
+	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())), commands...)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block": "run-plugin",
-			"path":   path.Join(details.ExecPath, details.Exec),
+			"path":   commands,
 			"error":  err,
 		}).Error("error creating executable plugin")
 		return err
 	}
+	ePlugin.SetName(name)
 	ap, err := r.startPlugin(ePlugin)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block": "run-plugin",
-			"path":   path.Join(details.ExecPath, details.Exec),
+			"path":   commands,
 			"error":  err,
 		}).Error("error starting new plugin")
 		return err
 	}
-	ap.exec = details.Exec
 	ap.execPath = details.ExecPath
 	if details.IsPackage {
 		ap.fromPackage = true
@@ -373,5 +377,5 @@ func (r *runner) restartPlugin(key string) error {
 	if err != nil {
 		return err
 	}
-	return r.runPlugin(lp.Details)
+	return r.runPlugin(lp.Name(), lp.Details)
 }

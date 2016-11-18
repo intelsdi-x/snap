@@ -115,7 +115,7 @@ type runsPlugins interface {
 	SetMetricCatalog(catalogsMetrics)
 	SetPluginManager(managesPlugins)
 	Monitor() *monitor
-	runPlugin(*pluginDetails) error
+	runPlugin(string, *pluginDetails) error
 }
 
 type managesPlugins interface {
@@ -555,11 +555,11 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 		if details.Manifest, err = aci.Manifest(f); err != nil {
 			return nil, serror.New(err)
 		}
-		details.Exec = details.Manifest.App.Exec[0]
+		details.Exec = details.Manifest.App.Exec
 		details.IsPackage = true
 	} else {
 		details.IsPackage = false
-		details.Exec = filepath.Base(rp.Path())
+		details.Exec = []string{filepath.Base(rp.Path())}
 		details.ExecPath = filepath.Dir(rp.Path())
 	}
 
