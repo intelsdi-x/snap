@@ -38,7 +38,6 @@ limitations under the License.
   * [Plugin Catalog](#plugin-catalog)
 3. [Documentation](#documentation)
   * [Examples](#examples)
-  * [Roadmap](#roadmap)
 4. [Community Support](#community-support)
 5. [Contributing](#contributing)
   * [Author a Plugin](#author-a-plugin)
@@ -306,15 +305,6 @@ Here are blog posts related to Snap by the team:
 
 ### Examples
 More complex examples of using Snap Framework configuration, Task Manifest files and use cases are available under the [Examples folder](examples/README.md). There are also interesting examples of using Snap in every plugin repository. For the full list of plugins, review the [Plugin Catalog](docs/PLUGIN_CATALOG.md).
-
-### Roadmap
-We have a few known features we want to take on from here while we remain open for feedback after public release. They are:
-
-* Authentication, authorization, and auditing (see issue [#286](https://github.com/intelsdi-x/snap/issues/286))
-* Windows support (see [#671](https://github.com/intelsdi-x/snap/issues/671))
-* Enhacements to Tribe (see [#640](https://github.com/intelsdi-x/snap/issues/640))
-
-If you would like to propose a feature, please [open an Issue](https://github.com/intelsdi-x/snap/issues)) that includes RFC in it (for [request for comments](https://en.wikipedia.org/wiki/Request_for_Comments)).
 
 ## Community Support
 This repository is one of **many** projects in the **Snap framework**. Discuss your questions about Snap by reaching out to us:
