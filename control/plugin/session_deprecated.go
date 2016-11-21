@@ -203,6 +203,7 @@ func (s *SessionState) generateResponse(r *Response) []byte {
 func (s *SessionState) heartbeatWatch(killChan chan int) {
 	s.logger.Debug("Heartbeat started")
 	count := 0
+	s.ResetHeartbeat()
 	for {
 		if time.Since(s.LastPing) >= s.PingTimeoutDuration {
 			count++

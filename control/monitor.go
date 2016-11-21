@@ -28,7 +28,7 @@ const (
 	MonitorStarted
 
 	// DefaultMonitorDuration - the default monitor duration.
-	DefaultMonitorDuration = time.Second * 1
+	DefaultMonitorDuration = time.Second * 5
 )
 
 type monitorState int

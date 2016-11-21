@@ -45,7 +45,7 @@ const (
 	// DefaultClientTimeout - default timeout for a client connection attempt
 	DefaultClientTimeout = time.Second * 10
 	// DefaultHealthCheckTimeout - default timeout for a health check
-	DefaultHealthCheckTimeout = time.Second * 1
+	DefaultHealthCheckTimeout = time.Second * 10
 	// DefaultHealthCheckFailureLimit - how any consecutive health check timeouts must occur to trigger a failure
 	DefaultHealthCheckFailureLimit = 3
 )
