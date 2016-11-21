@@ -194,7 +194,7 @@ type Server struct {
 
 // New creates a REST API server with a given config
 func New(cfg *Config) (*Server, error) {
-	// pull a few parameters from the configuration passed in by snapd
+	// pull a few parameters from the configuration passed in by snapteld
 	https := cfg.HTTPS
 	cpath := cfg.RestCertificate
 	kpath := cfg.RestKey
@@ -226,7 +226,7 @@ func New(cfg *Config) (*Server, error) {
 	return s, nil
 }
 
-// GetDefaultConfig gets the default snapd configuration
+// GetDefaultConfig gets the default snapteld configuration
 func GetDefaultConfig() *Config {
 	return &Config{
 		Enable:           defaultEnable,
@@ -311,7 +311,7 @@ func (s *Server) SetAPIAuth(auth bool) {
 	s.auth = auth
 }
 
-// SetAPIAuthPwd sets the API authentication password from snapd
+// SetAPIAuthPwd sets the API authentication password from snapteld
 func (s *Server) SetAPIAuthPwd(pwd string) {
 	s.authpwd = pwd
 }
@@ -323,7 +323,7 @@ func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next ht
 		_, password, ok := r.BasicAuth()
 		// If we have valid password or going to tribe/agreements endpoint
 		// go to next. tribe/agreements endpoint used for populating
-		// snapctl help page when tribe mode is turned on.
+		// snaptel help page when tribe mode is turned on.
 		if ok && password == s.authpwd {
 			next(rw, r)
 		} else {

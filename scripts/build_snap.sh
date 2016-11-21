@@ -49,6 +49,6 @@ else
 fi
 
 mkdir -p "${build_path}"
-_info "building snapd/snapctl for ${GOOS}/${GOARCH}"
-"${go_build[@]}" -o "${build_path}/snapd" . || exit 1
-(cd "${__proj_dir}/cmd/snapctl" && "${go_build[@]}" -o "${build_path}/snapctl" . || exit 1)
+_info "building snapteld/snaptel for ${GOOS}/${GOARCH}"
+"${go_build[@]}" -o "${build_path}/snapteld" . || exit 1
+(cd "${__proj_dir}/cmd/snaptel" && "${go_build[@]}" -o "${build_path}/snaptel" . || exit 1)

@@ -25,52 +25,52 @@ limitations under the License.
 
 # Tribe
 
-Tribe is the name of the clustering feature in Snap.  When it is enabled, snapd instances can join to one another through an `agreement`. When an action is taken by one snapd instance that is a member of an agreement, that action will be carried out by all other members of the agreement. When a new snapd joins an existing agreement it will retrieve plugins and tasks from the members of the agreement.
+Tribe is the name of the clustering feature in Snap.  When it is enabled, snapteld instances can join to one another through an `agreement`. When an action is taken by one snapteld instance that is a member of an agreement, that action will be carried out by all other members of the agreement. When a new snapteld joins an existing agreement it will retrieve plugins and tasks from the members of the agreement.
 
 ## Usage
 This walkthrough assumes you have downloaded a Snap release as described in [Getting Started](../README.md#getting-started).
 
-### Starting the first snapd in tribe mode
+### Starting the first snapteld in tribe mode
 
 Start the first node:
 ```
-$ snapd --tribe -t 0
+$ snapteld --tribe -t 0
 ```
 
 Only `--tribe` and some trust level (`-t 0`) is required to start tribe. This will result in defaults for all other parameters:
 * Default `tribe-node-name` will be the same as your hostname
 * Default `tribe-seed` is port 6000
-* Default `tribe-addr` and `tribe-port` are the same as `snapd` and `tribe-seed` (ex. 127.0.0.1:6000)
+* Default `tribe-addr` and `tribe-port` are the same as `snapteld` and `tribe-seed` (ex. 127.0.0.1:6000)
 
-See `snapd -h` for all the possible flags.
+See `snapteld -h` for all the possible flags.
 
 ### Creating an initial agreement
 
 Members of a tribe only share configuration once they join an agreement. To create your first agreement:
 ```
-$ snapctl agreement create all-nodes
+$ snaptel agreement create all-nodes
 Name 	    Number of Members 	 plugins 	 tasks
 all-nodes 	0 			         0 		     0
 ```
 
-Join our running snapd into this agreement:
+Join our running snapteld into this agreement:
 ```
-$ snapctl agreement join all-nodes `hostname`
+$ snaptel agreement join all-nodes `hostname`
 Name 	    Number of Members 	 plugins 	 tasks
 all-nodes 	1 			         0   		 0
 ```
 
-### Joining other snapd into an existing tribe
+### Joining other snapteld into an existing tribe
 Since tribe is implemented on top of a gossip based protocol there is no "master." All other nodes who join a tribe by communicating with any existing member.
 
-Start another instance of snapd to join to our existing tribe. The local IP address is 192.168.136.176 in our example. Note that we need a few more parameters to avoid conflicting ports on a single system:
+Start another instance of snapteld to join to our existing tribe. The local IP address is 192.168.136.176 in our example. Note that we need a few more parameters to avoid conflicting ports on a single system:
 ```
-$ snapd --tribe -t 0 --tribe-port 6001 --api-port 8182 --tribe-node-name secondnodename --tribe-seed 192.168.136.176:6000 --control-listen-port 8083
+$ snapteld --tribe -t 0 --tribe-port 6001 --api-port 8182 --tribe-node-name secondnodename --tribe-seed 192.168.136.176:6000 --control-listen-port 8083
 ```
 
-Both snapd instances will see each other in their member list:
+Both snapteld instances will see each other in their member list:
 ```
-$ snapctl member list
+$ snaptel member list
 Name
 secondnodename
 firstnode
@@ -78,7 +78,7 @@ firstnode
 
 This member needs to join the agreement:
 ```
-$ snapctl agreement join all-nodes secondnodename
+$ snaptel agreement join all-nodes secondnodename
 Name 		 Number of Members 	 plugins 	 tasks
 all-nodes 	 2       			 0 		     0
 ```

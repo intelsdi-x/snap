@@ -17,12 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# snapd
-The Snap daemon/agent (snapd) is a modular application that consists of a control module, a scheduler module, and a REST API. The control module is responsible for loading and unloading plugins, managing loaded plugins, and maintaining an available pool of running plugins for running tasks. The scheduler module is responsible for running the workflows in created tasks per the schedule stated. The REST API provides an interface for loading and unloading plugins, creating and removing tasks, starting and stopping tasks, and listing metrics available for collection.
+# snapteld
+The Snap daemon/agent (snapteld) is a modular application that consists of a control module, a scheduler module, and a REST API. The control module is responsible for loading and unloading plugins, managing loaded plugins, and maintaining an available pool of running plugins for running tasks. The scheduler module is responsible for running the workflows in created tasks per the schedule stated. The REST API provides an interface for loading and unloading plugins, creating and removing tasks, starting and stopping tasks, and listing metrics available for collection.
 
 ## Usage
 ```
-$ $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
+$ $SNAP_PATH/bin/snapteld [global options] command [command options] [arguments...]
 ```
 
 ### Options
@@ -59,24 +59,24 @@ $ $SNAP_PATH/bin/snapd [global options] command [command options] [arguments...]
 ## Examples
 ### Commands
 ```
-$SNAP_PATH/bin/snapd
-$SNAP_PATH/bin/snapd -log-level 4
-$SNAP_PATH/bin/snapd -l 1 -t 2 -k <keyringPath>
-$SNAP_PATH/bin/snapd -a $SNAP_PATH/plugins/
-$SNAP_PATH/bin/snapd --version
+$SNAP_PATH/bin/snapteld
+$SNAP_PATH/bin/snapteld -log-level 4
+$SNAP_PATH/bin/snapteld -l 1 -t 2 -k <keyringPath>
+$SNAP_PATH/bin/snapteld -a $SNAP_PATH/plugins/
+$SNAP_PATH/bin/snapteld --version
 ```
 
 ### Output
 ```
-$ $SNAP_PATH/bin/snapd -l 1 -t 0 --rest-auth
+$ $SNAP_PATH/bin/snapteld -l 1 -t 0 --rest-auth
 ```
 ```
-INFO[0000] Starting snapd (version: unknown)
+INFO[0000] Starting snapteld (version: unknown)
 INFO[0000] setting GOMAXPROCS to: 1 core(s)
 INFO[0000] control started                               _block=start _module=control
-INFO[0000] module started                                _module=snapd block=main snap-module=control
+INFO[0000] module started                                _module=snapteld block=main snap-module=control
 INFO[0000] scheduler started                             _block=start-scheduler _module=scheduler
-INFO[0000] module started                                _module=snapd block=main snap-module=scheduler
+INFO[0000] module started                                _module=snapteld block=main snap-module=scheduler
 INFO[0000] setting plugin trust level to: disabled
 INFO[0000] auto discover path is disabled
 INFO[0000] Configuring REST API with HTTPS set to: false  _module=_mgmt-rest
@@ -86,11 +86,11 @@ Password:
 INFO[0111] REST API authentication password is set
 INFO[0111] Starting REST API on :8181                    _module=_mgmt-rest
 INFO[0111] REST API is enabled
-INFO[0111] snapd started                                 _module=snapd block=main
+INFO[0111] snapteld started                                 _module=snapteld block=main
 INFO[0111] setting log level to: debug
 ```
 ## More information
-* [SNAPD_CONFIGURATION.md](SNAPD_CONFIGURATION.md)
+* [SNAPTELD_CONFIGURATION.md](SNAPTELD_CONFIGURATION.md)
 * [REST_API.md](REST_API.md)
 * [PLUGIN_SIGNING.md](PLUGIN_SIGNING.md)
 * [TRIBE.md](TRIBE.md)

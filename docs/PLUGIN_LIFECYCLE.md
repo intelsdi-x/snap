@@ -21,17 +21,17 @@ limitations under the License.
 A Snap plugin can be in a `Loaded` or `Running` state.  A plugin can be loaded
 in the following two ways.
 
-1. `snapd` was started with an auto discover path `snapd -a /etc/snapd/plugins`
-2. A user loads a plugin through the REST API or using the snapctl 
+1. `snapteld` was started with an auto discover path `snapteld -a /opt/snap/plugins`
+2. A user loads a plugin through the REST API or using the snaptel 
     * `curl -F file=@snap-plugin-publisher-file http://localhost:9191/v1/plugins`
-    * `snapctl plugin load snap-plugin-publisher-file` 
+    * `snaptel plugin load snap-plugin-publisher-file` 
 
 A plugin transitions to a `running` state when a task is started that uses the 
 plugin.  This is also called a plugin subscription.  
 
 ## What happens when a plugin is loaded
 
-When a plugin is loaded snapd takes the following steps.
+When a plugin is loaded snapteld takes the following steps.
 
 1. Handshakes with the plugin by reading it's stdout
 2. Updates the metric catalog by calling the plugin over RPC
@@ -44,7 +44,7 @@ as soon as the metric catalog has been updated.
 
 ## What happens when a plugin is unloaded
 
-When a plugin is unloaded snapd removes it from the metric catalog and running
+When a plugin is unloaded snapteld removes it from the metric catalog and running
 instances of the plugin are stopped.   
 
 ## What happens when a task is started
@@ -53,12 +53,12 @@ When a task is started the plugins that the task references are started and
 subscribed to.   The following steps are taken when a task is created and 
 started.
 
-1. On **task creation** the task is validated (`snapctl task create -t mytask.yml
+1. On **task creation** the task is validated (`snaptel task create -t mytask.yml
 --no-start`) 
     * The schedule is validated
     * The config provided for the metrics (collectors), processors and 
     publishers are validated
-2. On **task starting** the plugins are started (`snapctl task start <TASK_ID>`)
+2. On **task starting** the plugins are started (`snaptel task start <TASK_ID>`)
 3. Subscriptions for each plugin referenced by the task are incremented 
 
 ## Diving deeper

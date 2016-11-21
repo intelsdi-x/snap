@@ -19,14 +19,14 @@ A task can be in the following states:
 
 	    How To				                        |  Command
     ----------------------------------------|------------------------
-      Create task                           |  snapctl task create _[command options] [arguments...]_ <br/>  Find more details [here](https://github.com/intelsdi-x/snap/blob/master/docs/SNAPCTL.md#task)
-      List					                        |  snapctl task list
-      Start task                     		    |  snapctl task start _\<task_id>_
-      Stop task                        		  |  snapctl task stop _\<task_id>_
-      Remove task                       		|  snapctl task remove _\<task_id>_
-      Export task                       		|  snapctl task export _\<task_id>_
-      Watch task                        		|  snapctl task watch _\<task_id>_
-      Enable task                       		|  snapctl task enable _\<task_id>_
+      Create task                           |  snaptel task create _[command options] [arguments...]_ <br/>  Find more details [here](https://github.com/intelsdi-x/snap/blob/master/docs/SNAPTEL.md#task)
+      List					                        |  snaptel task list
+      Start task                     		    |  snaptel task start _\<task_id>_
+      Stop task                        		  |  snaptel task stop _\<task_id>_
+      Remove task                       		|  snaptel task remove _\<task_id>_
+      Export task                       		|  snaptel task export _\<task_id>_
+      Watch task                        		|  snaptel task watch _\<task_id>_
+      Enable task                       		|  snaptel task enable _\<task_id>_
 
 
 ## Task Manifest
@@ -90,7 +90,7 @@ can be changed by specifying the number of failures value in the task header.  I
 not disable a task with consecutive failure.  Instead, Snap will sleep for 1 second for every 10 consecutive failures
 and retry again.
 
-For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
+For more on tasks, visit [`SNAPTEL.md`](SNAPTEL.md).
 
 ### The Workflow
 
@@ -155,7 +155,7 @@ Process and Publish nodes in the workflow can also target remote Snap nodes via 
 
 ```
 
-If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of its steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the Snap rest-api and port 8082.
+If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of its steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapteld via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the Snap rest-api and port 8082.
 
 An example json task that uses remote targets:
 ```json
@@ -211,7 +211,7 @@ Metrics can be enumerated using:
 
  a) **concrete _namespace_**
 
-Declaring a metric's name exactly as it appears in the metric catalog (see `snapctl metric list`).
+Declaring a metric's name exactly as it appears in the metric catalog (see `snaptel metric list`).
 
     Metrics requested in task manifest          | Collected metrics
     --------------------------------------------|------------------------
@@ -396,5 +396,5 @@ Below is a complete example task.
 
 #### footnotes
 
-1. YAML is only supported via the snapctl CLI.  Only JSON is accepted via the REST API.
+1. YAML is only supported via the snaptel CLI.  Only JSON is accepted via the REST API.
 2. The wildcard must be supported by the target plugin.
