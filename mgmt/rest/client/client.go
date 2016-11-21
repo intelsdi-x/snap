@@ -34,6 +34,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 
@@ -104,9 +105,11 @@ func Username(u string) metaOp {
 var (
 	secureTransport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
+		IdleConnTimeout: time.Second,
 	}
 	insecureTransport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		IdleConnTimeout: time.Second,
 	}
 )
 

@@ -1,8 +1,7 @@
 sudo: false
 language: go
 go:
-- 1.6.3
-- 1.7.1
+- 1.7.3
 before_install:
 - bash scripts/gitcookie.sh
 - go get github.com/smartystreets/goconvey/convey
@@ -16,10 +15,6 @@ env:
   - SNAP_TEST_TYPE=small
   - SNAP_TEST_TYPE=medium
   - SNAP_TEST_TYPE=build
-matrix:
-  exclude:
-  - go: 1.6.3
-    env: SNAP_TEST_TYPE=build
 install:
 - export TMPDIR=$HOME/tmp
 - mkdir -p $TMPDIR
@@ -48,7 +43,7 @@ deploy:
   on:
     repo: intelsdi-x/snap
     branch: master
-    condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.7.1"
+    condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.7.3"
 - provider: s3
   access_key_id: AKIAINMB43VSSPFZISAA
   secret_access_key:
@@ -62,4 +57,4 @@ deploy:
   on:
     repo: intelsdi-x/snap
     tags: true
-    condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.7.1"
+    condition: $SNAP_TEST_TYPE = build && $TRAVIS_GO_VERSION = "1.7.3"
