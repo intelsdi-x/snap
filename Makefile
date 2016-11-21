@@ -53,6 +53,8 @@ plugins:
 all:
 	bash -c "./scripts/build_all.sh"
 install:
+	mkdir -p /usr/local/sbin
+	mkdir -p /usr/local/bin
 	cp build/$(OS)/$(ARCH)/snapteld /usr/local/sbin/
 	cp build/$(OS)/$(ARCH)/snaptel /usr/local/bin/
 proto:
