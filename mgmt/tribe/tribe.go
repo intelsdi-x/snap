@@ -1386,7 +1386,12 @@ func (t *tribe) canJoinAgreement(agreementName, memberName string) serror.SnapEr
 
 	}
 	if m.PluginAgreement != nil && len(m.PluginAgreement.Plugins) > 0 {
-		t.logger.WithFields(fields).Debugln(errAlreadyMemberOfPluginAgreement)
+		// This log line creates an extremely large amount of logging
+		// under debug. This was tested at 18GB for a 50 node tribe on
+		// one node that had debug turned on.
+		//
+		// Uncomment this line if debugging tribe.
+		// t.logger.WithFields(fields).Debugln(errAlreadyMemberOfPluginAgreement)
 		return serror.New(errAlreadyMemberOfPluginAgreement, fields)
 	}
 	return nil
