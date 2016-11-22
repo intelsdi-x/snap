@@ -9,28 +9,28 @@ Snap is simple in scope and it becomes more simple when you know the terminology
     * [Metric Catalog](#metric-catalog)
     * [Metric: Dynamic](#metric-dynamic)
     * [Metric: Namespace](#metric-namespace)
-    * [Metric Namespace: Dynamic Element](#metric-namespace-dynamic-element)
-    * [Metric Namespace: Static Element](#metric-namespace-static-element)
+    * [Metric Namespace: Dynamic Element](#metric-dynamic-namespace-element)
+    * [Metric Namespace: Static Element](#metric-static-namespace-element)
     * [Plugin](#plugin)
     * [Plugin Type: Collector](#plugin-type-collector)
     * [Plugin Type: Processor](#plugin-type-processor)
     * [Plugin Type: Publisher](#plugin-type-publisher)
     * [Snap](#snap)
     * [Snap Telemetry](#snap-telemetry)
-    * [snapctl](#snapctl)
-    * [snapd](#snapd)
+    * [snaptel](#snaptel)
+    * [snapteld](#snapteld)
     * [Task](#task)
     * [Task Manifest](#task-manifest)
     * [Tribe](#tribe)
     * [Workflow](#workflow)
-    * [Workflow: Distributed](#workflow-distrubted)
+    * [Workflow: Distributed](#workflow-distributed)
     * [Workflow Manifest](#workflow-manifest) 
 
 ### Config: Global Config 
-* Values loaded at runtime of the daemon ([reference](SNAPD_CONFIGURATION.md))
+* Values loaded at runtime of the daemon ([reference](SNAPTELD_CONFIGURATION.md))
 
 ### Config: Global Options
-* Values passed as command-line parameters or environmental variables ([reference](SNAPCTL.md#global-options))
+* Values passed as command-line parameters or environmental variables ([reference](SNAPTEL.md#global-options))
 
 ### Config: Metric Config
 * key/value pairs shared by collector namespace in a Task Manifest ([example](https://github.com/intelsdi-x/snap-plugin-collector-meminfo/blob/master/examples/tasks/task-mem.json#L15))
@@ -71,10 +71,10 @@ Snap is simple in scope and it becomes more simple when you know the terminology
 ### Snap Telemetry 
 * The full name of the Snap project, used mostly for easy searching (like snap-telemetry.io) or hashtag (#SnapTelemetry)
 
-### `snapctl`
+### 'snaptel'
 * The command-line interface (CLI) for Snap, released as a [binary][binary]
 
-### `snapd`
+### 'snapteld'
 * The [daemon process](http://www.linfo.org/daemon.html) for Snap, released as a [binary][binary]
 
 ### Task
@@ -93,6 +93,6 @@ Snap is simple in scope and it becomes more simple when you know the terminology
 * A workflow where one or more steps have a remote target specified ([reference](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md))
 
 ### Workflow Manifest 
-* A file that describes only the workflow of a Task ([example at the bottom](SNAPCTL.md#load-and-unload-plugins-create-and-start-a-task))
+* A file that describes only the workflow of a Task ([example at the bottom](SNAPTEL.md#load-and-unload-plugins-create-and-start-a-task))
 
 [binary]: https://www.quora.com/Whats-the-difference-between-an-installer-source-code-and-a-binary-package-when-installing-software
