@@ -71,10 +71,10 @@ Snap is simple in scope and it becomes more simple when you know the terminology
 ### Snap Telemetry 
 * The full name of the Snap project, used mostly for easy searching (like snap-telemetry.io) or hashtag (#SnapTelemetry)
 
-### snaptel
+### 'snaptel'
 * The command-line interface (CLI) for Snap, released as a [binary][binary]
 
-### snapteld
+### 'snapteld'
 * The [daemon process](http://www.linfo.org/daemon.html) for Snap, released as a [binary][binary]
 
 ### Task
