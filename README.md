@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# **The Snap Telemetry Framework** [![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap) [![Go Report Card](https://goreportcard.com/badge/intelsdi-x/snap)](https://goreportcard.com/report/intelsdi-x/snap)
+# **The Snap Telemetry Framework** [![Build Status](https://travis-ci.org/intelsdi-x/snap.svg?branch=master)](https://travis-ci.org/intelsdi-x/snap) [![Go Report Card](https://goreportcard.com/badge/intelsdi-x/snap)](https://goreportcard.com/report/intelsdi-x/snap)  [![Join the chat on Slack](https://intelsdi-x.herokuapp.com/badge.svg)](https://intelsdi-x.herokuapp.com/)
 
 <img src="https://cloud.githubusercontent.com/assets/1744971/20331694/e07e9148-ab5b-11e6-856a-e4e956540077.png" width="70%">
 
