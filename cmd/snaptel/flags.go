@@ -19,7 +19,7 @@ limitations under the License.
 
 package main
 
-import "github.com/codegangsta/cli"
+import "github.com/urfave/cli"
 
 var (
 
@@ -49,7 +49,7 @@ var (
 	}
 	flConfig = cli.StringFlag{
 		Name:   "config, c",
-		EnvVar: "SNAPCTL_CONFIG_PATH",
+		EnvVar: "SNAPTEL_CONFIG_PATH,SNAPCTL_CONFIG_PATH",
 		Usage:  "Path to a config file",
 		Value:  "",
 	}

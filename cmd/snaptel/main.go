@@ -28,8 +28,8 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
+	"github.com/urfave/cli"
 )
 
 var (

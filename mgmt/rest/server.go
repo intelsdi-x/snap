@@ -33,8 +33,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
+	"github.com/urfave/negroni"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
