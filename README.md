@@ -125,7 +125,7 @@ $ cp snapteld /usr/local/sbin
 $ cp snaptel /usr/local/bin
 ```
 
-NOTE: snap-telemetry packages prior to 0.19.0 installed `/usr/local/bin/{snapctl|snapd}` and these binaries have been renamed to `snaptel` and `snapteld`. snap-telemetry packages prior to 0.18.0 symlinked `/usr/bin/{snapctl|snapd}` to `/opt/snap/bin/{snapctl|snapd}` and may cause conflicts with [Ubuntu's `snapd` package](http://packages.ubuntu.com/xenial-updates/snapd). Ubuntu 16.04.1 [snapteld package version 2.13+](https://launchpad.net/ubuntu/+source/snapd) installs snapd/snapctl binary in /usr/bin. These executables are not related to snap-telemetry. Running `snapctl` from snapd package will result in the following error message:
+NOTE: snap-telemetry packages prior to 0.19.0 installed `/usr/local/bin/{snapctl|snapd}` and these binaries have been renamed to `snaptel` and `snapteld`. snap-telemetry packages prior to 0.18.0 symlinked `/usr/bin/{snapctl|snapd}` to `/opt/snap/bin/{snapctl|snapd}` and may cause conflicts with [Ubuntu's `snapd` package](http://packages.ubuntu.com/xenial-updates/snapd). Ubuntu 16.04.1 [snapd package version 2.13+](https://launchpad.net/ubuntu/+source/snapd) installs snapd/snapctl binary in /usr/bin. These executables are not related to snap-telemetry. Running `snapctl` from snapd package will result in the following error message:
 
 ```
 $ snapctl
@@ -165,7 +165,7 @@ By default, Snap daemon will be running in standalone mode and listening on port
 
 ### Load Plugins
 
-Snap gets its power from the use of plugins. The [plugin catalog](#plugin-catalog) contains a collection of all known Snap plugins with links to their repo and release pages. (NOTE: Plugin bundles are deprecated in favor of independent plugin releases.)
+Snap gets its power from the use of plugins. The [plugin catalog](#plugin-catalog) contains a collection of all known Snap plugins with links to their repo and release pages.
 
 First, let's download the file and psutil plugins (also make sure [psutil is installed](https://github.com/giampaolo/psutil/blob/master/INSTALL.rst)):
 
@@ -224,8 +224,6 @@ NAMESPACE                                VERSIONS
 ...
 ```
 
-NOTE: Plugin bundles are available for convenience in the Snap [GitHub release page](https://github.com/intelsdi-x/snap/releases), for the latest up-to-date version use the release/download in the [plugin catalog](#plugin-catalog).
-
 ### Running Tasks
 
 To collect data, you need to create a task by loading a `Task Manifest`. The Task Manifest contains a specification for what interval a set of metrics are gathered, how the data is transformed, and where the information is published. For more information see [task](docs/TASKS.md) documentation.
@@ -241,7 +239,7 @@ Name: Task-8b9babad-b3bc-4a16-9e06-1f35664a7679
 State: Running
 ```
 
-NOTE: in subsequent commands use the task ID from your CLI output, not the example task ID shown below.
+NOTE: In subsequent commands use the task ID from your CLI output in place of the <task_id>.
 
 This starts a task collecting metrics via psutil, then publishes the data to a file. To see the data published to the file (CTRL+C to exit):
 ```
