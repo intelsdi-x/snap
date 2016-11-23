@@ -25,7 +25,7 @@ This guide gets you started with building and testing Snap. If you have commits 
 If you prefer a video walkthrough of this process, watch this [tutorial](https://vimeo.com/161561815).
 
 To build the Snap Framework you'll need:
-* [Golang >= 1.6](https://golang.org)
+* [Golang >= 1.7](https://golang.org)
     * Should be [downloaded](https://golang.org/dl/) and [installed](https://golang.org/doc/install)
 * [GNU Make](https://www.gnu.org/software/make/)
 * [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)

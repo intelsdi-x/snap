@@ -44,7 +44,4 @@ loaded the binary version of the plugin.
     acbuild end
     ```
 
-That's it!  
-
-![acbuild](http://i.giphy.com/3oz8xu8AXyPDNR9sL6.gif)
-
+That's it!

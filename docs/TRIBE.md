@@ -85,24 +85,4 @@ all-nodes 	 2       			 0 		     0
 
 From this point forward, any plugins or tasks you load will load into both members of this agreement.
 
-
-## Examples
-
-*Starting a 4 node cluster and listing members*
-![tribe-start-list-members](http://i.giphy.com/xTk9ZZFdTeIFBFZgPu.gif)
-
-*Note: Once the cluster is started subsequent new nodes can choose to establish
-membership through **any** node as there is no "master".*
-
-
-*Creating an agreement and joining members to it*
-![tribe-create-join-agreement](http://i.giphy.com/d2YTZ5P1N0Gh4WJ2.gif)
-
-In the example below an agreement has been created and all members of the
-cluster have joined it.  After loading a collector and publishing
-plugin and starting a task on one node we demonstrate that the plugins and
-tasks are now running on all of the other nodes in the agreement.        
-
-
-*Loading plugins and starting a task on a node participating in an agreement*
-![tribe-load-start](http://i.giphy.com/3o8doZ9e9MX6ZOH4Iw.gif)
+*Note: Once the cluster is started subsequent new nodes can choose to establish membership through **any** node as there is no "master".*
