@@ -28,7 +28,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 func loadPlugin(ctx *cli.Context) error {

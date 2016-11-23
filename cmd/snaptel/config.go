@@ -28,8 +28,8 @@ import (
 	"strconv"
 	"text/tabwriter"
 
-	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/urfave/cli"
 )
 
 type config struct {

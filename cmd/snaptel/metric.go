@@ -28,9 +28,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/urfave/cli"
 
 	"github.com/intelsdi-x/snap/pkg/stringutils"
 )

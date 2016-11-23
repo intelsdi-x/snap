@@ -37,7 +37,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 	"github.com/vrischmann/jsonutil"
 
 	"github.com/intelsdi-x/snap/control"

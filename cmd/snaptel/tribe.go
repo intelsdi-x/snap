@@ -27,8 +27,8 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	"github.com/codegangsta/cli"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
+	"github.com/urfave/cli"
 )
 
 func listMembers(ctx *cli.Context) error {

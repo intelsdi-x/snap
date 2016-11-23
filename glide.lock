@@ -1,5 +1,5 @@
-hash: 8fe2627eadf03d4c3aa9f8fac38b26a29340921c25ccc5b62490f91824014ace
-updated: 2016-11-16T15:41:06.279309067-08:00
+hash: 55584a3098467b96c2800b810444ba49663ade021e4f2d0796233b277d712415
+updated: 2016-11-22T14:54:43.026574122-08:00
 imports:
 - name: github.com/appc/spec
   version: db96f94ae6b227fe4d8288527ead8927181620f6
@@ -14,10 +14,6 @@ imports:
   version: 3df31a1ada83e310c2e24b267c8e8b68836547b4
 - name: github.com/asaskevich/govalidator
   version: 9699ab6b38bee2e02cd3fe8b99ecf67665395c96
-- name: github.com/codegangsta/cli
-  version: 01857ac33766ce0c93856370626f9799281c14f4
-- name: github.com/codegangsta/negroni
-  version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
 - name: github.com/coreos/go-semver
   version: 6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa
   subpackages:
@@ -59,6 +55,10 @@ imports:
   version: be52937128b38f1d99787bb476c789e2af1147f1
 - name: github.com/spf13/pflag
   version: 94e98a55fb412fcbcfc302555cb990f5e1590627
+- name: github.com/urfave/cli
+  version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
+- name: github.com/urfave/negroni
+  version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
 - name: github.com/vrischmann/jsonutil
   version: 694784f9315ee9fc763c1d30f28753cba21307aa
 - name: github.com/xeipuuv/gojsonpointer

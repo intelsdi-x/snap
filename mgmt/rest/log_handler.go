@@ -23,7 +23,7 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/negroni"
+	"github.com/urfave/negroni"
 )
 
 // Logger is a snap middleware that logs to a logrus facility
