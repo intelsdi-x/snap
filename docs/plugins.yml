@@ -25,6 +25,7 @@
 - Staples-Inc/snap-plugin-publisher-blueflood
 - Ticketmaster/snap-plugin-publisher-cloudwatch
 - intelsdi-x/snap-plugin-collector-apache
+- intelsdi-x/snap-plugin-collector-cassandra
 - intelsdi-x/snap-plugin-collector-ceph
 - intelsdi-x/snap-plugin-collector-cinder
 - intelsdi-x/snap-plugin-collector-cpu
@@ -46,6 +47,7 @@
 - intelsdi-x/snap-plugin-collector-load
 - intelsdi-x/snap-plugin-collector-meminfo
 - intelsdi-x/snap-plugin-collector-mesos
+- intelsdi-x/snap-plugin-collector-mongodb
 - intelsdi-x/snap-plugin-collector-mysql
 - intelsdi-x/snap-plugin-collector-neutron
 - intelsdi-x/snap-plugin-collector-nfsclient
@@ -67,6 +69,7 @@
 - intelsdi-x/snap-plugin-processor-movingaverage
 - intelsdi-x/snap-plugin-processor-statistics
 - intelsdi-x/snap-plugin-processor-tag
+- intelsdi-x/snap-plugin-publisher-cassandra
 - intelsdi-x/snap-plugin-publisher-file
 - intelsdi-x/snap-plugin-publisher-graphite
 - intelsdi-x/snap-plugin-publisher-hana
