@@ -42,19 +42,19 @@ var (
 	}
 	flRestHTTPS = cli.BoolFlag{
 		Name:  "rest-https",
-		Usage: "start snap's API as https",
+		Usage: "start Snap's API as https",
 	}
 	flRestCert = cli.StringFlag{
 		Name:  "rest-cert",
-		Usage: "A path to a certificate to use for HTTPS deployment of snap's REST API",
+		Usage: "A path to a certificate to use for HTTPS deployment of Snap's REST API",
 	}
 	flRestKey = cli.StringFlag{
 		Name:  "rest-key",
-		Usage: "A path to a key file to use for HTTPS deployment of snap's REST API",
+		Usage: "A path to a key file to use for HTTPS deployment of Snap's REST API",
 	}
 	flRestAuth = cli.BoolFlag{
 		Name:  "rest-auth",
-		Usage: "Enables snap's REST API authentication",
+		Usage: "Enables Snap's REST API authentication",
 	}
 	flPProf = cli.BoolFlag{
 		Name:  "pprof",
