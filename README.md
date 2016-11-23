@@ -239,7 +239,7 @@ Name: Task-8b9babad-b3bc-4a16-9e06-1f35664a7679
 State: Running
 ```
 
-NOTE: In subsequent commands use the task ID from your CLI output in place of the <task_id>.
+NOTE: In subsequent commands use the task ID from your CLI output in place of the `<task_id>`.
 
 This starts a task collecting metrics via psutil, then publishes the data to a file. To see the data published to the file (CTRL+C to exit):
 ```
