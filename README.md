@@ -113,14 +113,14 @@ $ brew install snap-telemetry
 
 MacOS X pkg:
 ```
-$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.18.0/snap-telemetry-0.18.0.pkg
-$ sudo installer -pkg ./snap-telemetry-0.18.0.pkg -target /
+$ curl -sfL mac.pkg.dl.snap-telemetry.io -o snap-telemetry.pkg
+$ sudo installer -pkg ./snap-telemetry.pkg -target /
 ```
 
 Tarball (choose the appropriate version and platform):
 ```
-$ curl -sfLO https://github.com/intelsdi-x/snap/releases/download/0.18.0/snap-0.18.0-linux-amd64.tar.gz
-$ tar xf snap-0.18.0-linux-amd64.tar.gz
+$ curl -sfL linux.tar.dl.snap-telemetry.io -o snap-telemetry.tar.gz
+$ tar xf snap-telemetry.tar.gz
 $ cp snapteld /usr/local/sbin
 $ cp snaptel /usr/local/bin
 ```
