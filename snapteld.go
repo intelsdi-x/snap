@@ -52,7 +52,7 @@ import (
 var (
 	flMaxProcs = cli.StringFlag{
 		Name:   "max-procs, c",
-		Usage:  fmt.Sprintf("Set max cores to use for snap Agent (default: %v)", defaultGoMaxProcs),
+		Usage:  fmt.Sprintf("Set max cores to use for Snap Agent (default: %v)", defaultGoMaxProcs),
 		EnvVar: "GOMAXPROCS",
 	}
 	// plugin

@@ -32,12 +32,12 @@ var (
 	}
 	flAPIVer = cli.StringFlag{
 		Name:  "api-version, a",
-		Usage: "The snap API version",
+		Usage: "The Snap API version",
 		Value: "v1",
 	}
 	flSecure = cli.BoolFlag{
 		Name:  "insecure",
-		Usage: "Ignore certificate errors when snap's API is running HTTPS",
+		Usage: "Ignore certificate errors when Snap's API is running HTTPS",
 	}
 	flRunning = cli.BoolFlag{
 		Name:  "running",
@@ -124,7 +124,7 @@ var (
 	}
 	flTaskMaxFailures = cli.StringFlag{
 		Name:  "max-failures",
-		Usage: "The number of consecutive failures before snap disables the task",
+		Usage: "The number of consecutive failures before Snap disables the task",
 	}
 
 	// metric
