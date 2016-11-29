@@ -73,12 +73,6 @@ The key features of Snap are:
 
 * **Snap tribe**: Snap is designed for ease of administration. With Snap tribe, nodes work in groups (aka tribes). Requests are made through agreement- or task-based node groups, designed as a scalable gossip-based node-to-node communication process. Administrators can control all Snap nodes in a tribe agreement by messaging just one of them. There is auto-discovery of new nodes and import of tasks and plugins from nodes within a given tribe. It is cluster configuration management made simple.
 
-Some additionally important notes about how Snap works:
-
-* Multiple management modules including: [CLI](docs/SNAPTEL.md) (snaptel) and [REST API](docs/REST_API.md) (each of which can be turned on or off)
-* Secure validation occurs via plugin signing, SSL encryption for APIs and payload encryption for communication between components
-* CLI control from Linux or MacOS
-
 **Snap** is not intended to:
 
 * Operate as an analytics platform: the intention is to allow plugins for feeding those platforms
@@ -287,14 +281,7 @@ Documentation for Snap will be kept in this repository for now with an emphasis 
 * [plugin signing](docs/PLUGIN_SIGNING.md)
 * [tribe](docs/TRIBE.md)
 
-
-Here are blog posts related to Snap by the team:
-
-* [What if collecting data center telemetry was a snap?](http://nickapedia.com/2015/12/02/what-if-collecting-data-center-telemetry-was-a-snap/) by @lynxbat
-* [My How-to for the Snap Telemetry Framework](https://medium.com/intel-sdi/my-how-to-for-the-snap-telemetry-framework-e3bb641bc740#.6f5nk543t) by @mjbrender
-* [Snap's first GUI is Grafana!](https://medium.com/intel-sdi/snap-first-gui-is-grafana-40bb92df2660#.rgsnfx3w1) by @mjbrender
-* [Adding a global configuration to Snap](https://medium.com/intel-sdi/adding-a-global-configuration-to-snap-b95d8fd8b5e0#.hq3cqgt6t) by @tjmcs1
-
+To learn more about Snap and how others are using it, check out our [blog](https://medium.com/intel-sdi). A good first post to read is [My How-to for the Snap Telemetry Framework](https://medium.com/intel-sdi/my-how-to-for-the-snap-telemetry-framework-e3bb641bc740#.6f5nk543t) by @mjbrender.
 
 ### Examples
 More complex examples of using Snap Framework configuration, Task Manifest files and use cases are available under the [Examples folder](examples/README.md). There are also interesting examples of using Snap in every plugin repository. For the full list of plugins, review the [Plugin Catalog](docs/PLUGIN_CATALOG.md).
