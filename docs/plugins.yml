@@ -65,14 +65,17 @@
 - intelsdi-x/snap-plugin-collector-smart
 - intelsdi-x/snap-plugin-collector-swap
 - intelsdi-x/snap-plugin-collector-users
+- intelsdi-x/snap-plugin-collector-yarn
 - intelsdi-x/snap-plugin-processor-anomalydetection
 - intelsdi-x/snap-plugin-processor-movingaverage
 - intelsdi-x/snap-plugin-processor-statistics
 - intelsdi-x/snap-plugin-processor-tag
 - intelsdi-x/snap-plugin-publisher-cassandra
+- intelsdi-x/snap-plugin-publisher-etcd
 - intelsdi-x/snap-plugin-publisher-file
 - intelsdi-x/snap-plugin-publisher-graphite
 - intelsdi-x/snap-plugin-publisher-hana
+- intelsdi-x/snap-plugin-publisher-heapster
 - intelsdi-x/snap-plugin-publisher-heka
 - intelsdi-x/snap-plugin-publisher-influxdb
 - intelsdi-x/snap-plugin-publisher-kafka
