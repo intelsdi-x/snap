@@ -61,6 +61,7 @@
 - intelsdi-x/snap-plugin-collector-psutil
 - intelsdi-x/snap-plugin-collector-rabbitmq
 - intelsdi-x/snap-plugin-collector-scaleio
+- intelsdi-x/snap-plugin-collector-schedstat
 - intelsdi-x/snap-plugin-collector-snmp
 - intelsdi-x/snap-plugin-collector-smart
 - intelsdi-x/snap-plugin-collector-swap
