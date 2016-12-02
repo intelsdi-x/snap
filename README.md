@@ -1,5 +1,5 @@
 
-# snap landing page
+# Snap landing page
 
 
 <img src="https://cloud.githubusercontent.com/assets/1744971/16677455/f1d4e9de-448a-11e6-9afb-c31dcc7e3274.png" width="50%">
