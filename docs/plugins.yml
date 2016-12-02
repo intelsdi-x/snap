@@ -39,6 +39,8 @@
 - intelsdi-x/snap-plugin-collector-facter
 - intelsdi-x/snap-plugin-collector-glance
 - intelsdi-x/snap-plugin-collector-haproxy
+- IrekRomaniuk/snap-plugin-collector-sessioninfo
+
 - intelsdi-x/snap-plugin-collector-influxdb
 - intelsdi-x/snap-plugin-collector-interface
 - intelsdi-x/snap-plugin-collector-iostat
