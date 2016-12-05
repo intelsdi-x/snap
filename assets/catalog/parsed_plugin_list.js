@@ -3,7 +3,7 @@ myfcn(
   {
     "name": "Ping",
     "type": "Collector",
-    "description": "Collects Ping latency metrics",
+    "description": "No description available.",
     "url": "https://github.com/raintank/snap-plugin-collector-ping"
   },
   {
@@ -21,7 +21,7 @@ myfcn(
   {
     "name": "Couchbase",
     "type": "Collector",
-    "description": "No description available.",
+    "description": "Collects Bucket Stats from the CouchBase API using SNAP.",
     "url": "https://github.com/Staples-Inc/snap-plugin-collector-couchbase"
   },
   {
@@ -45,7 +45,7 @@ myfcn(
   {
     "name": "Blueflood",
     "type": "Publisher",
-    "description": "A snap blueflood publisher",
+    "description": "Publishes metrics to a blueflood endpoint.",
     "url": "https://github.com/Staples-Inc/snap-plugin-publisher-blueflood"
   },
   {
@@ -59,6 +59,12 @@ myfcn(
     "type": "Collector",
     "description": "Collects Apache webserver mod_status metrics",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-apache"
+  },
+  {
+    "name": "Cassandra",
+    "type": "Collector",
+    "description": "A collector plugin for Cassandra cluster statistics",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-cassandra"
   },
   {
     "name": "CEPH",
@@ -139,6 +145,12 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-haproxy"
   },
   {
+    "name": "Sessioninfo",
+    "type": "Collector",
+    "description": "Collects Paloalto firewall session info",
+    "url": "https://github.com/IrekRomaniuk/snap-plugin-collector-sessioninfo"
+  },
+  {
     "name": "InfluxDB",
     "type": "Collector",
     "description": "Collects InfluxDB internal monitoring metrics",
@@ -185,6 +197,12 @@ myfcn(
     "type": "Collector",
     "description": "Collects Apache Mesos cluster metrics",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-mesos"
+  },
+  {
+    "name": "MongoDB",
+    "type": "Collector",
+    "description": "Collects statistics and metrics information about MongoDB",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-mongodb"
   },
   {
     "name": "MySQL",
@@ -265,7 +283,13 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-scaleio"
   },
   {
-    "name": "Snmp",
+    "name": "Schedstat",
+    "type": "Collector",
+    "description": "Collects Linux scheduler metrics from /proc/schedstats",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-schedstat"
+  },
+  {
+    "name": "SNMP",
     "type": "Collector",
     "description": "Collects metrics using SNMP.",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-snmp"
@@ -289,9 +313,15 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-users"
   },
   {
+    "name": "Yarn",
+    "type": "Collector",
+    "description": "Collects metrics from Hadoop Yarn",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-yarn"
+  },
+  {
     "name": "Anomalydetection",
     "type": "Processor",
-    "description": "snap plugin intended to process data and highlight outliers",
+    "description": "Snap plugin intended to process data and highlight outliers",
     "url": "https://github.com/intelsdi-x/snap-plugin-processor-anomalydetection"
   },
   {
@@ -301,8 +331,8 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-processor-movingaverage"
   },
   {
-    "name": "Processor",
-    "type": "Statistics",
+    "name": "Statistics",
+    "type": "Processor",
     "description": "Process metrics and return statistics over sliding window.",
     "url": "https://github.com/intelsdi-x/snap-plugin-processor-statistics"
   },
@@ -311,6 +341,18 @@ myfcn(
     "type": "Processor",
     "description": "Process snap metrics and add tags to label the data",
     "url": "https://github.com/intelsdi-x/snap-plugin-processor-tag"
+  },
+  {
+    "name": "Cassandra",
+    "type": "Publisher",
+    "description": "Publishes Snap metrics to Cassandra",
+    "url": "https://github.com/intelsdi-x/snap-plugin-publisher-cassandra"
+  },
+  {
+    "name": "Etcd",
+    "type": "Publisher",
+    "description": "This is a Snap publisher plugin for storing the metrics into etcd.",
+    "url": "https://github.com/intelsdi-x/snap-plugin-publisher-etcd"
   },
   {
     "name": "File",
@@ -331,7 +373,13 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-publisher-hana"
   },
   {
-    "name": "HEKA",
+    "name": "Heapster",
+    "type": "Publisher",
+    "description": "Publisher exposing container metrics through a kubelet-compatible API",
+    "url": "https://github.com/intelsdi-x/snap-plugin-publisher-heapster"
+  },
+  {
+    "name": "Heka",
     "type": "Publisher",
     "description": "Publishes snap metrics to Mozilla HEKA",
     "url": "https://github.com/intelsdi-x/snap-plugin-publisher-heka"
