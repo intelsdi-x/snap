@@ -6,6 +6,7 @@
     "gomaxprocs": 2,
     "control": {
         "auto_discover_path": "/some/directory/with/plugins",
+	"max_plugin_restarts": 10,
         "cache_expiration": "750ms",
         "listen_addr": "0.0.0.0",
 	"listen_port": 10082,

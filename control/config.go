@@ -81,6 +81,7 @@ type Config struct {
 	ListenAddr        string            `json:"listen_addr,omitempty"yaml:"listen_addr"`
 	ListenPort        int               `json:"listen_port,omitempty"yaml:"listen_port"`
 	Pprof             bool              `json:"pprof"yaml:"pprof"`
+	MaxPluginRestarts int               `json:"max_plugin_restarts"yaml:"max_plugin_restarts"`
 }
 
 const (
@@ -124,6 +125,9 @@ const (
 					},
 					"pprof": {
 						"type": "boolean"
+					},
+					"max_plugin_restarts": {
+						"type": "integer"
 					}
 				},
 				"additionalProperties": false
@@ -144,6 +148,7 @@ func GetDefaultConfig() *Config {
 		CacheExpiration:   jsonutil.Duration{defaultCacheExpiration},
 		Plugins:           newPluginConfig(),
 		Pprof:             defaultPprof,
+		MaxPluginRestarts: MaxPluginRestartCount,
 	}
 }
 
@@ -199,6 +204,10 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			}
 		case "pprof":
 			if err := json.Unmarshal(v, &(c.Pprof)); err != nil {
+				return err
+			}
+		case "max_plugin_restarts":
+			if err := json.Unmarshal(v, &(c.MaxPluginRestarts)); err != nil {
 				return err
 			}
 		default:

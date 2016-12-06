@@ -51,7 +51,9 @@ const (
 	PluginStopped
 	// PluginDisabled is the disabled state of a plugin
 	PluginDisabled
+)
 
+var (
 	// MaximumRestartOnDeadPluginEvent is the maximum count of restarting a plugin
 	// after the event of control_event.DeadAvailablePluginEvent
 	MaxPluginRestartCount = 3

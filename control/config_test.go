@@ -162,6 +162,9 @@ func TestControlConfigJSON(t *testing.T) {
 		Convey("MaxRunningPlugins should be set to 1", func() {
 			So(cfg.MaxRunningPlugins, ShouldEqual, 1)
 		})
+		Convey("max_plugin_restarts should be set to 10", func() {
+			So(cfg.MaxPluginRestarts, ShouldEqual, 10)
+		})
 		Convey("ListenAddr should be set to 0.0.0.0", func() {
 			So(cfg.ListenAddr, ShouldEqual, "0.0.0.0")
 		})
@@ -230,6 +233,9 @@ func TestControlConfigYaml(t *testing.T) {
 		})
 		Convey("MaxRunningPlugins should be set to 1", func() {
 			So(cfg.MaxRunningPlugins, ShouldEqual, 1)
+		})
+		Convey("max_plugin_restarts should be set to 10", func() {
+			So(cfg.MaxPluginRestarts, ShouldEqual, 10)
 		})
 		Convey("ListenAddr should be set to 0.0.0.0", func() {
 			So(cfg.ListenAddr, ShouldEqual, "0.0.0.0")
@@ -300,6 +306,9 @@ func TestControlDefaultConfig(t *testing.T) {
 		})
 		Convey("PluginTrust should equal 1", func() {
 			So(cfg.PluginTrust, ShouldEqual, 1)
+		})
+		Convey("max_plugin_restarts should be set to 3", func() {
+			So(cfg.MaxPluginRestarts, ShouldEqual, 3)
 		})
 	})
 }
