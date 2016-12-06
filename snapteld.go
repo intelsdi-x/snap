@@ -467,12 +467,12 @@ func action(ctx *cli.Context) error {
 			}
 		}
 	}
-
 	log.WithFields(
 		log.Fields{
 			"block":   "main",
 			"_module": logModule,
-		}).Info("snapteld started", `
+		}).Info("snapteld started")
+	fmt.Println(`
                                         ss                  ss
 	                             odyssyhhyo         oyhysshhoyo
                                  ddddyssyyysssssyyyyyyyssssyyysssyhy+-
