@@ -43,5 +43,6 @@ loaded the binary version of the plugin.
     acbuild write snap-plugin-collector-mock1-linux-x86_64.aci
     acbuild end
     ```
+![example](https://media.giphy.com/media/l0HlxSTSUWVwriZfa/source.gif)
 
 That's it!
