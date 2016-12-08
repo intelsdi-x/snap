@@ -87,3 +87,4 @@
 - intelsdi-x/snap-plugin-publisher-postgresql
 - intelsdi-x/snap-plugin-publisher-rabbitmq
 - intelsdi-x/snap-plugin-publisher-riemann
+- circonus-labs/snap-plugin-publisher-circonus
