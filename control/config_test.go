@@ -22,6 +22,7 @@ limitations under the License.
 package control
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -215,6 +216,7 @@ func TestControlConfigYaml(t *testing.T) {
 	config := &mockConfig{
 		Control: GetDefaultConfig(),
 	}
+	os.Setenv("password", "$password")
 	path := "../examples/configs/snap-config-sample.yaml"
 	err := cfgfile.Read(path, &config, MOCK_CONSTRAINTS)
 	var cfg *Config
