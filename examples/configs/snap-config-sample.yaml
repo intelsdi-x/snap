@@ -65,6 +65,10 @@ control:
   # not be loaded. Valid values are 0 - Off, 1 - Enabled, 2 - Warning
   plugin_trust_level: 0
 
+  # max_plugin_restarts controls how many times a plugin is allowed to be restarted
+  # before failing.
+  max_plugin_restarts: 10
+
   # plugins section contains plugin config settings that will be applied for
   # plugins across tasks.
   plugins:

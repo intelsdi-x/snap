@@ -174,6 +174,13 @@ func OptSetConfig(cfg *Config) PluginControlOpt {
 	}
 }
 
+// MaximumPluginRestarts
+func MaxPluginRestarts(cfg *Config) PluginControlOpt {
+	return func(*pluginControl) {
+		MaxPluginRestartCount = cfg.MaxPluginRestarts
+	}
+}
+
 // New returns a new pluginControl instance
 func New(cfg *Config) *pluginControl {
 	// construct a slice of options from the input configuration
@@ -181,6 +188,7 @@ func New(cfg *Config) *pluginControl {
 		MaxRunningPlugins(cfg.MaxRunningPlugins),
 		CacheExpiration(cfg.CacheExpiration.Duration),
 		OptSetConfig(cfg),
+		MaxPluginRestarts(cfg),
 	}
 	c := &pluginControl{}
 	c.Config = cfg
