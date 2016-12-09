@@ -100,6 +100,12 @@ $ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.de
 $ sudo apt-get install -y snap-telemetry
 ```
 
+Linux Mint 17/17.* (for Linux Mint 18/18.* use `dist=xenial`)
+```
+$ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.deb.sh | sudo os=ubuntu dist=trusty bash
+$ sudo apt-get install -y snap-telemetry
+```
+
 MacOS X [![homebrew](https://img.shields.io/homebrew/v/snap-telemetry.svg)](http://brew.sh/):
 ```
 $ brew install snap-telemetry
