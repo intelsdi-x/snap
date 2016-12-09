@@ -100,7 +100,7 @@ $ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.de
 $ sudo apt-get install -y snap-telemetry
 ```
 
-Linux Mint 17/17.* (for Linux Mint 18/18.* use `dist=xenial`)
+We only build and test packages for a limited set of Linux distributions. For distros that are compatible with RedHat/Ubuntu packages, you can use the environment variable `os=` and `dist=` to override the OS detection script. For example Linux Mint 17/17.* (use `dist=xenial` for Linux Mint 18/18.*):
 ```
 $ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.deb.sh | sudo os=ubuntu dist=trusty bash
 $ sudo apt-get install -y snap-telemetry
@@ -124,6 +124,13 @@ $ tar xf snap-telemetry.tar.gz
 $ cp snapteld /usr/local/sbin
 $ cp snaptel /usr/local/bin
 ```
+
+The intelsdi-x package repo contains additional information regarding:
+
+* [snap packages](https://packagecloud.io/intelsdi-x/snap)
+* [installation script](https://packagecloud.io/intelsdi-x/snap/install#bash)
+* [manual installation steps](https://packagecloud.io/intelsdi-x/snap/install#manual)
+* [repo mirroring](https://packagecloud.io/intelsdi-x/snap/mirror)
 
 NOTE: snap-telemetry packages prior to 0.19.0 installed `/usr/local/bin/{snapctl|snapd}` and these binaries have been renamed to `snaptel` and `snapteld`. snap-telemetry packages prior to 0.18.0 symlinked `/usr/bin/{snapctl|snapd}` to `/opt/snap/bin/{snapctl|snapd}` and may cause conflicts with [Ubuntu's `snapd` package](http://packages.ubuntu.com/xenial-updates/snapd). Ubuntu 16.04.1 [snapd package version 2.13+](https://launchpad.net/ubuntu/+source/snapd) installs snapd/snapctl binary in /usr/bin. These executables are not related to snap-telemetry. Running `snapctl` from snapd package will result in the following error message:
 

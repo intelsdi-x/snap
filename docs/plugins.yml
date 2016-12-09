@@ -15,6 +15,8 @@
 # After merging, we run a job to update PLUGIN_CATALOG.md and
 # the list available on our website: http://snap-telemetry.io/plugins.html
 #####################
+- circonus-labs/snap-plugin-publisher-circonus
+- IrekRomaniuk/snap-plugin-collector-sessioninfo
 - raintank/snap-plugin-collector-ping
 - raintank/snap-plugin-collector-procnum
 - raintank/snap-plugin-collector-memcache
@@ -39,7 +41,6 @@
 - intelsdi-x/snap-plugin-collector-facter
 - intelsdi-x/snap-plugin-collector-glance
 - intelsdi-x/snap-plugin-collector-haproxy
-- IrekRomaniuk/snap-plugin-collector-sessioninfo
 - intelsdi-x/snap-plugin-collector-influxdb
 - intelsdi-x/snap-plugin-collector-interface
 - intelsdi-x/snap-plugin-collector-iostat
@@ -62,6 +63,7 @@
 - intelsdi-x/snap-plugin-collector-psutil
 - intelsdi-x/snap-plugin-collector-rabbitmq
 - intelsdi-x/snap-plugin-collector-scaleio
+- intelsdi-x/snap-plugin-collector-scsi
 - intelsdi-x/snap-plugin-collector-schedstat
 - intelsdi-x/snap-plugin-collector-snmp
 - intelsdi-x/snap-plugin-collector-smart
@@ -87,4 +89,3 @@
 - intelsdi-x/snap-plugin-publisher-postgresql
 - intelsdi-x/snap-plugin-publisher-rabbitmq
 - intelsdi-x/snap-plugin-publisher-riemann
-- circonus-labs/snap-plugin-publisher-circonus
