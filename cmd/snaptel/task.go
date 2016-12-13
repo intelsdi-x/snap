@@ -322,7 +322,7 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 	if e != nil {
 		return fmt.Errorf("File error [%s] - %v\n", ext, e)
 	}
-
+	file = []byte(os.ExpandEnv(string(file)))
 	// create an empty task struct and unmarshal the contents of the file into that object
 	t := task{}
 	switch ext {
