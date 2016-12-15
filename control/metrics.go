@@ -625,6 +625,9 @@ func addStandardAndWorkflowTags(m core.Metric, allTags map[string]map[string]str
 	if tags == nil {
 		tags = map[string]string{}
 	}
+	// apply standard tag
+	tags[core.STD_TAG_PLUGIN_RUNNING_ON] = hostname
+
 	// apply tags from workflow
 	for ns, nsTags := range allTags {
 		if strings.HasPrefix(m.Namespace().String(), ns) {
@@ -633,8 +636,6 @@ func addStandardAndWorkflowTags(m core.Metric, allTags map[string]map[string]str
 			}
 		}
 	}
-	// apply standard tag
-	tags[core.STD_TAG_PLUGIN_RUNNING_ON] = hostname
 
 	metric := plugin.MetricType{
 		Namespace_:          m.Namespace(),
