@@ -351,114 +351,62 @@ func (p *pluginConfig) deletePluginConfigDataNodeFieldAll(key string) {
 	return
 }
 
+func (p *pluginConfig) switchPluginConfigType(pluginType core.PluginType) *pluginTypeConfigItem {
+	switch pluginType {
+	case core.CollectorPluginType:
+		return p.Collector
+	case core.ProcessorPluginType:
+		return p.Processor
+	case core.PublisherPluginType:
+		return p.Publisher
+	}
+	// never happens
+	return nil
+}
+
 func (p *pluginConfig) mergePluginConfigDataNode(pluginType core.PluginType, name string, ver int, cdn *cdata.ConfigDataNode) {
 	// clear cache
 	p.pluginCache = make(map[string]*cdata.ConfigDataNode)
+	configItem := p.switchPluginConfigType(pluginType)
 
 	// merge new config into existing
-	switch pluginType {
-	case core.CollectorPluginType:
-		if res, ok := p.Collector.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.Merge(cdn)
-				return
-			}
-			res.Merge(cdn)
+	if res, ok := configItem.Plugins[name]; ok {
+		if res2, ok2 := res.Versions[ver]; ok2 {
+			res2.Merge(cdn)
 			return
 		}
-		if name != "" {
-			cn := cdata.NewNode()
-			cn.Merge(cdn)
-			p.Collector.Plugins[name] = newPluginConfigItem()
-			if ver > 0 {
-				p.Collector.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
-				return
-			}
-			p.Collector.Plugins[name].ConfigDataNode = cn
-			return
-		}
-		p.Collector.All.Merge(cdn)
-	case core.ProcessorPluginType:
-		if res, ok := p.Processor.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.Merge(cdn)
-				return
-			}
-			res.Merge(cdn)
-			return
-		}
-		if name != "" {
-			cn := cdata.NewNode()
-			cn.Merge(cdn)
-			p.Processor.Plugins[name] = newPluginConfigItem()
-			if ver > 0 {
-				p.Processor.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
-				return
-			}
-			p.Processor.Plugins[name].ConfigDataNode = cn
-			return
-		}
-		p.Processor.All.Merge(cdn)
-	case core.PublisherPluginType:
-		if res, ok := p.Publisher.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.Merge(cdn)
-				return
-			}
-			res.Merge(cdn)
-			return
-		}
-		if name != "" {
-			cn := cdata.NewNode()
-			cn.Merge(cdn)
-			p.Publisher.Plugins[name] = newPluginConfigItem()
-			if ver > 0 {
-				p.Publisher.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
-				return
-			}
-			p.Publisher.Plugins[name].ConfigDataNode = cn
-			return
-		}
-		p.Publisher.All.Merge(cdn)
+		res.Merge(cdn)
+		return
 	}
+	if name != "" {
+		cn := cdata.NewNode()
+		cn.Merge(cdn)
+		configItem.Plugins[name] = newPluginConfigItem()
+		if ver > 0 {
+			configItem.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
+			return
+		}
+		configItem.Plugins[name].ConfigDataNode = cn
+		return
+	}
+	configItem.All.Merge(cdn)
 }
 
 func (p *pluginConfig) deletePluginConfigDataNodeField(pluginType core.PluginType, name string, ver int, key string) {
 	// clear cache
 	p.pluginCache = make(map[string]*cdata.ConfigDataNode)
+	configItem := p.switchPluginConfigType(pluginType)
 
-	switch pluginType {
-	case core.CollectorPluginType:
-		if res, ok := p.Collector.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.DeleteItem(key)
-				return
-			}
-			res.DeleteItem(key)
+	if res, ok := configItem.Plugins[name]; ok {
+		if res2, ok2 := res.Versions[ver]; ok2 {
+			res2.DeleteItem(key)
 			return
 		}
-		p.Collector.All.DeleteItem(key)
-	case core.ProcessorPluginType:
-		if res, ok := p.Processor.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.DeleteItem(key)
-				return
-			}
-			res.DeleteItem(key)
-			return
-		}
-		p.Processor.All.DeleteItem(key)
-	case core.PublisherPluginType:
-		if res, ok := p.Publisher.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.DeleteItem(key)
-				return
-			}
-			res.DeleteItem(key)
-			return
-		}
-		p.Publisher.All.DeleteItem(key)
+		res.DeleteItem(key)
+		return
 	}
+	p.Collector.All.DeleteItem(key)
+
 }
 
 func (p *pluginConfig) getPluginConfigDataNode(pluginType core.PluginType, name string, ver int) *cdata.ConfigDataNode {
@@ -474,30 +422,12 @@ func (p *pluginConfig) getPluginConfigDataNode(pluginType core.PluginType, name 
 	p.pluginCache[key].Merge(p.All)
 
 	// check for plugin config
-	switch pluginType {
-	case core.CollectorPluginType:
-		p.pluginCache[key].Merge(p.Collector.All)
-		if res, ok := p.Collector.Plugins[name]; ok {
-			p.pluginCache[key].Merge(res.ConfigDataNode)
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				p.pluginCache[key].Merge(res2)
-			}
-		}
-	case core.ProcessorPluginType:
-		p.pluginCache[key].Merge(p.Processor.All)
-		if res, ok := p.Processor.Plugins[name]; ok {
-			p.pluginCache[key].Merge(res.ConfigDataNode)
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				p.pluginCache[key].Merge(res2)
-			}
-		}
-	case core.PublisherPluginType:
-		p.pluginCache[key].Merge(p.Publisher.All)
-		if res, ok := p.Publisher.Plugins[name]; ok {
-			p.pluginCache[key].Merge(res.ConfigDataNode)
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				p.pluginCache[key].Merge(res2)
-			}
+	configItem := p.switchPluginConfigType(pluginType)
+	p.pluginCache[key].Merge(configItem.All)
+	if res, ok := configItem.Plugins[name]; ok {
+		p.pluginCache[key].Merge(res.ConfigDataNode)
+		if res2, ok2 := res.Versions[ver]; ok2 {
+			p.pluginCache[key].Merge(res2)
 		}
 	}
 
