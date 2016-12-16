@@ -71,17 +71,18 @@ type pluginConfigItem struct {
 //         UnmarshalJSON method in this same file needs to be modified to
 //         match the field mapping that is defined here
 type Config struct {
-	MaxRunningPlugins int               `json:"max_running_plugins"yaml:"max_running_plugins"`
-	PluginLoadTimeout int               `json:"plugin_load_timeout"yaml:"plugin_load_timeout"`
-	PluginTrust       int               `json:"plugin_trust_level"yaml:"plugin_trust_level"`
-	AutoDiscoverPath  string            `json:"auto_discover_path"yaml:"auto_discover_path"`
-	KeyringPaths      string            `json:"keyring_paths"yaml:"keyring_paths"`
-	CacheExpiration   jsonutil.Duration `json:"cache_expiration"yaml:"cache_expiration"`
-	Plugins           *pluginConfig     `json:"plugins"yaml:"plugins"`
-	ListenAddr        string            `json:"listen_addr,omitempty"yaml:"listen_addr"`
-	ListenPort        int               `json:"listen_port,omitempty"yaml:"listen_port"`
-	Pprof             bool              `json:"pprof"yaml:"pprof"`
-	MaxPluginRestarts int               `json:"max_plugin_restarts"yaml:"max_plugin_restarts"`
+	MaxRunningPlugins int                          `json:"max_running_plugins"yaml:"max_running_plugins"`
+	PluginLoadTimeout int                          `json:"plugin_load_timeout"yaml:"plugin_load_timeout"`
+	PluginTrust       int                          `json:"plugin_trust_level"yaml:"plugin_trust_level"`
+	AutoDiscoverPath  string                       `json:"auto_discover_path"yaml:"auto_discover_path"`
+	KeyringPaths      string                       `json:"keyring_paths"yaml:"keyring_paths"`
+	CacheExpiration   jsonutil.Duration            `json:"cache_expiration"yaml:"cache_expiration"`
+	Plugins           *pluginConfig                `json:"plugins"yaml:"plugins"`
+	Tags              map[string]map[string]string `json:"tags,omitempty"yaml:"tags"`
+	ListenAddr        string                       `json:"listen_addr,omitempty"yaml:"listen_addr"`
+	ListenPort        int                          `json:"listen_port,omitempty"yaml:"listen_port"`
+	Pprof             bool                         `json:"pprof"yaml:"pprof"`
+	MaxPluginRestarts int                          `json:"max_plugin_restarts"yaml:"max_plugin_restarts"`
 }
 
 const (
@@ -117,6 +118,11 @@ const (
 						"properties" : {},
 						"additionalProperties": true
 					},
+					"tags": {
+						"type": ["object", "null"],
+						"properties" : {},
+						"additionalProperties": true
+					},
 					"listen_addr": {
 						"type": "string"
 					},
@@ -147,6 +153,7 @@ func GetDefaultConfig() *Config {
 		KeyringPaths:      defaultKeyringPaths,
 		CacheExpiration:   jsonutil.Duration{defaultCacheExpiration},
 		Plugins:           newPluginConfig(),
+		Tags:              newPluginTags(),
 		Pprof:             defaultPprof,
 		MaxPluginRestarts: MaxPluginRestartCount,
 	}
@@ -180,6 +187,10 @@ func newPluginConfig() *pluginConfig {
 		Publisher:   newPluginTypeConfigItem(),
 		pluginCache: make(map[string]*cdata.ConfigDataNode),
 	}
+}
+
+func newPluginTags() map[string]map[string]string {
+	return make(map[string]map[string]string)
 }
 
 func (p *Config) GetPluginConfigDataNode(pluginType core.PluginType, name string, ver int) cdata.ConfigDataNode {
@@ -295,7 +306,6 @@ func (p *pluginConfig) switchPluginConfigType(pluginType core.PluginType) *plugi
 	case core.PublisherPluginType:
 		return p.Publisher
 	}
-	// never happens
 	return nil
 }
 
@@ -303,6 +313,9 @@ func (p *pluginConfig) mergePluginConfigDataNode(pluginType core.PluginType, nam
 	// clear cache
 	p.pluginCache = make(map[string]*cdata.ConfigDataNode)
 	configItem := p.switchPluginConfigType(pluginType)
+	if configItem == nil {
+		return
+	}
 
 	// merge new config into existing
 	if res, ok := configItem.Plugins[name]; ok {
@@ -331,6 +344,9 @@ func (p *pluginConfig) deletePluginConfigDataNodeField(pluginType core.PluginTyp
 	// clear cache
 	p.pluginCache = make(map[string]*cdata.ConfigDataNode)
 	configItem := p.switchPluginConfigType(pluginType)
+	if configItem == nil {
+		return
+	}
 
 	if res, ok := configItem.Plugins[name]; ok {
 		if res2, ok2 := res.Versions[ver]; ok2 {
@@ -340,7 +356,7 @@ func (p *pluginConfig) deletePluginConfigDataNodeField(pluginType core.PluginTyp
 		res.DeleteItem(key)
 		return
 	}
-	p.Collector.All.DeleteItem(key)
+	configItem.All.DeleteItem(key)
 
 }
 
@@ -358,6 +374,9 @@ func (p *pluginConfig) getPluginConfigDataNode(pluginType core.PluginType, name 
 
 	// check for plugin config
 	configItem := p.switchPluginConfigType(pluginType)
+	if configItem == nil {
+		return nil
+	}
 	p.pluginCache[key].Merge(configItem.All)
 	if res, ok := configItem.Plugins[name]; ok {
 		p.pluginCache[key].Merge(res.ConfigDataNode)

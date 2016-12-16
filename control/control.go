@@ -127,6 +127,8 @@ type managesPlugins interface {
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(logLevel int) plugin.Arg
 	SetPluginConfig(*pluginConfig)
+	SetPluginTags(map[string]map[string]string)
+	AddStandardAndWorkflowTags(core.Metric, map[string]map[string]string) core.Metric
 	SetPluginLoadTimeout(int)
 }
 
@@ -174,6 +176,13 @@ func OptSetConfig(cfg *Config) PluginControlOpt {
 	}
 }
 
+// OptSetTags sets the plugin control tags.
+func OptSetTags(tags map[string]map[string]string) PluginControlOpt {
+	return func(c *pluginControl) {
+		c.pluginManager.SetPluginTags(tags)
+	}
+}
+
 // MaximumPluginRestarts
 func MaxPluginRestarts(cfg *Config) PluginControlOpt {
 	return func(*pluginControl) {
@@ -188,6 +197,7 @@ func New(cfg *Config) *pluginControl {
 		MaxRunningPlugins(cfg.MaxRunningPlugins),
 		CacheExpiration(cfg.CacheExpiration.Duration),
 		OptSetConfig(cfg),
+		OptSetTags(cfg.Tags),
 		MaxPluginRestarts(cfg),
 	}
 	c := &pluginControl{}
@@ -977,7 +987,7 @@ func (p *pluginControl) CollectMetrics(id string, allTags map[string]map[string]
 			// plugin authors to inadvertently overwrite or not pass along the data
 			// passed to CollectMetrics so we will help them out here.
 			for i := range m {
-				m[i] = addStandardAndWorkflowTags(m[i], allTags)
+				m[i] = p.pluginManager.AddStandardAndWorkflowTags(m[i], allTags)
 			}
 			metrics = append(metrics, m...)
 			wg.Done()
