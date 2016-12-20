@@ -71,6 +71,7 @@
 - intelsdi-x/snap-plugin-collector-snmp
 - intelsdi-x/snap-plugin-collector-smart
 - intelsdi-x/snap-plugin-collector-swap
+- intelsdi-x/snap-plugin-collector-use
 - intelsdi-x/snap-plugin-collector-users
 - intelsdi-x/snap-plugin-collector-yarn
 - intelsdi-x/snap-plugin-processor-anomalydetection
