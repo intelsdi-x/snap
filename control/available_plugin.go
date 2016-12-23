@@ -453,8 +453,8 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 	pool.RLock()
 	defer pool.RUnlock()
 
-	p, err := pool.SelectAP(taskID, config)
-	if err != nil {
+	p, serr := pool.SelectAP(taskID, config)
+	if serr != nil {
 		return []error{serr}
 	}
 
@@ -463,9 +463,9 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 		return []error{errors.New("unable to cast client to PluginPublisherClient")}
 	}
 
-	errp := cli.Publish(metrics, config)
-	if errp != nil {
-		return []error{errp}
+	err := cli.Publish(metrics, config)
+	if err != nil {
+		return []error{err}
 	}
 	p.(*availablePlugin).hitCount++
 	p.(*availablePlugin).lastHitTime = time.Now()
