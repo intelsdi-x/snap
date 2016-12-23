@@ -441,12 +441,10 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 }
 
 func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
-	var errs []error
 	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
-		errs = append(errs, serr)
-		return errs
+		return []error{serr}
 	}
 	if pool == nil {
 		return []error{serror.New(ErrPoolNotFound, map[string]interface{}{"pool-key": key})}
@@ -455,10 +453,9 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 	pool.RLock()
 	defer pool.RUnlock()
 
-	p, err := pool.SelectAP(taskID, config)
-	if err != nil {
-		errs = append(errs, err)
-		return errs
+	p, serr := pool.SelectAP(taskID, config)
+	if serr != nil {
+		return []error{serr}
 	}
 
 	cli, ok := p.(*availablePlugin).client.(client.PluginPublisherClient)
@@ -466,9 +463,9 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 		return []error{errors.New("unable to cast client to PluginPublisherClient")}
 	}
 
-	errp := cli.Publish(metrics, config)
-	if errp != nil {
-		return []error{errp}
+	err := cli.Publish(metrics, config)
+	if err != nil {
+		return []error{err}
 	}
 	p.(*availablePlugin).hitCount++
 	p.(*availablePlugin).lastHitTime = time.Now()

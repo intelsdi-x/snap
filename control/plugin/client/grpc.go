@@ -193,9 +193,12 @@ func (g *grpcClient) Publish(metrics []core.Metric, config map[string]ctypes.Con
 		Metrics: NewMetrics(metrics),
 		Config:  ToConfigMap(config),
 	}
-	_, err := g.publisher.Publish(getContext(g.timeout), arg)
+	reply, err := g.publisher.Publish(getContext(g.timeout), arg)
 	if err != nil {
 		return err
+	}
+	if reply.Error != "" {
+		return errors.New(reply.Error)
 	}
 	return nil
 }
