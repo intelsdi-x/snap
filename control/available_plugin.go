@@ -441,12 +441,10 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 }
 
 func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
-	var errs []error
 	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
-		errs = append(errs, serr)
-		return errs
+		return []error{serr}
 	}
 	if pool == nil {
 		return []error{serror.New(ErrPoolNotFound, map[string]interface{}{"pool-key": key})}
@@ -457,8 +455,7 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 
 	p, err := pool.SelectAP(taskID, config)
 	if err != nil {
-		errs = append(errs, err)
-		return errs
+		return []error{serr}
 	}
 
 	cli, ok := p.(*availablePlugin).client.(client.PluginPublisherClient)
