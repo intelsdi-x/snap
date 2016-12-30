@@ -572,6 +572,12 @@ func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, serror.
 }
 
 func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDetails, serror.SnapError) {
+	if rp.Uri() != nil {
+		return &pluginDetails{
+			Uri:          rp.Uri(),
+			IsAutoLoaded: true,
+		}, nil
+	}
 	details := &pluginDetails{}
 	var serr serror.SnapError
 	//Check plugin signing
@@ -706,6 +712,10 @@ func (p *pluginControl) UnsubscribeDeps(id string) []serror.SnapError {
 }
 
 func (p *pluginControl) verifyPlugin(lp *loadedPlugin) error {
+	if lp.Details.Uri != nil {
+		// remote plugin
+		return nil
+	}
 	b, err := ioutil.ReadFile(lp.Details.Path)
 	if err != nil {
 		return err

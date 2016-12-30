@@ -38,6 +38,8 @@ import (
 
 	"github.com/asaskevich/govalidator"
 
+	"net/url"
+
 	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 )
 
@@ -296,6 +298,30 @@ func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, error) {
 }
 
 func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, error) {
+	if len(pluginPaths) == 1 {
+		if _, err := url.ParseRequestURI(pluginPaths[0]); err == nil {
+			req, err := http.NewRequest(
+				"POST",
+				c.prefix+"/plugins",
+				strings.NewReader(
+					fmt.Sprintf("{\"uri\": \"%s\"}", pluginPaths[0]),
+				),
+			)
+			if err != nil {
+				return nil, err
+			}
+			addAuth(req, c.Username, c.Password)
+			req.Header.Add("Content-Type", "application/json")
+			rsp, err := c.http.Do(req)
+			if err != nil {
+				if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
+					return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
+				}
+				return nil, fmt.Errorf("URL target is not available. %v", err)
+			}
+			return httpRespToAPIResp(rsp)
+		}
+	}
 	errChan := make(chan error)
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)

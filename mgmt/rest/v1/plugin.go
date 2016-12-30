@@ -34,11 +34,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/julienschmidt/httprouter"
+
+	"encoding/json"
+
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/api"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
-	"github.com/julienschmidt/httprouter"
 )
 
 const PluginAlreadyLoaded = "plugin is already loaded"
@@ -67,6 +70,9 @@ func (p *plugin) TypeName() string {
 }
 
 func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	os.Stdout.WriteString("TEST 1\n")
+	lp := &rbody.PluginsLoaded{}
+	lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
 	var rp *core.RequestedPlugin
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
@@ -74,10 +80,9 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 	if strings.HasPrefix(mediaType, "multipart/") {
+		os.Stdout.WriteString("TEST 2\n")
 		var signature []byte
 		var checkSum [sha256.Size]byte
-		lp := &rbody.PluginsLoaded{}
-		lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
 		mr := multipart.NewReader(r.Body, params["boundary"])
 		var i int
 		for {
@@ -176,7 +181,34 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		}
 		lp.LoadedPlugins = append(lp.LoadedPlugins, catalogedPluginToLoaded(r.Host, pl))
 		rbody.Write(201, lp, w)
+
+	} else if strings.HasSuffix(mediaType, "json") {
+		os.Stdout.WriteString("TEST 3\n")
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			os.Stdout.WriteString("TEST 4\n")
+			rbody.Write(500, rbody.FromError(err), w)
+			return
+		}
+		var resp map[string]string
+		err = json.Unmarshal(body, &resp)
+		rp, err := core.NewRequestedPlugin(resp["uri"], "", nil)
+		if err != nil {
+			os.Stdout.WriteString("TEST 5\n")
+			rbody.Write(500, rbody.FromError(err), w)
+			return
+		}
+		pl, err := s.metricManager.Load(rp)
+		if err != nil {
+			os.Stdout.WriteString("TEST 6\n")
+			// TODO (JC) should return 409 if plugin already loaded
+			rbody.Write(500, rbody.FromError(err), w)
+			return
+		}
+		lp.LoadedPlugins = append(lp.LoadedPlugins, catalogedPluginToLoaded(r.Host, pl))
+		rbody.Write(201, lp, w)
 	}
+
 }
 
 func (s *apiV1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
