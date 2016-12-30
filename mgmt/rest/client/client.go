@@ -88,6 +88,14 @@ func parseURL(url string) error {
 	return nil
 }
 
+// Checks if string is URL
+func isURL(url string) bool {
+	if !govalidator.IsURL(url) || !strings.HasPrefix(url, "http") {
+		return false
+	}
+	return true
+}
+
 type metaOp func(c *Client)
 
 //Password is an option than can be provided to the func client.New.
@@ -297,7 +305,7 @@ func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, error) {
 }
 
 func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, error) {
-	if len(pluginPaths) == 1 {
+	if isURL(pluginPaths[0]) {
 		if _, err := url.ParseRequestURI(pluginPaths[0]); err == nil {
 			req, err := http.NewRequest(
 				"POST",

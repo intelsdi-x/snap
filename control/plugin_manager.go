@@ -324,7 +324,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	//TODO (JC) deal with path
 	pmLogger.WithFields(log.Fields{
 		"_block": "load-plugin",
-		"path":   filepath.Base(lPlugin.Details.Exec[0]),
+		// "path":   filepath.Base(lPlugin.Details.Exec[0]),
 	}).Info("plugin load called")
 	var ePlugin *plugin.ExecutablePlugin
 	var resp plugin.Response

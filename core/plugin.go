@@ -188,10 +188,6 @@ func NewRequestedPlugin(path, fileName string, b []byte) (*RequestedPlugin, erro
 	return rp, nil
 }
 
-func (p *RequestedPlugin) Uri() *url.URL {
-	return p.uri
-}
-
 func (p *RequestedPlugin) Path() string {
 	return p.path
 }
@@ -204,12 +200,20 @@ func (p *RequestedPlugin) Signature() []byte {
 	return p.signature
 }
 
+func (p *RequestedPlugin) Uri() *url.URL {
+	return p.uri
+}
+
 func (p *RequestedPlugin) SetPath(path string) {
 	p.path = path
 }
 
 func (p *RequestedPlugin) SetSignature(data []byte) {
 	p.signature = data
+}
+
+func (p *RequestedPlugin) SetUri(uri *url.URL) {
+	p.uri = uri
 }
 
 func (p *RequestedPlugin) generateCheckSum() error {

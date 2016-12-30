@@ -35,6 +35,8 @@ import (
 	"strconv"
 	"strings"
 
+	"encoding/json"
+
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/api"
@@ -72,19 +74,11 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
 	var rp *core.RequestedPlugin
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-
-	os.Stdout.WriteString("TEST 1: mediaType = ")
-	os.Stdout.WriteString(mediaType)
-	os.Stdout.WriteString("\n")
-
 	if err != nil {
 		rbody.Write(500, rbody.FromError(err), w)
 		return
 	}
 	if strings.HasPrefix(mediaType, "multipart/") {
-
-		os.Stdout.WriteString("TEST 2\n")
-
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		mr := multipart.NewReader(r.Body, params["boundary"])
@@ -185,16 +179,9 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		}
 		lp.LoadedPlugins = append(lp.LoadedPlugins, catalogedPluginToLoaded(r.Host, pl))
 		rbody.Write(201, lp, w)
-
 	} else if strings.HasSuffix(mediaType, "json") {
-
-		os.Stdout.WriteString("TEST 3\n")
-
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-
-			os.Stdout.WriteString("TEST 4\n")
-
 			rbody.Write(500, rbody.FromError(err), w)
 			return
 		}
@@ -202,17 +189,11 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		err = json.Unmarshal(body, &resp)
 		rp, err := core.NewRequestedPlugin(resp["uri"], "", nil)
 		if err != nil {
-
-			os.Stdout.WriteString("TEST 5\n")
-
 			rbody.Write(500, rbody.FromError(err), w)
 			return
 		}
 		pl, err := s.metricManager.Load(rp)
 		if err != nil {
-
-			os.Stdout.WriteString("TEST 6\n")
-
 			// TODO (JC) should return 409 if plugin already loaded
 			rbody.Write(500, rbody.FromError(err), w)
 			return
@@ -220,7 +201,6 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		lp.LoadedPlugins = append(lp.LoadedPlugins, catalogedPluginToLoaded(r.Host, pl))
 		rbody.Write(201, lp, w)
 	}
-
 }
 
 func (s *apiV1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

@@ -515,9 +515,6 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, se
 	if details.IsPackage {
 		defer os.RemoveAll(filepath.Dir(details.ExecPath))
 	}
-
-	os.Stdout.WriteString("TEST 30 \n")
-
 	controlLogger.WithFields(f).Info("plugin load called")
 	if !p.Started {
 		se := serror.New(ErrControllerNotStarted)
@@ -525,16 +522,10 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, se
 		controlLogger.WithFields(f).Error(se)
 		return nil, se
 	}
-
-	os.Stdout.WriteString("TEST 31 \n")
-
 	pl, se := p.pluginManager.LoadPlugin(details, p.eventManager)
 	if se != nil {
 		return nil, se
 	}
-
-	os.Stdout.WriteString("TEST 32 \n")
-
 	// If plugin was loaded from a package, remove ExecPath for
 	// the temporary plugin that was used for load
 	if pl.Details.IsPackage {
@@ -578,18 +569,12 @@ func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, serror.
 }
 
 func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDetails, serror.SnapError) {
-
-	os.Stdout.WriteString("TEST 20\n")
-
 	if rp.Uri() != nil {
 		return &pluginDetails{
 			Uri:          rp.Uri(),
 			IsAutoLoaded: true,
 		}, nil
 	}
-
-	os.Stdout.WriteString("TEST 21\n")
-
 	details := &pluginDetails{}
 	var serr serror.SnapError
 	//Check plugin signing
