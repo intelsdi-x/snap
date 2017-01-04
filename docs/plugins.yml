@@ -15,6 +15,7 @@
 # After merging, we run a job to update PLUGIN_CATALOG.md and
 # the list available on our website: http://snap-telemetry.io/plugins.html
 #####################
+- dishmael/snap-plugin-collector-syslog
 - circonus-labs/snap-plugin-publisher-circonus
 - IrekRomaniuk/snap-plugin-collector-sessioninfo
 - raintank/snap-plugin-collector-kubestate
