@@ -86,7 +86,7 @@ Snap does not have external dependencies since it is compiled into a statically 
 
 ### Installation
 
-You can obtain Linux RPM/Deb packages from [Snap's packagecloud.io repository](https://packagecloud.io/intelsdi-x/snap). Snap binaries in `.tar.gz` bundles and MacOS `.pkg` installer are available at Snap's [GitHub release page](https://github.com/intelsdi-x/snap/releases).
+You can obtain Linux RPM/Deb packages from [Snap's packagecloud.io repository](https://packagecloud.io/intelsdi-x/snap). After installation, please check and ensure `/usr/local/bin:/usr/local/sbin` is in your path via `echo $PATH` before executing any Snap commands.
 
 RedHat 6/7:
 ```
@@ -106,12 +106,14 @@ $ curl -s https://packagecloud.io/install/repositories/intelsdi-x/snap/script.de
 $ sudo apt-get install -y snap-telemetry
 ```
 
-MacOS X [![homebrew](https://img.shields.io/homebrew/v/snap-telemetry.svg)](http://brew.sh/):
+MacOS X:
+
+If you use homebrew, the latest version of Snap package: [![snap-telemetry](https://img.shields.io/homebrew/v/snap-telemetry.svg)](http://brew.sh/)
 ```
 $ brew install snap-telemetry
 ```
 
-MacOS X pkg:
+If you do not use homebrew, download and install Mac pkg package:
 ```
 $ curl -sfL mac.pkg.dl.snap-telemetry.io -o snap-telemetry.pkg
 $ sudo installer -pkg ./snap-telemetry.pkg -target /
@@ -127,7 +129,8 @@ $ cp snaptel /usr/local/bin
 
 The intelsdi-x package repo contains additional information regarding:
 
-* [snap packages](https://packagecloud.io/intelsdi-x/snap)
+* [Snap Redhat/Ubuntu packages](https://packagecloud.io/intelsdi-x/snap)
+* [Snap `.tar.gz` bundles and MacOS `.pkg` installer](https://github.com/intelsdi-x/snap/releases).
 * [installation script](https://packagecloud.io/intelsdi-x/snap/install#bash)
 * [manual installation steps](https://packagecloud.io/intelsdi-x/snap/install#manual)
 * [repo mirroring](https://packagecloud.io/intelsdi-x/snap/mirror)
