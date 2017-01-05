@@ -101,6 +101,10 @@ control:
   # not be loaded. Valid values are 0 - Off, 1 - Enabled, 2 - Warning
   plugin_trust_level: 1
 
+  # max_plugin_restarts controls how many times a plugin is allowed to be restarted
+  # before failing. Snap will not disable a plugin due to failures when this value is -1.
+  max_plugin_restarts: 10
+
   # plugins section contains plugin config settings that will be applied for
   # plugins across tasks.
   plugins:

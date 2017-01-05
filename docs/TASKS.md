@@ -85,10 +85,13 @@ or without time zone offset (in that cases uppercase'Z' must be present):
 More on cron expressions can be found here: https://godoc.org/github.com/robfig/cron
 
 #### Max-Failures
+
 By default, Snap will disable a task if there are 10 consecutive errors from any plugins within the workflow.  The configuration
-can be changed by specifying the number of failures value in the task header.  If the max-failures value is -1, Snap will
+can be changed by specifying the number of failures value in the task header.  If the `max-failures` value is -1, Snap will
 not disable a task with consecutive failure.  Instead, Snap will sleep for 1 second for every 10 consecutive failures
 and retry again.
+
+If you intend to run tasks with `max-failures: -1`, please also configure `max_plugin_restarts: -1` in [snap daemon control configuration section](SNAPTELD_CONFIGURATION.md).
 
 For more on tasks, visit [`SNAPTEL.md`](SNAPTEL.md).
 
