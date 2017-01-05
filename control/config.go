@@ -71,17 +71,18 @@ type pluginConfigItem struct {
 //         UnmarshalJSON method in this same file needs to be modified to
 //         match the field mapping that is defined here
 type Config struct {
-	MaxRunningPlugins int               `json:"max_running_plugins"yaml:"max_running_plugins"`
-	PluginLoadTimeout int               `json:"plugin_load_timeout"yaml:"plugin_load_timeout"`
-	PluginTrust       int               `json:"plugin_trust_level"yaml:"plugin_trust_level"`
-	AutoDiscoverPath  string            `json:"auto_discover_path"yaml:"auto_discover_path"`
-	KeyringPaths      string            `json:"keyring_paths"yaml:"keyring_paths"`
-	CacheExpiration   jsonutil.Duration `json:"cache_expiration"yaml:"cache_expiration"`
-	Plugins           *pluginConfig     `json:"plugins"yaml:"plugins"`
-	ListenAddr        string            `json:"listen_addr,omitempty"yaml:"listen_addr"`
-	ListenPort        int               `json:"listen_port,omitempty"yaml:"listen_port"`
-	Pprof             bool              `json:"pprof"yaml:"pprof"`
-	MaxPluginRestarts int               `json:"max_plugin_restarts"yaml:"max_plugin_restarts"`
+	MaxRunningPlugins int                          `json:"max_running_plugins"yaml:"max_running_plugins"`
+	PluginLoadTimeout int                          `json:"plugin_load_timeout"yaml:"plugin_load_timeout"`
+	PluginTrust       int                          `json:"plugin_trust_level"yaml:"plugin_trust_level"`
+	AutoDiscoverPath  string                       `json:"auto_discover_path"yaml:"auto_discover_path"`
+	KeyringPaths      string                       `json:"keyring_paths"yaml:"keyring_paths"`
+	CacheExpiration   jsonutil.Duration            `json:"cache_expiration"yaml:"cache_expiration"`
+	Plugins           *pluginConfig                `json:"plugins"yaml:"plugins"`
+	Tags              map[string]map[string]string `json:"tags,omitempty"yaml:"tags"`
+	ListenAddr        string                       `json:"listen_addr,omitempty"yaml:"listen_addr"`
+	ListenPort        int                          `json:"listen_port,omitempty"yaml:"listen_port"`
+	Pprof             bool                         `json:"pprof"yaml:"pprof"`
+	MaxPluginRestarts int                          `json:"max_plugin_restarts"yaml:"max_plugin_restarts"`
 }
 
 const (
@@ -117,6 +118,11 @@ const (
 						"properties" : {},
 						"additionalProperties": true
 					},
+					"tags": {
+						"type": ["object", "null"],
+						"properties" : {},
+						"additionalProperties": true
+					},
 					"listen_addr": {
 						"type": "string"
 					},
@@ -147,74 +153,10 @@ func GetDefaultConfig() *Config {
 		KeyringPaths:      defaultKeyringPaths,
 		CacheExpiration:   jsonutil.Duration{defaultCacheExpiration},
 		Plugins:           newPluginConfig(),
+		Tags:              newPluginTags(),
 		Pprof:             defaultPprof,
 		MaxPluginRestarts: MaxPluginRestartCount,
 	}
-}
-
-// UnmarshalJSON unmarshals valid json into a Config.  An example Config can be found
-// at github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json
-func (c *Config) UnmarshalJSON(data []byte) error {
-	// construct a map of strings to json.RawMessages (to defer the parsing of individual
-	// fields from the unmarshalled interface until later) and unmarshal the input
-	// byte array into that map
-	t := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(data, &t); err != nil {
-		return err
-	}
-	// loop through the individual map elements, parse each in turn, and set
-	// the appropriate field in this configuration
-	for k, v := range t {
-		switch k {
-		case "max_running_plugins":
-			if err := json.Unmarshal(v, &(c.MaxRunningPlugins)); err != nil {
-				return fmt.Errorf("%v (while parsing 'control::max_running_plugins')", err)
-			}
-		case "plugin_load_timeout":
-			if err := json.Unmarshal(v, &(c.PluginLoadTimeout)); err != nil {
-				return fmt.Errorf("%v (while parsing 'control::plugin_load_timeout')", err)
-			}
-		case "plugin_trust_level":
-			if err := json.Unmarshal(v, &(c.PluginTrust)); err != nil {
-				return fmt.Errorf("%v (while parsing 'control::plugin_trust_level')", err)
-			}
-		case "auto_discover_path":
-			if err := json.Unmarshal(v, &(c.AutoDiscoverPath)); err != nil {
-				return fmt.Errorf("%v (while parsing 'control::auto_discover_path')", err)
-			}
-		case "keyring_paths":
-			if err := json.Unmarshal(v, &(c.KeyringPaths)); err != nil {
-				return fmt.Errorf("%v (while parsing 'control::keyring_paths')", err)
-			}
-		case "cache_expiration":
-			if err := json.Unmarshal(v, &(c.CacheExpiration)); err != nil {
-				return fmt.Errorf("%v (while parsing 'control::cache_expiration')", err)
-			}
-		case "plugins":
-			if err := json.Unmarshal(v, c.Plugins); err != nil {
-				return err
-			}
-		case "listen_addr":
-			if err := json.Unmarshal(v, &(c.ListenAddr)); err != nil {
-				return err
-			}
-		case "listen_port":
-			if err := json.Unmarshal(v, &(c.ListenPort)); err != nil {
-				return err
-			}
-		case "pprof":
-			if err := json.Unmarshal(v, &(c.Pprof)); err != nil {
-				return err
-			}
-		case "max_plugin_restarts":
-			if err := json.Unmarshal(v, &(c.MaxPluginRestarts)); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'control'", k)
-		}
-	}
-	return nil
 }
 
 // NewPluginsConfig returns a map of *pluginConfigItems where the key is the plugin name.
@@ -245,6 +187,10 @@ func newPluginConfig() *pluginConfig {
 		Publisher:   newPluginTypeConfigItem(),
 		pluginCache: make(map[string]*cdata.ConfigDataNode),
 	}
+}
+
+func newPluginTags() map[string]map[string]string {
+	return make(map[string]map[string]string)
 }
 
 func (p *Config) GetPluginConfigDataNode(pluginType core.PluginType, name string, ver int) cdata.ConfigDataNode {
@@ -351,114 +297,67 @@ func (p *pluginConfig) deletePluginConfigDataNodeFieldAll(key string) {
 	return
 }
 
+func (p *pluginConfig) switchPluginConfigType(pluginType core.PluginType) *pluginTypeConfigItem {
+	switch pluginType {
+	case core.CollectorPluginType:
+		return p.Collector
+	case core.ProcessorPluginType:
+		return p.Processor
+	case core.PublisherPluginType:
+		return p.Publisher
+	}
+	return nil
+}
+
 func (p *pluginConfig) mergePluginConfigDataNode(pluginType core.PluginType, name string, ver int, cdn *cdata.ConfigDataNode) {
 	// clear cache
 	p.pluginCache = make(map[string]*cdata.ConfigDataNode)
+	configItem := p.switchPluginConfigType(pluginType)
+	if configItem == nil {
+		return
+	}
 
 	// merge new config into existing
-	switch pluginType {
-	case core.CollectorPluginType:
-		if res, ok := p.Collector.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.Merge(cdn)
-				return
-			}
-			res.Merge(cdn)
+	if res, ok := configItem.Plugins[name]; ok {
+		if res2, ok2 := res.Versions[ver]; ok2 {
+			res2.Merge(cdn)
 			return
 		}
-		if name != "" {
-			cn := cdata.NewNode()
-			cn.Merge(cdn)
-			p.Collector.Plugins[name] = newPluginConfigItem()
-			if ver > 0 {
-				p.Collector.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
-				return
-			}
-			p.Collector.Plugins[name].ConfigDataNode = cn
-			return
-		}
-		p.Collector.All.Merge(cdn)
-	case core.ProcessorPluginType:
-		if res, ok := p.Processor.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.Merge(cdn)
-				return
-			}
-			res.Merge(cdn)
-			return
-		}
-		if name != "" {
-			cn := cdata.NewNode()
-			cn.Merge(cdn)
-			p.Processor.Plugins[name] = newPluginConfigItem()
-			if ver > 0 {
-				p.Processor.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
-				return
-			}
-			p.Processor.Plugins[name].ConfigDataNode = cn
-			return
-		}
-		p.Processor.All.Merge(cdn)
-	case core.PublisherPluginType:
-		if res, ok := p.Publisher.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.Merge(cdn)
-				return
-			}
-			res.Merge(cdn)
-			return
-		}
-		if name != "" {
-			cn := cdata.NewNode()
-			cn.Merge(cdn)
-			p.Publisher.Plugins[name] = newPluginConfigItem()
-			if ver > 0 {
-				p.Publisher.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
-				return
-			}
-			p.Publisher.Plugins[name].ConfigDataNode = cn
-			return
-		}
-		p.Publisher.All.Merge(cdn)
+		res.Merge(cdn)
+		return
 	}
+	if name != "" {
+		cn := cdata.NewNode()
+		cn.Merge(cdn)
+		configItem.Plugins[name] = newPluginConfigItem()
+		if ver > 0 {
+			configItem.Plugins[name].Versions = map[int]*cdata.ConfigDataNode{ver: cn}
+			return
+		}
+		configItem.Plugins[name].ConfigDataNode = cn
+		return
+	}
+	configItem.All.Merge(cdn)
 }
 
 func (p *pluginConfig) deletePluginConfigDataNodeField(pluginType core.PluginType, name string, ver int, key string) {
 	// clear cache
 	p.pluginCache = make(map[string]*cdata.ConfigDataNode)
-
-	switch pluginType {
-	case core.CollectorPluginType:
-		if res, ok := p.Collector.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.DeleteItem(key)
-				return
-			}
-			res.DeleteItem(key)
-			return
-		}
-		p.Collector.All.DeleteItem(key)
-	case core.ProcessorPluginType:
-		if res, ok := p.Processor.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.DeleteItem(key)
-				return
-			}
-			res.DeleteItem(key)
-			return
-		}
-		p.Processor.All.DeleteItem(key)
-	case core.PublisherPluginType:
-		if res, ok := p.Publisher.Plugins[name]; ok {
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				res2.DeleteItem(key)
-				return
-			}
-			res.DeleteItem(key)
-			return
-		}
-		p.Publisher.All.DeleteItem(key)
+	configItem := p.switchPluginConfigType(pluginType)
+	if configItem == nil {
+		return
 	}
+
+	if res, ok := configItem.Plugins[name]; ok {
+		if res2, ok2 := res.Versions[ver]; ok2 {
+			res2.DeleteItem(key)
+			return
+		}
+		res.DeleteItem(key)
+		return
+	}
+	configItem.All.DeleteItem(key)
+
 }
 
 func (p *pluginConfig) getPluginConfigDataNode(pluginType core.PluginType, name string, ver int) *cdata.ConfigDataNode {
@@ -474,30 +373,15 @@ func (p *pluginConfig) getPluginConfigDataNode(pluginType core.PluginType, name 
 	p.pluginCache[key].Merge(p.All)
 
 	// check for plugin config
-	switch pluginType {
-	case core.CollectorPluginType:
-		p.pluginCache[key].Merge(p.Collector.All)
-		if res, ok := p.Collector.Plugins[name]; ok {
-			p.pluginCache[key].Merge(res.ConfigDataNode)
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				p.pluginCache[key].Merge(res2)
-			}
-		}
-	case core.ProcessorPluginType:
-		p.pluginCache[key].Merge(p.Processor.All)
-		if res, ok := p.Processor.Plugins[name]; ok {
-			p.pluginCache[key].Merge(res.ConfigDataNode)
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				p.pluginCache[key].Merge(res2)
-			}
-		}
-	case core.PublisherPluginType:
-		p.pluginCache[key].Merge(p.Publisher.All)
-		if res, ok := p.Publisher.Plugins[name]; ok {
-			p.pluginCache[key].Merge(res.ConfigDataNode)
-			if res2, ok2 := res.Versions[ver]; ok2 {
-				p.pluginCache[key].Merge(res2)
-			}
+	configItem := p.switchPluginConfigType(pluginType)
+	if configItem == nil {
+		return nil
+	}
+	p.pluginCache[key].Merge(configItem.All)
+	if res, ok := configItem.Plugins[name]; ok {
+		p.pluginCache[key].Merge(res.ConfigDataNode)
+		if res2, ok2 := res.Versions[ver]; ok2 {
+			p.pluginCache[key].Merge(res2)
 		}
 	}
 

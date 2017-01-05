@@ -618,38 +618,6 @@ func appendIfMissing(keys []string, ns string) []string {
 	return append(keys, ns)
 }
 
-func addStandardAndWorkflowTags(m core.Metric, allTags map[string]map[string]string) core.Metric {
-	hostname := hostnameReader.Hostname()
-
-	tags := m.Tags()
-	if tags == nil {
-		tags = map[string]string{}
-	}
-	// apply tags from workflow
-	for ns, nsTags := range allTags {
-		if strings.HasPrefix(m.Namespace().String(), ns) {
-			for k, v := range nsTags {
-				tags[k] = v
-			}
-		}
-	}
-	// apply standard tag
-	tags[core.STD_TAG_PLUGIN_RUNNING_ON] = hostname
-
-	metric := plugin.MetricType{
-		Namespace_:          m.Namespace(),
-		Version_:            m.Version(),
-		LastAdvertisedTime_: m.LastAdvertisedTime(),
-		Config_:             m.Config(),
-		Data_:               m.Data(),
-		Tags_:               tags,
-		Description_:        m.Description(),
-		Unit_:               m.Unit(),
-		Timestamp_:          m.Timestamp(),
-	}
-	return metric
-}
-
 // isTuple returns true when incoming namespace's element has been recognized as a tuple, otherwise returns false
 // notice, that the tuple is a string which starts with `core.TuplePrefix`, ends with `core.TupleSuffix`
 // and contains at least one `core.TupleSeparator`, e.g. (host0;host1)

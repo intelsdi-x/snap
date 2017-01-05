@@ -1,88 +1,96 @@
 {
-    "log_level": 2,
-    "log_path": "/some/log/dir",
-    "log_truncate": false,
-    "log_colors": true,
-    "gomaxprocs": 2,
-    "control": {
-        "auto_discover_path": "/some/directory/with/plugins",
-	"max_plugin_restarts": 10,
-        "cache_expiration": "750ms",
-        "listen_addr": "0.0.0.0",
-	"listen_port": 10082,
-	"max_running_plugins": 1,
-	"plugin_load_timeout": 10,
-        "keyring_paths": "/some/path/with/keyring/files",
-        "plugin_trust_level": 0,
-        "plugins": {
-            "all": {
-                "password": "p@ssw0rd"
+    "log_level":2,
+    "log_path":"/some/log/dir",
+    "log_truncate":false,
+    "log_colors":true,
+    "gomaxprocs":2,
+    "control":{
+        "auto_discover_path":"/some/directory/with/plugins",
+        "max_plugin_restarts":10,
+        "cache_expiration":"750ms",
+        "listen_addr":"0.0.0.0",
+        "listen_port":10082,
+        "max_running_plugins":1,
+        "plugin_load_timeout":10,
+        "keyring_paths":"/some/path/with/keyring/files",
+        "plugin_trust_level":0,
+        "plugins":{
+            "all":{
+                "password":"p@ssw0rd"
             },
-            "collector": {
-                "all": {
-                    "user": "jane"
+            "collector":{
+                "all":{
+                    "user":"jane"
                 },
-                "pcm": {
-                    "all": {
-                        "path": "/usr/local/pcm/bin"
+                "pcm":{
+                    "all":{
+                        "path":"/usr/local/pcm/bin"
                     },
-                    "versions": {
-                        "1": {
-                            "user": "john",
-                            "someint": 1234,
-                            "somefloat": 3.14,
-                            "somebool": true
+                    "versions":{
+                        "1":{
+                            "user":"john",
+                            "someint":1234,
+                            "somefloat":3.14,
+                            "somebool":true
                         }
                     }
                 },
-                "psutil": {
-                    "all": {
-                        "path": "/usr/local/bin/psutil"
+                "psutil":{
+                    "all":{
+                        "path":"/usr/local/bin/psutil"
                     }
                 }
             },
-            "publisher": {
-                "influxdb": {
-                    "all": {
-                        "server": "xyz.local",
-                        "password": "$password"
+            "publisher":{
+                "influxdb":{
+                    "all":{
+                        "server":"xyz.local",
+                        "password":"$password"
                     }
                 }
             },
-            "processor": {
-                "movingaverage": {
-                    "all": {
-                        "user": "jane"
+            "processor":{
+                "movingaverage":{
+                    "all":{
+                        "user":"jane"
                     },
-                    "versions": {
-                        "1": {
-                            "user": "tiffany",
-                            "password": "new password"
+                    "versions":{
+                        "1":{
+                            "user":"tiffany",
+                            "password":"new password"
                         }
                     }
                 }
             }
+        },
+        "tags": {
+            "/":{
+                "color": "green"
+            },
+            "/intel/psutil":{
+                "context": "config_example"
+            }
         }
     },
-    "scheduler": {
-        "work_manager_queue_size": 10,
-        "work_manager_pool_size": 2
+    "scheduler":{
+        "work_manager_queue_size":10,
+        "work_manager_pool_size":2
     },
-    "restapi": {
-        "enable": true,
-        "https": true,
-        "rest_auth": true,
-        "rest_auth_password": "changeme",
-        "rest_certificate": "/path/to/cert/file",
-        "rest_key": "/path/to/private/key",
-        "port": 8282,
-        "addr": "127.0.0.1:12345"
+    "restapi":{
+        "enable":true,
+        "https":true,
+        "rest_auth":true,
+        "rest_auth_password":"changeme",
+        "rest_certificate":"/path/to/cert/file",
+        "rest_key":"/path/to/private/key",
+        "port":8282,
+        "addr":"127.0.0.1:12345"
     },
-    "tribe": {
-        "enable": true,
-        "bind_addr": "127.0.0.1",
-        "bind_port": 16000,
-        "name": "localhost",
-        "seed": "1.1.1.1:16000"
+    "tribe":{
+        "enable":true,
+        "bind_addr":"127.0.0.1",
+        "bind_port":16000,
+        "name":"localhost",
+        "seed":"1.1.1.1:16000"
     }
 }

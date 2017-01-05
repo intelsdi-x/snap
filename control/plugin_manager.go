@@ -236,6 +236,7 @@ type pluginManager struct {
 	loadedPlugins     *loadedPlugins
 	logPath           string
 	pluginConfig      *pluginConfig
+	pluginTags        map[string]map[string]string
 	pprof             bool
 }
 
@@ -249,6 +250,7 @@ func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 		loadedPlugins:     newLoadedPlugins(),
 		logPath:           logPath,
 		pluginConfig:      newPluginConfig(),
+		pluginTags:        newPluginTags(),
 	}
 
 	for _, opt := range opts {
@@ -274,6 +276,13 @@ func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
 	}
 }
 
+// OptSetPluginTags sets the tags on the plugin manager
+func OptSetPluginTags(tags map[string]map[string]string) pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.pluginTags = tags
+	}
+}
+
 // SetPluginLoadTimeout sets plugin load timeout
 func (p *pluginManager) SetPluginLoadTimeout(to int) {
 	p.pluginLoadTimeout = to
@@ -282,6 +291,11 @@ func (p *pluginManager) SetPluginLoadTimeout(to int) {
 // SetPluginConfig sets plugin config
 func (p *pluginManager) SetPluginConfig(cf *pluginConfig) {
 	p.pluginConfig = cf
+}
+
+// SetPluginTags sets plugin tags
+func (p *pluginManager) SetPluginTags(tags map[string]map[string]string) {
+	p.pluginTags = tags
 }
 
 // SetMetricCatalog sets metric catalog
@@ -481,7 +495,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			}
 
 			//Add standard tags
-			nmt = addStandardAndWorkflowTags(nmt, nil)
+			nmt = p.AddStandardAndWorkflowTags(nmt, nil)
 
 			if err := p.metricCatalog.AddLoadedMetricType(lPlugin, nmt); err != nil {
 				pmLogger.WithFields(log.Fields{
@@ -623,4 +637,66 @@ func (p *pluginManager) all() map[string]*loadedPlugin {
 	p.loadedPlugins.RLock()
 	defer p.loadedPlugins.RUnlock()
 	return p.loadedPlugins.table
+}
+
+func hasPrefix(ns1 []string, ns2 []string) bool {
+	for i := range ns2 {
+		if i > len(ns1)-1 || ns1[i] != ns2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func split(ns string) []string {
+	// the first character is the separator
+	if len(ns) <= 1 {
+		return nil
+	}
+	sep := string(ns[0])
+	ns = strings.TrimSuffix(ns, sep)
+	ns = strings.TrimPrefix(ns, sep)
+
+	return strings.Split(ns, sep)
+}
+
+func (p *pluginManager) AddStandardAndWorkflowTags(m core.Metric, allTags map[string]map[string]string) core.Metric {
+	hostname := hostnameReader.Hostname()
+
+	tags := m.Tags()
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	// apply standard tag
+	tags[core.STD_TAG_PLUGIN_RUNNING_ON] = hostname
+
+	// apply tags from global tags
+	for ns, nsTags := range p.pluginTags {
+		if hasPrefix(m.Namespace().Strings(), split(ns)) {
+			for k, v := range nsTags {
+				tags[k] = v
+			}
+		}
+	}
+	// apply tags from workflow
+	for ns, nsTags := range allTags {
+		if hasPrefix(m.Namespace().Strings(), split(ns)) {
+			for k, v := range nsTags {
+				tags[k] = v
+			}
+		}
+	}
+
+	metric := plugin.MetricType{
+		Namespace_:          m.Namespace(),
+		Version_:            m.Version(),
+		LastAdvertisedTime_: m.LastAdvertisedTime(),
+		Config_:             m.Config(),
+		Data_:               m.Data(),
+		Tags_:               tags,
+		Description_:        m.Description(),
+		Unit_:               m.Unit(),
+		Timestamp_:          m.Timestamp(),
+	}
+	return metric
 }

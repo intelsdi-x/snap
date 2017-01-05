@@ -40,8 +40,9 @@ func TestAddTagsFromWorkflow(t *testing.T) {
 	hostnameReader = &mockHostnameReader{}
 	tcs := prepareTestCases()
 	Convey("Adding tags to metric type", t, func() {
+		p := newPluginManager()
 		for _, tc := range tcs {
-			outputTags := addStandardAndWorkflowTags(tc.Metric, tc.InputTags).Tags()
+			outputTags := p.AddStandardAndWorkflowTags(tc.Metric, tc.InputTags).Tags()
 			So(outputTags, ShouldNotBeNil)
 			So(outputTags, ShouldResemble, tc.ExpectedTags)
 		}

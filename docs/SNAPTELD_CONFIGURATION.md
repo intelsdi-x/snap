@@ -134,6 +134,15 @@ control:
           1:
             user: tiffany
             password: new password
+
+  # tags section contains global tags that will be applied on collected metrics
+  # across tasks.
+  tags:
+    /intel/psutil:
+      datacenter: rennes
+    # tags all metrics
+    /:
+      country: france
 ```
 
 ### snapteld scheduler configurations

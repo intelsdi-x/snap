@@ -102,6 +102,12 @@ func TestPluginConfig(t *testing.T) {
 		So(cfg.Plugins.Collector.Plugins["pcm"].Versions[1].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "john"})
 		So(cfg.Plugins.Processor, ShouldNotBeNil)
 		So(cfg.Plugins.Processor.Plugins["movingaverage"].Table()["user"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
+		So(cfg.Tags["/intel/psutil"], ShouldNotBeNil)
+		So(cfg.Tags["/intel/psutil"]["context"], ShouldNotBeNil)
+		So(cfg.Tags["/intel/psutil"]["context"], ShouldEqual, "config_example")
+		So(cfg.Tags["/"], ShouldNotBeNil)
+		So(cfg.Tags["/"]["color"], ShouldNotBeNil)
+		So(cfg.Tags["/"]["color"], ShouldEqual, "green")
 
 		Convey("We can access the config for plugins", func() {
 			Convey("Getting the values of a specific version of a plugin", func() {

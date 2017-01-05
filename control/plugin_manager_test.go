@@ -113,7 +113,10 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("with a plugin config a plugin loads successfully", func() {
 				cfg := GetDefaultConfig()
 				cfg.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
-				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
+				tags := newPluginTags()
+				tags["/intel/mock"] = make(map[string]string)
+				tags["/intel/mock"]["context"] = "plugin_manager_test"
+				p := newPluginManager(OptSetPluginConfig(cfg.Plugins), OptSetPluginTags(tags))
 				p.SetMetricCatalog(newMetricCatalog())
 				lp, serr := loadPlugin(p, fixtures.PluginPathMock2)
 
@@ -127,7 +130,9 @@ func TestLoadPlugin(t *testing.T) {
 				So(mts[0].Description(), ShouldResemble, "mock description")
 				So(mts[0].Unit(), ShouldResemble, "mock unit")
 				So(mts[0].Tags(), ShouldContainKey, "plugin_running_on")
+				So(mts[0].Tags(), ShouldContainKey, "context")
 				So(mts[0].Tags()["plugin_running_on"], ShouldNotResemble, "")
+				So(mts[0].Tags()["context"], ShouldResemble, "plugin_manager_test")
 			})
 
 			Convey("for a plugin requiring a config an incomplete config will result in a load failure", func() {

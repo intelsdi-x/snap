@@ -71,13 +71,17 @@ func (m *MockPluginManagerBadSwap) LoadPlugin(*pluginDetails, gomit.Emitter) (*l
 func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, serror.SnapError) {
 	return nil, serror.New(errors.New("fake"))
 }
-func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error) { return nil, nil }
-func (m *MockPluginManagerBadSwap) teardown()                         {}
-func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)     {}
-func (m *MockPluginManagerBadSwap) SetPluginLoadTimeout(int)          {}
-func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics)  {}
-func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)          {}
-func (m *MockPluginManagerBadSwap) GenerateArgs(int) plugin.Arg       { return plugin.Arg{} }
+func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error)          { return nil, nil }
+func (m *MockPluginManagerBadSwap) teardown()                                  {}
+func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)              {}
+func (m *MockPluginManagerBadSwap) SetPluginTags(map[string]map[string]string) {}
+func (m *MockPluginManagerBadSwap) AddStandardAndWorkflowTags(met core.Metric, allTags map[string]map[string]string) core.Metric {
+	return nil
+}
+func (m *MockPluginManagerBadSwap) SetPluginLoadTimeout(int)         {}
+func (m *MockPluginManagerBadSwap) SetMetricCatalog(catalogsMetrics) {}
+func (m *MockPluginManagerBadSwap) SetEmitter(gomit.Emitter)         {}
+func (m *MockPluginManagerBadSwap) GenerateArgs(int) plugin.Arg      { return plugin.Arg{} }
 
 func (m *MockPluginManagerBadSwap) all() map[string]*loadedPlugin {
 	return m.loadedPlugins.table
