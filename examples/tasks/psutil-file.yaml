@@ -7,19 +7,11 @@
   workflow:
     collect:
       metrics:
-        /intel/psutil/load/load1: {}
-        /intel/psutil/load/load15: {}
-        /intel/psutil/load/load5: {}
-        /intel/psutil/vm/available: {}
-        /intel/psutil/vm/free: {}
-        /intel/psutil/vm/used: {}
-      config:
-      process:
-        -
-          plugin_name: "passthru"
-          process: null
-          publish:
-            -
-              plugin_name: "file"
-              config:
-                file: "/tmp/snap_published_demo_file.log"
+        /intel/psutil/cpu/cpu-total/user: {}
+        /intel/psutil/cpu/cpu-total/system: {}
+        /intel/psutil/cpu/cpu-total/idle: {}
+        /intel/psutil/load/*: {}
+      publish:
+        - plugin_name: "file"
+          config:
+            file: "/tmp/psutil_metrics.log"

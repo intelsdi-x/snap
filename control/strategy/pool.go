@@ -106,7 +106,7 @@ type pool struct {
 
 	// The plugins in the pool.
 	// the primary key is an increasing --> uint from
-	// snapd epoch (`service snapd start`).
+	// snapteld epoch (`service snapteld start`).
 	plugins    MapAvailablePlugin
 	pidCounter uint32
 

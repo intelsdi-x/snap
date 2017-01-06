@@ -45,6 +45,7 @@ const (
 	defaultAutoDiscoverPath  string        = ""
 	defaultKeyringPaths      string        = ""
 	defaultCacheExpiration   time.Duration = 500 * time.Millisecond
+	defaultPprof             bool          = false
 )
 
 type pluginConfig struct {
@@ -79,6 +80,8 @@ type Config struct {
 	Plugins           *pluginConfig     `json:"plugins"yaml:"plugins"`
 	ListenAddr        string            `json:"listen_addr,omitempty"yaml:"listen_addr"`
 	ListenPort        int               `json:"listen_port,omitempty"yaml:"listen_port"`
+	Pprof             bool              `json:"pprof"yaml:"pprof"`
+	MaxPluginRestarts int               `json:"max_plugin_restarts"yaml:"max_plugin_restarts"`
 }
 
 const (
@@ -119,6 +122,12 @@ const (
 					},
 					"listen_port": {
 						"type": "integer"
+					},
+					"pprof": {
+						"type": "boolean"
+					},
+					"max_plugin_restarts": {
+						"type": "integer"
 					}
 				},
 				"additionalProperties": false
@@ -126,7 +135,7 @@ const (
 	`
 )
 
-// get the default snapd configuration
+// get the default snapteld configuration
 func GetDefaultConfig() *Config {
 	return &Config{
 		ListenAddr:        defaultListenAddr,
@@ -138,6 +147,8 @@ func GetDefaultConfig() *Config {
 		KeyringPaths:      defaultKeyringPaths,
 		CacheExpiration:   jsonutil.Duration{defaultCacheExpiration},
 		Plugins:           newPluginConfig(),
+		Pprof:             defaultPprof,
+		MaxPluginRestarts: MaxPluginRestartCount,
 	}
 }
 
@@ -189,6 +200,14 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			}
 		case "listen_port":
 			if err := json.Unmarshal(v, &(c.ListenPort)); err != nil {
+				return err
+			}
+		case "pprof":
+			if err := json.Unmarshal(v, &(c.Pprof)); err != nil {
+				return err
+			}
+		case "max_plugin_restarts":
+			if err := json.Unmarshal(v, &(c.MaxPluginRestarts)); err != nil {
 				return err
 			}
 		default:

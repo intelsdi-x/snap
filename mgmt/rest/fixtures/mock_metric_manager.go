@@ -51,6 +51,7 @@ type MockLoadedPlugin struct {
 }
 
 func (m MockLoadedPlugin) Name() string       { return m.MyName }
+func (m MockLoadedPlugin) Port() string       { return "" }
 func (m MockLoadedPlugin) TypeName() string   { return m.MyType }
 func (m MockLoadedPlugin) Version() int       { return m.MyVersion }
 func (m MockLoadedPlugin) Plugin() string     { return "" }

@@ -109,13 +109,11 @@ func TestStartProcessor(t *testing.T) {
 		Convey("start with dynamic port", func() {
 			c := new(MockProcessor)
 			m := &PluginMeta{
-				RPCType: JSONRPC,
+				RPCType: NativeRPC,
 				Type:    ProcessorPluginType,
 			}
-			// we will panic since rpc.HandleHttp has already
-			// been called during TestStartCollector
-			Convey("RPC service already registered", func() {
-				So(func() { Start(m, c, "{}") }, ShouldPanic)
+			Convey("RPC service should not panic", func() {
+				So(func() { Start(m, c, "{}") }, ShouldNotPanic)
 			})
 
 		})

@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"sort"
 
-	"github.com/codegangsta/negroni"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody/v2"
+	"github.com/urfave/negroni"
 )
 
 func RespondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {

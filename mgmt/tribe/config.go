@@ -87,7 +87,7 @@ const (
 	`
 )
 
-// get the default snapd configuration
+// get the default snapteld configuration
 func GetDefaultConfig() *Config {
 	mlCfg := memberlist.DefaultLANConfig()
 	mlCfg.PushPullInterval = defaultPushPullInterval

@@ -1,11 +1,37 @@
 Tasks
 =====
 
-A task describes the how, what, and when to do for a Snap job.  A task is described in a task _manifest_, which can be either JSON or YAML<sup>1</sup>.
+A task describes the how, what, and when to do for a Snap job.
 
 _Skip to the TL;DR example [here](#tldr)_.
+ 
 
-The manifest can be divided into two parts: Header and Workflow.
+## Task States
+
+A task can be in the following states:
+- **running:** a running task
+- **stopped:** a task that is not running
+- **disabled:** a task in a state not allowed to start. This happens when the task produces consecutive errors. A disabled task must be re-enabled before it can be started again. 
+
+
+![newtaskstatediagram2](https://cloud.githubusercontent.com/assets/21182867/19282545/a4179520-8fa3-11e6-9056-4fc3aa610983.png)
+
+
+	    How To				                        |  Command
+    ----------------------------------------|------------------------
+      Create task                           |  snaptel task create _[command options] [arguments...]_ <br/>  Find more details [here](https://github.com/intelsdi-x/snap/blob/master/docs/SNAPTEL.md#task)
+      List					                        |  snaptel task list
+      Start task                     		    |  snaptel task start _\<task_id>_
+      Stop task                        		  |  snaptel task stop _\<task_id>_
+      Remove task                       		|  snaptel task remove _\<task_id>_
+      Export task                       		|  snaptel task export _\<task_id>_
+      Watch task                        		|  snaptel task watch _\<task_id>_
+      Enable task                       		|  snaptel task enable _\<task_id>_
+
+
+## Task Manifest
+
+A task is described in a task _manifest_, which can be either JSON or YAML<sup>1</sup>. The manifest is divided into two parts: Header and Workflow.
 
 ### The Header
 
@@ -25,9 +51,30 @@ The header contains a version, used to differentiate between versions of the tas
 
 The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  Snap is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, Snap has three schedules:
 - **simple schedule** which is described above,
-- **window schedule** which adds a start and stop time,
-- **cron schedule** which supports cron-like entries in ```interval``` field, like in this example (workflow will fire every hour on the half hour):
+- **window schedule** which adds a start and stop time for the task. The time must be given as a quoted string in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format, for example with specific time zone offset:
+```json
+    "version": 1,
+    "schedule": {
+        "type": "windowed",
+        "interval": "1s",
+        "start_timestamp": "2016-10-27T16:39:57+01:00",
+        "stop_timestamp": "2016-10-28T16:39:57+01:00"
+    },
+    "max-failures": 10,
 ```
+or without time zone offset (in that cases uppercase'Z' must be present):
+```json
+    "version": 1,
+    "schedule": {
+        "type": "windowed",
+        "interval": "1s",
+        "start_timestamp": "2016-10-27T16:39:57Z",
+        "stop_timestamp": "2016-10-28T16:39:57Z"
+    },
+    "max-failures": 10,
+```
+- **cron schedule** which supports cron-like entries in ```interval``` field, like in this example (workflow will fire every hour on the half hour):
+```json
     "version": 1,
     "schedule": {
         "type": "cron",
@@ -38,12 +85,12 @@ The schedule describes the schedule type and interval for running the task.  The
 More on cron expressions can be found here: https://godoc.org/github.com/robfig/cron
 
 #### Max-Failures
-By default, snap will disable a task if there is 10 consecutive errors from any plugins within the workflow.  The configuration
-can be changed by specifying the number of failures value in the task header.  If the max-failures value is -1, snap will
-not disable a task with consecutive failure.  Instead, snap will sleep for 1 second for every 10 consective failures
+By default, Snap will disable a task if there are 10 consecutive errors from any plugins within the workflow.  The configuration
+can be changed by specifying the number of failures value in the task header.  If the max-failures value is -1, Snap will
+not disable a task with consecutive failure.  Instead, Snap will sleep for 1 second for every 10 consecutive failures
 and retry again.
 
-For more on tasks, visit [`SNAPCTL.md`](SNAPCTL.md).
+For more on tasks, visit [`SNAPTEL.md`](SNAPTEL.md).
 
 ### The Workflow
 
@@ -77,7 +124,7 @@ The workflow is a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph) wh
 
 #### Remote Targets
 
-Process and Publish nodes in the workflow can also target remote snap nodes via the 'target' key. The purpose of this is to allow offloading of resource intensive workflow steps from the node where data collection is occuring. Modifying the example above we have:
+Process and Publish nodes in the workflow can also target remote Snap nodes via the 'target' key. The purpose of this is to allow offloading of resource intensive workflow steps from the node where data collection is occurring. Modifying the example above we have:
 
 ```yaml
 ---
@@ -108,9 +155,53 @@ Process and Publish nodes in the workflow can also target remote snap nodes via 
 
 ```
 
-If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of it's steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapd via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the snap rest-api and port 8082.
+If a target is specified for a step in the workflow, that step will be executed on the remote instance specified by the ip:port target. Each node in the workflow is evaluated independently so a workflow can have any, all, or none of its steps being done remotely (if `target` key is omitted, that step defaults to local). The ip and port target are the ip and port that has a running control-grpc server. These can be specified to snapteld via the `control-listen-addr` and `control-listen-port` flags. The default is the same ip as the Snap rest-api and port 8082.
 
-An example json task that uses remote targets can be found under [examples](https://github.com/intelsdi-x/snap/blob/master/examples/tasks/distributed-mock-file.json). More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
+An example json task that uses remote targets:
+```json
+{
+  "version": 1,
+  "schedule": {
+    "type": "simple",
+    "interval": "1s"
+  },
+  "max-failures": 10,
+  "workflow": {
+    "collect": {
+      "metrics": {
+        "/intel/mock/foo": {},
+        "/intel/mock/bar": {},
+        "/intel/mock/*/baz": {}
+      },
+      "config": {
+        "/intel/mock": {
+          "user": "root",
+          "password": "secret"
+        }
+      },
+      "process": [
+        {
+          "plugin_name": "passthru",
+          "target": "127.0.0.1:9999",
+          "process": null,
+          "publish": [
+            {
+              "plugin_name": "file",
+              "target": "127.0.0.1:9992",
+              "config": {
+                "file": "/tmp/snap_published_mock_file.log"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+```
+
+More information about the architecture behind this can be found [here](DISTRIBUTED_WORKFLOW_ARCHITECTURE.md).
 
 #### collect
 
@@ -120,7 +211,7 @@ Metrics can be enumerated using:
 
  a) **concrete _namespace_**
 
-Declaring a metric's name exactly as it appears in the metric catalog (see `snapctl metric list`).
+Declaring a metric's name exactly as it appears in the metric catalog (see `snaptel metric list`).
 
     Metrics requested in task manifest          | Collected metrics
     --------------------------------------------|------------------------
@@ -184,7 +275,7 @@ config:
 
 Applying the config at `/intel/perf` means that all leaves of `/intel/perf` (`/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz` in this case) will receive the config.
 
-The tag section describes additional meta data for metrics.  Similary to config, tags can also be described at a branch, and all leaves of that branch will receive the given tag(s).  For example, say a task is going to collect `/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz`, all metrics should be tagged with experiment number, additonally one metric `/intel/perf/bar` should be tagged with OS name.  That tags could be described like so:
+The tag section describes additional meta data for metrics.  Similar to config, tags can also be described at a branch, and all leaves of that branch will receive the given tag(s).  For example, say a task is going to collect `/intel/perf/foo`, `/intel/perf/bar`, and `/intel/perf/baz`, all metrics should be tagged with experiment number, additionally one metric `/intel/perf/bar` should be tagged with OS name.  That tags could be described like so:
 
 ```yaml
 ---
@@ -305,5 +396,5 @@ Below is a complete example task.
 
 #### footnotes
 
-1. YAML is only supported via the snapctl CLI.  Only JSON is accepted via the REST API.
+1. YAML is only supported via the snaptel CLI.  Only JSON is accepted via the REST API.
 2. The wildcard must be supported by the target plugin.

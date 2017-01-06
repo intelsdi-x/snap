@@ -17,13 +17,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 # Build and Test
+
 This guide gets you started with building and testing Snap. If you have commits you want to contribute, review the [CONTRIBUTING file](../CONTRIBUTING.md) for a shorter list of what we look for and come back here if you need to verify your environment is configured correctly.
 
 ## Getting Started
-If you prefer a video walkthrough of this process, watch this video: https://vimeo.com/161561815
+
+If you prefer a video walkthrough of this process, watch this [tutorial](https://vimeo.com/161561815).
 
 To build the Snap Framework you'll need:
-* [Golang >= 1.5](https://golang.org)
+* [Golang >= 1.7](https://golang.org)
     * Should be [downloaded](https://golang.org/dl/) and [installed](https://golang.org/doc/install)
 * [GNU Make](https://www.gnu.org/software/make/)
 * [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
@@ -33,14 +35,9 @@ The instructions below assume that the `GOPATH` environment variable has been se
 Now you can download Snap into your `$GOPATH`:
 
 ```
-$ # -d is used to download snap without building it
+$ # -d is used to download Snap without building it
 $ go get -d github.com/intelsdi-x/snap
 $ cd $GOPATH/src/github.com/intelsdi-x/snap
-```
-
-For Go 1.5.x, enable GOVENDOREXPERIMENT. This is not required in GO 1.6+:
-```
-$ export GOVENDOREXPERIMENT=1
 ```
 
 In the `snap/` directory there's a `Makefile` that builds all dependencies and then the Snap Framework binaries. To get dependencies and build Snap run:  
@@ -49,17 +46,16 @@ $ cd $GOPATH/src/github.com/intelsdi-x/snap
 $ make
 ```
 
-By default `make` runs `make deps` and `make all` commands for you. Alternatively, you can run `make` with any of these other targets:
+By default `make` runs `make deps`, `make snap`, and `make plugins` commands for you. Alternatively, you can run `make` with any of these other targets:
 
 * `deps`: fetches all dependencies using glide
-* `check`: runs test suite
-* `all`: builds snapd, snapctl, and the test plugins
-* `snap` builds snapd and snapctl
-* `install`: installs snapd and snapctl binaries in /usr/local/bin
-* `release`: cuts a Snap release
+* `test-(legacy|small|medium|large)`: runs test suite
+* `all`: builds snapteld, snaptel, and test plugins for all platforms (MacOS and Linux)
+* `snap` builds snapteld and snaptel for local operating system
+* `plugins` builds test plugins for local operating system
+* `install`: installs snapteld and snaptel binaries in /usr/local/bin
 
-
-To see how to use Snap, look at [Running Snap](../README.md#running-snap), [SNAPD.md](SNAPD.md), and [SNAPCTL.md](SNAPCTL.md).
+To see how to use Snap, look at [getting started](../README.md#getting-started), [SNAPTELD.md](SNAPTELD.md), and [SNAPTEL.md](SNAPTEL.md).
 
 ## Test
 ### Creating Tests
@@ -79,7 +75,7 @@ would identify that file as a file that contains *small* tests, while a line lik
 
 	 // +build medium
 
-would identify that file as a file that contains *medium* tests. Once those build tags are have been added to the test files in the Snap codebase, it is relative simple to run a specific set of tests (by type) by simply adding a `-tags [TAG]` command-line flag to the `go test` command (where the `[TAG]` value is replaced by one of our test types). For example, this command will run all of the tests in the current working directory or any of it’s subdirectories that have been tagged as *small* tests:
+would identify that file as a file that contains *medium* tests. Once those build tags have been added to the test files in the Snap codebase, it is relatively simple to run a specific set of tests (by type) by simply adding a `-tags [TAG]` command-line flag to the `go test` command (where the `[TAG]` value is replaced by one of our test types). For example, this command will run all of the tests in the current working directory or any of its subdirectories that have been tagged as *small* tests:
 
 	 $ go test -v  -tags=small ./...
 
@@ -106,7 +102,7 @@ $ make test-small
 ```
 To run the other types of tests in the Snap framework, simply replace the `small` type with one of the other types (`legacy`, `medium`, or `large` in the example `make test-*` command shown above).
 
-If you are  interested in running all of the `legacy` tests from the Snap framework *and continuing through to all subdirectories, regardless of any errors that might be encountered*, then you can run a `go test ...` command directly (instead of running a `make test-*` or `scripts/test.sh [SNAP_TEST_TYPE]` command like those shown above). That `go test ...` command would look something like this:  
+If you are interested in running all of the `legacy` tests from the Snap framework *and continuing through to all subdirectories, regardless of any errors that might be encountered*, then you can run a `go test ...` command directly (instead of running a `make test-*` or `scripts/test.sh [SNAP_TEST_TYPE]` command like those shown above). That `go test ...` command would look something like this:  
 ```
 go test -tags=legacy ./...
 ```
@@ -147,7 +143,7 @@ Any `small` tests added to the Snap framework must conform to the following cons
 
 When complete, the full set of `small` tests for any given function or method should provide sufficient code coverage to ensure that any changes made to that function or method will not 'break the build'. This will assure the Snap maintainers that any pull requests that are made to modify or add to the framework can be safely merged (provided that there is sufficient code coverage and the associated tests pass).
 
-It should be noted here that the maintainers will refuse to merge any pull requests that trigger a failure of any of the `small` or `legacy` tests that cover the code being modified or added to the framework. As such, we highly recommend that contributors run the tests that cover their contributions locally before submitting their contribution as a pull request. Maintainers may also  ask that contributors add tests to their pull requests to ensure adequate code coverage before the they are willing to accept a given pull request, even if all existing tests pass. Our hope is that you, as a contributor, will understand the need for this requirement.
+It should be noted here that the maintainers will refuse to merge any pull requests that trigger a failure of any of the `small` or `legacy` tests that cover the code being modified or added to the framework. As such, we highly recommend that contributors run the tests that cover their contributions locally before submitting their contribution as a pull request. Maintainers may also ask that contributors add tests to their pull requests to ensure adequate code coverage before they are willing to accept a given pull request, even if all existing tests pass. Our hope is that you, as a contributor, will understand the need for this requirement.
 
 #### In Docker
 The Snap Framework supports running tests in an isolated container as opposed to your local host. Run the test script, which calls a `Dockerfile` located at `./scripts/Dockerfile`:

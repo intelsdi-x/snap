@@ -113,30 +113,45 @@ func (f *Mock) GetMetricTypes(cfg plugin.Config) ([]plugin.Metric, error) {
 	}
 	if _, err := cfg.GetBool("test"); err == nil {
 		mts = append(mts, plugin.Metric{
-			Namespace:   plugin.NewNamespace("intel", "mock", "test"),
+			Namespace:   plugin.NewNamespace("intel", "mock", "test%>"),
 			Description: "mock description",
 			Unit:        "mock unit",
 		})
 	}
 	if _, err := cfg.GetBool("test-less"); err != nil {
 		mts = append(mts, plugin.Metric{
-			Namespace:   plugin.NewNamespace("intel", "mock", "foo"),
+			Namespace:   plugin.NewNamespace("intel", "mock", "/foo=㊽"),
 			Description: "mock description",
 			Unit:        "mock unit",
 		})
 	}
 	mts = append(mts, plugin.Metric{
-		Namespace:   plugin.NewNamespace("intel", "mock", "bar"),
+		Namespace:   plugin.NewNamespace("intel", "mock", "/bar⽔"),
 		Description: "mock description",
 		Unit:        "mock unit",
 	})
 	mts = append(mts, plugin.Metric{
 		Namespace: plugin.NewNamespace("intel", "mock").
 			AddDynamicElement("host", "name of the host").
-			AddStaticElement("baz"),
+			AddStaticElement("/baz⽔"),
 		Description: "mock description",
 		Unit:        "mock unit",
 	})
+	mts = append(mts, plugin.Metric{
+		Namespace: plugin.NewNamespace("intel", "mock").
+			AddDynamicElement("host", "name of the host").
+			AddStaticElements("baz㊽", "/bar⽔"),
+		Description: "mock description",
+		Unit:        "mock unit",
+	})
+	mts = append(mts, plugin.Metric{
+		Namespace: plugin.NewNamespace("intel", "mock").
+			AddDynamicElement("host", "name of the host").
+			AddStaticElements("baz㊽", "|barᵹÄ☍"),
+		Description: "mock description",
+		Unit:        "mock unit",
+	})
+
 	return mts, nil
 }
 

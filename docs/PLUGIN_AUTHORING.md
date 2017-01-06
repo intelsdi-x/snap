@@ -17,151 +17,153 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-## About This
-The following is a recipe for authoring a plugin that fits smoothly within the snap framework. Like any recipe, the ingredients and the order in which you mix them are important. The major steps are:
+# Plugin Authoring
 
-1. Outline your plugin metrics
-2. Decide the CODEC for the plugin
-3. Download or clone [Snap](https://github.com/intelsdi-x/snap)
-4. Download or clone [snap-plugin-utilities](https://github.com/intelsdi-x/snap-plugin-utilities)
-5. Implement the required interfaces
-6. Test the plugin
-7. Expose the plugin
+### Table of Content
 
-Like any good recipe, it will do you well to read the entire document, as well as the [Plugin Best Practices](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_BEST_PRACTICES.md), before you start cooking.
+1. [Overview](#overview)
+    * [Plugin Library](#plugin-library)
+2. [Developing Plugins](#developing-plugins)
+    * [Plugin Type](#plugin-type)
+    * [Plugin Name](#plugin-name)
+    * [Plugin Metric Namespace](#plugin-metric-namespace)
+    * [Plugin Interface](#plugin-interface)
+    * [Plugin Version](#plugin-version)
+    * [Plugin Release](#plugin-release)
+    * [Plugin Metadata](#plugin-metadata)
+    * [Documentation](#documentation)
 
-Bon Appétit! :stew:
+## Overview
 
-## Plugin Authoring
-Snap itself runs as a master daemon with the core functionality that may load and unload plugin processes via either CLI or HTTP APIs.
+Snap daemon runs as a service which provides the core functionality such as plugin management and task scheduling. Snap plugins extend Snap by providing additional capability to gather, transform, or publish metrics. Since plugins are standalone programs, they can be written in any language supported by [gRPC](http://grpc.io).
 
-A Snap plugin is a program, or a set of functions or services, written in Go or any language; that may seamlessly integrate with snap as executables.
+### Plugin Library
 
-Communication between Snap and plugins uses RPC either through HTTP or TCP protocols. HTTP JSON-RPC is good for any language to use due to its nature of JSON representation of data while the native client is only suitable for plugins written in Golang. The data that plugins report to snap is in the form of JSON or GOB CODEC.
+The following libraries are available to simplify the process of writing a plugin:
 
-Before starting writing Snap plugins, check out the [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) to see if any suit your needs. If not, you need to reference the plugin packages that defines the type of structures and interfaces inside snap and then write plugin endpoints to implement the defined interfaces.
+* [snap-plugin-lib-go](https://github.com/intelsdi-x/snap-plugin-lib-go)
+* [snap-plugin-lib-cpp](https://github.com/intelsdi-x/snap-plugin-lib-cpp)
+* [snap-plugin-lib-py](https://github.com/intelsdi-x/snap-plugin-lib-py)
 
-### Plugin Naming, Files, and Directory    
-Snap supports three type of plugins. They are collectors, processors, and publishers.  The plugin project name should use the following format:  
->snap-plugin-[type]-[name]
+A few notes before we get started:
 
-For example:  
->snap-plugin-collector-hana      
->snap-plugin-processor-movingaverage    
->snap-plugin-publisher-influxdb  
+Communication between Snap daemon and plugins use gRPC. So even if a plugin library isn't available in the language of your choice, you can still write a plugin using the [gRPC library](http://grpc.io/docs) as a starting point. However this requires additional knowledge about Snap API, [gRPC/protobuf](../control/plugin/rpc/plugin.proto), so it is beyond the scope of this document.
 
-Example files and directory structure:  
+Before writing a new Snap plugin, please check out the [Plugin Catalog](./PLUGIN_CATALOG.md) to see if any existing plugins meet your needs. If you need any assistance, please reach out on [Slack #snap-developers channel](https://intelsdi-x.herokuapp.com/).
+
+## Developing Plugins
+
+### Plugin Type
+
+Snap supports three type of plugins:
+
+* collector: gathering metrics
+* processor: transforming metrics
+* publisher: publishing metrics
+
+### Plugin Name
+
+The plugin repo name should follow this convention: `snap-plugin-[type]-[name]`
+
+For example:
+* `snap-plugin-collector-hana`
+* `snap-plugin-processor-movingaverage`
+* `snap-plugin-publisher-influxdb`
+
+### Plugin Metric Namespace
+
+When gathering data in collector plugins, each metric requires a namespace and a description of what data is being gathered. The metric namespace should contain the org, name of plugin, and the metric's name:
+
+`/[organization]/[plugin name]/[plugin internal namespace(s)]/[metric name]`
+
+For example `ACME` org writing a `water` plugin, gather `usage` in gallons from multiple locations.
+
 ```
-snap-plugin-[type]-[name]
- |--[name]
-  |--[name].go  
-  |--[name]_test.go  
-  |--[name]_integration_test.go
- |--main.go
- |--main_test.go
+/acme/water/usage
+/acme/water/NewYork/usage
+/acme/water/NewYork/rainfall
+/acme/water/NewYork/Bronx/usage
+/acme/water/NewYork/Chelsea/usage
+/acme/water/Portland/usage
+/acme/water/Portland/rainfall
+/acme/water/Portland/Hollywood/usage
+/acme/water/Portland/Pearl/usage
 ```
 
-### Metric Naming
-A plugin should **NOT** advertise metrics which namespaces contain:
+A plugin can have any number of internal plugin namespace. It's up to the plugin author on how to organize the metrics in a meaningful way. This information should be documented in the README for ease of usage.
 
-##### a) the following characters in a namespace:
-    - spaces	` `
-    - brackets: `()[]{}`
-    - slashes:  `| \ /`
-    - carets:   `^`
-    - quotations:   `" ' \``
-    - other punctuations: `. , ; ? !`
+NOTE: The intelsdi-x project reserves the org namespace `/intel`.
 
-##### b) a wildcard in the end
+### Plugin Interface
 
-Example:
+Depending on the type of plugin, they must implement several methods to satisfy the appropriate interfaces. Please see the [plugin library](#plugin-library) for language specific examples and documentation.
 
-| Unacceptable metric namespace | Why                    | Proposal                                  |
-|:------------------------------|:-----------------------|:------------------------------------------|
-| /intel/foo/\*                 | a wildcard in the end  | /intel/foo/\*/bar <br/> /intel/foo/\*/baz |
-| /intel/mock/bar(no)           | not allowed characters | /intel/mock/bar_no                        |
-| /intel/mock/bar("no")         | not allowed characters | /intel/mock/bar_no                        |
-| /intel/mock/bar^no            | not allowed characters | /intel/mock/bar_no                        |
-| /intel/mock/bar.no            | not allowed characters | /intel/mock/bar_no                        |
-| /intel/mock/bar!?             | not allowed characters | /intel/mock/bar                           |
+### Plugin Version
 
-Snap validates the metrics exposed by plugin and, if validation failed, return an error and not load the plugin.
+Currently plugin versions are integer numbers and registered when a plugin is loaded. Whenever the source code is modified, please update the plugin version.
 
-##### c) static and dynamic metrics
-Snap supports both static and dynamic metrics.  You can find more detail about static and dynamic metrics [here](./METRICS.md).
+The following plugin version is taken from [Go lib example](https://github.com/intelsdi-x/snap-plugin-lib-go/blob/master/examples/collector/main.go).
 
-### Mandatory packages
-There are three mandatory packages that every plugin must use. Other than those three packages, you can use other packages as necessary. There is no danger of colliding dependencies as plugins are separated processes. The mandatory packages are:
-```
-github.com/intelsdi-x/snap/control/plugin  
-github.com/intelsdi-x/snap/control/plugin/cpolicy  
-github.com/intelsdi-x/snap/core/ctypes  
-```
-### Writing a collector plugin
-A Snap collector plugin collects telemetry data by communicating with the Snap daemon. To confine to collector plugin interfaces and metric types defined in Snap, a collector plugin must implement the following methods:
-```
-GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
-CollectMetrics([]MetricType) ([]MetricType, error)
-GetMetricTypes(ConfigType) ([]MetricType, error)
-```
-The plugin uses the default values given in the ConfigPolicy so a config file doesn't need to be passed in for these rules. An example use case would be for the URL the Apache Collector collects from. Disclaimer: Two namespaces can't have rules with the same key name. E.g. you can't have the key "username" for /intel/foo/bar and a different "username" for /intel/foo/mock. They would need unique keys.
+```go
+const (
+	pluginName    = "rand-collector"
+	pluginVersion = 1
+)
 
-### Writing a processor plugin
-A Snap processor plugin allows filtering, aggregation, transformation, etc of collected telemetry data. To complaint with processor plugin interfaces defined in Snap, a processor plugin must implement the following methods:
-```
-GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
-Process(contentType string, content []byte, config map[string]ctypes.ConfigValue) (string, []byte, error)
-```
-### Writing a publisher plugin
-A Snap publisher plugin allows publishing processed telemetry data into a variety of systems, databases, and monitors through Snap metrics. To compliant with metric types and plugin interfaces defined in Snap, a publisher plugin must implement the following methods:
-```
-GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
-Publish(contentType string, content []byte, config map[string]ctypes.ConfigValue) error
-```
-### Exposing a plugin
-Creating the main program to serve the newly written plugin as an external process in main.go. By defining "Plugin.PluginMeta" with plugin specific settings, the newly created plugin may have its setting to override Snap global settings. Please refer to [a sample](https://github.com/intelsdi-x/snap/blob/master/plugin/collector/snap-plugin-collector-mock1/main.go) to see how main.go is written. You may browse [snap global settings](https://github.com/intelsdi-x/snap/blob/master/snapd.go#L45-L119).
-
-Building main.go generates a binary executable. You may choose to sign the executable with our [plugin signing](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_SIGNING.md).
-
-### Localization
-All comments and READMEs within the plugin code should be in English.  For different languages, include appropriate translation files within the plugin package for internationalization.
-
-### README
-All plugins should have a README with some standard fields:
-```
- 1. Snap version requires at least
- 2. Snap version tested up to
- 3. Supported platforms
- 4. Contributor
- 5. License
-```
-### Encryption
-Snap provides the encryption capability for both HTTP and TCP clients. The communication between the Snap daemon and the plugins is encrypted by default. Should you want to disable the encrypted communication, when authoring a plugin, use the `Unsecure` option for your plugin's meta:
-```
-//Meta returns the metadata for MyPlugin
-func Meta() *plugin.PluginMeta {
-    return plugin.NewPluginMeta(name, ver, type, ct, ct2, plugin.Unsecure(true))
+func main() {
+	plugin.StartCollector(rand.RandCollector{}, pluginName, pluginVersion)
 }
 ```
 
-## Logging and debugging
-Snap uses [logrus](http://github.com/Sirupsen/logrus) to log. Your plugins can use it, or any standard Go log package. Each plugin has its log file. If no logging directory is specified, logs are in the /tmp directory of the running machine. INFO is the logging level for the release version of plugins. Loggers are excellent resources for debugging. You can also use Go GDB or [delve](https://github.com/derekparker/delve) to debug.
+Whenever the version changes, we also recommend:
 
-## Building and running the tests
-While developing a plugin, unit and integration tests need to be performed. Snap uses [goconvey](http://github.com/smartystreets/goconvey/convey) for unit tests. You are welcome to use it or any other unit test framework. For the integration tests, you have to set up $SNAP_PATH and some necessary direct, or indirect dependencies. Using Docker container for integration tests is an effective testing strategy. Integration tests may define an input workflow. Refer to a sample [integration test input](https://github.com/intelsdi-x/snap/blob/master/examples/configs/snap-config-sample.json).
+* git tag the repository with the new plugin version
+* publish binaries in github release page
 
-For example, to run a plugin integration test
+For intelsdi-x repos, the binaries publishing is automated. If we update the rand plugin to version 2, simply tag the commit with the new version and push the new tags to github:
+
 ```
-go test -v tag=integration ./…
+$ git tag -a 2 -m 'snap plugin collector rand v2'
+$ git push origin --tags
 ```
 
-For more build and test tips, please refer to our [contributing doc](https://github.com/intelsdi-x/snap/blob/master/CONTRIBUTING.md).
+NOTE: We are planning to adapt [Semantic Versioning](http://semver.org/). This requires changes to the internal framework, and we will provide a transition path when this is ready.
 
-## Distributing plugins
-If you think others would find your plugin useful, we encourage you to submit it to our [Plugin Catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) for possible inclusion.
+### Plugin Release
 
-## License
-The Snap framework is released under the Apache 2.0 license.
+We recommend releasing new binaries to Github Release page whenever the plugin version is updated. This process can be automated via [Travis CI](https://docs.travis-ci.com/user/deployment/releases/). Please check out the file plugin's [.travis.yml](https://github.com/intelsdi-x/snap-plugin-publisher-file/blob/master/.travis.yml) file for a working example.
 
-## For more help
-Please browse more at our [repo](https://github.com/intelsdi-x/snap) or contact the [maintainers](https://github.com/intelsdi-x/snap#maintainers).
+### Plugin Metadata
+
+In the plugin repo root directory, the `metadata.yml` file provides Snap project additional information about your plugin when we generate the [plugin catalog](./PLUGIN_CATALOG.md) page.
+
+* **name**: plugin full name
+* **type**: plugin type
+* **maintainer**: your github org or username
+* **license**: the plugin software license
+* **description**: paragraph describing the plugin's purpose
+* **badge**: a list of [badges](https://shields.io/) to display
+* **ci**: a list of ci services running for this repo
+* **status**: one of the three statuses [described below](#plugin-status)
+
+All metadata fields are optional, but recommended to help users discover your plugin. Please check out the file plugin's [metadata.yml](https://github.com/intelsdi-x/snap-plugin-publisher-file/blob/master/metadata.yml) file for a working example.
+
+We recommend sharing your plugins early and often by adding them to the list of known plugins. To list your plugin in the plugin catalog, please submit a PR and update [plugins.yml](./plugins.yml) file to include the plugin's github `organization/repo_name`.
+
+### Plugin Status
+
+While the Snap framework is hardened through tons of testing, **plugins mature at their own pace**. We want our community to share plugins early and update them often. We are defining categories of maturity of a plugin and will roll them out with the resolution of [#1322](https://github.com/intelsdi-x/snap/issues/1322).
+
+### Documentation
+
+All plugins should include a README with the following information:
+
+1. Supported Platforms
+1. Known Issues
+1. Snap Version dependencies
+1. Installation
+1. Usage
+1. Contributors
+1. License
+
+You are welcome to copy an existing README.md (and CONTRIBUTING.md) to get started. I recommend looking at [psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil). 

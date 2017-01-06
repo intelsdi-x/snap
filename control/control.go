@@ -115,7 +115,7 @@ type runsPlugins interface {
 	SetMetricCatalog(catalogsMetrics)
 	SetPluginManager(managesPlugins)
 	Monitor() *monitor
-	runPlugin(*pluginDetails) error
+	runPlugin(string, *pluginDetails) error
 }
 
 type managesPlugins interface {
@@ -141,7 +141,7 @@ type catalogsMetrics interface {
 	Keys() []string
 	Subscribe([]string, int) error
 	Unsubscribe([]string, int) error
-	GetPlugin(core.Namespace, int) (*loadedPlugin, error)
+	GetPlugin(core.Namespace, int) (core.CatalogedPlugin, error)
 }
 
 type managesSigning interface {
@@ -174,6 +174,13 @@ func OptSetConfig(cfg *Config) PluginControlOpt {
 	}
 }
 
+// MaximumPluginRestarts
+func MaxPluginRestarts(cfg *Config) PluginControlOpt {
+	return func(*pluginControl) {
+		MaxPluginRestartCount = cfg.MaxPluginRestarts
+	}
+}
+
 // New returns a new pluginControl instance
 func New(cfg *Config) *pluginControl {
 	// construct a slice of options from the input configuration
@@ -181,6 +188,7 @@ func New(cfg *Config) *pluginControl {
 		MaxRunningPlugins(cfg.MaxRunningPlugins),
 		CacheExpiration(cfg.CacheExpiration.Duration),
 		OptSetConfig(cfg),
+		MaxPluginRestarts(cfg),
 	}
 	c := &pluginControl{}
 	c.Config = cfg
@@ -199,7 +207,7 @@ func New(cfg *Config) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager()
+	c.pluginManager = newPluginManager(OptSetPprof(cfg.Pprof))
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
@@ -315,52 +323,79 @@ func (p *pluginControl) Start() error {
 				}).Fatal(err)
 			}
 			for _, file := range files {
-				if file.IsDir() {
+				fileName := file.Name()
+
+				statCheck := file
+				if file.Mode()&os.ModeSymlink != 0 {
+					realPath, err := filepath.EvalSymlinks(filepath.Join(fullPath, fileName))
+					if err != nil {
+						controlLogger.WithFields(log.Fields{
+							"_block":           "start",
+							"autodiscoverpath": pa,
+							"error":            err,
+							"plugin":           fileName,
+						}).Error("Cannot follow symlink")
+						continue
+					}
+					statCheck, err = os.Stat(realPath)
+					if err != nil {
+						controlLogger.WithFields(log.Fields{
+							"_block":           "start",
+							"autodiscoverpath": pa,
+							"error":            err,
+							"plugin":           fileName,
+							"target-path":      realPath,
+						}).Error("Target of symlink inacessible")
+						continue
+					}
+				}
+
+				if statCheck.IsDir() {
 					controlLogger.WithFields(log.Fields{
 						"_block":           "start",
 						"autodiscoverpath": pa,
-					}).Warning("Ignoring subdirectory: ", file.Name())
+					}).Warning("Ignoring subdirectory: ", fileName)
 					continue
 				}
 				// Ignore tasks files (JSON and YAML)
-				fname := strings.ToLower(file.Name())
+				fname := strings.ToLower(fileName)
 				if strings.HasSuffix(fname, ".json") || strings.HasSuffix(fname, ".yaml") || strings.HasSuffix(fname, ".yml") {
 					controlLogger.WithFields(log.Fields{
 						"_block":           "start",
 						"autodiscoverpath": pa,
-					}).Warning("Ignoring JSON/Yaml file: ", file.Name())
+					}).Warning("Ignoring JSON/Yaml file: ", fileName)
 					continue
 				}
 				// if the file is a plugin package (which would have a suffix of '.aci') or if the file
 				// is not a plugin signing file (which would have a suffix of '.asc'), then attempt to
 				// automatically load the file as a plugin
-				if strings.HasSuffix(file.Name(), ".aci") || !(strings.HasSuffix(file.Name(), ".asc")) {
+				if strings.HasSuffix(fileName, ".aci") || !(strings.HasSuffix(fileName, ".asc")) {
 					// check to makd sure the file is executable by someone (even if it isn't you); if no one
 					// can execute this file then skip it (and include a warning in the log output)
-					if (file.Mode() & 0111) == 0 {
+					if (statCheck.Mode() & 0111) == 0 {
 						controlLogger.WithFields(log.Fields{
 							"_block":           "start",
 							"autodiscoverpath": pa,
-							"plugin":           file,
-						}).Warn("Auto-loading of plugin '", file.Name(), "' skipped (plugin not executable)")
+							"plugin":           fileName,
+						}).Warn("Auto-loading of plugin '", fileName, "' skipped (plugin not executable)")
 						continue
 					}
-					rp, err := core.NewRequestedPlugin(path.Join(fullPath, file.Name()))
+					rp, err := core.NewRequestedPlugin(path.Join(fullPath, fileName))
 					if err != nil {
 						controlLogger.WithFields(log.Fields{
 							"_block":           "start",
 							"autodiscoverpath": pa,
-							"plugin":           file,
+							"plugin":           fileName,
 						}).Error(err)
 					}
-					signatureFile := file.Name() + ".asc"
+					signatureFile := fileName + ".asc"
 					if _, err := os.Stat(path.Join(fullPath, signatureFile)); err == nil {
 						err = rp.ReadSignatureFile(path.Join(fullPath, signatureFile))
 						if err != nil {
 							controlLogger.WithFields(log.Fields{
 								"_block":           "start",
 								"autodiscoverpath": pa,
-								"plugin":           file.Name() + ".asc",
+								"plugin":           fileName + ".asc",
 							}).Error(err)
 						}
 					}
@@ -369,13 +404,13 @@ func (p *pluginControl) Start() error {
 						controlLogger.WithFields(log.Fields{
 							"_block":           "start",
 							"autodiscoverpath": fullPath,
-							"plugin":           file,
+							"plugin":           fileName,
 						}).Error(err)
 					} else {
 						controlLogger.WithFields(log.Fields{
 							"_block":           "start",
 							"autodiscoverpath": fullPath,
-							"plugin-file-name": file.Name(),
+							"plugin-file-name": fileName,
 							"plugin-name":      pl.Name(),
 							"plugin-version":   pl.Version(),
 							"plugin-type":      pl.TypeName(),
@@ -555,11 +590,11 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 		if details.Manifest, err = aci.Manifest(f); err != nil {
 			return nil, serror.New(err)
 		}
-		details.Exec = details.Manifest.App.Exec[0]
+		details.Exec = details.Manifest.App.Exec
 		details.IsPackage = true
 	} else {
 		details.IsPackage = false
-		details.Exec = filepath.Base(rp.Path())
+		details.Exec = []string{filepath.Base(rp.Path())}
 		details.ExecPath = filepath.Dir(rp.Path())
 	}
 
@@ -715,26 +750,26 @@ func (p *pluginControl) getMetricsAndCollectors(requested []core.RequestedMetric
 
 			// apply defaults to the metric that may be present in the plugins
 			// configpolicy
-			if pluginCfg := mt.Plugin.ConfigPolicy.Get(mt.Namespace().Strings()); pluginCfg != nil {
+			if pluginCfg := mt.Plugin.Policy().Get(mt.Namespace().Strings()); pluginCfg != nil {
 				mt.config.ApplyDefaults(pluginCfg.Defaults())
 			}
 
-			// loaded plugin which exposes the metric
-			lp := mt.Plugin
-			key := lp.Key()
+			// cataloged plugin which exposes the metric
+			cp := mt.Plugin
+			key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", cp.TypeName(), cp.Name(), cp.Version())
 
 			// groups metricTypes by a plugin.Key()
 			pmt, _ := newMetricsGroupedByPlugin[key]
 
 			// pmt (plugin-metric-type) contains plugin and metrics types grouped to this plugin
-			pmt.plugin = lp
+			pmt.plugin = cp
 			pmt.metricTypes = append(pmt.metricTypes, mt)
 			newMetricsGroupedByPlugin[key] = pmt
 
 			plugin := subscribedPlugin{
-				name:     lp.Name(),
-				typeName: lp.TypeName(),
-				version:  lp.Version(),
+				name:     cp.Name(),
+				typeName: cp.TypeName(),
+				version:  cp.Version(),
 				config:   cdata.NewNode(),
 			}
 
@@ -1046,7 +1081,7 @@ func (r *requestedPlugin) Config() *cdata.ConfigDataNode {
 
 // just a tuple of loadedPlugin and metricType slice
 type metricTypes struct {
-	plugin      *loadedPlugin
+	plugin      core.CatalogedPlugin
 	metricTypes []core.Metric
 }
 
@@ -1058,7 +1093,7 @@ func (mts metricTypes) Metrics() []core.Metric {
 	return mts.metricTypes
 }
 
-func (mts metricTypes) Plugin() *loadedPlugin {
+func (mts metricTypes) Plugin() core.CatalogedPlugin {
 	return mts.plugin
 }
 

@@ -71,6 +71,54 @@ func NewPolicyNode() *ConfigPolicyNode {
 	}
 }
 
+func (c *ConfigPolicyNode) CopyRules() ([]Rule, error) {
+	rules := []Rule{}
+	for _, rule := range c.rules {
+		var err error
+		switch rule.(type) {
+		case *BoolRule:
+			var newBoolRule *BoolRule
+			if rule.Default() != nil {
+				newBoolRule, err = NewBoolRule(rule.Key(), rule.Required(), rule.Default().(ctypes.ConfigValueBool).Value)
+			} else {
+				newBoolRule, err = NewBoolRule(rule.Key(), rule.Required())
+			}
+			rules = append(rules, newBoolRule)
+		case *StringRule:
+			var newStringRule *StringRule
+			if rule.Default() != nil {
+				newStringRule, err = NewStringRule(rule.Key(), rule.Required(), rule.Default().(ctypes.ConfigValueStr).Value)
+			} else {
+				newStringRule, err = NewStringRule(rule.Key(), rule.Required())
+			}
+			rules = append(rules, newStringRule)
+		case *FloatRule:
+			var newFloatRule *FloatRule
+			if rule.Default() != nil {
+				newFloatRule, err = NewFloatRule(rule.Key(), rule.Required(), rule.Default().(ctypes.ConfigValueFloat).Value)
+			} else {
+				newFloatRule, err = NewFloatRule(rule.Key(), rule.Required())
+			}
+			rules = append(rules, newFloatRule)
+		case *IntRule:
+			var newIntRule *IntRule
+			if rule.Default() != nil {
+				newIntRule, err = NewIntegerRule(rule.Key(), rule.Required(), rule.Default().(ctypes.ConfigValueInt).Value)
+			} else {
+				newIntRule, err = NewIntegerRule(rule.Key(), rule.Required())
+			}
+			rules = append(rules, newIntRule)
+		default:
+			return []Rule{}, errors.New(fmt.Sprint("Unknown rule type"))
+		}
+
+		if err != nil {
+			return []Rule{}, errors.New(fmt.Sprintf("Could not create rule %s type %s ", rule.Key(), rule.Type()))
+		}
+	}
+	return rules, nil
+}
+
 // UnmarshalJSON unmarshals JSON into a ConfigPolicyNode
 func (c *ConfigPolicyNode) UnmarshalJSON(data []byte) error {
 	m := map[string]interface{}{}

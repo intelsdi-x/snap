@@ -43,6 +43,14 @@ func TestMakeSchedule(t *testing.T) {
 		So(err.Error(), ShouldEqual, fmt.Sprintf("unknown schedule type %s", DUMMY_TYPE))
 	})
 
+	Convey("Simple schedule with missing interval in configuration", t, func() {
+		sched1 := &Schedule{Type: "simple"}
+		rsched, err := makeSchedule(*sched1)
+		So(rsched, ShouldBeNil)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldEqual, "missing `interval` in configuration of simple schedule")
+	})
+
 	Convey("Simple schedule with bad duration", t, func() {
 		sched1 := &Schedule{Type: "simple", Interval: "dummy"}
 		rsched, err := makeSchedule(*sched1)
@@ -67,8 +75,17 @@ func TestMakeSchedule(t *testing.T) {
 		So(rsched.GetState(), ShouldEqual, 0)
 	})
 
+	Convey("Windowed schedule with missing interval", t, func() {
+		sched1 := &Schedule{Type: "windowed"}
+		rsched, err := makeSchedule(*sched1)
+		So(rsched, ShouldBeNil)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldStartWith, "missing parameter/parameters in configuration of windowed schedule")
+	})
+
 	Convey("Windowed schedule with bad duration", t, func() {
-		sched1 := &Schedule{Type: "windowed", Interval: "dummy"}
+		now := time.Now()
+		sched1 := &Schedule{Type: "windowed", Interval: "dummy", StartTimestamp: &now, StopTimestamp: &now}
 		rsched, err := makeSchedule(*sched1)
 		So(rsched, ShouldBeNil)
 		So(err, ShouldNotBeNil)
@@ -76,19 +93,38 @@ func TestMakeSchedule(t *testing.T) {
 	})
 
 	Convey("Windowed schedule with invalid duration", t, func() {
-		sched1 := &Schedule{Type: "windowed", Interval: "-1s"}
+		startTime := time.Now().Add(time.Minute)
+		stopTime := time.Now().Add(2 * time.Minute)
+		sched1 := &Schedule{Type: "windowed", Interval: "-1s", StartTimestamp: &startTime, StopTimestamp: &stopTime}
 		rsched, err := makeSchedule(*sched1)
 		So(rsched, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "Interval must be greater than 0")
 	})
 
-	Convey("Windowed schedule with stop in the past", t, func() {
+	Convey("Windowed schedule with missing start_timestamp", t, func() {
 		now := time.Now()
-		startSecs := now.Unix()
-		stopSecs := startSecs - 3600
+		sched1 := &Schedule{Type: "windowed", Interval: "1s", StopTimestamp: &now}
+		rsched, err := makeSchedule(*sched1)
+		So(rsched, ShouldBeNil)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldStartWith, "missing parameter/parameters in configuration of windowed schedule")
+	})
+
+	Convey("Windowed schedule with missing stop_timestamp", t, func() {
+		now := time.Now()
+		sched1 := &Schedule{Type: "windowed", Interval: "1s", StartTimestamp: &now}
+		rsched, err := makeSchedule(*sched1)
+		So(rsched, ShouldBeNil)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldStartWith, "missing parameter/parameters in configuration of windowed schedule")
+	})
+
+	Convey("Windowed schedule with stop in the past", t, func() {
+		startTime := time.Now().Add(time.Minute)
+		stopTime := time.Now().Add(-60 * time.Minute)
 		sched1 := &Schedule{Type: "windowed", Interval: "1s",
-			StartTimestamp: &startSecs, StopTimestamp: &stopSecs}
+			StartTimestamp: &startTime, StopTimestamp: &stopTime}
 		rsched, err := makeSchedule(*sched1)
 		So(rsched, ShouldBeNil)
 		So(err, ShouldNotBeNil)
@@ -96,44 +132,30 @@ func TestMakeSchedule(t *testing.T) {
 	})
 
 	Convey("Windowed schedule with stop before start", t, func() {
-		now := time.Now()
-		startSecs := now.Unix()
-		stopSecs := startSecs + 600
-		startSecs = stopSecs + 600
+		startTime := time.Now().Add(2 * time.Minute)
+		stopTime := time.Now().Add(1 * time.Minute)
 		sched1 := &Schedule{Type: "windowed", Interval: "1s",
-			StartTimestamp: &startSecs, StopTimestamp: &stopSecs}
+			StartTimestamp: &startTime, StopTimestamp: &stopTime}
 		rsched, err := makeSchedule(*sched1)
 		So(rsched, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "Stop time cannot occur before start time")
 	})
 
-	Convey("Windowed schedule with stop before start", t, func() {
-		now := time.Now()
-		startSecs := now.Unix()
-		stopSecs := startSecs + 600
-		sched1 := &Schedule{Type: "windowed", Interval: "1s",
-			StartTimestamp: &startSecs, StopTimestamp: &stopSecs}
-		rsched, err := makeSchedule(*sched1)
-		So(err, ShouldBeNil)
-		So(rsched, ShouldNotBeNil)
-		So(rsched.GetState(), ShouldEqual, 0)
-	})
-
-	Convey("Cron schedule with bad duration", t, func() {
-		sched1 := &Schedule{Type: "cron", Interval: ""}
+	Convey("Cron schedule with missing interval duration", t, func() {
+		sched1 := &Schedule{Type: "cron"}
 		rsched, err := makeSchedule(*sched1)
 		So(rsched, ShouldBeNil)
 		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldEqual, "missing cron entry")
+		So(err.Error(), ShouldEqual, "missing `interval` in configuration of cron schedule")
 	})
 
 	Convey("Cron schedule with invalid duration", t, func() {
-		sched1 := &Schedule{Type: "windowed", Interval: "-1s"}
+		sched1 := &Schedule{Type: "cron", Interval: "-1 -2 -3 -4 -5 -6"}
 		rsched, err := makeSchedule(*sched1)
 		So(rsched, ShouldBeNil)
 		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldEqual, "Interval must be greater than 0")
+		So(err.Error(), ShouldStartWith, "Failed to parse int from")
 	})
 
 	Convey("Cron schedule with too few fields entry", t, func() {

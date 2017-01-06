@@ -70,6 +70,7 @@ type AvailablePlugin interface {
 	HitCount() int
 	LastHit() time.Time
 	ID() uint32
+	Port() string
 }
 
 // the public interface for a plugin

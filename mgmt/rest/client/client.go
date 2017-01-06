@@ -34,6 +34,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 
@@ -101,6 +102,17 @@ func Username(u string) metaOp {
 	}
 }
 
+var (
+	secureTransport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
+		IdleConnTimeout: time.Second,
+	}
+	insecureTransport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		IdleConnTimeout: time.Second,
+	}
+)
+
 // New returns a pointer to a snap api client
 // if ver is an empty string, v1 is used by default
 func New(url, ver string, insecure bool, opts ...metaOp) (*Client, error) {
@@ -110,16 +122,18 @@ func New(url, ver string, insecure bool, opts ...metaOp) (*Client, error) {
 	if ver == "" {
 		ver = "v1"
 	}
+	var t *http.Transport
+	if insecure {
+		t = insecureTransport
+	} else {
+		t = secureTransport
+	}
 	c := &Client{
 		URL:     url,
 		Version: ver,
 
 		http: &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: insecure,
-				},
-			},
+			Transport: t,
 		},
 	}
 	for _, opt := range opts {
@@ -172,6 +186,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			}
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		defer rsp.Body.Close()
 	case "PUT":
 		var b *bytes.Reader
 		if len(body) == 0 {
@@ -193,6 +208,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			}
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		defer rsp.Body.Close()
 	case "DELETE":
 		var b *bytes.Reader
 		if len(body) == 0 {
@@ -214,6 +230,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			}
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		defer rsp.Body.Close()
 	case "POST":
 		var b *bytes.Reader
 		if len(body) == 0 {
@@ -234,6 +251,7 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 			}
 			return nil, fmt.Errorf("URL target is not available. %v", err)
 		}
+		defer rsp.Body.Close()
 	}
 
 	return httpRespToAPIResp(rsp)
@@ -245,7 +263,6 @@ func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, error) {
 	}
 	resp := new(rbody.APIResponse)
 	b, err := ioutil.ReadAll(rsp.Body)
-	rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}

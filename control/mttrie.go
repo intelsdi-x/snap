@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/intelsdi-x/snap/core"
 )
 
 /*
@@ -72,7 +74,8 @@ func NewMTTrie() *MTTrie {
 func (m *MTTrie) String() string {
 	out := ""
 	for _, mt := range m.gatherMetricTypes() {
-		out += fmt.Sprintf("%s => %s\n", mt.Key(), mt.Plugin.Key())
+		pluginKey := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", mt.Plugin.TypeName(), mt.Plugin.Name(), mt.Plugin.Version())
+		out += fmt.Sprintf("%s => %s\n", mt.Key(), pluginKey)
 	}
 	return out
 }
@@ -92,9 +95,11 @@ func (m *MTTrie) gatherMetricTypes() []metricType {
 }
 
 // DeleteByPlugin removes all metrics from the catalog if they match a loadedPlugin
-func (m *MTTrie) DeleteByPlugin(lp *loadedPlugin) {
+func (m *MTTrie) DeleteByPlugin(cp core.CatalogedPlugin) {
 	for _, mt := range m.gatherMetricTypes() {
-		if mt.Plugin.Key() == lp.Key() {
+		mtPluginKey := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", mt.Plugin.TypeName(), mt.Plugin.Name(), mt.Plugin.Version())
+		cpKey := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", cp.TypeName(), cp.Name(), cp.Version())
+		if mtPluginKey == cpKey {
 			// remove this metric
 			m.RemoveMetric(mt)
 		}

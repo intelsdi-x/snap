@@ -348,6 +348,49 @@ func TestSnapClient(t *testing.T) {
 				So(ttb.Err, ShouldNotBeNil)
 			})
 
+			Convey("Creating tasks with different schedule configuration", func() {
+				Convey("Creating a task with missing parameter (interval) for simple schedule", func() {
+					incorrectSchedule := &Schedule{Type: "simple"}
+					tt := c.CreateTask(incorrectSchedule, wf, "baron", "", true, 0)
+					So(tt.Err, ShouldNotBeNil)
+				})
+
+				Convey("Creating a task with missing parameters (start_timestamp and stop_timestamp) "+
+					"for windowed schedule", func() {
+					incorrectSchedule := &Schedule{Type: "windowed", Interval: "1s"}
+					tt := c.CreateTask(incorrectSchedule, wf, "baron", "", true, 0)
+					So(tt.Err, ShouldNotBeNil)
+				})
+
+				Convey("Creating a task with missing parameter (interval) for cron schedule", func() {
+					incorrectSchedule := &Schedule{Type: "cron"}
+					tt := c.CreateTask(incorrectSchedule, wf, "baron", "", true, 0)
+					So(tt.Err, ShouldNotBeNil)
+				})
+
+				Convey("Creating a task with correct configuration for simple schedule", func() {
+					correctSchedule := &Schedule{Type: "simple", Interval: "1s"}
+					tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+					So(tt.Err, ShouldBeNil)
+				})
+
+				Convey("Creating a task with correct configuration for windowed schedule", func() {
+					startTime := time.Now().Add(time.Minute)
+					stopTime := time.Now().Add(2 * time.Minute)
+					correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
+						StartTimestamp: &startTime,
+						StopTimestamp:  &stopTime}
+					tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+					So(tt.Err, ShouldBeNil)
+				})
+
+				Convey("Creating a task with correct configuration for cron schedule", func() {
+					correctSchedule := &Schedule{Type: "cron", Interval: "1 1 1 1 1 1"}
+					tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+					So(tt.Err, ShouldBeNil)
+				})
+			})
+
 			tf := c.CreateTask(sch, wf, "baron", "", false, 0)
 			Convey("valid task not started on creation", func() {
 				So(tf.Err, ShouldBeNil)

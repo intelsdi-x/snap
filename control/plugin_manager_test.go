@@ -74,7 +74,7 @@ func loadPlugin(p *pluginManager, path string) (*loadedPlugin, serror.SnapError)
 	details := &pluginDetails{
 		Path:         path,
 		ExecPath:     filepath.Dir(path),
-		Exec:         filepath.Base(path),
+		Exec:         []string{filepath.Base(path)},
 		IsAutoLoaded: true,
 	}
 	for i := 0; i < 3; i++ {
@@ -102,7 +102,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, fixtures.PluginPath)
+				lp, err := loadPlugin(p, fixtures.PluginPathMock2)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.all(), ShouldNotBeEmpty)
@@ -115,7 +115,7 @@ func TestLoadPlugin(t *testing.T) {
 				cfg.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, serr := loadPlugin(p, fixtures.PluginPath)
+				lp, serr := loadPlugin(p, fixtures.PluginPathMock2)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.all(), ShouldNotBeEmpty)
@@ -135,7 +135,7 @@ func TestLoadPlugin(t *testing.T) {
 				cfg.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test-fail", ctypes.ConfigValueBool{Value: true}))
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, fixtures.PluginPath)
+				lp, err := loadPlugin(p, fixtures.PluginPathMock2)
 
 				So(lp, ShouldBeNil)
 				So(p.all(), ShouldBeEmpty)
@@ -144,10 +144,10 @@ func TestLoadPlugin(t *testing.T) {
 				So(len(p.all()), ShouldEqual, 0)
 			})
 
-			Convey("loads json-rpc plugin successfully", func() {
+			Convey("loads native-rpc plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, fixtures.JSONRPCPluginPath)
+				lp, err := loadPlugin(p, fixtures.PluginPathMock1)
 
 				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
 				So(p.loadedPlugins, ShouldNotBeEmpty)
@@ -158,7 +158,7 @@ func TestLoadPlugin(t *testing.T) {
 			Convey("loads plugin with cache TTL set", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
-				lp, err := loadPlugin(p, fixtures.JSONRPCPluginPath)
+				lp, err := loadPlugin(p, fixtures.PluginPathMock1)
 
 				So(err, ShouldBeNil)
 				So(lp.Meta.CacheTTL, ShouldNotBeNil)
@@ -178,7 +178,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then it is removed from the loadedPlugins", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := loadPlugin(p, fixtures.PluginPath)
+					_, err := loadPlugin(p, fixtures.PluginPathMock2)
 					So(err, ShouldBeNil)
 
 					numPluginsLoaded := len(p.all())
@@ -195,7 +195,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					lp, err := loadPlugin(p, fixtures.PluginPath)
+					lp, err := loadPlugin(p, fixtures.PluginPathMock2)
 					glp, err2 := p.get("collector" + core.Separator + "mock" + core.Separator + "2")
 					So(err2, ShouldBeNil)
 					glp.State = DetectedState
@@ -208,7 +208,7 @@ func TestUnloadPlugin(t *testing.T) {
 				Convey("then an error is thrown", func() {
 					p := newPluginManager()
 					p.SetMetricCatalog(newMetricCatalog())
-					_, err := loadPlugin(p, fixtures.PluginPath)
+					_, err := loadPlugin(p, fixtures.PluginPathMock2)
 
 					lp, err2 := p.get("collector" + core.Separator + "mock" + core.Separator + "2")
 					So(err2, ShouldBeNil)

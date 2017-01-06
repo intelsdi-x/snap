@@ -22,6 +22,7 @@ limitations under the License.
 package control
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ import (
 const (
 	MOCK_CONSTRAINTS = `{
 		"$schema": "http://json-schema.org/draft-04/schema#",
-		"title": "snapd global config schema",
+		"title": "snapteld global config schema",
 		"type": ["object", "null"],
 		"properties": {
 			"control": { "$ref": "#/definitions/control" },
@@ -162,6 +163,9 @@ func TestControlConfigJSON(t *testing.T) {
 		Convey("MaxRunningPlugins should be set to 1", func() {
 			So(cfg.MaxRunningPlugins, ShouldEqual, 1)
 		})
+		Convey("max_plugin_restarts should be set to 10", func() {
+			So(cfg.MaxPluginRestarts, ShouldEqual, 10)
+		})
 		Convey("ListenAddr should be set to 0.0.0.0", func() {
 			So(cfg.ListenAddr, ShouldEqual, "0.0.0.0")
 		})
@@ -212,6 +216,7 @@ func TestControlConfigYaml(t *testing.T) {
 	config := &mockConfig{
 		Control: GetDefaultConfig(),
 	}
+	os.Setenv("password", "$password")
 	path := "../examples/configs/snap-config-sample.yaml"
 	err := cfgfile.Read(path, &config, MOCK_CONSTRAINTS)
 	var cfg *Config
@@ -230,6 +235,9 @@ func TestControlConfigYaml(t *testing.T) {
 		})
 		Convey("MaxRunningPlugins should be set to 1", func() {
 			So(cfg.MaxRunningPlugins, ShouldEqual, 1)
+		})
+		Convey("max_plugin_restarts should be set to 10", func() {
+			So(cfg.MaxPluginRestarts, ShouldEqual, 10)
 		})
 		Convey("ListenAddr should be set to 0.0.0.0", func() {
 			So(cfg.ListenAddr, ShouldEqual, "0.0.0.0")
@@ -300,6 +308,9 @@ func TestControlDefaultConfig(t *testing.T) {
 		})
 		Convey("PluginTrust should equal 1", func() {
 			So(cfg.PluginTrust, ShouldEqual, 1)
+		})
+		Convey("max_plugin_restarts should be set to 3", func() {
+			So(cfg.MaxPluginRestarts, ShouldEqual, 3)
 		})
 	})
 }

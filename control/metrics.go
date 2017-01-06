@@ -131,7 +131,7 @@ func (m *metricCatalogItem) Versions() map[int]core.Metric {
 }
 
 type metricType struct {
-	Plugin             *loadedPlugin
+	Plugin             core.CatalogedPlugin
 	namespace          core.Namespace
 	version            int
 	lastAdvertisedTime time.Time
@@ -163,12 +163,24 @@ func (m *metric) Version() int {
 	return m.version
 }
 
-func (m *metric) Data() interface{}             { return nil }
-func (m *metric) Description() string           { return "" }
-func (m *metric) Unit() string                  { return "" }
-func (m *metric) Tags() map[string]string       { return nil }
-func (m *metric) LastAdvertisedTime() time.Time { return time.Unix(0, 0) }
-func (m *metric) Timestamp() time.Time          { return time.Unix(0, 0) }
+func (m *metric) Data() interface{} {
+	return nil
+}
+func (m *metric) Description() string {
+	return ""
+}
+func (m *metric) Unit() string {
+	return ""
+}
+func (m *metric) Tags() map[string]string {
+	return nil
+}
+func (m *metric) LastAdvertisedTime() time.Time {
+	return time.Unix(0, 0)
+}
+func (m *metric) Timestamp() time.Time {
+	return time.Unix(0, 0)
+}
 
 type processesConfigData interface {
 	Process(map[string]ctypes.ConfigValue) (*map[string]ctypes.ConfigValue, *cpolicy.ProcessingErrors)
@@ -250,6 +262,78 @@ func (m *metricType) Unit() string {
 	return m.unit
 }
 
+type catalogedPlugin struct {
+	name         string
+	version      int
+	signed       bool
+	typeName     plugin.PluginType
+	state        pluginState
+	path         string
+	loadedTime   time.Time
+	configPolicy *cpolicy.ConfigPolicy
+}
+
+func (cp *catalogedPlugin) TypeName() string {
+	return cp.typeName.String()
+}
+
+func (cp *catalogedPlugin) Name() string {
+	return cp.name
+}
+
+func (cp *catalogedPlugin) Version() int {
+	return cp.version
+}
+
+func (cp *catalogedPlugin) IsSigned() bool {
+	return cp.signed
+}
+
+func (cp *catalogedPlugin) Status() string {
+	return string(cp.state)
+}
+
+func (cp *catalogedPlugin) PluginPath() string {
+	return cp.path
+}
+
+func (cp *catalogedPlugin) LoadedTimestamp() *time.Time {
+	return &cp.loadedTime
+}
+
+func (cp *catalogedPlugin) Policy() *cpolicy.ConfigPolicy {
+	return cp.configPolicy
+}
+
+func newCatalogedPlugin(lp *loadedPlugin) core.CatalogedPlugin {
+	cp := cpolicy.New()
+	for _, keyNode := range lp.Policy().GetAll() {
+		node := cpolicy.NewPolicyNode()
+		rules, err := keyNode.ConfigPolicyNode.CopyRules()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"_module": "control",
+				"_file":   "metrics.go,",
+				"_block":  "newCatalogedPlugin",
+				"error":   err.Error(),
+			}).Error("Unable to copy rules")
+			return nil
+		}
+		node.Add(rules...)
+		cp.Add(keyNode.Key, node)
+	}
+	return &catalogedPlugin{
+		name:         lp.Name(),
+		version:      lp.Version(),
+		signed:       lp.IsSigned(),
+		typeName:     lp.Type,
+		state:        lp.State,
+		path:         lp.PluginPath(),
+		loadedTime:   lp.LoadedTime,
+		configPolicy: cp,
+	}
+}
+
 type metricCatalog struct {
 	tree  *MTTrie
 	mutex *sync.Mutex
@@ -288,8 +372,9 @@ func (mc *metricCatalog) AddLoadedMetricType(lp *loadedPlugin, mt core.Metric) e
 		}).Error("error adding loaded metric type")
 		return err
 	}
+
 	newMt := metricType{
-		Plugin:             lp,
+		Plugin:             newCatalogedPlugin(lp),
 		namespace:          mt.Namespace(),
 		version:            mt.Version(),
 		lastAdvertisedTime: mt.LastAdvertisedTime(),
@@ -326,7 +411,6 @@ func (mc *metricCatalog) Add(m *metricType) {
 
 	// adding key as a cataloged keys (mc.keys)
 	mc.keys = appendIfMissing(mc.keys, key)
-
 	mc.tree.Add(m)
 }
 
@@ -366,7 +450,7 @@ func (mc *metricCatalog) GetMetric(requested core.Namespace, version int) (*metr
 		version:            catalogedmt.Version(),
 		lastAdvertisedTime: catalogedmt.LastAdvertisedTime(),
 		tags:               catalogedmt.Tags(),
-		policy:             catalogedmt.Plugin.ConfigPolicy.Get(catalogedmt.Namespace().Strings()),
+		policy:             catalogedmt.Plugin.Policy().Get(catalogedmt.Namespace().Strings()),
 		config:             catalogedmt.Config(),
 		unit:               catalogedmt.Unit(),
 		description:        catalogedmt.Description(),
@@ -414,7 +498,7 @@ func (mc *metricCatalog) GetMetrics(requested core.Namespace, version int) ([]*m
 				version:            catalogedmt.Version(),
 				lastAdvertisedTime: catalogedmt.LastAdvertisedTime(),
 				tags:               catalogedmt.Tags(),
-				policy:             catalogedmt.Plugin.ConfigPolicy.Get(catalogedmt.Namespace().Strings()),
+				policy:             catalogedmt.Plugin.Policy().Get(catalogedmt.Namespace().Strings()),
 				config:             catalogedmt.Config(),
 				unit:               catalogedmt.Unit(),
 				description:        catalogedmt.Description(),
@@ -510,7 +594,7 @@ func (mc *metricCatalog) Unsubscribe(ns []string, version int) error {
 	return m.Unsubscribe()
 }
 
-func (mc *metricCatalog) GetPlugin(mns core.Namespace, ver int) (*loadedPlugin, error) {
+func (mc *metricCatalog) GetPlugin(mns core.Namespace, ver int) (core.CatalogedPlugin, error) {
 	mt, err := mc.tree.GetMetric(mns.Strings(), ver)
 	if err != nil {
 		log.WithFields(log.Fields{

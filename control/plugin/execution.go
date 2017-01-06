@@ -35,6 +35,7 @@ import (
 var execLogger = log.WithField("_module", "plugin-exec")
 
 type ExecutablePlugin struct {
+	name   string
 	cmd    command
 	stdout io.Reader
 	stderr io.Reader
@@ -43,7 +44,7 @@ type ExecutablePlugin struct {
 // An interface for the interactions ExecutablePlugin has with an exec.Cmd
 // This way, the underlying Cmd can be mocked.
 type command interface {
-	Start()
+	Start() error
 	Kill() error
 	Path() string
 }
@@ -73,17 +74,17 @@ func (cw *commandWrapper) Kill() error {
 	_, err := cw.cmd.Process.Wait()
 	return err
 }
-func (cw *commandWrapper) Start() { cw.cmd.Start() }
+func (cw *commandWrapper) Start() error { return cw.cmd.Start() }
 
-// Initialize a new ExecutablePlugin from path to executable and daemon mode (true or false)
-func NewExecutablePlugin(a Arg, path string) (*ExecutablePlugin, error) {
+// NewExecutablePlugin returns a new ExecutablePlugin.
+func NewExecutablePlugin(a Arg, commands ...string) (*ExecutablePlugin, error) {
 	jsonArgs, err := json.Marshal(a)
 	if err != nil {
 		return nil, err
 	}
 	cmd := &exec.Cmd{
-		Path: path,
-		Args: []string{path, string(jsonArgs)},
+		Path: commands[0],
+		Args: append(commands, string(jsonArgs)),
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -112,24 +113,47 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 	stdOutScanner := bufio.NewScanner(e.stdout)
 
 	// Start the command and begin reading its output.
-	e.cmd.Start()
+	if err = e.cmd.Start(); err != nil {
+		return resp, err
+	}
+
 	e.captureStderr()
 	go func() {
-		for stdOutScanner.Scan() {
-			// The first chunk from the scanner is the plugin's response to the
-			// handshake.  Once we've received that, we can begin to forward
-			// logs on to snapd's log.
-			if !respReceived {
-				respBytes := stdOutScanner.Bytes()
-				err = json.Unmarshal(respBytes, &resp)
-				respReceived = true
-				close(doneChan)
-			} else {
-				execLogger.WithFields(log.Fields{
-					"plugin": path.Base(e.cmd.Path()),
-					"io":     "stdout",
-				}).Debug(stdOutScanner.Text())
+		for {
+			for stdOutScanner.Scan() {
+				// The first chunk from the scanner is the plugin's response to the
+				// handshake.  Once we've received that, we can begin to forward
+				// logs on to snapteld's log.
+				if !respReceived {
+					respBytes := stdOutScanner.Bytes()
+					err = json.Unmarshal(respBytes, &resp)
+					respReceived = true
+					close(doneChan)
+				} else {
+					execLogger.WithFields(log.Fields{
+						"plugin": e.name,
+						"io":     "stdout",
+					}).Debug(stdOutScanner.Text())
+				}
 			}
+
+			if errScanner := stdOutScanner.Err(); errScanner != nil {
+				reader := bufio.NewReader(e.stdout)
+				log, errRead := reader.ReadString('\n')
+				if errRead == io.EOF {
+					break
+				}
+
+				execLogger.
+					WithField("plugin", path.Base(e.cmd.Path())).
+					WithField("io", "stdout").
+					WithField("scanner_err", errScanner).
+					WithField("read_string_err", errRead).
+					Warn(log)
+
+				continue //scanner finished with errors so try to scan once again
+			}
+			break //scanner finished scanning without errors so break the loop
 		}
 	}()
 
@@ -160,6 +184,10 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 	return resp, err
 }
 
+func (e *ExecutablePlugin) SetName(name string) {
+	e.name = name
+}
+
 func (e *ExecutablePlugin) Kill() error {
 	return e.cmd.Kill()
 }
@@ -167,12 +195,31 @@ func (e *ExecutablePlugin) Kill() error {
 func (e *ExecutablePlugin) captureStderr() {
 	stdErrScanner := bufio.NewScanner(e.stderr)
 	go func() {
-		for stdErrScanner.Scan() {
-			execLogger.
-				WithField("io", "stderr").
-				WithField("plugin", path.Base(e.cmd.Path())).
-				Debug(stdErrScanner.Text())
+		for {
+			for stdErrScanner.Scan() {
+				execLogger.
+					WithField("plugin", e.name).
+					WithField("io", "stderr").
+					Debug(stdErrScanner.Text())
+			}
 
+			if errScanner := stdErrScanner.Err(); errScanner != nil {
+				reader := bufio.NewReader(e.stderr)
+				log, errRead := reader.ReadString('\n')
+				if errRead == io.EOF {
+					break
+				}
+
+				execLogger.
+					WithField("plugin", e.name).
+					WithField("io", "stderr").
+					WithField("scanner_err", errScanner).
+					WithField("read_string_err", errRead).
+					Warn(log)
+
+				continue //scanner finished with errors so try to scan once again
+			}
+			break //scanner finished scanning without errors so break the loop
 		}
 	}()
 }

@@ -51,7 +51,7 @@ func PluginPath() string {
 		arch = runtime.GOARCH
 	}
 
-	fpath := path.Join(BuildPath, runtime.GOOS, arch)
+	fpath := path.Join(BuildPath, runtime.GOOS, arch, "plugins")
 	return fpath
 }
 

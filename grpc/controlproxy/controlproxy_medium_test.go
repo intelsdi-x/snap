@@ -211,7 +211,7 @@ func TestCollectMetrics(t *testing.T) {
 		})
 	})
 
-	Convey("Control.CollectMetrics returns sucessfully", t, func() {
+	Convey("Control.CollectMetrics returns successfully", t, func() {
 		reply := &rpc.CollectMetricsResponse{
 			Metrics: []*common.Metric{&common.Metric{
 				Namespace:          common.ToNamespace(core.NewNamespace("testing", "this")),
