@@ -244,7 +244,7 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 		}
 
 		if pool.Eligible() {
-			if pool.RestartCount() < MaxPluginRestartCount {
+			if pool.RestartCount() < MaxPluginRestartCount || MaxPluginRestartCount == -1 {
 				e := r.restartPlugin(v.Key)
 				if e != nil {
 					runnerLog.WithFields(log.Fields{
@@ -257,9 +257,8 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 
 				runnerLog.WithFields(log.Fields{
 					"_block":        "handle-events",
-					"event":         v.Name,
-					"aplugin":       v.Version,
-					"restart_count": pool.RestartCount(),
+					"aplugin":       v.String,
+					"restart-count": pool.RestartCount(),
 				}).Warning("plugin restarted")
 
 				r.emitter.Emit(&control_event.RestartedAvailablePluginEvent{
@@ -270,6 +269,11 @@ func (r *runner) HandleGomitEvent(e gomit.Event) {
 					Type:    v.Type,
 				})
 			} else {
+				runnerLog.WithFields(log.Fields{
+					"_block":  "handle-events",
+					"aplugin": v.String,
+				}).Warning("plugin disabled due to exceeding restart limit: ", MaxPluginRestartCount)
+
 				r.emitter.Emit(&control_event.MaxPluginRestartsExceededEvent{
 					Id:      v.Id,
 					Name:    v.Name,
