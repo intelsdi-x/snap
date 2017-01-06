@@ -185,7 +185,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 		case <-s.killChan:
 			logger.WithFields(log.Fields{
 				"task-id": id,
-			}).Debug("snapd exiting; disconnecting client")
+			}).Debug("snapteld exiting; disconnecting client")
 			// Flush since we are sending nothing new
 			flusher.Flush()
 			// Close out watcher removing it from the scheduler

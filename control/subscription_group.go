@@ -245,15 +245,9 @@ func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin
 		"_block": "validate-plugin-subscription",
 		"plugin": fmt.Sprintf("%s:%d", pl.Name(), pl.Version()),
 	}).Info(fmt.Sprintf("validating dependencies for plugin %s:%d", pl.Name(), pl.Version()))
-	lp, err := p.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pl.TypeName(), pl.Name(), pl.Version()))
+	lp, err := p.pluginManager.get(key(pl))
 	if err != nil {
-		se := serror.New(fmt.Errorf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version()))
-		se.SetFields(map[string]interface{}{
-			"name":    pl.Name(),
-			"version": pl.Version(),
-			"type":    pl.TypeName(),
-		})
-		serrs = append(serrs, se)
+		serrs = append(serrs, pluginNotFoundError(pl))
 		return serrs
 	}
 
@@ -351,7 +345,7 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 			plugins = append(plugins, plugin)
 			// add defaults to plugins (exposed in a plugins ConfigPolicy)
 			if lp, err := s.pluginManager.get(
-				fmt.Sprintf("%s:%s:%d",
+				fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d",
 					plugin.TypeName(),
 					plugin.Name(),
 					plugin.Version())); err == nil && lp.ConfigPolicy != nil {
@@ -396,7 +390,7 @@ func (s *subscriptionGroup) subscribePlugins(id string,
 	for i, sub := range plugins {
 		plg, err := s.pluginManager.get(key(sub))
 		if err != nil {
-			serrs = append(serrs, serror.New(err))
+			serrs = append(serrs, pluginNotFoundError(sub))
 			return serrs
 		}
 		plgs[i] = plg
@@ -423,7 +417,7 @@ func (s *subscriptionGroup) subscribePlugins(id string,
 				serrs = append(serrs, serror.New(err))
 				return serrs
 			}
-			err = s.pluginRunner.runPlugin(plg.Details)
+			err = s.pluginRunner.runPlugin(plg.Name(), plg.Details)
 			if err != nil {
 				serrs = append(serrs, serror.New(err))
 				return serrs
@@ -448,9 +442,7 @@ func (p *subscriptionGroup) unsubscribePlugins(id string,
 			"version": plugin.Version(),
 			"_block":  "subscriptionGroup.unsubscribePlugins",
 		}).Debug("plugin unsubscription")
-		pool, err := p.pluginRunner.AvailablePlugins().getPool(
-			fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", plugin.TypeName(),
-				plugin.Name(), plugin.Version()))
+		pool, err := p.pluginRunner.AvailablePlugins().getPool(key(plugin))
 		if err != nil {
 			serrs = append(serrs, err)
 			return serrs
@@ -536,6 +528,16 @@ func comparePlugins(newPlugins,
 	}
 
 	return
+}
+
+func pluginNotFoundError(pl core.SubscribedPlugin) serror.SnapError {
+	se := serror.New(fmt.Errorf("Plugin not found: type(%s) name(%s) version(%d)", pl.TypeName(), pl.Name(), pl.Version()))
+	se.SetFields(map[string]interface{}{
+		"name":    pl.Name(),
+		"version": pl.Version(),
+		"type":    pl.TypeName(),
+	})
+	return se
 }
 
 func key(p core.SubscribedPlugin) string {

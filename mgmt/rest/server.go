@@ -27,13 +27,14 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"strings"
 	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/negroni"
 	"github.com/julienschmidt/httprouter"
+	"github.com/urfave/negroni"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
@@ -41,6 +42,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/pkg/stringutils"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -59,6 +61,7 @@ const (
 	defaultAuth            bool   = false
 	defaultAuthPassword    string = ""
 	defaultPortSetByConfig bool   = false
+	defaultPprof           bool   = false
 )
 
 var (
@@ -82,6 +85,7 @@ type Config struct {
 	RestAuth         bool   `json:"rest_auth"yaml:"rest_auth"`
 	RestAuthPassword string `json:"rest_auth_password"yaml:"rest_auth_password"`
 	portSetByConfig  bool   ``
+	Pprof            bool   `json:"pprof"yaml:"pprof"`
 }
 
 const (
@@ -114,6 +118,9 @@ const (
 					},
 					"addr" : {
 						"type": "string"
+					},
+					"pprof": {
+						"type": "boolean"
 					}
 				},
 				"additionalProperties": false
@@ -173,6 +180,7 @@ type Server struct {
 	r          *httprouter.Router
 	snapTLS    *snapTLS
 	auth       bool
+	pprof      bool
 	authpwd    string
 	addrString string
 	addr       net.Addr
@@ -186,14 +194,16 @@ type Server struct {
 
 // New creates a REST API server with a given config
 func New(cfg *Config) (*Server, error) {
-	// pull a few parameters from the configuration passed in by snapd
+	// pull a few parameters from the configuration passed in by snapteld
 	https := cfg.HTTPS
 	cpath := cfg.RestCertificate
 	kpath := cfg.RestKey
+	pprof := cfg.Pprof
 	s := &Server{
 		err:        make(chan error),
 		killChan:   make(chan struct{}),
 		addrString: cfg.Address,
+		pprof:      pprof,
 	}
 	if https {
 		var err error
@@ -216,7 +226,7 @@ func New(cfg *Config) (*Server, error) {
 	return s, nil
 }
 
-// GetDefaultConfig gets the default snapd configuration
+// GetDefaultConfig gets the default snapteld configuration
 func GetDefaultConfig() *Config {
 	return &Config{
 		Enable:           defaultEnable,
@@ -228,6 +238,7 @@ func GetDefaultConfig() *Config {
 		RestAuth:         defaultAuth,
 		RestAuthPassword: defaultAuthPassword,
 		portSetByConfig:  defaultPortSetByConfig,
+		Pprof:            defaultPprof,
 	}
 }
 
@@ -284,6 +295,10 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(v, &(c.RestAuthPassword)); err != nil {
 				return fmt.Errorf("%v (while parsing 'restapi::rest_auth_password')", err)
 			}
+		case "pprof":
+			if err := json.Unmarshal(v, &(c.Pprof)); err != nil {
+				return fmt.Errorf("%v (while parsing 'restapi::pprof')", err)
+			}
 		default:
 			return fmt.Errorf("Unrecognized key '%v' in global config file while parsing 'restapi'", k)
 		}
@@ -296,7 +311,7 @@ func (s *Server) SetAPIAuth(auth bool) {
 	s.auth = auth
 }
 
-// SetAPIAuthPwd sets the API authentication password from snapd
+// SetAPIAuthPwd sets the API authentication password from snapteld
 func (s *Server) SetAPIAuthPwd(pwd string) {
 	s.authpwd = pwd
 }
@@ -308,7 +323,7 @@ func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next ht
 		_, password, ok := r.BasicAuth()
 		// If we have valid password or going to tribe/agreements endpoint
 		// go to next. tribe/agreements endpoint used for populating
-		// snapctl help page when tribe mode is turned on.
+		// snaptel help page when tribe mode is turned on.
 		if ok && password == s.authpwd {
 			next(rw, r)
 		} else {
@@ -455,6 +470,7 @@ func (s *Server) BindConfigManager(c managesConfig) {
 }
 
 func (s *Server) addRoutes() {
+
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
 	s.r.GET("/v1/plugins/:type", s.getPlugins)
@@ -511,6 +527,41 @@ func (s *Server) addRoutes() {
 		s.r.GET("/v1/tribe/member/:name", s.getMember)
 		s.r.GET("/v2/tribes/members/:name", s.getMember)
 	}
+
+	// profiling tools routes
+	if s.pprof {
+		s.r.GET("/debug/pprof/", s.index)
+		s.r.GET("/debug/pprof/block", s.index)
+		s.r.GET("/debug/pprof/goroutine", s.index)
+		s.r.GET("/debug/pprof/heap", s.index)
+		s.r.GET("/debug/pprof/threadcreate", s.index)
+		s.r.GET("/debug/pprof/cmdline", s.cmdline)
+		s.r.GET("/debug/pprof/profile", s.profile)
+		s.r.GET("/debug/pprof/symbol", s.symbol)
+		s.r.GET("/debug/pprof/trace", s.trace)
+	}
+}
+
+// profiling tools handlers
+
+func (s *Server) index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	pprof.Index(w, r)
+}
+
+func (s *Server) cmdline(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	pprof.Cmdline(w, r)
+}
+
+func (s *Server) profile(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	pprof.Profile(w, r)
+}
+
+func (s *Server) symbol(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	pprof.Symbol(w, r)
+}
+
+func (s *Server) trace(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	pprof.Trace(w, r)
 }
 
 func respond(code int, b rbody.Body, w http.ResponseWriter) {
@@ -536,11 +587,7 @@ func respond(code int, b rbody.Body, w http.ResponseWriter) {
 }
 
 func parseNamespace(ns string) []string {
-	if strings.Index(ns, "/") == 0 {
-		ns = ns[1:]
-	}
-	if ns[len(ns)-1] == '/' {
-		ns = ns[:len(ns)-1]
-	}
-	return strings.Split(ns, "/")
+	fc := stringutils.GetFirstChar(ns)
+	ns = strings.Trim(ns, fc)
+	return strings.Split(ns, fc)
 }

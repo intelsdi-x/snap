@@ -158,7 +158,7 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 // the struct representing a plugin that is loaded into snap
 type pluginDetails struct {
 	CheckSum     [sha256.Size]byte
-	Exec         string
+	Exec         []string
 	ExecPath     string
 	IsPackage    bool
 	IsAutoLoaded bool
@@ -236,6 +236,7 @@ type pluginManager struct {
 	loadedPlugins     *loadedPlugins
 	logPath           string
 	pluginConfig      *pluginConfig
+	pprof             bool
 }
 
 func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
@@ -258,6 +259,13 @@ func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 }
 
 type pluginManagerOpt func(*pluginManager)
+
+// OptSetPprof sets the pprof flag on the plugin manager
+func OptSetPprof(pprof bool) pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.pprof = pprof
+	}
+}
 
 // OptSetPluginConfig sets the config on the plugin manager
 func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
@@ -290,9 +298,18 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 
 	pmLogger.WithFields(log.Fields{
 		"_block": "load-plugin",
-		"path":   filepath.Base(lPlugin.Details.Exec),
+		"path":   filepath.Base(lPlugin.Details.Exec[0]),
 	}).Info("plugin load called")
-	ePlugin, err := plugin.NewExecutablePlugin(p.GenerateArgs(int(log.GetLevel())), path.Join(lPlugin.Details.ExecPath, lPlugin.Details.Exec))
+	// We will create commands by appending the ExecPath to the actual command.
+	// The ExecPath is a temporary location where the plugin/package will be
+	// run from.
+	commands := make([]string, len(lPlugin.Details.Exec))
+	for i, e := range lPlugin.Details.Exec {
+		commands[i] = path.Join(lPlugin.Details.ExecPath, e)
+	}
+	ePlugin, err := plugin.NewExecutablePlugin(
+		p.GenerateArgs(int(log.GetLevel())),
+		commands...)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
@@ -303,7 +320,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 
 	pmLogger.WithFields(log.Fields{
 		"_block": "load-plugin",
-		"path":   filepath.Base(lPlugin.Details.Exec),
+		"path":   lPlugin.Details.Exec,
 	}).Debug(fmt.Sprintf("plugin load timeout set to %ds", p.pluginLoadTimeout))
 	resp, err := ePlugin.Run(time.Second * time.Duration(p.pluginLoadTimeout))
 	if err != nil {
@@ -312,6 +329,17 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"error":  err.Error(),
 		}).Error("load plugin error when starting plugin")
 		return nil, serror.New(err)
+	}
+
+	ePlugin.SetName(resp.Meta.Name)
+
+	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", resp.Meta.Type.String(), resp.Meta.Name, resp.Meta.Version)
+	if _, exists := p.loadedPlugins.table[key]; exists {
+		return nil, serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
+			"plugin-name":    resp.Meta.Name,
+			"plugin-version": resp.Meta.Version,
+			"plugin-type":    resp.Type.String(),
+		})
 	}
 
 	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
@@ -354,7 +382,13 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		}).Error("error in getting config policy")
 		return nil, serror.New(err)
 	}
+
 	lPlugin.ConfigPolicy = cp
+	lPlugin.Meta = resp.Meta
+	lPlugin.Type = resp.Type
+	lPlugin.Token = resp.Token
+	lPlugin.LoadedTime = time.Now()
+	lPlugin.State = LoadedState
 
 	if resp.Type == plugin.CollectorPluginType {
 		cfgNode := p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version)
@@ -486,12 +520,6 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		return nil, serror.New(e)
 	}
 
-	lPlugin.Meta = resp.Meta
-	lPlugin.Type = resp.Type
-	lPlugin.Token = resp.Token
-	lPlugin.LoadedTime = time.Now()
-	lPlugin.State = LoadedState
-
 	aErr := p.loadedPlugins.add(lPlugin)
 	if aErr != nil {
 		pmLogger.WithFields(log.Fields{
@@ -517,7 +545,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 	}
 	pmLogger.WithFields(log.Fields{
 		"_block": "unload-plugin",
-		"path":   filepath.Base(plugin.Details.Exec),
+		"path":   plugin.Details.Exec,
 	}).Info("plugin unload called")
 
 	if plugin.State != LoadedState {
@@ -570,7 +598,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 
 // GenerateArgs generates the cli args to send when stating a plugin
 func (p *pluginManager) GenerateArgs(logLevel int) plugin.Arg {
-	return plugin.NewArg(logLevel)
+	return plugin.NewArg(logLevel, p.pprof)
 }
 
 func (p *pluginManager) teardown() {

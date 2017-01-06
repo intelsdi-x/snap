@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 
+	log "github.com/Sirupsen/logrus"
 	specaci "github.com/appc/spec/aci"
 	"github.com/appc/spec/schema"
 )
@@ -39,6 +40,8 @@ var (
 	ErrCopyingFile = errors.New("Error copying file")
 	// ErrCreatingFile - Error message for error creating file
 	ErrCreatingFile = errors.New("Error creating file")
+	// ErrCreatingSymLink - Error message for creating Symlink
+	ErrCreatingSymLink = errors.New("Error creating symlink")
 	// ErrMkdirAll - Error message for error making directory
 	ErrMkdirAll = errors.New("Error making directory")
 	// ErrNext - Error message for error interating through tar file
@@ -46,6 +49,8 @@ var (
 	// ErrUntar - Error message for error untarring file
 	ErrUntar = errors.New("Error untarring file")
 )
+
+var aciLogger = log.WithField("_module", "aci")
 
 // Manifest returns the ImageManifest inside the ACI file
 func Manifest(f io.ReadSeeker) (*schema.ImageManifest, error) {
@@ -72,6 +77,8 @@ func Extract(f io.ReadSeeker) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	aciLogger.WithField("directory", dir).Debugf(
+		"Extracting archive to temporary directory")
 	for {
 		hdr, err := tr.Reader.Next()
 		if err == io.EOF {
@@ -88,11 +95,12 @@ func Extract(f io.ReadSeeker) (string, error) {
 			if err != nil {
 				return "", fmt.Errorf("%v: %v\n%v", ErrCreatingFile, file, err)
 			}
-			defer w.Close()
 			_, err = io.Copy(w, tr)
 			if err != nil {
+				w.Close()
 				return "", fmt.Errorf("%v: %v\n%v", ErrCopyingFile, file, err)
 			}
+			w.Close()
 			err = os.Chmod(file, fileMode)
 			if err != nil {
 				return "", fmt.Errorf("%v: %v\n%v", ErrChmod, file, err)
@@ -102,8 +110,16 @@ func Extract(f io.ReadSeeker) (string, error) {
 			if err != nil {
 				return "", fmt.Errorf("%v: %v\n%v", ErrMkdirAll, file, err)
 			}
+		case tar.TypeSymlink:
+			err := os.Symlink(
+				filepath.Join(dir, filepath.Dir(hdr.Name), hdr.Linkname),
+				filepath.Join(dir, hdr.Name))
+			if err != nil {
+				return "", fmt.Errorf("%v: name: %v Linkname: %v \n%v",
+					ErrCreatingSymLink, hdr.Name, hdr.Linkname, err)
+			}
 		default:
-			return "", fmt.Errorf("%v: %v", ErrUntar, hdr.Name)
+			return "", fmt.Errorf("%v (type: %d): %v", ErrUntar, hdr.Typeflag, hdr.Name)
 		}
 	}
 	return dir, nil

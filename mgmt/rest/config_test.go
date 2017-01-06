@@ -26,7 +26,7 @@ import (
 )
 
 // Since we do not have a global snap package that could be imported
-// we create a mock config struct to mock what is in snapd.go
+// we create a mock config struct to mock what is in snapteld.go
 
 type mockConfig struct {
 	LogLevel   int    `json:"-"yaml:"-"`

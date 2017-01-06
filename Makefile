@@ -20,7 +20,8 @@ ARCH = $(shell uname -m)
 
 default:
 	$(MAKE) deps
-	$(MAKE) all
+	$(MAKE) snap
+	$(MAKE) plugins
 deps:
 	bash -c "./scripts/deps.sh"
 test:
@@ -33,12 +34,28 @@ test-medium:
 	bash -c "./scripts/test.sh medium"
 test-large:
 	bash -c "./scripts/test.sh large"
-check:
-	$(MAKE) test
-all:
+test-all:
+	$(MAKE) test-legacy
+	$(MAKE) test-medium
+	$(MAKE) test-small
+	$(MAKE) test-large
+# NOTE:
+# By default compiles will use all cpu cores, use BUILD_JOBS to control number
+# of parallel builds: `BUILD_JOBS=2 make plugins`
+#
+# Build only snapteld/snaptel
+snap:
 	bash -c "./scripts/build_snap.sh"
+# Build only plugins
+plugins:
+	bash -c "./scripts/build_plugins.sh"
+# Build snap and plugins for all platforms
+all:
+	bash -c "./scripts/build_all.sh"
 install:
-	cp build/$(OS)/$(ARCH)/snapd /usr/local/bin/
-	cp build/$(OS)/$(ARCH)/snapctl /usr/local/bin/
+	mkdir -p /usr/local/sbin
+	mkdir -p /usr/local/bin
+	cp build/$(OS)/$(ARCH)/snapteld /usr/local/sbin/
+	cp build/$(OS)/$(ARCH)/snaptel /usr/local/bin/
 proto:
 	cd `echo $(GOPATH) | cut -d: -f 1`; bash -c "./src/github.com/intelsdi-x/snap/scripts/gen-proto.sh"

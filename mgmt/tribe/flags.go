@@ -22,7 +22,7 @@ package tribe
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 var (
@@ -56,6 +56,6 @@ var (
 		EnvVar: "SNAP_TRIBE_ADDR",
 	}
 
-	// Flags consumed by snapd
+	// Flags consumed by snapteld
 	Flags = []cli.Flag{flTribeNodeName, flTribe, flTribeSeed, flTribeAdvertiseAddr, flTribeAdvertisePort}
 )

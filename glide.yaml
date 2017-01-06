@@ -9,9 +9,9 @@ import:
   - schema
 - package: github.com/asaskevich/govalidator
   version: 9699ab6b38bee2e02cd3fe8b99ecf67665395c96
-- package: github.com/codegangsta/cli
-  version: 01857ac33766ce0c93856370626f9799281c14f4
-- package: github.com/codegangsta/negroni
+- package: github.com/urfave/cli
+  version: ^1.19.0
+- package: github.com/urfave/negroni
   version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
 - package: github.com/ghodss/yaml
   version: c3eb24aeea63668ebdac08d2e252f20df8b6b1ae

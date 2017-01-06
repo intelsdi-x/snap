@@ -83,6 +83,8 @@ message Metric {
         int64 int64_data = 13;
         bytes bytes_data = 14;
         bool bool_data = 15;
+        uint32 uint32_data = 16;
+        uint64 uint64_data = 17;
     }
 }
 

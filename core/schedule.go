@@ -21,21 +21,26 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/intelsdi-x/snap/pkg/schedule"
 )
 
 type Schedule struct {
-	Type           string `json:"type,omitempty"`
-	Interval       string `json:"interval,omitempty"`
-	StartTimestamp *int64 `json:"start_timestamp,omitempty"`
-	StopTimestamp  *int64 `json:"stop_timestamp,omitempty"`
+	Type           string     `json:"type,omitempty"`
+	Interval       string     `json:"interval,omitempty"`
+	StartTimestamp *time.Time `json:"start_timestamp,omitempty"`
+	StopTimestamp  *time.Time `json:"stop_timestamp,omitempty"`
 }
 
 func makeSchedule(s Schedule) (schedule.Schedule, error) {
 	switch s.Type {
 	case "simple":
+		if s.Interval == "" {
+			return nil, errors.New("missing `interval` in configuration of simple schedule")
+		}
+
 		d, err := time.ParseDuration(s.Interval)
 		if err != nil {
 			return nil, err
@@ -48,24 +53,22 @@ func makeSchedule(s Schedule) (schedule.Schedule, error) {
 		}
 		return sch, nil
 	case "windowed":
+		if s.StartTimestamp == nil || s.StopTimestamp == nil || s.Interval == "" {
+			errmsg := fmt.Sprintf("missing parameter/parameters in configuration of windowed schedule,"+
+				"start_timestamp: %s, stop_timestamp: %s, interval: %s",
+				s.StartTimestamp, s.StopTimestamp, s.Interval)
+			return nil, errors.New(errmsg)
+		}
+
 		d, err := time.ParseDuration(s.Interval)
 		if err != nil {
 			return nil, err
 		}
 
-		var start, stop *time.Time
-		if s.StartTimestamp != nil {
-			t := time.Unix(*s.StartTimestamp, 0)
-			start = &t
-		}
-		if s.StopTimestamp != nil {
-			t := time.Unix(*s.StopTimestamp, 0)
-			stop = &t
-		}
 		sch := schedule.NewWindowedSchedule(
 			d,
-			start,
-			stop,
+			s.StartTimestamp,
+			s.StopTimestamp,
 		)
 
 		err = sch.Validate()
@@ -75,7 +78,7 @@ func makeSchedule(s Schedule) (schedule.Schedule, error) {
 		return sch, nil
 	case "cron":
 		if s.Interval == "" {
-			return nil, errors.New("missing cron entry")
+			return nil, errors.New("missing `interval` in configuration of cron schedule")
 		}
 		sch := schedule.NewCronSchedule(s.Interval)
 

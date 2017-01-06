@@ -5,14 +5,14 @@ Image) format defined in the
 [App Container spec (appc)](https://github.com/appc/spec) for packaging a 
 plugin.
 
-When snap loads a plugin it detects the plugins type.  If the plugin is a binary
-the plugin is run by snapd which handshakes with the plugin via reading its 
+When Snap loads a plugin it detects the plugins type.  If the plugin is a binary
+the plugin is run by snapteld which handshakes with the plugin via reading its 
 standard output.  If the plugin is packaged as an ACI image it is extracted
-and snap executes the program referenced by the `exec` field.
+and Snap executes the program referenced by the `exec` field.
 
 ## Why  
 
-In cases where we can not or do not want to compile our plugin into a statically 
+In cases where we cannot or do not want to compile our plugin into a statically 
 linked binary we can load a plugin packaged as an ACI image.  This provides 
 an obvious advantage for plugins written in Python, Ruby, Java, etc where the 
 plugins dependencies, potentially including an entire Python virtualenv, could 
@@ -31,7 +31,7 @@ loaded the binary version of the plugin.
     * Download the latest binary 
     [release](https://github.com/appc/acbuild/releases) and install into your 
     PATH.
-2. Make snap
+2. Make Snap
     * From the root of snap run: `make`
 4. Using the acbuild tool create an image containing the mock collector plugin.
     * From the `build/plugin` directory run the following commands.
@@ -43,8 +43,6 @@ loaded the binary version of the plugin.
     acbuild write snap-plugin-collector-mock1-linux-x86_64.aci
     acbuild end
     ```
+![example](https://cloud.githubusercontent.com/assets/10092554/20983225/8355a382-bc70-11e6-82c6-6ac445e16513.gif)
 
-That's it!  
-
-![acbuild](http://i.giphy.com/3oz8xu8AXyPDNR9sL6.gif)
-
+That's it!

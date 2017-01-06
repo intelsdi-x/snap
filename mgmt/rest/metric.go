@@ -32,6 +32,7 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	apiV2 "github.com/intelsdi-x/snap/mgmt/rest/v2"
+	"github.com/intelsdi-x/snap/pkg/stringutils"
 )
 
 func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -55,8 +56,9 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 				return
 			}
 		}
-		// strip the leading '/' and split on the remaining '/'
-		ns := strings.Split(strings.TrimLeft(ns_query, "/"), "/")
+		// strip the leading char and split on the remaining.
+		fc := stringutils.GetFirstChar(ns_query)
+		ns := strings.Split(strings.TrimLeft(ns_query, fc), fc)
 		if ns[len(ns)-1] == "*" {
 			ns = ns[:len(ns)-1]
 		}

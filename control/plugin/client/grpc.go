@@ -193,9 +193,12 @@ func (g *grpcClient) Publish(metrics []core.Metric, config map[string]ctypes.Con
 		Metrics: NewMetrics(metrics),
 		Config:  ToConfigMap(config),
 	}
-	_, err := g.publisher.Publish(getContext(g.timeout), arg)
+	reply, err := g.publisher.Publish(getContext(g.timeout), arg)
 	if err != nil {
 		return err
+	}
+	if reply.Error != "" {
+		return errors.New(reply.Error)
 	}
 	return nil
 }
@@ -252,10 +255,6 @@ func (g *grpcClient) GetMetricTypes(config plugin.ConfigType) ([]core.Metric, er
 		return nil, errors.New(reply.Error)
 	}
 
-	for _, metric := range reply.Metrics {
-		metric.LastAdvertisedTime = ToTime(time.Now())
-	}
-
 	results := ToCoreMetrics(reply.Metrics)
 	return results, nil
 }
@@ -305,6 +304,14 @@ func ToCoreMetrics(mts []*rpc.Metric) []core.Metric {
 }
 
 func ToCoreMetric(mt *rpc.Metric) core.Metric {
+	if mt.Timestamp == nil {
+		mt.Timestamp = ToTime(time.Now())
+	}
+
+	if mt.LastAdvertisedTime == nil {
+		mt.LastAdvertisedTime = ToTime(time.Now())
+	}
+
 	ret := &metric{
 		namespace:          ToCoreNamespace(mt.Namespace),
 		version:            int(mt.Version),
@@ -331,8 +338,11 @@ func ToCoreMetric(mt *rpc.Metric) core.Metric {
 		ret.data = mt.GetInt64Data()
 	case *rpc.Metric_BoolData:
 		ret.data = mt.GetBoolData()
+	case *rpc.Metric_Uint32Data:
+		ret.data = mt.GetUint32Data()
+	case *rpc.Metric_Uint64Data:
+		ret.data = mt.GetUint64Data()
 	}
-
 	return ret
 }
 
@@ -374,6 +384,10 @@ func ToMetric(co core.Metric) *rpc.Metric {
 		cm.Data = &rpc.Metric_Int64Data{int64(t)}
 	case int64:
 		cm.Data = &rpc.Metric_Int64Data{t}
+	case uint32:
+		cm.Data = &rpc.Metric_Uint32Data{t}
+	case uint64:
+		cm.Data = &rpc.Metric_Uint64Data{t}
 	case []byte:
 		cm.Data = &rpc.Metric_BytesData{t}
 	case bool:

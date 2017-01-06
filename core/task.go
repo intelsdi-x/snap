@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -283,7 +284,7 @@ func UnmarshalBody(in interface{}, body io.ReadCloser) (int, error) {
 	if err != nil {
 		return 500, err
 	}
-	err = json.Unmarshal(b, in)
+	err = json.Unmarshal([]byte(os.ExpandEnv(string(b))), in)
 	if err != nil {
 		return 400, err
 	}

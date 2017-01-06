@@ -27,14 +27,17 @@ __proj_dir="$(dirname "$__dir")"
 # shellcheck source=scripts/common.sh
 . "${__dir}/common.sh"
 
-build_dir="${__proj_dir}/build"
-plugin_dir="${build_dir}/${GOOS}/x86_64"
+if [[ "${GOARCH}" == "amd64" ]]; then
+  build_dir="${__proj_dir}/build/${GOOS}/x86_64/plugins"
+else
+  build_dir="${__proj_dir}/build/${GOOS}/${GOARCH}/plugins"
+fi
 
 plugin_src_path=$1
 plugin_name=$(basename "${plugin_src_path}")
 go_build=(go build -a -ldflags "-w")
 
 _debug "plugin source: ${plugin_src_path}"
-_info "building ${plugin_name}"
+_info "building ${plugin_name} for ${GOOS}/${GOARCH}"
 
-(cd "${plugin_src_path}" && "${go_build[@]}" -o "${plugin_dir}/${plugin_name}" . || exit 1)
+(cd "${plugin_src_path}" && "${go_build[@]}" -o "${build_dir}/${plugin_name}" . || exit 1)

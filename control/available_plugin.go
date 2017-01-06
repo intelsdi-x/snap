@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -46,7 +45,7 @@ const (
 	// DefaultClientTimeout - default timeout for a client connection attempt
 	DefaultClientTimeout = time.Second * 10
 	// DefaultHealthCheckTimeout - default timeout for a health check
-	DefaultHealthCheckTimeout = time.Second * 1
+	DefaultHealthCheckTimeout = time.Second * 10
 	// DefaultHealthCheckFailureLimit - how any consecutive health check timeouts must occur to trigger a failure
 	DefaultHealthCheckFailureLimit = 3
 )
@@ -72,9 +71,9 @@ type availablePlugin struct {
 	failedHealthChecks int
 	healthChan         chan error
 	ePlugin            executablePlugin
-	exec               string
 	execPath           string
 	fromPackage        bool
+	pprofPort          string
 }
 
 // newAvailablePlugin returns an availablePlugin with information from a
@@ -92,21 +91,20 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 		healthChan:  make(chan error, 1),
 		lastHitTime: time.Now(),
 		ePlugin:     ep,
+		pprofPort:   resp.PprofAddress,
 	}
 	ap.key = fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", ap.pluginType.String(), ap.name, ap.version)
 
-	listenURL := fmt.Sprintf("http://%v/rpc", resp.ListenAddress)
 	// Create RPC Client
 	switch resp.Type {
 	case plugin.CollectorPluginType:
 		switch resp.Meta.RPCType {
-		case plugin.JSONRPC:
-			c, e := client.NewCollectorHttpJSONRPCClient(listenURL, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
-			if e != nil {
-				return nil, errors.New("error while creating client connection: " + e.Error())
-			}
-			ap.client = c
 		case plugin.NativeRPC:
+			log.WithFields(log.Fields{
+				"_module":     "control-aplugin",
+				"_block":      "newAvailablePlugin",
+				"plugin_name": ap.name,
+			}).Warning("This plugin is using a deprecated RPC protocol. Find more information here: https://github.com/intelsdi-x/snap/issues/1289 ")
 			c, e := client.NewCollectorNativeClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
@@ -160,6 +158,10 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 	}
 
 	return ap, nil
+}
+
+func (a *availablePlugin) Port() string {
+	return a.pprofPort
 }
 
 func (a *availablePlugin) ID() uint32 {
@@ -217,9 +219,9 @@ func (a *availablePlugin) LastHit() time.Time {
 // Stop halts a running availablePlugin
 func (a *availablePlugin) Stop(r string) error {
 	log.WithFields(log.Fields{
-		"_module": "control-aplugin",
-		"block":   "stop",
-		"aplugin": a,
+		"_module":     "control-aplugin",
+		"block":       "stop",
+		"plugin_name": a,
 	}).Info("stopping available plugin")
 	return a.client.Kill(r)
 }
@@ -227,17 +229,17 @@ func (a *availablePlugin) Stop(r string) error {
 // Kill assumes aplugin is not able to here a Kill RPC call
 func (a *availablePlugin) Kill(r string) error {
 	log.WithFields(log.Fields{
-		"_module": "control-aplugin",
-		"block":   "kill",
-		"aplugin": a,
+		"_module":     "control-aplugin",
+		"block":       "kill",
+		"plugin_name": a,
 	}).Info("hard killing available plugin")
 	if a.fromPackage {
 		log.WithFields(log.Fields{
-			"_module":    "control-aplugin",
-			"block":      "kill",
-			"aplugin":    a,
-			"pluginPath": path.Join(a.execPath, a.exec),
-		}).Debug("deleting available plugin path")
+			"_module":     "control-aplugin",
+			"block":       "kill",
+			"plugin_name": a,
+			"pluginPath":  a.execPath,
+		}).Debug("deleting available plugin package")
 		os.RemoveAll(filepath.Dir(a.execPath))
 	}
 	return a.ePlugin.Kill()
@@ -255,9 +257,9 @@ func (a *availablePlugin) CheckHealth() {
 			if a.failedHealthChecks > 0 {
 				// only log on first ok health check
 				log.WithFields(log.Fields{
-					"_module": "control-aplugin",
-					"block":   "check-health",
-					"aplugin": a,
+					"_module":     "control-aplugin",
+					"block":       "check-health",
+					"plugin_name": a,
 				}).Debug("health is ok")
 			}
 			a.failedHealthChecks = 0
@@ -273,16 +275,16 @@ func (a *availablePlugin) CheckHealth() {
 // and a HealthCheckFailedEvent
 func (a *availablePlugin) healthCheckFailed() {
 	log.WithFields(log.Fields{
-		"_module": "control-aplugin",
-		"block":   "check-health",
-		"aplugin": a,
+		"_module":     "control-aplugin",
+		"block":       "check-health",
+		"plugin_name": a,
 	}).Warning("heartbeat missed")
 	a.failedHealthChecks++
 	if a.failedHealthChecks >= DefaultHealthCheckFailureLimit {
 		log.WithFields(log.Fields{
-			"_module": "control-aplugin",
-			"block":   "check-health",
-			"aplugin": a,
+			"_module":     "control-aplugin",
+			"block":       "check-health",
+			"plugin_name": a,
 		}).Warning("heartbeat failed")
 		pde := &control_event.DeadAvailablePluginEvent{
 			Name:    a.name,
@@ -439,12 +441,10 @@ func (ap *availablePlugins) collectMetrics(pluginKey string, metricTypes []core.
 }
 
 func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
-	var errs []error
 	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
-		errs = append(errs, serr)
-		return errs
+		return []error{serr}
 	}
 	if pool == nil {
 		return []error{serror.New(ErrPoolNotFound, map[string]interface{}{"pool-key": key})}
@@ -453,10 +453,9 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 	pool.RLock()
 	defer pool.RUnlock()
 
-	p, err := pool.SelectAP(taskID, config)
-	if err != nil {
-		errs = append(errs, err)
-		return errs
+	p, serr := pool.SelectAP(taskID, config)
+	if serr != nil {
+		return []error{serr}
 	}
 
 	cli, ok := p.(*availablePlugin).client.(client.PluginPublisherClient)
@@ -464,9 +463,9 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 		return []error{errors.New("unable to cast client to PluginPublisherClient")}
 	}
 
-	errp := cli.Publish(metrics, config)
-	if errp != nil {
-		return []error{errp}
+	err := cli.Publish(metrics, config)
+	if err != nil {
+		return []error{err}
 	}
 	p.(*availablePlugin).hitCount++
 	p.(*availablePlugin).lastHitTime = time.Now()

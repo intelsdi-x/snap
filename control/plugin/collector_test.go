@@ -51,15 +51,17 @@ func TestStartCollector(t *testing.T) {
 	Convey("Collector", t, func() {
 		Convey("start with dynamic port", func() {
 			m := &PluginMeta{
-				RPCType: JSONRPC,
+				RPCType: NativeRPC,
 				Type:    CollectorPluginType,
 			}
 			c := new(MockPlugin)
+
 			err, rc := Start(m, c, "{}")
 			So(err, ShouldBeNil)
 			So(rc, ShouldEqual, 0)
-			Convey("RPC service already registered", func() {
-				So(func() { Start(m, c, "{}") }, ShouldPanic)
+
+			Convey("RPC service should not panic", func() {
+				So(func() { Start(m, c, "{}") }, ShouldNotPanic)
 			})
 		})
 	})

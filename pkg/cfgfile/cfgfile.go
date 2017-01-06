@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -104,6 +105,7 @@ func Read(path string, v interface{}, schema string) []serror.SnapError {
 	if err != nil {
 		return []serror.SnapError{serror.New(err)}
 	}
+	b = []byte(os.ExpandEnv(string(b)))
 	// convert from YAML to JSON (remember, JSON is actually valid YAML)
 	jb, err := yaml.YAMLToJSON(b)
 	if err != nil {

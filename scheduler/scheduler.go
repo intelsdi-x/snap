@@ -487,7 +487,6 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 	var subbedDeps []string
 	for k := range depGroups {
 		var errs []serror.SnapError
-		// cps := returnCorePlugin(depGroups[k].subscribedPlugins)
 		mgr, err := t.RemoteManagers.Get(k)
 		if err != nil {
 			errs = append(errs, serror.New(err))
