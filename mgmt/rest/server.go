@@ -20,7 +20,6 @@ limitations under the License.
 package rest
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -28,7 +27,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
-	"strings"
 	"sync"
 	"time"
 
@@ -39,10 +37,8 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/serror"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
-	"github.com/intelsdi-x/snap/pkg/stringutils"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -411,8 +407,8 @@ func (s *Server) serveTLS(ln net.Listener) {
 	if err != nil {
 		select {
 		case <-s.closingChan:
-			// If we called Stop() then there will be a value in s.closingChan, so
-			// we'll get here and we can exit without showing the error.
+		// If we called Stop() then there will be a value in s.closingChan, so
+		// we'll get here and we can exit without showing the error.
 		default:
 			restLogger.Error(err)
 			s.err <- err
@@ -426,8 +422,8 @@ func (s *Server) serve(ln net.Listener) {
 	if err != nil {
 		select {
 		case <-s.closingChan:
-			// If we called Stop() then there will be a value in s.closingChan, so
-			// we'll get here and we can exit without showing the error.
+		// If we called Stop() then there will be a value in s.closingChan, so
+		// we'll get here and we can exit without showing the error.
 		default:
 			restLogger.Error(err)
 			s.err <- err
@@ -470,6 +466,19 @@ func (s *Server) BindConfigManager(c managesConfig) {
 }
 
 func (s *Server) addRoutes() {
+	/*
+		== v2 routes ==
+	*/
+
+	// metric routes
+	s.r.GET("/v2/metrics", s.getMetricsV2)
+
+	// task routes
+	s.r.GET("/v2/tasks", s.getTasksV2)
+
+	/*
+		== v1 routes ==
+	*/
 
 	// plugin routes
 	s.r.GET("/v1/plugins", s.getPlugins)
@@ -484,15 +493,10 @@ func (s *Server) addRoutes() {
 
 	// metric routes
 	s.r.GET("/v1/metrics", s.getMetrics)
-	s.r.GET("/v2/metrics", s.getMetrics)
-
 	s.r.GET("/v1/metrics/*namespace", s.getMetricsFromTree)
-	s.r.GET("/v2/metrics/*namespace", s.getMetricsFromTree)
 
 	// task routes
 	s.r.GET("/v1/tasks", s.getTasks)
-	s.r.GET("/v2/tasks", s.getTasks)
-
 	s.r.GET("/v1/tasks/:id", s.getTask)
 	s.r.GET("/v1/tasks/:id/watch", s.watchTask)
 	s.r.POST("/v1/tasks", s.addTask)
@@ -504,28 +508,13 @@ func (s *Server) addRoutes() {
 	// tribe routes
 	if s.tr != nil {
 		s.r.GET("/v1/tribe/agreements", s.getAgreements)
-		s.r.GET("/v2/tribes/agreements", s.getAgreements)
-
 		s.r.POST("/v1/tribe/agreements", s.addAgreement)
-		s.r.POST("/v2/tribes/agreements", s.addAgreement)
-
 		s.r.GET("/v1/tribe/agreements/:name", s.getAgreement)
-		s.r.GET("/v2/tribes/agreements/:name", s.getAgreement)
-
 		s.r.DELETE("/v1/tribe/agreements/:name", s.deleteAgreement)
-		s.r.DELETE("/v2/tribes/agreements/:name", s.deleteAgreement)
-
 		s.r.PUT("/v1/tribe/agreements/:name/join", s.joinAgreement)
-		s.r.PUT("/v2/tribes/agreements/:name/join", s.joinAgreement)
-
 		s.r.DELETE("/v1/tribe/agreements/:name/leave", s.leaveAgreement)
-		s.r.DELETE("/v2/tribes/agreements/:name/leave", s.leaveAgreement)
-
 		s.r.GET("/v1/tribe/members", s.getMembers)
-		s.r.GET("/v2/tribes/members", s.getMembers)
-
 		s.r.GET("/v1/tribe/member/:name", s.getMember)
-		s.r.GET("/v2/tribes/members/:name", s.getMember)
 	}
 
 	// profiling tools routes
@@ -562,32 +551,4 @@ func (s *Server) symbol(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 
 func (s *Server) trace(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	pprof.Trace(w, r)
-}
-
-func respond(code int, b rbody.Body, w http.ResponseWriter) {
-	resp := &rbody.APIResponse{
-		Meta: &rbody.APIResponseMeta{
-			Code:    code,
-			Message: b.ResponseBodyMessage(),
-			Type:    b.ResponseBodyType(),
-			Version: APIVersion,
-		},
-		Body: b,
-	}
-	if !w.(negroni.ResponseWriter).Written() {
-		w.WriteHeader(code)
-	}
-
-	j, err := json.MarshalIndent(resp, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
-	fmt.Fprint(w, string(j))
-}
-
-func parseNamespace(ns string) []string {
-	fc := stringutils.GetFirstChar(ns)
-	ns = strings.Trim(ns, fc)
-	return strings.Split(ns, fc)
 }

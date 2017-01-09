@@ -20,9 +20,7 @@ limitations under the License.
 package rest
 
 import (
-	"fmt"
 	"net/http"
-	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,7 +29,6 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
-	apiV2 "github.com/intelsdi-x/snap/mgmt/rest/v2"
 	"github.com/intelsdi-x/snap/pkg/stringutils"
 )
 
@@ -42,9 +39,6 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 	// perform a query
 	q := r.URL.Query()
 	v := q.Get("ver")
-	// apiVersion should be "v1" or "v2".
-	// If apiVersion != "v2" calls default to V1 functionality
-	apiVersion := r.URL.Path[1:3]
 	ns_query := q.Get("ns")
 	if ns_query != "" {
 		ver = 0 // 0: get all versions
@@ -68,7 +62,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mts, w, apiVersion)
+		respondWithMetrics(r.Host, mts, w)
 		return
 	}
 
@@ -77,7 +71,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	respondWithMetrics(r.Host, mts, w, apiVersion)
+	respondWithMetrics(r.Host, mts, w)
 }
 
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -100,9 +94,6 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	)
 	q := r.URL.Query()
 	v := q.Get("ver")
-	// apiVersion should be "v1" or "v2".
-	// If apiVersion != "v2" calls default to V1 functionality
-	apiVersion := r.URL.Path[1:3]
 
 	if ns[len(ns)-1] == "*" {
 		if v == "" {
@@ -120,7 +111,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mts, w, apiVersion)
+		respondWithMetrics(r.Host, mts, w)
 		return
 	}
 
@@ -131,7 +122,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mts, w, apiVersion)
+		respondWithMetrics(r.Host, mts, w)
 		return
 	}
 
@@ -161,7 +152,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		Description:     mt.Description(),
 		Unit:            mt.Unit(),
 		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
-		Href: catalogedMetricURI(r.Host, mt),
+		Href: catalogedMetricURI(r.Host, "v1", mt),
 	}
 	policies := rbody.PolicyTableSlice(mt.Policy().RulesAsTable())
 	mb.Policy = policies
@@ -169,11 +160,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	respond(200, b, w)
 }
 
-func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter, version string) {
-	if version == "v2" {
-		apiV2.RespondWithMetrics(host, mts, w)
-		return
-	}
+func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
 	b := rbody.NewMetricsReturned()
 	for _, m := range mts {
 		policies := rbody.PolicyTableSlice(m.Policy().RulesAsTable())
@@ -191,15 +178,11 @@ func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.Response
 			DynamicElements:         dynamicElements,
 			Unit:                    m.Unit(),
 			Policy:                  policies,
-			Href:                    catalogedMetricURI(host, m),
+			Href:                    catalogedMetricURI(host, "v1", m),
 		})
 	}
 	sort.Sort(b)
 	respond(200, b, w)
-}
-
-func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics?ns=%s&ver=%d", protocolPrefix, host, url.QueryEscape(mt.Namespace().String()), mt.Version())
 }
 
 func getDynamicElements(ns core.Namespace, indexes []int) []rbody.DynamicElement {
