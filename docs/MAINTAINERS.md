@@ -17,7 +17,7 @@ Below is the list of Snap Maintainers, they are largely responsible for approvin
 | Name              | Tag                |
 |:------------------|:-------------------|
 | Andrzej Kuriata   | @andrzej-k         |  
-| Cody Roseborough  | @IRCody           s |  
+| Cody Roseborough  | @IRCody            |  
 | Emily Gu          | @candysmurf        |  
 | Izabella Raulin   | @IzabellaRaulin    |  
 | Joel Cooklin      | @jcooklin          |  
@@ -32,7 +32,7 @@ Below is the list of Snap Maintainers, they are largely responsible for approvin
 | Matt Brender      | @mjbrender         |  
 | Nicholas Weaver   | @lynxbat           |  
 | Olivier Cano      | @kindermoumoute    |  
-| Patryk Matyjasek  | @PatryMatyjasek    |  
+| Patryk Matyjasek  | @PatrykMatyjasek   |
 | Rashmi Gottipati  | @rashmigottipati   |  
 
 ### Responsibilities of Snap Maintainers
