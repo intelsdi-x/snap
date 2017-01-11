@@ -1,9 +1,33 @@
 myfcn(
 [
   {
+    "name": "Syslog",
+    "type": "Collector",
+    "description": "Collects syslog events.",
+    "url": "https://github.com/opsvision/snap-plugin-collector-syslog"
+  },
+  {
+    "name": "Circonus",
+    "type": "Publisher",
+    "description": "Publishes metrics to Circonus.",
+    "url": "https://github.com/circonus-labs/snap-plugin-publisher-circonus"
+  },
+  {
+    "name": "Sessioninfo",
+    "type": "Collector",
+    "description": "Collects Paloalto firewall session info",
+    "url": "https://github.com/IrekRomaniuk/snap-plugin-collector-sessioninfo"
+  },
+  {
+    "name": "Kubestate",
+    "type": "Collector",
+    "description": "Snap collector plugin for Kubernetes",
+    "url": "https://github.com/raintank/snap-plugin-collector-kubestate"
+  },
+  {
     "name": "Ping",
     "type": "Collector",
-    "description": "No description available.",
+    "description": "A collector for icmp latency and packet loss",
     "url": "https://github.com/raintank/snap-plugin-collector-ping"
   },
   {
@@ -17,6 +41,18 @@ myfcn(
     "type": "Collector",
     "description": "Memcach stat collector plugin for Snap",
     "url": "https://github.com/raintank/snap-plugin-collector-memcache"
+  },
+  {
+    "name": "Snapstats",
+    "type": "Collector",
+    "description": "Snap collector for snap task metrics to be able to monitor Snap.",
+    "url": "https://github.com/raintank/snap-plugin-collector-snapstats"
+  },
+  {
+    "name": "Tcpconns",
+    "type": "Collector",
+    "description": "No description available.",
+    "url": "https://github.com/raintank/snap-plugin-collector-tcpconns"
   },
   {
     "name": "Couchbase",
@@ -63,7 +99,7 @@ myfcn(
   {
     "name": "Cassandra",
     "type": "Collector",
-    "description": "A collector plugin for Cassandra cluster statistics",
+    "description": "Collects Cassandra cluster statistics",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-cassandra"
   },
   {
@@ -129,7 +165,7 @@ myfcn(
   {
     "name": "Facter",
     "type": "Collector",
-    "description": "Collects system information via Facter facts",
+    "description": "Collects system information via Facter",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-facter"
   },
   {
@@ -143,12 +179,6 @@ myfcn(
     "type": "Collector",
     "description": "Collects HAProxy performance metrics",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-haproxy"
-  },
-  {
-    "name": "Sessioninfo",
-    "type": "Collector",
-    "description": "Collects Paloalto firewall session info",
-    "url": "https://github.com/IrekRomaniuk/snap-plugin-collector-sessioninfo"
   },
   {
     "name": "InfluxDB",
@@ -283,6 +313,12 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-scaleio"
   },
   {
+    "name": "Scsi",
+    "type": "Collector",
+    "description": "Collects Linux SCSI statistics",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-scsi"
+  },
+  {
     "name": "Schedstat",
     "type": "Collector",
     "description": "Collects Linux scheduler metrics from /proc/schedstats",
@@ -305,6 +341,12 @@ myfcn(
     "type": "Collector",
     "description": "Collects Linux swap metrics from /proc",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-swap"
+  },
+  {
+    "name": "USE",
+    "type": "Collector",
+    "description": "Collect Linux Utilization, Saturation and Errors metrics",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-use"
   },
   {
     "name": "Users",
