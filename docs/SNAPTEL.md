@@ -21,19 +21,23 @@ limitations under the License.
 A powerful telemetry framework
 
 ## Usage
+The `snap-telemetry` package installs `snaptel` in `/usr/local/sbin/snaptel`, and `snapteld` in `/usr/local/sbin/snapteld`. Either ensure `/usr/local/bin:/usr/local/sbin` is in your path, or use fully qualified filepath to the `snaptel`/`snapteld` binary:
+
 ```
-$ $SNAP_PATH/bin/snaptel [global options] command [command options] [arguments...]
+$ snaptel [global options] command [command options] [arguments...]
 ```
+
 ### Global Options
 ```
 --url, -u 'http://localhost:8181'    Sets the URL to use [$SNAP_URL]
 --insecure                           Ignore certificate errors when Snap's API is running HTTPS
 --api-version, -a 'v1'               The Snap API version
---password, -p			             Password for REST API authentication
---config, -c 			             Path to a config file [$SNAPTEL_CONFIG_PATH]
+--password, -p                       Password for REST API authentication
+--config, -c                         Path to a config file [$SNAPTEL_CONFIG_PATH]
 --help, -h                           show help
 --version, -v                        print the version
 ```
+
 ### Commands
 ```
 metric
@@ -41,54 +45,57 @@ plugin
 task
 help, h      Shows a list of commands or help for one command
 ```
+
 ### Command Options
+
 #### task
 ```
-$ $SNAP_PATH/bin/snaptel task command [command options] [arguments...]
+$ snaptel task command [command options] [arguments...]
 ```
 ```
 create      There are two ways to create a task.
-                1) Use a task manifest with [--task-manifest, t]
-                2) Provide a workflow manifest and schedule details [--workflow-manifest, -w]
+              1) Use a task manifest with [--task-manifest, t]
+              2) Provide a workflow manifest and schedule details [--workflow-manifest, -w]
 
-               --task-manifest, -t          File path for task manifest to use for task creation.
-			   --workflow-manifest, -w      File path for workflow manifest to use for task creation
-			   --interval, -i               Interval for the task schedule [ex (simple schedule): 250ms, 1s, 30m (cron schedule): "0 * * * * *"]
-			   --start-date                 Start date for the task schedule [defaults to today]
-			   --start-time                 Start time for the task schedule [defaults to now]
-			   --stop-date                  Stop date for the task schedule [defaults to today]
-			   --stop-time                  Start time for the task schedule [defaults to now]
-			   --name, -n                   Optional requirement for giving task names
-			   --duration, -d               The amount of time to run the task [appends to start or creates a start time before a stop]
-			   --no-start                   Do not start task on creation [normally started on creation]
+              --task-manifest value, -t value      File path for task manifest to use for task creation.
+              --workflow-manifest value, -w value  File path for workflow manifest to use for task creation
+              --interval value, -i value           Interval for the task schedule [ex (simple schedule): 250ms, 1s, 30m (cron schedule): "0 * * * * *"]
+              --start-date value                   Start date for the task schedule [defaults to today]
+              --start-time value                   Start time for the task schedule [defaults to now]
+              --stop-date value                    Stop date for the task schedule [defaults to today]
+              --stop-time value                    Start time for the task schedule [defaults to now]
+              --name value, -n value               Optional requirement for giving task names
+              --duration value, -d value           The amount of time to run the task [appends to start or creates a start time before a stop]
+              --no-start                           Do not start task on creation [normally started on creation]
+              --deadline value                     The deadline for the task to be killed after started if the task runs too long (All tasks default to 5s)
+              --max-failures value                 The number of consecutive failures before Snap disables the task
 
-        	* Note: Start and stop date/time are optional.
-list         list
-start        start <task_id>
-stop         stop <task_id>
-remove       remove <task_id>
-export       export <task_id>
-watch        watch <task_id>
-enable       enable <task_id>
-help, h      Shows a list of commands or help for one command
+            * Note: Start and stop date/time are optional.
+list        list
+start       start <task_id>
+stop        stop <task_id>
+remove      remove <task_id>
+export      export <task_id>
+watch       watch <task_id>
+enable      enable <task_id>
+help, h     Shows a list of commands or help for one command
 ```
+
 #### plugin
 ```
-$ $SNAP_PATH/bin/snaptel plugin command [command options] [arguments...]
+$ snaptel plugin command [command options] [arguments...]
 ```
 ```
-load		load <plugin path>
-				--plugin-asc, -a     The armored detached plugin signature file (.asc)
-unload		unload -t <plugin-type> -n <plugin_name> -v <plugin_version>
-				--plugin-type, -t            The plugin type
-			    --plugin-name, -n            The plugin name
-			    --plugin-version, -v '0'     The plugin version
-list		list
-help, h		Shows a list of commands or help for one command
+load        load <plugin_path>
+unload      unload <plugin_type> <plugin_name> <plugin_version>
+swap        swap <load_plugin_path> <unload_plugin_type>:<unload_plugin_name>:<unload_plugin_version> or swap <load_plugin_path> -t <unload_plugin_type> -n <unload_plugin_name> -v <unload_plugin_version>
+list        list
+help, h     Shows a list of commands or help for one command
 ```
+
 #### metric
 ```
-$ $SNAP_PATH/bin/snaptel metric command [command options] [arguments...]
+$ snaptel metric command [command options] [arguments...]
 ```
 ```
 list         list
@@ -103,7 +110,7 @@ Example Usage
 
 In one terminal window, run snapteld (log level is set to 1 and signing is turned off for this example):
 ```
-$ $SNAP_PATH/bin/snapteld -l 1 -t 0
+$ snapteld --log-level 1 --log-path '' --plugin-trust 0
 ```
 
 prepare a task manifest file, for example, task.json with following content:
@@ -155,10 +162,10 @@ prepare a workflow manifest file, for example, workflow.json with the following 
             "/intel/mock/foo": {}
         },
         "config": {
-	    "/intel/mock/foo": {
-		"password": "testval"
+            "/intel/mock/foo": {
+                "password": "testval"
             }
-	},
+        },
         "process": [],
         "publish": [
             {
@@ -184,14 +191,14 @@ and then:
 8. unload the plugins
 
 ```
-$ $SNAP_PATH/bin/snaptel plugin load $SNAP_PATH/plugin/snap-plugin-collector-mock1
-$ $SNAP_PATH/bin/snaptel plugin load $SNAP_PATH/plugin/snap-plugin-processor-passthru
-$ $SNAP_PATH/bin/snaptel plugin load $SNAP_PATH/plugin/snap-plugin-publisher-mock-file
-$ $SNAP_PATH/bin/snaptel plugin list
-$ $SNAP_PATH/bin/snaptel task create -t mock-file.json
-$ $SNAP_PATH/bin/snaptel task create -w workflow.json -i 1s -d 10s
-$ $SNAP_PATH/bin/snaptel task list
-$ $SNAP_PATH/bin/snaptel plugin unload -t collector -n mock -v <version>
-$ $SNAP_PATH/bin/snaptel plugin unload -t processor -n passthru -v <version>
-$ $SNAP_PATH/bin/snaptel plugin unload -t publisher -n publisher -v <version>
+$ snaptel plugin load /opt/snap/plugins/snap-plugin-collector-mock1
+$ snaptel plugin load /opt/snap/plugins/snap-plugin-processor-passthru
+$ snaptel plugin load /opt/snap/plugins/snap-plugin-publisher-mock-file
+$ snaptel plugin list
+$ snaptel task create -t mock-file.json
+$ snaptel task create -w workflow.json -i 1s -d 10s
+$ snaptel task list
+$ snaptel plugin unload collector mock <version>
+$ snaptel plugin unload processor passthru <version>
+$ snaptel plugin unload publisher publisher <version>
 ```
