@@ -20,9 +20,7 @@ limitations under the License.
 package rest
 
 import (
-	"fmt"
 	"net/http"
-	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -59,21 +57,21 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 			ns = ns[:len(ns)-1]
 		}
 
-		mets, err := s.mm.FetchMetrics(core.NewNamespace(ns...), ver)
+		mts, err := s.mm.FetchMetrics(core.NewNamespace(ns...), ver)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mets, w)
+		respondWithMetrics(r.Host, mts, w)
 		return
 	}
 
-	mets, err := s.mm.MetricCatalog()
+	mts, err := s.mm.MetricCatalog()
 	if err != nil {
 		respond(500, rbody.FromError(err), w)
 		return
 	}
-	respondWithMetrics(r.Host, mets, w)
+	respondWithMetrics(r.Host, mts, w)
 }
 
 func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -108,23 +106,23 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 			}
 		}
 
-		mets, err := s.mm.FetchMetrics(core.NewNamespace(ns[:len(ns)-1]...), ver)
+		mts, err := s.mm.FetchMetrics(core.NewNamespace(ns[:len(ns)-1]...), ver)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mets, w)
+		respondWithMetrics(r.Host, mts, w)
 		return
 	}
 
 	// If no version was given, get all version that fall at this namespace.
 	if v == "" {
-		mets, err := s.mm.FetchMetrics(core.NewNamespace(ns...), 0)
+		mts, err := s.mm.FetchMetrics(core.NewNamespace(ns...), 0)
 		if err != nil {
 			respond(404, rbody.FromError(err), w)
 			return
 		}
-		respondWithMetrics(r.Host, mets, w)
+		respondWithMetrics(r.Host, mts, w)
 		return
 	}
 
@@ -154,64 +152,37 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		Description:     mt.Description(),
 		Unit:            mt.Unit(),
 		LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
-		Href: catalogedMetricURI(r.Host, mt),
+		Href: catalogedMetricURI(r.Host, "v1", mt),
 	}
-	rt := mt.Policy().RulesAsTable()
-	policies := make([]rbody.PolicyTable, 0, len(rt))
-	for _, r := range rt {
-		policies = append(policies, rbody.PolicyTable{
-			Name:     r.Name,
-			Type:     r.Type,
-			Default:  r.Default,
-			Required: r.Required,
-			Minimum:  r.Minimum,
-			Maximum:  r.Maximum,
-		})
-	}
+	policies := rbody.PolicyTableSlice(mt.Policy().RulesAsTable())
 	mb.Policy = policies
 	b.Metric = mb
 	respond(200, b, w)
 }
 
-func respondWithMetrics(host string, mets []core.CatalogedMetric, w http.ResponseWriter) {
+func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
 	b := rbody.NewMetricsReturned()
-
-	for _, met := range mets {
-		rt := met.Policy().RulesAsTable()
-		policies := make([]rbody.PolicyTable, 0, len(rt))
-		for _, r := range rt {
-			policies = append(policies, rbody.PolicyTable{
-				Name:     r.Name,
-				Type:     r.Type,
-				Default:  r.Default,
-				Required: r.Required,
-				Minimum:  r.Minimum,
-				Maximum:  r.Maximum,
-			})
-		}
-		dyn, indexes := met.Namespace().IsDynamic()
+	for _, m := range mts {
+		policies := rbody.PolicyTableSlice(m.Policy().RulesAsTable())
+		dyn, indexes := m.Namespace().IsDynamic()
 		var dynamicElements []rbody.DynamicElement
 		if dyn {
-			dynamicElements = getDynamicElements(met.Namespace(), indexes)
+			dynamicElements = getDynamicElements(m.Namespace(), indexes)
 		}
 		b = append(b, rbody.Metric{
-			Namespace:               met.Namespace().String(),
-			Version:                 met.Version(),
-			LastAdvertisedTimestamp: met.LastAdvertisedTime().Unix(),
-			Description:             met.Description(),
+			Namespace:               m.Namespace().String(),
+			Version:                 m.Version(),
+			LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
+			Description:             m.Description(),
 			Dynamic:                 dyn,
 			DynamicElements:         dynamicElements,
-			Unit:                    met.Unit(),
+			Unit:                    m.Unit(),
 			Policy:                  policies,
-			Href:                    catalogedMetricURI(host, met),
+			Href:                    catalogedMetricURI(host, "v1", m),
 		})
 	}
 	sort.Sort(b)
 	respond(200, b, w)
-}
-
-func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
-	return fmt.Sprintf("%s://%s/v1/metrics?ns=%s&ver=%d", protocolPrefix, host, url.QueryEscape(mt.Namespace().String()), mt.Version())
 }
 
 func getDynamicElements(ns core.Namespace, indexes []int) []rbody.DynamicElement {

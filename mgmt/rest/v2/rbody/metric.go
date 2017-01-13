@@ -21,13 +21,9 @@ package rbody
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
-)
-
-const (
-	MetricsReturnedType = "metrics_returned"
-	MetricReturnedType  = "metric_returned"
 )
 
 type PolicyTable cpolicy.RuleTable
@@ -56,16 +52,13 @@ type MetricReturned struct {
 	Metric *Metric
 }
 
-func (m *MetricReturned) ResponseBodyMessage() string {
-	return "Metric returned"
-}
-
-func (m *MetricReturned) ResponseBodyType() string {
-	return MetricReturnedType
-}
-
 type MetricsReturned []Metric
 
+func NewMetricsReturned() MetricsReturned {
+	return make([]Metric, 0)
+}
+
+// Used to sort the metrics before marshalling the response
 func (m MetricsReturned) Len() int {
 	return len(m)
 }
@@ -78,14 +71,23 @@ func (m MetricsReturned) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
 
-func NewMetricsReturned() MetricsReturned {
-	return make([]Metric, 0)
+type StreamedMetric struct {
+	Namespace string            `json:"namespace"`
+	Data      interface{}       `json:"data"`
+	Timestamp time.Time         `json:"timestamp"`
+	Tags      map[string]string `json:"tags"`
 }
 
-func (m MetricsReturned) ResponseBodyMessage() string {
-	return "Metrics returned"
+type StreamedMetrics []StreamedMetric
+
+func (s StreamedMetrics) Len() int {
+	return len(s)
 }
 
-func (m MetricsReturned) ResponseBodyType() string {
-	return MetricsReturnedType
+func (s StreamedMetrics) Less(i, j int) bool {
+	return fmt.Sprintf("%s", s[i].Namespace) < fmt.Sprintf("%s", s[j].Namespace)
+}
+
+func (s StreamedMetrics) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
