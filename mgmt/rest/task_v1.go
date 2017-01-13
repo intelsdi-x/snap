@@ -28,7 +28,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	apiV2 "github.com/intelsdi-x/snap/mgmt/rest/v2"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/intelsdi-x/snap/core"
@@ -51,19 +50,12 @@ func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		return
 	}
 	taskB := rbody.AddSchedulerTaskFromTask(task)
-	taskB.Href = taskURI(r.Host, task)
+	taskB.Href = taskURI(r.Host, "v1", task)
 	respond(201, taskB, w)
 }
 
 func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	sts := s.mt.GetTasks()
-	// apiVersion should be "v1" or "v2".
-	// If apiVersion != "v2" calls default to V1 functionality
-	apiVersion := r.URL.Path[1:3]
-	if apiVersion == "v2" {
-		apiV2.GetTasks(w, r, sts)
-		return
-	}
 
 	tasks := &rbody.ScheduledTaskListReturned{}
 	tasks.ScheduledTasks = make([]rbody.ScheduledTask, len(sts))
@@ -71,7 +63,7 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	i := 0
 	for _, t := range sts {
 		tasks.ScheduledTasks[i] = *rbody.SchedulerTaskFromTask(t)
-		tasks.ScheduledTasks[i].Href = taskURI(r.Host, t)
+		tasks.ScheduledTasks[i].Href = taskURI(r.Host, "v1", t)
 		i++
 	}
 	sort.Sort(tasks)
@@ -87,7 +79,7 @@ func (s *Server) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 	}
 	task := &rbody.ScheduledTaskReturned{}
 	task.AddScheduledTask = *rbody.AddSchedulerTaskFromTask(t)
-	task.Href = taskURI(r.Host, t)
+	task.Href = taskURI(r.Host, "v1", t)
 	respond(200, task, w)
 }
 
@@ -301,8 +293,4 @@ func (t *TaskWatchHandler) CatchTaskDisabled(why string) {
 		EventType: rbody.TaskWatchTaskDisabled,
 		Message:   why,
 	}
-}
-
-func taskURI(host string, t core.Task) string {
-	return fmt.Sprintf("%s://%s/v1/tasks/%s", protocolPrefix, host, t.ID())
 }
