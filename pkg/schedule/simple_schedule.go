@@ -59,7 +59,7 @@ func (s *SimpleScheduleResponse) Missed() uint {
 	return s.missed
 }
 
-// LastTime retruns the last response time
+// LastTime returns the last response time
 func (s *SimpleScheduleResponse) LastTime() time.Time {
 	return s.lastTime
 }

@@ -82,7 +82,7 @@ func (w *WindowedSchedule) Wait(last time.Time) Response {
 	}
 
 	// If within the window we wait our interval and return
-	// otherwise we exit with a compleled state.
+	// otherwise we exit with a completed state.
 	var m uint
 	// Do we even have a stop time?
 	if w.StopTime != nil {

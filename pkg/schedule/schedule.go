@@ -55,7 +55,7 @@ func waitOnInterval(last time.Time, i time.Duration) (uint, time.Time) {
 	}
 	// Get the difference in time.Duration since last in nanoseconds (int64)
 	timeDiff := time.Since(last).Nanoseconds()
-	// cache our schedule interval in nanseconds
+	// cache our schedule interval in nanoseconds
 	nanoInterval := i.Nanoseconds()
 	// use modulo operation to obtain the remainder of time over last interval
 	remainder := timeDiff % nanoInterval
