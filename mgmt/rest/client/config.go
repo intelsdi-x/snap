@@ -31,7 +31,7 @@ import (
 // GetPluginConfig retrieves the merged plugin config given the type of plugin,
 // name and version.  If plugin type, name and version are all empty strings
 // the plugin config for "all" plugins will be returned.  If the plugin type is
-// provided and the name and version are empy strings the config for that plugin
+// provided and the name and version are empty strings the config for that plugin
 // type will be returned.  So on and so forth for the rest of the arguments.
 func (c *Client) GetPluginConfig(pluginType, name, version string) *GetPluginConfigResult {
 	r := &GetPluginConfigResult{}

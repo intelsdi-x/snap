@@ -46,7 +46,7 @@ func getPort() int {
 	// This attempts to use net.Listen to find an open port since
 	// the tribe config has to know of one BEFORE the REST API starts...
 	count := 0
-	// This will loop 1000 times before panicing
+	// This will loop 1000 times before panicking
 	// If it finds a port it will return out of the function
 	for count < 1000 {
 		ln, err := net.Listen("tcp", "127.0.0.1:0")

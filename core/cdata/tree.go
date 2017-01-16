@@ -27,7 +27,7 @@ import (
 )
 
 // Allows adding of config data by namespace and retrieving of data from tree
-// at a specific namespace (merging the relevant hiearchy). Uses pkg.ConfigTree.
+// at a specific namespace (merging the relevant hierarchy). Uses pkg.ConfigTree.
 type ConfigDataTree struct {
 	cTree *ctree.ConfigTree
 }
