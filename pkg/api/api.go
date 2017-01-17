@@ -14,5 +14,5 @@ type API interface {
 
 type Route struct {
 	Method, Path string
-	Handler      httprouter.Handle
+	Handle       httprouter.Handle
 }

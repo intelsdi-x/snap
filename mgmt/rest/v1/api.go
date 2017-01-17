@@ -34,41 +34,41 @@ func NewV1(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *V1 {
 
 func (s *V1) GetRoutes() []api.Route {
 	routes := []api.Route{
-		api.Route{Method: "GET", Path: prefix + "/plugins", Handler: s.getPlugins},
-		api.Route{Method: "GET", Path: prefix + "/plugins/:type", Handler: s.getPlugins},
-		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name", Handler: s.getPlugins},
-		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version", Handler: s.getPlugin},
-		api.Route{Method: "POST", Path: prefix + "/plugins", Handler: s.loadPlugin},
-		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version", Handler: s.unloadPlugin},
-		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version/config", Handler: s.getPluginConfigItem},
-		api.Route{Method: "PUT", Path: prefix + "/plugins/:type/:name/:version/config", Handler: s.setPluginConfigItem},
-		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version/config", Handler: s.deletePluginConfigItem},
+		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
+		api.Route{Method: "GET", Path: prefix + "/plugins/:type", Handle: s.getPlugins},
+		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name", Handle: s.getPlugins},
+		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version", Handle: s.getPlugin},
+		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
+		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version", Handle: s.unloadPlugin},
+		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.getPluginConfigItem},
+		api.Route{Method: "PUT", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.setPluginConfigItem},
+		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.deletePluginConfigItem},
 
 		// metric routes
-		api.Route{Method: "GET", Path: prefix + "/metrics", Handler: s.getMetrics},
-		api.Route{Method: "GET", Path: prefix + "/metrics/*namespace", Handler: s.getMetricsFromTree},
+		api.Route{Method: "GET", Path: prefix + "/metrics", Handle: s.getMetrics},
+		api.Route{Method: "GET", Path: prefix + "/metrics/*namespace", Handle: s.getMetricsFromTree},
 
 		// task routes
-		api.Route{Method: "GET", Path: prefix + "/tasks", Handler: s.getTasks},
-		api.Route{Method: "GET", Path: prefix + "/tasks/:id", Handler: s.getTask},
-		api.Route{Method: "GET", Path: prefix + "/tasks/:id/watch", Handler: s.watchTask},
-		api.Route{Method: "POST", Path: prefix + "/tasks", Handler: s.addTask},
-		api.Route{Method: "PUT", Path: prefix + "/tasks/:id/start", Handler: s.startTask},
-		api.Route{Method: "PUT", Path: prefix + "/tasks/:id/stop", Handler: s.stopTask},
-		api.Route{Method: "DELETE", Path: prefix + "/tasks/:id", Handler: s.removeTask},
-		api.Route{Method: "PUT", Path: prefix + "/tasks/:id/enable", Handler: s.enableTask},
+		api.Route{Method: "GET", Path: prefix + "/tasks", Handle: s.getTasks},
+		api.Route{Method: "GET", Path: prefix + "/tasks/:id", Handle: s.getTask},
+		api.Route{Method: "GET", Path: prefix + "/tasks/:id/watch", Handle: s.watchTask},
+		api.Route{Method: "POST", Path: prefix + "/tasks", Handle: s.addTask},
+		api.Route{Method: "PUT", Path: prefix + "/tasks/:id/start", Handle: s.startTask},
+		api.Route{Method: "PUT", Path: prefix + "/tasks/:id/stop", Handle: s.stopTask},
+		api.Route{Method: "DELETE", Path: prefix + "/tasks/:id", Handle: s.removeTask},
+		api.Route{Method: "PUT", Path: prefix + "/tasks/:id/enable", Handle: s.enableTask},
 	}
 	// tribe routes
 	if s.tribeManager != nil {
 		routes = append(routes, []api.Route{
-			api.Route{Method: "GET", Path: prefix + "/tribe/agreements", Handler: s.getAgreements},
-			api.Route{Method: "POST", Path: prefix + "/tribe/agreements", Handler: s.addAgreement},
-			api.Route{Method: "GET", Path: prefix + "/tribe/agreements/:name", Handler: s.getAgreement},
-			api.Route{Method: "DELETE", Path: prefix + "/tribe/agreements/:name", Handler: s.deleteAgreement},
-			api.Route{Method: "PUT", Path: prefix + "/tribe/agreements/:name/join", Handler: s.joinAgreement},
-			api.Route{Method: "DELETE", Path: prefix + "/tribe/agreements/:name/leave", Handler: s.leaveAgreement},
-			api.Route{Method: "GET", Path: prefix + "/tribe/members", Handler: s.getMembers},
-			api.Route{Method: "GET", Path: prefix + "/tribe/member/:name", Handler: s.getMember},
+			api.Route{Method: "GET", Path: prefix + "/tribe/agreements", Handle: s.getAgreements},
+			api.Route{Method: "POST", Path: prefix + "/tribe/agreements", Handle: s.addAgreement},
+			api.Route{Method: "GET", Path: prefix + "/tribe/agreements/:name", Handle: s.getAgreement},
+			api.Route{Method: "DELETE", Path: prefix + "/tribe/agreements/:name", Handle: s.deleteAgreement},
+			api.Route{Method: "PUT", Path: prefix + "/tribe/agreements/:name/join", Handle: s.joinAgreement},
+			api.Route{Method: "DELETE", Path: prefix + "/tribe/agreements/:name/leave", Handle: s.leaveAgreement},
+			api.Route{Method: "GET", Path: prefix + "/tribe/members", Handle: s.getMembers},
+			api.Route{Method: "GET", Path: prefix + "/tribe/member/:name", Handle: s.getMember},
 		}...)
 	}
 	return routes

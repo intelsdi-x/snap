@@ -428,7 +428,7 @@ func (s *Server) BindConfigManager(c api.Config) {
 func (s *Server) addRoutes() {
 	for _, apiInstance := range s.apis {
 		for _, route := range apiInstance.GetRoutes() {
-			s.r.Handle(route.Method, route.Path, route.Handler)
+			s.r.Handle(route.Method, route.Path, route.Handle)
 		}
 	}
 	// profiling tools routes

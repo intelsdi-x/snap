@@ -25,8 +25,8 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 
-	"github.com/golang/go/src/pkg/strings"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 	"github.com/intelsdi-x/snap/pkg/stringutils"
