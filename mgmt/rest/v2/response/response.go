@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2016 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,14 +17,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rbody
+package response
 
-import "github.com/intelsdi-x/snap/core/cdata"
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
 
-type PluginConfigItem struct {
-	cdata.ConfigDataNode
+	"github.com/urfave/negroni"
+)
+
+func Write(code int, body interface{}, w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if !w.(negroni.ResponseWriter).Written() {
+		w.WriteHeader(code)
+	}
+
+	if body != nil{
+		j, err := json.MarshalIndent(body, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
+		fmt.Fprint(w, string(j))
+	}
 }
-
-type DeletePluginConfigItem PluginConfigItem
-
-type SetPluginConfigItem PluginConfigItem

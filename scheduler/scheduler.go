@@ -211,9 +211,9 @@ func autoDiscoverTasks(taskFiles []os.FileInfo, fullPath string,
 			continue
 		}
 		//TODO: see if the following is really mandatory
-		//in which case mgmt/rest/rbody/task.go contents might also
+		//in which case mgmt/rest/response/task.go contents might also
 		//move into pkg/task
-		//rbody.AddSchedulerTaskFromTask(task)
+		//response.AddSchedulerTaskFromTask(task)
 		log.WithFields(log.Fields{
 			"_block":           "autoDiscoverTasks",
 			"_module":          "scheduler",

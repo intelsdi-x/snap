@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rbody
+package response
 
 import (
 	"encoding/json"
@@ -28,40 +28,14 @@ import (
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
-type Tasks []Task
-
-func (s Tasks) Len() int {
-	return len(s)
-}
-
-func (s Tasks) Less(i, j int) bool {
-	return s[j].CreationTime().After(s[i].CreationTime())
-}
-
-func (s Tasks) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func AddSchedulerTaskFromTask(t core.Task) *Task {
-	st := &Task{
-		ID:                 t.ID(),
-		Name:               t.GetName(),
-		Deadline:           t.DeadlineDuration().String(),
-		CreationTimestamp:  t.CreationTime().Unix(),
-		LastRunTimestamp:   t.LastRunTime().Unix(),
-		HitCount:           int(t.HitCount()),
-		MissCount:          int(t.MissedCount()),
-		FailedCount:        int(t.FailedCount()),
-		LastFailureMessage: t.LastFailureMessage(),
-		State:              t.State().String(),
-		Workflow:           t.WMap(),
-	}
-	st.assertSchedule(t.Schedule())
-	if st.LastRunTimestamp < 0 {
-		st.LastRunTimestamp = -1
-	}
-	return st
-}
+const (
+	// Event types for task watcher streaming
+	TaskWatchStreamOpen   = "stream-open"
+	TaskWatchMetricEvent  = "metric-event"
+	TaskWatchTaskDisabled = "task-disabled"
+	TaskWatchTaskStarted  = "task-started"
+	TaskWatchTaskStopped  = "task-stopped"
+)
 
 type Task struct {
 	ID                 string            `json:"id"`
@@ -79,12 +53,35 @@ type Task struct {
 	Href               string            `json:"href"`
 }
 
+type Tasks []Task
+
+func (s Tasks) Len() int {
+	return len(s)
+}
+
+func (s Tasks) Less(i, j int) bool {
+	return s[j].CreationTime().After(s[i].CreationTime())
+}
+
+func (s Tasks) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
 func (s *Task) CreationTime() time.Time {
 	return time.Unix(s.CreationTimestamp, 0)
 }
 
-func SchedulerTaskFromTask(t core.Task) *Task {
-	st := &Task{
+// functions to convert a core.Task to a response.Task
+
+func AddSchedulerTaskFromTask(t core.Task) Task {
+	st := SchedulerTaskFromTask(t)
+	(&st).assertSchedule(t.Schedule())
+	st.Workflow = t.WMap()
+	return st
+}
+
+func SchedulerTaskFromTask(t core.Task) Task {
+	st := Task{
 		ID:                 t.ID(),
 		Name:               t.GetName(),
 		Deadline:           t.DeadlineDuration().String(),
@@ -100,21 +97,6 @@ func SchedulerTaskFromTask(t core.Task) *Task {
 		st.LastRunTimestamp = -1
 	}
 	return st
-}
-
-type TaskStarted struct {
-	// TODO return resource
-	ID string `json:"id"`
-}
-
-type TaskStopped struct {
-	// TODO return resource
-	ID string `json:"id"`
-}
-
-type TaskRemoved struct {
-	// TODO return resource
-	ID string `json:"id"`
 }
 
 func (t *Task) assertSchedule(s schedule.Schedule) {
@@ -140,9 +122,6 @@ func (t *Task) assertSchedule(s schedule.Schedule) {
 		}
 		return
 	}
-}
-
-type ScheduledTaskWatchingEnded struct {
 }
 
 type StreamedTaskEvent struct {

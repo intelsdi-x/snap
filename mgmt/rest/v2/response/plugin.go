@@ -17,28 +17,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rbody
+package response
 
-// Successful response to the loading of a plugins
-type PluginsLoaded struct {
-	LoadedPlugins []LoadedPlugin `json:"loaded_plugins"`
-}
 
-// Successful response to the unloading of a plugin
-type PluginUnloaded struct {
-	Name    string `json:"name"`
-	Version int    `json:"version"`
-	Type    string `json:"type"`
-}
-
-type PluginList struct {
-	LoadedPlugins    []LoadedPlugin    `json:"loaded_plugins,omitempty"`
-	AvailablePlugins []AvailablePlugin `json:"available_plugins,omitempty"`
-}
-
-type PluginReturned LoadedPlugin
-
-type LoadedPlugin struct {
+type Plugin struct {
 	Name            string        `json:"name"`
 	Version         int           `json:"version"`
 	Type            string        `json:"type"`
@@ -49,7 +31,7 @@ type LoadedPlugin struct {
 	ConfigPolicy    []PolicyTable `json:"policy,omitempty"`
 }
 
-type AvailablePlugin struct {
+type RunningPlugin struct {
 	Name             string `json:"name"`
 	Version          int    `json:"version"`
 	Type             string `json:"type"`

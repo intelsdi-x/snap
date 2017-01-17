@@ -17,13 +17,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rbody
+package response
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
+	"github.com/intelsdi-x/snap/core/cdata"
 )
 
 type PolicyTable cpolicy.RuleTable
@@ -48,26 +49,18 @@ type DynamicElement struct {
 	Description string `json:"description,omitempty"`
 }
 
-type MetricReturned struct {
-	Metric *Metric
-}
-
-type MetricsReturned []Metric
-
-func NewMetricsReturned() MetricsReturned {
-	return make([]Metric, 0)
-}
+type Metrics []Metric
 
 // Used to sort the metrics before marshalling the response
-func (m MetricsReturned) Len() int {
+func (m Metrics) Len() int {
 	return len(m)
 }
 
-func (m MetricsReturned) Less(i, j int) bool {
+func (m Metrics) Less(i, j int) bool {
 	return (fmt.Sprintf("%s:%d", m[i].Namespace, m[i].Version)) < (fmt.Sprintf("%s:%d", m[j].Namespace, m[j].Version))
 }
 
-func (m MetricsReturned) Swap(i, j int) {
+func (m Metrics) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
 
@@ -90,4 +83,9 @@ func (s StreamedMetrics) Less(i, j int) bool {
 
 func (s StreamedMetrics) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
+}
+
+// cdata.ConfigDataNode implements it's own UnmarshalJSON
+type PluginConfigItem struct {
+	cdata.ConfigDataNode
 }
