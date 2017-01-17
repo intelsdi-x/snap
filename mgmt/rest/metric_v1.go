@@ -46,7 +46,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 			var err error
 			ver, err = strconv.Atoi(v)
 			if err != nil {
-				respond(400, rbody.FromError(err), w)
+				rbody.Write(400, rbody.FromError(err), w)
 				return
 			}
 		}
@@ -59,7 +59,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 
 		mts, err := s.mm.FetchMetrics(core.NewNamespace(ns...), ver)
 		if err != nil {
-			respond(404, rbody.FromError(err), w)
+			rbody.Write(404, rbody.FromError(err), w)
 			return
 		}
 		respondWithMetrics(r.Host, mts, w)
@@ -68,7 +68,7 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter
 
 	mts, err := s.mm.MetricCatalog()
 	if err != nil {
-		respond(500, rbody.FromError(err), w)
+		rbody.Write(500, rbody.FromError(err), w)
 		return
 	}
 	respondWithMetrics(r.Host, mts, w)
@@ -101,14 +101,14 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 		} else {
 			ver, err = strconv.Atoi(v)
 			if err != nil {
-				respond(400, rbody.FromError(err), w)
+				rbody.Write(400, rbody.FromError(err), w)
 				return
 			}
 		}
 
 		mts, err := s.mm.FetchMetrics(core.NewNamespace(ns[:len(ns)-1]...), ver)
 		if err != nil {
-			respond(404, rbody.FromError(err), w)
+			rbody.Write(404, rbody.FromError(err), w)
 			return
 		}
 		respondWithMetrics(r.Host, mts, w)
@@ -119,7 +119,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	if v == "" {
 		mts, err := s.mm.FetchMetrics(core.NewNamespace(ns...), 0)
 		if err != nil {
-			respond(404, rbody.FromError(err), w)
+			rbody.Write(404, rbody.FromError(err), w)
 			return
 		}
 		respondWithMetrics(r.Host, mts, w)
@@ -129,12 +129,12 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	// if an explicit version is given, get that single one.
 	ver, err = strconv.Atoi(v)
 	if err != nil {
-		respond(400, rbody.FromError(err), w)
+		rbody.Write(400, rbody.FromError(err), w)
 		return
 	}
 	mt, err := s.mm.GetMetric(core.NewNamespace(ns...), ver)
 	if err != nil {
-		respond(404, rbody.FromError(err), w)
+		rbody.Write(404, rbody.FromError(err), w)
 		return
 	}
 
@@ -157,7 +157,7 @@ func (s *Server) getMetricsFromTree(w http.ResponseWriter, r *http.Request, para
 	policies := rbody.PolicyTableSlice(mt.Policy().RulesAsTable())
 	mb.Policy = policies
 	b.Metric = mb
-	respond(200, b, w)
+	rbody.Write(200, b, w)
 }
 
 func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
@@ -182,7 +182,7 @@ func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.Response
 		})
 	}
 	sort.Sort(b)
-	respond(200, b, w)
+	rbody.Write(200, b, w)
 }
 
 func getDynamicElements(ns core.Namespace, indexes []int) []rbody.DynamicElement {

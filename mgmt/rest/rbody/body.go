@@ -24,6 +24,10 @@ import (
 	"errors"
 
 	"github.com/intelsdi-x/snap/core/cdata"
+	"net/http"
+	"github.com/urfave/negroni"
+	"bytes"
+	"fmt"
 )
 
 type Body interface {
@@ -32,6 +36,29 @@ type Body interface {
 	ResponseBodyMessage() string
 	ResponseBodyType() string
 }
+
+func Write(code int, b Body, w http.ResponseWriter) {
+	resp := &APIResponse{
+		Meta: &APIResponseMeta{
+			Code:    code,
+			Message: b.ResponseBodyMessage(),
+			Type:    b.ResponseBodyType(),
+			Version: 1,
+		},
+		Body: b,
+	}
+	if !w.(negroni.ResponseWriter).Written() {
+		w.WriteHeader(code)
+	}
+
+	j, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
+	fmt.Fprint(w, string(j))
+}
+
 
 var (
 	ErrCannotUnmarshalBody = errors.New("Cannot unmarshal body: invalid type")

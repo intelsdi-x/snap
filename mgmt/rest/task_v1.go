@@ -20,7 +20,6 @@ limitations under the License.
 package rest
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -34,24 +33,16 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
-var (
-	// The amount of time to buffer streaming events before flushing in seconds
-	StreamingBufferWindow = 0.1
-
-	ErrStreamingUnsupported    = errors.New("Streaming unsupported")
-	ErrTaskNotFound            = errors.New("Task not found")
-	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started")
-)
 
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.mt.CreateTask)
 	if err != nil {
-		respond(500, rbody.FromError(err), w)
+		rbody.Write(500, rbody.FromError(err), w)
 		return
 	}
 	taskB := rbody.AddSchedulerTaskFromTask(task)
 	taskB.Href = taskURI(r.Host, "v1", task)
-	respond(201, taskB, w)
+	rbody.Write(201, taskB, w)
 }
 
 func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -67,20 +58,20 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 		i++
 	}
 	sort.Sort(tasks)
-	respond(200, tasks, w)
+	rbody.Write(200, tasks, w)
 }
 
 func (s *Server) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	t, err1 := s.mt.GetTask(id)
 	if err1 != nil {
-		respond(404, rbody.FromError(err1), w)
+		rbody.Write(404, rbody.FromError(err1), w)
 		return
 	}
 	task := &rbody.ScheduledTaskReturned{}
 	task.AddScheduledTask = *rbody.AddSchedulerTaskFromTask(t)
 	task.Href = taskURI(r.Host, "v1", t)
-	respond(200, task, w)
+	rbody.Write(200, task, w)
 }
 
 func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -104,10 +95,10 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	tc, err1 := s.mt.WatchTask(id, tw)
 	if err1 != nil {
 		if strings.Contains(err1.Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromError(err1), w)
+			rbody.Write(404, rbody.FromError(err1), w)
 			return
 		}
-		respond(500, rbody.FromError(err1), w)
+		rbody.Write(500, rbody.FromError(err1), w)
 		return
 	}
 
@@ -121,7 +112,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		// This only works on ResponseWriters that support streaming
-		respond(500, rbody.FromError(ErrStreamingUnsupported), w)
+		rbody.Write(500, rbody.FromError(ErrStreamingUnsupported), w)
 		return
 	}
 	// send initial stream open event
@@ -156,7 +147,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 				// Close out watcher removing it from the scheduler
 				tc.Close()
 				// exit since this client is no longer listening
-				respond(200, &rbody.ScheduledTaskWatchingEnded{}, w)
+				rbody.Write(200, &rbody.ScheduledTaskWatchingEnded{}, w)
 			}
 			// If we are at least above our minimum buffer time we flush to send
 			if time.Now().Sub(t).Seconds() > StreamingBufferWindow {
@@ -172,7 +163,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 			// Close out watcher removing it from the scheduler
 			tc.Close()
 			// exit since this client is no longer listening
-			respond(200, &rbody.ScheduledTaskWatchingEnded{}, w)
+			rbody.Write(200, &rbody.ScheduledTaskWatchingEnded{}, w)
 			return
 		case <-s.killChan:
 			logger.WithFields(log.Fields{
@@ -183,7 +174,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 			// Close out watcher removing it from the scheduler
 			tc.Close()
 			// exit since this client is no longer listening
-			respond(200, &rbody.ScheduledTaskWatchingEnded{}, w)
+			rbody.Write(200, &rbody.ScheduledTaskWatchingEnded{}, w)
 			return
 		}
 	}
@@ -194,18 +185,18 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	errs := s.mt.StartTask(id)
 	if errs != nil {
 		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromSnapErrors(errs), w)
+			rbody.Write(404, rbody.FromSnapErrors(errs), w)
 			return
 		}
 		if strings.Contains(errs[0].Error(), ErrTaskDisabledNotRunnable.Error()) {
-			respond(409, rbody.FromSnapErrors(errs), w)
+			rbody.Write(409, rbody.FromSnapErrors(errs), w)
 			return
 		}
-		respond(500, rbody.FromSnapErrors(errs), w)
+		rbody.Write(500, rbody.FromSnapErrors(errs), w)
 		return
 	}
 	// TODO should return resource
-	respond(200, &rbody.ScheduledTaskStarted{ID: id}, w)
+	rbody.Write(200, &rbody.ScheduledTaskStarted{ID: id}, w)
 }
 
 func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -213,13 +204,13 @@ func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 	errs := s.mt.StopTask(id)
 	if errs != nil {
 		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromSnapErrors(errs), w)
+			rbody.Write(404, rbody.FromSnapErrors(errs), w)
 			return
 		}
-		respond(500, rbody.FromSnapErrors(errs), w)
+		rbody.Write(500, rbody.FromSnapErrors(errs), w)
 		return
 	}
-	respond(200, &rbody.ScheduledTaskStopped{ID: id}, w)
+	rbody.Write(200, &rbody.ScheduledTaskStopped{ID: id}, w)
 }
 
 func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -227,13 +218,13 @@ func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter
 	err := s.mt.RemoveTask(id)
 	if err != nil {
 		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromError(err), w)
+			rbody.Write(404, rbody.FromError(err), w)
 			return
 		}
-		respond(500, rbody.FromError(err), w)
+		rbody.Write(500, rbody.FromError(err), w)
 		return
 	}
-	respond(200, &rbody.ScheduledTaskRemoved{ID: id}, w)
+	rbody.Write(200, &rbody.ScheduledTaskRemoved{ID: id}, w)
 }
 
 //enableTask changes the task state from Disabled to Stopped
@@ -242,15 +233,15 @@ func (s *Server) enableTask(w http.ResponseWriter, r *http.Request, p httprouter
 	tsk, err := s.mt.EnableTask(id)
 	if err != nil {
 		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
-			respond(404, rbody.FromError(err), w)
+			rbody.Write(404, rbody.FromError(err), w)
 			return
 		}
-		respond(500, rbody.FromError(err), w)
+		rbody.Write(500, rbody.FromError(err), w)
 		return
 	}
 	task := &rbody.ScheduledTaskEnabled{}
 	task.AddScheduledTask = *rbody.AddSchedulerTaskFromTask(tsk)
-	respond(200, task, w)
+	rbody.Write(200, task, w)
 }
 
 type TaskWatchHandler struct {
