@@ -18,7 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fixtures
+package mock
 
 import (
 	"errors"
@@ -130,101 +130,95 @@ func (m MockManagesMetrics) GetAutodiscoverPaths() []string {
 // These constants are the expected plugin responses from running
 // rest_v2_test.go on the plugin routes found in mgmt/rest/server.go
 const (
-	GET_PLUGINS_RESPONSE = `{
-  "loaded_plugins": [
-    {
-      "name": "foo",
-      "version": 2,
-      "type": "collector",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/collector/foo/2"
-    },
-    {
-      "name": "bar",
-      "version": 3,
-      "type": "publisher",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/publisher/bar/3"
-    },
-    {
-      "name": "foo",
-      "version": 4,
-      "type": "collector",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/collector/foo/4"
-    },
-    {
-      "name": "baz",
-      "version": 5,
-      "type": "publisher",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/publisher/baz/5"
-    },
-    {
-      "name": "foo",
-      "version": 6,
-      "type": "processor",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/processor/foo/6"
-    },
-    {
-      "name": "foobar",
-      "version": 1,
-      "type": "processor",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/processor/foobar/1"
-    }
-  ]
-}`
+	GET_PLUGINS_RESPONSE = `[
+  {
+    "name": "foo",
+    "version": 2,
+    "type": "collector",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/collector/foo/2"
+  },
+  {
+    "name": "bar",
+    "version": 3,
+    "type": "publisher",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/publisher/bar/3"
+  },
+  {
+    "name": "foo",
+    "version": 4,
+    "type": "collector",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/collector/foo/4"
+  },
+  {
+    "name": "baz",
+    "version": 5,
+    "type": "publisher",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/publisher/baz/5"
+  },
+  {
+    "name": "foo",
+    "version": 6,
+    "type": "processor",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/processor/foo/6"
+  },
+  {
+    "name": "foobar",
+    "version": 1,
+    "type": "processor",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/processor/foobar/1"
+  }
+]`
 
-	GET_PLUGINS_RESPONSE_TYPE = `{
-  "loaded_plugins": [
-    {
-      "name": "foo",
-      "version": 2,
-      "type": "collector",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/collector/foo/2"
-    },
-    {
-      "name": "foo",
-      "version": 4,
-      "type": "collector",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/collector/foo/4"
-    }
-  ]
-}`
+	GET_PLUGINS_RESPONSE_TYPE = `[
+  {
+    "name": "foo",
+    "version": 2,
+    "type": "collector",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/collector/foo/2"
+  },
+  {
+    "name": "foo",
+    "version": 4,
+    "type": "collector",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/collector/foo/4"
+  }
+]`
 
-	GET_PLUGINS_RESPONSE_TYPE_NAME = `{
-  "loaded_plugins": [
-    {
-      "name": "bar",
-      "version": 3,
-      "type": "publisher",
-      "signed": false,
-      "status": "",
-      "loaded_timestamp": 1473120000,
-      "href": "http://localhost:%d/v2/plugins/publisher/bar/3"
-    }
-  ]
-}`
+	GET_PLUGINS_RESPONSE_TYPE_NAME = `[
+  {
+    "name": "bar",
+    "version": 3,
+    "type": "publisher",
+    "signed": false,
+    "status": "",
+    "loaded_timestamp": 1473120000,
+    "href": "http://localhost:%d/v2/plugins/publisher/bar/3"
+  }
+]`
 
 	GET_PLUGINS_RESPONSE_TYPE_NAME_VERSION = `{
   "name": "bar",
@@ -247,9 +241,5 @@ const (
   }
 ]`
 
-	UNLOAD_PLUGIN_RESPONSE = `{
-  "name": "foo",
-  "version": 2,
-  "type": "collector"
-}`
+	UNLOAD_PLUGIN_RESPONSE = ``
 )

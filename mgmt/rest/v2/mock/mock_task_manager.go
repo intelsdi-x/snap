@@ -18,7 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fixtures
+package mock
 
 import (
 	"time"
@@ -246,34 +246,11 @@ const (
   "href": "http://localhost:%d/v2/tasks/MyTaskID"
 }`
 
-	START_TASK_RESPONSE_ID_START = `{
-  "id": "MockTask1234"
-}`
+	START_TASK_RESPONSE_ID_START = ``
 
-	STOP_TASK_RESPONSE_ID_STOP = `{
-  "id": "MockTask1234"
-}`
+	STOP_TASK_RESPONSE_ID_STOP = ``
 
-	ENABLE_TASK_RESPONSE_ID_ENABLE = `{
-  "id": "alskdjf",
-  "name": "Task2",
-  "deadline": "4ns",
-  "workflow": {
-    "collect": {
-      "metrics": {}
-    }
-  },
-  "schedule": {
-    "type": "simple",
-    "interval": "1s"
-  },
-  "creation_timestamp": -62135596800,
-  "last_run_timestamp": -1,
-  "task_state": "Running",
-  "href": ""
-}`
+	ENABLE_TASK_RESPONSE_ID_ENABLE = ``
 
-	REMOVE_TASK_RESPONSE_ID = `{
-  "id": "MockTask1234"
-}`
+	REMOVE_TASK_RESPONSE_ID = ``
 )
