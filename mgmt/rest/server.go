@@ -34,12 +34,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/urfave/negroni"
 
-	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/cdata"
-	"github.com/intelsdi-x/snap/core/serror"
-	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
-	cschedule "github.com/intelsdi-x/snap/pkg/schedule"
-	"github.com/intelsdi-x/snap/scheduler/wmap"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1"
+	"github.com/intelsdi-x/snap/mgmt/rest/v2"
+	"github.com/intelsdi-x/snap/pkg/api"
 )
 
 // default configuration values
@@ -120,54 +117,8 @@ const (
 	`
 )
 
-type managesMetrics interface {
-	MetricCatalog() ([]core.CatalogedMetric, error)
-	FetchMetrics(core.Namespace, int) ([]core.CatalogedMetric, error)
-	GetMetricVersions(core.Namespace) ([]core.CatalogedMetric, error)
-	GetMetric(core.Namespace, int) (core.CatalogedMetric, error)
-	Load(*core.RequestedPlugin) (core.CatalogedPlugin, serror.SnapError)
-	Unload(core.Plugin) (core.CatalogedPlugin, serror.SnapError)
-	PluginCatalog() core.PluginCatalog
-	AvailablePlugins() []core.AvailablePlugin
-	GetAutodiscoverPaths() []string
-}
-
-type managesTasks interface {
-	CreateTask(cschedule.Schedule, *wmap.WorkflowMap, bool, ...core.TaskOption) (core.Task, core.TaskErrors)
-	GetTasks() map[string]core.Task
-	GetTask(string) (core.Task, error)
-	StartTask(string) []serror.SnapError
-	StopTask(string) []serror.SnapError
-	RemoveTask(string) error
-	WatchTask(string, core.TaskWatcherHandler) (core.TaskWatcherCloser, error)
-	EnableTask(string) (core.Task, error)
-}
-
-type managesTribe interface {
-	GetAgreement(name string) (*agreement.Agreement, serror.SnapError)
-	GetAgreements() map[string]*agreement.Agreement
-	AddAgreement(name string) serror.SnapError
-	RemoveAgreement(name string) serror.SnapError
-	JoinAgreement(agreementName, memberName string) serror.SnapError
-	LeaveAgreement(agreementName, memberName string) serror.SnapError
-	GetMembers() []string
-	GetMember(name string) *agreement.Member
-}
-
-type managesConfig interface {
-	GetPluginConfigDataNode(core.PluginType, string, int) cdata.ConfigDataNode
-	GetPluginConfigDataNodeAll() cdata.ConfigDataNode
-	MergePluginConfigDataNode(pluginType core.PluginType, name string, ver int, cdn *cdata.ConfigDataNode) cdata.ConfigDataNode
-	MergePluginConfigDataNodeAll(cdn *cdata.ConfigDataNode) cdata.ConfigDataNode
-	DeletePluginConfigDataNodeField(pluginType core.PluginType, name string, ver int, fields ...string) cdata.ConfigDataNode
-	DeletePluginConfigDataNodeFieldAll(fields ...string) cdata.ConfigDataNode
-}
-
 type Server struct {
-	mm         managesMetrics
-	mt         managesTasks
-	tr         managesTribe
-	mc         managesConfig
+	apis       []api.API
 	n          *negroni.Negroni
 	r          *httprouter.Router
 	snapTLS    *snapTLS
@@ -204,6 +155,11 @@ func New(cfg *Config) (*Server, error) {
 			return nil, err
 		}
 		protocolPrefix = "https"
+	}
+
+	s.apis = []api.API{
+		v1.NewV1(&s.wg, s.killChan, protocolPrefix),
+		v2.NewV2(&s.wg, s.killChan, protocolPrefix),
 	}
 
 	restLogger.Info(fmt.Sprintf("Configuring REST API with HTTPS set to: %v", https))
@@ -445,93 +401,36 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func (s *Server) BindMetricManager(m managesMetrics) {
-	s.mm = m
+func (s *Server) BindMetricManager(m api.Metrics) {
+	for _, apiInstance := range s.apis {
+		apiInstance.BindMetricManager(m)
+	}
 }
 
-func (s *Server) BindTaskManager(t managesTasks) {
-	s.mt = t
+func (s *Server) BindTaskManager(t api.Tasks) {
+	for _, apiInstance := range s.apis {
+		apiInstance.BindTaskManager(t)
+	}
 }
 
-func (s *Server) BindTribeManager(t managesTribe) {
-	s.tr = t
+func (s *Server) BindTribeManager(t api.Tribe) {
+	for _, apiInstance := range s.apis {
+		apiInstance.BindTribeManager(t)
+	}
 }
 
-func (s *Server) BindConfigManager(c managesConfig) {
-	s.mc = c
+func (s *Server) BindConfigManager(c api.Config) {
+	for _, apiInstance := range s.apis {
+		apiInstance.BindConfigManager(c)
+	}
 }
 
 func (s *Server) addRoutes() {
-	/*
-		== v2 routes ==
-	*/
-
-	// metric routes
-	s.r.GET("/v2/metrics", s.getMetricsV2)
-	s.r.GET("/v2/metrics/*namespace", s.getMetricsFromTreeV2)
-
-	// task routes
-	s.r.POST("/v2/tasks", s.addTaskV2)
-	s.r.GET("/v2/tasks", s.getTasksV2)
-	s.r.GET("/v2/tasks/:id", s.getTaskV2)
-	s.r.GET("/v2/tasks/:id/watch", s.watchTaskV2)
-	s.r.PUT("/v2/tasks/:id", s.updateTask)
-	s.r.DELETE("/v2/tasks/:id", s.removeTaskV2)
-
-	// plugin routes
-	s.r.POST("/v2/plugins", s.loadPluginV2)
-	s.r.GET("/v2/plugins", s.getPluginsV2)
-	s.r.GET("/v2/plugins/:type", s.getPluginsV2)
-	s.r.GET("/v2/plugins/:type/:name", s.getPluginsV2)
-	s.r.GET("/v2/plugins/:type/:name/:version", s.getPluginV2)
-	s.r.DELETE("/v2/plugins/:type/:name/:version", s.unloadPluginV2)
-
-	// config routes
-	s.r.GET("/v2/plugins/:type/:name/:version/config", s.getPluginConfigItemV2)
-	s.r.PUT("/v2/plugins/:type/:name/:version/config", s.setPluginConfigItemV2)
-	s.r.DELETE("/v2/plugins/:type/:name/:version/config", s.deletePluginConfigItemV2)
-
-	/*
-		== v1 routes ==
-	*/
-
-	// plugin routes
-	s.r.GET("/v1/plugins", s.getPlugins)
-	s.r.GET("/v1/plugins/:type", s.getPlugins)
-	s.r.GET("/v1/plugins/:type/:name", s.getPlugins)
-	s.r.GET("/v1/plugins/:type/:name/:version", s.getPlugin)
-	s.r.POST("/v1/plugins", s.loadPlugin)
-	s.r.DELETE("/v1/plugins/:type/:name/:version", s.unloadPlugin)
-	s.r.GET("/v1/plugins/:type/:name/:version/config", s.getPluginConfigItem)
-	s.r.PUT("/v1/plugins/:type/:name/:version/config", s.setPluginConfigItem)
-	s.r.DELETE("/v1/plugins/:type/:name/:version/config", s.deletePluginConfigItem)
-
-	// metric routes
-	s.r.GET("/v1/metrics", s.getMetrics)
-	s.r.GET("/v1/metrics/*namespace", s.getMetricsFromTree)
-
-	// task routes
-	s.r.GET("/v1/tasks", s.getTasks)
-	s.r.GET("/v1/tasks/:id", s.getTask)
-	s.r.GET("/v1/tasks/:id/watch", s.watchTask)
-	s.r.POST("/v1/tasks", s.addTask)
-	s.r.PUT("/v1/tasks/:id/start", s.startTask)
-	s.r.PUT("/v1/tasks/:id/stop", s.stopTask)
-	s.r.DELETE("/v1/tasks/:id", s.removeTask)
-	s.r.PUT("/v1/tasks/:id/enable", s.enableTask)
-
-	// tribe routes
-	if s.tr != nil {
-		s.r.GET("/v1/tribe/agreements", s.getAgreements)
-		s.r.POST("/v1/tribe/agreements", s.addAgreement)
-		s.r.GET("/v1/tribe/agreements/:name", s.getAgreement)
-		s.r.DELETE("/v1/tribe/agreements/:name", s.deleteAgreement)
-		s.r.PUT("/v1/tribe/agreements/:name/join", s.joinAgreement)
-		s.r.DELETE("/v1/tribe/agreements/:name/leave", s.leaveAgreement)
-		s.r.GET("/v1/tribe/members", s.getMembers)
-		s.r.GET("/v1/tribe/member/:name", s.getMember)
+	for _, apiInstance := range s.apis {
+		for _, route := range apiInstance.GetRoutes() {
+			s.r.Handle(route.Method, route.Path, route.Handler)
+		}
 	}
-
 	// profiling tools routes
 	if s.pprof {
 		s.r.GET("/debug/pprof/", s.index)

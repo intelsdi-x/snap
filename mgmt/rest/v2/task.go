@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rest
+package v2
 
 import (
 	"errors"
@@ -44,8 +44,8 @@ var (
 	ErrWrongAction             = errors.New("Wrong action requested")
 )
 
-func (s *Server) addTaskV2(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	task, err := core.CreateTaskFromContent(r.Body, nil, s.mt.CreateTask)
+func (s *V2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	task, err := core.CreateTaskFromContent(r.Body, nil, s.taskManager.CreateTask)
 	if err != nil {
 		response.Write(500, response.FromError(err), w)
 		return
@@ -55,9 +55,9 @@ func (s *Server) addTaskV2(w http.ResponseWriter, r *http.Request, _ httprouter.
 	response.Write(201, taskB, w)
 }
 
-func (s *Server) getTasksV2(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *V2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// get tasks from the task manager
-	sts := s.mt.GetTasks()
+	sts := s.taskManager.GetTasks()
 
 	// create the task list response
 	tasks := make(response.Tasks, len(sts))
@@ -72,9 +72,9 @@ func (s *Server) getTasksV2(w http.ResponseWriter, r *http.Request, _ httprouter
 	response.Write(200, tasks, w)
 }
 
-func (s *Server) getTaskV2(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V2) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	t, err := s.mt.GetTask(id)
+	t, err := s.taskManager.GetTask(id)
 	if err != nil {
 		response.Write(404, response.FromError(err), w)
 		return
@@ -84,7 +84,7 @@ func (s *Server) getTaskV2(w http.ResponseWriter, r *http.Request, p httprouter.
 	response.Write(200, task, w)
 }
 
-func (s *Server) watchTaskV2(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V2) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	s.wg.Add(1)
 	defer s.wg.Done()
 
@@ -94,7 +94,7 @@ func (s *Server) watchTaskV2(w http.ResponseWriter, r *http.Request, p httproute
 		alive: true,
 		mChan: make(chan response.StreamedTaskEvent),
 	}
-	tc, err1 := s.mt.WatchTask(id, tw)
+	tc, err1 := s.taskManager.WatchTask(id, tw)
 	if err1 != nil {
 		if strings.Contains(err1.Error(), ErrTaskNotFound.Error()) {
 			response.Write(404, response.FromError(err1), w)
@@ -172,7 +172,7 @@ func (s *Server) watchTaskV2(w http.ResponseWriter, r *http.Request, p httproute
 	}
 }
 
-func (s *Server) updateTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V2) updateTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	errs := make([]serror.SnapError, 0, 1)
 	id := p.ByName("id")
 	action, exist := r.URL.Query()["action"]
@@ -181,14 +181,14 @@ func (s *Server) updateTask(w http.ResponseWriter, r *http.Request, p httprouter
 	} else {
 		switch action[0] {
 		case "enable":
-			_, err := s.mt.EnableTask(id)
+			_, err := s.taskManager.EnableTask(id)
 			if err != nil {
 				errs = append(errs, serror.New(err))
 			}
 		case "start":
-			errs = s.mt.StartTask(id)
+			errs = s.taskManager.StartTask(id)
 		case "stop":
-			errs = s.mt.StopTask(id)
+			errs = s.taskManager.StopTask(id)
 		default:
 			errs = append(errs, serror.New(ErrWrongAction))
 		}
@@ -212,9 +212,9 @@ func (s *Server) updateTask(w http.ResponseWriter, r *http.Request, p httprouter
 	response.Write(204, nil, w)
 }
 
-func (s *Server) removeTaskV2(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V2) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	err := s.mt.RemoveTask(id)
+	err := s.taskManager.RemoveTask(id)
 	if err != nil {
 		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
 			response.Write(404, response.FromError(err), w)

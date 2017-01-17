@@ -36,10 +36,12 @@ import (
 	"testing"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/mgmt/rest/v2/mock"
 	"github.com/intelsdi-x/snap/plugin/helper"
+	"github.com/intelsdi-x/snap/scheduler"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -57,6 +59,29 @@ var (
 	TotalUploadSize  = 0
 	UploadCount      = 0
 )
+
+// Since we do not have a global snap package that could be imported
+// we create a mock config struct to mock what is in snapteld.go
+
+type mockConfig struct {
+	LogLevel   int    `json:"-"yaml:"-"`
+	GoMaxProcs int    `json:"-"yaml:"-"`
+	LogPath    string `json:"-"yaml:"-"`
+	Control    *control.Config
+	Scheduler  *scheduler.Config `json:"-",yaml:"-"`
+	RestAPI    *Config           `json:"-",yaml:"-"`
+}
+
+func getDefaultMockConfig() *mockConfig {
+	return &mockConfig{
+		LogLevel:   3,
+		GoMaxProcs: 1,
+		LogPath:    "",
+		Control:    control.GetDefaultConfig(),
+		Scheduler:  scheduler.GetDefaultConfig(),
+		RestAPI:    GetDefaultConfig(),
+	}
+}
 
 type restAPIInstance struct {
 	port   int

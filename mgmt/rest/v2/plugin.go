@@ -1,4 +1,4 @@
-package rest
+package v2
 
 import (
 	"compress/gzip"
@@ -51,7 +51,7 @@ func (p *plugin) TypeName() string {
 	return p.pluginType
 }
 
-func (s *Server) loadPluginV2(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *V2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		response.Write(415, response.FromError(err), w)
@@ -143,7 +143,7 @@ func (s *Server) loadPluginV2(w http.ResponseWriter, r *http.Request, _ httprout
 		}
 		rp.SetSignature(signature)
 		restLogger.Info("Loading plugin: ", rp.Path())
-		pl, err := s.mm.Load(rp)
+		pl, err := s.metricManager.Load(rp)
 		if err != nil {
 			var ec int
 			restLogger.Error(err)
@@ -193,7 +193,7 @@ func writeFile(filename string, b []byte) (string, error) {
 	return f.Name(), nil
 }
 
-func (s *Server) unloadPluginV2(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, err := strconv.ParseInt(p.ByName("version"), 10, 0)
@@ -210,7 +210,7 @@ func (s *Server) unloadPluginV2(w http.ResponseWriter, r *http.Request, p httpro
 		return
 	}
 
-	_, se := s.mm.Unload(&plugin{
+	_, se := s.metricManager.Unload(&plugin{
 		name:       plName,
 		version:    int(plVersion),
 		pluginType: plType,
@@ -234,7 +234,7 @@ func (s *Server) unloadPluginV2(w http.ResponseWriter, r *http.Request, p httpro
 	response.Write(204, nil, w)
 }
 
-func (s *Server) getPluginsV2(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (s *V2) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 
 	// filter by plugin name or plugin type
 	plName := params.ByName("name")
@@ -243,7 +243,7 @@ func (s *Server) getPluginsV2(w http.ResponseWriter, r *http.Request, params htt
 
 	if _, detail := r.URL.Query()["running"]; detail {
 		// get running plugins
-		plugins := runningPluginsBody(r.Host, s.mm.AvailablePlugins())
+		plugins := runningPluginsBody(r.Host, s.metricManager.AvailablePlugins())
 		filteredPlugins := []response.RunningPlugin{}
 		if nbFilter > 0 {
 			for _, p := range plugins {
@@ -257,7 +257,7 @@ func (s *Server) getPluginsV2(w http.ResponseWriter, r *http.Request, params htt
 		response.Write(200, filteredPlugins, w)
 	} else {
 		// get plugins from the plugin catalog
-		plugins := pluginCatalogBody(r.Host, s.mm.PluginCatalog())
+		plugins := pluginCatalogBody(r.Host, s.metricManager.PluginCatalog())
 		filteredPlugins := []response.Plugin{}
 
 		if nbFilter > 0 {
@@ -321,7 +321,7 @@ func pluginURI(host, version string, c core.Plugin) string {
 	return fmt.Sprintf("%s://%s/%s/plugins/%s/%s/%d", protocolPrefix, host, version, c.TypeName(), c.Name(), c.Version())
 }
 
-func (s *Server) getPluginV2(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, err := strconv.ParseInt(p.ByName("version"), 10, 0)
@@ -337,7 +337,7 @@ func (s *Server) getPluginV2(w http.ResponseWriter, r *http.Request, p httproute
 		return
 	}
 
-	pluginCatalog := s.mm.PluginCatalog()
+	pluginCatalog := s.metricManager.PluginCatalog()
 	var plugin core.CatalogedPlugin
 	for _, item := range pluginCatalog {
 		if item.Name() == plName &&
