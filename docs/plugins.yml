@@ -24,6 +24,7 @@
 - raintank/snap-plugin-collector-memcache
 - raintank/snap-plugin-collector-snapstats
 - raintank/snap-plugin-collector-tcpconns
+- raintank/snap-plugin-collector-kubestate
 - Staples-Inc/snap-plugin-collector-couchbase
 - Staples-Inc/snap-plugin-collector-netstat
 - Staples-Inc/snap-plugin-collector-nginx
