@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rest
+package v1
 
 import (
 	"encoding/json"
@@ -28,7 +28,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/core/serror"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -42,16 +42,16 @@ var (
 	ErrMemberNotFound        = errors.New("Member not found")
 )
 
-func (s *Server) getAgreements(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *V1) getAgreements(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	res := &rbody.TribeListAgreement{}
-	res.Agreements = s.tr.GetAgreements()
+	res.Agreements = s.tribeManager.GetAgreements()
 	rbody.Write(200, res, w)
 }
 
-func (s *Server) getAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) getAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "getAgreement")
 	name := p.ByName("name")
-	if _, ok := s.tr.GetAgreements()[name]; !ok {
+	if _, ok := s.tribeManager.GetAgreements()[name]; !ok {
 		fields := map[string]interface{}{
 			"agreement_name": name,
 		}
@@ -61,7 +61,7 @@ func (s *Server) getAgreement(w http.ResponseWriter, r *http.Request, p httprout
 	}
 	a := &rbody.TribeGetAgreement{}
 	var serr serror.SnapError
-	a.Agreement, serr = s.tr.GetAgreement(name)
+	a.Agreement, serr = s.tribeManager.GetAgreement(name)
 	if serr != nil {
 		tribeLogger.Error(serr)
 		rbody.Write(400, rbody.FromSnapError(serr), w)
@@ -70,10 +70,10 @@ func (s *Server) getAgreement(w http.ResponseWriter, r *http.Request, p httprout
 	rbody.Write(200, a, w)
 }
 
-func (s *Server) deleteAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) deleteAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "deleteAgreement")
 	name := p.ByName("name")
-	if _, ok := s.tr.GetAgreements()[name]; !ok {
+	if _, ok := s.tribeManager.GetAgreements()[name]; !ok {
 		fields := map[string]interface{}{
 			"agreement_name": name,
 		}
@@ -83,7 +83,7 @@ func (s *Server) deleteAgreement(w http.ResponseWriter, r *http.Request, p httpr
 	}
 
 	var serr serror.SnapError
-	serr = s.tr.RemoveAgreement(name)
+	serr = s.tribeManager.RemoveAgreement(name)
 	if serr != nil {
 		tribeLogger.Error(serr)
 		rbody.Write(400, rbody.FromSnapError(serr), w)
@@ -91,14 +91,14 @@ func (s *Server) deleteAgreement(w http.ResponseWriter, r *http.Request, p httpr
 	}
 
 	a := &rbody.TribeDeleteAgreement{}
-	a.Agreements = s.tr.GetAgreements()
+	a.Agreements = s.tribeManager.GetAgreements()
 	rbody.Write(200, a, w)
 }
 
-func (s *Server) joinAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) joinAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "joinAgreement")
 	name := p.ByName("name")
-	if _, ok := s.tr.GetAgreements()[name]; !ok {
+	if _, ok := s.tribeManager.GetAgreements()[name]; !ok {
 		fields := map[string]interface{}{
 			"agreement_name": name,
 		}
@@ -129,21 +129,21 @@ func (s *Server) joinAgreement(w http.ResponseWriter, r *http.Request, p httprou
 		return
 	}
 
-	serr := s.tr.JoinAgreement(name, m.MemberName)
+	serr := s.tribeManager.JoinAgreement(name, m.MemberName)
 	if serr != nil {
 		tribeLogger.Error(serr)
 		rbody.Write(400, rbody.FromSnapError(serr), w)
 		return
 	}
-	agreement, _ := s.tr.GetAgreement(name)
+	agreement, _ := s.tribeManager.GetAgreement(name)
 	rbody.Write(200, &rbody.TribeJoinAgreement{Agreement: agreement}, w)
 
 }
 
-func (s *Server) leaveAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) leaveAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "leaveAgreement")
 	name := p.ByName("name")
-	if _, ok := s.tr.GetAgreements()[name]; !ok {
+	if _, ok := s.tribeManager.GetAgreements()[name]; !ok {
 		fields := map[string]interface{}{
 			"agreement_name": name,
 		}
@@ -174,25 +174,25 @@ func (s *Server) leaveAgreement(w http.ResponseWriter, r *http.Request, p httpro
 		return
 	}
 
-	serr := s.tr.LeaveAgreement(name, m.MemberName)
+	serr := s.tribeManager.LeaveAgreement(name, m.MemberName)
 	if serr != nil {
 		tribeLogger.Error(serr)
 		rbody.Write(400, rbody.FromSnapError(serr), w)
 		return
 	}
-	agreement, _ := s.tr.GetAgreement(name)
+	agreement, _ := s.tribeManager.GetAgreement(name)
 	rbody.Write(200, &rbody.TribeLeaveAgreement{Agreement: agreement}, w)
 }
 
-func (s *Server) getMembers(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	members := s.tr.GetMembers()
+func (s *V1) getMembers(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	members := s.tribeManager.GetMembers()
 	rbody.Write(200, &rbody.TribeMemberList{Members: members}, w)
 }
 
-func (s *Server) getMember(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) getMember(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "getMember")
 	name := p.ByName("name")
-	member := s.tr.GetMember(name)
+	member := s.tribeManager.GetMember(name)
 	if member == nil {
 		fields := map[string]interface{}{
 			"name": name,
@@ -216,7 +216,7 @@ func (s *Server) getMember(w http.ResponseWriter, r *http.Request, p httprouter.
 	rbody.Write(200, resp, w)
 }
 
-func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) addAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "addAgreement")
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -248,7 +248,7 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 		return
 	}
 
-	err = s.tr.AddAgreement(a.Name)
+	err = s.tribeManager.AddAgreement(a.Name)
 	if err != nil {
 		tribeLogger.WithField("agreement-name", a.Name).Error(err)
 		rbody.Write(400, rbody.FromError(err), w)
@@ -256,7 +256,7 @@ func (s *Server) addAgreement(w http.ResponseWriter, r *http.Request, p httprout
 	}
 
 	res := &rbody.TribeAddAgreement{}
-	res.Agreements = s.tr.GetAgreements()
+	res.Agreements = s.tribeManager.GetAgreements()
 
 	rbody.Write(200, res, w)
 }

@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 )
 
 var (

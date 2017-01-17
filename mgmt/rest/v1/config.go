@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rest
+package v1
 
 import (
 	"net/http"
@@ -25,15 +25,15 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 	"github.com/julienschmidt/httprouter"
 )
 
-func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	styp := p.ByName("type")
 	if styp == "" {
-		cdn := s.mc.GetPluginConfigDataNodeAll()
+		cdn := s.configManager.GetPluginConfigDataNodeAll()
 		item := &rbody.PluginConfigItem{ConfigDataNode: cdn}
 		rbody.Write(200, item, w)
 		return
@@ -57,12 +57,12 @@ func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 		iver = -2
 	}
 
-	cdn := s.mc.GetPluginConfigDataNode(typ, name, iver)
+	cdn := s.configManager.GetPluginConfigDataNode(typ, name, iver)
 	item := &rbody.PluginConfigItem{ConfigDataNode: cdn}
 	rbody.Write(200, item, w)
 }
 
-func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
@@ -95,16 +95,16 @@ func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, 
 
 	var res cdata.ConfigDataNode
 	if styp == "" {
-		res = s.mc.DeletePluginConfigDataNodeFieldAll(src...)
+		res = s.configManager.DeletePluginConfigDataNodeFieldAll(src...)
 	} else {
-		res = s.mc.DeletePluginConfigDataNodeField(typ, name, iver, src...)
+		res = s.configManager.DeletePluginConfigDataNodeField(typ, name, iver, src...)
 	}
 
 	item := &rbody.DeletePluginConfigItem{ConfigDataNode: res}
 	rbody.Write(200, item, w)
 }
 
-func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
@@ -137,11 +137,22 @@ func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p h
 
 	var res cdata.ConfigDataNode
 	if styp == "" {
-		res = s.mc.MergePluginConfigDataNodeAll(src)
+		res = s.configManager.MergePluginConfigDataNodeAll(src)
 	} else {
-		res = s.mc.MergePluginConfigDataNode(typ, name, iver, src)
+		res = s.configManager.MergePluginConfigDataNode(typ, name, iver, src)
 	}
 
 	item := &rbody.SetPluginConfigItem{ConfigDataNode: res}
 	rbody.Write(200, item, w)
+}
+
+func getPluginType(t string) (core.PluginType, error) {
+	if ityp, err := strconv.Atoi(t); err == nil {
+		return core.PluginType(ityp), nil
+	}
+	ityp, err := core.ToPluginType(t)
+	if err != nil {
+		return core.PluginType(-1), err
+	}
+	return ityp, nil
 }

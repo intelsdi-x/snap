@@ -17,30 +17,59 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rest
+package v1
 
 import (
 	"compress/gzip"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
-	"github.com/julienschmidt/httprouter"
-
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
+	"github.com/intelsdi-x/snap/pkg/api"
+	"github.com/julienschmidt/httprouter"
 )
 
-func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+const PluginAlreadyLoaded = "plugin is already loaded"
+
+var (
+	ErrMissingPluginName = errors.New("missing plugin name")
+	ErrPluginNotFound    = errors.New("plugin not found")
+)
+
+type plugin struct {
+	name       string
+	version    int
+	pluginType string
+}
+
+func (p *plugin) Name() string {
+	return p.name
+}
+
+func (p *plugin) Version() int {
+	return p.version
+}
+
+func (p *plugin) TypeName() string {
+	return p.pluginType
+}
+
+func (s *V1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		rbody.Write(500, rbody.FromError(err), w)
@@ -134,7 +163,7 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 		}
 		rp.SetSignature(signature)
 		restLogger.Info("Loading plugin: ", rp.Path())
-		pl, err := s.mm.Load(rp)
+		pl, err := s.metricManager.Load(rp)
 		if err != nil {
 			var ec int
 			restLogger.Error(err)
@@ -158,7 +187,34 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 }
 
-func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func writeFile(filename string, b []byte) (string, error) {
+	// Create temporary directory
+	dir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", err
+	}
+	f, err := os.Create(path.Join(dir, filename))
+	if err != nil {
+		return "", err
+	}
+	// Close before load
+	defer f.Close()
+
+	n, err := f.Write(b)
+	log.Debugf("wrote %v to %v", n, f.Name())
+	if err != nil {
+		return "", err
+	}
+	if runtime.GOOS != "windows" {
+		err = f.Chmod(0700)
+		if err != nil {
+			return "", err
+		}
+	}
+	return f.Name(), nil
+}
+
+func (s *V1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, iErr := strconv.ParseInt(p.ByName("version"), 10, 0)
@@ -187,7 +243,7 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 		rbody.Write(400, rbody.FromSnapError(se), w)
 		return
 	}
-	up, se := s.mm.Unload(&plugin{
+	up, se := s.metricManager.Unload(&plugin{
 		name:       plName,
 		version:    int(plVersion),
 		pluginType: plType,
@@ -205,7 +261,7 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 	rbody.Write(200, pr, w)
 }
 
-func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (s *V1) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	var detail bool
 	for k := range r.URL.Query() {
 		if k == "details" {
@@ -214,10 +270,10 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, params httpr
 	}
 	plName := params.ByName("name")
 	plType := params.ByName("type")
-	rbody.Write(200, getPlugins(s.mm, detail, r.Host, plName, plType), w)
+	rbody.Write(200, getPlugins(s.metricManager, detail, r.Host, plName, plType), w)
 }
 
-func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType string) *rbody.PluginList {
+func getPlugins(mm api.Metrics, detail bool, h string, plName string, plType string) *rbody.PluginList {
 
 	plCatalog := mm.PluginCatalog()
 
@@ -239,7 +295,7 @@ func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType 
 				HitCount:         p.HitCount(),
 				LastHitTimestamp: p.LastHit().Unix(),
 				ID:               p.ID(),
-				Href:             pluginURI(h, "v1", p),
+				Href:             pluginURI(h, version, p),
 				PprofPort:        p.Port(),
 			}
 		}
@@ -290,11 +346,11 @@ func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) rbody.LoadedPl
 		Signed:          c.IsSigned(),
 		Status:          c.Status(),
 		LoadedTimestamp: c.LoadedTimestamp().Unix(),
-		Href:            pluginURI(host, "v1", c),
+		Href:            pluginURI(host, version, c),
 	}
 }
 
-func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, iErr := strconv.ParseInt(p.ByName("version"), 10, 0)
@@ -324,7 +380,7 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		return
 	}
 
-	pluginCatalog := s.mm.PluginCatalog()
+	pluginCatalog := s.metricManager.PluginCatalog()
 	var plugin core.CatalogedPlugin
 	for _, item := range pluginCatalog {
 		if item.Name() == plName &&
@@ -389,9 +445,13 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 			Signed:          plugin.IsSigned(),
 			Status:          plugin.Status(),
 			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
-			Href:            pluginURI(r.Host, "v1", plugin),
+			Href:            pluginURI(r.Host, version, plugin),
 			ConfigPolicy:    configPolicy,
 		}
 		rbody.Write(200, pluginRet, w)
 	}
+}
+
+func pluginURI(host, version string, c core.Plugin) string {
+	return fmt.Sprintf("%s://%s/%s/plugins/%s/%s/%d", protocolPrefix, host, version, c.TypeName(), c.Name(), c.Version())
 }

@@ -17,9 +17,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rest
+package v1
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -27,25 +28,35 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/julienschmidt/httprouter"
-
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
+	"github.com/julienschmidt/httprouter"
 )
 
-func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	task, err := core.CreateTaskFromContent(r.Body, nil, s.mt.CreateTask)
+var (
+	// The amount of time to buffer streaming events before flushing in seconds
+	StreamingBufferWindow = 0.1
+
+	ErrStreamingUnsupported    = errors.New("Streaming unsupported")
+	ErrTaskNotFound            = errors.New("Task not found")
+	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started")
+	ErrNoActionSpecified       = errors.New("No action was specified in the request")
+	ErrWrongAction             = errors.New("Wrong action requested")
+)
+
+func (s *V1) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	task, err := core.CreateTaskFromContent(r.Body, nil, s.taskManager.CreateTask)
 	if err != nil {
 		rbody.Write(500, rbody.FromError(err), w)
 		return
 	}
 	taskB := rbody.AddSchedulerTaskFromTask(task)
-	taskB.Href = taskURI(r.Host, "v1", task)
+	taskB.Href = taskURI(r.Host, version, task)
 	rbody.Write(201, taskB, w)
 }
 
-func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	sts := s.mt.GetTasks()
+func (s *V1) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	sts := s.taskManager.GetTasks()
 
 	tasks := &rbody.ScheduledTaskListReturned{}
 	tasks.ScheduledTasks = make([]rbody.ScheduledTask, len(sts))
@@ -53,27 +64,27 @@ func (s *Server) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	i := 0
 	for _, t := range sts {
 		tasks.ScheduledTasks[i] = *rbody.SchedulerTaskFromTask(t)
-		tasks.ScheduledTasks[i].Href = taskURI(r.Host, "v1", t)
+		tasks.ScheduledTasks[i].Href = taskURI(r.Host, version, t)
 		i++
 	}
 	sort.Sort(tasks)
 	rbody.Write(200, tasks, w)
 }
 
-func (s *Server) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	t, err1 := s.mt.GetTask(id)
+	t, err1 := s.taskManager.GetTask(id)
 	if err1 != nil {
 		rbody.Write(404, rbody.FromError(err1), w)
 		return
 	}
 	task := &rbody.ScheduledTaskReturned{}
 	task.AddScheduledTask = *rbody.AddSchedulerTaskFromTask(t)
-	task.Href = taskURI(r.Host, "v1", t)
+	task.Href = taskURI(r.Host, version, t)
 	rbody.Write(200, task, w)
 }
 
-func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	s.wg.Add(1)
 	defer s.wg.Done()
 	logger := log.WithFields(log.Fields{
@@ -91,7 +102,7 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 		alive: true,
 		mChan: make(chan rbody.StreamedTaskEvent),
 	}
-	tc, err1 := s.mt.WatchTask(id, tw)
+	tc, err1 := s.taskManager.WatchTask(id, tw)
 	if err1 != nil {
 		if strings.Contains(err1.Error(), ErrTaskNotFound.Error()) {
 			rbody.Write(404, rbody.FromError(err1), w)
@@ -179,9 +190,9 @@ func (s *Server) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	}
 }
 
-func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	errs := s.mt.StartTask(id)
+	errs := s.taskManager.StartTask(id)
 	if errs != nil {
 		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
 			rbody.Write(404, rbody.FromSnapErrors(errs), w)
@@ -198,9 +209,9 @@ func (s *Server) startTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	rbody.Write(200, &rbody.ScheduledTaskStarted{ID: id}, w)
 }
 
-func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	errs := s.mt.StopTask(id)
+	errs := s.taskManager.StopTask(id)
 	if errs != nil {
 		if strings.Contains(errs[0].Error(), ErrTaskNotFound.Error()) {
 			rbody.Write(404, rbody.FromSnapErrors(errs), w)
@@ -212,9 +223,9 @@ func (s *Server) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 	rbody.Write(200, &rbody.ScheduledTaskStopped{ID: id}, w)
 }
 
-func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	err := s.mt.RemoveTask(id)
+	err := s.taskManager.RemoveTask(id)
 	if err != nil {
 		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
 			rbody.Write(404, rbody.FromError(err), w)
@@ -227,9 +238,9 @@ func (s *Server) removeTask(w http.ResponseWriter, r *http.Request, p httprouter
 }
 
 //enableTask changes the task state from Disabled to Stopped
-func (s *Server) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *V1) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	tsk, err := s.mt.EnableTask(id)
+	tsk, err := s.taskManager.EnableTask(id)
 	if err != nil {
 		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
 			rbody.Write(404, rbody.FromError(err), w)
@@ -283,4 +294,8 @@ func (t *TaskWatchHandler) CatchTaskDisabled(why string) {
 		EventType: rbody.TaskWatchTaskDisabled,
 		Message:   why,
 	}
+}
+
+func taskURI(host, version string, t core.Task) string {
+	return fmt.Sprintf("%s://%s/%s/tasks/%s", protocolPrefix, host, version, t.ID())
 }
