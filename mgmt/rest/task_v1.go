@@ -33,7 +33,6 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
 )
 
-
 func (s *Server) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.mt.CreateTask)
 	if err != nil {

@@ -19,7 +19,6 @@ limitations under the License.
 
 package response
 
-
 type Plugin struct {
 	Name            string        `json:"name"`
 	Version         int           `json:"version"`

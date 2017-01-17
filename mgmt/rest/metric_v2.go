@@ -75,7 +75,6 @@ func (s *Server) getMetricsV2(w http.ResponseWriter, r *http.Request, _ httprout
 	respondWithMetricsV2(r.Host, mts, w)
 }
 
-
 func (s *Server) getMetricsFromTreeV2(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	namespace := params.ByName("namespace")
 
@@ -95,7 +94,7 @@ func (s *Server) getMetricsFromTreeV2(w http.ResponseWriter, r *http.Request, pa
 
 	var err error
 	ver := 0 // returns all metrics
-	if v != ""  {
+	if v != "" {
 		ver, err = strconv.Atoi(v)
 		if err != nil {
 			response.Write(400, response.FromError(err), w)
@@ -127,8 +126,8 @@ func (s *Server) getMetricsFromTreeV2(w http.ResponseWriter, r *http.Request, pa
 			Description:     mt.Description(),
 			Unit:            mt.Unit(),
 			LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
-			Policy: response.PolicyTableSlice(mt.Policy().RulesAsTable()),
-			Href: catalogedMetricURI(r.Host, "v2", mt),
+			Policy:                  response.PolicyTableSlice(mt.Policy().RulesAsTable()),
+			Href:                    catalogedMetricURI(r.Host, "v2", mt),
 		}
 		response.Write(200, mb, w)
 	}

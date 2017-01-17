@@ -23,6 +23,8 @@ package rest
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -30,16 +32,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
+
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/snap/mgmt/rest/v2/mock"
-	"github.com/intelsdi-x/snap/plugin/helper"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/intelsdi-x/snap/mgmt/rest/v2/mock"
+	"github.com/intelsdi-x/snap/plugin/helper"
 	. "github.com/smartystreets/goconvey/convey"
-	"strings"
-	"bytes"
-	"encoding/json"
 )
 
 var (

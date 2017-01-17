@@ -23,11 +23,12 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/intelsdi-x/snap/core/cdata"
-	"net/http"
-	"github.com/urfave/negroni"
 	"bytes"
 	"fmt"
+	"net/http"
+
+	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/urfave/negroni"
 )
 
 type Body interface {
@@ -58,7 +59,6 @@ func Write(code int, b Body, w http.ResponseWriter) {
 	j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
 	fmt.Fprint(w, string(j))
 }
-
 
 var (
 	ErrCannotUnmarshalBody = errors.New("Cannot unmarshal body: invalid type")

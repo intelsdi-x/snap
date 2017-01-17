@@ -35,7 +35,7 @@ func Write(code int, body interface{}, w http.ResponseWriter) {
 		w.WriteHeader(code)
 	}
 
-	if body != nil{
+	if body != nil {
 		j, err := json.MarshalIndent(body, "", "  ")
 		if err != nil {
 			panic(err)

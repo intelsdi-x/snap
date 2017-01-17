@@ -15,14 +15,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/control"
-	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/snap/core/serror"
-	"github.com/julienschmidt/httprouter"
 	"path"
 	"runtime"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/snap/control"
+	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/v2/response"
+	"github.com/julienschmidt/httprouter"
 )
 
 const PluginAlreadyLoaded = "plugin is already loaded"
@@ -254,7 +255,7 @@ func (s *Server) getPluginsV2(w http.ResponseWriter, r *http.Request, params htt
 			filteredPlugins = plugins
 		}
 		response.Write(200, filteredPlugins, w)
-	} else  {
+	} else {
 		// get plugins from the plugin catalog
 		plugins := pluginCatalogBody(r.Host, s.mm.PluginCatalog())
 		filteredPlugins := []response.Plugin{}

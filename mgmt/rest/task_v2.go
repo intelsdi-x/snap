@@ -20,17 +20,17 @@ limitations under the License.
 package rest
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
+	"time"
 
-	"errors"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/v2/response"
 	"github.com/julienschmidt/httprouter"
-	"strings"
-	"time"
 )
 
 var (
