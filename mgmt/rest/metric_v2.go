@@ -28,7 +28,7 @@ import (
 	"strings"
 
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/mgmt/rest/v2/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v2/response"
 	"github.com/intelsdi-x/snap/pkg/stringutils"
 	"github.com/julienschmidt/httprouter"
 )
@@ -47,7 +47,7 @@ func (s *Server) getMetricsV2(w http.ResponseWriter, r *http.Request, _ httprout
 			var err error
 			ver, err = strconv.Atoi(v)
 			if err != nil {
-				respondV2(400, rbody.FromError(err), w)
+				response.Write(400, response.FromError(err), w)
 				return
 			}
 		}
@@ -60,7 +60,7 @@ func (s *Server) getMetricsV2(w http.ResponseWriter, r *http.Request, _ httprout
 
 		mts, err := s.mm.FetchMetrics(core.NewNamespace(ns...), ver)
 		if err != nil {
-			respondV2(404, rbody.FromError(err), w)
+			response.Write(404, response.FromError(err), w)
 			return
 		}
 		respondWithMetricsV2(r.Host, mts, w)
@@ -69,46 +69,101 @@ func (s *Server) getMetricsV2(w http.ResponseWriter, r *http.Request, _ httprout
 
 	mts, err := s.mm.MetricCatalog()
 	if err != nil {
-		respondV2(500, rbody.FromError(err), w)
+		response.Write(500, response.FromError(err), w)
 		return
 	}
 	respondWithMetricsV2(r.Host, mts, w)
 }
 
-func respondWithMetricsV2(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
-	b := rbody.NewMetricsReturned()
-	for _, m := range mts {
-		policies := rbody.PolicyTableSlice(m.Policy().RulesAsTable())
-		dyn, indexes := m.Namespace().IsDynamic()
-		var dynamicElements []rbody.DynamicElement
-		if dyn {
-			dynamicElements = getDynamicElementsV2(m.Namespace(), indexes)
+
+func (s *Server) getMetricsFromTreeV2(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	namespace := params.ByName("namespace")
+
+	// we land here if the request contains a trailing slash, because it matches the tree
+	// lookup URL: /v2/metrics/*namespace.  If the length of the namespace param is 1, we
+	// redirect the request to getMetrics.  This results in GET /v2/metrics and
+	// GET /v2/metrics/ behaving the same way.
+	if len(namespace) <= 1 {
+		s.getMetricsV2(w, r, params)
+		return
+	}
+
+	ns := parseNamespace(namespace)
+
+	q := r.URL.Query()
+	v := q.Get("ver")
+
+	var err error
+	ver := 0 // returns all metrics
+	if v != ""  {
+		ver, err = strconv.Atoi(v)
+		if err != nil {
+			response.Write(400, response.FromError(err), w)
+			return
 		}
-		b = append(b, rbody.Metric{
+	}
+
+	if ns[len(ns)-1] == "*" || ver == 0 {
+		mts, err := s.mm.FetchMetrics(core.NewNamespace(ns...), ver)
+		if err != nil {
+			response.Write(404, response.FromError(err), w)
+			return
+		}
+		respondWithMetricsV2(r.Host, mts, w)
+		return
+	} else {
+		mt, err := s.mm.GetMetric(core.NewNamespace(ns...), ver)
+		if err != nil {
+			response.Write(404, response.FromError(err), w)
+			return
+		}
+
+		dyn, indexes := mt.Namespace().IsDynamic()
+		mb := &response.Metric{
+			Namespace:       mt.Namespace().String(),
+			Version:         mt.Version(),
+			Dynamic:         dyn,
+			DynamicElements: getDynamicElementsV2(mt.Namespace(), indexes),
+			Description:     mt.Description(),
+			Unit:            mt.Unit(),
+			LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
+			Policy: response.PolicyTableSlice(mt.Policy().RulesAsTable()),
+			Href: catalogedMetricURI(r.Host, "v2", mt),
+		}
+		response.Write(200, mb, w)
+	}
+}
+
+func respondWithMetricsV2(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
+	b := make(response.Metrics, 0)
+	for _, m := range mts {
+		policies := response.PolicyTableSlice(m.Policy().RulesAsTable())
+		dyn, indexes := m.Namespace().IsDynamic()
+		b = append(b, response.Metric{
 			Namespace:               m.Namespace().String(),
 			Version:                 m.Version(),
 			LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
 			Description:             m.Description(),
 			Dynamic:                 dyn,
-			DynamicElements:         dynamicElements,
+			DynamicElements:         getDynamicElementsV2(m.Namespace(), indexes),
 			Unit:                    m.Unit(),
 			Policy:                  policies,
 			Href:                    catalogedMetricURI(host, "v2", m),
 		})
 	}
 	sort.Sort(b)
-	respondV2(200, b, w)
+	response.Write(200, b, w)
 }
 
 func catalogedMetricURI(host, version string, mt core.CatalogedMetric) string {
 	return fmt.Sprintf("%s://%s/%s/metrics?ns=%s&ver=%d", protocolPrefix, host, version, url.QueryEscape(mt.Namespace().String()), mt.Version())
 }
 
-func getDynamicElementsV2(ns core.Namespace, indexes []int) []rbody.DynamicElement {
-	elements := make([]rbody.DynamicElement, 0, len(indexes))
+func getDynamicElementsV2(ns core.Namespace, indexes []int) []response.DynamicElement {
+	elements := make([]response.DynamicElement, 0, len(indexes))
 	for _, v := range indexes {
 		e := ns.Element(v)
-		elements = append(elements, rbody.DynamicElement{
+		elements = append(elements, response.DynamicElement{
 			Index:       v,
 			Name:        e.Name,
 			Description: e.Description,
