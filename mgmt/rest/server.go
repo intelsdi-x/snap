@@ -42,10 +42,6 @@ import (
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
-const (
-	APIVersion = 1
-)
-
 // default configuration values
 const (
 	defaultEnable          bool   = true
@@ -472,9 +468,28 @@ func (s *Server) addRoutes() {
 
 	// metric routes
 	s.r.GET("/v2/metrics", s.getMetricsV2)
+	s.r.GET("/v2/metrics/*namespace", s.getMetricsFromTreeV2)
 
 	// task routes
+	s.r.POST("/v2/tasks", s.addTaskV2)
 	s.r.GET("/v2/tasks", s.getTasksV2)
+	s.r.GET("/v2/tasks/:id", s.getTaskV2)
+	s.r.GET("/v2/tasks/:id/watch", s.watchTaskV2)
+	s.r.PUT("/v2/tasks/:id", s.updateTask)
+	s.r.DELETE("/v2/tasks/:id", s.removeTaskV2)
+
+	// plugin routes
+	s.r.POST("/v2/plugins", s.loadPluginV2)
+	s.r.GET("/v2/plugins", s.getPluginsV2)
+	s.r.GET("/v2/plugins/:type", s.getPluginsV2)
+	s.r.GET("/v2/plugins/:type/:name", s.getPluginsV2)
+	s.r.GET("/v2/plugins/:type/:name/:version", s.getPluginV2)
+	s.r.DELETE("/v2/plugins/:type/:name/:version", s.unloadPluginV2)
+
+	// config routes
+	s.r.GET("/v2/plugins/:type/:name/:version/config", s.getPluginConfigItemV2)
+	s.r.PUT("/v2/plugins/:type/:name/:version/config", s.setPluginConfigItemV2)
+	s.r.DELETE("/v2/plugins/:type/:name/:version/config", s.deletePluginConfigItemV2)
 
 	/*
 		== v1 routes ==
