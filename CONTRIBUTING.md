@@ -34,16 +34,14 @@ When **requesting a feature**, context is key. Some of the questions we want to 
 - How urgent is the need (nice to have feature or need to have)?
 - Does this align with the goals of Snap?
 
-When **proposing a new approach**, understanding the use case is key. We organize these requests into a RFC process. RFCs must include:
+When **proposing a RFC**, understanding the use case is key. This type of issue includes:
 - A start and end date for comments
 - A set of required participants
-- A proposal that includes what is in and out of scope
+- A proposal with a straightforward explanation as well as what is in and out of scope
 
 ### What is an RFC?
 
-The Snap maintainers use RFCs, loosely based off the [EITF practice](https://www.ietf.org/rfc.html), to discuss proposed architectural and organizational improvements to the project. While most RFCs will originate from the maintainers, we welcome all users suggesting improvements through the RFC process.
-
-When **proposing a new approach to solving a challenge**, whether technical or organizational, open a request for comment (RFC). If you are ever unsure whether you should do so, open a regular issue and maintainers will help you groom it into a RFC.
+The Snap maintainers use RFCs, loosely based off the [EITF practice](https://www.ietf.org/rfc.html), to discuss proposed architectural and organizational improvements to the project. While most RFCs will originate from the maintainers, we welcome all users suggesting improvements through the RFC process. If you're not sure if you need to open one, you can always [discuss your idea on Slack](http://slack.snap-telemetry.io) beforehand.
 
 ## Contributing Code
 
