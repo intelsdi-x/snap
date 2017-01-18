@@ -29,6 +29,37 @@ npm run build
     * you should copy over these files to the top layer of your repo (same level as zurb-template/ folder)
 * to update banner text edit the [event.json](zurb-template/src/data/event.json) file in the zurb-template/src/data folder and compile a production build as specified above.
 
+##to update the Snap plugin catalog:
+* to update the Snap's [plugin catalog readme](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) on this page, follow these steps:
+1) generate [github api token](https://github.com/settings/tokens) and populate [`${HOME}/.netrc` config](https://github.com/octokit/octokit.rb#using-a-netrc-file) (create in ~/.netrc if it doesn't exist)
+
+    ```
+    machine api.github.com
+      login <username>
+      password <github_api_token>
+    ```
+2) fork [Snap](https://github.com/intelsdi-x/snap) repo on github and add your repo to [modulesync.yml](./modulesync.yml) in the pluginsync repo:
+   
+     ```
+    plugin_catalog.md:
+      fork: username/snap
+    plugin_list.js:
+      fork: username/snap
+    ```
+3) review new catalog (optional). The output of the catalog is combined into the PLUGIN_CATALOG.md file in the pull request.
+
+    ```
+    $ bundle exec rake plugin:catalog
+    ```
+
+4) create the pull-request against the [Snap](https://github.com/intelsdi-x/snap) repo:
+
+    ```
+    $ bundle exec rake pr:catalog
+    ```
+    A pull request will be generated if there any new updates to the catalog. 
+* for more information on how to update the github_io and the wishlist, refer to the section [Update plugin metadata](https://github.com/intelsdi-x/snap-pluginsync#update-plugin-metadata)
+
 ##troubleshooting:
 * if you run into errors, see [troubleshooting](troubleshooting.md)
 
