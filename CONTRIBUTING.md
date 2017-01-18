@@ -1,19 +1,59 @@
 #Contributing to Snap
 
-Snap is Apache 2.0 licensed and accepts contributions via GitHub pull requests. This document
-will cover how to contribute code, report issues, build the project and run the tests.
+Contributing to Snap is a snap (pun intended :turtle:).
+
+Snap is Apache 2.0 licensed and accepts contributions via GitHub. This document will cover how to contribute to the project and report issues. Testing is covered in [BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
+
+## Topics
+
+* [Reporting Security Issues](#reporting-security-issues)
+* [Reporting Issues or Feature Requests](#reporting-issues-or-feature-requests)
+* [Contributing Code](#contributing-code)
+* [Notes on GitHub Usage](#notes-on-github-usage)
+
+## Reporting Security Issues
+
+The Snap team take security very seriously. If you have any issue regarding security,
+please notify us by sending an email to snap-security@intel.com. **Do not create a GitHub issue.** We will follow up with you promptly with more information and a plan for remediation. While we are not offering a security bounty, we would love to send some Snap swag your way along with our deepest gratitude for your assistance in making Snap a more secure product.
+
+## Reporting Issues or Feature Requests
+
+Your contribution through issues is very beneficial to the project. We appreciate all reported issues or new requests. They come in a few different forms described below. Before opening a new issue, we appreciate you reviewing open issues to see if there are any similar requests. If there is a match, comment with a +1, "Also seeing this issue" or something like that. If any environment details differ, please add those with your comment to the matching issue.
+
+When **reporting an issue**, details are key. Include the following:
+- OS version
+- Snap version
+- Environment details (virtual, physical, etc.)
+- Steps to reproduce
+- Expected results
+- Actual results
+
+When **requesting a feature**, context is key. Some of the questions we want to answer are:
+- What does this allow a user to do that they cannot do now?
+- What environment is this meant for (containerized, virtualized, bare metal)?
+- How urgent is the need (nice to have feature or need to have)?
+- Does this align with the goals of Snap?
+
+When **proposing a RFC**, understanding the use case is key. This type of issue includes:
+- A start and end date for comments
+- A set of required participants
+- A proposal with a straightforward explanation as well as what is in and out of scope
+
+### What is an RFC?
+
+The Snap maintainers use RFCs, loosely based off the [EITF practice](https://www.ietf.org/rfc.html), to discuss proposed architectural and organizational improvements to the project. While most RFCs will originate from the maintainers, we welcome all users suggesting improvements through the RFC process. If you're not sure if you need to open one, you can always [discuss your idea on Slack](http://slack.snap-telemetry.io) beforehand.
 
 ## Contributing Code
 
-Contributing code to Snap is a snap (pun intended):
-- Fork the project to your own repository
+To submit code:
+- Create a fork of the project
 - Create a topic branch from where you want to base your work (usually master)
-- Make commit(s) (following commit guidelines below)
-- Add tests to cover contributed code (if necessary)
-- Push your commit(s) to your repository
-- Open a pull request against the original repo and follow the pull request guidelines below
+- Make commit(s) (following [commit guidelines](#commit-guidelines) below)
+- Add tests to cover contributed code
+- Push your commit(s) to your topic branch on your fork
+- Open a pull request against Snap master branch that follows [PR guidelines](#pull-request-guidelines)
 
-The maintainers of the repo utilize a "Looks Good To Me" (LGTM) message in the pull request. After one or more maintainer states LGTM, we will merge. If you have questions or comments on your code, feel free to correct these in your branch through new commits.
+The maintainers of Snap use a "Looks Good To Me" (LGTM) message in the pull request to note that the commits are ready to merge. After one or more maintainer states LGTM, we will merge. If you have questions or comments on your code, feel free to correct these in your branch through new commits.
 
 ### Commit Guidelines
 
@@ -25,14 +65,10 @@ commit is addressing an open issue, please start the commit message with "Fix: #
 "Feature: #XXX". This will help make the generated changelog for each release easy to read
 with what commits were fixes and what commits were features.
 
+
 ### Testing Guidelines
 
-For any pull request submitted, the maintainers of Snap require `small` tests that cover the code being modified and/or features being added; `medium` and `large` tests are also welcome but are not required. This breakdown of tests into `small`, `medium`, and `large` is a new taxonomy adopted by the Snap team in May, 2016. These three test types can be best described as follows:
-* **Small** tests are written to exercise behavior within a single function or module. While of you might think of these as *unit* tests, a more generic term seems appropriate to avoid any confusion. In general, there is no reliance in a *small* test on any external systems (databases, web servers, etc.), and responses expected from such external services (if any) will be *mocked* or *faked*. When we say reliance on “external systems” we are including reliance on access to the network, the filesystem, external systems (eg. databases), system properties, multiple threads of execution, or the use of sleep statements as part of the test. These tests should be the easiest to automate and the fastest to run (returning a result in a minute or less, with most returning a result in a few seconds or less). These tests will be run automatically on any pull requests received from a contributor, and all *small* tests must pass before a pull request will be reviewed.
-* **Medium** tests involve two or more features and test the interaction between those features. For those with previous testing experience, you might think of these as *integration* tests, but because there are a large number of other types of tests that fall into this category a more generic term is needed. The question being answered by these tests is whether or not the interactions between a feature and its nearest neighbors interoperate the way that they are expected to. *Medium* tests can rely on access to local services (a local database, for example), the local filesystem, multiple threads of execution, sleep statements and even access to the (local) network. However, reliance on access to external systems and services (systems and services not available on the localhost) in *medium* tests is discouraged. In general, we should expect that these tests return a result in 5 minutes or less, although some *medium* tests may return a result in much less time than that (depending on local system load). These tests can typically be automated and the set of *medium* tests will be run against any builds prior to their release.
-* **Large** tests represent typical user scenarios and might be what some of you would think of as *functional* tests. However, as was the case with the previous two categories, we felt that the more generic term used by the Google team seemed to be appropriate here. For these tests, reliance on access to the network, local services (like databases), the filesystem, external systems, multiple threads of execution, system properties, and the use of sleep statements within the tests are all supported. Some of these tests might be run manually as part of the release process, but every effort is made to ensure that even these *large* tests can be automated (where possible). The response times for testing of some of these user scenarios could be 15 minutes or more (eg. it may take some time to bring the system up to an equilibrium state when load testing), so there are situations where these *large* tests will have to be triggered manually even if the test itself is run as an automated test.
-
-This taxonomy is the same taxonomy used by the Google Test team and was described in a posting to the Google Testing Blog that can be found [here](http://googletesting.blogspot.com/2010/12/test-sizes.html).
+For any pull request submitted, the maintainers of Snap require `small` tests that cover the code being modified and/or features being added; `medium` and `large` tests are also welcome but are not required. This breakdown of tests into `small`, `medium`, and `large` is a new taxonomy adopted by the Snap team in May, 2016 and is [described in detail here](docs/BUILD_AND_TEST.md#test-types-in-snap).
 
 
 ### Pull Request Guidelines
@@ -45,28 +81,6 @@ Pull requests can contain a single commit or multiple commits. The most importan
 Your pull request should be rebased against the current master branch. Please do not merge
 the current master branch in with your topic branch, nor use the Update Branch button provided
 by GitHub on the pull request page.
-
-## Reporting Issues
-
-Reporting issues are very beneficial to the project. Before reporting an issue, please review current
-open issues to see if there are any matches. If there is a match, comment with a +1, or "Also seeing this issue".
-If any environment details differ, please add those with your comment to the matching issue.
-
-When reporting an issue, details are key. Include the following:
-- OS version
-- Snap version
-- Environment details (virtual, physical, etc.)
-- Steps to reproduce
-- Actual results
-- Expected results
-
-## Reporting Security Issues
-
-The Snap team take security very seriously. If you have any issue regarding security,
-please notify us by sending an email to snap-security@intel.com and not by creating a GitHub issue.
-We will follow up with you promptly with more information and a plan for remediation.
-While we are not offering a security bounty, we would love to send some Snap swag your way along with our
-deepest gratitude for your assistance in making Snap a more secure product.
 
 ## Notes on GitHub Usage
 It's worth noting that we don't use all the native GitHub features for issue management. For instance, it's uncommon for us to assign issues to the developer who will address it. Here are notes on what we do use.
@@ -114,4 +128,4 @@ And as a contributor:
 * A contributor has an idea to improve Snap. He opens an issue with guidelines on how to fix it and the maintainer labels it **type/feature-or-enhancement**. A maintainer believes the approach requires more user input and labels it **type/rfc** to indicate it's an open discussion on implementation. Once a maintainer or contributor begins working on the issue, it's labeled **reviewed/in-progress**. A PR is opened early in the development of the feature and labeled **wip-do-not-merge**. The label is removed once it's time for a maintainer to review the PR. Whoever authors the PR should check back on the original issues thread for further feedback until code is merged.
 * A contributor wants to understand more about Snap and opens an issue. A maintainer sees its resolution will be an answer to the contributor, so she labels it **type/question**. The question is closed once an answer is given. If good ideas of how to improve Snap come up during that thread, she may open other issues and label them **type/** based on whether they are missing docs, improvements or bugs.
 
-If you read through all of this, you're awesome, well-informed and ready to dive in!
+If you read through all of this, you're awesome, well-informed and ready to contribute! :squirrel:

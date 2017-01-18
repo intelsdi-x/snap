@@ -1,22 +1,3 @@
-<!--
-http://www.apache.org/licenses/LICENSE-2.0.txt
-
-
-Copyright 2015 Intel Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 # Plugin Authoring
 
 ### Table of Content
@@ -166,4 +147,4 @@ All plugins should include a README with the following information:
 1. Contributors
 1. License
 
-You are welcome to copy an existing README.md (and CONTRIBUTING.md) to get started. I recommend looking at [psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil). 
+You are welcome to copy an existing README.md (and CONTRIBUTING.md) to get started. I recommend looking at [psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil).
