@@ -27,13 +27,14 @@ type V1 struct {
 	killChan chan struct{}
 }
 
-func NewV1(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *V1 {
+func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *V1 {
 	protocolPrefix = protocol
 	return &V1{wg: wg, killChan: killChan}
 }
 
 func (s *V1) GetRoutes() []api.Route {
 	routes := []api.Route{
+		// plugin routes
 		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type", Handle: s.getPlugins},
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name", Handle: s.getPlugins},

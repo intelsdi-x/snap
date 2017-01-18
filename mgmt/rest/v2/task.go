@@ -51,7 +51,7 @@ func (s *V2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 		return
 	}
 	taskB := response.AddSchedulerTaskFromTask(task)
-	taskB.Href = taskURI(r.Host, "v2", task)
+	taskB.Href = taskURI(r.Host, version, task)
 	response.Write(201, taskB, w)
 }
 
@@ -64,7 +64,7 @@ func (s *V2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 	i := 0
 	for _, t := range sts {
 		tasks[i] = response.SchedulerTaskFromTask(t)
-		tasks[i].Href = taskURI(r.Host, "v2", t)
+		tasks[i].Href = taskURI(r.Host, version, t)
 		i++
 	}
 	sort.Sort(tasks)
@@ -80,7 +80,7 @@ func (s *V2) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params
 		return
 	}
 	task := response.AddSchedulerTaskFromTask(t)
-	task.Href = taskURI(r.Host, "v2", t)
+	task.Href = taskURI(r.Host, version, t)
 	response.Write(200, task, w)
 }
 

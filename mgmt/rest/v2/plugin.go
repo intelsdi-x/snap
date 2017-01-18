@@ -296,7 +296,7 @@ func catalogedPluginBody(host string, c core.CatalogedPlugin) response.Plugin {
 		Signed:          c.IsSigned(),
 		Status:          c.Status(),
 		LoadedTimestamp: c.LoadedTimestamp().Unix(),
-		Href:            pluginURI(host, "v2", c),
+		Href:            pluginURI(host, version, c),
 	}
 }
 
@@ -310,7 +310,7 @@ func runningPluginsBody(host string, c []core.AvailablePlugin) []response.Runnin
 			HitCount:         p.HitCount(),
 			LastHitTimestamp: p.LastHit().Unix(),
 			ID:               p.ID(),
-			Href:             pluginURI(host, "v2", p),
+			Href:             pluginURI(host, version, p),
 			PprofPort:        p.Port(),
 		}
 	}
@@ -404,7 +404,7 @@ func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			Signed:          plugin.IsSigned(),
 			Status:          plugin.Status(),
 			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
-			Href:            pluginURI(r.Host, "v2", plugin),
+			Href:            pluginURI(r.Host, version, plugin),
 			ConfigPolicy:    configPolicy,
 		}
 		response.Write(200, pluginRet, w)

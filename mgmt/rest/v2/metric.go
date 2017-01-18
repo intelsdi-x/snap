@@ -127,7 +127,7 @@ func (s *V2) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params h
 			Unit:            mt.Unit(),
 			LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
 			Policy:                  response.PolicyTableSlice(mt.Policy().RulesAsTable()),
-			Href:                    catalogedMetricURI(r.Host, "v2", mt),
+			Href:                    catalogedMetricURI(r.Host, version, mt),
 		}
 		response.Write(200, mb, w)
 	}
@@ -147,7 +147,7 @@ func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.Response
 			DynamicElements:         getDynamicElements(m.Namespace(), indexes),
 			Unit:                    m.Unit(),
 			Policy:                  policies,
-			Href:                    catalogedMetricURI(host, "v2", m),
+			Href:                    catalogedMetricURI(host, version, m),
 		})
 	}
 	sort.Sort(b)
