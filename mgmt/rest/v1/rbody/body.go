@@ -40,6 +40,7 @@ type Body interface {
 }
 
 func Write(code int, b Body, w http.ResponseWriter) {
+	w.Header().Set("Deprecated", "true")
 	resp := &APIResponse{
 		Meta: &APIResponseMeta{
 			Code:    code,

@@ -30,7 +30,7 @@ import (
 )
 
 func Write(code int, body interface{}, w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; version=2")
 
 	if !w.(negroni.ResponseWriter).Written() {
 		w.WriteHeader(code)

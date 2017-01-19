@@ -212,7 +212,7 @@ func writeFile(filename string, b []byte) (string, error) {
 	return f.Name(), nil
 }
 
-func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func pluginParameters(p httprouter.Params) (string, string, int, map[string]interface{}, serror.SnapError) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, err := strconv.ParseInt(p.ByName("version"), 10, 0)
@@ -225,13 +225,21 @@ func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.P
 	if err != nil || plName == "" || plType == "" {
 		se := serror.New(errors.New("missing or invalid parameter(s)"))
 		se.SetFields(f)
+		return "", "", 0, nil, se
+	}
+	return plType, plName, int(plVersion), f, nil
+}
+
+func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	plType, plName, plVersion, f, se := pluginParameters(p)
+	if se != nil {
 		response.Write(400, response.FromSnapError(se), w)
 		return
 	}
 
-	_, se := s.metricManager.Unload(&plugin{
+	_, se = s.metricManager.Unload(&plugin{
 		name:       plName,
-		version:    int(plVersion),
+		version:    plVersion,
 		pluginType: plType,
 	})
 
@@ -341,17 +349,8 @@ func pluginURI(host, version string, c core.Plugin) string {
 }
 
 func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	plName := p.ByName("name")
-	plType := p.ByName("type")
-	plVersion, err := strconv.ParseInt(p.ByName("version"), 10, 0)
-	f := map[string]interface{}{
-		"plugin-name":    plName,
-		"plugin-version": plVersion,
-		"plugin-type":    plType,
-	}
-	if err != nil || plName == "" || plType == "" {
-		se := serror.New(errors.New("missing or invalid parameter(s)"))
-		se.SetFields(f)
+	plType, plName, plVersion, f, se := pluginParameters(p)
+	if se != nil {
 		response.Write(400, response.FromSnapError(se), w)
 		return
 	}
