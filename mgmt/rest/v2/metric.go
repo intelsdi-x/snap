@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2017 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ import (
 )
 
 func (s *V2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ver := 0 // 0: get all metrics
 
 	// If we are provided a parameter with the name 'ns' we need to
 	// perform a query
@@ -42,7 +41,7 @@ func (s *V2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	v := q.Get("ver")
 	ns_query := q.Get("ns")
 	if ns_query != "" {
-		ver = 0 // 0: get all versions
+		ver := 0 // 0: get all versions
 		if v != "" {
 			var err error
 			ver, err = strconv.Atoi(v)

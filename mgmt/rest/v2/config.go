@@ -2,7 +2,7 @@
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
-Copyright 2015 Intel Corporation
+Copyright 2017 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,14 +47,12 @@ func (s *V2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 
 	name := p.ByName("name")
 	sver := p.ByName("version")
-	var iver int
+	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
 			response.Write(400, response.FromError(err), w)
 			return
 		}
-	} else {
-		iver = -2
 	}
 
 	cdn := s.configManager.GetPluginConfigDataNode(typ, name, iver)
@@ -76,14 +74,12 @@ func (s *V2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 
 	name := p.ByName("name")
 	sver := p.ByName("version")
-	var iver int
+	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
 			response.Write(400, response.FromError(err), w)
 			return
 		}
-	} else {
-		iver = -2
 	}
 
 	src := []string{}
@@ -118,14 +114,12 @@ func (s *V2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 
 	name := p.ByName("name")
 	sver := p.ByName("version")
-	var iver int
+	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
 			response.Write(400, response.FromError(err), w)
 			return
 		}
-	} else {
-		iver = -2
 	}
 
 	src := cdata.NewNode()

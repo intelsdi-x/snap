@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/urfave/negroni"
 )
 
@@ -38,7 +39,7 @@ func Write(code int, body interface{}, w http.ResponseWriter) {
 	if body != nil {
 		j, err := json.MarshalIndent(body, "", "  ")
 		if err != nil {
-			panic(err)
+			logrus.Fatalln(err)
 		}
 		j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
 		fmt.Fprint(w, string(j))
