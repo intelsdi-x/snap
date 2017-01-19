@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/snap/pkg/api"
+	"github.com/intelsdi-x/snap/core/api"
 )
 
 const (

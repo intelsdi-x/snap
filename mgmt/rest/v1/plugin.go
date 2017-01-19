@@ -38,9 +38,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
+	"github.com/intelsdi-x/snap/core/api"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
-	"github.com/intelsdi-x/snap/pkg/api"
 	"github.com/julienschmidt/httprouter"
 )
 
