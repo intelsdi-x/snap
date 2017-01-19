@@ -131,6 +131,15 @@ All metadata fields are optional, but recommended to help users discover your pl
 
 We recommend sharing your plugins early and often by adding them to the list of known plugins. To list your plugin in the plugin catalog, please submit a PR and update [plugins.yml](./plugins.yml) file to include the plugin's github `organization/repo_name`.
 
+### Plugin Catalog
+
+We provide a list of snap plugins at [snap-telemetry.io](http://snap-telemetry.io/plugins.html) and in [this repo](PLUGIN_CATALOG.md). To include your plugins in our plugin catalog:
+
+* Update [plugins.yml](plugins.yml) file to include a line containing `- org/repo_name`.
+* Our [pluginsync tool](https://github.com/intelsdi-x/snap-pluginsync#update-plugin-metadata) will be executed periodically to update our plugin catalog.
+* [Plugin Metadata](#plugin-metadata) will be scanned and used accordingly when the pluginsync generates the catalog.
+* Please do _not_ make changes directly to [PLUGIN_CATALOG.md](plugin_catalog.md) or the [parsed_plugin_list.js](https://github.com/intelsdi-x/snap/blob/gh-pages/assets/catalog/parsed_plugin_list.js) file.
+
 ### Plugin Status
 
 While the Snap framework is hardened through tons of testing, **plugins mature at their own pace**. We want our community to share plugins early and update them often. We are defining categories of maturity of a plugin and will roll them out with the resolution of [#1322](https://github.com/intelsdi-x/snap/issues/1322).
