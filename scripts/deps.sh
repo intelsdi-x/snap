@@ -31,5 +31,6 @@ _go_path
 
 _go_get github.com/Masterminds/glide
 
+_debug "$(glide --version)"
 _info "restoring dependency with glide"
 (cd "${__proj_dir}" && glide install)

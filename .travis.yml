@@ -10,6 +10,7 @@ env:
   global:
   - SNAP_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/snap
   - GO15VENDOREXPERIMENT=1
+  - GLIDE_HOME="${HOME}/.glide"
   matrix:
   - SNAP_TEST_TYPE=legacy
   - SNAP_TEST_TYPE=small

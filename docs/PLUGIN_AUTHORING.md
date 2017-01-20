@@ -1,37 +1,20 @@
-<!--
-http://www.apache.org/licenses/LICENSE-2.0.txt
-
-
-Copyright 2015 Intel Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 # Plugin Authoring
 
 ### Table of Content
 
-1. [Overview](#overview)
-    * [Plugin Library](#plugin-library)
-2. [Developing Plugins](#developing-plugins)
-    * [Plugin Type](#plugin-type)
-    * [Plugin Name](#plugin-name)
-    * [Plugin Metric Namespace](#plugin-metric-namespace)
-    * [Plugin Interface](#plugin-interface)
-    * [Plugin Version](#plugin-version)
-    * [Plugin Release](#plugin-release)
-    * [Plugin Metadata](#plugin-metadata)
-    * [Documentation](#documentation)
+* [Overview](#overview)
+  * [Plugin Library](#plugin-library)
+* [Developing Plugins](#developing-plugins)
+   * [Plugin Type](#plugin-type)
+   * [Plugin Name](#plugin-name)
+   * [Plugin Metric Namespace](#plugin-metric-namespace)
+   * [Plugin Interface](#plugin-interface)
+   * [Plugin Version](#plugin-version)
+   * [Plugin Release](#plugin-release)
+   * [Plugin Metadata](#plugin-metadata)
+   * [Plugin Catalog](#plugin-catalog)
+   * [Plugin Status](#plugin-status)
+   * [Documentation](#documentation)
 
 ## Overview
 
@@ -150,6 +133,15 @@ All metadata fields are optional, but recommended to help users discover your pl
 
 We recommend sharing your plugins early and often by adding them to the list of known plugins. To list your plugin in the plugin catalog, please submit a PR and update [plugins.yml](./plugins.yml) file to include the plugin's github `organization/repo_name`.
 
+### Plugin Catalog
+
+We provide a list of Snap plugins at [snap-telemetry.io](http://snap-telemetry.io/plugins.html) and in [this repo](PLUGIN_CATALOG.md). To keep these catalogs in sync, we do the following:
+
+* Update [plugins.yml](plugins.yml) file to include a line containing `- org/repo_name`
+* Periodically run [pluginsync tool](https://github.com/intelsdi-x/snap-pluginsync#update-plugin-metadata) to update the catalog
+* [Plugin Metadata](#plugin-metadata) will be scanned and used accordingly when the pluginsync tool generates the catalog
+* We do _not_ make changes directly to [PLUGIN_CATALOG.md](plugin_catalog.md) or the [parsed_plugin_list.js](https://github.com/intelsdi-x/snap/blob/gh-pages/assets/catalog/parsed_plugin_list.js) file since they are generated from [templates](https://github.com/intelsdi-x/snap-pluginsync/blob/master/PLUGIN_CATALOG.md.erb)
+
 ### Plugin Status
 
 While the Snap framework is hardened through tons of testing, **plugins mature at their own pace**. We want our community to share plugins early and update them often. We are defining categories of maturity of a plugin and will roll them out with the resolution of [#1322](https://github.com/intelsdi-x/snap/issues/1322).
@@ -166,4 +158,4 @@ All plugins should include a README with the following information:
 1. Contributors
 1. License
 
-You are welcome to copy an existing README.md (and CONTRIBUTING.md) to get started. I recommend looking at [psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil). 
+You are welcome to copy an existing README.md (and CONTRIBUTING.md) to get started. I recommend looking at [psutil](https://github.com/intelsdi-x/snap-plugin-collector-psutil).
