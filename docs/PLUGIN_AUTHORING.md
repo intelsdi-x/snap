@@ -2,17 +2,19 @@
 
 ### Table of Content
 
-1. [Overview](#overview)
-    * [Plugin Library](#plugin-library)
-2. [Developing Plugins](#developing-plugins)
-    * [Plugin Type](#plugin-type)
-    * [Plugin Name](#plugin-name)
-    * [Plugin Metric Namespace](#plugin-metric-namespace)
-    * [Plugin Interface](#plugin-interface)
-    * [Plugin Version](#plugin-version)
-    * [Plugin Release](#plugin-release)
-    * [Plugin Metadata](#plugin-metadata)
-    * [Documentation](#documentation)
+* [Overview](#overview)
+  * [Plugin Library](#plugin-library)
+* [Developing Plugins](#developing-plugins)
+   * [Plugin Type](#plugin-type)
+   * [Plugin Name](#plugin-name)
+   * [Plugin Metric Namespace](#plugin-metric-namespace)
+   * [Plugin Interface](#plugin-interface)
+   * [Plugin Version](#plugin-version)
+   * [Plugin Release](#plugin-release)
+   * [Plugin Metadata](#plugin-metadata)
+   * [Plugin Catalog](#plugin-catalog)
+   * [Plugin Status](#plugin-status)
+   * [Documentation](#documentation)
 
 ## Overview
 
@@ -133,12 +135,12 @@ We recommend sharing your plugins early and often by adding them to the list of 
 
 ### Plugin Catalog
 
-We provide a list of snap plugins at [snap-telemetry.io](http://snap-telemetry.io/plugins.html) and in [this repo](PLUGIN_CATALOG.md). To include your plugins in our plugin catalog:
+We provide a list of Snap plugins at [snap-telemetry.io](http://snap-telemetry.io/plugins.html) and in [this repo](PLUGIN_CATALOG.md). To keep these catalogs in sync, we do the following:
 
-* Update [plugins.yml](plugins.yml) file to include a line containing `- org/repo_name`.
-* Our [pluginsync tool](https://github.com/intelsdi-x/snap-pluginsync#update-plugin-metadata) will be executed periodically to update our plugin catalog.
-* [Plugin Metadata](#plugin-metadata) will be scanned and used accordingly when the pluginsync generates the catalog.
-* Please do _not_ make changes directly to [PLUGIN_CATALOG.md](plugin_catalog.md) or the [parsed_plugin_list.js](https://github.com/intelsdi-x/snap/blob/gh-pages/assets/catalog/parsed_plugin_list.js) file.
+* Update [plugins.yml](plugins.yml) file to include a line containing `- org/repo_name`
+* Periodically run [pluginsync tool](https://github.com/intelsdi-x/snap-pluginsync#update-plugin-metadata) to update the catalog
+* [Plugin Metadata](#plugin-metadata) will be scanned and used accordingly when the pluginsync tool generates the catalog
+* We do _not_ make changes directly to [PLUGIN_CATALOG.md](plugin_catalog.md) or the [parsed_plugin_list.js](https://github.com/intelsdi-x/snap/blob/gh-pages/assets/catalog/parsed_plugin_list.js) file since they are generated from [templates](https://github.com/intelsdi-x/snap-pluginsync/blob/master/PLUGIN_CATALOG.md.erb)
 
 ### Plugin Status
 
