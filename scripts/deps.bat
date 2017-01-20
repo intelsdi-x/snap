@@ -1,9 +1,10 @@
 @echo off
 
-echo Gathering Dependencies...
+echo Gathering dependencies
+
 set _proj_dir="%~dp0.."
 cd /D %_proj_dir%
 go get github.com/Masterminds/glide
-echo Retrieved Dependency: Glide
 glide install
-echo Finished Gathering Dependencies...
+
+echo Finished gathering dependencies

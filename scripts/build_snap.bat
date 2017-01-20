@@ -1,6 +1,6 @@
-@echo OFF
+@echo off
 
-echo Building Snap...
+echo Building Snap
 set _proj_dir=%~dp0..
 for /f "tokens=1-3" %%i in ('git --version') do set git_version=%%k
 set go_build=go build -ldflags "-w -X main.gitversion=%git_version%"
@@ -22,4 +22,4 @@ cd /D %_proj_dir%
 cd /D %_proj_dir%\cmd\snaptel
 %go_build% -o "%build_path%\snaptel.exe" snaptel.go || exit /B 1
 
-echo Built Snap...
+echo Finished building Snap
