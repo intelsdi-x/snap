@@ -16,10 +16,10 @@ if %GOARCH%==amd64 (
 
 md %build_path%
 
-cd %_proj_dir%
+cd /D %_proj_dir%
 %go_build% -o "%build_path%\snapteld.exe" snapteld.go || exit /B 1
 
-cd %_proj_dir%\cmd\snaptel
+cd /D %_proj_dir%\cmd\snaptel
 %go_build% -o "%build_path%\snaptel.exe" snaptel.go || exit /B 1
 
 echo Built Snap...
