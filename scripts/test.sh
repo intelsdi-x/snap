@@ -20,7 +20,11 @@
 # Support travis.ci environment matrix:
 SNAP_TEST_TYPE="${SNAP_TEST_TYPE:-$1}"
 
-UNIT_TEST="${UNIT_TEST:-"gofmt goimports go_test go_cover"}"
+if [[ "${SNAP_TEST_TYPE}" == small ]]; then
+  UNIT_TEST="${UNIT_TEST:-"gofmt goimports go_test go_cover"}"
+else
+  UNIT_TEST="${UNIT_TEST:-"go_test go_cover"}"
+fi
 
 set -e
 set -u
