@@ -1,10 +1,16 @@
 package v2
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"sync"
+
+	"net/http"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core/api"
+	"github.com/urfave/negroni"
 )
 
 const (
@@ -46,7 +52,6 @@ func (s *V2) GetRoutes() []api.Route {
 
 		// metric routes
 		api.Route{Method: "GET", Path: prefix + "/metrics", Handle: s.getMetrics},
-		api.Route{Method: "GET", Path: prefix + "/metrics/*namespace", Handle: s.getMetricsFromTree},
 
 		// task routes
 		api.Route{Method: "GET", Path: prefix + "/tasks", Handle: s.getTasks},
@@ -71,4 +76,22 @@ func (s *V2) BindTribeManager(tribeManager api.Tribe) {}
 
 func (s *V2) BindConfigManager(configManager api.Config) {
 	s.configManager = configManager
+}
+
+func Write(code int, body interface{}, w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json; version=2")
+	w.Header().Set("Version", "beta")
+
+	if !w.(negroni.ResponseWriter).Written() {
+		w.WriteHeader(code)
+	}
+
+	if body != nil {
+		j, err := json.MarshalIndent(body, "", "  ")
+		if err != nil {
+			restLogger.Fatalln(err)
+		}
+		j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
+		fmt.Fprint(w, string(j))
+	}
 }

@@ -23,25 +23,34 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
-	"github.com/intelsdi-x/snap/mgmt/rest/v2/response"
 	"github.com/julienschmidt/httprouter"
 )
+
+type PolicyTable cpolicy.RuleTable
+
+type PolicyTableSlice []cpolicy.RuleTable
+
+// cdata.ConfigDataNode implements it's own UnmarshalJSON
+type PluginConfigItem struct {
+	cdata.ConfigDataNode
+}
 
 func (s *V2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	styp := p.ByName("type")
 	if styp == "" {
 		cdn := s.configManager.GetPluginConfigDataNodeAll()
-		item := &response.PluginConfigItem{ConfigDataNode: cdn}
-		response.Write(200, item, w)
+		item := &PluginConfigItem{ConfigDataNode: cdn}
+		Write(200, item, w)
 		return
 	}
 
 	typ, err := getPluginType(styp)
 	if err != nil {
-		response.Write(400, response.FromError(err), w)
+		Write(400, FromError(err), w)
 		return
 	}
 
@@ -50,14 +59,14 @@ func (s *V2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
-			response.Write(400, response.FromError(err), w)
+			Write(400, FromError(err), w)
 			return
 		}
 	}
 
 	cdn := s.configManager.GetPluginConfigDataNode(typ, name, iver)
-	item := &response.PluginConfigItem{ConfigDataNode: cdn}
-	response.Write(200, item, w)
+	item := &PluginConfigItem{ConfigDataNode: cdn}
+	Write(200, item, w)
 }
 
 func (s *V2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -67,7 +76,7 @@ func (s *V2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	if styp != "" {
 		typ, err = getPluginType(styp)
 		if err != nil {
-			response.Write(400, response.FromError(err), w)
+			Write(400, FromError(err), w)
 			return
 		}
 	}
@@ -77,7 +86,7 @@ func (s *V2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
-			response.Write(400, response.FromError(err), w)
+			Write(400, FromError(err), w)
 			return
 		}
 	}
@@ -85,7 +94,7 @@ func (s *V2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	src := []string{}
 	errCode, err := core.UnmarshalBody(&src, r.Body)
 	if errCode != 0 && err != nil {
-		response.Write(400, response.FromError(err), w)
+		Write(400, FromError(err), w)
 		return
 	}
 
@@ -96,8 +105,8 @@ func (s *V2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 		res = s.configManager.DeletePluginConfigDataNodeField(typ, name, iver, src...)
 	}
 
-	item := &response.PluginConfigItem{ConfigDataNode: res}
-	response.Write(200, item, w)
+	item := &PluginConfigItem{ConfigDataNode: res}
+	Write(200, item, w)
 }
 
 func (s *V2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -107,7 +116,7 @@ func (s *V2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 	if styp != "" {
 		typ, err = getPluginType(styp)
 		if err != nil {
-			response.Write(400, response.FromError(err), w)
+			Write(400, FromError(err), w)
 			return
 		}
 	}
@@ -117,7 +126,7 @@ func (s *V2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
-			response.Write(400, response.FromError(err), w)
+			Write(400, FromError(err), w)
 			return
 		}
 	}
@@ -125,7 +134,7 @@ func (s *V2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 	src := cdata.NewNode()
 	errCode, err := core.UnmarshalBody(src, r.Body)
 	if errCode != 0 && err != nil {
-		response.Write(400, response.FromError(err), w)
+		Write(400, FromError(err), w)
 		return
 	}
 
@@ -136,8 +145,8 @@ func (s *V2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 		res = s.configManager.MergePluginConfigDataNode(typ, name, iver, src)
 	}
 
-	item := &response.PluginConfigItem{ConfigDataNode: res}
-	response.Write(200, item, w)
+	item := &PluginConfigItem{ConfigDataNode: res}
+	Write(200, item, w)
 }
 
 func getPluginType(t string) (core.PluginType, error) {

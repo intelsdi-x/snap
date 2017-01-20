@@ -28,10 +28,42 @@ import (
 	"strings"
 
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/mgmt/rest/v2/response"
 	"github.com/intelsdi-x/snap/pkg/stringutils"
 	"github.com/julienschmidt/httprouter"
 )
+
+type Metrics []Metric
+
+type Metric struct {
+	LastAdvertisedTimestamp int64            `json:"last_advertised_timestamp,omitempty"`
+	Namespace               string           `json:"namespace,omitempty"`
+	Version                 int              `json:"version,omitempty"`
+	Dynamic                 bool             `json:"dynamic"`
+	DynamicElements         []DynamicElement `json:"dynamic_elements,omitempty"`
+	Description             string           `json:"description,omitempty"`
+	Unit                    string           `json:"unit,omitempty"`
+	Policy                  PolicyTableSlice `json:"policy,omitempty"`
+	Href                    string           `json:"href"`
+}
+
+type DynamicElement struct {
+	Index       int    `json:"index,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// Used to sort the metrics before marshalling the response
+func (m Metrics) Len() int {
+	return len(m)
+}
+
+func (m Metrics) Less(i, j int) bool {
+	return (fmt.Sprintf("%s:%d", m[i].Namespace, m[i].Version)) < (fmt.Sprintf("%s:%d", m[j].Namespace, m[j].Version))
+}
+
+func (m Metrics) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
 
 func (s *V2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
@@ -46,7 +78,7 @@ func (s *V2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 			var err error
 			ver, err = strconv.Atoi(v)
 			if err != nil {
-				response.Write(400, response.FromError(err), w)
+				Write(400, FromError(err), w)
 				return
 			}
 		}
@@ -59,7 +91,7 @@ func (s *V2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 
 		mts, err := s.metricManager.FetchMetrics(core.NewNamespace(ns...), ver)
 		if err != nil {
-			response.Write(404, response.FromError(err), w)
+			Write(404, FromError(err), w)
 			return
 		}
 		respondWithMetrics(r.Host, mts, w)
@@ -68,76 +100,18 @@ func (s *V2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 
 	mts, err := s.metricManager.MetricCatalog()
 	if err != nil {
-		response.Write(500, response.FromError(err), w)
+		Write(500, FromError(err), w)
 		return
 	}
 	respondWithMetrics(r.Host, mts, w)
 }
 
-func (s *V2) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	namespace := params.ByName("namespace")
-
-	// we land here if the request contains a trailing slash, because it matches the tree
-	// lookup URL: /v2/metrics/*namespace.  If the length of the namespace param is 1, we
-	// redirect the request to getMetrics.  This results in GET /v2/metrics and
-	// GET /v2/metrics/ behaving the same way.
-	if len(namespace) <= 1 {
-		s.getMetrics(w, r, params)
-		return
-	}
-
-	ns := parseNamespace(namespace)
-
-	q := r.URL.Query()
-	v := q.Get("ver")
-
-	var err error
-	ver := 0 // returns all metrics
-	if v != "" {
-		ver, err = strconv.Atoi(v)
-		if err != nil {
-			response.Write(400, response.FromError(err), w)
-			return
-		}
-	}
-
-	if ns[len(ns)-1] == "*" || ver == 0 {
-		mts, err := s.metricManager.FetchMetrics(core.NewNamespace(ns...), ver)
-		if err != nil {
-			response.Write(404, response.FromError(err), w)
-			return
-		}
-		respondWithMetrics(r.Host, mts, w)
-		return
-	} else {
-		mt, err := s.metricManager.GetMetric(core.NewNamespace(ns...), ver)
-		if err != nil {
-			response.Write(404, response.FromError(err), w)
-			return
-		}
-
-		dyn, indexes := mt.Namespace().IsDynamic()
-		mb := &response.Metric{
-			Namespace:       mt.Namespace().String(),
-			Version:         mt.Version(),
-			Dynamic:         dyn,
-			DynamicElements: getDynamicElements(mt.Namespace(), indexes),
-			Description:     mt.Description(),
-			Unit:            mt.Unit(),
-			LastAdvertisedTimestamp: mt.LastAdvertisedTime().Unix(),
-			Policy:                  response.PolicyTableSlice(mt.Policy().RulesAsTable()),
-			Href:                    catalogedMetricURI(r.Host, version, mt),
-		}
-		response.Write(200, mb, w)
-	}
-}
-
 func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
-	b := make(response.Metrics, 0)
+	b := make(Metrics, 0)
 	for _, m := range mts {
-		policies := response.PolicyTableSlice(m.Policy().RulesAsTable())
+		policies := PolicyTableSlice(m.Policy().RulesAsTable())
 		dyn, indexes := m.Namespace().IsDynamic()
-		b = append(b, response.Metric{
+		b = append(b, Metric{
 			Namespace:               m.Namespace().String(),
 			Version:                 m.Version(),
 			LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
@@ -150,18 +124,18 @@ func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.Response
 		})
 	}
 	sort.Sort(b)
-	response.Write(200, b, w)
+	Write(200, b, w)
 }
 
 func catalogedMetricURI(host, version string, mt core.CatalogedMetric) string {
 	return fmt.Sprintf("%s://%s/%s/metrics?ns=%s&ver=%d", protocolPrefix, host, version, url.QueryEscape(mt.Namespace().String()), mt.Version())
 }
 
-func getDynamicElements(ns core.Namespace, indexes []int) []response.DynamicElement {
-	elements := make([]response.DynamicElement, 0, len(indexes))
+func getDynamicElements(ns core.Namespace, indexes []int) []DynamicElement {
+	elements := make([]DynamicElement, 0, len(indexes))
 	for _, v := range indexes {
 		e := ns.Element(v)
-		elements = append(elements, response.DynamicElement{
+		elements = append(elements, DynamicElement{
 			Index:       v,
 			Name:        e.Name,
 			Description: e.Description,

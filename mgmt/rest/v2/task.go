@@ -20,7 +20,6 @@ limitations under the License.
 package v2
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -29,30 +28,54 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
-	"github.com/intelsdi-x/snap/mgmt/rest/v2/response"
+	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/wmap"
 	"github.com/julienschmidt/httprouter"
 )
 
-var (
-	// The amount of time to buffer streaming events before flushing in seconds
-	StreamingBufferWindow = 0.1
+type Task struct {
+	ID                 string            `json:"id"`
+	Name               string            `json:"name"`
+	Deadline           string            `json:"deadline"`
+	Workflow           *wmap.WorkflowMap `json:"workflow,omitempty"`
+	Schedule           *core.Schedule    `json:"schedule,omitempty"`
+	CreationTimestamp  int64             `json:"creation_timestamp,omitempty"`
+	LastRunTimestamp   int64             `json:"last_run_timestamp,omitempty"`
+	HitCount           int               `json:"hit_count,omitempty"`
+	MissCount          int               `json:"miss_count,omitempty"`
+	FailedCount        int               `json:"failed_count,omitempty"`
+	LastFailureMessage string            `json:"last_failure_message,omitempty"`
+	State              string            `json:"task_state"`
+	Href               string            `json:"href"`
+}
 
-	ErrStreamingUnsupported    = errors.New("Streaming unsupported")
-	ErrTaskNotFound            = errors.New("Task not found")
-	ErrTaskDisabledNotRunnable = errors.New("Task is disabled. Cannot be started")
-	ErrNoActionSpecified       = errors.New("No action was specified in the request")
-	ErrWrongAction             = errors.New("Wrong action requested")
-)
+type Tasks []Task
+
+func (s Tasks) Len() int {
+	return len(s)
+}
+
+func (s Tasks) Less(i, j int) bool {
+	return s[j].CreationTime().After(s[i].CreationTime())
+}
+
+func (s Tasks) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s *Task) CreationTime() time.Time {
+	return time.Unix(s.CreationTimestamp, 0)
+}
 
 func (s *V2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.taskManager.CreateTask)
 	if err != nil {
-		response.Write(500, response.FromError(err), w)
+		Write(500, FromError(err), w)
 		return
 	}
-	taskB := response.AddSchedulerTaskFromTask(task)
+	taskB := AddSchedulerTaskFromTask(task)
 	taskB.Href = taskURI(r.Host, version, task)
-	response.Write(201, taskB, w)
+	Write(201, taskB, w)
 }
 
 func (s *V2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -60,116 +83,28 @@ func (s *V2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 	sts := s.taskManager.GetTasks()
 
 	// create the task list response
-	tasks := make(response.Tasks, len(sts))
+	tasks := make(Tasks, len(sts))
 	i := 0
 	for _, t := range sts {
-		tasks[i] = response.SchedulerTaskFromTask(t)
+		tasks[i] = SchedulerTaskFromTask(t)
 		tasks[i].Href = taskURI(r.Host, version, t)
 		i++
 	}
 	sort.Sort(tasks)
 
-	response.Write(200, tasks, w)
+	Write(200, tasks, w)
 }
 
 func (s *V2) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	t, err := s.taskManager.GetTask(id)
 	if err != nil {
-		response.Write(404, response.FromError(err), w)
+		Write(404, FromError(err), w)
 		return
 	}
-	task := response.AddSchedulerTaskFromTask(t)
+	task := AddSchedulerTaskFromTask(t)
 	task.Href = taskURI(r.Host, version, t)
-	response.Write(200, task, w)
-}
-
-func (s *V2) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	s.wg.Add(1)
-	defer s.wg.Done()
-
-	id := p.ByName("id")
-
-	tw := &TaskWatchHandlerV2{
-		alive: true,
-		mChan: make(chan response.StreamedTaskEvent),
-	}
-	tc, err1 := s.taskManager.WatchTask(id, tw)
-	if err1 != nil {
-		if strings.Contains(err1.Error(), ErrTaskNotFound.Error()) {
-			response.Write(404, response.FromError(err1), w)
-			return
-		}
-		response.Write(500, response.FromError(err1), w)
-		return
-	}
-
-	// Make this Server Sent Events compatible
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	// get a flusher type
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		// This only works on ResponseWriters that support streaming
-		response.Write(500, response.FromError(ErrStreamingUnsupported), w)
-		return
-	}
-	// send initial stream open event
-	so := response.StreamedTaskEvent{
-		EventType: response.TaskWatchStreamOpen,
-		Message:   "Stream opened",
-	}
-	fmt.Fprintf(w, "data: %s\n\n", so.ToJSON())
-	flusher.Flush()
-
-	// Get a channel for if the client notifies us it is closing the connection
-	n := w.(http.CloseNotifier).CloseNotify()
-	t := time.Now()
-	for {
-		// Write to the ResponseWriter
-		select {
-		case e := <-tw.mChan:
-			switch e.EventType {
-			case response.TaskWatchMetricEvent, response.TaskWatchTaskStarted:
-				// The client can decide to stop receiving on the stream on Task Stopped.
-				// We write the event to the buffer
-				fmt.Fprintf(w, "data: %s\n\n", e.ToJSON())
-			case response.TaskWatchTaskDisabled, response.TaskWatchTaskStopped:
-				// A disabled task should end the streaming and close the connection
-				fmt.Fprintf(w, "data: %s\n\n", e.ToJSON())
-				// Flush since we are sending nothing new
-				flusher.Flush()
-				// Close out watcher removing it from the scheduler
-				tc.Close()
-				// exit since this client is no longer listening
-				response.Write(204, nil, w)
-			}
-			// If we are at least above our minimum buffer time we flush to send
-			if time.Now().Sub(t).Seconds() > StreamingBufferWindow {
-				flusher.Flush()
-				t = time.Now()
-			}
-		case <-n:
-			// Flush since we are sending nothing new
-			flusher.Flush()
-			// Close out watcher removing it from the scheduler
-			tc.Close()
-			// exit since this client is no longer listening
-			response.Write(204, nil, w)
-			return
-		case <-s.killChan:
-			// Flush since we are sending nothing new
-			flusher.Flush()
-			// Close out watcher removing it from the scheduler
-			tc.Close()
-			// exit since this client is no longer listening
-			response.Write(204, nil, w)
-			return
-		}
-	}
+	Write(200, task, w)
 }
 
 func (s *V2) updateTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -201,73 +136,83 @@ func (s *V2) updateTask(w http.ResponseWriter, r *http.Request, p httprouter.Par
 			statusCode = 400
 		case ErrWrongAction.Error():
 			statusCode = 400
-		case ErrTaskNotFound.Error():
+		case ErrTaskNotFound:
 			statusCode = 404
-		case ErrTaskDisabledNotRunnable.Error():
+		case ErrTaskDisabledNotRunnable:
 			statusCode = 409
 		}
-		response.Write(statusCode, response.FromSnapErrors(errs), w)
+		Write(statusCode, FromSnapErrors(errs), w)
 		return
 	}
-	response.Write(204, nil, w)
+	Write(204, nil, w)
 }
 
 func (s *V2) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	err := s.taskManager.RemoveTask(id)
 	if err != nil {
-		if strings.Contains(err.Error(), ErrTaskNotFound.Error()) {
-			response.Write(404, response.FromError(err), w)
+		if strings.Contains(err.Error(), ErrTaskNotFound) {
+			Write(404, FromError(err), w)
 			return
 		}
-		response.Write(500, response.FromError(err), w)
+		Write(500, FromError(err), w)
 		return
 	}
-	response.Write(204, nil, w)
+	Write(204, nil, w)
 }
 
 func taskURI(host, version string, t core.Task) string {
 	return fmt.Sprintf("%s://%s/%s/tasks/%s", protocolPrefix, host, version, t.ID())
 }
 
-type TaskWatchHandlerV2 struct {
-	streamCount int
-	alive       bool
-	mChan       chan response.StreamedTaskEvent
+// functions to convert a core.Task to a Task
+func AddSchedulerTaskFromTask(t core.Task) Task {
+	st := SchedulerTaskFromTask(t)
+	(&st).assertSchedule(t.Schedule())
+	st.Workflow = t.WMap()
+	return st
 }
 
-func (t *TaskWatchHandlerV2) CatchCollection(m []core.Metric) {
-	sm := make([]response.StreamedMetric, len(m))
-	for i := range m {
-		sm[i] = response.StreamedMetric{
-			Namespace: m[i].Namespace().String(),
-			Data:      m[i].Data(),
-			Timestamp: m[i].Timestamp(),
-			Tags:      m[i].Tags(),
+func SchedulerTaskFromTask(t core.Task) Task {
+	st := Task{
+		ID:                 t.ID(),
+		Name:               t.GetName(),
+		Deadline:           t.DeadlineDuration().String(),
+		CreationTimestamp:  t.CreationTime().Unix(),
+		LastRunTimestamp:   t.LastRunTime().Unix(),
+		HitCount:           int(t.HitCount()),
+		MissCount:          int(t.MissedCount()),
+		FailedCount:        int(t.FailedCount()),
+		LastFailureMessage: t.LastFailureMessage(),
+		State:              t.State().String(),
+	}
+	if st.LastRunTimestamp < 0 {
+		st.LastRunTimestamp = -1
+	}
+	return st
+}
+
+func (t *Task) assertSchedule(s schedule.Schedule) {
+	switch v := s.(type) {
+	case *schedule.SimpleSchedule:
+		t.Schedule = &core.Schedule{
+			Type:     "simple",
+			Interval: v.Interval.String(),
 		}
-	}
-	t.mChan <- response.StreamedTaskEvent{
-		EventType: response.TaskWatchMetricEvent,
-		Message:   "",
-		Event:     sm,
-	}
-}
-
-func (t *TaskWatchHandlerV2) CatchTaskStarted() {
-	t.mChan <- response.StreamedTaskEvent{
-		EventType: response.TaskWatchTaskStarted,
-	}
-}
-
-func (t *TaskWatchHandlerV2) CatchTaskStopped() {
-	t.mChan <- response.StreamedTaskEvent{
-		EventType: response.TaskWatchTaskStopped,
-	}
-}
-
-func (t *TaskWatchHandlerV2) CatchTaskDisabled(why string) {
-	t.mChan <- response.StreamedTaskEvent{
-		EventType: response.TaskWatchTaskDisabled,
-		Message:   why,
+		return
+	case *schedule.WindowedSchedule:
+		t.Schedule = &core.Schedule{
+			Type:           "windowed",
+			Interval:       v.Interval.String(),
+			StartTimestamp: v.StartTime,
+			StopTimestamp:  v.StopTime,
+		}
+		return
+	case *schedule.CronSchedule:
+		t.Schedule = &core.Schedule{
+			Type:     "cron",
+			Interval: v.Entry(),
+		}
+		return
 	}
 }

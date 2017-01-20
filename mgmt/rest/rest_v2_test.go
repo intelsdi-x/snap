@@ -503,20 +503,5 @@ func TestV2Metric(t *testing.T) {
 				ShouldResemble,
 				fmt.Sprintf(mock.GET_METRICS_RESPONSE, r.port))
 		})
-
-		Convey("Get metrics from tree - v2/metrics/*namespace", func() {
-			resp, err := http.Get(
-				fmt.Sprintf("http://localhost:%d/v2/metrics/*namespace", r.port))
-			So(err, ShouldBeNil)
-			So(resp.StatusCode, ShouldEqual, 200)
-			body, err := ioutil.ReadAll(resp.Body)
-			So(err, ShouldBeNil)
-			resp1, err := url.QueryUnescape(string(body))
-			So(err, ShouldBeNil)
-			So(
-				fmt.Sprintf(mock.GET_METRICS_RESPONSE, r.port),
-				ShouldResemble,
-				resp1)
-		})
 	})
 }

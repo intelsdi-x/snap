@@ -17,12 +17,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package response
+package v2
 
 import (
 	"fmt"
 
+	"errors"
+
 	"github.com/intelsdi-x/snap/core/serror"
+)
+
+const (
+	ErrPluginAlreadyLoaded     = "plugin is already loaded"
+	ErrTaskNotFound            = "Task not found"
+	ErrTaskDisabledNotRunnable = "Task is disabled. Cannot be started"
+)
+
+var (
+	ErrPluginNotFound       = errors.New("plugin not found")
+	ErrStreamingUnsupported = errors.New("Streaming unsupported")
+	ErrNoActionSpecified    = errors.New("No action was specified in the request")
+	ErrWrongAction          = errors.New("Wrong action requested")
 )
 
 // Unsuccessful generic response to a failed API call

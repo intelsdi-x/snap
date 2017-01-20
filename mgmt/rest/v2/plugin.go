@@ -41,16 +41,30 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
-	"github.com/intelsdi-x/snap/mgmt/rest/v2/response"
 	"github.com/julienschmidt/httprouter"
 )
 
-const PluginAlreadyLoaded = "plugin is already loaded"
+type Plugin struct {
+	Name            string        `json:"name"`
+	Version         int           `json:"version"`
+	Type            string        `json:"type"`
+	Signed          bool          `json:"signed"`
+	Status          string        `json:"status"`
+	LoadedTimestamp int64         `json:"loaded_timestamp"`
+	Href            string        `json:"href"`
+	ConfigPolicy    []PolicyTable `json:"policy,omitempty"`
+}
 
-var (
-	ErrMissingPluginName = errors.New("missing plugin name")
-	ErrPluginNotFound    = errors.New("plugin not found")
-)
+type RunningPlugin struct {
+	Name             string `json:"name"`
+	Version          int    `json:"version"`
+	Type             string `json:"type"`
+	HitCount         int    `json:"hitcount"`
+	LastHitTimestamp int64  `json:"last_hit_timestamp"`
+	ID               uint32 `json:"id"`
+	Href             string `json:"href"`
+	PprofPort        string `json:"pprof_port"`
+}
 
 type plugin struct {
 	name       string
@@ -73,7 +87,7 @@ func (p *plugin) TypeName() string {
 func (s *V2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		response.Write(415, response.FromError(err), w)
+		Write(415, FromError(err), w)
 		return
 	}
 	if strings.HasPrefix(mediaType, "multipart/") {
@@ -89,25 +103,25 @@ func (s *V2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 				break
 			}
 			if err != nil {
-				response.Write(500, response.FromError(err), w)
+				Write(500, FromError(err), w)
 				return
 			}
 			if r.Header.Get("Plugin-Compression") == "gzip" {
 				g, err := gzip.NewReader(p)
 				defer g.Close()
 				if err != nil {
-					response.Write(500, response.FromError(err), w)
+					Write(500, FromError(err), w)
 					return
 				}
 				b, err = ioutil.ReadAll(g)
 				if err != nil {
-					response.Write(500, response.FromError(err), w)
+					Write(500, FromError(err), w)
 					return
 				}
 			} else {
 				b, err = ioutil.ReadAll(p)
 				if err != nil {
-					response.Write(500, response.FromError(err), w)
+					Write(500, FromError(err), w)
 					return
 				}
 			}
@@ -124,11 +138,11 @@ func (s *V2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 			case i == 0:
 				if filepath.Ext(p.FileName()) == ".asc" {
 					e := errors.New("Error: first file passed to load plugin api can not be signature file")
-					response.Write(400, response.FromError(e), w)
+					Write(400, FromError(e), w)
 					return
 				}
 				if pluginPath, err = writeFile(p.FileName(), b); err != nil {
-					response.Write(500, response.FromError(err), w)
+					Write(500, FromError(err), w)
 					return
 				}
 				checkSum = sha256.Sum256(b)
@@ -137,19 +151,19 @@ func (s *V2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 					signature = b
 				} else {
 					e := errors.New("Error: second file passed was not a signature file")
-					response.Write(400, response.FromError(e), w)
+					Write(400, FromError(e), w)
 					return
 				}
 			case i == 2:
 				e := errors.New("Error: More than two files passed to the load plugin api")
-				response.Write(400, response.FromError(e), w)
+				Write(400, FromError(e), w)
 				return
 			}
 			i++
 		}
 		rp, err := core.NewRequestedPlugin(pluginPath)
 		if err != nil {
-			response.Write(500, response.FromError(err), w)
+			Write(500, FromError(err), w)
 			return
 		}
 		rp.SetAutoLoaded(false)
@@ -157,7 +171,7 @@ func (s *V2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 		// as after it is written to disk.
 		if rp.CheckSum() != checkSum {
 			e := errors.New("Error: CheckSum mismatch on requested plugin to load")
-			response.Write(400, response.FromError(e), w)
+			Write(400, FromError(e), w)
 			return
 		}
 		rp.SetSignature(signature)
@@ -171,17 +185,17 @@ func (s *V2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 			if err2 != nil {
 				restLogger.Error(err2)
 			}
-			rb := response.FromError(err)
+			rb := FromError(err)
 			switch rb.ErrorMessage {
-			case PluginAlreadyLoaded:
+			case ErrPluginAlreadyLoaded:
 				ec = 409
 			default:
 				ec = 500
 			}
-			response.Write(ec, rb, w)
+			Write(ec, rb, w)
 			return
 		}
-		response.Write(201, catalogedPluginBody(r.Host, pl), w)
+		Write(201, catalogedPluginBody(r.Host, pl), w)
 	}
 }
 
@@ -233,7 +247,7 @@ func pluginParameters(p httprouter.Params) (string, string, int, map[string]inte
 func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plType, plName, plVersion, f, se := pluginParameters(p)
 	if se != nil {
-		response.Write(400, response.FromSnapError(se), w)
+		Write(400, FromSnapError(se), w)
 		return
 	}
 
@@ -255,10 +269,10 @@ func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.P
 		case control.ErrPluginNotInLoadedState.Error():
 			statusCode = 409
 		}
-		response.Write(statusCode, response.FromSnapError(se), w)
+		Write(statusCode, FromSnapError(se), w)
 		return
 	}
-	response.Write(204, nil, w)
+	Write(204, nil, w)
 }
 
 func (s *V2) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -271,7 +285,7 @@ func (s *V2) getPlugins(w http.ResponseWriter, r *http.Request, params httproute
 	if _, detail := r.URL.Query()["running"]; detail {
 		// get running plugins
 		plugins := runningPluginsBody(r.Host, s.metricManager.AvailablePlugins())
-		filteredPlugins := []response.RunningPlugin{}
+		filteredPlugins := []RunningPlugin{}
 		if nbFilter > 0 {
 			for _, p := range plugins {
 				if nbFilter == 1 && (p.Name == plName || p.Type == plType) || nbFilter == 2 && (p.Name == plName && p.Type == plType) {
@@ -281,11 +295,11 @@ func (s *V2) getPlugins(w http.ResponseWriter, r *http.Request, params httproute
 		} else {
 			filteredPlugins = plugins
 		}
-		response.Write(200, filteredPlugins, w)
+		Write(200, filteredPlugins, w)
 	} else {
 		// get plugins from the plugin catalog
 		plugins := pluginCatalogBody(r.Host, s.metricManager.PluginCatalog())
-		filteredPlugins := []response.Plugin{}
+		filteredPlugins := []Plugin{}
 
 		if nbFilter > 0 {
 			for _, p := range plugins {
@@ -296,7 +310,7 @@ func (s *V2) getPlugins(w http.ResponseWriter, r *http.Request, params httproute
 		} else {
 			filteredPlugins = plugins
 		}
-		response.Write(200, filteredPlugins, w)
+		Write(200, filteredPlugins, w)
 	}
 }
 
@@ -307,16 +321,16 @@ func Btoi(b bool) int {
 	return 0
 }
 
-func pluginCatalogBody(host string, c []core.CatalogedPlugin) []response.Plugin {
-	plugins := make([]response.Plugin, len(c))
+func pluginCatalogBody(host string, c []core.CatalogedPlugin) []Plugin {
+	plugins := make([]Plugin, len(c))
 	for i, p := range c {
 		plugins[i] = catalogedPluginBody(host, p)
 	}
 	return plugins
 }
 
-func catalogedPluginBody(host string, c core.CatalogedPlugin) response.Plugin {
-	return response.Plugin{
+func catalogedPluginBody(host string, c core.CatalogedPlugin) Plugin {
+	return Plugin{
 		Name:            c.Name(),
 		Version:         c.Version(),
 		Type:            c.TypeName(),
@@ -327,10 +341,10 @@ func catalogedPluginBody(host string, c core.CatalogedPlugin) response.Plugin {
 	}
 }
 
-func runningPluginsBody(host string, c []core.AvailablePlugin) []response.RunningPlugin {
-	plugins := make([]response.RunningPlugin, len(c))
+func runningPluginsBody(host string, c []core.AvailablePlugin) []RunningPlugin {
+	plugins := make([]RunningPlugin, len(c))
 	for i, p := range c {
-		plugins[i] = response.RunningPlugin{
+		plugins[i] = RunningPlugin{
 			Name:             p.Name(),
 			Version:          p.Version(),
 			Type:             p.TypeName(),
@@ -351,7 +365,7 @@ func pluginURI(host, version string, c core.Plugin) string {
 func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plType, plName, plVersion, f, se := pluginParameters(p)
 	if se != nil {
-		response.Write(400, response.FromSnapError(se), w)
+		Write(400, FromSnapError(se), w)
 		return
 	}
 
@@ -367,18 +381,18 @@ func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	}
 	if plugin == nil {
 		se := serror.New(ErrPluginNotFound, f)
-		response.Write(404, response.FromSnapError(se), w)
+		Write(404, FromSnapError(se), w)
 		return
 	}
 
 	rd := r.FormValue("download")
 	d, _ := strconv.ParseBool(rd)
-	var configPolicy []response.PolicyTable
+	var configPolicy []PolicyTable
 	if plugin.TypeName() == "processor" || plugin.TypeName() == "publisher" {
 		rules := plugin.Policy().Get([]string{""}).RulesAsTable()
-		configPolicy = make([]response.PolicyTable, 0, len(rules))
+		configPolicy = make([]PolicyTable, 0, len(rules))
 		for _, r := range rules {
-			configPolicy = append(configPolicy, response.PolicyTable{
+			configPolicy = append(configPolicy, PolicyTable{
 				Name:     r.Name,
 				Type:     r.Type,
 				Default:  r.Default,
@@ -395,7 +409,7 @@ func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		if err != nil {
 			f["plugin-path"] = plugin.PluginPath()
 			se := serror.New(err, f)
-			response.Write(500, response.FromSnapError(se), w)
+			Write(500, FromSnapError(se), w)
 			return
 		}
 
@@ -407,13 +421,13 @@ func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		if err != nil {
 			f["plugin-path"] = plugin.PluginPath()
 			se := serror.New(err, f)
-			response.Write(500, response.FromSnapError(se), w)
+			Write(500, FromSnapError(se), w)
 			return
 		}
 		w.WriteHeader(200)
 		return
 	} else {
-		pluginRet := response.Plugin{
+		pluginRet := Plugin{
 			Name:            plugin.Name(),
 			Version:         plugin.Version(),
 			Type:            plugin.TypeName(),
@@ -423,6 +437,6 @@ func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			Href:            pluginURI(r.Host, version, plugin),
 			ConfigPolicy:    configPolicy,
 		}
-		response.Write(200, pluginRet, w)
+		Write(200, pluginRet, w)
 	}
 }
