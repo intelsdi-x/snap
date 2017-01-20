@@ -13,7 +13,7 @@ const (
 )
 
 var (
-	restLogger     = log.WithField("_module", "_mgmt-rest-v1")
+	restLogger     = log.WithField("_module", "_mgmt-rest-v2")
 	protocolPrefix = "http"
 )
 
