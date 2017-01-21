@@ -278,8 +278,9 @@ func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.P
 func (s *V2) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 
 	// filter by plugin name or plugin type
-	plName := params.ByName("name")
-	plType := params.ByName("type")
+	q := r.URL.Query()
+	plName := q.Get("name")
+	plType := q.Get("type")
 	nbFilter := Btoi(plName != "") + Btoi(plType != "")
 
 	if _, detail := r.URL.Query()["running"]; detail {

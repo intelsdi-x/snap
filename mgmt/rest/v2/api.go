@@ -41,11 +41,10 @@ func (s *V2) GetRoutes() []api.Route {
 	routes := []api.Route{
 		// plugin routes
 		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
-		api.Route{Method: "GET", Path: prefix + "/plugins/:type", Handle: s.getPlugins},
-		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name", Handle: s.getPlugins},
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version", Handle: s.getPlugin},
 		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version", Handle: s.unloadPlugin},
+
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.getPluginConfigItem},
 		api.Route{Method: "PUT", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.setPluginConfigItem},
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.deletePluginConfigItem},

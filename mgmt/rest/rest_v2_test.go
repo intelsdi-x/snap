@@ -180,8 +180,15 @@ func TestV2Plugin(t *testing.T) {
 					r.port, r.port, r.port, r.port))
 		})
 		Convey("Get plugins - v2/plugins/:type", func() {
-			resp, err := http.Get(
-				fmt.Sprintf("http://localhost:%d/v2/plugins/collector", r.port))
+			c := &http.Client{}
+			req, err := http.NewRequest("GET",
+				fmt.Sprintf("http://localhost:%d/v2/plugins", r.port),
+				bytes.NewReader([]byte{}))
+			So(err, ShouldBeNil)
+			q := req.URL.Query()
+			q.Add("type", "collector")
+			req.URL.RawQuery = q.Encode()
+			resp, err := c.Do(req)
 			So(err, ShouldBeNil)
 			So(resp.StatusCode, ShouldEqual, 200)
 			body, err := ioutil.ReadAll(resp.Body)
@@ -192,8 +199,16 @@ func TestV2Plugin(t *testing.T) {
 				fmt.Sprintf(mock.GET_PLUGINS_RESPONSE_TYPE, r.port, r.port))
 		})
 		Convey("Get plugins - v2/plugins/:type:name", func() {
-			resp, err := http.Get(
-				fmt.Sprintf("http://localhost:%d/v2/plugins/publisher/bar", r.port))
+			c := &http.Client{}
+			req, err := http.NewRequest("GET",
+				fmt.Sprintf("http://localhost:%d/v2/plugins", r.port),
+				bytes.NewReader([]byte{}))
+			So(err, ShouldBeNil)
+			q := req.URL.Query()
+			q.Add("type", "publisher")
+			q.Add("name", "bar")
+			req.URL.RawQuery = q.Encode()
+			resp, err := c.Do(req)
 			So(err, ShouldBeNil)
 			So(resp.StatusCode, ShouldEqual, 200)
 			body, err := ioutil.ReadAll(resp.Body)
