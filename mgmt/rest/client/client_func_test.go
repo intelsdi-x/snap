@@ -26,6 +26,7 @@ package client
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -627,4 +628,20 @@ func TestSnapClient(t *testing.T) {
 		So(err, ShouldNotBeNil)
 		So(c, ShouldBeNil)
 	})
+
+	go http.ListenAndServe("127.0.0.1:65000", timeoutHandler{})
+	c, err = New("http://127.0.0.1:65000", "", true, Timeout(time.Second))
+	Convey("Client should timeout", t, func() {
+		So(err, ShouldBeNil)
+		r := c.GetTasks()
+		So(r.Err, ShouldNotBeNil)
+	})
+}
+
+type timeoutHandler struct{}
+
+//ServeHTTP implements http.Handler interface
+func (th timeoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(3 * time.Second)
+	w.Write([]byte("Hello!"))
 }
