@@ -38,8 +38,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/api"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/mgmt/rest/api"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 	"github.com/julienschmidt/httprouter"
 )
@@ -69,7 +69,7 @@ func (p *plugin) TypeName() string {
 	return p.pluginType
 }
 
-func (s *V1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		rbody.Write(500, rbody.FromError(err), w)
@@ -214,7 +214,7 @@ func writeFile(filename string, b []byte) (string, error) {
 	return f.Name(), nil
 }
 
-func (s *V1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, iErr := strconv.ParseInt(p.ByName("version"), 10, 0)
@@ -261,7 +261,7 @@ func (s *V1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.P
 	rbody.Write(200, pr, w)
 }
 
-func (s *V1) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (s *apiV1) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	var detail bool
 	for k := range r.URL.Query() {
 		if k == "details" {
@@ -350,7 +350,7 @@ func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) rbody.LoadedPl
 	}
 }
 
-func (s *V1) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, iErr := strconv.ParseInt(p.ByName("version"), 10, 0)

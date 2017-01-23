@@ -1,3 +1,22 @@
+/*
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+Copyright 2017 Intel Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package v2
 
 import (
@@ -9,7 +28,7 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/snap/core/api"
+	"github.com/intelsdi-x/snap/mgmt/rest/api"
 	"github.com/urfave/negroni"
 )
 
@@ -23,7 +42,7 @@ var (
 	protocolPrefix = "http"
 )
 
-type V2 struct {
+type apiV2 struct {
 	metricManager api.Metrics
 	taskManager   api.Tasks
 	configManager api.Config
@@ -32,12 +51,12 @@ type V2 struct {
 	killChan chan struct{}
 }
 
-func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *V2 {
+func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *apiV2 {
 	protocolPrefix = protocol
-	return &V2{wg: wg, killChan: killChan}
+	return &apiV2{wg: wg, killChan: killChan}
 }
 
-func (s *V2) GetRoutes() []api.Route {
+func (s *apiV2) GetRoutes() []api.Route {
 	routes := []api.Route{
 		// plugin routes
 		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
@@ -63,17 +82,17 @@ func (s *V2) GetRoutes() []api.Route {
 	return routes
 }
 
-func (s *V2) BindMetricManager(metricManager api.Metrics) {
+func (s *apiV2) BindMetricManager(metricManager api.Metrics) {
 	s.metricManager = metricManager
 }
 
-func (s *V2) BindTaskManager(taskManager api.Tasks) {
+func (s *apiV2) BindTaskManager(taskManager api.Tasks) {
 	s.taskManager = taskManager
 }
 
-func (s *V2) BindTribeManager(tribeManager api.Tribe) {}
+func (s *apiV2) BindTribeManager(tribeManager api.Tribe) {}
 
-func (s *V2) BindConfigManager(configManager api.Config) {
+func (s *apiV2) BindConfigManager(configManager api.Config) {
 	s.configManager = configManager
 }
 

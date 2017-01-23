@@ -42,7 +42,7 @@ const (
 // The amount of time to buffer streaming events before flushing in seconds
 var StreamingBufferWindow = 0.1
 
-func (s *V2) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	s.wg.Add(1)
 	defer s.wg.Done()
 

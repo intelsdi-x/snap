@@ -33,7 +33,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (s *V1) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV1) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ver := 0 // 0: get all metrics
 
 	// If we are provided a parameter with the name 'ns' we need to
@@ -75,7 +75,7 @@ func (s *V1) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	respondWithMetrics(r.Host, mts, w)
 }
 
-func (s *V1) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (s *apiV1) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	namespace := params.ByName("namespace")
 
 	// we land here if the request contains a trailing slash, because it matches the tree

@@ -84,7 +84,7 @@ func (p *plugin) TypeName() string {
 	return p.pluginType
 }
 
-func (s *V2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		Write(415, FromError(err), w)
@@ -244,7 +244,7 @@ func pluginParameters(p httprouter.Params) (string, string, int, map[string]inte
 	return plType, plName, int(plVersion), f, nil
 }
 
-func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plType, plName, plVersion, f, se := pluginParameters(p)
 	if se != nil {
 		Write(400, FromSnapError(se), w)
@@ -275,7 +275,7 @@ func (s *V2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.P
 	Write(204, nil, w)
 }
 
-func (s *V2) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (s *apiV2) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 
 	// filter by plugin name or plugin type
 	q := r.URL.Query()
@@ -363,7 +363,7 @@ func pluginURI(host, version string, c core.Plugin) string {
 	return fmt.Sprintf("%s://%s/%s/plugins/%s/%s/%d", protocolPrefix, host, version, c.TypeName(), c.Name(), c.Version())
 }
 
-func (s *V2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plType, plName, plVersion, f, se := pluginParameters(p)
 	if se != nil {
 		Write(400, FromSnapError(se), w)

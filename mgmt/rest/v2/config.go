@@ -38,7 +38,7 @@ type PluginConfigItem struct {
 	cdata.ConfigDataNode
 }
 
-func (s *V2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	styp := p.ByName("type")
 	if styp == "" {
@@ -69,7 +69,7 @@ func (s *V2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 	Write(200, item, w)
 }
 
-func (s *V2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
@@ -109,7 +109,7 @@ func (s *V2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	Write(200, item, w)
 }
 
-func (s *V2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")

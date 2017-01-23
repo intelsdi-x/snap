@@ -44,7 +44,7 @@ var (
 	ErrWrongAction             = errors.New("Wrong action requested")
 )
 
-func (s *V1) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV1) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.taskManager.CreateTask)
 	if err != nil {
 		rbody.Write(500, rbody.FromError(err), w)
@@ -55,7 +55,7 @@ func (s *V1) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 	rbody.Write(201, taskB, w)
 }
 
-func (s *V1) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV1) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	sts := s.taskManager.GetTasks()
 
 	tasks := &rbody.ScheduledTaskListReturned{}
@@ -71,7 +71,7 @@ func (s *V1) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 	rbody.Write(200, tasks, w)
 }
 
-func (s *V1) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	t, err1 := s.taskManager.GetTask(id)
 	if err1 != nil {
@@ -84,7 +84,7 @@ func (s *V1) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params
 	rbody.Write(200, task, w)
 }
 
-func (s *V1) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	s.wg.Add(1)
 	defer s.wg.Done()
 	logger := log.WithFields(log.Fields{
@@ -190,7 +190,7 @@ func (s *V1) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	}
 }
 
-func (s *V1) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	errs := s.taskManager.StartTask(id)
 	if errs != nil {
@@ -209,7 +209,7 @@ func (s *V1) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	rbody.Write(200, &rbody.ScheduledTaskStarted{ID: id}, w)
 }
 
-func (s *V1) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	errs := s.taskManager.StopTask(id)
 	if errs != nil {
@@ -223,7 +223,7 @@ func (s *V1) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Param
 	rbody.Write(200, &rbody.ScheduledTaskStopped{ID: id}, w)
 }
 
-func (s *V1) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	err := s.taskManager.RemoveTask(id)
 	if err != nil {
@@ -238,7 +238,7 @@ func (s *V1) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Par
 }
 
 //enableTask changes the task state from Disabled to Stopped
-func (s *V1) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	tsk, err := s.taskManager.EnableTask(id)
 	if err != nil {

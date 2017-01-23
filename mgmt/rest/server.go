@@ -32,7 +32,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/urfave/negroni"
 
-	"github.com/intelsdi-x/snap/core/api"
+	"github.com/intelsdi-x/snap/mgmt/rest/api"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1"
 	"github.com/intelsdi-x/snap/mgmt/rest/v2"
 )

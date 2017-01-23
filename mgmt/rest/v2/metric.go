@@ -65,7 +65,7 @@ func (m Metrics) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
 
-func (s *V2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	// If we are provided a parameter with the name 'ns' we need to
 	// perform a query

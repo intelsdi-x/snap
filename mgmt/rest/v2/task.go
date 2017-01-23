@@ -67,7 +67,7 @@ func (s *Task) CreationTime() time.Time {
 	return time.Unix(s.CreationTimestamp, 0)
 }
 
-func (s *V2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.taskManager.CreateTask)
 	if err != nil {
 		Write(500, FromError(err), w)
@@ -78,7 +78,7 @@ func (s *V2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 	Write(201, taskB, w)
 }
 
-func (s *V2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// get tasks from the task manager
 	sts := s.taskManager.GetTasks()
 
@@ -95,7 +95,7 @@ func (s *V2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 	Write(200, tasks, w)
 }
 
-func (s *V2) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	t, err := s.taskManager.GetTask(id)
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *V2) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params
 	Write(200, task, w)
 }
 
-func (s *V2) updateTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) updateTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	errs := make([]serror.SnapError, 0, 1)
 	id := p.ByName("id")
 	action, exist := r.URL.Query()["action"]
@@ -147,7 +147,7 @@ func (s *V2) updateTask(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	Write(204, nil, w)
 }
 
-func (s *V2) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV2) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	err := s.taskManager.RemoveTask(id)
 	if err != nil {

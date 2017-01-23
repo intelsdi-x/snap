@@ -29,7 +29,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (s *V1) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	styp := p.ByName("type")
 	if styp == "" {
@@ -62,7 +62,7 @@ func (s *V1) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httpr
 	rbody.Write(200, item, w)
 }
 
-func (s *V1) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
@@ -104,7 +104,7 @@ func (s *V1) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	rbody.Write(200, item, w)
 }
 
-func (s *V1) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")

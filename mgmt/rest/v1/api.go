@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/snap/core/api"
+	"github.com/intelsdi-x/snap/mgmt/rest/api"
 )
 
 const (
@@ -17,7 +17,7 @@ var (
 	protocolPrefix = "http"
 )
 
-type V1 struct {
+type apiV1 struct {
 	metricManager api.Metrics
 	taskManager   api.Tasks
 	tribeManager  api.Tribe
@@ -27,12 +27,12 @@ type V1 struct {
 	killChan chan struct{}
 }
 
-func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *V1 {
+func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *apiV1 {
 	protocolPrefix = protocol
-	return &V1{wg: wg, killChan: killChan}
+	return &apiV1{wg: wg, killChan: killChan}
 }
 
-func (s *V1) GetRoutes() []api.Route {
+func (s *apiV1) GetRoutes() []api.Route {
 	routes := []api.Route{
 		// plugin routes
 		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
@@ -75,18 +75,18 @@ func (s *V1) GetRoutes() []api.Route {
 	return routes
 }
 
-func (s *V1) BindMetricManager(metricManager api.Metrics) {
+func (s *apiV1) BindMetricManager(metricManager api.Metrics) {
 	s.metricManager = metricManager
 }
 
-func (s *V1) BindTaskManager(taskManager api.Tasks) {
+func (s *apiV1) BindTaskManager(taskManager api.Tasks) {
 	s.taskManager = taskManager
 }
 
-func (s *V1) BindTribeManager(tribeManager api.Tribe) {
+func (s *apiV1) BindTribeManager(tribeManager api.Tribe) {
 	s.tribeManager = tribeManager
 }
 
-func (s *V1) BindConfigManager(configManager api.Config) {
+func (s *apiV1) BindConfigManager(configManager api.Config) {
 	s.configManager = configManager
 }
