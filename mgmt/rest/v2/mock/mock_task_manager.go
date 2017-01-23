@@ -185,7 +185,8 @@ const (
     "task_state": "Running",
     "href": "http://localhost:%d/v2/tasks/asdfghjkl"
   }
-]`
+]
+`
 
 	GET_TASKS_RESPONSE2 = `[
   {
@@ -206,7 +207,8 @@ const (
     "task_state": "Running",
     "href": "http://localhost:%d/v2/tasks/qwertyuiop"
   }
-]`
+]
+`
 
 	GET_TASK_RESPONSE = `{
   "id": ":1234",
@@ -225,7 +227,8 @@ const (
   "last_run_timestamp": -1,
   "task_state": "Running",
   "href": "http://localhost:%d/v2/tasks/:1234"
-}`
+}
+`
 
 	ADD_TASK_RESPONSE = `{
   "id": "MyTaskID",
@@ -244,7 +247,8 @@ const (
   "last_run_timestamp": -1,
   "task_state": "Running",
   "href": "http://localhost:%d/v2/tasks/MyTaskID"
-}`
+}
+`
 
 	START_TASK_RESPONSE_ID_START = ``
 

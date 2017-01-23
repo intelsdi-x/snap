@@ -185,7 +185,8 @@ const (
     "loaded_timestamp": 1473120000,
     "href": "http://localhost:%d/v2/plugins/processor/foobar/1"
   }
-]`
+]
+`
 
 	GET_PLUGINS_RESPONSE_TYPE = `[
   {
@@ -206,7 +207,8 @@ const (
     "loaded_timestamp": 1473120000,
     "href": "http://localhost:%d/v2/plugins/collector/foo/4"
   }
-]`
+]
+`
 
 	GET_PLUGINS_RESPONSE_TYPE_NAME = `[
   {
@@ -218,7 +220,8 @@ const (
     "loaded_timestamp": 1473120000,
     "href": "http://localhost:%d/v2/plugins/publisher/bar/3"
   }
-]`
+]
+`
 
 	GET_PLUGINS_RESPONSE_TYPE_NAME_VERSION = `{
   "name": "bar",
@@ -228,7 +231,8 @@ const (
   "status": "",
   "loaded_timestamp": 1473120000,
   "href": "http://localhost:%d/v2/plugins/publisher/bar/3"
-}`
+}
+`
 
 	GET_METRICS_RESPONSE = `[
   {
@@ -239,7 +243,8 @@ const (
     "description": "This Is A Description",
     "href": "http://localhost:%d/v2/metrics?ns=/one/two/three&ver=5"
   }
-]`
+]
+`
 
 	UNLOAD_PLUGIN_RESPONSE = ``
 )

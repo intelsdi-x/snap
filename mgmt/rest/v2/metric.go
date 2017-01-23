@@ -22,10 +22,11 @@ package v2
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"sort"
 	"strconv"
 	"strings"
+
+	"net/url"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/pkg/stringutils"
@@ -120,14 +121,14 @@ func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.Response
 			DynamicElements:         getDynamicElements(m.Namespace(), indexes),
 			Unit:                    m.Unit(),
 			Policy:                  policies,
-			Href:                    catalogedMetricURI(host, version, m),
+			Href:                    catalogedMetricURI(host, m),
 		})
 	}
 	sort.Sort(b)
 	Write(200, b, w)
 }
 
-func catalogedMetricURI(host, version string, mt core.CatalogedMetric) string {
+func catalogedMetricURI(host string, mt core.CatalogedMetric) string {
 	return fmt.Sprintf("%s://%s/%s/metrics?ns=%s&ver=%d", protocolPrefix, host, version, url.QueryEscape(mt.Namespace().String()), mt.Version())
 }
 

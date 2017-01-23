@@ -71,15 +71,18 @@ func (MockConfigManager) DeletePluginConfigDataNodeFieldAll(fields ...string) cd
 const (
 	SET_PLUGIN_CONFIG_ITEM = `{
   "user": "Jane"
-}`
+}
+`
 
 	GET_PLUGIN_CONFIG_ITEM = `{
   "Port": 2,
   "User": "KELLY"
-}`
+}
+`
 
 	DELETE_PLUGIN_CONFIG_ITEM = `{
   "Port": 2,
   "User": "KELLY"
-}`
+}
+`
 )

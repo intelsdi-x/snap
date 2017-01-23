@@ -74,7 +74,7 @@ func (s *apiV2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 		return
 	}
 	taskB := AddSchedulerTaskFromTask(task)
-	taskB.Href = taskURI(r.Host, version, task)
+	taskB.Href = taskURI(r.Host, task)
 	Write(201, taskB, w)
 }
 
@@ -87,7 +87,7 @@ func (s *apiV2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	i := 0
 	for _, t := range sts {
 		tasks[i] = SchedulerTaskFromTask(t)
-		tasks[i].Href = taskURI(r.Host, version, t)
+		tasks[i].Href = taskURI(r.Host, t)
 		i++
 	}
 	sort.Sort(tasks)
@@ -103,7 +103,7 @@ func (s *apiV2) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Par
 		return
 	}
 	task := AddSchedulerTaskFromTask(t)
-	task.Href = taskURI(r.Host, version, t)
+	task.Href = taskURI(r.Host, t)
 	Write(200, task, w)
 }
 
@@ -161,7 +161,7 @@ func (s *apiV2) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	Write(204, nil, w)
 }
 
-func taskURI(host, version string, t core.Task) string {
+func taskURI(host string, t core.Task) string {
 	return fmt.Sprintf("%s://%s/%s/tasks/%s", protocolPrefix, host, version, t.ID())
 }
 

@@ -20,9 +20,7 @@ limitations under the License.
 package v2
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"net/http"
@@ -97,7 +95,7 @@ func (s *apiV2) BindConfigManager(configManager api.Config) {
 }
 
 func Write(code int, body interface{}, w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json; version=2")
+	w.Header().Set("Content-Type", "application/json; version=2; charset=utf-8")
 	w.Header().Set("Version", "beta")
 
 	if !w.(negroni.ResponseWriter).Written() {
@@ -105,11 +103,12 @@ func Write(code int, body interface{}, w http.ResponseWriter) {
 	}
 
 	if body != nil {
-		j, err := json.MarshalIndent(body, "", "  ")
+		e := json.NewEncoder(w)
+		e.SetIndent("", "  ")
+		e.SetEscapeHTML(false)
+		err := e.Encode(body)
 		if err != nil {
 			restLogger.Fatalln(err)
 		}
-		j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
-		fmt.Fprint(w, string(j))
 	}
 }
