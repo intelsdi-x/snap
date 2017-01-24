@@ -34,6 +34,7 @@ import (
 
 	"github.com/intelsdi-x/snap/mgmt/rest/api"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1"
+	"github.com/intelsdi-x/snap/mgmt/rest/v2"
 )
 
 var (
@@ -82,6 +83,7 @@ func New(cfg *Config) (*Server, error) {
 
 	s.apis = []api.API{
 		v1.New(&s.wg, s.killChan, protocolPrefix),
+		v2.New(&s.wg, s.killChan, protocolPrefix),
 	}
 
 	s.n = negroni.New(
