@@ -33,6 +33,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+type TasksResponse struct {
+	Tasks Tasks `json:"tasks"`
+}
+
 type Task struct {
 	ID                 string            `json:"id"`
 	Name               string            `json:"name"`
@@ -92,7 +96,7 @@ func (s *apiV2) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	}
 	sort.Sort(tasks)
 
-	Write(200, tasks, w)
+	Write(200, TasksResponse{Tasks: tasks}, w)
 }
 
 func (s *apiV2) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

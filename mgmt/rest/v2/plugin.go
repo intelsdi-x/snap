@@ -44,6 +44,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+type PluginsResponse struct {
+	RunningPlugins []RunningPlugin `json:"running_plugins,omitempty"`
+	Plugins        []Plugin        `json:"plugins,omitempty"`
+}
+
 type Plugin struct {
 	Name            string        `json:"name"`
 	Version         int           `json:"version"`
@@ -296,7 +301,7 @@ func (s *apiV2) getPlugins(w http.ResponseWriter, r *http.Request, params httpro
 		} else {
 			filteredPlugins = plugins
 		}
-		Write(200, filteredPlugins, w)
+		Write(200, PluginsResponse{RunningPlugins: filteredPlugins}, w)
 	} else {
 		// get plugins from the plugin catalog
 		plugins := pluginCatalogBody(r.Host, s.metricManager.PluginCatalog())
@@ -311,7 +316,7 @@ func (s *apiV2) getPlugins(w http.ResponseWriter, r *http.Request, params httpro
 		} else {
 			filteredPlugins = plugins
 		}
-		Write(200, filteredPlugins, w)
+		Write(200, PluginsResponse{Plugins: filteredPlugins}, w)
 	}
 }
 

@@ -166,48 +166,52 @@ const TASK = `{
 // These constants are the expected responses from running the task tests in
 // rest_v2_test.go on the task routes found in mgmt/rest/server.go
 const (
-	GET_TASKS_RESPONSE = `[
-  {
-    "id": "qwertyuiop",
-    "name": "TASK1.0",
-    "deadline": "4ns",
-    "creation_timestamp": -62135596800,
-    "last_run_timestamp": -1,
-    "task_state": "Running",
-    "href": "http://localhost:%d/v2/tasks/qwertyuiop"
-  },
-  {
-    "id": "asdfghjkl",
-    "name": "TASK2.0",
-    "deadline": "4ns",
-    "creation_timestamp": -62135596800,
-    "last_run_timestamp": -1,
-    "task_state": "Running",
-    "href": "http://localhost:%d/v2/tasks/asdfghjkl"
-  }
-]
+	GET_TASKS_RESPONSE = `{
+  "tasks": [
+    {
+      "id": "qwertyuiop",
+      "name": "TASK1.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "task_state": "Running",
+      "href": "http://localhost:%d/v2/tasks/qwertyuiop"
+    },
+    {
+      "id": "asdfghjkl",
+      "name": "TASK2.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "task_state": "Running",
+      "href": "http://localhost:%d/v2/tasks/asdfghjkl"
+    }
+  ]
+}
 `
 
-	GET_TASKS_RESPONSE2 = `[
-  {
-    "id": "asdfghjkl",
-    "name": "TASK2.0",
-    "deadline": "4ns",
-    "creation_timestamp": -62135596800,
-    "last_run_timestamp": -1,
-    "task_state": "Running",
-    "href": "http://localhost:%d/v2/tasks/asdfghjkl"
-  },
-  {
-    "id": "qwertyuiop",
-    "name": "TASK1.0",
-    "deadline": "4ns",
-    "creation_timestamp": -62135596800,
-    "last_run_timestamp": -1,
-    "task_state": "Running",
-    "href": "http://localhost:%d/v2/tasks/qwertyuiop"
-  }
-]
+	GET_TASKS_RESPONSE2 = `{
+  "tasks": [
+    {
+      "id": "asdfghjkl",
+      "name": "TASK2.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "task_state": "Running",
+      "href": "http://localhost:%d/v2/tasks/asdfghjkl"
+    },
+    {
+      "id": "qwertyuiop",
+      "name": "TASK1.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "task_state": "Running",
+      "href": "http://localhost:%d/v2/tasks/qwertyuiop"
+    }
+  ]
+}
 `
 
 	GET_TASK_RESPONSE = `{

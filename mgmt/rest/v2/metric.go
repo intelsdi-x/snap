@@ -33,6 +33,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+type MetricsResonse struct {
+	Metrics Metrics `json:"metrics,omitempty"`
+}
+
 type Metrics []Metric
 
 type Metric struct {
@@ -108,11 +112,11 @@ func (s *apiV2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.
 }
 
 func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
-	b := make(Metrics, 0)
+	b := MetricsResonse{Metrics: make(Metrics, 0)}
 	for _, m := range mts {
 		policies := PolicyTableSlice(m.Policy().RulesAsTable())
 		dyn, indexes := m.Namespace().IsDynamic()
-		b = append(b, Metric{
+		b.Metrics = append(b.Metrics, Metric{
 			Namespace:               m.Namespace().String(),
 			Version:                 m.Version(),
 			LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
@@ -124,7 +128,7 @@ func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.Response
 			Href:                    catalogedMetricURI(host, m),
 		})
 	}
-	sort.Sort(b)
+	sort.Sort(b.Metrics)
 	Write(200, b, w)
 }
 
