@@ -18,7 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fixtures
+package mock
 
 import (
 	"github.com/intelsdi-x/snap/core"
@@ -71,15 +71,18 @@ func (MockConfigManager) DeletePluginConfigDataNodeFieldAll(fields ...string) cd
 const (
 	SET_PLUGIN_CONFIG_ITEM = `{
   "user": "Jane"
-}`
+}
+`
 
 	GET_PLUGIN_CONFIG_ITEM = `{
   "Port": 2,
   "User": "KELLY"
-}`
+}
+`
 
 	DELETE_PLUGIN_CONFIG_ITEM = `{
   "Port": 2,
   "User": "KELLY"
-}`
+}
+`
 )

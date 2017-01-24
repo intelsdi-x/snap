@@ -25,7 +25,7 @@ import (
 	"net/url"
 
 	"github.com/intelsdi-x/snap/core/ctypes"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 )
 
 // GetPluginConfig retrieves the merged plugin config given the type of plugin,

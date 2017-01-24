@@ -18,7 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fixtures
+package mock
 
 import (
 	"errors"
@@ -131,7 +131,7 @@ func (m MockManagesMetrics) GetAutodiscoverPaths() []string {
 // rest_v2_test.go on the plugin routes found in mgmt/rest/server.go
 const (
 	GET_PLUGINS_RESPONSE = `{
-  "loaded_plugins": [
+  "plugins": [
     {
       "name": "foo",
       "version": 2,
@@ -187,10 +187,11 @@ const (
       "href": "http://localhost:%d/v2/plugins/processor/foobar/1"
     }
   ]
-}`
+}
+`
 
 	GET_PLUGINS_RESPONSE_TYPE = `{
-  "loaded_plugins": [
+  "plugins": [
     {
       "name": "foo",
       "version": 2,
@@ -210,10 +211,11 @@ const (
       "href": "http://localhost:%d/v2/plugins/collector/foo/4"
     }
   ]
-}`
+}
+`
 
 	GET_PLUGINS_RESPONSE_TYPE_NAME = `{
-  "loaded_plugins": [
+  "plugins": [
     {
       "name": "bar",
       "version": 3,
@@ -224,7 +226,8 @@ const (
       "href": "http://localhost:%d/v2/plugins/publisher/bar/3"
     }
   ]
-}`
+}
+`
 
 	GET_PLUGINS_RESPONSE_TYPE_NAME_VERSION = `{
   "name": "bar",
@@ -234,22 +237,22 @@ const (
   "status": "",
   "loaded_timestamp": 1473120000,
   "href": "http://localhost:%d/v2/plugins/publisher/bar/3"
-}`
+}
+`
 
-	GET_METRICS_RESPONSE = `[
-  {
-    "last_advertised_timestamp": -62135596800,
-    "namespace": "/one/two/three",
-    "version": 5,
-    "dynamic": false,
-    "description": "This Is A Description",
-    "href": "http://localhost:%d/v2/metrics?ns=/one/two/three&ver=5"
-  }
-]`
+	GET_METRICS_RESPONSE = `{
+  "metrics": [
+    {
+      "last_advertised_timestamp": -62135596800,
+      "namespace": "/one/two/three",
+      "version": 5,
+      "dynamic": false,
+      "description": "This Is A Description",
+      "href": "http://localhost:%d/v2/metrics?ns=/one/two/three&ver=5"
+    }
+  ]
+}
+`
 
-	UNLOAD_PLUGIN_RESPONSE = `{
-  "name": "foo",
-  "version": 2,
-  "type": "collector"
-}`
+	UNLOAD_PLUGIN_RESPONSE = ``
 )

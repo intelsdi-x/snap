@@ -18,7 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fixtures
+package mock
 
 import (
 	"time"
@@ -166,47 +166,53 @@ const TASK = `{
 // These constants are the expected responses from running the task tests in
 // rest_v2_test.go on the task routes found in mgmt/rest/server.go
 const (
-	GET_TASKS_RESPONSE = `[
-  {
-    "id": "qwertyuiop",
-    "name": "TASK1.0",
-    "deadline": "4ns",
-    "creation_timestamp": -62135596800,
-    "last_run_timestamp": -1,
-    "task_state": "Running",
-    "href": "http://localhost:%d/v2/tasks/qwertyuiop"
-  },
-  {
-    "id": "asdfghjkl",
-    "name": "TASK2.0",
-    "deadline": "4ns",
-    "creation_timestamp": -62135596800,
-    "last_run_timestamp": -1,
-    "task_state": "Running",
-    "href": "http://localhost:%d/v2/tasks/asdfghjkl"
-  }
-]`
+	GET_TASKS_RESPONSE = `{
+  "tasks": [
+    {
+      "id": "qwertyuiop",
+      "name": "TASK1.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "task_state": "Running",
+      "href": "http://localhost:%d/v2/tasks/qwertyuiop"
+    },
+    {
+      "id": "asdfghjkl",
+      "name": "TASK2.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "task_state": "Running",
+      "href": "http://localhost:%d/v2/tasks/asdfghjkl"
+    }
+  ]
+}
+`
 
-	GET_TASKS_RESPONSE2 = `[
-  {
-    "id": "asdfghjkl",
-    "name": "TASK2.0",
-    "deadline": "4ns",
-    "creation_timestamp": -62135596800,
-    "last_run_timestamp": -1,
-    "task_state": "Running",
-    "href": "http://localhost:%d/v2/tasks/asdfghjkl"
-  },
-  {
-    "id": "qwertyuiop",
-    "name": "TASK1.0",
-    "deadline": "4ns",
-    "creation_timestamp": -62135596800,
-    "last_run_timestamp": -1,
-    "task_state": "Running",
-    "href": "http://localhost:%d/v2/tasks/qwertyuiop"
-  }
-]`
+	GET_TASKS_RESPONSE2 = `{
+  "tasks": [
+    {
+      "id": "asdfghjkl",
+      "name": "TASK2.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "task_state": "Running",
+      "href": "http://localhost:%d/v2/tasks/asdfghjkl"
+    },
+    {
+      "id": "qwertyuiop",
+      "name": "TASK1.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "task_state": "Running",
+      "href": "http://localhost:%d/v2/tasks/qwertyuiop"
+    }
+  ]
+}
+`
 
 	GET_TASK_RESPONSE = `{
   "id": ":1234",
@@ -225,7 +231,8 @@ const (
   "last_run_timestamp": -1,
   "task_state": "Running",
   "href": "http://localhost:%d/v2/tasks/:1234"
-}`
+}
+`
 
 	ADD_TASK_RESPONSE = `{
   "id": "MyTaskID",
@@ -244,36 +251,14 @@ const (
   "last_run_timestamp": -1,
   "task_state": "Running",
   "href": "http://localhost:%d/v2/tasks/MyTaskID"
-}`
+}
+`
 
-	START_TASK_RESPONSE_ID_START = `{
-  "id": "MockTask1234"
-}`
+	START_TASK_RESPONSE_ID_START = ``
 
-	STOP_TASK_RESPONSE_ID_STOP = `{
-  "id": "MockTask1234"
-}`
+	STOP_TASK_RESPONSE_ID_STOP = ``
 
-	ENABLE_TASK_RESPONSE_ID_ENABLE = `{
-  "id": "alskdjf",
-  "name": "Task2",
-  "deadline": "4ns",
-  "workflow": {
-    "collect": {
-      "metrics": {}
-    }
-  },
-  "schedule": {
-    "type": "simple",
-    "interval": "1s"
-  },
-  "creation_timestamp": -62135596800,
-  "last_run_timestamp": -1,
-  "task_state": "Running",
-  "href": ""
-}`
+	ENABLE_TASK_RESPONSE_ID_ENABLE = ``
 
-	REMOVE_TASK_RESPONSE_ID = `{
-  "id": "MockTask1234"
-}`
+	REMOVE_TASK_RESPONSE_ID = ``
 )
