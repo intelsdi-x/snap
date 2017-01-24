@@ -1,4 +1,4 @@
-// +build legacy
+// +build medium
 
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -39,9 +39,15 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/tribe_event"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/scheduler"
+)
+
+var (
+	tribeLogger = restLogger.WithFields(log.Fields{
+		"_module": "rest-tribe",
+	})
 )
 
 func getMembers(port int) *rbody.APIResponse {

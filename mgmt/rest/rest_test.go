@@ -1,9 +1,10 @@
-// +build legacy small medium large
+// +build medium
 
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
-Copyright 2016 Intel Corporation
+
+Copyright 2015 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +22,31 @@ limitations under the License.
 package rest
 
 import (
+	"io/ioutil"
+	"net/http"
+	"os"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/control"
+	"github.com/intelsdi-x/snap/plugin/helper"
 	"github.com/intelsdi-x/snap/scheduler"
+)
+
+// common ressources used for medium tests
+
+var (
+	// Switching this turns on logging for all the REST API calls
+	LOG_LEVEL = log.WarnLevel
+
+	SNAP_PATH              = helper.BuildPath
+	SNAP_AUTODISCOVER_PATH = os.Getenv("SNAP_AUTODISCOVER_PATH")
+	MOCK_PLUGIN_PATH1      = helper.PluginFilePath("snap-plugin-collector-mock1")
+	MOCK_PLUGIN_PATH2      = helper.PluginFilePath("snap-plugin-collector-mock2")
+	FILE_PLUGIN_PATH       = helper.PluginFilePath("snap-plugin-publisher-mock-file")
+
+	CompressedUpload = true
+	TotalUploadSize  = 0
+	UploadCount      = 0
 )
 
 // Since we do not have a global snap package that could be imported
@@ -46,4 +70,22 @@ func getDefaultMockConfig() *mockConfig {
 		Scheduler:  scheduler.GetDefaultConfig(),
 		RestAPI:    GetDefaultConfig(),
 	}
+}
+
+type restAPIInstance struct {
+	port   int
+	server *Server
+}
+
+func command() string {
+	return "curl"
+}
+
+func readBody(r *http.Response) []byte {
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.Body.Close()
+	return b
 }

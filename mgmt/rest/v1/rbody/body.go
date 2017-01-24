@@ -23,7 +23,13 @@ import (
 	"encoding/json"
 	"errors"
 
+	"bytes"
+	"fmt"
+	"net/http"
+
+	"github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/urfave/negroni"
 )
 
 type Body interface {
@@ -31,6 +37,29 @@ type Body interface {
 	// with varied object types that use them.
 	ResponseBodyMessage() string
 	ResponseBodyType() string
+}
+
+func Write(code int, b Body, w http.ResponseWriter) {
+	w.Header().Set("Deprecated", "true")
+	resp := &APIResponse{
+		Meta: &APIResponseMeta{
+			Code:    code,
+			Message: b.ResponseBodyMessage(),
+			Type:    b.ResponseBodyType(),
+			Version: 1,
+		},
+		Body: b,
+	}
+	if !w.(negroni.ResponseWriter).Written() {
+		w.WriteHeader(code)
+	}
+
+	j, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	j = bytes.Replace(j, []byte("\\u0026"), []byte("&"), -1)
+	fmt.Fprint(w, string(j))
 }
 
 var (

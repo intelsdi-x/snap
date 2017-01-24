@@ -1,4 +1,4 @@
-// +build legacy
+// +build medium
 
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -26,6 +26,24 @@ import (
 
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	. "github.com/smartystreets/goconvey/convey"
+)
+
+const (
+	MOCK_CONSTRAINTS = `{
+		"$schema": "http://json-schema.org/draft-04/schema#",
+		"title": "snapteld global config schema",
+		"type": ["object", "null"],
+		"properties": {
+			"control": { "$ref": "#/definitions/control" },
+			"scheduler": { "$ref": "#/definitions/scheduler"},
+			"restapi" : { "$ref": "#/definitions/restapi"},
+			"tribe": { "$ref": "#/definitions/tribe"}
+		},
+		"additionalProperties": true,
+		"definitions": { ` +
+		`"control": {}, "scheduler": {}, ` + CONFIG_CONSTRAINTS + `, "tribe":{}` +
+		`}` +
+		`}`
 )
 
 type mockRestAPIConfig struct {
@@ -144,45 +162,4 @@ func TestRestAPIDefaultConfig(t *testing.T) {
 			So(cfg.RestKey, ShouldEqual, "")
 		})
 	})
-}
-
-func TestParseNamespace(t *testing.T) {
-	tcs := getNsTestCases()
-
-	Convey("Test parseNamespace", t, func() {
-		for _, c := range tcs {
-			Convey("Test parseNamespace "+c.input, func() {
-				So(c.output, ShouldResemble, parseNamespace(c.input))
-			})
-		}
-	})
-}
-
-type nsTestCase struct {
-	input  string
-	output []string
-}
-
-func getNsTestCases() []nsTestCase {
-	tcs := []nsTestCase{
-		{
-			input:  "小a小b小c",
-			output: []string{"a", "b", "c"}},
-		{
-			input:  "%a%b%c",
-			output: []string{"a", "b", "c"}},
-		{
-			input:  "-aヒ-b/-c|",
-			output: []string{"aヒ", "b/", "c|"}},
-		{
-			input:  ">a>b=>c=",
-			output: []string{"a", "b=", "c="}},
-		{
-			input:  ">a>b<>c<",
-			output: []string{"a", "b<", "c<"}},
-		{
-			input:  "㊽a㊽b%㊽c/|",
-			output: []string{"a", "b%", "c/|"}},
-	}
-	return tcs
 }

@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 )
 
 // ListMembers retrieves a list of tribe members through an HTTP GET call.
