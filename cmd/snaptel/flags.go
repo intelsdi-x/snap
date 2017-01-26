@@ -19,7 +19,11 @@ limitations under the License.
 
 package main
 
-import "github.com/urfave/cli"
+import (
+	"time"
+
+	"github.com/urfave/cli"
+)
 
 var (
 
@@ -52,6 +56,11 @@ var (
 		EnvVar: "SNAPTEL_CONFIG_PATH,SNAPCTL_CONFIG_PATH",
 		Usage:  "Path to a config file",
 		Value:  "",
+	}
+	flTimeout = cli.DurationFlag{
+		Name:  "timeout, t",
+		Usage: "Timeout to be set on HTTP request to the server",
+		Value: 10 * time.Second,
 	}
 
 	// Plugin flags

@@ -61,7 +61,7 @@ func main() {
 	app.Name = "snaptel"
 	app.Version = gitversion
 	app.Usage = "The open telemetry framework"
-	app.Flags = []cli.Flag{flURL, flSecure, flAPIVer, flPassword, flConfig}
+	app.Flags = []cli.Flag{flURL, flSecure, flAPIVer, flPassword, flConfig, flTimeout}
 	app.Commands = append(commands, tribeCommands...)
 	sort.Sort(ByCommand(app.Commands))
 	app.Before = beforeAction
@@ -79,7 +79,7 @@ func main() {
 // Run before every command
 func beforeAction(ctx *cli.Context) error {
 	username, password := checkForAuth(ctx)
-	pClient, err = client.New(ctx.String("url"), ctx.String("api-version"), ctx.Bool("insecure"))
+	pClient, err = client.New(ctx.String("url"), ctx.String("api-version"), ctx.Bool("insecure"), client.Timeout(ctx.Duration("timeout")))
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}
