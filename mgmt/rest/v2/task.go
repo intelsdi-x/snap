@@ -37,6 +37,14 @@ type TasksResponse struct {
 	Tasks Tasks `json:"tasks"`
 }
 
+// swagger:parameters getTask watchTask updateTaskState removeTask
+type TaskID struct {
+	// plugin version
+	//
+	// in: path
+	ID string `json:"id"`
+}
+
 type Task struct {
 	ID                 string            `json:"id"`
 	Name               string            `json:"name"`

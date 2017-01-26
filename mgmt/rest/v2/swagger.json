@@ -1,0 +1,297 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "Snap is an open telemetry framework designed to simplify the collection, processing and publishing of system data through a single API.",
+    "title": "Snap API version 2",
+    "termsOfService": "there are no TOS at this moment.",
+    "contact": {
+      "name": "Snap maintainers",
+      "url": "https://intelsdi-x.herokuapp.com",
+      "email": "please@use.slack"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
+    },
+    "version": "2.0.0"
+  },
+  "host": "localhost",
+  "basePath": "/v2",
+  "paths": {
+    "/plugins": {
+      "get": {
+        "description": "Lists plugins, can be filtered by running parameters.",
+        "tags": [
+          "plugins"
+        ],
+        "summary": "List plugins",
+        "operationId": "getPlugins",
+        "parameters": [
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "Type",
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Name",
+            "name": "name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginsResponse"
+          }
+        }
+      }
+    },
+    "/plugins/{ptype}/{pname}/{pversion}": {
+      "get": {
+        "description": "Get plugin information or download the plugin.",
+        "tags": [
+          "plugins"
+        ],
+        "summary": "GET plugin",
+        "operationId": "getPlugin",
+        "parameters": [
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "Ptype",
+            "description": "Plugin type",
+            "name": "ptype",
+            "in": "path"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Pname",
+            "description": "Plugin name",
+            "name": "pname",
+            "in": "path"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Pversion",
+            "description": "Plugin version",
+            "name": "pversion",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Plugin"
+          },
+          "default": {
+            "$ref": "#/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Error": {
+      "description": "Error body",
+      "type": "object",
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Fields"
+        },
+        "message": {
+          "description": "The error message",
+          "type": "string",
+          "x-go-name": "ErrorMessage"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Plugin": {
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string",
+          "x-go-name": "Href"
+        },
+        "loaded_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LoadedTimestamp"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "policy": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PolicyTable"
+          },
+          "x-go-name": "ConfigPolicy"
+        },
+        "signed": {
+          "type": "boolean",
+          "x-go-name": "Signed"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Plugins": {
+      "description": "Plugins body",
+      "type": "object",
+      "properties": {
+        "plugins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Plugin"
+          },
+          "x-go-name": "Plugins"
+        },
+        "running_plugins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RunningPlugin"
+          },
+          "x-go-name": "RunningPlugins"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "PolicyTable": {
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2",
+      "$ref": "#/definitions/RuleTable"
+    },
+    "RuleTable": {
+      "type": "object",
+      "properties": {
+        "default": {
+          "type": "object",
+          "x-go-name": "Default"
+        },
+        "maximum": {
+          "type": "object",
+          "x-go-name": "Maximum"
+        },
+        "minimum": {
+          "type": "object",
+          "x-go-name": "Minimum"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "required": {
+          "type": "boolean",
+          "x-go-name": "Required"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/control/plugin/cpolicy"
+    },
+    "RunningPlugin": {
+      "type": "object",
+      "properties": {
+        "hitcount": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "HitCount"
+        },
+        "href": {
+          "type": "string",
+          "x-go-name": "Href"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint32",
+          "x-go-name": "ID"
+        },
+        "last_hit_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastHitTimestamp"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "pprof_port": {
+          "type": "string",
+          "x-go-name": "PprofPort"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    }
+  },
+  "responses": {
+    "Error": {
+      "description": "Error response",
+      "schema": {
+        "$ref": "#/definitions/Error"
+      }
+    },
+    "Plugin": {
+      "description": "Plugin informations",
+      "schema": {
+        "$ref": "#/definitions/Plugin"
+      }
+    },
+    "PluginsResponse": {
+      "description": "Plugins response is a list of plugins or a list of running plugins",
+      "schema": {
+        "$ref": "#/definitions/Plugins"
+      }
+    }
+  }
+}
