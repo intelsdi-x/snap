@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 	"github.com/urfave/cli"
 
 	"github.com/intelsdi-x/snap/pkg/stringutils"

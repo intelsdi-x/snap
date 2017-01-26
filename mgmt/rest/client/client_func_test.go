@@ -36,6 +36,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/mgmt/rest"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1"
 	"github.com/intelsdi-x/snap/plugin/helper"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -75,7 +76,7 @@ func getWMFromSample(sample string) *wmap.WorkflowMap {
 // When we eventually have a REST API Stop command this can be killed.
 func startAPI() string {
 	// Start a REST API to talk to
-	rest.StreamingBufferWindow = 0.01
+	v1.StreamingBufferWindow = 0.01
 	log.SetLevel(LOG_LEVEL)
 	r, _ := rest.New(rest.GetDefaultConfig())
 	c := control.New(control.GetDefaultConfig())
@@ -490,7 +491,7 @@ func TestSnapClient(t *testing.T) {
 				})
 				Convey("WatchTasks", func() {
 					Convey("invalid task ID", func() {
-						rest.StreamingBufferWindow = 0.01
+						v1.StreamingBufferWindow = 0.01
 
 						type ea struct {
 							events []string
@@ -521,7 +522,7 @@ func TestSnapClient(t *testing.T) {
 						So(r.Err.Error(), ShouldEqual, "Task not found: ID(1)")
 					})
 					Convey("event stream", func() {
-						rest.StreamingBufferWindow = 0.01
+						v1.StreamingBufferWindow = 0.01
 						sch := &Schedule{Type: "simple", Interval: "100ms"}
 						tf := c.CreateTask(sch, wf, "baron", "", false, 0)
 

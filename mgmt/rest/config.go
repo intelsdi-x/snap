@@ -1,158 +1,94 @@
-/*
-http://www.apache.org/licenses/LICENSE-2.0.txt
-
-
-Copyright 2015 Intel Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package rest
 
-import (
-	"net/http"
-	"strconv"
-
-	"github.com/intelsdi-x/snap/core"
-	"github.com/intelsdi-x/snap/core/cdata"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
-	"github.com/julienschmidt/httprouter"
+// default configuration values
+const (
+	defaultEnable          bool   = true
+	defaultPort            int    = 8181
+	defaultAddress         string = ""
+	defaultHTTPS           bool   = false
+	defaultRestCertificate string = ""
+	defaultRestKey         string = ""
+	defaultAuth            bool   = false
+	defaultAuthPassword    string = ""
+	defaultPortSetByConfig bool   = false
+	defaultPprof           bool   = false
 )
 
-func (s *Server) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	var err error
-	styp := p.ByName("type")
-	if styp == "" {
-		cdn := s.mc.GetPluginConfigDataNodeAll()
-		item := &rbody.PluginConfigItem{ConfigDataNode: cdn}
-		respond(200, item, w)
-		return
-	}
-
-	typ, err := getPluginType(styp)
-	if err != nil {
-		respond(400, rbody.FromError(err), w)
-		return
-	}
-
-	name := p.ByName("name")
-	sver := p.ByName("version")
-	var iver int
-	if sver != "" {
-		if iver, err = strconv.Atoi(sver); err != nil {
-			respond(400, rbody.FromError(err), w)
-			return
-		}
-	} else {
-		iver = -2
-	}
-
-	cdn := s.mc.GetPluginConfigDataNode(typ, name, iver)
-	item := &rbody.PluginConfigItem{ConfigDataNode: cdn}
-	respond(200, item, w)
+// holds the configuration passed in through the SNAP config file
+//   Note: if this struct is modified, then the switch statement in the
+//         UnmarshalJSON method in this same file needs to be modified to
+//         match the field mapping that is defined here
+type Config struct {
+	Enable           bool   `json:"enable"yaml:"enable"`
+	Port             int    `json:"port"yaml:"port"`
+	Address          string `json:"addr"yaml:"addr"`
+	HTTPS            bool   `json:"https"yaml:"https"`
+	RestCertificate  string `json:"rest_certificate"yaml:"rest_certificate"`
+	RestKey          string `json:"rest_key"yaml:"rest_key"`
+	RestAuth         bool   `json:"rest_auth"yaml:"rest_auth"`
+	RestAuthPassword string `json:"rest_auth_password"yaml:"rest_auth_password"`
+	portSetByConfig  bool   ``
+	Pprof            bool   `json:"pprof"yaml:"pprof"`
 }
 
-func (s *Server) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	var err error
-	var typ core.PluginType
-	styp := p.ByName("type")
-	if styp != "" {
-		typ, err = getPluginType(styp)
-		if err != nil {
-			respond(400, rbody.FromError(err), w)
-			return
-		}
-	}
+const (
+	CONFIG_CONSTRAINTS = `
+			"restapi" : {
+				"type": ["object", "null"],
+				"properties" : {
+					"enable": {
+						"type": "boolean"
+					},
+					"https" : {
+						"type": "boolean"
+					},
+					"rest_auth": {
+						"type": "boolean"
+					},
+					"rest_auth_password": {
+						"type": "string"
+					},
+					"rest_certificate": {
+						"type": "string"
+					},
+					"rest_key" : {
+						"type": "string"
+					},
+					"port" : {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 65535
+					},
+					"addr" : {
+						"type": "string"
+					},
+					"pprof": {
+						"type": "boolean"
+					}
+				},
+				"additionalProperties": false
+			}
+	`
+)
 
-	name := p.ByName("name")
-	sver := p.ByName("version")
-	var iver int
-	if sver != "" {
-		if iver, err = strconv.Atoi(sver); err != nil {
-			respond(400, rbody.FromError(err), w)
-			return
-		}
-	} else {
-		iver = -2
+// GetDefaultConfig gets the default snapteld configuration
+func GetDefaultConfig() *Config {
+	return &Config{
+		Enable:           defaultEnable,
+		Port:             defaultPort,
+		Address:          defaultAddress,
+		HTTPS:            defaultHTTPS,
+		RestCertificate:  defaultRestCertificate,
+		RestKey:          defaultRestKey,
+		RestAuth:         defaultAuth,
+		RestAuthPassword: defaultAuthPassword,
+		portSetByConfig:  defaultPortSetByConfig,
+		Pprof:            defaultPprof,
 	}
-
-	src := []string{}
-	errCode, err := core.UnmarshalBody(&src, r.Body)
-	if errCode != 0 && err != nil {
-		respond(400, rbody.FromError(err), w)
-		return
-	}
-
-	var res cdata.ConfigDataNode
-	if styp == "" {
-		res = s.mc.DeletePluginConfigDataNodeFieldAll(src...)
-	} else {
-		res = s.mc.DeletePluginConfigDataNodeField(typ, name, iver, src...)
-	}
-
-	item := &rbody.DeletePluginConfigItem{ConfigDataNode: res}
-	respond(200, item, w)
 }
 
-func (s *Server) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	var err error
-	var typ core.PluginType
-	styp := p.ByName("type")
-	if styp != "" {
-		typ, err = getPluginType(styp)
-		if err != nil {
-			respond(400, rbody.FromError(err), w)
-			return
-		}
-	}
-
-	name := p.ByName("name")
-	sver := p.ByName("version")
-	var iver int
-	if sver != "" {
-		if iver, err = strconv.Atoi(sver); err != nil {
-			respond(400, rbody.FromError(err), w)
-			return
-		}
-	} else {
-		iver = -2
-	}
-
-	src := cdata.NewNode()
-	errCode, err := core.UnmarshalBody(src, r.Body)
-	if errCode != 0 && err != nil {
-		respond(400, rbody.FromError(err), w)
-		return
-	}
-
-	var res cdata.ConfigDataNode
-	if styp == "" {
-		res = s.mc.MergePluginConfigDataNodeAll(src)
-	} else {
-		res = s.mc.MergePluginConfigDataNode(typ, name, iver, src)
-	}
-
-	item := &rbody.SetPluginConfigItem{ConfigDataNode: res}
-	respond(200, item, w)
-}
-
-func getPluginType(t string) (core.PluginType, error) {
-	if ityp, err := strconv.Atoi(t); err == nil {
-		return core.PluginType(ityp), nil
-	}
-	ityp, err := core.ToPluginType(t)
-	if err != nil {
-		return core.PluginType(-1), err
-	}
-	return ityp, nil
+// define a method that can be used to determine if the port the RESTful
+// API is listening on was set in the configuration file
+func (c *Config) PortSetByConfigFile() bool {
+	return c.portSetByConfig
 }
