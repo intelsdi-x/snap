@@ -15,6 +15,7 @@
 # After merging, we will update PLUGIN_CATALOG.md and website where
 # the list is available: http://snap-telemetry.io/plugins.html
 #####################
+- opsvision/snap-plugin-publisher-awssqs
 - opsvision/snap-plugin-publisher-signalfx
 - opsvision/snap-plugin-collector-syslog
 - circonus-labs/snap-plugin-publisher-circonus
