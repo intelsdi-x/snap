@@ -102,6 +102,13 @@ func Username(u string) metaOp {
 	}
 }
 
+//Timeout is an option that can be provided to the func client.New in order to set HTTP connection timeout.
+func Timeout(t time.Duration) metaOp {
+	return func(c *Client) {
+		c.http.Timeout = t
+	}
+}
+
 var (
 	secureTransport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
