@@ -73,6 +73,7 @@ func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, s
 }
 func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error)          { return nil, nil }
 func (m *MockPluginManagerBadSwap) teardown()                                  {}
+func (m *MockPluginManagerBadSwap) GetPluginConfig() *pluginConfig             { return nil }
 func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)              {}
 func (m *MockPluginManagerBadSwap) SetPluginTags(map[string]map[string]string) {}
 func (m *MockPluginManagerBadSwap) AddStandardAndWorkflowTags(met core.Metric, allTags map[string]map[string]string) core.Metric {

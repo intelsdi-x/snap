@@ -22,6 +22,7 @@ limitations under the License.
 package control
 
 import (
+	"fmt"
 	"net"
 	"path"
 	"testing"
@@ -120,8 +121,53 @@ func TestComparePlugins(t *testing.T) {
 	})
 }
 
+func TestSubscriptionGroups_Process_GlobalPluginConfig(t *testing.T) {
+	c := New(getTestSGConfig())
+	Convey("Adds global plugin config for collectors", t, func() {
+		c.Config.Plugins.Collector.All.AddItem("name", ctypes.ConfigValueStr{Value: "jane"})
+
+		lpe := newLstnToPluginEvents()
+		c.eventManager.RegisterHandler("TestSubscriptionGroups_Process", lpe)
+		c.Start()
+
+		Convey("Loading a mock collector plugin", func() {
+			_, err := loadPlg(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
+			So(err, ShouldBeNil)
+			<-lpe.load
+
+			Convey("Subscription group created", func() {
+				requested := mockRequestedMetric{namespace: core.NewNamespace("intel", "mock", "foo")}
+				subsPlugin := mockSubscribedPlugin{
+					typeName: core.CollectorPluginType,
+					name:     "mock",
+					version:  1,
+					config:   cdata.NewNode(),
+				}
+
+				sg := newSubscriptionGroups(c)
+				So(sg, ShouldNotBeNil)
+				sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{subsPlugin})
+				<-lpe.sub
+				So(len(sg.subscriptionMap), ShouldEqual, 1)
+				group, ok := sg.subscriptionMap["task-id"]
+				So(ok, ShouldBeTrue)
+				So(group, ShouldNotBeNil)
+				So(len(group.plugins), ShouldEqual, 1)
+				So(subscribedPluginsContain(group.plugins, subsPlugin), ShouldBeTrue)
+				key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d",
+					subsPlugin.TypeName(),
+					subsPlugin.Name(),
+					subsPlugin.Version())
+				So(group.metrics, ShouldContainKey, key)
+				So(len(group.metrics[key].Metrics()), ShouldEqual, 1)
+				So(group.metrics[key].Metrics()[0].Config().Table(), ShouldContainKey, "name")
+				So(group.metrics[key].Metrics()[0].Config().Table()["name"], ShouldResemble, ctypes.ConfigValueStr{Value: "jane"})
+			})
+		})
+	})
+}
+
 func TestSubscriptionGroups_ProcessStaticNegative(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -192,7 +238,6 @@ func TestSubscriptionGroups_ProcessStaticNegative(t *testing.T) {
 }
 
 func TestSubscriptionGroups_ProcessStaticPositive(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -262,7 +307,6 @@ func TestSubscriptionGroups_ProcessStaticPositive(t *testing.T) {
 }
 
 func TestSubscriptionGroups_ProcessDynamicPositive(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -345,7 +389,6 @@ func TestSubscriptionGroups_ProcessDynamicPositive(t *testing.T) {
 }
 
 func TestSubscriptionGroups_ProcessDynamicNegative(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -416,7 +459,6 @@ func TestSubscriptionGroups_ProcessDynamicNegative(t *testing.T) {
 }
 
 func TestSubscriptionGroups_ProcessSpecifiedDynamicPositive(t *testing.T) {
-	log.SetLevel(log.WarnLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -501,7 +543,6 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicPositive(t *testing.T) {
 }
 
 func TestSubscriptionGroups_ProcessSpecifiedDynamicNegative(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -578,7 +619,6 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicNegative(t *testing.T) {
 }
 
 func TestSubscriptionGroups_AddRemoveStatic(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -617,7 +657,6 @@ func TestSubscriptionGroups_AddRemoveStatic(t *testing.T) {
 }
 
 func TestSubscriptionGroups_AddRemoveDynamic(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -659,7 +698,6 @@ func TestSubscriptionGroups_AddRemoveDynamic(t *testing.T) {
 }
 
 func TestSubscriptionGroups_AddRemoveSpecifiedDynamic(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -704,7 +742,6 @@ func TestSubscriptionGroups_AddRemoveSpecifiedDynamic(t *testing.T) {
 }
 
 func TestSubscriptionGroups_GetStatic(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -753,7 +790,6 @@ func TestSubscriptionGroups_GetStatic(t *testing.T) {
 }
 
 func TestSubscriptionGroups_GetDynamic(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
@@ -802,7 +838,6 @@ func TestSubscriptionGroups_GetDynamic(t *testing.T) {
 }
 
 func TestSubscriptionGroups_GetSpecifiedDynamic(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	c := New(getTestSGConfig())
 
 	lpe := newLstnToPluginEvents()
