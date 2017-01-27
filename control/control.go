@@ -127,6 +127,7 @@ type managesPlugins interface {
 	SetMetricCatalog(catalogsMetrics)
 	GenerateArgs(logLevel int) plugin.Arg
 	SetPluginConfig(*pluginConfig)
+	GetPluginConfig() *pluginConfig
 	SetPluginTags(map[string]map[string]string)
 	AddStandardAndWorkflowTags(core.Metric, map[string]map[string]string) core.Metric
 	SetPluginLoadTimeout(int)
@@ -757,6 +758,10 @@ func (p *pluginControl) getMetricsAndCollectors(requested []core.RequestedMetric
 			}
 			// set config to metric
 			mt.config = cfg
+
+			// apply the defaults from the global (plugin) config
+			cfgNode := p.pluginManager.GetPluginConfig().getPluginConfigDataNode(core.CollectorPluginType, mt.Plugin.Name(), mt.Plugin.Version())
+			cfg.ApplyDefaults(cfgNode.Table())
 
 			// apply defaults to the metric that may be present in the plugins
 			// configpolicy

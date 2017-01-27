@@ -293,6 +293,11 @@ func (p *pluginManager) SetPluginConfig(cf *pluginConfig) {
 	p.pluginConfig = cf
 }
 
+// GetPluginConfig gets the plugin config
+func (p *pluginManager) GetPluginConfig() *pluginConfig {
+	return p.pluginConfig
+}
+
 // SetPluginTags sets plugin tags
 func (p *pluginManager) SetPluginTags(tags map[string]map[string]string) {
 	p.pluginTags = tags
