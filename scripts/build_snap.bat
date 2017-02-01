@@ -1,5 +1,5 @@
 @echo off
-
+setlocal
 echo Building Snap
 set _proj_dir=%~dp0..
 for /f "tokens=1-3" %%i in ('git --version') do set git_version=%%k
@@ -19,7 +19,8 @@ md %build_path%
 cd /D %_proj_dir%
 %go_build% -o "%build_path%\snapteld.exe" snapteld.go || exit /B 1
 
-cd /D %_proj_dir%\cmd\snaptel
-%go_build% -o "%build_path%\snaptel.exe" snaptel.go || exit /B 1
+cd /D %_proj_dir%\cmd\snaptel 
+%go_build% -o "%build_path%\snaptel.exe" . || exit /B 1
 
 echo Finished building Snap
+endlocal
