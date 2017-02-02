@@ -39,8 +39,8 @@ _info "git commit: $(git log --pretty=format:"%H" -1)"
 export CGO_ENABLED=0
 
 # rebuild binaries:
-export GOOS=${GOOS:-$(uname -s | tr '[:upper:]' '[:lower:]')}
-export GOARCH=${GOARCH:-"amd64"}
+export GOOS=${GOOS:-$(go env GOOS)}
+export GOARCH=${GOARCH:-$(go env GOARCH)}
 
 if [[ "${GOARCH}" == "amd64" ]]; then
   build_path="${__proj_dir}/build/${GOOS}/x86_64"
