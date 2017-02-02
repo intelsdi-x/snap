@@ -53,6 +53,7 @@
 - intelsdi-x/snap-plugin-collector-keystone
 - intelsdi-x/snap-plugin-collector-libvirt
 - intelsdi-x/snap-plugin-collector-load
+- intelsdi-x/snap-plugin-collector-logs
 - intelsdi-x/snap-plugin-collector-meminfo
 - intelsdi-x/snap-plugin-collector-mesos
 - intelsdi-x/snap-plugin-collector-mongodb
@@ -78,10 +79,13 @@
 - intelsdi-x/snap-plugin-collector-users
 - intelsdi-x/snap-plugin-collector-yarn
 - intelsdi-x/snap-plugin-processor-anomalydetection
+- intelsdi-x/snap-plugin-processor-logs-openstack
+- intelsdi-x/snap-plugin-processor-logs-regexp
 - intelsdi-x/snap-plugin-processor-movingaverage
 - intelsdi-x/snap-plugin-processor-statistics
 - intelsdi-x/snap-plugin-processor-tag
 - intelsdi-x/snap-plugin-publisher-cassandra
+- intelsdi-x/snap-plugin-publisher-elasticsearch
 - intelsdi-x/snap-plugin-publisher-etcd
 - intelsdi-x/snap-plugin-publisher-file
 - intelsdi-x/snap-plugin-publisher-graphite
