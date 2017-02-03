@@ -35,6 +35,9 @@ fi
 
 plugin_src_path=$1
 plugin_name=$(basename "${plugin_src_path}")
+if [[ "${GOOS}" == "windows" ]]; then
+  plugin_name="${plugin_name}.exe"
+fi
 go_build=(go build -a -ldflags "-w")
 
 _debug "plugin source: ${plugin_src_path}"
