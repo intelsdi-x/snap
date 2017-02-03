@@ -100,3 +100,4 @@
 - intelsdi-x/snap-plugin-publisher-postgresql
 - intelsdi-x/snap-plugin-publisher-rabbitmq
 - intelsdi-x/snap-plugin-publisher-riemann
+- runabove/snap-plugin-publisher-warp10
