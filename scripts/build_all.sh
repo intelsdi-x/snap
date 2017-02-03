@@ -19,4 +19,10 @@ export GOARCH=amd64
 "${__dir}/build_snap.sh" &
 "${__dir}/build_plugins.sh" &
 
+export GOOS=windows
+export GOARCH=amd64
+"${__dir}/build_snap.sh" &
+"${__dir}/build_plugins.sh" &
+
+
 wait

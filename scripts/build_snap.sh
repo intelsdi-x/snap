@@ -48,7 +48,14 @@ else
   build_path="${__proj_dir}/build/${GOOS}/${GOARCH}"
 fi
 
+snaptel="snaptel"
+snapteld="snapteld"
+if [[ "${GOOS}" == "windows" ]]; then
+  snaptel="${snaptel}.exe"
+  snapteld="${snapteld}.exe"
+fi
+
 mkdir -p "${build_path}"
-_info "building snapteld/snaptel for ${GOOS}/${GOARCH}"
-"${go_build[@]}" -o "${build_path}/snapteld" . || exit 1
-(cd "${__proj_dir}/cmd/snaptel" && "${go_build[@]}" -o "${build_path}/snaptel" . || exit 1)
+_info "building snapteld/${snaptel} for ${GOOS}/${GOARCH}"
+"${go_build[@]}" -o "${build_path}/${snapteld}" . || exit 1
+(cd "${__proj_dir}/cmd/snaptel" && "${go_build[@]}" -o "${build_path}/${snaptel}" . || exit 1)
