@@ -26,7 +26,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -324,7 +323,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	// run from.
 	commands := make([]string, len(lPlugin.Details.Exec))
 	for i, e := range lPlugin.Details.Exec {
-		commands[i] = path.Join(lPlugin.Details.ExecPath, e)
+		commands[i] = filepath.Join(lPlugin.Details.ExecPath, e)
 	}
 	ePlugin, err := plugin.NewExecutablePlugin(
 		p.GenerateArgs(int(log.GetLevel())),
