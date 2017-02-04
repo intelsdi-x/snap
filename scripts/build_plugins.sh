@@ -38,8 +38,8 @@ _info "git commit: $(git log --pretty=format:"%H" -1)"
 export CGO_ENABLED=0
 
 # rebuild binaries:
-export GOOS=${GOOS:-$(uname -s | tr '[:upper:]' '[:lower:]')}
-export GOARCH=${GOARCH:-"amd64"}
+export GOOS=${GOOS:-$(go env GOOS)}
+export GOARCH=${GOARCH:-$(go env GOARCH)}
 
 OS=$(uname -s)
 if [[ "${OS}" == "Darwin" ]]; then
@@ -58,5 +58,5 @@ else
 fi
 
 mkdir -p "${build_path}/plugins"
-_info "building plugins for ${GOOS}/${GOARCH} in ${p} parallels"
+_info "building plugins for ${GOOS}/${GOARCH} in ${p} parallel processes"
 find "${__proj_dir}/plugin/" -type d -iname "snap-*" -print0 | xargs -0 -n 1 -P $p -I{} "${__dir}/build_plugin.sh" {}

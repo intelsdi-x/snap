@@ -30,7 +30,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -193,7 +192,7 @@ func writeFile(filename string, b []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	f, err := os.Create(path.Join(dir, filename))
+	f, err := os.Create(filepath.Join(dir, filename))
 	if err != nil {
 		return "", err
 	}
