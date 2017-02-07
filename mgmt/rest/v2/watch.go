@@ -131,6 +131,9 @@ func (s *apiV2) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 	}
 }
 
+// TaskWatchHandler defines the type of Snap task watch handler.
+//
+// swagger: model taskWatchHandler
 type TaskWatchHandler struct {
 	streamCount int
 	alive       bool

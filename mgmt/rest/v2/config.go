@@ -77,7 +77,7 @@ func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	styp := p.ByName("type")
 	if styp == "" {
 		cdn := s.configManager.GetPluginConfigDataNodeAll()
-		item := &PluginConfigItem{cdn}
+		item := &PluginConfigItem{Config: cdn}
 		Write(200, item, w)
 		return
 	}
@@ -99,11 +99,12 @@ func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	}
 
 	cdn := s.configManager.GetPluginConfigDataNode(typ, name, iver)
-	item := &PluginConfigItem{cdn}
+	item := &PluginConfigItem{Config: cdn}
 	Write(200, item, w)
 }
 
 func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
@@ -149,7 +150,7 @@ func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 		res = s.configManager.DeletePluginConfigDataNodeField(typ, name, iver, src...)
 	}
 
-	item := &PluginConfigItem{res}
+	item := &PluginConfigItem{Config: res}
 	Write(200, item, w)
 }
 
@@ -197,7 +198,7 @@ func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 		res = s.configManager.MergePluginConfigDataNode(typ, name, iver, src)
 	}
 
-	item := &PluginConfigItem{res}
+	item := &PluginConfigItem{Config: res}
 	Write(200, item, w)
 }
 

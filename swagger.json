@@ -1003,7 +1003,6 @@
       ],
       "properties": {
         "config": {
-          "description": "TODO processor config",
           "type": "object",
           "additionalProperties": {
             "type": "object"
@@ -1017,7 +1016,7 @@
         "plugin_version": {
           "type": "integer",
           "format": "int64",
-          "x-go-name": "Version"
+          "x-go-name": "PluginVersion"
         },
         "process": {
           "type": "array",

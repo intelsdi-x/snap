@@ -254,7 +254,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 200: TasksResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks", Handle: s.getTasks},
-
 		// swagger:route GET /tasks/{id} getTask
 		//
 		// lists a task by the giving task id. Otherwise a not found error returns.

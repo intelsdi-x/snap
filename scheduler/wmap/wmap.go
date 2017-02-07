@@ -174,10 +174,10 @@ func (w *WorkflowMap) ToYaml() ([]byte, error) {
 type CollectWorkflowMapNode struct {
 	// required: true
 	Metrics      map[string]MetricInfo             `json:"metrics"yaml:"metrics"`
-	Config       map[string]map[string]interface{} `json:"config,omitempty"yaml:"config"`
-	Tags         map[string]map[string]string      `json:"tags,omitempty"yaml:"tags"`
-	ProcessNodes []ProcessWorkflowMapNode          `json:"process,omitempty"yaml:"process"`
-	PublishNodes []PublishWorkflowMapNode          `json:"publish,omitempty"yaml:"publish"`
+	Config       map[string]map[string]interface{} `json:"config,omitempty"yaml:"config,omitempty"`
+	Tags         map[string]map[string]string      `json:"tags,omitempty"yaml:"tags,omitempty"`
+	ProcessNodes []ProcessWorkflowMapNode          `json:"process,omitempty"yaml:"process,omitempty"`
+	PublishNodes []PublishWorkflowMapNode          `json:"publish,omitempty"yaml:"publish,omitempty"`
 }
 
 func (c *CollectWorkflowMapNode) GetMetrics() []Metric {
@@ -252,19 +252,18 @@ func (c *CollectWorkflowMapNode) AddConfigItem(ns, key string, value interface{}
 
 type ProcessWorkflowMapNode struct {
 	// required: true
-	PluginName   string                   `json:"plugin_name"yaml:"plugin_name"`
-	Version      int                      `json:"plugin_version"yaml:"plugin_version"`
-	ProcessNodes []ProcessWorkflowMapNode `json:"process,omitempty"yaml:"process"`
-	PublishNodes []PublishWorkflowMapNode `json:"publish,omitempty"yaml:"publish"`
-	// TODO processor config
-	Config map[string]interface{} `json:"config,omitempty"yaml:"config"`
-	Target string                 `json:"target"yaml:"target"`
+	PluginName    string                   `json:"plugin_name"yaml:"plugin_name"`
+	PluginVersion int                      `json:"plugin_version,omitempty"yaml:"plugin_version,omitempty"`
+	ProcessNodes  []ProcessWorkflowMapNode `json:"process,omitempty"yaml:"process,omitempty"`
+	PublishNodes  []PublishWorkflowMapNode `json:"publish,omitempty"yaml:"publish,omitempty"`
+	Config        map[string]interface{}   `json:"config,omitempty"yaml:"config,omitempty"`
+	Target        string                   `json:"target,omitempty"yaml:"target,omitempty"`
 }
 
 func NewProcessNode(name string, version int) *ProcessWorkflowMapNode {
 	p := &ProcessWorkflowMapNode{
-		PluginName: name,
-		Version:    version,
+		PluginName:    name,
+		PluginVersion: version,
 	}
 	return p
 }
