@@ -40,10 +40,14 @@ var (
 	ErrWrongAction          = errors.New("wrong action requested")
 )
 
-// Unsuccessful generic response to a failed API call
+// Error unsuccessful generic response to a failed API call
+//
+// swagger:response ErrorResponse
 type Error struct {
-	ErrorMessage string            `json:"message"`
-	Fields       map[string]string `json:"fields"`
+	// in: body
+	ErrorMessage string `json:"message"`
+	// in: body
+	Fields map[string]string `json:"fields"`
 }
 
 func FromSnapError(pe serror.SnapError) *Error {

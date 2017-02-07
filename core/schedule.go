@@ -27,8 +27,14 @@ import (
 	"github.com/intelsdi-x/snap/pkg/schedule"
 )
 
+// Schedule defines a scheduler.
+//
+// swagger:model Schedule
 type Schedule struct {
-	Type           string     `json:"type,omitempty"`
+	// required: true
+	// enum: simple, windowed
+	Type string `json:"type,omitempty"`
+	// required: true
 	Interval       string     `json:"interval,omitempty"`
 	StartTimestamp *time.Time `json:"start_timestamp,omitempty"`
 	StopTimestamp  *time.Time `json:"stop_timestamp,omitempty"`

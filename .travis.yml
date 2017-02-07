@@ -1,10 +1,12 @@
-sudo: false
+sudo: true
 language: go
 go:
 - 1.7.3
 before_install:
 - bash scripts/gitcookie.sh
 - go get github.com/smartystreets/goconvey/convey
+- echo "deb https://dl.bintray.com/go-swagger/goswagger-debian ubuntu main" | sudo tee -a /etc/apt/sources.list
+- sudo apt-get update && sudo apt-get install -y swagger --force-yes
 - if [ ! -d $SNAP_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $SNAP_SOURCE; fi # CI for forks not from intelsdi-x
 env:
   global:

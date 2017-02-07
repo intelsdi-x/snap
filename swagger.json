@@ -1,0 +1,1153 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "Snap is an open telemetry framework designed to simplify the collection,\nprocessing and publishing of system data through a single API.\n\nThis should demonstrate all the possible comment annotations\nthat are available to turn go code into a fully compliant swagger 2.0 spec",
+    "title": "Snap Restful API.",
+    "termsOfService": "there are no TOS at this moment, use at your own risk we take no responsibility",
+    "contact": {
+      "name": "Snap Maintainer",
+      "url": "http://snap.io",
+      "email": "snap@intel.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/"
+    },
+    "version": "1.0.0"
+  },
+  "host": "127.0.0.1:8181",
+  "basePath": "/v2",
+  "paths": {
+    "/metrics": {
+      "get": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "lists a list of loaded metric types. An empty list returns if there is no loaded metrics. Any bad request results in error.",
+        "operationId": "getMetrics",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/MetricsResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/plugins": {
+      "get": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "lists a list of loaded plugins. An empty list is returned if there is no loaded plugins.",
+        "operationId": "getPlugins",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginsResponse"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf",
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf",
+          "multipart/form-data"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "loads a plugin based on input.",
+        "operationId": "loadPlugin",
+        "parameters": [
+          {
+            "type": "file",
+            "x-go-name": "PluginData",
+            "description": "loads a plugin.",
+            "name": "pluginData",
+            "in": "formData"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginsResponse"
+          },
+          "201": {
+            "$ref": "#/responses/PluginResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/plugins/{ptype}/{pname}/{pversion}": {
+      "get": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "lists a given plugin by its type, name and version. No plugin found error returns if it's not existing.",
+        "operationId": "getPlugin",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf",
+          "text/plain"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf",
+          "text/plain"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "unloads a plugin by its type, name and version.Otherwise, an error is returned.",
+        "operationId": "unloadPlugin",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginsResponse"
+          },
+          "204": {
+            "$ref": "#/responses/PluginResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/plugins/{ptype}/{pname}/{pversion}/config": {
+      "get": {
+        "description": "Any other type results in error.",
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "lists the config of a giving plugin. The allowed plugin types are collector, processor, and publisher.",
+        "operationId": "getPluginConfigItem",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginConfigResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "updates the config of a giving plugin. A wrong plugin type or non-numeric plugin version results in error.",
+        "operationId": "setPluginConfigItem",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Config",
+            "name": "config",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginConfigResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "description": "At lease one config key is required for this operation. An error occurs for any bad request.",
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "deletes the config of a giving plugin. Note that that to be removed config items are a slice of config keys.",
+        "operationId": "deletePluginConfigItem",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-go-name": "Config",
+            "name": "config",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginConfigResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "lists a list of created tasks. An empty list returns if no created tasks.",
+        "operationId": "getTasks",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TasksResponse"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "creates a task based on the input. Othereise, an error returns if the input misses the required fields or is in a malformed format.",
+        "operationId": "addTask",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Task",
+            "description": "Create or update a task.",
+            "name": "task",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/TasksResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/tasks/{id}": {
+      "get": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "lists a task by the giving task id. Otherwise a not found error returns.",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TaskResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "updates a task's state for the giving task id and the input state. An error occurs for any bad request.",
+        "operationId": "updateTaskState",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "State",
+            "description": "Update the state of a task",
+            "name": "action",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/TaskResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "deletes a task for the giving task id. Note that only a stopped task may be removed. Otherwise, an error occurs.",
+        "operationId": "removeTask",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/TaskResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/TaskErrorResponse"
+          }
+        }
+      }
+    },
+    "/tasks/{id}/watch": {
+      "get": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf",
+          "text/event-stream"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf",
+          "text/event-stream"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "watches a task data stream for the giving task id. Otherwise, an error returns.",
+        "operationId": "watchTask",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TaskResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "CollectWorkflowMapNode": {
+      "type": "object",
+      "title": "CollectWorkflowMapNode defines the workflow type.",
+      "required": [
+        "metrics",
+        "process",
+        "publish"
+      ],
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "x-go-name": "Config"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/MetricInfo"
+          },
+          "x-go-name": "Metrics"
+        },
+        "process": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProcessWorkflowMapNode"
+          },
+          "x-go-name": "Process"
+        },
+        "publish": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PublishWorkflowMapNode"
+          },
+          "x-go-name": "Publish"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "x-go-name": "Tags"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    },
+    "ConfigDataNode": {
+      "description": "Represents a set of configuration data",
+      "type": "object",
+      "x-go-package": "github.com/intelsdi-x/snap/core/cdata"
+    },
+    "DynamicElement": {
+      "type": "object",
+      "title": "DynamicElement defines the dynamic element of a metric.",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "index": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Index"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Metric": {
+      "type": "object",
+      "title": "Metric represents the metric type.",
+      "required": [
+        "namespace"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "dynamic": {
+          "description": "Dynamic boolean representation if the metric has dynamic element.",
+          "type": "boolean",
+          "x-go-name": "Dynamic"
+        },
+        "dynamic_elements": {
+          "description": "DynamicElements slice of dynamic elements.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DynamicElement"
+          },
+          "x-go-name": "DynamicElements"
+        },
+        "href": {
+          "type": "string",
+          "x-go-name": "Href"
+        },
+        "last_advertised_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastAdvertisedTimestamp"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "policy": {
+          "description": "Policy a slice of metric rules.",
+          "x-go-name": "Policy",
+          "$ref": "#/definitions/PolicyTableSlice"
+        },
+        "unit": {
+          "type": "string",
+          "x-go-name": "Unit"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "MetricInfo": {
+      "type": "object",
+      "title": "MetricInfo defines metric version.",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version_"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    },
+    "Plugin": {
+      "type": "object",
+      "title": "Plugin represents a plugin type definition.",
+      "properties": {
+        "config_policy": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PolicyTable"
+          },
+          "x-go-name": "ConfigPolicy"
+        },
+        "href": {
+          "type": "string",
+          "x-go-name": "Href"
+        },
+        "loaded_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LoadedTimestamp"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "signed": {
+          "type": "boolean",
+          "x-go-name": "Signed"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "PolicyTable": {
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2",
+      "$ref": "#/definitions/RuleTable"
+    },
+    "PolicyTableSlice": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RuleTable"
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "ProcessWorkflowMapNode": {
+      "type": "object",
+      "required": [
+        "name",
+        "process",
+        "publish"
+      ],
+      "properties": {
+        "config": {
+          "description": "TODO processor config",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Config"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "plugin_version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        },
+        "process": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProcessWorkflowMapNode"
+          },
+          "x-go-name": "Process"
+        },
+        "publish": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PublishWorkflowMapNode"
+          },
+          "x-go-name": "Publish"
+        },
+        "target": {
+          "type": "string",
+          "x-go-name": "Target"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    },
+    "PublishWorkflowMapNode": {
+      "type": "object",
+      "required": [
+        "name",
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Config"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "plugin_version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        },
+        "target": {
+          "type": "string",
+          "x-go-name": "Target"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    },
+    "RuleTable": {
+      "type": "object",
+      "title": "RuleTable defines a named property characteristics.",
+      "required": [
+        "name",
+        "type",
+        "required"
+      ],
+      "properties": {
+        "default": {
+          "type": "object",
+          "x-go-name": "Default"
+        },
+        "maximum": {
+          "type": "object",
+          "x-go-name": "Maximum"
+        },
+        "minimum": {
+          "type": "object",
+          "x-go-name": "Minimum"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "required": {
+          "type": "boolean",
+          "x-go-name": "Required"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/control/plugin/cpolicy"
+    },
+    "Schedule": {
+      "type": "object",
+      "title": "Schedule defines a scheduler.",
+      "required": [
+        "type",
+        "interval"
+      ],
+      "properties": {
+        "interval": {
+          "type": "string",
+          "x-go-name": "Interval"
+        },
+        "start_timestamp": {
+          "x-go-name": "StartTimestamp"
+        },
+        "stop_timestamp": {
+          "x-go-name": "StopTimestamp"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "simple",
+            " windowed"
+          ],
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/core"
+    },
+    "Task": {
+      "type": "object",
+      "title": "Task represents Snap task definition.",
+      "properties": {
+        "creation_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CreationTimestamp"
+        },
+        "deadline": {
+          "type": "string",
+          "x-go-name": "Deadline"
+        },
+        "failed_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "FailedCount"
+        },
+        "hit_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "HitCount"
+        },
+        "href": {
+          "type": "string",
+          "x-go-name": "Href"
+        },
+        "id": {
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "ID"
+        },
+        "last_failure_message": {
+          "type": "string",
+          "x-go-name": "LastFailureMessage"
+        },
+        "last_run_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastRunTimestamp"
+        },
+        "miss_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MissCount"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "schedule": {
+          "x-go-name": "Schedule",
+          "$ref": "#/definitions/Schedule"
+        },
+        "task_state": {
+          "type": "string",
+          "x-go-name": "State"
+        },
+        "workflow": {
+          "x-go-name": "Workflow",
+          "$ref": "#/definitions/WorkflowMap"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Tasks": {
+      "description": "Tasks a slice of Task",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Task"
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "WorkflowMap": {
+      "description": "WorkflowMap A map of a desired workflow that is used to create a scheduleWorkflow",
+      "type": "object",
+      "required": [
+        "collect"
+      ],
+      "properties": {
+        "collect": {
+          "x-go-name": "Collect",
+          "$ref": "#/definitions/CollectWorkflowMapNode"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    }
+  },
+  "responses": {
+    "ErrorResponse": {
+      "description": "Error unsuccessful generic response to a failed API call",
+      "schema": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
+    },
+    "MetricsResponse": {
+      "description": "MetricsResp is the representation of metric operation response.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Metric"
+            },
+            "x-go-name": "Metrics"
+          }
+        }
+      }
+    },
+    "PluginConfigResponse": {
+      "description": "PluginConfigItem represents cdata.ConfigDataNode which implements it's own UnmarshalJSON.",
+      "schema": {
+        "$ref": "#/definitions/ConfigDataNode"
+      }
+    },
+    "PluginResponse": {
+      "description": "PluginResponse represents the response from plugin operations.",
+      "schema": {
+        "$ref": "#/definitions/Plugin"
+      }
+    },
+    "PluginsResponse": {
+      "description": "PluginsResp represents the response from plugin operations.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "plugins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Plugin"
+            },
+            "x-go-name": "Plugins"
+          }
+        }
+      }
+    },
+    "TaskErrorResponse": {
+      "description": "RemoveTaskError unsuccessful generic response to a failed API call"
+    },
+    "TaskResponse": {
+      "description": "TaskResp returns the giving task.",
+      "schema": {
+        "$ref": "#/definitions/Task"
+      }
+    },
+    "TasksResponse": {
+      "description": "TasksResp returns a list of created tasks.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "x-go-name": "Tasks",
+            "$ref": "#/definitions/Tasks"
+          }
+        }
+      }
+    }
+  }
+}

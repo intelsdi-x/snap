@@ -70,13 +70,18 @@ func (MockConfigManager) DeletePluginConfigDataNodeFieldAll(fields ...string) cd
 // rest_v2_test.go on the plugin config routes found in mgmt/rest/server.go
 const (
 	SET_PLUGIN_CONFIG_ITEM = `{
-  "user": "Jane"
+  "config": {
+    "Port": 2,
+    "User": "KELLY"
+  }
 }
 `
 
 	GET_PLUGIN_CONFIG_ITEM = `{
-  "Port": 2,
-  "User": "KELLY"
+  "config": {
+    "Port": 2,
+    "User": "KELLY"
+  }
 }
 `
 

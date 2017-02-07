@@ -33,6 +33,9 @@ import (
 // Represents a set of configuration data
 type ConfigDataNode struct {
 	mutex *sync.Mutex
+	// config key and value pair table.
+	//
+	// min items: 0
 	table map[string]ctypes.ConfigValue
 }
 

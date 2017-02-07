@@ -99,7 +99,7 @@ func Sample() *WorkflowMap {
 	wf := new(WorkflowMap)
 
 	c1 := &CollectWorkflowMapNode{
-		Metrics: make(map[string]metricInfo),
+		Metrics: make(map[string]MetricInfo),
 		Config:  make(map[string]map[string]interface{}),
 	}
 	c1.Config["/foo/bar"] = make(map[string]interface{})
@@ -128,8 +128,9 @@ func Sample() *WorkflowMap {
 	return wf
 }
 
-// A map of a desired workflow that is used to create a scheduleWorkflow
+// WorkflowMap A map of a desired workflow that is used to create a scheduleWorkflow
 type WorkflowMap struct {
+	// required: true
 	CollectNode *CollectWorkflowMapNode `json:"collect"yaml:"collect"`
 }
 
@@ -154,7 +155,7 @@ func (w *WorkflowMap) UnmarshalJSON(data []byte) error {
 func NewWorkflowMap() *WorkflowMap {
 	w := &WorkflowMap{}
 	c := &CollectWorkflowMapNode{
-		Metrics: make(map[string]metricInfo),
+		Metrics: make(map[string]MetricInfo),
 		Config:  make(map[string]map[string]interface{}),
 	}
 	w.CollectNode = c
@@ -169,46 +170,16 @@ func (w *WorkflowMap) ToYaml() ([]byte, error) {
 	return yaml.Marshal(w)
 }
 
+// CollectWorkflowMapNode defines the workflow type.
 type CollectWorkflowMapNode struct {
-	Metrics      map[string]metricInfo             `json:"metrics"yaml:"metrics"`
-	Config       map[string]map[string]interface{} `json:"config,omitempty"yaml:"config"`
-	Tags         map[string]map[string]string      `json:"tags,omitempty"yaml:"tags"`
-	ProcessNodes []ProcessWorkflowMapNode          `json:"process,omitempty"yaml:"process"`
-	PublishNodes []PublishWorkflowMapNode          `json:"publish,omitempty"yaml:"publish"`
-}
-
-func (cw *CollectWorkflowMapNode) UnmarshalJSON(data []byte) error {
-	t := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(data, &t); err != nil {
-		return err
-	}
-	for k, v := range t {
-		switch k {
-		case "metrics":
-			if err := json.Unmarshal(v, &cw.Metrics); err != nil {
-				return err
-			}
-		case "config":
-			if err := json.Unmarshal(v, &cw.Config); err != nil {
-				return fmt.Errorf("%v (while parsing 'config')", err)
-			}
-		case "tags":
-			if err := json.Unmarshal(v, &cw.Tags); err != nil {
-				return fmt.Errorf("%v (while parsing 'tags')", err)
-			}
-		case "process":
-			if err := json.Unmarshal(v, &cw.ProcessNodes); err != nil {
-				return err
-			}
-		case "publish":
-			if err := json.Unmarshal(v, &cw.PublishNodes); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("Unrecognized key '%v' in collect workflow of task.", k)
-		}
-	}
-	return nil
+	// required: true
+	Metrics map[string]MetricInfo             `json:"metrics"yaml:"metrics"`
+	Config  map[string]map[string]interface{} `json:"config,omitempty"yaml:"config"`
+	Tags    map[string]map[string]string      `json:"tags,omitempty"yaml:"tags"`
+	// required: true
+	ProcessNodes []ProcessWorkflowMapNode `json:"process,omitempty"yaml:"process"`
+	// required: true
+	PublishNodes []PublishWorkflowMapNode `json:"publish,omitempty"yaml:"publish"`
 }
 
 func (c *CollectWorkflowMapNode) GetMetrics() []Metric {
@@ -234,7 +205,7 @@ func (c *CollectWorkflowMapNode) GetTags() map[string]map[string]string {
 
 func NewCollectWorkflowMapNode() *CollectWorkflowMapNode {
 	return &CollectWorkflowMapNode{
-		Metrics: make(map[string]metricInfo),
+		Metrics: make(map[string]MetricInfo),
 		Config:  make(map[string]map[string]interface{}),
 	}
 }
@@ -270,7 +241,7 @@ func (c *CollectWorkflowMapNode) Add(node interface{}) error {
 func (c *CollectWorkflowMapNode) AddMetric(ns string, v int) error {
 	// TODO regex validation here that this matches /one/two/three format
 	// c.MetricsNamespaces = append(c.MetricsNamespaces, ns)
-	c.Metrics[ns] = metricInfo{Version_: v}
+	c.Metrics[ns] = MetricInfo{Version_: v}
 	return nil
 }
 
@@ -282,52 +253,16 @@ func (c *CollectWorkflowMapNode) AddConfigItem(ns, key string, value interface{}
 }
 
 type ProcessWorkflowMapNode struct {
-	Name         string                   `json:"plugin_name"yaml:"plugin_name"`
-	Version      int                      `json:"plugin_version"yaml:"plugin_version"`
+	// required: true
+	Name    string `json:"plugin_name"yaml:"plugin_name"`
+	Version int    `json:"plugin_version"yaml:"plugin_version"`
+	// required: true
 	ProcessNodes []ProcessWorkflowMapNode `json:"process,omitempty"yaml:"process"`
+	// required: true
 	PublishNodes []PublishWorkflowMapNode `json:"publish,omitempty"yaml:"publish"`
 	// TODO processor config
 	Config map[string]interface{} `json:"config,omitempty"yaml:"config"`
 	Target string                 `json:"target"yaml:"target"`
-}
-
-func (pw *ProcessWorkflowMapNode) UnmarshalJSON(data []byte) error {
-	t := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(data, &t); err != nil {
-		return err
-	}
-	for k, v := range t {
-		switch k {
-		case "plugin_name":
-			if err := json.Unmarshal(v, &pw.Name); err != nil {
-				return fmt.Errorf("%v (while parsing 'plugin_name')", err)
-			}
-		case "plugin_version":
-			if err := json.Unmarshal(v, &pw.Version); err != nil {
-				return fmt.Errorf("%v (while parsing 'plugin_version')", err)
-			}
-		case "process":
-			if err := json.Unmarshal(v, &pw.ProcessNodes); err != nil {
-				return err
-			}
-		case "publish":
-			if err := json.Unmarshal(v, &pw.PublishNodes); err != nil {
-				return err
-			}
-		case "config":
-			if err := json.Unmarshal(v, &pw.Config); err != nil {
-				return fmt.Errorf("%v (while parsing 'config')", err)
-			}
-		case "target":
-			if err := json.Unmarshal(v, &pw.Target); err != nil {
-				return fmt.Errorf("%v (while parsing 'target')", err)
-			}
-		default:
-			return fmt.Errorf("Unrecognized key '%v' in process workflow of task.", k)
-		}
-	}
-	return nil
-
 }
 
 func NewProcessNode(name string, version int) *ProcessWorkflowMapNode {
@@ -365,41 +300,12 @@ func (p *ProcessWorkflowMapNode) GetConfigNode() (*cdata.ConfigDataNode, error) 
 }
 
 type PublishWorkflowMapNode struct {
+	// required: true
 	Name    string `json:"plugin_name"yaml:"plugin_name"`
 	Version int    `json:"plugin_version"yaml:"plugin_version"`
-	// TODO publisher config
+	// required: true
 	Config map[string]interface{} `json:"config,omitempty"yaml:"config"`
 	Target string                 `json:"target"yaml:"target"`
-}
-
-func (pw *PublishWorkflowMapNode) UnmarshalJSON(data []byte) error {
-	t := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(data, &t); err != nil {
-		return err
-	}
-	for k, v := range t {
-		switch k {
-		case "plugin_name":
-			if err := json.Unmarshal(v, &pw.Name); err != nil {
-				return fmt.Errorf("%v (while parsing 'plugin_name')", err)
-			}
-		case "plugin_version":
-			if err := json.Unmarshal(v, &pw.Version); err != nil {
-				return fmt.Errorf("%v (while parsing 'plugin_version')", err)
-			}
-		case "config":
-			if err := json.Unmarshal(v, &pw.Config); err != nil {
-				return fmt.Errorf("%v (while parsing 'config')", err)
-			}
-		case "target":
-			if err := json.Unmarshal(v, &pw.Target); err != nil {
-				return fmt.Errorf("%v (while parsing 'target')", err)
-			}
-		default:
-			return fmt.Errorf("Unrecognized key '%v' in publish workflow of task.", k)
-		}
-	}
-	return nil
 }
 
 func NewPublishNode(name string, version int) *PublishWorkflowMapNode {
@@ -424,11 +330,12 @@ func (p *PublishWorkflowMapNode) GetConfigNode() (*cdata.ConfigDataNode, error) 
 	return configtoConfigDataNode(p.Config, "")
 }
 
-type metricInfo struct {
+// MetricInfo defines metric version.
+type MetricInfo struct {
 	Version_ int `json:"version"yaml:"version"`
 }
 
-func (m *metricInfo) UnmarshalJSON(data []byte) error {
+func (m *MetricInfo) UnmarshalJSON(data []byte) error {
 	t := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(data, &t); err != nil {
 		return err
