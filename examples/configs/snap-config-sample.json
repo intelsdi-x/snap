@@ -85,7 +85,8 @@
         "rest_certificate":"/etc/snap/cert.pem",
         "rest_key":"/etc/snap/cert.key",
         "port":8282,
-        "addr":"127.0.0.1:12345"
+        "addr":"127.0.0.1:12345",
+        "allowed_origins": "http://127.0.0.1:8888, https://snap-telemetry.io"
     },
     "tribe":{
         "enable":true,

@@ -22,10 +22,14 @@ limitations under the License.
 package rest
 
 import (
+	"fmt"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/urfave/negroni"
 )
 
 const (
@@ -160,6 +164,103 @@ func TestRestAPIDefaultConfig(t *testing.T) {
 		})
 		Convey("RestKey should be empty", func() {
 			So(cfg.RestKey, ShouldEqual, "")
+		})
+		Convey("Corsd should be empty", func() {
+			So(cfg.Corsd, ShouldEqual, "")
+		})
+	})
+}
+
+type mockServer struct {
+	n              *negroni.Negroni
+	allowedOrigins map[string]bool
+}
+
+func NewMockServer(cfg *Config) (*mockServer, []string, error) {
+	s := &mockServer{}
+	origins, err := s.getAllowedOrigins(cfg.Corsd)
+
+	return s, origins, err
+}
+
+func (s *mockServer) getAllowedOrigins(corsd string) ([]string, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			err, ok := r.(error)
+			if !ok {
+				err = fmt.Errorf("pkg: %v", r)
+				fmt.Println(err)
+			}
+		}
+
+	}()
+
+	if corsd == "" {
+		return []string{}, nil
+	}
+
+	vo := []string{}
+	s.allowedOrigins = map[string]bool{}
+
+	os := strings.Split(corsd, ",")
+	for _, o := range os {
+		to := strings.TrimSpace(o)
+
+		// Validates origin formation
+		u, err := url.Parse(to)
+
+		// Checks if scheme or host exists when no error occured.
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			restLogger.Errorf("Invalid origin found %s", to)
+			return []string{}, fmt.Errorf("Invalid origin found: %s.", to)
+		}
+
+		vo = append(vo, to)
+		s.allowedOrigins[to] = true
+	}
+	return vo, nil
+}
+
+func TestRestAPICorsd(t *testing.T) {
+	cfg := GetDefaultConfig()
+
+	Convey("Test cors origin list", t, func() {
+
+		Convey("Origins are valid", func() {
+			cfg.Corsd = "http://127.0.0.1:80, http://example.com"
+			s, o, err := NewMockServer(cfg)
+
+			So(len(s.allowedOrigins), ShouldEqual, 2)
+			So(len(o), ShouldEqual, 2)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Origins have a wrong separator", func() {
+			cfg.Corsd = "http://127.0.0.1:80; http://example.com"
+			s, o, err := NewMockServer(cfg)
+
+			So(err, ShouldNotBeNil)
+			So(len(s.allowedOrigins), ShouldEqual, 0)
+			So(len(o), ShouldEqual, 0)
+		})
+
+		Convey("Origin misses scheme", func() {
+			cfg.Corsd = "127.0.0.1:80, http://example.com"
+			s, o, err := NewMockServer(cfg)
+
+			So(err, ShouldNotBeNil)
+			So(len(s.allowedOrigins), ShouldEqual, 0)
+			So(len(o), ShouldEqual, 0)
+		})
+
+		Convey("Origin is malformed", func() {
+			cfg.Corsd = "http://127.0.0.1:80, http://snap.io, http@example.com"
+			s, o, err := NewMockServer(cfg)
+
+			So(err, ShouldNotBeNil)
+			So(len(s.allowedOrigins), ShouldEqual, 2)
+			So(len(o), ShouldEqual, 0)
 		})
 	})
 }
