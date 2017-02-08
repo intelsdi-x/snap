@@ -86,6 +86,8 @@ type Config struct {
 	Pprof             bool                         `json:"pprof"yaml:"pprof"`
 	MaxPluginRestarts int                          `json:"max_plugin_restarts"yaml:"max_plugin_restarts"`
 	TempDirPath       string                       `json:"temp_dir_path"yaml:"temp_dir_path"`
+	TLSCertPath       string                       `json:"tls_cert_path"yaml:"tls_cert_path"`
+	TLSKeyPath        string                       `json:"tls_key_path"yaml:"tls_key_path"`
 }
 
 const (
@@ -140,6 +142,12 @@ const (
 					},
 					"max_plugin_restarts": {
 						"type": "integer"
+					},
+					"tls_cert_path": {
+						"type": "string"
+					},
+					"tls_key_path": {
+						"type": "string"
 					}
 				},
 				"additionalProperties": false
@@ -230,6 +238,14 @@ func (p *Config) DeletePluginConfigDataNodeFieldAll(fields ...string) cdata.Conf
 
 func (p *Config) GetPluginConfigDataNodeAll() cdata.ConfigDataNode {
 	return *p.Plugins.All
+}
+
+// IsTLSEnabled returns true if config values enable TLS security
+func (p *Config) IsTLSEnabled() bool {
+	if p.TLSCertPath != "" && p.TLSKeyPath != "" {
+		return true
+	}
+	return false
 }
 
 // UnmarshalJSON unmarshals valid json into pluginConfig.  An example Config

@@ -21,6 +21,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -35,7 +36,7 @@ func loadPlugin(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) != 1 {
-		return newUsageError("Incorrect usage", ctx)
+		return newUsageError("Incorrect usage:", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
@@ -43,6 +44,9 @@ func loadPlugin(ctx *cli.Context) error {
 			return newUsageError("Must be a .asc file for the -a flag", ctx)
 		}
 		paths = append(paths, pAsc)
+	}
+	if paths, err = storeTLSPaths(ctx, paths); err != nil {
+		return err
 	}
 	r := pClient.LoadPlugin(paths)
 	if r.Err != nil {
@@ -112,6 +116,9 @@ func swapPlugins(ctx *cli.Context) error {
 			return newUsageError("Must be a .asc file for the -a flag", ctx)
 		}
 		paths = append(paths, pAsc)
+	}
+	if paths, err = storeTLSPaths(ctx, paths); err != nil {
+		return err
 	}
 
 	// plugin to unload
@@ -195,4 +202,35 @@ func listPlugins(ctx *cli.Context) error {
 	w.Flush()
 
 	return nil
+}
+
+// storeTLSPaths extracts paths related to TLS (certificate, key) from command
+// line context into temporary files. Those files are appended to list of paths
+// returned from this function.
+func storeTLSPaths(ctx *cli.Context, paths []string) ([]string, error) {
+	pCert := ctx.String("plugin-cert")
+	pKey := ctx.String("plugin-key")
+	if pCert != "" {
+		tmpFile, err := ioutil.TempFile("", "crt.")
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin certificate - unable to create link:\n%v", err.Error())
+		}
+		_, err = tmpFile.WriteString(pCert)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin certificate - unable to write link:\n%v", err.Error())
+		}
+		paths = append(paths, tmpFile.Name())
+	}
+	if pKey != "" {
+		tmpFile, err := ioutil.TempFile("", "key.")
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin key - unable to create link:\n%v", err.Error())
+		}
+		_, err = tmpFile.WriteString(pKey)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin key - unable to write link:\n%v", err.Error())
+		}
+		paths = append(paths, tmpFile.Name())
+	}
+	return paths, nil
 }

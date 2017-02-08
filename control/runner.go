@@ -30,6 +30,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/pkg/aci"
@@ -72,14 +73,31 @@ type runner struct {
 	availablePlugins *availablePlugins
 	metricCatalog    catalogsMetrics
 	pluginManager    managesPlugins
+	tlsCertPath      string
+	tlsKeyPath       string
+	tlsEnabled       bool
 }
 
-func newRunner() *runner {
+func newRunner(opts ...pluginRunnerOpt) *runner {
 	r := &runner{
 		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(),
 	}
+	for _, opt := range opts {
+		opt(r)
+	}
 	return r
+}
+
+type pluginRunnerOpt func(*runner)
+
+// OptEnableRunnerTLS enables the TLS configuration in runner
+func OptEnableRunnerTLS(tlsCertPath, tlsKeyPath string) pluginRunnerOpt {
+	return func(r *runner) {
+		r.tlsCertPath = tlsCertPath
+		r.tlsKeyPath = tlsKeyPath
+		r.tlsEnabled = true
+	}
 }
 
 func (r *runner) SetMetricCatalog(c catalogsMetrics) {
@@ -176,7 +194,13 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 	}
 
 	// build availablePlugin
-	ap, err := newAvailablePlugin(resp, r.emitter, p)
+	var grpcSecurity client.GRPCSecurity
+	if r.tlsEnabled {
+		grpcSecurity = client.SecurityTLSEnabled(r.tlsCertPath, r.tlsKeyPath, client.SecureClient)
+	} else {
+		grpcSecurity = client.SecurityTLSOff()
+	}
+	ap, err := newAvailablePlugin(resp, r.emitter, p, grpcSecurity)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +345,10 @@ func (r *runner) runPlugin(name string, details *pluginDetails) error {
 	for i, e := range details.Exec {
 		commands[i] = path.Join(details.ExecPath, e)
 	}
-	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())), commands...)
+	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())).
+		SetCertPath(details.CertPath).
+		SetKeyPath(details.KeyPath).
+		SetTLSEnabled(details.TLSEnabled), commands...)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block": "run-plugin",

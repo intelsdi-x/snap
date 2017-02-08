@@ -50,6 +50,11 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
+const (
+	commandLineErrorPrefix = "Command Line Error:"
+	configFileErrorPrefix  = "ConfigFile Error:"
+)
+
 var (
 	flMaxProcs = cli.StringFlag{
 		Name:   "max-procs, c",
@@ -751,18 +756,24 @@ func checkHostPortVals(addr string, port *int, errPrefix string) (bool, error) {
 // indicating whether or not a port was detected in the address read from the
 // command-line arguments, and an error if one is detected
 func checkCmdLineFlags(ctx *cli.Context) (int, bool, error) {
+	tlsCert := ctx.String("tls-cert")
+	tlsKey := ctx.String("tls-key")
+	if _, err := checkTLSEnabled(tlsCert, tlsKey, commandLineErrorPrefix); err != nil {
+		return -1, false, err
+	}
 	// Check to see if the API address is specified (either via the CLI or through
 	// the associated environment variable); if so, grab the port and check that the
 	// address and port against the constraints (above)
 	addr := ctx.String("api-addr")
 	port := ctx.Int("api-port")
 	if ctx.IsSet("api-addr") || addr != "" {
-		portInAddr, err := checkHostPortVals(addr, &port, "Command Line Error:")
+		portInAddr, err := checkHostPortVals(addr, &port, commandLineErrorPrefix)
 		if err != nil {
 			return -1, portInAddr, err
 		}
 		return port, portInAddr, nil
 	}
+
 	return port, false, nil
 }
 
@@ -771,6 +782,11 @@ func checkCmdLineFlags(ctx *cli.Context) (int, bool, error) {
 // indicating whether or not a port was detected in the address read from the
 // global configuration file, and an error if one is detected
 func checkCfgSettings(cfg *Config) (int, bool, error) {
+	tlsCert := cfg.Control.TLSCertPath
+	tlsKey := cfg.Control.TLSKeyPath
+	if _, err := checkTLSEnabled(tlsCert, tlsKey, configFileErrorPrefix); err != nil {
+		return -1, false, err
+	}
 	addr := cfg.RestAPI.Address
 	var port int
 	if cfg.RestAPI.PortSetByConfigFile() {
@@ -778,11 +794,21 @@ func checkCfgSettings(cfg *Config) (int, bool, error) {
 	} else {
 		port = -1
 	}
-	portInAddr, err := checkHostPortVals(addr, &port, "ConfigFile Error:")
+	portInAddr, err := checkHostPortVals(addr, &port, configFileErrorPrefix)
 	if err != nil {
 		return -1, portInAddr, err
 	}
 	return port, portInAddr, nil
+}
+
+func checkTLSEnabled(certPath, keyPath, errPrefix string) (tlsEnabled bool, err error) {
+	if certPath != "" && keyPath != "" {
+		return true, nil
+	}
+	if certPath != "" || keyPath != "" {
+		return false, fmt.Errorf("%s certificate and key path must be given both or none", errPrefix)
+	}
+	return false, nil
 }
 
 // Apply the command line flags set (if any) to override the values
@@ -817,6 +843,8 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.Control.ListenPort = setIntVal(cfg.Control.ListenPort, ctx, "control-listen-port")
 	cfg.Control.Pprof = setBoolVal(cfg.Control.Pprof, ctx, "pprof")
 	cfg.Control.TempDirPath = setStringVal(cfg.Control.TempDirPath, ctx, "temp_dir_path")
+	cfg.Control.TLSCertPath = setStringVal(cfg.Control.TLSCertPath, ctx, "tls-cert")
+	cfg.Control.TLSKeyPath = setStringVal(cfg.Control.TLSKeyPath, ctx, "tls-key")
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")

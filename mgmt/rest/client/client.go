@@ -318,7 +318,9 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 		defer file.Close()
 		bufin := bufio.NewReader(file)
 		bufins = append(bufins, bufin)
-
+		if baseName := filepath.Base(pluginPath); strings.HasPrefix(baseName, "crt.") || strings.HasPrefix(baseName, "key.") {
+			defer os.Remove(pluginPath)
+		}
 		paths = append(paths, filepath.Base(pluginPath))
 	}
 	// with io.Pipe the write needs to be async

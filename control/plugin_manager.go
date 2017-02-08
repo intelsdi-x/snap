@@ -156,14 +156,17 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 
 // the struct representing a plugin that is loaded into snap
 type pluginDetails struct {
-	CheckSum  [sha256.Size]byte
-	Exec      []string
-	ExecPath  string
-	IsPackage bool
-	Manifest  *schema.ImageManifest
-	Path      string
-	Signed    bool
-	Signature []byte
+	CheckSum   [sha256.Size]byte
+	Exec       []string
+	ExecPath   string
+	IsPackage  bool
+	Manifest   *schema.ImageManifest
+	Path       string
+	Signed     bool
+	Signature  []byte
+	CertPath   string
+	KeyPath    string
+	TLSEnabled bool
 }
 
 type loadedPlugin struct {
@@ -237,6 +240,9 @@ type pluginManager struct {
 	pluginTags        map[string]map[string]string
 	pprof             bool
 	tempDirPath       string
+	tlsCertPath       string
+	tlsKeyPath        string
+	tlsEnabled        bool
 }
 
 func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
@@ -272,6 +278,15 @@ func OptSetTempDirPath(path string) pluginManagerOpt {
 func OptSetPprof(pprof bool) pluginManagerOpt {
 	return func(p *pluginManager) {
 		p.pprof = pprof
+	}
+}
+
+// OptEnableManagerTLS enables the TLS configuration in plugin manager.
+func OptEnableManagerTLS(tlsCertPath, tlsKeyPath string) pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.tlsCertPath = tlsCertPath
+		p.tlsKeyPath = tlsKeyPath
+		p.tlsEnabled = true
 	}
 }
 
@@ -335,7 +350,10 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	}
 
 	ePlugin, err := plugin.NewExecutablePlugin(
-		p.GenerateArgs(int(log.GetLevel())),
+		p.GenerateArgs(int(log.GetLevel())).
+			SetCertPath(details.CertPath).
+			SetKeyPath(details.KeyPath).
+			SetTLSEnabled(details.TLSEnabled),
 		commands...)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
@@ -368,8 +386,13 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"plugin-type":    resp.Type.String(),
 		})
 	}
-
-	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
+	var grpcSecurity client.GRPCSecurity
+	if p.tlsEnabled {
+		grpcSecurity = client.SecurityTLSEnabled(p.tlsCertPath, p.tlsKeyPath, client.SecureClient)
+	} else {
+		grpcSecurity = client.SecurityTLSOff()
+	}
+	ap, err := newAvailablePlugin(resp, emitter, ePlugin, grpcSecurity)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",

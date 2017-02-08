@@ -28,6 +28,7 @@ import (
 
 	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/core"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -45,7 +46,7 @@ func TestAvailablePlugin(t *testing.T) {
 				Type:          plugin.CollectorPluginType,
 				ListenAddress: "127.0.0.1:4000",
 			}
-			ap, err := newAvailablePlugin(resp, nil, nil)
+			ap, err := newAvailablePlugin(resp, nil, nil, client.SecurityTLSOff())
 			So(ap, ShouldHaveSameTypeAs, new(availablePlugin))
 			So(err, ShouldBeNil)
 		})
@@ -112,7 +113,7 @@ func TestAvailablePlugins(t *testing.T) {
 			Type:          plugin.CollectorPluginType,
 			ListenAddress: "localhost:asdf",
 		}
-		ap, err := newAvailablePlugin(resp, nil, nil)
+		ap, err := newAvailablePlugin(resp, nil, nil, client.SecurityTLSOff())
 		So(ap, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 	})

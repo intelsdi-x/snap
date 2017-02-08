@@ -218,7 +218,14 @@ func New(cfg *Config) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager(OptSetPprof(cfg.Pprof), OptSetTempDirPath(cfg.TempDirPath))
+	managerOpts := []pluginManagerOpt{
+		OptSetPprof(cfg.Pprof),
+		OptSetTempDirPath(cfg.TempDirPath),
+	}
+	if cfg.IsTLSEnabled() {
+		managerOpts = append(managerOpts, OptEnableManagerTLS(cfg.TLSCertPath, cfg.TLSKeyPath))
+	}
+	c.pluginManager = newPluginManager(managerOpts...)
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
@@ -232,7 +239,11 @@ func New(cfg *Config) *pluginControl {
 	}).Debug("signing manager created")
 
 	// Plugin Runner
-	c.pluginRunner = newRunner()
+	if cfg.IsTLSEnabled() {
+		c.pluginRunner = newRunner(OptEnableRunnerTLS(cfg.TLSCertPath, cfg.TLSKeyPath))
+	} else {
+		c.pluginRunner = newRunner()
+	}
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("runner created")
@@ -583,6 +594,9 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	details.Path = rp.Path()
 	details.CheckSum = rp.CheckSum()
 	details.Signature = rp.Signature()
+	details.CertPath = rp.CertPath()
+	details.KeyPath = rp.KeyPath()
+	details.TLSEnabled = rp.TLSEnabled()
 
 	if filepath.Ext(rp.Path()) == ".aci" {
 		f, err := os.Open(rp.Path())
