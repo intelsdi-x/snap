@@ -77,6 +77,8 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	}
 	if strings.HasPrefix(mediaType, "multipart/") {
 		var pluginPath string
+		var certPath string
+		var keyPath string
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		lp := &rbody.PluginsLoaded{}
@@ -133,16 +135,48 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 					return
 				}
 				checkSum = sha256.Sum256(b)
-			case i == 1:
+			case i < 4:
 				if filepath.Ext(p.FileName()) == ".asc" {
 					signature = b
+				} else if strings.HasPrefix(p.FileName(), "crt.") {
+					certPath = string(b)
+					if _, err := os.Stat(certPath); os.IsNotExist(err) {
+						e := errors.New("Error: given certificate file is not available")
+						rbody.Write(500, rbody.FromError(e), w)
+						return
+					}
+				} else if strings.HasPrefix(p.FileName(), "key.") {
+					keyPath = string(b)
+					if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+						e := errors.New("Error: given key file is not available")
+						rbody.Write(500, rbody.FromError(e), w)
+						return
+					}
 				} else {
-					e := errors.New("Error: second file passed was not a signature file")
+					e := errors.New("Error: unrecognized file passed was")
 					rbody.Write(500, rbody.FromError(e), w)
 					return
 				}
-			case i == 2:
-				e := errors.New("Error: More than two files passed to the load plugin api")
+			//case i == 2:
+			//	if strings.HasPrefix(p.FileName(), "crt.") {
+			//		certPath = string(b)
+			//		if _, err := os.Stat(certPath); os.IsNotExist(err) {
+			//			e := errors.New("Error: given certificate file is not available")
+			//			rbody.Write(500, rbody.FromError(e), w)
+			//			return
+			//		}
+			//	}
+			//case i == 3:
+			//	if strings.HasPrefix(p.FileName(), "key.") {
+			//		keyPath = string(b)
+			//		if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+			//			e := errors.New("Error: given key file is not available")
+			//			rbody.Write(500, rbody.FromError(e), w)
+			//			return
+			//		}
+			//	}
+			case i == 4:
+				e := errors.New("Error: More than four files passed to the load plugin api")
 				rbody.Write(500, rbody.FromError(e), w)
 				return
 			}
@@ -153,6 +187,8 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			rbody.Write(500, rbody.FromError(err), w)
 			return
 		}
+		rp.SetCertPath(certPath)
+		rp.SetKeyPath(keyPath)
 		rp.SetAutoLoaded(false)
 		// Sanity check, verify the checkSum on the file sent is the same
 		// as after it is written to disk.

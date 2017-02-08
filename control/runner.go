@@ -321,7 +321,9 @@ func (r *runner) runPlugin(name string, details *pluginDetails) error {
 	for i, e := range details.Exec {
 		commands[i] = path.Join(details.ExecPath, e)
 	}
-	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())), commands...)
+	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())).
+		SetCertPath(details.CertPath).
+		SetKeyPath(details.KeyPath), commands...)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block": "run-plugin",

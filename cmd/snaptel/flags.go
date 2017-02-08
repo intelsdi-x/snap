@@ -68,6 +68,14 @@ var (
 		Name:  "plugin-asc, a",
 		Usage: "The plugin asc",
 	}
+	flPluginCert = cli.StringFlag{
+		Name:  "plugin-cert, c",
+		Usage: "The plugin cert",
+	}
+	flPluginKey = cli.StringFlag{
+		Name:  "plugin-key, k",
+		Usage: "The plugin key",
+	}
 	flPluginType = cli.StringFlag{
 		Name:  "plugin-type, t",
 		Usage: "The plugin type",

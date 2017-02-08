@@ -41,6 +41,7 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
+	"google.golang.org/grpc/credentials"
 )
 
 type pluginClient interface {
@@ -63,59 +64,99 @@ type grpcClient struct {
 
 // NewCollectorGrpcClient returns a collector gRPC Client.
 func NewCollectorGrpcClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginCollectorClient, error) {
-	address, port, err := parseAddress(address)
-	if err != nil {
-		return nil, err
-	}
-	p, err := newGrpcClient(address, int(port), timeout, plugin.CollectorPluginType)
-	if err != nil {
-		return nil, err
-	}
-
-	return p, nil
+	//address, port, err := parseAddress(address)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//p, err := newGrpcClient(address, int(port), timeout, plugin.CollectorPluginType)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//return p, nil
+	p, err := newPluginGrpcClient(address, timeout, pub, secure, plugin.CollectorPluginType)
+	return p.(PluginCollectorClient), err
 }
 
 // NewProcessorGrpcClient returns a processor gRPC Client.
 func NewProcessorGrpcClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginProcessorClient, error) {
-	address, port, err := parseAddress(address)
-	if err != nil {
-		return nil, err
-	}
-	p, err := newGrpcClient(address, int(port), timeout, plugin.ProcessorPluginType)
-	if err != nil {
-		return nil, err
-	}
-	if secure {
-		key, err := encrypter.GenerateKey()
-		if err != nil {
-			return nil, err
-		}
-		encrypter := encrypter.New(pub, nil)
-		encrypter.Key = key
-		p.encrypter = encrypter
-	}
-
-	return p, nil
+	//address, port, err := parseAddress(address)
+	//if err != nil {
+	//	return nil, err
+	//}
+	////p, err := newGrpcClient(address, int(port), timeout, plugin.ProcessorPluginType)
+	////if err != nil {
+	////	return nil, err
+	////}
+	////if secure {
+	////	key, err := encrypter.GenerateKey()
+	////	if err != nil {
+	////		return nil, err
+	////	}
+	////	encrypter := encrypter.New(pub, nil)
+	////	encrypter.Key = key
+	////	p.encrypter = encrypter
+	////}
+	//var p *grpcClient
+	//if !secure {
+	//	p, err = newGrpcClient(address, int(port), timeout, plugin.ProcessorPluginType)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//} else {
+	//	creds := credentials.NewClientTLSFromCert(nil, "")
+	//	p, err = newGrpcClientWithCreds(address, int(port), timeout, plugin.ProcessorPluginType, creds)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	//
+	//return p, nil
+	p, err := newPluginGrpcClient(address, timeout, pub, secure, plugin.ProcessorPluginType)
+	return p.(PluginProcessorClient), err
 }
 
 // NewPublisherGrpcClient returns a publisher gRPC Client.
 func NewPublisherGrpcClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool) (PluginPublisherClient, error) {
+	//address, port, err := parseAddress(address)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//p, err := newGrpcClient(address, int(port), timeout, plugin.PublisherPluginType)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if secure {
+	//	key, err := encrypter.GenerateKey()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	encrypter := encrypter.New(pub, nil)
+	//	encrypter.Key = key
+	//	p.encrypter = encrypter
+	//}
+	p, err := newPluginGrpcClient(address, timeout, pub, secure, plugin.PublisherPluginType)
+	return p.(PluginPublisherClient), err
+}
+
+// NewProcessorGrpcClient returns a processor gRPC Client.
+func newPluginGrpcClient(address string, timeout time.Duration, pub *rsa.PublicKey, secure bool, typ plugin.PluginType) (interface{}, error) {
 	address, port, err := parseAddress(address)
 	if err != nil {
 		return nil, err
 	}
-	p, err := newGrpcClient(address, int(port), timeout, plugin.PublisherPluginType)
-	if err != nil {
-		return nil, err
-	}
-	if secure {
-		key, err := encrypter.GenerateKey()
+	var p *grpcClient
+	if !secure {
+		p, err = newGrpcClient(address, int(port), timeout, typ)
 		if err != nil {
 			return nil, err
 		}
-		encrypter := encrypter.New(pub, nil)
-		encrypter.Key = key
-		p.encrypter = encrypter
+	} else {
+		creds := credentials.NewClientTLSFromCert(nil, "")
+		p, err = newGrpcClientWithCreds(address, int(port), timeout, typ, &creds)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return p, nil
@@ -135,8 +176,13 @@ func parseAddress(address string) (string, int64, error) {
 }
 
 func newGrpcClient(addr string, port int, timeout time.Duration, typ plugin.PluginType) (*grpcClient, error) {
-	conn, err := rpcutil.GetClientConnection(addr, port)
-	if err != nil {
+	return newGrpcClientWithCreds(addr, port, timeout, typ, nil)
+}
+
+func newGrpcClientWithCreds(addr string, port int, timeout time.Duration, typ plugin.PluginType, creds *credentials.TransportCredentials) (*grpcClient, error) {
+	var conn *grpc.ClientConn
+	var err error
+	if conn, err = rpcutil.GetClientConnectionWithCreds(addr, port, creds); err != nil {
 		return nil, err
 	}
 	p := &grpcClient{

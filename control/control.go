@@ -583,6 +583,8 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	details.CheckSum = rp.CheckSum()
 	details.Signature = rp.Signature()
 	details.IsAutoLoaded = rp.AutoLoaded()
+	details.CertPath = rp.CertPath()
+	details.KeyPath = rp.KeyPath()
 
 	if filepath.Ext(rp.Path()) == ".aci" {
 		f, err := os.Open(rp.Path())
