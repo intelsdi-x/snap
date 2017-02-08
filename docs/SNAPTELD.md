@@ -43,6 +43,7 @@ $ snapteld [global options] command [command options] [arguments...]
 --cache-expiration value                     The time limit for which a metric cache entry is valid (default: 500ms) [$SNAP_CACHE_EXPIRATION]
 --control-listen-port value                  Listen port for control RPC server (default: 8082) [$SNAP_CONTROL_LISTEN_PORT]
 --control-listen-addr value                  Listen address for control RPC server [$SNAP_CONTROL_LISTEN_ADDR]
+--temp_dir_path value                        Temporary path for loading plugins [$SNAP_TEMP_DIR_PATH]
 --work-manager-queue-size value              Size of the work manager queue (default: 25) [$WORK_MANAGER_QUEUE_SIZE]
 --work-manager-pool-size value               Size of the work manager pool (default: 4) [$WORK_MANAGER_POOL_SIZE]
 --disable-api, -d                            Disable the agent REST API

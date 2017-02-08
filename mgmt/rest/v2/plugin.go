@@ -34,13 +34,10 @@ import (
 	"strconv"
 	"strings"
 
-	"path"
-	"runtime"
-
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/mgmt/rest/common"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -95,6 +92,7 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		Write(415, FromError(err), w)
 		return
 	}
+
 	if strings.HasPrefix(mediaType, "multipart/") {
 		var pluginPath string
 		var signature []byte
@@ -146,7 +144,7 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 					Write(400, FromError(e), w)
 					return
 				}
-				if pluginPath, err = writeFile(p.FileName(), b); err != nil {
+				if pluginPath, err = common.WriteFile(p.FileName(), b); err != nil {
 					Write(500, FromError(err), w)
 					return
 				}
@@ -202,33 +200,6 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		}
 		Write(201, catalogedPluginBody(r.Host, pl), w)
 	}
-}
-
-func writeFile(filename string, b []byte) (string, error) {
-	// Create temporary directory
-	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		return "", err
-	}
-	f, err := os.Create(path.Join(dir, filename))
-	if err != nil {
-		return "", err
-	}
-	// Close before load
-	defer f.Close()
-
-	n, err := f.Write(b)
-	log.Debugf("wrote %v to %v", n, f.Name())
-	if err != nil {
-		return "", err
-	}
-	if runtime.GOOS != "windows" {
-		err = f.Chmod(0700)
-		if err != nil {
-			return "", err
-		}
-	}
-	return f.Name(), nil
 }
 
 func pluginParameters(p httprouter.Params) (string, string, int, map[string]interface{}, serror.SnapError) {

@@ -192,6 +192,7 @@ type managesTribe interface {
 
 func main() {
 	// Add a check to see if gitversion is blank from the build process
+
 	if gitversion == "" {
 		gitversion = "unknown"
 	}
@@ -797,6 +798,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.Control.ListenAddr = setStringVal(cfg.Control.ListenAddr, ctx, "control-listen-addr")
 	cfg.Control.ListenPort = setIntVal(cfg.Control.ListenPort, ctx, "control-listen-port")
 	cfg.Control.Pprof = setBoolVal(cfg.Control.Pprof, ctx, "pprof")
+	cfg.Control.TempDirPath = setStringVal(cfg.Control.TempDirPath, ctx, "temp_dir_path")
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")

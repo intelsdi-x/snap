@@ -70,5 +70,11 @@ var (
 		EnvVar: "SNAP_CONTROL_LISTEN_ADDR",
 	}
 
-	Flags = []cli.Flag{flNumberOfPLs, flPluginLoadTimeout, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr}
+	flTempDirPath = cli.StringFlag{
+		Name:   "temp_dir_path",
+		Usage:  fmt.Sprintf("Temporary path for loading plugins (default: %v)", defaultTempDirPath),
+		EnvVar: "SNAP_TEMP_DIR_PATH",
+	}
+
+	Flags = []cli.Flag{flNumberOfPLs, flPluginLoadTimeout, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr, flTempDirPath}
 )
