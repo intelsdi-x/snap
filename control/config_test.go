@@ -160,8 +160,8 @@ func TestControlConfigJSON(t *testing.T) {
 		Convey("An error should not be returned when unmarshalling the config", func() {
 			So(err, ShouldBeNil)
 		})
-		Convey("AutoDiscoverPath should be set to /some/directory/with/plugins", func() {
-			So(cfg.AutoDiscoverPath, ShouldEqual, "/some/directory/with/plugins")
+		Convey("AutoDiscoverPath should be set to /opt/snap/plugins:/opt/snap/tasks", func() {
+			So(cfg.AutoDiscoverPath, ShouldEqual, "/opt/snap/plugins:/opt/snap/tasks")
 		})
 		Convey("CacheExpiration should be set to 750ms", func() {
 			So(cfg.CacheExpiration.Duration, ShouldResemble, 750*time.Millisecond)
@@ -178,8 +178,8 @@ func TestControlConfigJSON(t *testing.T) {
 		Convey("ListenPort should be set to 10082", func() {
 			So(cfg.ListenPort, ShouldEqual, 10082)
 		})
-		Convey("KeyringPaths should be set to /some/path/with/keyring/files", func() {
-			So(cfg.KeyringPaths, ShouldEqual, "/some/path/with/keyring/files")
+		Convey("KeyringPaths should be set to /etc/snap/keyrings", func() {
+			So(cfg.KeyringPaths, ShouldEqual, "/etc/snap/keyrings")
 		})
 		Convey("PluginTrust should be set to 0", func() {
 			So(cfg.PluginTrust, ShouldEqual, 0)
@@ -233,8 +233,8 @@ func TestControlConfigYaml(t *testing.T) {
 		Convey("An error should not be returned when unmarshalling the config", func() {
 			So(err, ShouldBeNil)
 		})
-		Convey("AutoDiscoverPath should be set to /some/directory/with/plugins", func() {
-			So(cfg.AutoDiscoverPath, ShouldEqual, "/some/directory/with/plugins")
+		Convey("AutoDiscoverPath should be set to /opt/snap/plugins:/opt/snap/tasks", func() {
+			So(cfg.AutoDiscoverPath, ShouldEqual, "/opt/snap/plugins:/opt/snap/tasks")
 		})
 		Convey("CacheExpiration should be set to 750ms", func() {
 			So(cfg.CacheExpiration.Duration, ShouldResemble, 750*time.Millisecond)
@@ -251,8 +251,8 @@ func TestControlConfigYaml(t *testing.T) {
 		Convey("ListenPort should be set to 10082", func() {
 			So(cfg.ListenPort, ShouldEqual, 10082)
 		})
-		Convey("KeyringPaths should be set to /some/path/with/keyring/files", func() {
-			So(cfg.KeyringPaths, ShouldEqual, "/some/path/with/keyring/files")
+		Convey("KeyringPaths should be set to /etc/snap/keyrings", func() {
+			So(cfg.KeyringPaths, ShouldEqual, "/etc/snap/keyrings")
 		})
 		Convey("PluginTrust should be set to 0", func() {
 			So(cfg.PluginTrust, ShouldEqual, 0)

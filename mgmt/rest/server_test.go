@@ -82,11 +82,11 @@ func TestRestAPIConfigJSON(t *testing.T) {
 		Convey("RestAuthPassword should equal changeme", func() {
 			So(cfg.RestAuthPassword, ShouldEqual, "changeme")
 		})
-		Convey("RestCertificate should equal /path/to/cert/file", func() {
-			So(cfg.RestCertificate, ShouldEqual, "/path/to/cert/file")
+		Convey("RestCertificate should equal /etc/snap/cert.pem", func() {
+			So(cfg.RestCertificate, ShouldEqual, "/etc/snap/cert.pem")
 		})
-		Convey("RestKey should equal /path/to/private/key", func() {
-			So(cfg.RestKey, ShouldEqual, "/path/to/private/key")
+		Convey("RestKey should equal /etc/snap/cert.key", func() {
+			So(cfg.RestKey, ShouldEqual, "/etc/snap/cert.key")
 		})
 	})
 
@@ -124,11 +124,11 @@ func TestRestAPIConfigYaml(t *testing.T) {
 		Convey("RestAuthPassword should equal changeme", func() {
 			So(cfg.RestAuthPassword, ShouldEqual, "changeme")
 		})
-		Convey("RestCertificate should equal /path/to/cert/file", func() {
-			So(cfg.RestCertificate, ShouldEqual, "/path/to/cert/file")
+		Convey("RestCertificate should equal /etc/snap/cert.pem", func() {
+			So(cfg.RestCertificate, ShouldEqual, "/etc/snap/cert.pem")
 		})
-		Convey("RestKey should equal /path/to/private/key", func() {
-			So(cfg.RestKey, ShouldEqual, "/path/to/private/key")
+		Convey("RestKey should equal /etc/snap/cert.key", func() {
+			So(cfg.RestKey, ShouldEqual, "/etc/snap/cert.key")
 		})
 	})
 

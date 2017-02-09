@@ -5,14 +5,14 @@
     "log_colors":true,
     "gomaxprocs":2,
     "control":{
-        "auto_discover_path":"/some/directory/with/plugins",
+        "auto_discover_path":"/opt/snap/plugins:/opt/snap/tasks",
         "max_plugin_restarts":10,
         "cache_expiration":"750ms",
         "listen_addr":"0.0.0.0",
         "listen_port":10082,
         "max_running_plugins":1,
         "plugin_load_timeout":10,
-        "keyring_paths":"/some/path/with/keyring/files",
+        "keyring_paths":"/etc/snap/keyrings",
         "plugin_trust_level":0,
         "plugins":{
             "all":{
@@ -81,8 +81,8 @@
         "https":true,
         "rest_auth":true,
         "rest_auth_password":"changeme",
-        "rest_certificate":"/path/to/cert/file",
-        "rest_key":"/path/to/private/key",
+        "rest_certificate":"/etc/snap/cert.pem",
+        "rest_key":"/etc/snap/cert.key",
         "port":8282,
         "addr":"127.0.0.1:12345"
     },
