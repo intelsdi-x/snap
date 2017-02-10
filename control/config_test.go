@@ -309,9 +309,6 @@ func TestControlDefaultConfig(t *testing.T) {
 		Convey("ListenPort should be set to 8082", func() {
 			So(cfg.ListenPort, ShouldEqual, 8082)
 		})
-		Convey("KeyringPaths should be empty", func() {
-			So(cfg.KeyringPaths, ShouldEqual, "")
-		})
 		Convey("PluginTrust should equal 1", func() {
 			So(cfg.PluginTrust, ShouldEqual, 1)
 		})

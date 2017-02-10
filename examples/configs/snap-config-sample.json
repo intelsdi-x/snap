@@ -13,6 +13,7 @@
         "max_running_plugins":1,
         "plugin_load_timeout":10,
         "keyring_paths":"/etc/snap/keyrings",
+        "temp_dir_path":"/tmp",
         "plugin_trust_level":0,
         "plugins":{
             "all":{
