@@ -40,8 +40,19 @@ var (
 	ErrWrongAction          = errors.New("wrong action requested")
 )
 
-// Unsuccessful generic response to a failed API call
+// Error response
+// swagger:response Error
+type ErrorResponse struct {
+	// The error message
+	// in: body
+	Body Error
+}
+
+// Error body
 type Error struct {
+	// The error message
+	//
+	// Required: true
 	ErrorMessage string            `json:"message"`
 	Fields       map[string]string `json:"fields"`
 }

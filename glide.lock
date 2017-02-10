@@ -1,5 +1,5 @@
-hash: 55584a3098467b96c2800b810444ba49663ade021e4f2d0796233b277d712415
-updated: 2016-11-22T14:54:43.026574122-08:00
+hash: e287e5a53fe2f50a9da6ed789f038a8ddc45330c1ff8eadfe452c73e62ff0a82
+updated: 2017-01-27T10:07:17.754839281-08:00
 imports:
 - name: github.com/appc/spec
   version: db96f94ae6b227fe4d8288527ead8927181620f6
@@ -20,6 +20,18 @@ imports:
   - semver
 - name: github.com/ghodss/yaml
   version: c3eb24aeea63668ebdac08d2e252f20df8b6b1ae
+- name: github.com/go-openapi/loads
+  version: 6bb6486231e079ea125c0f39994ed3d0c53399ed
+  subpackages:
+  - fmts
+- name: github.com/go-openapi/strfmt
+  version: 0cb3db44c13bad3b3f567b762a66751972a310cc
+- name: github.com/go-openapi/validate
+  version: 035dcd74f1f61e83debe1c22950dc53556e7e4b2
+- name: github.com/go-swagger/go-swagger
+  version: 04e27555375e7d9a3251bfb35fcb9ae13cec99a1
+  subpackages:
+  - scan
 - name: github.com/gogo/protobuf
   version: 82d16f734d6d871204a3feb1a73cb220cc92574c
   subpackages:
@@ -88,6 +100,7 @@ imports:
   - context
   - http2
   - http2/hpack
+  - idna
   - internal/timeseries
   - lex/httplex
   - trace
@@ -117,12 +130,38 @@ imports:
   - pkg/conversion
   - third_party/forked/reflect
 testImports:
+- name: github.com/go-openapi/analysis
+  version: d5a75b7d751ca3f11ad5d93cfe97405f2c3f6a47
+- name: github.com/go-openapi/errors
+  version: fc3f73a224499b047eda7191e5d22e1e9631e86f
+- name: github.com/go-openapi/jsonpointer
+  version: 779f45308c19820f1a69e9a4cd965f496e0da10f
+- name: github.com/go-openapi/jsonreference
+  version: 36d33bfe519efae5632669801b180bf1a245da3b
+- name: github.com/go-openapi/runtime
+  version: 3b13ebb46790d871d74a6c2450fa4b1280f90854
+- name: github.com/go-openapi/spec
+  version: f81e0f768713035fe232cd0d44a1c56e4eef1383
+- name: github.com/go-openapi/swag
+  version: 96d7b9ebd181a1735a1c9ac87914f2b32fbf56c9
 - name: github.com/gopherjs/gopherjs
   version: 4b53e1bddba0e2f734514aeb6c02db652f4c6fe8
   subpackages:
   - js
 - name: github.com/jtolds/gls
   version: 8ddce2a84170772b95dd5d576c48d517b22cac63
+- name: github.com/mailru/easyjson
+  version: edd3ef1dab48f1cc831d78c0602a79be7a7b1a5e
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/mitchellh/mapstructure
+  version: db1efb556f84b25a0a13a04aad883943538ad2e0
+- name: github.com/PuerkitoBio/purell
+  version: 0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4
+- name: github.com/PuerkitoBio/urlesc
+  version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/smartystreets/assertions
   version: 443d812296a84445c202c085f19e18fc238f8250
   subpackages:
@@ -134,3 +173,15 @@ testImports:
   - convey
   - convey/gotest
   - convey/reporting
+- name: golang.org/x/text
+  version: ece019dcfd29abcf65d0d1dfe145e8faad097640
+  subpackages:
+  - transform
+  - unicode/norm
+  - width
+- name: golang.org/x/tools
+  version: f8ed2e405fdcbb42c55233531ad98721e6d1cb3e
+  subpackages:
+  - go/ast/astutil
+  - go/buildutil
+  - go/loader

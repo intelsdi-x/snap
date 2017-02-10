@@ -53,3 +53,7 @@ import:
   version: c1cd2254a6dd314c9d73c338c12688c9325d85c6
 - package: github.com/intelsdi-x/snap-plugin-lib-go
 - package: github.com/intelsdi-x/snap-plugin-utilities
+- package: github.com/go-openapi/loads
+- package: github.com/go-openapi/strfmt
+- package: github.com/go-openapi/validate
+- package: github.com/go-swagger/go-swagger/scan

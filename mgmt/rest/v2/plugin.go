@@ -41,9 +41,57 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// PluginParams contains plugin type, name and version in the path.
+//
+// swagger:parameters getPlugin unloadPlugin getPluginConfigItem setPluginConfigItem deletePluginConfigItem
+type PluginParams struct {
+	// plugin parameters
+
+	// Plugin type
+	//
+	// in: path
+	// enum: collector, processor, publisher
+	Ptype string `json:"ptype"`
+
+	// Plugin name
+	//
+	// in: path
+	Pname string `json:"pname"`
+
+	// Plugin version
+	//
+	// in: path
+	Pversion int `json:"pversion"`
+}
+
+// swagger:parameters getPlugins
+// plugin parameters are type, name and version
+//
+// in: query
+type PluginFilter struct {
+	// enum: collector, processor, publisher
+	Type string `json:"type"`
+	Name string `json:"name"`
+}
+
+// Plugins response is a list of plugins or a list of running plugins
+// swagger:response PluginsResponse
 type PluginsResponse struct {
+	// in: body
+	Body Plugins
+}
+
+// Plugins body
+type Plugins struct {
 	RunningPlugins []RunningPlugin `json:"running_plugins,omitempty"`
 	Plugins        []Plugin        `json:"plugins,omitempty"`
+}
+
+// Plugin informations
+// swagger:response Plugin
+type PluginResponse struct {
+	// in: body
+	Body Plugin
 }
 
 type Plugin struct {
@@ -251,6 +299,14 @@ func (s *apiV2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httproute
 	Write(204, nil, w)
 }
 
+// swagger:route GET /plugins plugins getPlugins
+//
+// List plugins
+//
+// Lists plugins, can be filtered by running parameters.
+//
+// Responses:
+// 200: PluginsResponse
 func (s *apiV2) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 
 	// filter by plugin name or plugin type
@@ -272,7 +328,7 @@ func (s *apiV2) getPlugins(w http.ResponseWriter, r *http.Request, params httpro
 		} else {
 			filteredPlugins = plugins
 		}
-		Write(200, PluginsResponse{RunningPlugins: filteredPlugins}, w)
+		Write(200, Plugins{RunningPlugins: filteredPlugins}, w)
 	} else {
 		// get plugins from the plugin catalog
 		plugins := pluginCatalogBody(r.Host, s.metricManager.PluginCatalog())
@@ -287,7 +343,7 @@ func (s *apiV2) getPlugins(w http.ResponseWriter, r *http.Request, params httpro
 		} else {
 			filteredPlugins = plugins
 		}
-		Write(200, PluginsResponse{Plugins: filteredPlugins}, w)
+		Write(200, Plugins{Plugins: filteredPlugins}, w)
 	}
 }
 
@@ -339,6 +395,15 @@ func pluginURI(host string, c core.Plugin) string {
 	return fmt.Sprintf("%s://%s/%s/plugins/%s/%s/%d", protocolPrefix, host, version, c.TypeName(), c.Name(), c.Version())
 }
 
+// swagger:route GET /plugins/{ptype}/{pname}/{pversion} plugins getPlugin
+//
+// GET plugin
+//
+// Get plugin information or download the plugin.
+//
+// Responses:
+// default: Error
+// 200: Plugin
 func (s *apiV2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plType, plName, plVersion, f, se := pluginParameters(p)
 	if se != nil {
