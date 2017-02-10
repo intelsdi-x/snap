@@ -60,7 +60,11 @@ var (
 		Name:  "pprof",
 		Usage: "Enables profiling tools",
 	}
+	flCorsd = cli.StringFlag{
+		Name:  "allowed_origins",
+		Usage: "Define Cors allowed origins",
+	}
 
 	// Flags consumed by snapteld
-	Flags = []cli.Flag{flAPIDisabled, flAPIAddr, flAPIPort, flRestHTTPS, flRestCert, flRestKey, flRestAuth, flPProf}
+	Flags = []cli.Flag{flAPIDisabled, flAPIAddr, flAPIPort, flRestHTTPS, flRestCert, flRestKey, flRestAuth, flPProf, flCorsd}
 )

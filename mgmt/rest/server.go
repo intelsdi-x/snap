@@ -25,16 +25,27 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
+	"github.com/rs/cors"
 	"github.com/urfave/negroni"
+
+	"strings"
 
 	"github.com/intelsdi-x/snap/mgmt/rest/api"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1"
 	"github.com/intelsdi-x/snap/mgmt/rest/v2"
+)
+
+const (
+	allowedMethods = "GET, POST, DELETE, PUT, OPTIONS"
+	allowedHeaders = "Origin, X-Requested-With, Content-Type, Accept"
+	maxAge         = 3600
 )
 
 var (
@@ -45,18 +56,19 @@ var (
 )
 
 type Server struct {
-	apis       []api.API
-	n          *negroni.Negroni
-	r          *httprouter.Router
-	snapTLS    *snapTLS
-	auth       bool
-	pprof      bool
-	authpwd    string
-	addrString string
-	addr       net.Addr
-	wg         sync.WaitGroup
-	killChan   chan struct{}
-	err        chan error
+	apis           []api.API
+	n              *negroni.Negroni
+	r              *httprouter.Router
+	snapTLS        *snapTLS
+	auth           bool
+	pprof          bool
+	authpwd        string
+	addrString     string
+	addr           net.Addr
+	wg             sync.WaitGroup
+	killChan       chan struct{}
+	err            chan error
+	allowedOrigins map[string]bool
 	// the following instance variables are used to cleanly shutdown the server
 	serverListener net.Listener
 	closingChan    chan bool
@@ -92,6 +104,23 @@ func New(cfg *Config) (*Server, error) {
 		negroni.HandlerFunc(s.authMiddleware),
 	)
 	s.r = httprouter.New()
+
+	// CORS has to be turned on explictly in the global config.
+	// Otherwise, it defauts to the same origin.
+	origins, err := s.getAllowedOrigins(cfg.Corsd)
+	if err != nil {
+		return nil, err
+	}
+	if len(origins) > 0 {
+		c := cors.New(cors.Options{
+			AllowedOrigins: origins,
+			AllowedMethods: []string{allowedMethods},
+			AllowedHeaders: []string{allowedHeaders},
+			MaxAge:         maxAge,
+		})
+		s.n.Use(c)
+	}
+
 	// Use negroni to handle routes
 	s.n.UseHandler(s.r)
 	return s, nil
@@ -133,6 +162,9 @@ func (s *Server) SetAPIAuthPwd(pwd string) {
 
 // Auth Middleware for REST API
 func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	reqOrigin := r.Header.Get("Origin")
+	s.setAllowedOrigins(rw, reqOrigin)
+
 	defer r.Body.Close()
 	if s.auth {
 		_, password, ok := r.BasicAuth()
@@ -146,6 +178,23 @@ func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next ht
 		}
 	} else {
 		next(rw, r)
+	}
+}
+
+// CORS origins have to be turned on explictly in the global config.
+// Otherwise, it defaults to the same origin.
+func (s *Server) setAllowedOrigins(rw http.ResponseWriter, ro string) {
+	if len(s.allowedOrigins) > 0 {
+		if _, ok := s.allowedOrigins[ro]; ok {
+			// localhost CORS is not supported by all browsers. It has to use "*".
+			if strings.Contains(ro, "127.0.0.1") || strings.Contains(ro, "localhost") {
+				ro = "*"
+			}
+			rw.Header().Set("Access-Control-Allow-Origin", ro)
+			rw.Header().Set("Access-Control-Allow-Methods", allowedMethods)
+			rw.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
+			rw.Header().Set("Access-Control-Max-Age", strconv.Itoa(maxAge))
+		}
 	}
 }
 
@@ -257,6 +306,46 @@ func (s *Server) addRoutes() {
 		}
 	}
 	s.addPprofRoutes()
+}
+
+func (s *Server) getAllowedOrigins(corsd string) ([]string, error) {
+	// Avoids panics when validating URLs.
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			err, ok := r.(error)
+			if !ok {
+				err = fmt.Errorf("pkg: %v", r)
+				fmt.Println(err)
+			}
+		}
+
+	}()
+
+	if corsd == "" {
+		return []string{}, nil
+	}
+
+	vo := []string{}
+	s.allowedOrigins = map[string]bool{}
+
+	os := strings.Split(corsd, ",")
+	for _, o := range os {
+		to := strings.TrimSpace(o)
+
+		// Validates origin formation
+		u, err := url.Parse(to)
+
+		// Checks if scheme or host exists when no error occured.
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			restLogger.Errorf("Invalid origin found %s", to)
+			return []string{}, fmt.Errorf("Invalid origin found: %s.", to)
+		}
+
+		vo = append(vo, to)
+		s.allowedOrigins[to] = true
+	}
+	return vo, nil
 }
 
 // Monkey patch ListenAndServe and TCP alive code from https://golang.org/src/net/http/server.go

@@ -156,6 +156,9 @@ restapi:
   # REST API in address[:port] format
   addr: 127.0.0.1:12345
 
+  # corsd sets the cors allowed domains in a comma separated list. It is the same origin if it's empty.
+  allowed_origins: http://127.0.0.1:88888, https://snap-telemetry.io
+
 # tribe section contains all configuration items for the tribe module
 tribe:
   # enable controls enabling tribe for the snapteld instance. Default value is false.

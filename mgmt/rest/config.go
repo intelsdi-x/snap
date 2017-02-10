@@ -12,6 +12,7 @@ const (
 	defaultAuthPassword    string = ""
 	defaultPortSetByConfig bool   = false
 	defaultPprof           bool   = false
+	defaultCorsd           string = ""
 )
 
 // holds the configuration passed in through the SNAP config file
@@ -29,6 +30,7 @@ type Config struct {
 	RestAuthPassword string `json:"rest_auth_password"yaml:"rest_auth_password"`
 	portSetByConfig  bool   ``
 	Pprof            bool   `json:"pprof"yaml:"pprof"`
+	Corsd            string `json:"corsd"yaml:"allowed_origins"`
 }
 
 const (
@@ -64,6 +66,9 @@ const (
 					},
 					"pprof": {
 						"type": "boolean"
+					},
+					"allowed_origins" : {
+						"type": "string"
 					}
 				},
 				"additionalProperties": false
@@ -84,6 +89,7 @@ func GetDefaultConfig() *Config {
 		RestAuthPassword: defaultAuthPassword,
 		portSetByConfig:  defaultPortSetByConfig,
 		Pprof:            defaultPprof,
+		Corsd:            defaultCorsd,
 	}
 }
 

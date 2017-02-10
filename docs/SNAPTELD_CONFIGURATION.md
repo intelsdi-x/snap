@@ -195,6 +195,9 @@ restapi:
 
   # port sets the port to start the REST API server on. Default is 8181
   port: 8181
+
+  # allowed_origins sets the allowed origins in a comma separated list. It defaults to the same origin if the value is empty.
+  allowed_origins: http://127.0.0.1:8080, http://snap.example.io, http://example.com
 ```
 
 ### snapteld tribe configurations

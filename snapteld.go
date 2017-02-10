@@ -809,6 +809,8 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.RestAPI.RestAuth = setBoolVal(cfg.RestAPI.RestAuth, ctx, "rest-auth")
 	cfg.RestAPI.RestAuthPassword = setStringVal(cfg.RestAPI.RestAuthPassword, ctx, "rest-auth-pwd")
 	cfg.RestAPI.Pprof = setBoolVal(cfg.RestAPI.Pprof, ctx, "pprof")
+	cfg.RestAPI.Corsd = setStringVal(cfg.RestAPI.Corsd, ctx, "allowed_origins")
+
 	// next for the scheduler related flags
 	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
 	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")
