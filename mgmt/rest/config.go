@@ -30,7 +30,7 @@ type Config struct {
 	RestAuthPassword string `json:"rest_auth_password"yaml:"rest_auth_password"`
 	portSetByConfig  bool   ``
 	Pprof            bool   `json:"pprof"yaml:"pprof"`
-	Corsd            string `json:"corsd"yaml:"allowed_origins"`
+	Corsd            string `json:"allowed_origins"yaml:"allowed_origins"`
 }
 
 const (
