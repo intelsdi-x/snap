@@ -45,16 +45,18 @@ To see how to use Snap, look at [getting started](../README.md#getting-started),
 
 Our tests are written using [smartystreets' GoConvey package](https://github.com/smartystreets/goconvey).  See https://github.com/smartystreets/goconvey/wiki for an introduction to creating a test using this package.
 
+Our process for creating large tests is a little different since the adoption of our large test framework. For specific instructions on large tests, visit [LARGE_TESTS.md](LARGE_TESTS.md)
+
 ### Tests in Go
 
-We follow the Go methodology of placing tests into files with names that look like `*_test.go`. See [this](https://golang.org/cmd/go/#hdr-Test_packages) section from [go command](https://golang.org/cmd/go/) documentation for more details
+We follow the Go methodology of placing tests into files with names that look like `*_test.go`. See [this](https://golang.org/cmd/go/#hdr-Test_packages) section from [go command](https://golang.org/cmd/go/) documentation for more details.
 
 ### Test Types in Snap
 
 Tests in Snap are broken down into `small`, `medium`, and `large` tests. These three test types can be best described as follows:
 * **Small** tests are written to exercise behavior within a single function or module. While of you might think of these as *unit* tests, a more generic term seems appropriate to avoid any confusion. In general, there is no reliance in a *small* test on any external systems (databases, web servers, etc.), and responses expected from such external services (if any) will be *mocked* or *faked*. When we say reliance on “external systems” we are including reliance on access to the network, the filesystem, external systems (eg. databases), system properties, multiple threads of execution, or the use of sleep statements as part of the test. These tests should be the easiest to automate and the fastest to run (returning a result in a minute or less, with most returning a result in a few seconds or less). These tests will be run automatically on any pull requests received from a contributor, and all *small* tests must pass before a pull request will be reviewed.
 * **Medium** tests involve two or more features and test the interaction between those features. For those with previous testing experience, you might think of these as *integration* tests, but because there are a large number of other types of tests that fall into this category a more generic term is needed. The question being answered by these tests is whether or not the interactions between a feature and its nearest neighbors interoperate the way that they are expected to. *Medium* tests can rely on access to local services (a local database, for example), the local filesystem, multiple threads of execution, sleep statements and even access to the (local) network. However, reliance on access to external systems and services (systems and services not available on the localhost) in *medium* tests is discouraged. In general, we should expect that these tests return a result in 5 minutes or less, although some *medium* tests may return a result in much less time than that (depending on local system load). These tests can typically be automated and the set of *medium* tests will be run against any builds prior to their release.
-* **Large** tests represent typical user scenarios and might be what some of you would think of as *functional* tests. However, as was the case with the previous two categories, we felt that the more generic term used by the Google team seemed to be appropriate here. For these tests, reliance on access to the network, local services (like databases), the filesystem, external systems, multiple threads of execution, system properties, and the use of sleep statements within the tests are all supported. Some of these tests might be run manually as part of the release process, but every effort is made to ensure that even these *large* tests can be automated (where possible). The response times for testing of some of these user scenarios could be 15 minutes or more (eg. it may take some time to bring the system up to an equilibrium state when load testing), so there are situations where these *large* tests will have to be triggered manually even if the test itself is run as an automated test.
+* **Large** tests represent typical user scenarios and might be what some of you would think of as *functional* tests. However, as was the case with the previous two categories, we felt that the more generic term used by the Google team seemed to be appropriate here. For these tests, reliance on access to the network, local services (like databases), the filesystem, external systems, multiple threads of execution, system properties, and the use of sleep statements within the tests are all supported. Some of these tests might be run manually as part of the release process, but every effort is made to ensure that even these *large* tests can be automated (where possible). The response times for testing of some of these user scenarios could be 15 minutes or more (eg. it may take some time to bring the system up to an equilibrium state when load testing), so there are situations where these *large* tests will have to be triggered manually even if the test itself is run as an automated test. More information about Snap's large test framework can be found in [LARGE_TESTS.md](LARGE_TESTS.md)
 
 This taxonomy is the same taxonomy used by the Google Test team and was described in a posting to the Google Testing Blog that can be found [here](http://googletesting.blogspot.com/2010/12/test-sizes.html).
 
@@ -76,7 +78,9 @@ It should be noted here that if there are any untagged tests in the directory re
 
 Once the maintainers feel that the *small* tests provide sufficient code coverage, the existing *legacy* tests will be phased out (or used in the construction of a set of *medium* and *large* tests for the Snap CI/CD toolchain). All new tests being added to the Snap framework by contributors should be marked as either `small`, `medium`, or `large` tests, depending on their scope.
 
-### Building Effective Small Tests
+### Building Effective Tests
+
+#### Small
 
 Any `small` tests added to the Snap framework must conform to the following constraints:
 * They should test the behavior of a single function or method in the framework
@@ -87,6 +91,10 @@ Any `small` tests added to the Snap framework must conform to the following cons
 When complete, the full set of `small` tests for any given function or method should provide sufficient code coverage to ensure that any changes made to that function or method will not 'break the build'. This will assure the Snap maintainers that any pull requests that are made to modify or add to the framework can be safely merged (provided that there is sufficient code coverage and the associated tests pass).
 
 It should be noted here that the maintainers will refuse to merge any pull requests that trigger a failure of any of the `small` or `legacy` tests that cover the code being modified or added to the framework. As such, we highly recommend that contributors run the tests that cover their contributions locally before submitting their contribution as a pull request. Maintainers may also ask that contributors add tests to their pull requests to ensure adequate code coverage before they are willing to accept a given pull request, even if all existing tests pass. Our hope is that you, as a contributor, will understand the need for this requirement.
+
+#### Large
+
+More information about large tests can be found in [LARGE_TESTS.md](LARGE_TESTS.md).
 
 ### Running Tests
 
