@@ -35,12 +35,17 @@ go_build=(go build -ldflags "-w -X main.gitversion=${git_version}")
 _info "snap build version: ${git_version}"
 _info "git commit: $(git log --pretty=format:"%H" -1)"
 
-# Disable CGO for builds.
-export CGO_ENABLED=0
-
 # rebuild binaries:
 export GOOS=${GOOS:-$(go env GOOS)}
 export GOARCH=${GOARCH:-$(go env GOARCH)}
+
+# Disable CGO for builds (except freebsd)
+if [[ "${GOOS}" == "freebsd" ]]; then
+  _info "CGO enabled for freebsd"
+  export CGO_ENABLED=1
+else 
+  export CGO_ENABLED=0
+fi
 
 if [[ "${GOARCH}" == "amd64" ]]; then
   build_path="${__proj_dir}/build/${GOOS}/x86_64"
