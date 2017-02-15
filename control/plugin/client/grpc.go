@@ -222,6 +222,7 @@ func (g *grpcClient) Kill(reason string) error {
 
 	_, err := g.plugin.Kill(getContext(g.timeout), &rpc.KillArg{Reason: reason})
 	g.conn.Close()
+	g.Killed()
 	if err != nil {
 		return err
 	}
@@ -380,8 +381,7 @@ func (g *grpcClient) handleInStream(
 	metricChan chan []core.Metric,
 	errChan chan error) {
 	go func() {
-		done := false
-		for !done {
+		for {
 			in, err := g.stream.Recv()
 			if err != nil {
 				errChan <- err

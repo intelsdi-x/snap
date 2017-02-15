@@ -44,6 +44,10 @@ type mockMetricManager struct {
 	autodiscoverPaths          []string
 }
 
+func (m *mockMetricManager) StreamMetrics(string, map[string]map[string]string, time.Duration, int64) (chan []core.Metric, chan error, []error) {
+	return nil, nil, nil
+}
+
 func (m *mockMetricManager) CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }

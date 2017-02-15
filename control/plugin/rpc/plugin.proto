@@ -54,10 +54,15 @@ service StreamCollector {
 message CollectArg{
 	// Request these metrics to be collected on the plugins schedule
 	MetricsArg Metrics_Arg = 1;
-	// Set minimum collection duration --duration in ns
+	// Set Maximum collection duration in ns. The events will be buffered
+	// until the max duration is reached and/or the maxMetric buffer amount is
+	// reached. 0 means the events will be sent immediately.
 	int64 MaxCollectDuration = 2;
-	// Set max number of metrics to buffer before forcing send
-	// 0 means no forced send
+	// Set max number of metrics to buffer before forcing sending. Events
+	// are sent as soon as MaxMetricsBuffer is reached or MaxCollectDuration
+	// is exceeded, whichever happens first. If MaxMetricsBuffer is 0 metrics
+	// will be sent immediately. If MaxCollectDuration is set to 0 then
+	// maxMetricsBuffer will not be used as metrics will be sent immediately.
 	int64 MaxMetricsBuffer = 3;
 	// Blob of domain specific info
 	bytes Other = 4;

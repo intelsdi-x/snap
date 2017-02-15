@@ -37,6 +37,9 @@ var (
 
 	PluginNameMock2 = "snap-plugin-collector-mock2"
 	PluginPathMock2 = helper.PluginFilePath(PluginNameMock2)
+
+	PluginNameStreamRand1 = "snap-plugin-stream-collector-rand1"
+	PluginPathStreamRand1 = helper.PluginFilePath(PluginNameStreamRand1)
 )
 
 // mocks a metric type

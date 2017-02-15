@@ -73,6 +73,10 @@ func (t *mockTask) Option(...core.TaskOption) core.TaskOption { return core.Task
 func (t *mockTask) WMap() *wmap.WorkflowMap                   { return nil }
 func (t *mockTask) Schedule() schedule.Schedule               { return nil }
 func (t *mockTask) MaxFailures() int                          { return 10 }
+func (t *mockTask) MaxMetricsBuffer() int64                   { return 0 }
+func (t *mockTask) SetMaxMetricsBuffer(int64)                 {}
+func (t *mockTask) MaxCollectDuration() time.Duration         { return time.Second }
+func (t *mockTask) SetMaxCollectDuration(time.Duration)       {}
 
 func getTestConfig() *Config {
 	cfg := GetDefaultConfig()

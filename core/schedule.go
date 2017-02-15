@@ -87,6 +87,8 @@ func makeSchedule(s Schedule) (schedule.Schedule, error) {
 			return nil, err
 		}
 		return sch, nil
+	case "streaming":
+		return schedule.NewStreamingSchedule(), nil
 	default:
 		return nil, errors.New("unknown schedule type " + s.Type)
 	}
