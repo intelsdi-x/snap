@@ -20,6 +20,8 @@ limitations under the License.
 package client
 
 import (
+	"time"
+
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core"
@@ -39,6 +41,17 @@ type PluginCollectorClient interface {
 	PluginClient
 	CollectMetrics([]core.Metric) ([]core.Metric, error)
 	GetMetricTypes(plugin.ConfigType) ([]core.Metric, error)
+}
+
+type PluginStreamCollectorClient interface {
+	PluginClient
+	StreamMetrics([]core.Metric) (chan []core.Metric, chan error, error)
+	GetMetricTypes(plugin.ConfigType) ([]core.Metric, error)
+	UpdateCollectedMetrics([]core.Metric) error
+	UpdatePluginConfig([]byte) error
+	UpdateMetricsBuffer(int64) error
+	UpdateCollectDuration(time.Duration) error
+	Killed()
 }
 
 // PluginProcessorClient A client providing processor specific plugin method calls.
