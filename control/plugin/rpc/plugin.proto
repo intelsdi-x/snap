@@ -42,8 +42,35 @@ service Publisher {
     rpc GetConfigPolicy(Empty) returns (GetConfigPolicyReply) {}
 }
 
-message Empty{
+service StreamCollector {
+	rpc StreamMetrics(stream CollectArg) returns (stream CollectReply) {}
+    rpc GetMetricTypes(GetMetricTypesArg) returns (MetricsReply) {}
+    rpc Ping(Empty) returns (ErrReply) {}
+    rpc Kill(KillArg) returns (ErrReply) {}
+    rpc GetConfigPolicy(Empty) returns (GetConfigPolicyReply) {}
 }
+
+// Request that can be passed a stream collector
+message CollectArg{
+	// Request these metrics to be collected on the plugins schedule
+	MetricsArg Metrics_Arg = 1;
+	// Set minimum collection duration --duration in ns
+	int64 MaxCollectDuration = 2;
+	// Set max number of metrics to buffer before forcing send
+	// 0 means no forced send
+	int64 MaxMetricsBuffer = 3;
+	// Blob of domain specific info
+	bytes Other = 4;
+}
+
+// Replies that can be sent from a stream collector
+message CollectReply{
+	// Reply with metrics
+	MetricsReply Metrics_Reply = 1;
+	ErrReply Error = 2;
+}
+
+message Empty{}
 
 message ErrReply {
     string error = 1;
