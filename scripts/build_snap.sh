@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #
@@ -35,12 +35,17 @@ go_build=(go build -ldflags "-w -X main.gitversion=${git_version}")
 _info "snap build version: ${git_version}"
 _info "git commit: $(git log --pretty=format:"%H" -1)"
 
-# Disable CGO for builds.
-export CGO_ENABLED=0
-
 # rebuild binaries:
-export GOOS=${GOOS:-$(uname -s | tr '[:upper:]' '[:lower:]')}
-export GOARCH=${GOARCH:-"amd64"}
+export GOOS=${GOOS:-$(go env GOOS)}
+export GOARCH=${GOARCH:-$(go env GOARCH)}
+
+# Disable CGO for builds (except freebsd)
+if [[ "${GOOS}" == "freebsd" ]]; then
+  _info "CGO enabled for freebsd"
+  export CGO_ENABLED=1
+else 
+  export CGO_ENABLED=0
+fi
 
 if [[ "${GOARCH}" == "amd64" ]]; then
   build_path="${__proj_dir}/build/${GOOS}/x86_64"
@@ -48,7 +53,14 @@ else
   build_path="${__proj_dir}/build/${GOOS}/${GOARCH}"
 fi
 
+snaptel="snaptel"
+snapteld="snapteld"
+if [[ "${GOOS}" == "windows" ]]; then
+  snaptel="${snaptel}.exe"
+  snapteld="${snapteld}.exe"
+fi
+
 mkdir -p "${build_path}"
-_info "building snapteld/snaptel for ${GOOS}/${GOARCH}"
-"${go_build[@]}" -o "${build_path}/snapteld" . || exit 1
-(cd "${__proj_dir}/cmd/snaptel" && "${go_build[@]}" -o "${build_path}/snaptel" . || exit 1)
+_info "building snapteld/${snaptel} for ${GOOS}/${GOARCH}"
+"${go_build[@]}" -o "${build_path}/${snapteld}" . || exit 1
+(cd "${__proj_dir}/cmd/snaptel" && "${go_build[@]}" -o "${build_path}/${snaptel}" . || exit 1)

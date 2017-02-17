@@ -3,7 +3,7 @@ package common
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 
 	log "github.com/Sirupsen/logrus"
@@ -17,7 +17,7 @@ func WriteFile(filename string, b []byte) (string, error) {
 		return "", err
 	}
 
-	f, err := os.Create(path.Join(dir, filename))
+	f, err := os.Create(filepath.Join(dir, filename))
 	if err != nil {
 		return "", err
 	}
