@@ -20,13 +20,17 @@ limitations under the License.
 package core
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/pkg/fileutils"
 )
 
 type Plugin interface {
@@ -95,21 +99,61 @@ type SubscribedPlugin interface {
 }
 
 type RequestedPlugin struct {
-	path       string
-	checkSum   [sha256.Size]byte
-	signature  []byte
-	autoLoaded bool
+	path      string
+	checkSum  [sha256.Size]byte
+	signature []byte
 }
 
-func NewRequestedPlugin(path string) (*RequestedPlugin, error) {
-	rp := &RequestedPlugin{
-		path:       path,
-		signature:  nil,
-		autoLoaded: true,
-	}
-	err := rp.generateCheckSum()
-	if err != nil {
-		return nil, err
+// NewRequestedPlugin returns a Requested Plugin which represents the plugin path and signature
+// It takes the full path of the plugin (path), temp path (fileName), and content of the file (b) and returns a requested plugin and error
+// The argument b (content of the file) can be nil
+func NewRequestedPlugin(path, fileName string, b []byte) (*RequestedPlugin, error) {
+	var rp *RequestedPlugin
+	// this case is for the snaptel cli as b is unknown and needs to be read
+	if b == nil {
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+
+		info, err := file.Stat()
+		if err != nil {
+			return nil, err
+		}
+		size := info.Size()
+		bytes := make([]byte, size)
+		buffer := bufio.NewReader(file)
+		_, err = buffer.Read(bytes)
+		if err != nil {
+			return nil, err
+		}
+		tempFile, err := fileutils.WriteFile(filepath.Base(path), fileName, bytes)
+		if err != nil {
+			return nil, err
+		}
+		rp = &RequestedPlugin{
+			path:      tempFile,
+			signature: nil,
+		}
+		genErr := rp.generateCheckSum()
+		if genErr != nil {
+			return nil, err
+		}
+	} else {
+		// this is for the REST API as the content is read earlier
+		tmpFile, err := fileutils.WriteFile(filepath.Base(path), fileName, b)
+		if err != nil {
+			return nil, nil
+		}
+		rp = &RequestedPlugin{
+			path:      tmpFile,
+			signature: nil,
+		}
+		genErr := rp.generateCheckSum()
+		if genErr != nil {
+			return nil, err
+		}
 	}
 	return rp, nil
 }
@@ -126,20 +170,12 @@ func (p *RequestedPlugin) Signature() []byte {
 	return p.signature
 }
 
-func (p *RequestedPlugin) AutoLoaded() bool {
-	return p.autoLoaded
-}
-
 func (p *RequestedPlugin) SetPath(path string) {
 	p.path = path
 }
 
 func (p *RequestedPlugin) SetSignature(data []byte) {
 	p.signature = data
-}
-
-func (p *RequestedPlugin) SetAutoLoaded(isAutoLoaded bool) {
-	p.autoLoaded = isAutoLoaded
 }
 
 func (p *RequestedPlugin) generateCheckSum() error {

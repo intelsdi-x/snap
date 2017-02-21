@@ -391,7 +391,7 @@ func (p *pluginControl) Start() error {
 						}).Warn("Auto-loading of plugin '", fileName, "' skipped (plugin not executable)")
 						continue
 					}
-					rp, err := core.NewRequestedPlugin(path.Join(fullPath, fileName))
+					rp, err := core.NewRequestedPlugin(path.Join(fullPath, fileName), GetDefaultConfig().TempDirPath, nil)
 					if err != nil {
 						controlLogger.WithFields(log.Fields{
 							"_block":           "start",
@@ -582,7 +582,6 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	details.Path = rp.Path()
 	details.CheckSum = rp.CheckSum()
 	details.Signature = rp.Signature()
-	details.IsAutoLoaded = rp.AutoLoaded()
 
 	if filepath.Ext(rp.Path()) == ".aci" {
 		f, err := os.Open(rp.Path())
@@ -1064,6 +1063,10 @@ func (p *pluginControl) SetAutodiscoverPaths(paths []string) {
 
 func (p *pluginControl) GetAutodiscoverPaths() []string {
 	return p.autodiscoverPaths
+}
+
+func (p *pluginControl) GetTempDir() string {
+	return p.Config.TempDirPath
 }
 
 func (p *pluginControl) SetPluginTrustLevel(trust int) {

@@ -88,7 +88,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	// collector -- mock
 	// processor -- passthru
 	// publisher -- file
-	mock, err := core.NewRequestedPlugin(fixtures.PluginPathMock1)
+	mock, err := core.NewRequestedPlugin(fixtures.PluginPathMock1, GetDefaultConfig().TempDirPath, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		})
 	})
 	<-lpe.done
-	passthru, err := core.NewRequestedPlugin(helper.PluginFilePath("snap-plugin-processor-passthru"))
+	passthru, err := core.NewRequestedPlugin(helper.PluginFilePath("snap-plugin-processor-passthru"), GetDefaultConfig().TempDirPath, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 		typeName: catalogedPassthru.TypeName(),
 	}
 	<-lpe.done
-	filepub, err := core.NewRequestedPlugin(helper.PluginFilePath("snap-plugin-publisher-mock-file"))
+	filepub, err := core.NewRequestedPlugin(helper.PluginFilePath("snap-plugin-publisher-mock-file"), GetDefaultConfig().TempDirPath, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
