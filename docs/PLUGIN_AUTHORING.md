@@ -14,6 +14,7 @@
    * [Plugin Metadata](#plugin-metadata)
    * [Plugin Catalog](#plugin-catalog)
    * [Plugin Status](#plugin-status)
+   * [Plugin Tests](#plugin-tests)
    * [Documentation](#documentation)
 
 ## Overview
@@ -145,12 +146,16 @@ We provide a list of Snap plugins at [snap-telemetry.io](http://snap-telemetry.i
 ### Plugin Status
 
 While the Snap framework is hardened through tons of testing, **plugins mature at their own pace**. We also want our community to share plugins early and update them often. To help both of these goals, we have tiers of maturity defined for plugins being added to the Plugin Catalog:
-* [**Supported**](#supported-plugins) - Created by a company with the intent of supporting customers
-* [**Approved**](#approved-plugins) - Vetted by Snap maintainers to meet our best practices for design
-* [**Experimental**](#experimental) - Early plugins ready for testing but not known to work as intended
-* [**Unlabeled**](#all-other-plugins-unlabeled) - Shared for reference or extension
+* [**Supported**](PLUGIN_STATUS.md#supported-plugins) - Created by a company with the intent of supporting customers
+* [**Approved**](PLUGIN_STATUS.md#approved-plugins) - Vetted by Snap maintainers to meet our best practices for design
+* [**Experimental**](PLUGIN_STATUS.md#experimental) - Early plugins ready for testing but not known to work as intended
+* [**Unlabeled**](PLUGIN_STATUS.md#all-other-plugins-unlabeled) - Shared for reference or extension
 
  Further details to these definitions are available in [Plugin Status](PLUGIN_STATUS.md).
+
+### Plugin Tests
+
+For a plugin to be labeled `Approved` or `Supported`, it must have reasonable test coverage. At a minimum we require small tests, but large tests are also encouraged. To learn more about our testing best practices visit [BUILD_AND_TEST.md](BUILD_AND_TEST.md) and [LARGE_TESTS.md](LARGE_TESTS.md).
 
 ### Documentation
 
