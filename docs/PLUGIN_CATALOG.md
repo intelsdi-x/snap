@@ -120,7 +120,6 @@ There will always be more plugins we wish we had. To make sure others can contri
 | [#1436](https://github.com/intelsdi-x/snap/issues/1436) | collector | RDT metrics collector |
 | [#1418](https://github.com/intelsdi-x/snap/issues/1418) | collector | Plugin wanted: SR-IOV Virtual Function counters collector |
 | [#1401](https://github.com/intelsdi-x/snap/issues/1401) | collector | SNAP about Machine Check |
-| [#1342](https://github.com/intelsdi-x/snap/issues/1342) | collector | Snap Jolokia collector plugin |
 | [#1341](https://github.com/intelsdi-x/snap/issues/1341) | collector | Utilizing notifications for OpenStack plugins |
 | [#1249](https://github.com/intelsdi-x/snap/issues/1249) | collector | Plugin Wanted: Collector for vCenter |
 | [#1196](https://github.com/intelsdi-x/snap/issues/1196) | publisher | Plugin Wanted: Publisher for Prometheus  |
