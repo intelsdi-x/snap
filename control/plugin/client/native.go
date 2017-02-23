@@ -221,6 +221,7 @@ func (p *PluginNativeClient) CollectMetrics(mts []core.Metric) ([]core.Metric, e
 			Version_:            mt.Version(),
 			Tags_:               mt.Tags(),
 			Config_:             mt.Config(),
+			Unit_:               mt.Unit(),
 		}
 	}
 

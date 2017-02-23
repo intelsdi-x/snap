@@ -367,6 +367,7 @@ func ToMetric(co core.Metric) *rpc.Metric {
 			Sec:  co.LastAdvertisedTime().Unix(),
 			Nsec: int64(co.Timestamp().Nanosecond()),
 		},
+		Unit: co.Unit(),
 	}
 	if co.Config() != nil {
 		cm.Config = ConfigToConfigMap(co.Config())
