@@ -21,6 +21,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -33,8 +34,10 @@ import (
 
 func loadPlugin(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
+	pCert := ctx.String("plugin-cert")
+	pKey := ctx.String("plugin-key")
 	var paths []string
-	if len(ctx.Args()) != 1 {
+	if len(ctx.Args()) >3 {
 		return newUsageError("Incorrect usage:", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
@@ -43,6 +46,28 @@ func loadPlugin(ctx *cli.Context) error {
 			return newUsageError("Must be a .asc file for the -a flag", ctx)
 		}
 		paths = append(paths, pAsc)
+	}
+	if pCert != "" {
+		tmpFile, err := ioutil.TempFile("", "crt.")
+		if err != nil {
+			return fmt.Errorf("Error processing plugin certificate - unable to create link:\n%v", err.Error())
+		}
+		_, err = tmpFile.WriteString(pCert)
+		if err != nil {
+			return fmt.Errorf("Error processing plugin certificate - unable to write link:\n%v", err.Error())
+		}
+		paths = append(paths, tmpFile.Name())
+	}
+	if pKey != "" {
+		tmpFile, err := ioutil.TempFile("", "key.")
+		if err != nil {
+			return fmt.Errorf("Error processing plugin key - unable to create link:\n%v", err.Error())
+		}
+		_, err = tmpFile.WriteString(pKey)
+		if err != nil {
+			return fmt.Errorf("Error processing plugin key - unable to write link:\n%v", err.Error())
+		}
+		paths = append(paths, tmpFile.Name())
 	}
 	r := pClient.LoadPlugin(paths)
 	if r.Err != nil {

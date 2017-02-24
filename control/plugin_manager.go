@@ -165,6 +165,8 @@ type pluginDetails struct {
 	Path         string
 	Signed       bool
 	Signature    []byte
+	CertPath     string
+	KeyPath      string
 }
 
 type loadedPlugin struct {
@@ -326,7 +328,9 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		commands[i] = filepath.Join(lPlugin.Details.ExecPath, e)
 	}
 	ePlugin, err := plugin.NewExecutablePlugin(
-		p.GenerateArgs(int(log.GetLevel())),
+		p.GenerateArgs(int(log.GetLevel())).
+			SetCertPath(details.CertPath).
+			SetKeyPath(details.KeyPath),
 		commands...)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{

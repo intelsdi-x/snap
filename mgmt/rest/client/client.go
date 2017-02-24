@@ -312,13 +312,15 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 			return nil, err
 		}
 		file, err := os.Open(pluginPaths[i])
+		defer file.Close()
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
 		bufin := bufio.NewReader(file)
 		bufins = append(bufins, bufin)
-
+		if baseName := filepath.Base(pluginPath); strings.HasPrefix(baseName, "crt.") || strings.HasPrefix(baseName, "key.") {
+			defer os.Remove(pluginPath)
+		}
 		paths = append(paths, filepath.Base(pluginPath))
 	}
 	// with io.Pipe the write needs to be async
