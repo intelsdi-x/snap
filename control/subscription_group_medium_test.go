@@ -947,7 +947,7 @@ func loadPlg(c *pluginControl, paths ...string) (core.CatalogedPlugin, serror.Sn
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
 	var e serror.SnapError
 	var p core.CatalogedPlugin
-	rp, err := core.NewRequestedPlugin(paths[0])
+	rp, err := core.NewRequestedPlugin(paths[0], GetDefaultConfig().TempDirPath, nil)
 	if err != nil {
 		return nil, serror.New(err)
 	}

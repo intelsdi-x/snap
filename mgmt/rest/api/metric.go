@@ -15,4 +15,5 @@ type Metrics interface {
 	PluginCatalog() core.PluginCatalog
 	AvailablePlugins() []core.AvailablePlugin
 	GetAutodiscoverPaths() []string
+	GetTempDir() string
 }

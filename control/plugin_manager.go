@@ -156,15 +156,14 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 
 // the struct representing a plugin that is loaded into snap
 type pluginDetails struct {
-	CheckSum     [sha256.Size]byte
-	Exec         []string
-	ExecPath     string
-	IsPackage    bool
-	IsAutoLoaded bool
-	Manifest     *schema.ImageManifest
-	Path         string
-	Signed       bool
-	Signature    []byte
+	CheckSum  [sha256.Size]byte
+	Exec      []string
+	ExecPath  string
+	IsPackage bool
+	Manifest  *schema.ImageManifest
+	Path      string
+	Signed    bool
+	Signature []byte
 }
 
 type loadedPlugin struct {
@@ -318,6 +317,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		"_block": "load-plugin",
 		"path":   filepath.Base(lPlugin.Details.Exec[0]),
 	}).Info("plugin load called")
+
 	// We will create commands by appending the ExecPath to the actual command.
 	// The ExecPath is a temporary location where the plugin/package will be
 	// run from.
@@ -325,6 +325,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	for i, e := range lPlugin.Details.Exec {
 		commands[i] = filepath.Join(lPlugin.Details.ExecPath, e)
 	}
+
 	ePlugin, err := plugin.NewExecutablePlugin(
 		p.GenerateArgs(int(log.GetLevel())),
 		commands...)
@@ -575,35 +576,28 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 		return nil, se
 	}
 
-	// If the plugin has been uploaded via REST API
-	// aka, was not auto loaded from auto_discover_path
-	// nor loaded from tests
-	// then do clean up
-	if !plugin.Details.IsAutoLoaded {
+	pmLogger.WithFields(log.Fields{
+		"plugin-type":    plugin.TypeName(),
+		"plugin-name":    plugin.Name(),
+		"plugin-version": plugin.Version(),
+		"plugin-path":    plugin.Details.Path,
+	}).Debugf("Removing plugin")
+	if err := os.RemoveAll(filepath.Dir(plugin.Details.Path)); err != nil {
 		pmLogger.WithFields(log.Fields{
 			"plugin-type":    plugin.TypeName(),
 			"plugin-name":    plugin.Name(),
 			"plugin-version": plugin.Version(),
 			"plugin-path":    plugin.Details.Path,
-		}).Debugf("Removing plugin")
-		if err := os.RemoveAll(filepath.Dir(plugin.Details.Path)); err != nil {
-			pmLogger.WithFields(log.Fields{
-				"plugin-type":    plugin.TypeName(),
-				"plugin-name":    plugin.Name(),
-				"plugin-version": plugin.Version(),
-				"plugin-path":    plugin.Details.Path,
-			}).Error(err)
-			se := serror.New(err)
-			se.SetFields(map[string]interface{}{
-				"plugin-type":    plugin.TypeName(),
-				"plugin-name":    plugin.Name(),
-				"plugin-version": plugin.Version(),
-				"plugin-path":    plugin.Details.Path,
-			})
-			return nil, se
-		}
+		}).Error(err)
+		se := serror.New(err)
+		se.SetFields(map[string]interface{}{
+			"plugin-type":    plugin.TypeName(),
+			"plugin-name":    plugin.Name(),
+			"plugin-version": plugin.Version(),
+			"plugin-path":    plugin.Details.Path,
+		})
+		return nil, se
 	}
-
 	p.loadedPlugins.remove(plugin.Key())
 
 	// Remove any metrics from the catalog if this was a collector

@@ -71,16 +71,16 @@ func TestDistributedWorkflow(t *testing.T) {
 
 		// mock2 and file onto c1
 
-		rp, err := core.NewRequestedPlugin(mock2Path)
+		rp, err := core.NewRequestedPlugin(mock2Path, c1.GetTempDir(), nil)
 		So(err, ShouldBeNil)
 		_, err = c1.Load(rp)
 		So(err, ShouldBeNil)
-		rp, err = core.NewRequestedPlugin(filePath)
+		rp, err = core.NewRequestedPlugin(filePath, c1.GetTempDir(), nil)
 		So(err, ShouldBeNil)
 		_, err = c1.Load(rp)
 		So(err, ShouldBeNil)
 		// passthru on c2
-		rp, err = core.NewRequestedPlugin(passthruPath)
+		rp, err = core.NewRequestedPlugin(passthruPath, c1.GetTempDir(), nil)
 		So(err, ShouldBeNil)
 		passthru, err := c2.Load(rp)
 		So(err, ShouldBeNil)
@@ -209,17 +209,16 @@ func TestDistributedSubscriptions(t *testing.T) {
 		filePath := helper.PluginFilePath("snap-plugin-publisher-mock-file")
 
 		// mock2 and file onto c1
-
-		rp, err := core.NewRequestedPlugin(mock2Path)
+		rp, err := core.NewRequestedPlugin(mock2Path, c1.GetTempDir(), nil)
 		So(err, ShouldBeNil)
 		_, err = c1.Load(rp)
 		So(err, ShouldBeNil)
-		rp, err = core.NewRequestedPlugin(filePath)
+		rp, err = core.NewRequestedPlugin(filePath, c1.GetTempDir(), nil)
 		So(err, ShouldBeNil)
 		_, err = c1.Load(rp)
 		So(err, ShouldBeNil)
 		// passthru on c2
-		rp, err = core.NewRequestedPlugin(passthruPath)
+		rp, err = core.NewRequestedPlugin(passthruPath, c1.GetTempDir(), nil)
 		So(err, ShouldBeNil)
 		_, err = c2.Load(rp)
 		So(err, ShouldBeNil)

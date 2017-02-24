@@ -127,6 +127,10 @@ func (m MockManagesMetrics) GetAutodiscoverPaths() []string {
 	return nil
 }
 
+func (m MockManagesMetrics) GetTempDir() string {
+	return ""
+}
+
 // These constants are the expected plugin responses from running
 // rest_v2_test.go on the plugin routes found in mgmt/rest/server.go
 const (
