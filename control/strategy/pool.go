@@ -171,8 +171,8 @@ func (p *pool) RestartCount() int {
 }
 
 func (p *pool) IncRestartCount() {
-	p.RLock()
-	defer p.RUnlock()
+	p.Lock()
+	defer p.Unlock()
 	p.restartCount++
 }
 
@@ -261,12 +261,12 @@ func (p *pool) Eligible() bool {
 
 	// optimization: don't even bother with concurrency
 	// count if we have already reached pool max
-	if p.Count() >= p.max {
+	if len(p.plugins) >= p.max {
 		return false
 	}
 
 	// Check if pool is eligible and number of plugins is less than maximum allowed
-	if p.SubscriptionCount() > p.concurrencyCount*p.Count() {
+	if len(p.subs) > p.concurrencyCount*len(p.plugins) {
 		return true
 	}
 
@@ -361,10 +361,8 @@ func (p *pool) SubscriptionCount() int {
 }
 
 // SelectAP selects an available plugin from the pool
+// the method is not thread safe, it should be protected outside of the body
 func (p *pool) SelectAP(taskID string, config map[string]ctypes.ConfigValue) (AvailablePlugin, serror.SnapError) {
-	p.RLock()
-	defer p.RUnlock()
-
 	aps := p.plugins.Values()
 
 	var id string
