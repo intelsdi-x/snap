@@ -258,6 +258,10 @@ func TestV2Plugin(t *testing.T) {
 			So(resp.StatusCode, ShouldEqual, http.StatusOK)
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
+			So(
+				string(body),
+				ShouldResemble,
+				fmt.Sprintf(mock.DELETE_PLUGIN_CONFIG_ITEM))
 		})
 	})
 }
@@ -355,7 +359,6 @@ func TestV2Task(t *testing.T) {
 			cd.AddItem("user", ctypes.ConfigValueStr{Value: "Kelly"})
 			body, err := cd.MarshalJSON()
 			So(err, ShouldBeNil)
-
 			req, err := http.NewRequest(
 				"PUT",
 				fmt.Sprintf("http://localhost:%d/v2/tasks/%s", r.port, taskID),
@@ -378,7 +381,6 @@ func TestV2Task(t *testing.T) {
 			cd.AddItem("user", ctypes.ConfigValueStr{Value: "Kelly"})
 			body, err := cd.MarshalJSON()
 			So(err, ShouldBeNil)
-
 			req, err := http.NewRequest(
 				"PUT",
 				fmt.Sprintf("http://localhost:%d/v2/tasks/%s", r.port, taskID),

@@ -22,7 +22,6 @@ default:
 	$(MAKE) deps
 	$(MAKE) snap
 	$(MAKE) plugins
-	$(MAKE) swagger-spec
 deps:
 	bash -c "./scripts/deps.sh"
 test:

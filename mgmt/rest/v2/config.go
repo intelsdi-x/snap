@@ -42,8 +42,8 @@ type PolicyTableSlice []cpolicy.RuleTable
 //
 // swagger:response PluginConfigResponse
 type PluginConfigItem struct {
-	// in: body
-	Config cdata.ConfigDataNode `json:"config"`
+	// swagger:allOf
+	cdata.ConfigDataNode `json:"config"`
 }
 
 // PluginConfigParam type
@@ -79,7 +79,7 @@ func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	styp := p.ByName("type")
 	if styp == "" {
 		cdn := s.configManager.GetPluginConfigDataNodeAll()
-		item := &PluginConfigItem{Config: cdn}
+		item := &PluginConfigItem{cdn}
 		Write(200, item, w)
 		return
 	}
@@ -101,7 +101,7 @@ func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	}
 
 	cdn := s.configManager.GetPluginConfigDataNode(typ, name, iver)
-	item := &PluginConfigItem{Config: cdn}
+	item := &PluginConfigItem{cdn}
 	Write(200, item, w)
 }
 
@@ -148,7 +148,7 @@ func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 		res = s.configManager.DeletePluginConfigDataNodeField(typ, name, iver, src...)
 	}
 
-	item := &PluginConfigItem{Config: res}
+	item := &PluginConfigItem{res}
 	Write(200, item, w)
 }
 
@@ -191,7 +191,7 @@ func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 		res = s.configManager.MergePluginConfigDataNode(typ, name, iver, src)
 	}
 
-	item := &PluginConfigItem{Config: res}
+	item := &PluginConfigItem{res}
 	Write(200, item, w)
 }
 

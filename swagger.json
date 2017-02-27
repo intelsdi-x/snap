@@ -698,11 +698,6 @@
       },
       "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
     },
-    "ConfigDataNode": {
-      "description": "Represents a set of configuration data",
-      "type": "object",
-      "x-go-package": "github.com/intelsdi-x/snap/core/cdata"
-    },
     "DynamicElement": {
       "type": "object",
       "title": "DynamicElement defines the dynamic element of a metric.",
@@ -1102,10 +1097,7 @@
       }
     },
     "PluginConfigResponse": {
-      "description": "PluginConfigItem represents cdata.ConfigDataNode which implements it's own UnmarshalJSON.",
-      "schema": {
-        "$ref": "#/definitions/ConfigDataNode"
-      }
+      "description": "PluginConfigItem represents cdata.ConfigDataNode which implements it's own UnmarshalJSON."
     },
     "PluginResponse": {
       "description": "PluginResponse represents the response from plugin operations.",
