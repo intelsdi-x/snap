@@ -258,6 +258,10 @@ func TestV2Plugin(t *testing.T) {
 			So(resp.StatusCode, ShouldEqual, http.StatusOK)
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
+			So(
+				string(body),
+				ShouldResemble,
+				fmt.Sprintf(mock.DELETE_PLUGIN_CONFIG_ITEM))
 		})
 	})
 }
