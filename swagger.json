@@ -1,9 +1,11 @@
 {
   "consumes": [
-    "application/json"
+    "application/json",
+    "application/x-protobuf"
   ],
   "produces": [
-    "application/json"
+    "application/json",
+    "application/x-protobuf"
   ],
   "schemes": [
     "http",
@@ -11,19 +13,19 @@
   ],
   "swagger": "2.0",
   "info": {
-    "description": "Snap is an open telemetry framework designed to simplify the collection,\nprocessing and publishing of system data through a single API.\n\nThis should demonstrate all the possible comment annotations\nthat are available to turn go code into a fully compliant swagger 2.0 spec",
-    "title": "Snap Restful API.",
-    "termsOfService": "there are no TOS at this moment, use at your own risk we take no responsibility",
+    "description": "Snap is an open telemetry framework designed to simplify the collection,\nprocessing and publishing of system data through a single API.\n\nThis specification should demonstrate a fully compliant swagger 2.0 spec for Snap.\nIt lists all the possible Snap Restful APIs that are available for use,\ntesting or generating spec compatible clients.",
+    "title": "Snap Restful APIs.",
+    "termsOfService": "There are no TOS at this moment, use at your own risk we take no responsibility.",
     "contact": {
       "name": "Snap Maintainer",
-      "url": "http://snap.io",
-      "email": "snap@intel.com"
+      "url": "https://github.com/intelsdi-x/snap",
+      "email": "snap@intelsdi-x.slack.com"
     },
     "license": {
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/"
     },
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "host": "127.0.0.1:8181",
   "basePath": "/v2",

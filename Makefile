@@ -61,5 +61,5 @@ proto:
 	cd `echo $(GOPATH) | cut -d: -f 1`; bash -c "./src/github.com/intelsdi-x/snap/scripts/gen-proto.sh"
 swagger-spec:
 	swagger generate spec -o ./swagger.json
-	bash -v "./scripts/sed_swagger.sh"
+	bash -c "./scripts/sed_swagger.sh"
 	swagger validate ./swagger.json
