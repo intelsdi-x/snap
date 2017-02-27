@@ -157,7 +157,7 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 				case rbody.TaskWatchTaskDisabled:
 					r.EventChan <- ste
 					r.Close()
-				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
+				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskEnded, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
 					r.EventChan <- ste
 				}
 			}

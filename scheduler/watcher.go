@@ -179,6 +179,29 @@ func (t *taskWatcherCollection) handleTaskStopped(taskID string) {
 	}
 }
 
+func (t *taskWatcherCollection) handleTaskEnded(taskID string) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	// no taskID means no watches, early exit
+	if t.coll[taskID] == nil || len(t.coll[taskID]) == 0 {
+		// Uncomment this debug line if needed. Otherwise this is too verbose for even debug level.
+		// watcherLog.WithFields(log.Fields{
+		// 	"task-id": taskID,
+		// }).Debug("no watchers")
+		return
+	}
+	// Walk all watchers for a task ID
+	for _, v := range t.coll[taskID] {
+		// Check if they have a catcher assigned
+		watcherLog.WithFields(log.Fields{
+			"task-id":         taskID,
+			"task-watcher-id": v.id,
+		}).Debug("calling taskwatcher task ended func")
+		// Call the catcher
+		v.handler.CatchTaskEnded()
+	}
+}
+
 func (t *taskWatcherCollection) handleTaskDisabled(taskID string, why string) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()

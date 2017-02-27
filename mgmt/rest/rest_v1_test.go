@@ -119,7 +119,7 @@ func watchTask(id string, port int) *watchTaskResult {
 					r.eventChan <- ste.EventType
 					r.close()
 					return
-				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
+				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskEnded, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
 					log.Info(ste.EventType)
 					r.eventChan <- ste.EventType
 				}

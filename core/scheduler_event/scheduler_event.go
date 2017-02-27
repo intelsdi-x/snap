@@ -28,6 +28,7 @@ const (
 	TaskDeleted            = "Scheduler.TaskDeleted"
 	TaskStarted            = "Scheduler.TaskStarted"
 	TaskStopped            = "Scheduler.TaskStopped"
+	TaskEnded              = "Scheduler.TaskEnded"
 	TaskDisabled           = "Scheduler.TaskDisabled"
 	MetricCollected        = "Scheduler.MetricsCollected"
 	MetricCollectionFailed = "Scheduler.MetricCollectionFailed"
@@ -68,6 +69,15 @@ type TaskStoppedEvent struct {
 
 func (e TaskStoppedEvent) Namespace() string {
 	return TaskStopped
+}
+
+type TaskEndedEvent struct {
+	TaskID string
+	Source string
+}
+
+func (e TaskEndedEvent) Namespace() string {
+	return TaskEnded
 }
 
 type TaskDisabledEvent struct {
