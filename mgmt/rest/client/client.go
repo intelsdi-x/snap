@@ -38,7 +38,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 )
 
 var (
@@ -99,6 +99,13 @@ func Password(p string) metaOp {
 func Username(u string) metaOp {
 	return func(c *Client) {
 		c.Username = u
+	}
+}
+
+//Timeout is an option that can be provided to the func client.New in order to set HTTP connection timeout.
+func Timeout(t time.Duration) metaOp {
+	return func(c *Client) {
+		c.http.Timeout = t
 	}
 }
 

@@ -167,16 +167,18 @@ func (p *ConfigPolicyNode) Add(rules ...Rule) {
 	}
 }
 
+type RuleTableSlice []RuleTable
+
 type RuleTable struct {
-	Name     string
-	Type     string
-	Default  interface{}
-	Required bool
-	Minimum  interface{}
-	Maximum  interface{}
+	Name     string      `json:"name"`
+	Type     string      `json:"type"`
+	Default  interface{} `json:"default,omitempty"`
+	Required bool        `json:"required"`
+	Minimum  interface{} `json:"minimum,omitempty"`
+	Maximum  interface{} `json:"maximum,omitempty"`
 }
 
-func (p *ConfigPolicyNode) RulesAsTable() []RuleTable {
+func (p *ConfigPolicyNode) RulesAsTable() RuleTableSlice {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 

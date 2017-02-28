@@ -192,6 +192,7 @@ type managesTribe interface {
 
 func main() {
 	// Add a check to see if gitversion is blank from the build process
+
 	if gitversion == "" {
 		gitversion = "unknown"
 	}
@@ -797,6 +798,7 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.Control.ListenAddr = setStringVal(cfg.Control.ListenAddr, ctx, "control-listen-addr")
 	cfg.Control.ListenPort = setIntVal(cfg.Control.ListenPort, ctx, "control-listen-port")
 	cfg.Control.Pprof = setBoolVal(cfg.Control.Pprof, ctx, "pprof")
+	cfg.Control.TempDirPath = setStringVal(cfg.Control.TempDirPath, ctx, "temp_dir_path")
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")
@@ -807,6 +809,8 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.RestAPI.RestAuth = setBoolVal(cfg.RestAPI.RestAuth, ctx, "rest-auth")
 	cfg.RestAPI.RestAuthPassword = setStringVal(cfg.RestAPI.RestAuthPassword, ctx, "rest-auth-pwd")
 	cfg.RestAPI.Pprof = setBoolVal(cfg.RestAPI.Pprof, ctx, "pprof")
+	cfg.RestAPI.Corsd = setStringVal(cfg.RestAPI.Corsd, ctx, "allowed_origins")
+
 	// next for the scheduler related flags
 	cfg.Scheduler.WorkManagerQueueSize = setUIntVal(cfg.Scheduler.WorkManagerQueueSize, ctx, "work-manager-queue-size")
 	cfg.Scheduler.WorkManagerPoolSize = setUIntVal(cfg.Scheduler.WorkManagerPoolSize, ctx, "work-manager-pool-size")

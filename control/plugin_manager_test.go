@@ -22,18 +22,20 @@ limitations under the License.
 package control
 
 import (
+	"bufio"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/intelsdi-x/snap/control/fixtures"
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
+	"github.com/intelsdi-x/snap/pkg/fileutils"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestLoadedPlugins(t *testing.T) {
@@ -65,18 +67,41 @@ func TestLoadedPlugins(t *testing.T) {
 	})
 }
 
-func loadPlugin(p *pluginManager, path string) (*loadedPlugin, serror.SnapError) {
+func loadPlugin(p *pluginManager, fileName string) (*loadedPlugin, serror.SnapError) {
 	// This is a Travis optimized loading of plugins. From time to time, tests will error in Travis
 	// due to a timeout when waiting for a response from a plugin. We are going to attempt loading a plugin
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
 	var e serror.SnapError
 	var lp *loadedPlugin
-	details := &pluginDetails{
-		Path:         path,
-		ExecPath:     filepath.Dir(path),
-		Exec:         []string{filepath.Base(path)},
-		IsAutoLoaded: true,
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil, serror.New(err)
 	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return nil, serror.New(err)
+	}
+	size := info.Size()
+	bytes := make([]byte, size)
+	buffer := bufio.NewReader(file)
+	_, err = buffer.Read(bytes)
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	path, err := fileutils.WriteFile(filepath.Base(fileName), GetDefaultConfig().TempDirPath, bytes)
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	details := &pluginDetails{
+		Path:     path,
+		ExecPath: filepath.Dir(path),
+		Exec:     []string{filepath.Base(path)},
+	}
+
 	for i := 0; i < 3; i++ {
 		lp, e = p.LoadPlugin(details, nil)
 		if e == nil {

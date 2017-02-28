@@ -71,6 +71,8 @@ var (
 	}
 )
 
+var TempPath = os.TempDir()
+
 type PluginRequestType int
 
 func (p PluginRequestType) String() string {
@@ -330,7 +332,7 @@ func (w worker) loadPlugin(plugin core.Plugin) error {
 			logger.Error(err)
 			continue
 		}
-		rp, err := core.NewRequestedPlugin(f.Name())
+		rp, err := core.NewRequestedPlugin(f.Name(), TempPath, nil)
 		if err != nil {
 			logger.Error(err)
 			return err

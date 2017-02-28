@@ -1,5 +1,4 @@
 // +build legacy
-
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
 
@@ -73,6 +72,7 @@ func (m *MockPluginManagerBadSwap) UnloadPlugin(c core.Plugin) (*loadedPlugin, s
 }
 func (m *MockPluginManagerBadSwap) get(string) (*loadedPlugin, error)          { return nil, nil }
 func (m *MockPluginManagerBadSwap) teardown()                                  {}
+func (m *MockPluginManagerBadSwap) GetPluginConfig() *pluginConfig             { return nil }
 func (m *MockPluginManagerBadSwap) SetPluginConfig(*pluginConfig)              {}
 func (m *MockPluginManagerBadSwap) SetPluginTags(map[string]map[string]string) {}
 func (m *MockPluginManagerBadSwap) AddStandardAndWorkflowTags(met core.Metric, allTags map[string]map[string]string) core.Metric {
@@ -93,7 +93,8 @@ func load(c *pluginControl, paths ...string) (core.CatalogedPlugin, serror.SnapE
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
 	var e serror.SnapError
 	var p core.CatalogedPlugin
-	rp, err := core.NewRequestedPlugin(paths[0])
+
+	rp, err := core.NewRequestedPlugin(paths[0], GetDefaultConfig().TempDirPath, nil)
 	if err != nil {
 		return nil, serror.New(err)
 	}
@@ -190,7 +191,7 @@ func TestSwapPlugin(t *testing.T) {
 			})
 		})
 
-		mockRP, mErr := core.NewRequestedPlugin(fixtures.PluginPathMock1)
+		mockRP, mErr := core.NewRequestedPlugin(fixtures.PluginPathMock1, GetDefaultConfig().TempDirPath, nil)
 		Convey("Requested collector plugin should not error", func() {
 			So(mErr, ShouldBeNil)
 		})
@@ -234,7 +235,7 @@ func TestSwapPlugin(t *testing.T) {
 		Convey("Swap plugin with a different type of plugin", func() {
 			filePath := helper.PluginFilePath("snap-plugin-publisher-mock-file")
 			So(filePath, ShouldNotBeEmpty)
-			fileRP, pErr := core.NewRequestedPlugin(fixtures.PluginPathMock1)
+			fileRP, pErr := core.NewRequestedPlugin(fixtures.PluginPathMock1, GetDefaultConfig().TempDirPath, nil)
 			Convey("Requested publisher plugin should not error", func() {
 				So(pErr, ShouldBeNil)
 				Convey("Swapping collector and publisher plugins", func() {
@@ -257,7 +258,7 @@ func TestSwapPlugin(t *testing.T) {
 			pm.ExistingPlugin = lp
 			c.pluginManager = pm
 
-			mockRP, mErr := core.NewRequestedPlugin(fixtures.PluginPathMock1)
+			mockRP, mErr := core.NewRequestedPlugin(fixtures.PluginPathMock1, GetDefaultConfig().TempDirPath, nil)
 			So(mErr, ShouldBeNil)
 			err := c.SwapPlugins(mockRP, lp)
 			Convey("So err should be received if rollback fails", func() {
@@ -1676,8 +1677,8 @@ func TestMetricSubscriptionToNewVersion(t *testing.T) {
 		c.eventManager.RegisterHandler("TestMetricSubscriptionToNewVersion", lpe)
 		c.Start()
 		_, err := load(c, helper.PluginFilePath("snap-plugin-collector-mock1"))
-		<-lpe.load
 		So(err, ShouldBeNil)
+		<-lpe.load
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "1")
 		So(err2, ShouldBeNil)
@@ -1751,8 +1752,8 @@ func TestMetricSubscriptionToOlderVersion(t *testing.T) {
 		c.eventManager.RegisterHandler("TestMetricSubscriptionToOlderVersion", lpe)
 		c.Start()
 		_, err := load(c, helper.PluginFilePath("snap-plugin-collector-mock2"))
-		<-lpe.load
 		So(err, ShouldBeNil)
+		<-lpe.load
 		So(len(c.pluginManager.all()), ShouldEqual, 1)
 		lp, err2 := c.pluginManager.get("collector" + core.Separator + "mock" + core.Separator + "2")
 		So(err2, ShouldBeNil)

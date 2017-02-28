@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #

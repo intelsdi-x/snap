@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rest
+package v1
 
 import (
 	"compress/gzip"
@@ -31,16 +31,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/julienschmidt/httprouter"
-
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/api"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
+	"github.com/julienschmidt/httprouter"
 )
 
 const PluginAlreadyLoaded = "plugin is already loaded"
@@ -68,14 +66,14 @@ func (p *plugin) TypeName() string {
 	return p.pluginType
 }
 
-func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var rp *core.RequestedPlugin
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		respond(500, rbody.FromError(err), w)
+		rbody.Write(500, rbody.FromError(err), w)
 		return
 	}
 	if strings.HasPrefix(mediaType, "multipart/") {
-		var pluginPath string
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		lp := &rbody.PluginsLoaded{}
@@ -89,25 +87,25 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 				break
 			}
 			if err != nil {
-				respond(500, rbody.FromError(err), w)
+				rbody.Write(500, rbody.FromError(err), w)
 				return
 			}
 			if r.Header.Get("Plugin-Compression") == "gzip" {
 				g, err := gzip.NewReader(p)
 				defer g.Close()
 				if err != nil {
-					respond(500, rbody.FromError(err), w)
+					rbody.Write(500, rbody.FromError(err), w)
 					return
 				}
 				b, err = ioutil.ReadAll(g)
 				if err != nil {
-					respond(500, rbody.FromError(err), w)
+					rbody.Write(500, rbody.FromError(err), w)
 					return
 				}
 			} else {
 				b, err = ioutil.ReadAll(p)
 				if err != nil {
-					respond(500, rbody.FromError(err), w)
+					rbody.Write(500, rbody.FromError(err), w)
 					return
 				}
 			}
@@ -124,11 +122,11 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			case i == 0:
 				if filepath.Ext(p.FileName()) == ".asc" {
 					e := errors.New("Error: first file passed to load plugin api can not be signature file")
-					respond(500, rbody.FromError(e), w)
+					rbody.Write(500, rbody.FromError(e), w)
 					return
 				}
-				if pluginPath, err = writeFile(p.FileName(), b); err != nil {
-					respond(500, rbody.FromError(err), w)
+				if rp, err = core.NewRequestedPlugin(p.FileName(), s.metricManager.GetTempDir(), b); err != nil {
+					rbody.Write(500, rbody.FromError(err), w)
 					return
 				}
 				checkSum = sha256.Sum256(b)
@@ -137,32 +135,27 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 					signature = b
 				} else {
 					e := errors.New("Error: second file passed was not a signature file")
-					respond(500, rbody.FromError(e), w)
+					rbody.Write(500, rbody.FromError(e), w)
 					return
 				}
 			case i == 2:
 				e := errors.New("Error: More than two files passed to the load plugin api")
-				respond(500, rbody.FromError(e), w)
+				rbody.Write(500, rbody.FromError(e), w)
 				return
 			}
 			i++
 		}
-		rp, err := core.NewRequestedPlugin(pluginPath)
-		if err != nil {
-			respond(500, rbody.FromError(err), w)
-			return
-		}
-		rp.SetAutoLoaded(false)
+
 		// Sanity check, verify the checkSum on the file sent is the same
 		// as after it is written to disk.
 		if rp.CheckSum() != checkSum {
 			e := errors.New("Error: CheckSum mismatch on requested plugin to load")
-			respond(500, rbody.FromError(e), w)
+			rbody.Write(500, rbody.FromError(e), w)
 			return
 		}
 		rp.SetSignature(signature)
 		restLogger.Info("Loading plugin: ", rp.Path())
-		pl, err := s.mm.Load(rp)
+		pl, err := s.metricManager.Load(rp)
 		if err != nil {
 			var ec int
 			restLogger.Error(err)
@@ -178,41 +171,15 @@ func (s *Server) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter
 			default:
 				ec = 500
 			}
-			respond(ec, rb, w)
+			rbody.Write(ec, rb, w)
 			return
 		}
-		lp.LoadedPlugins = append(lp.LoadedPlugins, *catalogedPluginToLoaded(r.Host, pl))
-		respond(201, lp, w)
+		lp.LoadedPlugins = append(lp.LoadedPlugins, catalogedPluginToLoaded(r.Host, pl))
+		rbody.Write(201, lp, w)
 	}
 }
 
-func writeFile(filename string, b []byte) (string, error) {
-	// Create temporary directory
-	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		return "", err
-	}
-	f, err := os.Create(filepath.Join(dir, filename))
-	if err != nil {
-		return "", err
-	}
-	n, err := f.Write(b)
-	log.Debugf("wrote %v to %v", n, f.Name())
-	if err != nil {
-		return "", err
-	}
-	if runtime.GOOS != "windows" {
-		err = f.Chmod(0700)
-		if err != nil {
-			return "", err
-		}
-	}
-	// Close before load
-	f.Close()
-	return f.Name(), nil
-}
-
-func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, iErr := strconv.ParseInt(p.ByName("version"), 10, 0)
@@ -225,30 +192,30 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 	if iErr != nil {
 		se := serror.New(errors.New("invalid version"))
 		se.SetFields(f)
-		respond(400, rbody.FromSnapError(se), w)
+		rbody.Write(400, rbody.FromSnapError(se), w)
 		return
 	}
 
 	if plName == "" {
 		se := serror.New(errors.New("missing plugin name"))
 		se.SetFields(f)
-		respond(400, rbody.FromSnapError(se), w)
+		rbody.Write(400, rbody.FromSnapError(se), w)
 		return
 	}
 	if plType == "" {
 		se := serror.New(errors.New("missing plugin type"))
 		se.SetFields(f)
-		respond(400, rbody.FromSnapError(se), w)
+		rbody.Write(400, rbody.FromSnapError(se), w)
 		return
 	}
-	up, se := s.mm.Unload(&plugin{
+	up, se := s.metricManager.Unload(&plugin{
 		name:       plName,
 		version:    int(plVersion),
 		pluginType: plType,
 	})
 	if se != nil {
 		se.SetFields(f)
-		respond(500, rbody.FromSnapError(se), w)
+		rbody.Write(500, rbody.FromSnapError(se), w)
 		return
 	}
 	pr := &rbody.PluginUnloaded{
@@ -256,10 +223,10 @@ func (s *Server) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprout
 		Version: up.Version(),
 		Type:    up.TypeName(),
 	}
-	respond(200, pr, w)
+	rbody.Write(200, pr, w)
 }
 
-func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (s *apiV1) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	var detail bool
 	for k := range r.URL.Query() {
 		if k == "details" {
@@ -268,10 +235,10 @@ func (s *Server) getPlugins(w http.ResponseWriter, r *http.Request, params httpr
 	}
 	plName := params.ByName("name")
 	plType := params.ByName("type")
-	respond(200, getPlugins(s.mm, detail, r.Host, plName, plType), w)
+	rbody.Write(200, getPlugins(s.metricManager, detail, r.Host, plName, plType), w)
 }
 
-func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType string) *rbody.PluginList {
+func getPlugins(mm api.Metrics, detail bool, h string, plName string, plType string) *rbody.PluginList {
 
 	plCatalog := mm.PluginCatalog()
 
@@ -279,7 +246,7 @@ func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType 
 
 	plugins.LoadedPlugins = make([]rbody.LoadedPlugin, len(plCatalog))
 	for i, p := range plCatalog {
-		plugins.LoadedPlugins[i] = *catalogedPluginToLoaded(h, p)
+		plugins.LoadedPlugins[i] = catalogedPluginToLoaded(h, p)
 	}
 
 	if detail {
@@ -293,7 +260,7 @@ func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType 
 				HitCount:         p.HitCount(),
 				LastHitTimestamp: p.LastHit().Unix(),
 				ID:               p.ID(),
-				Href:             pluginURI(h, p),
+				Href:             pluginURI(h, version, p),
 				PprofPort:        p.Port(),
 			}
 		}
@@ -336,19 +303,19 @@ func getPlugins(mm managesMetrics, detail bool, h string, plName string, plType 
 	return &plugins
 }
 
-func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) *rbody.LoadedPlugin {
-	return &rbody.LoadedPlugin{
+func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) rbody.LoadedPlugin {
+	return rbody.LoadedPlugin{
 		Name:            c.Name(),
 		Version:         c.Version(),
 		Type:            c.TypeName(),
 		Signed:          c.IsSigned(),
 		Status:          c.Status(),
 		LoadedTimestamp: c.LoadedTimestamp().Unix(),
-		Href:            pluginURI(host, c),
+		Href:            pluginURI(host, version, c),
 	}
 }
 
-func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (s *apiV1) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
 	plVersion, iErr := strconv.ParseInt(p.ByName("version"), 10, 0)
@@ -361,24 +328,24 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 	if iErr != nil {
 		se := serror.New(errors.New("invalid version"))
 		se.SetFields(f)
-		respond(400, rbody.FromSnapError(se), w)
+		rbody.Write(400, rbody.FromSnapError(se), w)
 		return
 	}
 
 	if plName == "" {
 		se := serror.New(errors.New("missing plugin name"))
 		se.SetFields(f)
-		respond(400, rbody.FromSnapError(se), w)
+		rbody.Write(400, rbody.FromSnapError(se), w)
 		return
 	}
 	if plType == "" {
 		se := serror.New(errors.New("missing plugin type"))
 		se.SetFields(f)
-		respond(400, rbody.FromSnapError(se), w)
+		rbody.Write(400, rbody.FromSnapError(se), w)
 		return
 	}
 
-	pluginCatalog := s.mm.PluginCatalog()
+	pluginCatalog := s.metricManager.PluginCatalog()
 	var plugin core.CatalogedPlugin
 	for _, item := range pluginCatalog {
 		if item.Name() == plName &&
@@ -390,7 +357,7 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 	}
 	if plugin == nil {
 		se := serror.New(ErrPluginNotFound, f)
-		respond(404, rbody.FromSnapError(se), w)
+		rbody.Write(404, rbody.FromSnapError(se), w)
 		return
 	}
 
@@ -420,7 +387,7 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		if err != nil {
 			f["plugin-path"] = plugin.PluginPath()
 			se := serror.New(err, f)
-			respond(500, rbody.FromSnapError(se), w)
+			rbody.Write(500, rbody.FromSnapError(se), w)
 			return
 		}
 
@@ -431,7 +398,7 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 		if err != nil {
 			f["plugin-path"] = plugin.PluginPath()
 			se := serror.New(err, f)
-			respond(500, rbody.FromSnapError(se), w)
+			rbody.Write(500, rbody.FromSnapError(se), w)
 			return
 		}
 		return
@@ -443,13 +410,13 @@ func (s *Server) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.
 			Signed:          plugin.IsSigned(),
 			Status:          plugin.Status(),
 			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
-			Href:            pluginURI(r.Host, plugin),
+			Href:            pluginURI(r.Host, version, plugin),
 			ConfigPolicy:    configPolicy,
 		}
-		respond(200, pluginRet, w)
+		rbody.Write(200, pluginRet, w)
 	}
 }
 
-func pluginURI(host string, c core.Plugin) string {
-	return fmt.Sprintf("%s://%s/v1/plugins/%s/%s/%d", protocolPrefix, host, c.TypeName(), c.Name(), c.Version())
+func pluginURI(host, version string, c core.Plugin) string {
+	return fmt.Sprintf("%s://%s/%s/plugins/%s/%s/%d", protocolPrefix, host, version, c.TypeName(), c.Name(), c.Version())
 }

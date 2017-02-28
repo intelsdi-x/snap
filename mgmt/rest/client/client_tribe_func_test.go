@@ -37,7 +37,7 @@ import (
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/mgmt/rest"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
-	"github.com/intelsdi-x/snap/mgmt/rest/rbody"
+	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 	"github.com/intelsdi-x/snap/mgmt/tribe"
 	"github.com/intelsdi-x/snap/scheduler"
 )

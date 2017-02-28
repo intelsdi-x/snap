@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -36,16 +37,17 @@ import (
 )
 
 // default configuration values
-const (
-	defaultListenAddr        string        = "127.0.0.1"
-	defaultListenPort        int           = 8082
-	defaultMaxRunningPlugins int           = 3
-	defaultPluginLoadTimeout int           = 3
-	defaultPluginTrust       int           = 1
-	defaultAutoDiscoverPath  string        = ""
-	defaultKeyringPaths      string        = ""
-	defaultCacheExpiration   time.Duration = 500 * time.Millisecond
-	defaultPprof             bool          = false
+var (
+	defaultListenAddr        = "127.0.0.1"
+	defaultListenPort        = 8082
+	defaultMaxRunningPlugins = 3
+	defaultPluginLoadTimeout = 3
+	defaultPluginTrust       = 1
+	defaultAutoDiscoverPath  = ""
+	defaultKeyringPaths      = ""
+	defaultCacheExpiration   = 500 * time.Millisecond
+	defaultPprof             = false
+	defaultTempDirPath       = os.TempDir()
 )
 
 type pluginConfig struct {
@@ -83,6 +85,7 @@ type Config struct {
 	ListenPort        int                          `json:"listen_port,omitempty"yaml:"listen_port"`
 	Pprof             bool                         `json:"pprof"yaml:"pprof"`
 	MaxPluginRestarts int                          `json:"max_plugin_restarts"yaml:"max_plugin_restarts"`
+	TempDirPath       string                       `json:"temp_dir_path"yaml:"temp_dir_path"`
 }
 
 const (
@@ -132,6 +135,9 @@ const (
 					"pprof": {
 						"type": "boolean"
 					},
+					"temp_dir_path": {
+						"type": "string"
+					},
 					"max_plugin_restarts": {
 						"type": "integer"
 					}
@@ -156,6 +162,7 @@ func GetDefaultConfig() *Config {
 		Tags:              newPluginTags(),
 		Pprof:             defaultPprof,
 		MaxPluginRestarts: MaxPluginRestartCount,
+		TempDirPath:       defaultTempDirPath,
 	}
 }
 

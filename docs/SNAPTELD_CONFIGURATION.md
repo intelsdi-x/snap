@@ -71,9 +71,9 @@ The control section contains settings for configuring the Control module within 
 
 ```yaml
 control:
-  # auto_discover_path sets a directory to auto load plugins on the start
-  # of the Snap daemon
-  auto_discover_path: /opt/snap/plugins
+  # auto_discover_path sets the directory(s) to auto load plugins and tasks on
+  # the start of the snap daemon. This can be a comma separated list of directories.
+  auto_discover_path: /opt/snap/plugins:/opt/snap/tasks
 
   # cache_expiration sets the time interval for the plugin cache to use before
   # expiring collection results from collect plugins. Default value is 500ms
@@ -100,6 +100,9 @@ control:
   # an unsigned plugin is loaded. Any signed plugins that cannot be verified will
   # not be loaded. Valid values are 0 - Off, 1 - Enabled, 2 - Warning
   plugin_trust_level: 1
+
+  # temp_dir_path sets the temporary directory which houses the temporary files 
+  temp_dir_path: /tmp
 
   # max_plugin_restarts controls how many times a plugin is allowed to be restarted
   # before failing. Snap will not disable a plugin due to failures when this value is -1.
@@ -192,6 +195,9 @@ restapi:
 
   # port sets the port to start the REST API server on. Default is 8181
   port: 8181
+
+  # allowed_origins sets the allowed origins in a comma separated list. It defaults to the same origin if the value is empty.
+  allowed_origins: http://127.0.0.1:8080, http://snap.example.io, http://example.com
 ```
 
 ### snapteld tribe configurations

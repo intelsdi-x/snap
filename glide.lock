@@ -1,5 +1,5 @@
 hash: 55584a3098467b96c2800b810444ba49663ade021e4f2d0796233b277d712415
-updated: 2016-11-22T14:54:43.026574122-08:00
+updated: 2017-02-06T22:13:53.321938894-08:00
 imports:
 - name: github.com/appc/spec
   version: db96f94ae6b227fe4d8288527ead8927181620f6
@@ -51,6 +51,10 @@ imports:
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/robfig/cron
   version: 32d9c273155a0506d27cf73dd1246e86a470997e
+- name: github.com/rs/cors
+  version: a62a804a8a009876ca59105f7899938a1349f4b3
+- name: github.com/rs/xhandler
+  version: ed27b6fd65218132ee50cd95f38474a3d8a2cd12
 - name: github.com/Sirupsen/logrus
   version: be52937128b38f1d99787bb476c789e2af1147f1
 - name: github.com/spf13/pflag
