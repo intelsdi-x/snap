@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+	<!-- Use * to generate product ID on every build -->
+	<Product Id="*"
+			 Name="Snap"
+			 Language="1033"
+			 Version="1.1.0"
+			 Manufacturer="Intel"
+			 UpgradeCode="58FB0E6C-94EF-4AFB-A067-A6DA6B17E10F">
+
+		<Package Compressed="yes"
+				 InstallScope="perMachine"
+				 Manufacturer="Intel"
+				 Description="Install the Snap monitoring framework"
+				 Comments="(c) 2017 Intel" />
+
+		<MediaTemplate EmbedCab="yes" />
+
+		<!--Directory structure-->
+		<Directory Id="TARGETDIR"
+				   Name="SourceDir">
+			<Directory Id="ProgramFilesFolder">
+				<Directory Id="DIR_MyProgram"
+						   Name="Snap" />
+				<Directory Id="ProgramMenuFolder">
+					<Directory Id="DIR_Shortcuts"
+							   Name="Snap" />
+				</Directory>
+			</Directory>
+		</Directory>
+
+		<!--Components-->
+		<DirectoryRef Id="DIR_MyProgram">
+			<Component Id="CMP_FileToInstallTxt"
+					   Guid="367D82BF-A960-4B09-9714-079C93B9E1FB">
+				<File Id="FILE_FileToInstallTxt"
+					  Source="FileToInstall.txt"
+					  KeyPath="yes" />
+			</Component>
+		</DirectoryRef>
+
+		<!--Start Menu Shortcuts-->
+		<DirectoryRef Id="DIR_Shortcuts">
+			<Component Id="CMP_ReadFileShortcut"
+					   Guid="1AF06B42-CD42-4AED-959F-36DB5E512046">
+
+				<Shortcut Id="ReadFileShortcut"
+						  Name="Snap - Read File"
+						  Description="Read resulting file from WiX basics sample"
+						  Target="[DIR_MyProgram]FileToInstall.txt" />
+
+				<Shortcut Id="UninstallShortcut"
+						  Name="Uninstall Snap"
+						  Description="Uninstalls Snap"
+						  Target="[System64Folder]msiexec.exe"
+						  Arguments="/x [ProductCode]" />
+
+				<RemoveFolder Id="RemoveDIR_Shortcuts"
+							  On="uninstall" />
+
+				<RegistryValue Root="HKCU"
+							   Key="Software\SoftwareArchitects\WiXBasics"
+							   Name="installed"
+							   Type="integer"
+							   Value="1"
+							   KeyPath="yes" />
+			</Component>
+		</DirectoryRef>
+
+		<!--Features-->
+		<Feature Id="FileToInstallFeature"
+				 Title="Snap Feature"
+				 Level="1">
+			<ComponentRef Id="CMP_FileToInstallTxt" />
+		</Feature>
+
+		<Feature Id="ShortcutsFeature"
+			 Title="Shortcuts"
+			 Level="1">
+			<ComponentRef Id="CMP_ReadFileShortcut" />
+		</Feature>
+
+		<UIRef Id="WixUI_FeatureTree"/>
+	</Product>
+</Wix>
