@@ -93,6 +93,11 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, dead
 // interactive with Event and Done channels. An HTTP GET request retrieves tasks.
 // StreamedTaskEvent returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) WatchTask(id string) *WatchTasksResult {
+	// during watch we don't want to have a timeout
+	// Store the old timeout so we can restore when we are through
+	oldTimeout := c.http.Timeout
+	c.http.Timeout = time.Duration(0)
+
 	r := &WatchTasksResult{
 		EventChan: make(chan *rbody.StreamedTaskEvent),
 		DoneChan:  make(chan struct{}),
@@ -131,6 +136,7 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 	// Start watching
 	go func() {
 		reader := bufio.NewReader(resp.Body)
+		defer func() { c.http.Timeout = oldTimeout }()
 		for {
 			select {
 			case <-r.DoneChan:
