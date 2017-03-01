@@ -35,21 +35,24 @@ var (
 		Value:  "http://localhost:8181",
 	}
 	flAPIVer = cli.StringFlag{
-		Name:  "api-version, a",
-		Usage: "The Snap API version",
-		Value: "v1",
+		Name:   "api-version, a",
+		Usage:  "The Snap API version",
+		EnvVar: "SNAP_API_VERSION",
+		Value:  "v1",
 	}
 	flSecure = cli.BoolFlag{
-		Name:  "insecure",
-		Usage: "Ignore certificate errors when Snap's API is running HTTPS",
+		Name:   "insecure",
+		Usage:  "Ignore certificate errors when Snap's API is running HTTPS",
+		EnvVar: "SNAP_INSECURE",
 	}
 	flRunning = cli.BoolFlag{
 		Name:  "running",
 		Usage: "Shows running plugins",
 	}
 	flPassword = cli.BoolFlag{
-		Name:  "password, p",
-		Usage: "Password for REST API authentication",
+		Name:   "password, p",
+		Usage:  "Require password for REST API authentication",
+		EnvVar: "SNAP_REST_PASSWORD",
 	}
 	flConfig = cli.StringFlag{
 		Name:   "config, c",

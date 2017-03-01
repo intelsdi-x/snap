@@ -30,9 +30,9 @@ $ snaptel [global options] command [command options] [arguments...]
 ### Global Options
 ```
 --url, -u 'http://localhost:8181'    Sets the URL to use [$SNAP_URL]
---insecure                           Ignore certificate errors when Snap's API is running HTTPS
---api-version, -a 'v1'               The Snap API version
---password, -p                       Password for REST API authentication
+--insecure                           Ignore certificate errors when Snap's API is running HTTPS [$SNAP_INSECURE]
+--api-version, -a 'v1'               The Snap API version [$SNAP_API_VERSION]
+--password, -p                       Require password for REST API authentication [$SNAP_REST_PASSWORD]
 --config, -c                         Path to a config file [$SNAPTEL_CONFIG_PATH]
 --help, -h                           show help
 --version, -v                        print the version
