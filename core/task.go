@@ -52,7 +52,7 @@ var (
 		TaskStopped:  "Stopped",  // stopped but resumable
 		TaskSpinning: "Running",  // running
 		TaskFiring:   "Running",  // running (firing can happen so briefly we don't want to try and render it as a string state)
-		TaskEnded:    "Ended",    // ended, not resumable because the schedule will not fire again
+		TaskEnded:    "Ended",    // ended, but resumable if the schedule is still valid and might fire again
 		TaskStopping: "Stopping", // channel has been closed, wait for TaskStopped state
 	}
 )
@@ -65,6 +65,7 @@ type TaskWatcherHandler interface {
 	CatchCollection([]Metric)
 	CatchTaskStarted()
 	CatchTaskStopped()
+	CatchTaskEnded()
 	CatchTaskDisabled(string)
 }
 

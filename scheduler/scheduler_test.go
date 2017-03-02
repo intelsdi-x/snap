@@ -272,36 +272,6 @@ func TestScheduler(t *testing.T) {
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 		})
 
-		Convey("Enable a stopped task", func() {
-			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
-			So(tsk, ShouldNotBeNil)
-
-			_, err := s.EnableTask(tsk.ID())
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("Enable a disabled task", func() {
-			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
-			So(tsk, ShouldNotBeNil)
-
-			t := s.tasks.Get(tsk.ID())
-			t.state = core.TaskDisabled
-
-			etsk, err1 := s.EnableTask(tsk.ID())
-			So(err1, ShouldBeNil)
-			So(etsk.State(), ShouldEqual, core.TaskStopped)
-		})
-		Convey("Start disabled task", func() {
-			tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
-			So(tsk, ShouldNotBeNil)
-
-			t := s.tasks.Get(tsk.ID())
-			t.state = core.TaskDisabled
-
-			err := s.StartTask(tsk.ID())
-			So(err[0].Error(), ShouldResemble, "Task is disabled. Cannot be started.")
-			So(t.state, ShouldEqual, core.TaskDisabled)
-		})
 	})
 	Convey("Stop()", t, func() {
 		Convey("Should set scheduler state to SchedulerStopped", func() {

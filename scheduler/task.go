@@ -428,7 +428,7 @@ func (t *taskCollection) remove(task *task) error {
 	t.Lock()
 	defer t.Unlock()
 	if _, ok := t.table[task.id]; ok {
-		if task.state != core.TaskStopped && task.state != core.TaskDisabled {
+		if task.state != core.TaskStopped && task.state != core.TaskDisabled && task.state != core.TaskEnded {
 			taskLogger.WithFields(log.Fields{
 				"_block":  "remove",
 				"task id": task.id,

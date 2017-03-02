@@ -128,7 +128,7 @@ func (m mockScheduleResponse) missedIntervals() uint {
 	return 0
 }
 
-// Helper constructor functions for resuse amongst tests
+// Helper constructor functions for re-use amongst tests
 func newMockMetricManager() *mockMetricManager {
 	m := new(mockMetricManager)
 	return m
@@ -178,48 +178,386 @@ func newMockWorkflowMap() *wmap.WorkflowMap {
 	return w
 }
 
+var (
+	startWait  = time.Millisecond * 50
+	windowSize = time.Millisecond * 100
+	interval   = time.Millisecond * 10
+)
+
 // ----------------------------- Medium Tests ----------------------------
+
+func TestCreateTask(t *testing.T) {
+	s := newScheduler()
+	s.Start()
+	w := newMockWorkflowMap()
+
+	Convey("Calling CreateTask for a simple schedule", t, func() {
+		Convey("returns an error when the schedule does not validate", func() {
+			Convey("the interval is invalid", func() {
+				Convey("the interval equals zero", func() {
+					tsk, errs := s.CreateTask(schedule.NewSimpleSchedule(0), w, false)
+					So(errs, ShouldNotBeEmpty)
+					So(tsk, ShouldBeNil)
+					So(errs.Errors()[0].Error(), ShouldEqual, schedule.ErrInvalidInterval.Error())
+				})
+				Convey("the interval is less than zero", func() {
+					tsk, errs := s.CreateTask(schedule.NewSimpleSchedule((-1)*time.Millisecond), w, false)
+					So(errs, ShouldNotBeEmpty)
+					So(tsk, ShouldBeNil)
+					So(errs.Errors()[0].Error(), ShouldEqual, schedule.ErrInvalidInterval.Error())
+				})
+			})
+		})
+		Convey("should not error when the schedule is valid", func() {
+			tsk, errs := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+			So(errs.Errors(), ShouldBeEmpty)
+			So(tsk, ShouldNotBeNil)
+		})
+	}) //end of tests for a simple scheduler
+
+	Convey("Calling CreateTask for a windowed schedule", t, func() {
+		Convey("returns an error when the schedule does not validate", func() {
+			Convey("the interval is invalid", func() {
+				start := time.Now().Add(startWait)
+				stop := time.Now().Add(startWait + windowSize)
+
+				Convey("the interval equals zero", func() {
+					tsk, errs := s.CreateTask(schedule.NewWindowedSchedule(0, &start, &stop), w, false)
+					So(errs, ShouldNotBeEmpty)
+					So(tsk, ShouldBeNil)
+					So(errs.Errors()[0].Error(), ShouldEqual, schedule.ErrInvalidInterval.Error())
+				})
+				Convey("the interval is less than zero", func() {
+					tsk, errs := s.CreateTask(schedule.NewWindowedSchedule((-1)*time.Millisecond, &start, &stop), w, false)
+					So(errs, ShouldNotBeEmpty)
+					So(tsk, ShouldBeNil)
+					So(errs.Errors()[0].Error(), ShouldEqual, schedule.ErrInvalidInterval.Error())
+				})
+			})
+			Convey("the stop time was set in the past", func() {
+				start := time.Now().Add(startWait)
+				stop := time.Now().Add(time.Second * -10)
+				tsk, errs := s.CreateTask(schedule.NewWindowedSchedule(interval, &start, &stop), w, false)
+				So(errs, ShouldNotBeEmpty)
+				So(tsk, ShouldBeNil)
+				So(errs.Errors()[0].Error(), ShouldEqual, schedule.ErrInvalidStopTime.Error())
+			})
+			Convey("the stop time is before the start time", func() {
+				start := time.Now().Add(startWait * 2)
+				stop := time.Now().Add(startWait)
+				tsk, errs := s.CreateTask(schedule.NewWindowedSchedule(interval, &start, &stop), w, false)
+				So(errs, ShouldNotBeEmpty)
+				So(tsk, ShouldBeNil)
+				So(errs.Errors()[0].Error(), ShouldEqual, schedule.ErrStopBeforeStart.Error())
+			})
+		})
+		Convey("should not error when the schedule is valid", func() {
+			start := time.Now().Add(startWait)
+			stop := time.Now().Add(startWait + windowSize)
+			tsk, errs := s.CreateTask(schedule.NewWindowedSchedule(interval, &start, &stop), w, false)
+			So(errs.Errors(), ShouldBeEmpty)
+			So(tsk, ShouldNotBeNil)
+
+			task := s.tasks.Get(tsk.ID())
+			task.Spin()
+			Convey("the task should be ended after reaching the end of window", func() {
+				// wait for the end of determined window
+				time.Sleep(startWait + windowSize)
+				// wait an interval to be sure that the task state has been updated
+				time.Sleep(interval)
+				// check if the task is ended
+				So(tsk.State(), ShouldEqual, core.TaskEnded)
+			})
+		})
+	}) //end of tests for a windowed scheduler
+
+	Convey("Calling CreateTask for a cron schedule", t, func() {
+		Convey("returns an error when the schedule does not validate", func() {
+			Convey("the cron entry is empty", func() {
+				cronEntry := ""
+				tsk, errs := s.CreateTask(schedule.NewCronSchedule(cronEntry), w, false)
+				So(errs, ShouldNotBeEmpty)
+				So(tsk, ShouldBeNil)
+				So(errs.Errors()[0].Error(), ShouldEqual, schedule.ErrMissingCronEntry.Error())
+			})
+			Convey("the cron entry is invalid", func() {
+				cronEntry := "0 30"
+				tsk, errs := s.CreateTask(schedule.NewCronSchedule(cronEntry), w, false)
+				So(errs, ShouldNotBeEmpty)
+				So(tsk, ShouldBeNil)
+				So(errs.Errors()[0].Error(), ShouldStartWith, "Expected 5 or 6 fields")
+			})
+		})
+		Convey("should not error when the schedule is valid", func() {
+			cronEntry := "0 30 * * * *"
+			tsk, errs := s.CreateTask(schedule.NewCronSchedule(cronEntry), w, false)
+			So(errs.Errors(), ShouldBeEmpty)
+			So(tsk, ShouldNotBeNil)
+		})
+	}) //end of tests for a cron scheduler
+
+	s.Stop()
+}
+
 func TestStopTask(t *testing.T) {
 	logrus.SetLevel(logrus.FatalLevel)
 	s := newScheduler()
 	s.Start()
 	w := newMockWorkflowMap()
-	tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
-	task := s.tasks.Get(tsk.ID())
-	task.Spin()
-	err := s.StopTask(tsk.ID())
 
-	Convey("Calling StopTask a running task", t, func() {
+	Convey("Calling StopTask on a running task", t, func() {
+		tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+		So(tsk, ShouldNotBeNil)
+		task := s.tasks.Get(tsk.ID())
+		task.Spin()
+		// check if the task is running
+		So(core.TaskStateLookup[task.State()], ShouldEqual, "Running")
+
+		// stop the running task
+		err := s.StopTask(tsk.ID())
 		Convey("Should not return an error", func() {
 			So(err, ShouldBeNil)
 		})
 		time.Sleep(100 * time.Millisecond)
 		Convey("State of the task should be TaskStopped", func() {
-			So(task.state, ShouldEqual, core.TaskStopped)
+			So(tsk.State(), ShouldEqual, core.TaskStopped)
 		})
 	})
-
-	tskStopped, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
-	err = s.StopTask(tskStopped.ID())
 	Convey("Calling StopTask on a stopped task", t, func() {
+		tskStopped, _ := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+		So(tskStopped, ShouldNotBeNil)
+		// check if the task is already stopped
+		So(tskStopped.State(), ShouldEqual, core.TaskStopped)
+
+		// try to stop the stopped task
+		err := s.StopTask(tskStopped.ID())
 		Convey("Should return an error", func() {
 			So(err, ShouldNotBeNil)
 		})
 		Convey("Error should read: Task is already stopped.", func() {
-			So(err[0].Error(), ShouldResemble, "Task is already stopped.")
+			So(err[0].Error(), ShouldEqual, ErrTaskAlreadyStopped.Error())
 		})
 	})
-
-	tskDisabled, _ := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*100), w, false)
-	taskDisabled := s.tasks.Get(tskDisabled.ID())
-	taskDisabled.state = core.TaskDisabled
-	err = s.StopTask(tskDisabled.ID())
 	Convey("Calling StopTask on a disabled task", t, func() {
+		tskDisabled, _ := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+		So(tskDisabled, ShouldNotBeNil)
+		taskDisabled := s.tasks.Get(tskDisabled.ID())
+		taskDisabled.state = core.TaskDisabled
+
+		// try to stop the disabled task
+		err := s.StopTask(tskDisabled.ID())
 		Convey("Should return an error", func() {
 			So(err, ShouldNotBeNil)
 		})
 		Convey("Error should read: Task is disabled. Only running tasks can be stopped.", func() {
-			So(err[0].Error(), ShouldResemble, "Task is disabled. Only running tasks can be stopped.")
+			So(err[0].Error(), ShouldEqual, ErrTaskDisabledNotStoppable.Error())
+		})
+		Convey("State of the task should be still TaskDisabled", func() {
+			So(tskDisabled.State(), ShouldEqual, core.TaskDisabled)
+		})
+	})
+	Convey("Calling StopTask on an ended task", t, func() {
+		start := time.Now().Add(startWait)
+		stop := time.Now().Add(startWait + windowSize)
+
+		// create a task with windowed schedule
+		tsk, errs := s.CreateTask(schedule.NewWindowedSchedule(interval, &start, &stop), w, false)
+		So(errs.Errors(), ShouldBeEmpty)
+		So(tsk, ShouldNotBeNil)
+
+		task := s.tasks.Get(tsk.ID())
+		task.Spin()
+
+		// wait for the end of determined window
+		time.Sleep(startWait + windowSize)
+		// wait an interval to be sure that the task state has been updated
+		time.Sleep(interval)
+
+		// check if the task is ended
+		So(tsk.State(), ShouldEqual, core.TaskEnded)
+
+		// try to stop the ended task
+		err := s.StopTask(tsk.ID())
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+		Convey("Error should read: Task is ended. Only running tasks can be stopped.", func() {
+			So(err[0].Error(), ShouldEqual, ErrTaskEndedNotStoppable.Error())
+		})
+		Convey("State of the task should be still TaskEnded", func() {
+			So(tsk.State(), ShouldEqual, core.TaskEnded)
+		})
+	})
+
+	s.Stop()
+}
+
+func TestStartTask(t *testing.T) {
+	logrus.SetLevel(logrus.FatalLevel)
+	s := newScheduler()
+	s.Start()
+	w := newMockWorkflowMap()
+
+	Convey("Calling StartTask a running task", t, func() {
+		tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+		So(tsk, ShouldNotBeNil)
+
+		task := s.tasks.Get(tsk.ID())
+		task.Spin()
+		// check if the task is running
+		So(core.TaskStateLookup[task.State()], ShouldEqual, "Running")
+
+		// try to start the running task
+		err := s.StartTask(tsk.ID())
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+		Convey("Error should read: Task is already running.", func() {
+			So(err[0].Error(), ShouldEqual, ErrTaskAlreadyRunning.Error())
+		})
+		Convey("State of the task should be still Running", func() {
+			So(core.TaskStateLookup[task.State()], ShouldEqual, "Running")
+		})
+
+		task.Stop()
+	})
+	Convey("Calling StartTask on a disabled task", t, func() {
+		tskDisabled, _ := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+		So(tskDisabled, ShouldNotBeNil)
+		taskDisabled := s.tasks.Get(tskDisabled.ID())
+		taskDisabled.state = core.TaskDisabled
+
+		// try to start the disabled task
+		err := s.StartTask(tskDisabled.ID())
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+		Convey("Error should read: Task is disabled. Cannot be started", func() {
+			So(err[0].Error(), ShouldEqual, ErrTaskDisabledNotRunnable.Error())
+		})
+		Convey("State of the task should be still TaskDisabled", func() {
+			So(tskDisabled.State(), ShouldEqual, core.TaskDisabled)
+		})
+	})
+	Convey("Calling StartTask on an ended windowed task", t, func() {
+		start := time.Now().Add(startWait)
+		stop := time.Now().Add(startWait + windowSize)
+
+		//create a task with windowed schedule
+		tsk, errs := s.CreateTask(schedule.NewWindowedSchedule(interval, &start, &stop), w, false)
+		So(errs.Errors(), ShouldBeEmpty)
+		So(tsk, ShouldNotBeNil)
+
+		task := s.tasks.Get(tsk.ID())
+		task.Spin()
+
+		// wait for the end of determined window
+		time.Sleep(startWait + windowSize)
+		// wait an interval to be sure that the task state has been updated
+		time.Sleep(interval)
+
+		// check if the task is ended
+		So(tsk.State(), ShouldEqual, core.TaskEnded)
+
+		// try to restart the ended windowed task for which the stop time is in the past
+		err := s.StartTask(tsk.ID())
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+		// the schedule is not longer valid at this point of time
+		Convey("Error should read: Stop time is in the past", func() {
+			So(err[0].Error(), ShouldEqual, schedule.ErrInvalidStopTime.Error())
+		})
+		Convey("State of the task should be still TaskEnded", func() {
+			So(tsk.State(), ShouldEqual, core.TaskEnded)
+		})
+	})
+
+	s.Stop()
+}
+
+func TestEnableTask(t *testing.T) {
+	logrus.SetLevel(logrus.FatalLevel)
+	s := newScheduler()
+	s.Start()
+	w := newMockWorkflowMap()
+
+	Convey("Calling EnableTask on a disabled task", t, func() {
+		tskDisabled, _ := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+		So(tskDisabled, ShouldNotBeNil)
+		taskDisabled := s.tasks.Get(tskDisabled.ID())
+		taskDisabled.state = core.TaskDisabled
+
+		// enable the disabled task
+		tskEnabled, err := s.EnableTask(tskDisabled.ID())
+		Convey("Should not return an error", func() {
+			So(err, ShouldBeNil)
+		})
+		Convey("State of the task should be TaskStopped after enabling", func() {
+			So(tskEnabled, ShouldNotBeNil)
+			// EnableTask changes state from disabled to stopped
+			So(tskEnabled.State(), ShouldEqual, core.TaskStopped)
+		})
+	})
+	Convey("Calling EnableTask on a running task", t, func() {
+		tsk, _ := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+		So(tsk, ShouldNotBeNil)
+		task := s.tasks.Get(tsk.ID())
+		task.Spin()
+		// check if the task is running
+		So(core.TaskStateLookup[task.State()], ShouldEqual, "Running")
+
+		// try to enable the running task
+		_, err := s.EnableTask(tsk.ID())
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+		Convey("Error should read: Task must be disabled.", func() {
+			So(err, ShouldEqual, ErrTaskNotDisabled)
+		})
+	})
+	Convey("Calling EnableTask on a stopped task", t, func() {
+		tskStopped, _ := s.CreateTask(schedule.NewSimpleSchedule(interval), w, false)
+		So(tskStopped, ShouldNotBeNil)
+		// check if the task is already stopped
+		So(tskStopped.State(), ShouldEqual, core.TaskStopped)
+
+		// try to enable the stopped task
+		_, err := s.EnableTask(tskStopped.ID())
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+		Convey("Error should read: Task must be disabled.", func() {
+			So(err, ShouldEqual, ErrTaskNotDisabled)
+		})
+	})
+	Convey("Calling EnableTask on an ended task", t, func() {
+		start := time.Now().Add(startWait)
+		stop := time.Now().Add(startWait + windowSize)
+
+		//create a task with windowed schedule
+		tsk, errs := s.CreateTask(schedule.NewWindowedSchedule(interval, &start, &stop), w, false)
+		So(errs.Errors(), ShouldBeEmpty)
+		So(tsk, ShouldNotBeNil)
+
+		task := s.tasks.Get(tsk.ID())
+		task.Spin()
+
+		// wait for the end of determined window
+		time.Sleep(startWait + windowSize)
+		// wait an interval to be sure that the task state has been updated
+		time.Sleep(interval)
+
+		// check if the task is ended
+		So(tsk.State(), ShouldEqual, core.TaskEnded)
+
+		// try to enable the ended task
+		_, err := s.EnableTask(tsk.ID())
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+		Convey("Error should read: Task must be disabled.", func() {
+			So(err, ShouldEqual, ErrTaskNotDisabled)
 		})
 	})
 
