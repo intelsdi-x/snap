@@ -3,7 +3,7 @@ import:
 - package: github.com/Sirupsen/logrus
   version: be52937128b38f1d99787bb476c789e2af1147f1
 - package: github.com/appc/spec
-  version: db96f94ae6b227fe4d8288527ead8927181620f6
+  version: ^v0.8.10
   subpackages:
   - aci
   - schema
