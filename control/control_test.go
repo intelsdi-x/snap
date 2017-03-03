@@ -1274,6 +1274,91 @@ func TestFailedPlugin(t *testing.T) {
 	})
 }
 
+func TestStreamMetrics(t *testing.T) {
+	Convey("given a loaded plugin", t, func() {
+		// adjust HB timeouts for test
+		plugin.PingTimeoutLimit = 1
+		plugin.PingTimeoutDurationDefault = time.Second * 1
+
+		// Create controller
+		config := getTestConfig()
+		c := New(config)
+		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
+		c.Start()
+		lpe := newListenToPluginEvent()
+		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+
+		// Load plugin
+		_, e := load(c, fixtures.PluginPathStreamRand1)
+		So(e, ShouldBeNil)
+		<-lpe.done
+		mts, err := c.MetricCatalog()
+		So(err, ShouldBeNil)
+		So(len(mts), ShouldEqual, 3)
+
+		cd := cdata.NewNode()
+		cd.AddItem("testint", ctypes.ConfigValueInt{Value: 3})
+		cd.AddItem("testfloat", ctypes.ConfigValueFloat{Value: 0.14})
+		cd.AddItem("teststring", ctypes.ConfigValueStr{Value: "pi"})
+		m1 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("random", "integer"),
+			Cfg:        cd,
+		}
+		m2 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("random", "float"),
+			Cfg:        cd,
+		}
+		m3 := fixtures.MockMetricType{
+			Namespace_: core.NewNamespace("random", "string"),
+			Cfg:        cd,
+		}
+
+		// retrieve loaded plugin
+		lp, err := c.pluginManager.get("collector" + core.Separator + "test-rand-streamer" + core.Separator + "1")
+		So(err, ShouldBeNil)
+		So(lp, ShouldNotBeNil)
+
+		r := []core.RequestedMetric{}
+		for _, m := range []fixtures.MockMetricType{m1, m2, m3} {
+			r = append(r, m)
+		}
+
+		cdt := cdata.NewTree()
+		cdt.Add([]string{"random"}, cd)
+		taskHit := "hitting"
+
+		Convey("create a pool, add subscriptions and start plugins", func() {
+			serrs := c.SubscribeDeps(taskHit, r, []core.SubscribedPlugin{subscribedPlugin{typeName: "collector", name: "test-rand-streamer", version: 1}}, cdt)
+			So(serrs, ShouldBeNil)
+
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "test-rand-streamer" + core.Separator + "1")
+			So(errp, ShouldBeNil)
+			So(pool, ShouldNotBeNil)
+
+			Convey("stream metrics", func() {
+
+				metrics, errors, err := c.StreamMetrics(taskHit, nil, time.Second, 0)
+				So(err, ShouldBeNil)
+				select {
+				case mts := <-metrics:
+					So(mts, ShouldNotBeNil)
+					So(len(mts), ShouldEqual, 3)
+				case errs := <-errors:
+					t.Fatal(errs)
+				case <-time.After(time.Second * 10):
+					t.Fatal("Failed to get a response from stream metrics")
+				}
+
+				ap := c.AvailablePlugins()
+				So(ap, ShouldNotBeEmpty)
+				So(pool.Strategy(), ShouldNotBeNil)
+				So(pool.Strategy().String(), ShouldEqual, plugin.DefaultRouting.String())
+				c.Stop()
+			})
+		})
+	})
+}
+
 func TestCollectMetrics(t *testing.T) {
 	Convey("given a loaded plugin", t, func() {
 		// adjust HB timeouts for test

@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -88,6 +89,7 @@ func newDepGroup() depGroupMap {
 // On startup a scheduler will be created and passed a reference to control
 type managesMetrics interface {
 	collectsMetrics
+	streamsMetrics
 	publishesMetrics
 	processesMetrics
 	GetAutodiscoverPaths() []string
@@ -98,6 +100,10 @@ type managesMetrics interface {
 
 type collectsMetrics interface {
 	CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error)
+}
+
+type streamsMetrics interface {
+	StreamMetrics(string, map[string]map[string]string, time.Duration, int64) (chan []core.Metric, chan error, []error)
 }
 
 type publishesMetrics interface {

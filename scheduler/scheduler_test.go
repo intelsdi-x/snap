@@ -47,6 +47,10 @@ type mockMetricManager struct {
 	autodiscoverPaths          []string
 }
 
+func (m *mockMetricManager) StreamMetrics(string, map[string]map[string]string, time.Duration, int64) (chan []core.Metric, chan error, []error) {
+	return nil, nil, nil
+}
+
 func (m *mockMetricManager) CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error) {
 	return nil, nil
 }
@@ -272,6 +276,17 @@ func TestScheduler(t *testing.T) {
 			So(tsk.(*task).deadlineDuration, ShouldResemble, time.Duration(6*time.Second))
 		})
 
+		Convey("returns a task with a 1m collectDuration", func() {
+			tsk, err := s.CreateTask(schedule.NewStreamingSchedule(), w, false, core.SetMaxCollectDuration(time.Minute))
+			So(len(err.Errors()), ShouldEqual, 0)
+			So(tsk.(*task).maxCollectDuration, ShouldResemble, time.Duration(time.Minute))
+		})
+
+		Convey("Returns a task with a metric buffer of 100", func() {
+			tsk, err := s.CreateTask(schedule.NewStreamingSchedule(), w, false, core.SetMaxMetricsBuffer(100))
+			So(len(err.Errors()), ShouldEqual, 0)
+			So(tsk.(*task).maxMetricsBuffer, ShouldEqual, 100)
+		})
 	})
 	Convey("Stop()", t, func() {
 		Convey("Should set scheduler state to SchedulerStopped", func() {

@@ -84,6 +84,10 @@ type task struct {
 	stopOnFailure      int
 	eventEmitter       gomit.Emitter
 	RemoteManagers     managers
+	isStream           bool
+
+	maxCollectDuration time.Duration
+	maxMetricsBuffer   int64
 }
 
 //NewTask creates a Task
@@ -101,6 +105,7 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 	if err != nil {
 		return nil, err
 	}
+	_, stream := s.(*schedule.StreamingSchedule)
 	task := &task{
 		id:               taskID,
 		name:             name,
@@ -115,6 +120,7 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 		stopOnFailure:    DefaultStopOnFailure,
 		eventEmitter:     emitter,
 		RemoteManagers:   mgrs,
+		isStream:         stream,
 	}
 	//set options
 	for _, opt := range opts {
@@ -131,6 +137,22 @@ func (t *task) Option(opts ...core.TaskOption) core.TaskOption {
 		previous = opt(t)
 	}
 	return previous
+}
+
+func (t *task) MaxCollectDuration() time.Duration {
+	return t.maxCollectDuration
+}
+
+func (t *task) SetMaxCollectDuration(ti time.Duration) {
+	t.maxCollectDuration = ti
+}
+
+func (t *task) MaxMetricsBuffer() int64 {
+	return t.maxMetricsBuffer
+}
+
+func (t *task) SetMaxMetricsBuffer(i int64) {
+	t.maxMetricsBuffer = i
 }
 
 //Returns the name of the task
@@ -217,6 +239,14 @@ func (t *task) Spin() {
 	// We need to lock long enough to change state
 	t.Lock()
 	defer t.Unlock()
+	// if this task is a streaming task
+	if t.isStream {
+		t.state = core.TaskSpinning
+		t.killChan = make(chan struct{})
+		go t.stream()
+		return
+	}
+
 	// Reset the lastFireTime at each Spin.
 	// This ensures misses are tracked only forward of the point
 	// in time that a task starts spinning. E.g. stopping a task,
@@ -231,6 +261,95 @@ func (t *task) Spin() {
 	}
 }
 
+// Fork stream stuff here
+func (t *task) stream() {
+	var consecutiveFailures int
+	resetTime := time.Second * 3
+	for {
+		metricsChan, errChan, err := t.metricsManager.StreamMetrics(
+			t.id,
+			t.workflow.tags,
+			t.maxCollectDuration,
+			t.maxMetricsBuffer)
+		if err != nil {
+			consecutiveFailures++
+			e := checkTaskFailures(t, consecutiveFailures)
+			if e != nil {
+				return
+			}
+			// If we are unsuccessful at setting up the stream
+			// wait for a second and then try again until either
+			// the connection is successful or we pass the
+			// acceptable number of consecutive failures
+			time.Sleep(resetTime)
+			continue
+		} else {
+			consecutiveFailures = 0
+		}
+		done := false
+		for !done {
+			if errChan == nil {
+				break
+			}
+			select {
+			case <-t.killChan:
+				t.state = core.TaskStopped
+				break
+			case mts, ok := <-metricsChan:
+				if !ok {
+					metricsChan = nil
+					break
+				}
+				if len(mts) == 0 {
+					continue
+				}
+				t.hitCount++
+				consecutiveFailures = 0
+				t.workflow.StreamStart(t, mts)
+			case err := <-errChan:
+				taskLogger.WithFields(log.Fields{
+					"_block":    "stream",
+					"task-id":   t.id,
+					"task-name": t.name,
+				}).Error("Error: " + err.Error())
+				consecutiveFailures++
+				if err.Error() == "connection broken" {
+					// Wait here before trying to reconnect to allow time
+					// for plugin restarts.
+					time.Sleep(resetTime)
+					done = true
+				}
+				e := checkTaskFailures(t, consecutiveFailures)
+				if e != nil {
+					return
+				}
+			}
+		}
+	}
+}
+
+func checkTaskFailures(t *task, consecutiveFailures int) error {
+	if t.stopOnFailure >= 0 && consecutiveFailures >= t.stopOnFailure {
+		taskLogger.WithFields(log.Fields{
+			"_block":               "spin",
+			"task-id":              t.id,
+			"task-name":            t.name,
+			"consecutive failures": consecutiveFailures,
+			"error":                t.lastFailureMessage,
+		}).Error(ErrTaskDisabledOnFailures)
+		// You must lock on state change for tasks
+		t.Lock()
+		t.state = core.TaskDisabled
+		t.Unlock()
+		// Send task disabled event
+		event := new(scheduler_event.TaskDisabledEvent)
+		event.TaskID = t.id
+		event.Why = fmt.Sprintf("Task disabled with error: %s", t.lastFailureMessage)
+		defer t.eventEmitter.Emit(event)
+		return ErrTaskDisabledOnFailures
+	}
+	return nil
+}
 func (t *task) Stop() {
 	t.Lock()
 	defer t.Unlock()

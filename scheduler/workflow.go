@@ -23,6 +23,7 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
@@ -277,6 +278,23 @@ func (s *schedulerWorkflow) State() WorkflowState {
 
 func (s *schedulerWorkflow) StateString() string {
 	return WorkflowStateLookup[s.state]
+}
+
+func (s *schedulerWorkflow) StreamStart(t *task, metrics []core.Metric) {
+	j := &collectorJob{
+		collector:      t.metricsManager,
+		metricTypes:    []core.RequestedMetric{},
+		metrics:        metrics,
+		coreJob:        newCoreJob(collectJobType, time.Now().Add(t.deadlineDuration), t.id, "", 0),
+		configDataTree: t.workflow.configTree,
+		tags:           t.workflow.tags,
+	}
+	// Send event
+	event := new(scheduler_event.MetricCollectedEvent)
+	event.TaskID = t.id
+	event.Metrics = j.metrics
+	defer s.eventEmitter.Emit(event)
+	workJobs(s.processNodes, s.publishNodes, t, j)
 }
 
 // workJobs takes a slice of process and publish nodes and submits jobs for each for a task.

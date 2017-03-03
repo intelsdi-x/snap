@@ -67,22 +67,26 @@ type mockTask struct {
 	MyHref               string            `json:"href"`
 }
 
-func (t *mockTask) ID() string                        { return t.MyID }
-func (t *mockTask) State() core.TaskState             { return core.TaskSpinning }
-func (t *mockTask) HitCount() uint                    { return 0 }
-func (t *mockTask) GetName() string                   { return t.MyName }
-func (t *mockTask) SetName(string)                    { return }
-func (t *mockTask) SetID(string)                      { return }
-func (t *mockTask) MissedCount() uint                 { return 0 }
-func (t *mockTask) FailedCount() uint                 { return 0 }
-func (t *mockTask) LastFailureMessage() string        { return "" }
-func (t *mockTask) LastRunTime() *time.Time           { return &time.Time{} }
-func (t *mockTask) CreationTime() *time.Time          { return &time.Time{} }
-func (t *mockTask) DeadlineDuration() time.Duration   { return 4 }
-func (t *mockTask) SetDeadlineDuration(time.Duration) { return }
-func (t *mockTask) SetTaskID(id string)               { return }
-func (t *mockTask) SetStopOnFailure(int)              { return }
-func (t *mockTask) GetStopOnFailure() int             { return 0 }
+func (t *mockTask) ID() string                          { return t.MyID }
+func (t *mockTask) State() core.TaskState               { return core.TaskSpinning }
+func (t *mockTask) HitCount() uint                      { return 0 }
+func (t *mockTask) GetName() string                     { return t.MyName }
+func (t *mockTask) SetName(string)                      { return }
+func (t *mockTask) SetID(string)                        { return }
+func (t *mockTask) MissedCount() uint                   { return 0 }
+func (t *mockTask) FailedCount() uint                   { return 0 }
+func (t *mockTask) LastFailureMessage() string          { return "" }
+func (t *mockTask) LastRunTime() *time.Time             { return &time.Time{} }
+func (t *mockTask) CreationTime() *time.Time            { return &time.Time{} }
+func (t *mockTask) DeadlineDuration() time.Duration     { return 4 }
+func (t *mockTask) SetDeadlineDuration(time.Duration)   { return }
+func (t *mockTask) SetTaskID(id string)                 { return }
+func (t *mockTask) SetStopOnFailure(int)                { return }
+func (t *mockTask) GetStopOnFailure() int               { return 0 }
+func (t *mockTask) MaxMetricsBuffer() int64             { return 0 }
+func (t *mockTask) SetMaxMetricsBuffer(int64)           {}
+func (t *mockTask) MaxCollectDuration() time.Duration   { return time.Second }
+func (t *mockTask) SetMaxCollectDuration(time.Duration) {}
 func (t *mockTask) Option(...core.TaskOption) core.TaskOption {
 	return core.TaskDeadlineDuration(0)
 }

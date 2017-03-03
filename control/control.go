@@ -1015,6 +1015,54 @@ func (p *pluginControl) CollectMetrics(id string, allTags map[string]map[string]
 	return
 }
 
+func (p *pluginControl) StreamMetrics(
+	id string,
+	allTags map[string]map[string]string,
+	maxCollectDuration time.Duration,
+	maxMetricsBuffer int64) (chan []core.Metric, chan error, []error) {
+	if !p.Started {
+		return nil, nil, []error{ErrControllerNotStarted}
+	}
+	errs := make([]error, 0)
+	pluginToMetricMap, serrs, err := p.subscriptionGroups.Get(id)
+	if err != nil {
+		controlLogger.WithFields(log.Fields{
+			"_block":                "StreamMetrics",
+			"subscription-group-id": id,
+		}).Error(err)
+		errs = append(errs, err)
+		return nil, nil, errs
+	}
+
+	if serrs != nil {
+		for _, e := range serrs {
+			errs = append(errs, e)
+		}
+	}
+	if len(pluginToMetricMap) > 1 {
+		return nil, nil, append(errs, errors.New("Only 1 streaming collecting plugin per task"))
+	}
+	var metricChan chan []core.Metric
+	var errChan chan error
+	for pluginKey, pmt := range pluginToMetricMap {
+		for _, mt := range pmt.metricTypes {
+			if mt.Config() != nil {
+				mt.Config().ReverseMergeInPlace(
+					p.Config.Plugins.getPluginConfigDataNode(
+						core.CollectorPluginType,
+						pmt.plugin.Name(),
+						pmt.plugin.Version()))
+			}
+		}
+		metricChan, errChan, err = p.pluginRunner.AvailablePlugins().streamMetrics(pluginKey, pmt.metricTypes, id, maxCollectDuration, maxMetricsBuffer)
+		if err != nil {
+			errs = append(errs, err)
+			return nil, nil, errs
+		}
+	}
+	return metricChan, errChan, nil
+}
+
 // PublishMetrics
 func (p *pluginControl) PublishMetrics(metrics []core.Metric, config map[string]ctypes.ConfigValue, taskID, pluginName string, pluginVersion int) []error {
 	// If control is not started we don't want tasks to be able to

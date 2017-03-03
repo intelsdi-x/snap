@@ -90,6 +90,10 @@ type Task interface {
 	SetDeadlineDuration(time.Duration)
 	SetTaskID(id string)
 	SetStopOnFailure(int)
+	MaxCollectDuration() time.Duration
+	SetMaxCollectDuration(time.Duration)
+	MaxMetricsBuffer() int64
+	SetMaxMetricsBuffer(int64)
 	GetStopOnFailure() int
 	Option(...TaskOption) TaskOption
 	WMap() *wmap.WorkflowMap
@@ -154,18 +158,36 @@ func SetTaskID(id string) TaskOption {
 	}
 }
 
+func SetMaxMetricsBuffer(b int64) TaskOption {
+	return func(t Task) TaskOption {
+		previous := t.MaxMetricsBuffer()
+		t.SetMaxMetricsBuffer(b)
+		return SetMaxMetricsBuffer(previous)
+	}
+}
+
+func SetMaxCollectDuration(d time.Duration) TaskOption {
+	return func(t Task) TaskOption {
+		previous := t.MaxCollectDuration()
+		t.SetMaxCollectDuration(d)
+		return SetMaxCollectDuration(previous)
+	}
+}
+
 type TaskErrors interface {
 	Errors() []serror.SnapError
 }
 
 type TaskCreationRequest struct {
-	Name        string            `json:"name"`
-	Version     int               `json:"version"`
-	Deadline    string            `json:"deadline"`
-	Workflow    *wmap.WorkflowMap `json:"workflow"`
-	Schedule    *Schedule         `json:"schedule"`
-	Start       bool              `json:"start"`
-	MaxFailures int               `json:"max-failures"`
+	Name               string            `json:"name"`
+	Version            int               `json:"version"`
+	Deadline           string            `json:"deadline"`
+	Workflow           *wmap.WorkflowMap `json:"workflow"`
+	Schedule           *Schedule         `json:"schedule"`
+	Start              bool              `json:"start"`
+	MaxFailures        int               `json:"max-failures"`
+	MaxCollectDuration string            `json:"max-collect-duration"`
+	MaxMetricsBuffer   int64             `json:"max-metrics-buffer"`
 }
 
 func (tr *TaskCreationRequest) UnmarshalJSON(data []byte) error {
@@ -202,6 +224,14 @@ func (tr *TaskCreationRequest) UnmarshalJSON(data []byte) error {
 		case "version":
 			if err := json.Unmarshal(v, &(tr.Version)); err != nil {
 				return fmt.Errorf("%v (while parsing 'version')", err)
+			}
+		case "max-collect-duration":
+			if err := json.Unmarshal(v, &(tr.MaxCollectDuration)); err != nil {
+				return fmt.Errorf("%v (while parsing 'max-collect-duration')", err)
+			}
+		case "max-metrics-buffer":
+			if err := json.Unmarshal(v, &(tr.MaxMetricsBuffer)); err != nil {
+				return fmt.Errorf("%v (while parsing 'max-metrics-buffer')", err)
 			}
 		default:
 			return fmt.Errorf("Unrecognized key '%v' in task creation request", k)
@@ -257,6 +287,19 @@ func CreateTaskFromContent(body io.ReadCloser,
 	if mode == nil {
 		mode = &tr.Start
 	}
+
+	if tr.MaxMetricsBuffer != 0 {
+		opts = append(opts, SetMaxMetricsBuffer(tr.MaxMetricsBuffer))
+	}
+
+	if tr.MaxCollectDuration != "" {
+		dl, err := time.ParseDuration(tr.MaxCollectDuration)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, SetMaxCollectDuration(dl))
+	}
+
 	if fp == nil {
 		return nil, errors.New("Missing workflow creation routine")
 	}
