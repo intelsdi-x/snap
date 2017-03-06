@@ -47,6 +47,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	"github.com/intelsdi-x/snap/scheduler"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -287,6 +288,10 @@ func action(ctx *cli.Context) error {
 
 	// Switch log level to user defined
 	log.SetLevel(getLevel(cfg.LogLevel))
+
+	//Set standard logger as logger for grpc
+	grpclog.SetLogger(log.StandardLogger())
+
 	log.Info("setting log level to: ", l[cfg.LogLevel])
 
 	log.Info("Starting snapteld (version: ", gitversion, ")")
