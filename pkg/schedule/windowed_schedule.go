@@ -66,19 +66,12 @@ func (w *WindowedSchedule) Wait(last time.Time) Response {
 			}).Debug("Waiting for window to start")
 			time.Sleep(wait)
 		}
-		if (last == time.Time{}) {
-			logger.WithFields(log.Fields{
-				"_block": "windowed-wait",
-			}).Debug("Last was unset using start time")
-			last = *w.StartTime
-		}
 	} else {
-		if (last == time.Time{}) {
-			logger.WithFields(log.Fields{
-				"_block": "windowed-wait",
-			}).Debug("Last was unset using start time")
-			last = time.Now()
-		}
+		// This has no start like a simple schedule, so execution starts immediately
+		logger.WithFields(log.Fields{
+			"_block":         "windowed-wait",
+			"sleep-duration": 0,
+		}).Debug("Window start time not defined, start execution immediately")
 	}
 
 	// If within the window we wait our interval and return
