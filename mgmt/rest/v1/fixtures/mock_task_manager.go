@@ -94,7 +94,8 @@ func (t *mockTask) WMap() *wmap.WorkflowMap {
 	return wmap.NewWorkflowMap()
 }
 func (t *mockTask) Schedule() schedule.Schedule {
-	return schedule.NewSimpleSchedule(time.Second * 1)
+	// return a simple schedule (equals to windowed schedule without determined start and stop timestamp)
+	return schedule.NewWindowedSchedule(time.Second*1, nil, nil, 0)
 }
 func (t *mockTask) MaxFailures() int { return 10 }
 
@@ -249,7 +250,7 @@ const (
       }
     },
     "schedule": {
-      "type": "simple",
+      "type": "windowed",
       "interval": "1s"
     },
     "creation_timestamp": -62135596800,
@@ -276,7 +277,7 @@ const (
       }
     },
     "schedule": {
-      "type": "simple",
+      "type": "windowed",
       "interval": "1s"
     },
     "creation_timestamp": -62135596800,
@@ -327,7 +328,7 @@ const (
       }
     },
     "schedule": {
-      "type": "simple",
+      "type": "windowed",
       "interval": "1s"
     },
     "creation_timestamp": -62135596800,

@@ -101,9 +101,9 @@ func createTask(ctx *cli.Context) error {
 	return err
 }
 
+// stringValToInt parses the input (string) as an integer value (and returns that integer value
+// to the caller or an error if the input value cannot be parsed as an integer)
 func stringValToInt(val string) (int, error) {
-	// parse the input (string) as an integer value (and return that integer value
-	// to the caller or an error if the input value cannot be parsed as an integer)
 	parsedField, err := strconv.Atoi(val)
 	if err != nil {
 		splitErr := strings.Split(err.Error(), ": ")
@@ -113,6 +113,20 @@ func stringValToInt(val string) (int, error) {
 	}
 	// return the integer equivalent of the input string and a nil error (indicating success)
 	return parsedField, nil
+}
+
+// stringValToUint parses the input (string) as an unsigned integer value (and returns that uint value
+// to the caller or an error if the input value cannot be parsed as an unsigned integer)
+func stringValToUint(val string) (uint, error) {
+	parsedField, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		splitErr := strings.Split(err.Error(), ": ")
+		errStr := splitErr[len(splitErr)-1]
+		// return a value of zero and the error encountered during string parsing
+		return 0, fmt.Errorf("Value '%v' cannot be parsed as an unsigned integer (%v)", val, errStr)
+	}
+	// return the unsigned integer equivalent of the input string and a nil error (indicating success)
+	return uint(parsedField), nil
 }
 
 // Parses the command-line parameters (if any) and uses them to override the underlying
@@ -233,6 +247,16 @@ func (t *task) setScheduleFromCliOptions(ctx *cli.Context) error {
 	interval := ctx.String("interval")
 	if !ctx.IsSet("interval") && interval == "" && t.Schedule.Interval == "" {
 		return fmt.Errorf("Usage error (missing interval value); when constructing a new task schedule an interval must be provided")
+	}
+
+	countValStr := ctx.String("count")
+	if ctx.IsSet("count") || countValStr != "" {
+		count, err := stringValToUint(countValStr)
+		if err != nil {
+			return fmt.Errorf("Usage error (bad count format); %v", err)
+		}
+		t.Schedule.Count = count
+
 	}
 	// if a start, stop, or duration value was provided, or if the existing schedule for this task
 	// is 'windowed', then it's a 'windowed' schedule

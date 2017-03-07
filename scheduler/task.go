@@ -33,6 +33,7 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -254,7 +255,7 @@ func (t *task) Spin() {
 	// misses for the interval while stopped.
 	t.lastFireTime = time.Time{}
 
-	if t.state == core.TaskStopped {
+	if t.state == core.TaskStopped || t.state == core.TaskEnded {
 		t.state = core.TaskSpinning
 		t.killChan = make(chan struct{})
 		// spin in a goroutine
@@ -360,6 +361,60 @@ func (t *task) Stop() {
 	}
 }
 
+// UnsubscribePlugins groups task dependencies by the node they live in workflow and unsubscribe them
+func (t *task) UnsubscribePlugins() []serror.SnapError {
+	depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
+	var errs []serror.SnapError
+	for k := range depGroups {
+		mgr, err := t.RemoteManagers.Get(k)
+		if err != nil {
+			errs = append(errs, serror.New(err))
+		} else {
+			uerrs := mgr.UnsubscribeDeps(t.ID())
+			if len(uerrs) > 0 {
+				errs = append(errs, uerrs...)
+			}
+		}
+	}
+	return errs
+}
+
+// SubscribePlugins groups task dependencies by the node they live in workflow and subscribe them.
+// If there are errors with subscribing any deps, manage unsubscribing all other deps that may have already been subscribed
+// and then return the errors.
+func (t *task) SubscribePlugins() ([]string, []serror.SnapError) {
+	depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
+	var subbedDeps []string
+	for k := range depGroups {
+		var errs []serror.SnapError
+		mgr, err := t.RemoteManagers.Get(k)
+		if err != nil {
+			errs = append(errs, serror.New(err))
+		} else {
+			errs = mgr.SubscribeDeps(t.ID(), depGroups[k].requestedMetrics, depGroups[k].subscribedPlugins, t.workflow.configTree)
+		}
+		// If there are errors with subscribing any deps, go through and unsubscribe all other
+		// deps that may have already been subscribed then return the errors.
+		if len(errs) > 0 {
+			for _, key := range subbedDeps {
+				mgr, err := t.RemoteManagers.Get(key)
+				if err != nil {
+					errs = append(errs, serror.New(err))
+				} else {
+					// sending empty mts to unsubscribe to indicate task should not start
+					uerrs := mgr.UnsubscribeDeps(t.ID())
+					errs = append(errs, uerrs...)
+				}
+			}
+			return nil, errs
+		}
+		// If subscribed successfully add to subbedDeps
+		subbedDeps = append(subbedDeps, k)
+	}
+
+	return subbedDeps, nil
+}
+
 //Enable changes the state from Disabled to Stopped
 func (t *task) Enable() error {
 	t.Lock()
@@ -402,7 +457,7 @@ func (t *task) spin() {
 		select {
 		case sr := <-t.schResponseChan:
 			switch sr.State() {
-			// If response show this schedule is stil active we fire
+			// If response show this schedule is still active we fire
 			case schedule.Active:
 				t.missedIntervals += sr.Missed()
 				t.lastFireTime = time.Now()
@@ -447,6 +502,10 @@ func (t *task) spin() {
 				t.Lock()
 				t.state = core.TaskEnded
 				t.Unlock()
+				// Send task ended event
+				event := new(scheduler_event.TaskEndedEvent)
+				event.TaskID = t.id
+				defer t.eventEmitter.Emit(event)
 				return //spin
 
 			// Schedule has errored

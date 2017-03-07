@@ -104,7 +104,6 @@ var (
 		Name:  "interval, i",
 		Usage: "Interval for the task schedule [ex (simple schedule): 250ms, 1s, 30m (cron schedule): \"0 * * * * *\"]",
 	}
-
 	flTaskSchedStartTime = cli.StringFlag{
 		Name:  "start-time",
 		Usage: "Start time for the task schedule [defaults to now]",
@@ -113,7 +112,6 @@ var (
 		Name:  "stop-time",
 		Usage: "Start time for the task schedule [defaults to now]",
 	}
-
 	flTaskSchedStartDate = cli.StringFlag{
 		Name:  "start-date",
 		Usage: "Start date for the task schedule [defaults to today]",
@@ -121,6 +119,10 @@ var (
 	flTaskSchedStopDate = cli.StringFlag{
 		Name:  "stop-date",
 		Usage: "Stop date for the task schedule [defaults to today]",
+	}
+	flTaskSchedCount = cli.StringFlag{
+		Name:  "count",
+		Usage: "The count of runs for the task schedule [defaults to 0 what means no limit, e.g. set to 1 determines a single run task]",
 	}
 	flTaskSchedDuration = cli.StringFlag{
 		Name:  "duration, d",

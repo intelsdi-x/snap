@@ -858,9 +858,10 @@ func TestV1Task(t *testing.T) {
 			// GetTasks returns an unordered map,
 			// thus there is more than one possible response
 			So(
+				string(body),
+				ShouldBeIn,
 				responses,
-				ShouldContain,
-				string(body))
+			)
 		})
 
 		Convey("Get task - v1/tasks/:id", func() {
@@ -872,9 +873,10 @@ func TestV1Task(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.GET_TASK_RESPONSE, r.port),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.GET_TASK_RESPONSE, r.port),
+			)
 		})
 
 		Convey("Watch tasks - v1/tasks/:id/watch", func() {
@@ -897,9 +899,10 @@ func TestV1Task(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.ADD_TASK_RESPONSE, r.port),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.ADD_TASK_RESPONSE, r.port),
+			)
 		})
 
 		Convey("Start tasks - v1/tasks/:id/start", func() {
@@ -945,9 +948,10 @@ func TestV1Task(t *testing.T) {
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.STOP_TASK_RESPONSE_ID_STOP),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.STOP_TASK_RESPONSE_ID_STOP),
+			)
 		})
 
 		Convey("Enable tasks - v1/tasks/:id/enable", func() {
@@ -969,9 +973,10 @@ func TestV1Task(t *testing.T) {
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.ENABLE_TASK_RESPONSE_ID_ENABLE),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.ENABLE_TASK_RESPONSE_ID_ENABLE),
+			)
 		})
 
 		Convey("Remove tasks - V1/tasks/:id", func() {
@@ -993,9 +998,10 @@ func TestV1Task(t *testing.T) {
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.REMOVE_TASK_RESPONSE_ID),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.REMOVE_TASK_RESPONSE_ID),
+			)
 		})
 	})
 }
@@ -1011,9 +1017,10 @@ func TestV1Tribe(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.GET_TRIBE_AGREEMENTS_RESPONSE),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.GET_TRIBE_AGREEMENTS_RESPONSE),
+			)
 		})
 
 		Convey("Add tribe agreements - /v1/tribe/agreements", func() {
@@ -1027,9 +1034,10 @@ func TestV1Tribe(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.ADD_TRIBE_AGREEMENT_RESPONSE),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.ADD_TRIBE_AGREEMENT_RESPONSE),
+			)
 		})
 
 		Convey("Get tribe agreements - v1/tribe/agreements/:name", func() {
@@ -1041,9 +1049,10 @@ func TestV1Tribe(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.GET_TRIBE_AGREEMENTS_RESPONSE_NAME),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.GET_TRIBE_AGREEMENTS_RESPONSE_NAME),
+			)
 		})
 
 		Convey("Get tribe members - v1/tribe/members", func() {
@@ -1054,9 +1063,10 @@ func TestV1Tribe(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.GET_TRIBE_MEMBERS_RESPONSE),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.GET_TRIBE_MEMBERS_RESPONSE),
+			)
 		})
 
 		Convey("Get tribe member - v1/tribe/member/:name", func() {
@@ -1068,9 +1078,10 @@ func TestV1Tribe(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.GET_TRIBE_MEMBER_NAME),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.GET_TRIBE_MEMBER_NAME),
+			)
 		})
 
 		Convey("Delete tribe agreement - v1/tribe/agreements/:name", func() {
@@ -1092,9 +1103,10 @@ func TestV1Tribe(t *testing.T) {
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.DELETE_TRIBE_AGREEMENT_RESPONSE_NAME),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.DELETE_TRIBE_AGREEMENT_RESPONSE_NAME),
+			)
 		})
 
 		Convey("Leave tribe agreement - v1/tribe/agreements/:name/leave", func() {
@@ -1116,9 +1128,10 @@ func TestV1Tribe(t *testing.T) {
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.LEAVE_TRIBE_AGREEMENT_RESPONSE_NAME_LEAVE),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.LEAVE_TRIBE_AGREEMENT_RESPONSE_NAME_LEAVE),
+			)
 		})
 
 		Convey("Join tribe agreement - v1/tribe/agreements/:name/join", func() {
@@ -1140,9 +1153,10 @@ func TestV1Tribe(t *testing.T) {
 			body, err = ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(fixtures.JOIN_TRIBE_AGREEMENT_RESPONSE_NAME_JOIN),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(fixtures.JOIN_TRIBE_AGREEMENT_RESPONSE_NAME_JOIN),
+			)
 
 		})
 	})

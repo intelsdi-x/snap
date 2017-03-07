@@ -217,12 +217,6 @@ func (s *ScheduledTaskEnabled) ResponseBodyType() string {
 
 func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {
 	switch v := s.(type) {
-	case *schedule.SimpleSchedule:
-		t.Schedule = &core.Schedule{
-			Type:     "simple",
-			Interval: v.Interval.String(),
-		}
-		return
 	case *schedule.WindowedSchedule:
 		t.Schedule = &core.Schedule{
 			Type:           "windowed",

@@ -3,6 +3,7 @@
   schedule:
     type: "simple"
     interval: "1s"
+    count: 5
   max-failures: 10
   workflow:
     collect:

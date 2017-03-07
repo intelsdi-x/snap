@@ -500,35 +500,9 @@ func (s *scheduler) startTask(id, source string) []serror.SnapError {
 		return errs
 	}
 
-	// Group dependencies by the node they live on
-	// and subscribe to them.
-	depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
-	var subbedDeps []string
-	for k := range depGroups {
-		var errs []serror.SnapError
-		mgr, err := t.RemoteManagers.Get(k)
-		if err != nil {
-			errs = append(errs, serror.New(err))
-		} else {
-			errs = mgr.SubscribeDeps(t.ID(), depGroups[k].requestedMetrics, depGroups[k].subscribedPlugins, t.workflow.configTree)
-		}
-		// If there are errors with subscribing any deps, go through and unsubscribe all other
-		// deps that may have already been subscribed then return the errors.
-		if len(errs) > 0 {
-			for _, key := range subbedDeps {
-				mgr, err := t.RemoteManagers.Get(key)
-				if err != nil {
-					errs = append(errs, serror.New(err))
-				} else {
-					// sending empty mts to unsubscribe to indicate task should not start
-					uerrs := mgr.UnsubscribeDeps(t.ID())
-					errs = append(errs, uerrs...)
-				}
-			}
-			return errs
-		}
-		// If subscribed successfully add to subbedDeps
-		subbedDeps = append(subbedDeps, k)
+	// subscribe plugins to task
+	if _, err := t.SubscribePlugins(); len(err) != 0 {
+		return err
 	}
 
 	event := &scheduler_event.TaskStartedEvent{
@@ -595,36 +569,21 @@ func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 			serror.New(ErrTaskDisabledNotStoppable),
 		}
 	default:
-		// Group dependencies by the host they live on and
-		// unsubscribe them since task is stopping.
-		depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
-		var errs []serror.SnapError
-		for k := range depGroups {
-			mgr, err := t.RemoteManagers.Get(k)
-			if err != nil {
-				errs = append(errs, serror.New(err))
-			} else {
-				uerrs := mgr.UnsubscribeDeps(t.ID())
-				if len(uerrs) > 0 {
-					errs = append(errs, uerrs...)
-				}
-			}
-			if len(errs) > 0 {
-				return errs
-			}
 
-			event := &scheduler_event.TaskStoppedEvent{
-				TaskID: t.ID(),
-				Source: source,
-			}
-			defer s.eventManager.Emit(event)
-			t.Stop()
-			logger.WithFields(log.Fields{
-				"task-id":    t.ID(),
-				"task-state": t.State(),
-			}).Info("task stopped")
-
+		if errs := t.UnsubscribePlugins(); len(errs) != 0 {
+			return errs
 		}
+
+		event := &scheduler_event.TaskStoppedEvent{
+			TaskID: t.ID(),
+			Source: source,
+		}
+		defer s.eventManager.Emit(event)
+		t.Stop()
+		logger.WithFields(log.Fields{
+			"task-id":    t.ID(),
+			"task-state": t.State(),
+		}).Info("task stopped")
 	}
 
 	return nil
@@ -802,6 +761,9 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 			"event-namespace": e.Namespace(),
 			"task-id":         v.TaskID,
 		}).Debug("event received")
+		// We need to unsubscribe from deps when a task has ended
+		task, _ := s.getTask(v.TaskID)
+		task.UnsubscribePlugins()
 		s.taskWatcherColl.handleTaskEnded(v.TaskID)
 	case *scheduler_event.TaskDisabledEvent:
 		log.WithFields(log.Fields{
@@ -813,13 +775,7 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 		}).Debug("event received")
 		// We need to unsubscribe from deps when a task goes disabled
 		task, _ := s.getTask(v.TaskID)
-		depGroups := getWorkflowPlugins(task.workflow.processNodes, task.workflow.publishNodes, task.workflow.metrics)
-		for k := range depGroups {
-			mgr, err := task.RemoteManagers.Get(k)
-			if err == nil {
-				mgr.UnsubscribeDeps(task.ID())
-			}
-		}
+		task.UnsubscribePlugins()
 		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
 	default:
 		log.WithFields(log.Fields{
