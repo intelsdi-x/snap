@@ -49,8 +49,10 @@ type Response interface {
 }
 
 func waitOnInterval(last time.Time, i time.Duration) (uint, time.Time) {
+	// first run
 	if (last == time.Time{}) {
-		time.Sleep(i)
+		// for the first run, do not wait on interval
+		// and schedule workflow execution immediately
 		return uint(0), time.Now()
 	}
 	// Get the difference in time.Duration since last in nanoseconds (int64)

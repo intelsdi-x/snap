@@ -26,7 +26,7 @@ import (
 	"github.com/intelsdi-x/snap/core"
 )
 
-// lru provides a stragey that selects the least recently used available plugin.
+// lru provides a strategy that selects the least recently used available plugin.
 type lru struct {
 	*cache
 	logger *log.Entry
