@@ -811,6 +811,11 @@
       },
       "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
     },
+    "ConfigDataNode": {
+      "description": "Represents a set of configuration data",
+      "type": "object",
+      "x-go-package": "github.com/intelsdi-x/snap/core/cdata"
+    },
     "DynamicElement": {
       "type": "object",
       "title": "DynamicElement defines the dynamic element of a metric.",
@@ -1249,10 +1254,13 @@
           "x-go-name": "Schedule",
           "$ref": "#/definitions/Schedule"
         },
+<<<<<<< HEAD
         "start": {
           "type": "boolean",
           "x-go-name": "Start"
         },
+=======
+>>>>>>> exposed Config in the response. changed task response to state and misc fixes.
         "state": {
           "type": "string",
           "x-go-name": "State"
@@ -1315,7 +1323,10 @@
       }
     },
     "PluginConfigResponse": {
-      "description": "PluginConfigItem represents cdata.ConfigDataNode which implements it's own UnmarshalJSON."
+      "description": "PluginConfigItem represents cdata.ConfigDataNode which implements it's own UnmarshalJSON.",
+      "schema": {
+        "$ref": "#/definitions/ConfigDataNode"
+      }
     },
     "PluginResponse": {
       "description": "PluginResponse represents the response from plugin operations.",

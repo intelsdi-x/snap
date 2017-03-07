@@ -78,8 +78,10 @@ const (
 `
 
 	GET_PLUGIN_CONFIG_ITEM = `{
-  "Port": 2,
-  "User": "KELLY"
+  "config": {
+    "Port": 2,
+    "User": "KELLY"
+  }
 }
 `
 
