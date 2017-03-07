@@ -46,6 +46,21 @@
         ],
         "summary": "lists a list of loaded metric types. An empty list returns if there is no loaded metrics. Any bad request results in error.",
         "operationId": "getMetrics",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Ns",
+            "name": "ns",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Ver",
+            "name": "ver",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/MetricsResponse"
@@ -108,9 +123,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "$ref": "#/responses/PluginsResponse"
-          },
           "201": {
             "$ref": "#/responses/PluginResponse"
           },
@@ -118,6 +130,9 @@
             "$ref": "#/responses/ErrorResponse"
           },
           "409": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "415": {
             "$ref": "#/responses/ErrorResponse"
           },
           "500": {
@@ -233,11 +248,11 @@
           }
         ],
         "responses": {
-          "200": {
-            "$ref": "#/responses/PluginsResponse"
-          },
           "204": {
             "$ref": "#/responses/PluginResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -546,7 +561,7 @@
           },
           {
             "type": "string",
-            "x-go-name": "State",
+            "x-go-name": "Action",
             "description": "Update the state of a task",
             "name": "action",
             "in": "formData",
@@ -700,6 +715,11 @@
       },
       "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
     },
+    "ConfigDataNode": {
+      "description": "Represents a set of configuration data",
+      "type": "object",
+      "x-go-package": "github.com/intelsdi-x/snap/core/cdata"
+    },
     "DynamicElement": {
       "type": "object",
       "title": "DynamicElement defines the dynamic element of a metric.",
@@ -719,6 +739,23 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Fields"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
         }
       },
       "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
@@ -1039,7 +1076,7 @@
           "x-go-name": "Schedule",
           "$ref": "#/definitions/Schedule"
         },
-        "task_state": {
+        "state": {
           "type": "string",
           "x-go-name": "State"
         },
@@ -1077,10 +1114,7 @@
     "ErrorResponse": {
       "description": "Error unsuccessful generic response to a failed API call",
       "schema": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
-        }
+        "$ref": "#/definitions/Error"
       }
     },
     "MetricsResponse": {
@@ -1099,7 +1133,10 @@
       }
     },
     "PluginConfigResponse": {
-      "description": "PluginConfigItem represents cdata.ConfigDataNode which implements it's own UnmarshalJSON."
+      "description": "PluginConfigItem represents cdata.ConfigDataNode which implements it's own UnmarshalJSON.",
+      "schema": {
+        "$ref": "#/definitions/ConfigDataNode"
+      }
     },
     "PluginResponse": {
       "description": "PluginResponse represents the response from plugin operations.",

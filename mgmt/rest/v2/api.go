@@ -113,10 +113,10 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Schemes: http, https
 		//
 		// Responses:
-		// 200: PluginsResponse
 		// 201: PluginResponse
 		// 400: ErrorResponse
 		// 409: ErrorResponse
+		// 415: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
 
@@ -137,8 +137,8 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Schemes: http, https
 		//
 		// Responses:
-		// 200: PluginsResponse
 		// 204: PluginResponse
+		// 400: ErrorResponse
 		// 404: ErrorResponse
 		// 409: ErrorResponse
 		// 500: ErrorResponse

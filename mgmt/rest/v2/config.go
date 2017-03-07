@@ -42,8 +42,8 @@ type PolicyTableSlice []cpolicy.RuleTable
 //
 // swagger:response PluginConfigResponse
 type PluginConfigItem struct {
-	// swagger:allOf
-	cdata.ConfigDataNode `json:"config"`
+	//in: body
+	Config cdata.ConfigDataNode `json:"config"`
 }
 
 // PluginConfigParam type

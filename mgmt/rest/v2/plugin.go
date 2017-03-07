@@ -232,7 +232,7 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 				restLogger.Error(err2)
 			}
 			rb := FromError(err)
-			switch rb.ErrorMessage {
+			switch rb.Message {
 			case ErrPluginAlreadyLoaded:
 				ec = 409
 			default:

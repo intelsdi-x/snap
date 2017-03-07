@@ -60,7 +60,7 @@ type TaskResp struct {
 // swagger:response TaskErrorResponse
 type RemoveTaskError struct {
 	// in: body
-	ErrorMessage string `json:"message"`
+	Message string `json:"message"`
 }
 
 // TasksResponse returns a list of created tasks.
@@ -84,7 +84,7 @@ type TaskPostParams struct {
 	//
 	// in: formData
 	// required: true
-	Task string `json:"task"`
+	Task string `json:"task"yaml:"task"`
 }
 
 // TaskPutParams defines the type for updating a task.
@@ -96,7 +96,7 @@ type TaskPutParams struct {
 	// in: formData
 	//
 	// required: true
-	State string `json:"action"`
+	Action string `json:"action"`
 }
 
 // Task represents Snap task definition.
@@ -115,7 +115,7 @@ type Task struct {
 	MissCount          int    `json:"miss_count,omitempty"`
 	FailedCount        int    `json:"failed_count,omitempty"`
 	LastFailureMessage string `json:"last_failure_message,omitempty"`
-	State              string `json:"task_state"`
+	State              string `json:"state"`
 	Href               string `json:"href"`
 }
 

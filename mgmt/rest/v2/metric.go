@@ -43,6 +43,16 @@ type MetricsResp struct {
 	}
 }
 
+// MetricParams defines the input query params for get a specific metric.
+//
+// swagger:parameters getMetrics
+type MetricParams struct {
+	// in: query
+	Ns string `json:"ns"`
+	// in: query
+	Ver int `json:"ver"`
+}
+
 type MetricsResonse struct {
 	Metrics Metrics `json:"metrics,omitempty"`
 }
@@ -95,6 +105,7 @@ func (s *apiV2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.
 	q := r.URL.Query()
 	v := q.Get("ver")
 	ns_query := q.Get("ns")
+
 	if ns_query != "" {
 		ver := 0 // 0: get all versions
 		if v != "" {

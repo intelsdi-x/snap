@@ -179,7 +179,7 @@ const (
       "deadline": "4ns",
       "creation_timestamp": -62135596800,
       "last_run_timestamp": -1,
-      "task_state": "Running",
+      "state": "Running",
       "href": "http://localhost:%d/v2/tasks/qwertyuiop"
     },
     {
@@ -188,32 +188,32 @@ const (
       "deadline": "4ns",
       "creation_timestamp": -62135596800,
       "last_run_timestamp": -1,
-      "task_state": "Running",
+      "state": "Running",
       "href": "http://localhost:%d/v2/tasks/asdfghjkl"
     }
   ]
 }
 `
 
-	GET_TASKS_RESPONSE2 = `{
+	GET_TASKS_RESPONSE2 = ` {
   "tasks": [
-    {
-      "id": "asdfghjkl",
-      "name": "TASK2.0",
-      "deadline": "4ns",
-      "creation_timestamp": -62135596800,
-      "last_run_timestamp": -1,
-      "task_state": "Running",
-      "href": "http://localhost:%d/v2/tasks/asdfghjkl"
-    },
     {
       "id": "qwertyuiop",
       "name": "TASK1.0",
       "deadline": "4ns",
       "creation_timestamp": -62135596800,
       "last_run_timestamp": -1,
-      "task_state": "Running",
+      "state": "Running",
       "href": "http://localhost:%d/v2/tasks/qwertyuiop"
+    },
+    {
+      "id": "asdfghjkl",
+      "name": "TASK2.0",
+      "deadline": "4ns",
+      "creation_timestamp": -62135596800,
+      "last_run_timestamp": -1,
+      "state": "Running",
+      "href": "http://localhost:%d/v2/tasks/asdfghjkl"
     }
   ]
 }
@@ -234,7 +234,7 @@ const (
   },
   "creation_timestamp": -62135596800,
   "last_run_timestamp": -1,
-  "task_state": "Running",
+  "state": "Running",
   "href": "http://localhost:%d/v2/tasks/:1234"
 }
 `
@@ -254,7 +254,7 @@ const (
   },
   "creation_timestamp": -62135596800,
   "last_run_timestamp": -1,
-  "task_state": "Running",
+  "state": "Running",
   "href": "http://localhost:%d/v2/tasks/MyTaskID"
 }
 `
