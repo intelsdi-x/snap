@@ -147,6 +147,7 @@ func (s *apiV2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 		Write(500, FromError(err), w)
 		return
 	}
+
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.taskManager.CreateTask)
 	if err != nil {
 		Write(500, FromError(err), w)

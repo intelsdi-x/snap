@@ -104,7 +104,6 @@ func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 }
 
 func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
