@@ -74,7 +74,6 @@ type PluginConfigDeleteParams struct {
 }
 
 func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	var err error
 	styp := p.ByName("type")
 	if styp == "" {
 		cdn := s.configManager.GetPluginConfigDataNodeAll()
