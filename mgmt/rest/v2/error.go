@@ -27,17 +27,20 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 )
 
+// Error string constants
 const (
 	ErrPluginAlreadyLoaded     = "plugin is already loaded"
 	ErrTaskNotFound            = "task not found"
 	ErrTaskDisabledNotRunnable = "task is disabled"
 )
 
+// Errors
 var (
 	ErrPluginNotFound       = errors.New("plugin not found")
 	ErrStreamingUnsupported = errors.New("streaming unsupported")
 	ErrNoActionSpecified    = errors.New("no action was specified in the request")
 	ErrWrongAction          = errors.New("wrong action requested")
+	ErrReadRequestBody      = errors.New("Read request body error")
 )
 
 // Error unsuccessful generic response to a failed API call

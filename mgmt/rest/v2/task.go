@@ -140,7 +140,11 @@ func (s *Task) CreationTime() time.Time {
 }
 
 func (s *apiV2) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	addTaskHelper(r)
+	err := addTaskHelper(r)
+	if err != nil {
+		Write(500, FromError(err), w)
+		return
+	}
 
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.taskManager.CreateTask)
 	if err != nil {
@@ -186,9 +190,9 @@ func (s *apiV2) updateTaskState(w http.ResponseWriter, r *http.Request, p httpro
 	errs := make([]serror.SnapError, 0, 1)
 	id := p.ByName("id")
 
-	action, exist := updateTaskStateHelper(r)
-	if !exist && len(action) > 0 {
-		errs = append(errs, serror.New(ErrNoActionSpecified))
+	action, err := updateTaskStateHelper(r)
+	if err != nil {
+		errs = append(errs, err)
 	} else {
 		switch action[0] {
 		case "enable":
@@ -216,6 +220,8 @@ func (s *apiV2) updateTaskState(w http.ResponseWriter, r *http.Request, p httpro
 			statusCode = 404
 		case ErrTaskDisabledNotRunnable:
 			statusCode = 409
+		case ErrReadRequestBody.Error():
+			statusCode = 400
 		}
 		Write(statusCode, FromSnapErrors(errs), w)
 		return
@@ -289,17 +295,22 @@ func (t *Task) assertSchedule(s schedule.Schedule) {
 
 // addTaskHelper deals with different forms of request data and make it acceeptable by method addTask.
 // currently it supports clients of go-swagger, swagger-ui and Snap CLI.
-func addTaskHelper(r *http.Request) {
-	buf, _ := ioutil.ReadAll(r.Body)
-	rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+func addTaskHelper(r *http.Request) error {
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 
 	dm := map[string]string{}
-	err := json.Unmarshal(buf, &dm)
+	err = json.Unmarshal(buf, &dm)
 
-	sw := false
-	if err == nil {
-		sw = true
-	} else {
+	sw := true
+	// Do not return an error here
+	// As it explores different request formats.
+	if err != nil {
+		sw = false
+
 		// from go-swagger client
 		data, _ := url.QueryUnescape(string(buf))
 		tokens := strings.Split(data, "=")
@@ -312,25 +323,26 @@ func addTaskHelper(r *http.Request) {
 	if sw {
 		r.Body = ioutil.NopCloser(strings.NewReader(dm["task"]))
 		r.ContentLength = int64(len(dm["task"]))
-	} else {
-		r.Body = rdr2
 	}
+	return nil
 }
 
 // updateTaskStateHelper deals with different forms of request data and make it acceptable by the method updateTaskState.
 // currently it accepts clients of go-swagger, swagger-ui, and Snap CLI.
-func updateTaskStateHelper(r *http.Request) ([]string, bool) {
-	buf, _ := ioutil.ReadAll(r.Body)
+func updateTaskStateHelper(r *http.Request) ([]string, serror.SnapError) {
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, serror.New(ErrReadRequestBody)
+	}
 
 	dm := map[string]string{}
-	err := json.Unmarshal(buf, &dm)
-	sw := false
-	exist := true
+	err = json.Unmarshal(buf, &dm)
 
+	sw := true
 	action := []string{}
-	if err == nil {
-		sw = true
-	} else {
+	if err != nil {
+		sw = false
+
 		// from go-swagger client
 		tokens := strings.Split(string(buf), "=")
 		if len(tokens) == 2 {
@@ -340,9 +352,15 @@ func updateTaskStateHelper(r *http.Request) ([]string, bool) {
 	}
 
 	if sw {
+		if strings.Trim(dm["action"], " ") == "" {
+			return nil, serror.New(ErrNoActionSpecified)
+		}
 		action = append(action, dm["action"])
 	} else {
-		action, exist = r.URL.Query()["action"]
+		action, exist := r.URL.Query()["action"]
+		if !exist {
+			return action, serror.New(ErrNoActionSpecified)
+		}
 	}
-	return action, exist
+	return action, nil
 }

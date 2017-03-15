@@ -68,7 +68,6 @@ type PluginConfigDeleteParams struct {
 	// in: path
 	// enum: collector, processor, publisher
 	PType string `json:"ptype"`
-
 	// in: formData
 	// required: true
 	Config []string `json:"config"`
@@ -106,7 +105,6 @@ func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 }
 
 func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
@@ -122,7 +120,11 @@ func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 	name := p.ByName("name")
 	sver := p.ByName("version")
 
-	src := deletePluginConfigItemHelper(r)
+	src, err := deletePluginConfigItemHelper(r)
+	if err != nil {
+		Write(400, FromError(err), w)
+		return
+	}
 
 	iver := -2
 	if sver != "" {
@@ -168,7 +170,12 @@ func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	name := p.ByName("name")
 	sver := p.ByName("version")
 
-	setPluginConfigItemHelper(r)
+	err = setPluginConfigItemHelper(r)
+	if err != nil {
+		Write(400, FromError(err), w)
+		return
+	}
+
 	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
@@ -208,15 +215,23 @@ func getPluginType(t string) (core.PluginType, error) {
 
 // deletePluginConfigItemHelper builds different forms of request data into the way method deletePluginConfigItem accepts.
 // currently it accepts go-swagger client, swagger-ui and SanpCLI.
-func deletePluginConfigItemHelper(r *http.Request) []string {
-	buf, _ := ioutil.ReadAll(r.Body)
-	rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+func deletePluginConfigItemHelper(r *http.Request) ([]string, error) {
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 
 	dm := map[string][]string{}
-	err := json.Unmarshal(buf, &dm)
+	err = json.Unmarshal(buf, &dm)
 
-	sw := false
+	sw := true
+	// No error needs to be returned here.
+	// As it explores different request formats.
+	// There is no way to detect a string is URLEncoded.
 	if err != nil {
+		sw = false
+
 		// go-swagger sends url-encoded form data.
 		// Unescaping is necessary.
 		data, _ := url.QueryUnescape(string(buf))
@@ -226,45 +241,47 @@ func deletePluginConfigItemHelper(r *http.Request) []string {
 			dm["config"] = itokens
 			sw = true
 		}
-	} else {
-		sw = true
 	}
 
 	var src []string
 	if sw {
 		src = dm["config"]
-	} else {
-		r.Body = rdr2
 	}
-	return src
+	return src, nil
 }
 
 // setPluginConfigItemHelper builds different forms of request data into the way method setPluginConfigItem accepts.
 // currently it accepts go-swagger client, swagger-ui and SanpCLI.
-func setPluginConfigItemHelper(r *http.Request) {
-	buf, _ := ioutil.ReadAll(r.Body)
-	rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+func setPluginConfigItemHelper(r *http.Request) error {
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 
 	dm := map[string]string{}
-	err := json.Unmarshal(buf, &dm)
+	err = json.Unmarshal(buf, &dm)
 
-	sw := false
+	sw := true
+	// No error needs to be returned here.
+	// As it explores different request formats.
+	// There is no way to detect a string is URLEncoded.
 	if err != nil {
+		sw = false
+
 		data, _ := url.QueryUnescape(string(buf))
 		tokens := strings.Split(data, "=")
 		if len(tokens) == 2 {
 			dm["config"] = tokens[1]
 			sw = true
 		}
-	} else {
-		sw = true
 	}
 
 	if sw {
 		cfg := dm["config"]
 		r.Body = ioutil.NopCloser(strings.NewReader(cfg))
 		r.ContentLength = int64(len(cfg))
-	} else {
-		r.Body = rdr2
 	}
+	return nil
 }

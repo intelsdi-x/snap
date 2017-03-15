@@ -56,7 +56,6 @@ func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *apiV2 {
 
 func (s *apiV2) GetRoutes() []api.Route {
 	routes := []api.Route{
-
 		// swagger:route GET /plugins getPlugins
 		//
 		// lists a list of loaded plugins. An empty list is returned if there is no loaded plugins.
@@ -74,7 +73,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 200: PluginsResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
-
 		// swagger:route GET /plugins/{ptype}/{pname}/{pversion} getPlugin
 		//
 		// lists a given plugin by its type, name and version. No plugin found error returns if it's not existing.
@@ -95,7 +93,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 404: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version", Handle: s.getPlugin},
-
 		// swagger:route POST /plugins loadPlugin
 		//
 		// loads a plugin based on input.
@@ -119,7 +116,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 415: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
-
 		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion} unloadPlugin
 		//
 		// unloads a plugin by its type, name and version.Otherwise, an error is returned.
@@ -143,7 +139,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 409: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version", Handle: s.unloadPlugin},
-
 		// swagger:route GET /plugins/{ptype}/{pname}/{pversion}/config getPluginConfigItem
 		//
 		// lists the config of a giving plugin. The allowed plugin types are collector, processor, and publisher.
@@ -163,7 +158,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.getPluginConfigItem},
-
 		// swagger:route PUT /plugins/{ptype}/{pname}/{pversion}/config setPluginConfigItem
 		//
 		// updates the config of a giving plugin. A wrong plugin type or non-numeric plugin version results in error.
@@ -182,7 +176,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
 		api.Route{Method: "PUT", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.setPluginConfigItem},
-
 		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion}/config deletePluginConfigItem
 		//
 		// deletes the config of a giving plugin. Note that that to be removed config items are a slice of config keys.
@@ -202,7 +195,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.deletePluginConfigItem},
-
 		// swagger:route GET /metrics getMetrics
 		//
 		// lists a list of loaded metric types. An empty list returns if there is no loaded metrics. Any bad request results in error.
@@ -222,7 +214,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 404: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/metrics", Handle: s.getMetrics},
-
 		// swagger:route GET /tasks getTasks
 		//
 		// lists a list of created tasks. An empty list returns if no created tasks.
@@ -259,7 +250,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: TaskResponse
 		// 404: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id", Handle: s.getTask},
-
 		// swagger:route GET /tasks/{id}/watch watchTask
 		//
 		// watches a task data stream for the giving task id. Otherwise, an error returns.
@@ -281,7 +271,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 404: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id/watch", Handle: s.watchTask},
-
 		// swagger:route POST /tasks addTask
 		//
 		// creates a task based on the input. Othereise, an error returns if the input misses the required fields or is in a malformed format.
@@ -300,7 +289,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 201: TasksResponse
 		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/tasks", Handle: s.addTask},
-
 		// swagger:route PUT /tasks/{id} updateTaskState
 		//
 		// updates a task's state for the giving task id and the input state. An error occurs for any bad request.
@@ -321,7 +309,6 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 409: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "PUT", Path: prefix + "/tasks/:id", Handle: s.updateTaskState},
-
 		// swagger:route DELETE /tasks/{id} removeTask
 		//
 		// deletes a task for the giving task id. Note that only a stopped task may be removed. Otherwise, an error occurs.
