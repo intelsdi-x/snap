@@ -431,6 +431,15 @@ func TestTrie_GetMetric(t *testing.T) {
 					So(err.Error(), ShouldContainSubstring, "Metric not found: /intel/mock/*/invalid (version: -1)")
 				})
 			})
+
+			Convey("for incorrect format of namespace", func() {
+				Convey("error: incorrect format of requested metric", func() {
+					mt, err := trie.GetMetric([]string{}, 6)
+					So(err, ShouldNotBeNil)
+					So(mt, ShouldBeNil)
+					So(err.Error(), ShouldContainSubstring, "Incorrect format of requested metric, empty list of namespace elements")
+				})
+			})
 		})
 	})
 	Convey("improper usage of GetMetric - requested namespace fulfills more than one metric's namespace", t, func() {
@@ -524,6 +533,15 @@ func TestTrie_GetVersions(t *testing.T) {
 				So(err, ShouldNotBeNil)
 				So(mts, ShouldBeNil)
 				So(err.Error(), ShouldContainSubstring, "Metric not found: /invalid/*")
+			})
+		})
+
+		Convey("for incorrect format of namespace", func() {
+			Convey("error: incorrect format of requested metric", func() {
+				mts, err := trie.GetVersions([]string{})
+				So(err, ShouldNotBeNil)
+				So(mts, ShouldBeNil)
+				So(err.Error(), ShouldContainSubstring, "Incorrect format of requested metric, empty list of namespace elements")
 			})
 		})
 	})
