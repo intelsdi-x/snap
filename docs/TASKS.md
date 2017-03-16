@@ -16,16 +16,16 @@ A task can be in the following states:
 
 ![statediagram](https://cloud.githubusercontent.com/assets/11335874/23362447/0f0b9f74-fcf6-11e6-93d7-889a7ccdc45f.png)
 
-	    How To				                        |  Command
-    ----------------------------------------|------------------------
-      Create task                           |  snaptel task create _[command options] [arguments...]_ <br/>  Find more details [here](https://github.com/intelsdi-x/snap/blob/master/docs/SNAPTEL.md#task)
-      List					                        |  snaptel task list
-      Start task                     		    |  snaptel task start _\<task_id>_
-      Stop task                        		  |  snaptel task stop _\<task_id>_
-      Remove task                       		|  snaptel task remove _\<task_id>_
-      Export task                       		|  snaptel task export _\<task_id>_
-      Watch task                        		|  snaptel task watch _\<task_id>_
-      Enable task                       		|  snaptel task enable _\<task_id>_
+  How To                                |  Command
+----------------------------------------|----------------------------------------
+  Create task                           |  snaptel task create _[command options] [arguments...]_ <br/>  Find more details [here](https://github.com/intelsdi-x/snap/blob/master/docs/SNAPTEL.md#task)
+  List                                  |  snaptel task list
+  Start task                            |  snaptel task start _\<task_id>_
+  Stop task                             |  snaptel task stop _\<task_id>_
+  Remove task                           |  snaptel task remove _\<task_id>_
+  Export task                           |  snaptel task export _\<task_id>_
+  Watch task                            |  snaptel task watch _\<task_id>_
+  Enable task                           |  snaptel task enable _\<task_id>_
 
 
 ## Task Manifest
@@ -215,13 +215,13 @@ Metrics can be enumerated using:
 
 Declaring a metric's name exactly as it appears in the metric catalog (see `snaptel metric list`).
 
-    Metrics requested in task manifest          | Collected metrics
-    --------------------------------------------|------------------------
-    /intel/mock/foo                             |  /intel/mock/foo
-	|
-    /intel/mock/bar                             |  /intel/mock/bar
-	|
-    /intel/mock/\*/baz <br/> _(dynamic metric)_ |  /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/><br/> _(collect metrics for all instances of the dynamic metric)_
+Metrics requested in task manifest          | Collected metrics
+--------------------------------------------|------------------------
+/intel/mock/foo                             |  /intel/mock/foo
+|
+/intel/mock/bar                             |  /intel/mock/bar
+|
+/intel/mock/\*/baz <br/> _(dynamic metric)_ |  /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/><br/> _(collect metrics for all instances of the dynamic metric)_
 
  
  
