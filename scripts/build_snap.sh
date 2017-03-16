@@ -38,8 +38,6 @@ _info "git commit: $(git log --pretty=format:"%H" -1)"
 # rebuild binaries:
 export GOOS=${GOOS:-$(go env GOOS)}
 export GOARCH=${GOARCH:-$(go env GOARCH)}
-<<<<<<< HEAD
-=======
 
 # Disable CGO for builds (except freebsd)
 if [[ "${GOOS}" == "freebsd" ]]; then
@@ -48,7 +46,6 @@ if [[ "${GOOS}" == "freebsd" ]]; then
 else 
   export CGO_ENABLED=0
 fi
->>>>>>> upstream/master
 
 if [[ "${GOARCH}" == "amd64" ]]; then
   build_path="${__proj_dir}/build/${GOOS}/x86_64"
