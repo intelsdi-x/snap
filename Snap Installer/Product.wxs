@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="3CA1CB42-7F66-4F7E-98F0-E299F91519BF" Name="Snap" Language="1033" Version="1.0.0.0" Manufacturer="Intel" UpgradeCode="fc9c6e23-268a-402c-a2d1-8ded018c9be0">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="Snap" Level="1">
+      <ComponentRef Id="snap.exe"/>
+      <ComponentRef Id="SnapShortcut"/>
+    </Feature>
+
+    <Icon Id="icon.ico" SourceFile="ref\images\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="icon.ico" />
+    
+    <UIRef Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="Snap" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Snap"/>
+      </Directory>
+    </Directory>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="SnapShortcut" Guid="24DCB61B-FEF6-486D-8A26-EBDE5C3D3A28">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="Snap"
+                  Description="A powerful open telemetry framework"
+                  Target="[#snap.exe]"
+                  WorkingDirectory="INSTALLFOLDER"/>
+        <RemoveFolder Id="CleanUpShortCut" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="SOFTWARE\Intel\Snap" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="snap.exe" Guid="C02F777C-DE41-4D36-B783-BB686AEDE8A8">
+        <File Id="snap.exe" Source="ref\snap.exe" KeyPath="yes" Checksum="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <WixVariable Id="WixUILicenseRtf" Value="ref\LICENSE.rtf" Overridable="yes" />
+    <WixVariable Id="WixUIBannerBmp" Value="ref\images\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="ref\images\dialog.bmp" />
+  </Product>
+</Wix>
