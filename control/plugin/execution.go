@@ -107,6 +107,7 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 		respReceived bool
 		resp         Response
 		err          error
+		respBytes    []byte
 	)
 
 	doneChan := make(chan struct{})
@@ -125,7 +126,7 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 				// handshake.  Once we've received that, we can begin to forward
 				// logs on to snapteld's log.
 				if !respReceived {
-					respBytes := stdOutScanner.Bytes()
+					respBytes = stdOutScanner.Bytes()
 					err = json.Unmarshal(respBytes, &resp)
 					respReceived = true
 					close(doneChan)
@@ -168,6 +169,10 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 		err = fmt.Errorf("timed out waiting for plugin %s", path.Base(e.cmd.Path()))
 	}
 	if err != nil {
+		execLogger.WithFields(log.Fields{
+			"received_response": string(respBytes),
+		}).Error("error loading plugin")
+
 		// Kill the plugin if we failed to load it.
 		e.Kill()
 	}
