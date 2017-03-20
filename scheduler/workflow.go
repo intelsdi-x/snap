@@ -135,9 +135,9 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 		if p.Version < 1 {
 			p.Version = -1
 		}
-		p.Name = strings.ToLower(p.Name)
+		p.PluginName = strings.ToLower(p.PluginName)
 		prNodes[i] = &processNode{
-			name:         p.Name,
+			name:         p.PluginName,
 			version:      p.Version,
 			config:       cdn,
 			Target:       p.Target,
@@ -162,9 +162,9 @@ func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error
 		if p.Version < 1 {
 			p.Version = -1
 		}
-		p.Name = strings.ToLower(p.Name)
+		p.PluginName = strings.ToLower(p.PluginName)
 		puNodes[i] = &publishNode{
-			name:    p.Name,
+			name:    p.PluginName,
 			version: p.Version,
 			config:  cdn,
 			Target:  p.Target,

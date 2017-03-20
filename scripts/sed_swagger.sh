@@ -22,4 +22,3 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sed -ie 's/ProcessNodes/Process/g' ${__dir}/../swagger.json
 sed -ie 's/PublishNodes/Publish/g' ${__dir}/../swagger.json
 sed -ie 's/CollectNode/Collect/g'  ${__dir}/../swagger.json
-sed -ie 's/plugin_name/name/g' ${__dir}/../swagger.json 

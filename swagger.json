@@ -494,7 +494,7 @@
         ],
         "responses": {
           "201": {
-            "$ref": "#/responses/TasksResponse"
+            "$ref": "#/responses/TaskResponse"
           },
           "500": {
             "$ref": "#/responses/ErrorResponse"
@@ -666,9 +666,7 @@
       "type": "object",
       "title": "CollectWorkflowMapNode defines the workflow type.",
       "required": [
-        "metrics",
-        "process",
-        "publish"
+        "metrics"
       ],
       "properties": {
         "config": {
@@ -884,9 +882,7 @@
     "ProcessWorkflowMapNode": {
       "type": "object",
       "required": [
-        "name",
-        "process",
-        "publish"
+        "plugin_name"
       ],
       "properties": {
         "config": {
@@ -897,9 +893,9 @@
           },
           "x-go-name": "Config"
         },
-        "name": {
+        "plugin_name": {
           "type": "string",
-          "x-go-name": "Name"
+          "x-go-name": "PluginName"
         },
         "plugin_version": {
           "type": "integer",
@@ -930,7 +926,7 @@
     "PublishWorkflowMapNode": {
       "type": "object",
       "required": [
-        "name",
+        "plugin_name",
         "config"
       ],
       "properties": {
@@ -941,9 +937,9 @@
           },
           "x-go-name": "Config"
         },
-        "name": {
+        "plugin_name": {
           "type": "string",
-          "x-go-name": "Name"
+          "x-go-name": "PluginName"
         },
         "plugin_version": {
           "type": "integer",
@@ -1015,7 +1011,8 @@
           "type": "string",
           "enum": [
             "simple",
-            " windowed"
+            " windowed",
+            " cron"
           ],
           "x-go-name": "Type"
         }
@@ -1025,6 +1022,10 @@
     "Task": {
       "type": "object",
       "title": "Task represents Snap task definition.",
+      "required": [
+        "workflow",
+        "schedule"
+      ],
       "properties": {
         "creation_timestamp": {
           "type": "integer",
@@ -1051,7 +1052,6 @@
         },
         "id": {
           "type": "string",
-          "uniqueItems": true,
           "x-go-name": "ID"
         },
         "last_failure_message": {
@@ -1062,6 +1062,11 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "LastRunTimestamp"
+        },
+        "max-failures": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxFailures"
         },
         "miss_count": {
           "type": "integer",
@@ -1076,9 +1081,18 @@
           "x-go-name": "Schedule",
           "$ref": "#/definitions/Schedule"
         },
+        "start": {
+          "type": "boolean",
+          "x-go-name": "Start"
+        },
         "state": {
           "type": "string",
           "x-go-name": "State"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
         },
         "workflow": {
           "x-go-name": "Workflow",

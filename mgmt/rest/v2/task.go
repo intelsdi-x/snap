@@ -101,22 +101,24 @@ type TaskPutParams struct {
 
 // Task represents Snap task definition.
 type Task struct {
-	// unique: true
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Deadline string `json:"deadline"`
-
-	Workflow *wmap.WorkflowMap `json:"workflow,omitempty"`
-	Schedule *core.Schedule    `json:"schedule,omitempty"`
-
-	CreationTimestamp  int64  `json:"creation_timestamp,omitempty"`
-	LastRunTimestamp   int64  `json:"last_run_timestamp,omitempty"`
-	HitCount           int    `json:"hit_count,omitempty"`
-	MissCount          int    `json:"miss_count,omitempty"`
-	FailedCount        int    `json:"failed_count,omitempty"`
-	LastFailureMessage string `json:"last_failure_message,omitempty"`
-	State              string `json:"state"`
-	Href               string `json:"href"`
+	Version  int    `json:"version,omitempty"`
+	ID       string `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Deadline string `json:"deadline,omitempty"`
+	// required: true
+	Workflow *wmap.WorkflowMap `json:"workflow"`
+	// required: true
+	Schedule           *core.Schedule `json:"schedule"`
+	CreationTimestamp  int64          `json:"creation_timestamp,omitempty"`
+	LastRunTimestamp   int64          `json:"last_run_timestamp,omitempty"`
+	HitCount           int            `json:"hit_count,omitempty"`
+	MissCount          int            `json:"miss_count,omitempty"`
+	FailedCount        int            `json:"failed_count,omitempty"`
+	LastFailureMessage string         `json:"last_failure_message,omitempty"`
+	State              string         `json:"state,omitempty"`
+	Href               string         `json:"href,omitempty"`
+	Start              bool           `json:"start,omitempty"`
+	MaxFailures        int            `json:"max-failures,omitempty"`
 }
 
 // Tasks a slice of Task
@@ -300,6 +302,7 @@ func addTaskHelper(r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 
 	dm := map[string]string{}

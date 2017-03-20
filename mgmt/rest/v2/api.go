@@ -286,7 +286,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Schemes: http, https
 		//
 		// Responses:
-		// 201: TasksResponse
+		// 201: TaskResponse
 		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/tasks", Handle: s.addTask},
 		// swagger:route PUT /tasks/{id} updateTaskState

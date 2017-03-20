@@ -33,9 +33,9 @@ import (
 type Schedule struct {
 	// required: true
 	// enum: simple, windowed, cron
-	Type string `json:"type,omitempty"`
+	Type string `json:"type"`
 	// required: true
-	Interval       string     `json:"interval,omitempty"`
+	Interval       string     `json:"interval"`
 	StartTimestamp *time.Time `json:"start_timestamp,omitempty"`
 	StopTimestamp  *time.Time `json:"stop_timestamp,omitempty"`
 	Count          uint       `json:"count,omitempty"`

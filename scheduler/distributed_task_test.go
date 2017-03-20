@@ -396,15 +396,15 @@ func dsWFMap(port int) *wmap.WorkflowMap {
 	c.Config["/intel/mock/foo"] = make(map[string]interface{})
 	c.Config["/intel/mock/foo"]["password"] = "required"
 	pr := &wmap.ProcessWorkflowMapNode{
-		Name:    "passthru",
-		Version: -1,
-		Config:  make(map[string]interface{}),
-		Target:  fmt.Sprintf("127.0.0.1:%v", port),
+		PluginName: "passthru",
+		Version:    -1,
+		Config:     make(map[string]interface{}),
+		Target:     fmt.Sprintf("127.0.0.1:%v", port),
 	}
 	pu := &wmap.PublishWorkflowMapNode{
-		Name:    "mock-file",
-		Version: -1,
-		Config:  make(map[string]interface{}),
+		PluginName: "mock-file",
+		Version:    -1,
+		Config:     make(map[string]interface{}),
 	}
 	pu.Config["file"] = "/dev/null"
 	pr.Add(pu)

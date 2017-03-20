@@ -75,7 +75,7 @@ func (c *CollectWorkflowMapNode) String(pad string) string {
 
 func (p *ProcessWorkflowMapNode) String(pad string) string {
 	var out string
-	out += pad + fmt.Sprintf("   Name: %s\n", p.Name)
+	out += pad + fmt.Sprintf("   Name: %s\n", p.PluginName)
 	out += pad + fmt.Sprintf("   Version: %d\n", p.Version)
 
 	out += pad + "   Config:\n"
@@ -97,7 +97,7 @@ func (p *ProcessWorkflowMapNode) String(pad string) string {
 
 func (p *PublishWorkflowMapNode) String(pad string) string {
 	var out string
-	out += pad + fmt.Sprintf("   Name: %s\n", p.Name)
+	out += pad + fmt.Sprintf("   Name: %s\n", p.PluginName)
 	out += pad + fmt.Sprintf("   Version: %d\n", p.Version)
 
 	out += pad + "   Config:\n"
