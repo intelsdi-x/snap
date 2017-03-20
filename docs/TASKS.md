@@ -207,7 +207,16 @@ More information about the architecture behind this can be found [here](DISTRIBU
 
 #### collect
 
-The collect section describes which metrics are requested to be collected.
+The collect section describes which metrics, indicated by namespaces, are requested to be collected.
+
+Elements of namespace are separated by **namespace separators** which can be set in the task manifest as different characters,
+with some limitations specific for format of the task manifest. The first character in the namespace defines the namespace separator.
+
+It is not recommended to use following characters in the task manifest as the namespace separators:
+- for YAML: `|`,`#`, `$`, `>`,`*`, `,`,`[`, `]`,`{`,`}`,`!`,`"`, `` ` ``,`%`,`@`
+- for JSON: ` \ `, `$`,`"`, `*`
+
+Some of mentioned characters may work as namespace separators but the namespace must be in double quotes (i.e.`"|intel|mock|foo"` for YAML) or special characters must be escaped.
 
 Metrics can be enumerated using:
 
