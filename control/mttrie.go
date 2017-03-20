@@ -196,6 +196,9 @@ func (mtt *mttNode) GetMetrics(ns []string, ver int) ([]*metricType, error) {
 	nodes := []*mttNode{}
 	mts := []*metricType{}
 
+	if len(ns) == 0 {
+		return nil, errorEmptyNamespace()
+	}
 	// search returns all of the nodes fulfilling the 'ns'
 	// even for some of them there is no metric (empty node.mts)
 	nodes = mtt.search(nodes, ns)
@@ -219,6 +222,10 @@ func (mtt *mttNode) GetMetrics(ns []string, ver int) ([]*metricType, error) {
 func (mtt *mttNode) GetVersions(ns []string) ([]*metricType, error) {
 	var nodes []*mttNode
 	var mts []*metricType
+
+	if len(ns) == 0 {
+		return nil, errorEmptyNamespace()
+	}
 
 	nodes = mtt.search(nodes, ns)
 
