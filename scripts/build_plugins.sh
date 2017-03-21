@@ -51,6 +51,16 @@ else
 fi
 p=${BUILD_JOBS:-"${p}"}
 
+# disable parallel xargs where not supported (ie on busybox)
+XARGS="xargs -P $p"
+XARGSDESC="in ${p} parallel processes"
+if [[ "${OS}" == "Linux" ]]; then
+  if [[ ! -x "$(command -v readlink)" || "$(basename $(readlink -f $(which xargs)))" == "busybox" ]]; then
+    XARGS="xargs"
+    XARGSDESC="serially"
+  fi
+fi
+
 if [[ "${GOARCH}" == "amd64" ]]; then
   build_path="${__proj_dir}/build/${GOOS}/x86_64"
 else
@@ -58,5 +68,5 @@ else
 fi
 
 mkdir -p "${build_path}/plugins"
-_info "building plugins for ${GOOS}/${GOARCH} in ${p} parallel processes"
-find "${__proj_dir}/plugin/" -type d -iname "snap-*" -print0 | xargs -0 -n 1 -P $p -I{} "${__dir}/build_plugin.sh" {}
+_info "building plugins for ${GOOS}/${GOARCH} ${XARGSDESC}"
+find "${__proj_dir}/plugin/" -type d -iname "snap-*" -print0 | $XARGS -0 -n 1 -I{} "${__dir}/build_plugin.sh" {}
