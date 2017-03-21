@@ -198,12 +198,6 @@ func SchedulerTaskFromTask(t core.Task) Task {
 
 func (t *Task) assertSchedule(s schedule.Schedule) {
 	switch v := s.(type) {
-	case *schedule.SimpleSchedule:
-		t.Schedule = &core.Schedule{
-			Type:     "simple",
-			Interval: v.Interval.String(),
-		}
-		return
 	case *schedule.WindowedSchedule:
 		t.Schedule = &core.Schedule{
 			Type:           "windowed",

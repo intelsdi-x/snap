@@ -252,7 +252,7 @@ func (a *availablePlugin) Kill(r string) error {
 		}).Debug("deleting available plugin package")
 		os.RemoveAll(filepath.Dir(a.execPath))
 	}
-	// If it's a stremaing plugin, we need to signal the scheduler that
+	// If it's a streaming plugin, we need to signal the scheduler that
 	// this plugin is being killed.
 	if c, ok := a.client.(client.PluginStreamCollectorClient); ok {
 		c.Killed()

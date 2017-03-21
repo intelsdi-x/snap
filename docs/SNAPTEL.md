@@ -60,6 +60,7 @@ create      There are two ways to create a task.
               --task-manifest value, -t value      File path for task manifest to use for task creation.
               --workflow-manifest value, -w value  File path for workflow manifest to use for task creation
               --interval value, -i value           Interval for the task schedule [ex (simple schedule): 250ms, 1s, 30m (cron schedule): "0 * * * * *"]
+	          --count value                        The count of runs for the task schedule [defaults to 0 what means no limit, e.g. set to 1 determines a single run task]
               --start-date value                   Start date for the task schedule [defaults to today]
               --start-time value                   Start time for the task schedule [defaults to now]
               --stop-date value                    Stop date for the task schedule [defaults to today]
@@ -186,9 +187,10 @@ and then:
 3. load a publishing plugin
 4. list the plugins
 5. start a task with a task manifest
-6. start a task with a workflow manifest
-7. list the tasks
-8. unload the plugins
+6. start a single run task with a task manifest
+7. start a task with a workflow manifest
+8. list the tasks
+9. unload the plugins
 
 ```
 $ snaptel plugin load /opt/snap/plugins/snap-plugin-collector-mock1
@@ -196,6 +198,7 @@ $ snaptel plugin load /opt/snap/plugins/snap-plugin-processor-passthru
 $ snaptel plugin load /opt/snap/plugins/snap-plugin-publisher-mock-file
 $ snaptel plugin list
 $ snaptel task create -t mock-file.json
+$ snaptel task create -t mock-file.json --count 1
 $ snaptel task create -w workflow.json -i 1s -d 10s
 $ snaptel task list
 $ snaptel plugin unload collector mock <version>

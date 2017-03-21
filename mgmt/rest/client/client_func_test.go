@@ -376,9 +376,8 @@ func TestSnapClient(t *testing.T) {
 					So(tt.Err, ShouldNotBeNil)
 				})
 
-				Convey("Creating a task with missing parameters (start_timestamp and stop_timestamp) "+
-					"for windowed schedule", func() {
-					incorrectSchedule := &Schedule{Type: "windowed", Interval: "1s"}
+				Convey("Creating a task with missing parameter (interval) for windowed schedule", func() {
+					incorrectSchedule := &Schedule{Type: "windowed"}
 					tt := c.CreateTask(incorrectSchedule, wf, "baron", "", true, 0)
 					So(tt.Err, ShouldNotBeNil)
 				})
@@ -397,14 +396,32 @@ func TestSnapClient(t *testing.T) {
 				})
 
 				Convey("Creating a task with correct configuration for windowed schedule", func() {
-					startTime := time.Now().Add(time.Minute)
-					stopTime := time.Now().Add(2 * time.Minute)
-					correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
-						StartTimestamp: &startTime,
-						StopTimestamp:  &stopTime}
-					tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
-					So(tt.Err, ShouldBeNil)
-					So(tt.State, ShouldEqual, "Running")
+					Convey("regular window", func() {
+						startTime := time.Now().Add(time.Minute)
+						stopTime := time.Now().Add(2 * time.Minute)
+						correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
+							StartTimestamp: &startTime,
+							StopTimestamp:  &stopTime}
+						tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+						So(tt.Err, ShouldBeNil)
+						So(tt.State, ShouldEqual, "Running")
+					})
+					Convey("stop time is not set", func() {
+						startTime := time.Now().Add(time.Minute)
+						correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
+							StartTimestamp: &startTime}
+						tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+						So(tt.Err, ShouldBeNil)
+						So(tt.State, ShouldEqual, "Running")
+					})
+					Convey("start time is not set", func() {
+						stopTime := time.Now().Add(2 * time.Minute)
+						correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
+							StopTimestamp: &stopTime}
+						tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+						So(tt.Err, ShouldBeNil)
+						So(tt.State, ShouldEqual, "Running")
+					})
 				})
 
 				Convey("Creating a task with correct configuration for cron schedule", func() {

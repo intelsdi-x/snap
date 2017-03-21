@@ -32,32 +32,18 @@ type Schedule struct {
 	Interval       string     `json:"interval,omitempty"`
 	StartTimestamp *time.Time `json:"start_timestamp,omitempty"`
 	StopTimestamp  *time.Time `json:"stop_timestamp,omitempty"`
+	Count          uint       `json:"count,omitempty"`
 }
+
+var (
+	ErrMissingScheduleInterval = errors.New("missing `interval` in configuration of schedule")
+)
 
 func makeSchedule(s Schedule) (schedule.Schedule, error) {
 	switch s.Type {
-	case "simple":
+	case "simple", "windowed":
 		if s.Interval == "" {
-			return nil, errors.New("missing `interval` in configuration of simple schedule")
-		}
-
-		d, err := time.ParseDuration(s.Interval)
-		if err != nil {
-			return nil, err
-		}
-		sch := schedule.NewSimpleSchedule(d)
-
-		err = sch.Validate()
-		if err != nil {
-			return nil, err
-		}
-		return sch, nil
-	case "windowed":
-		if s.StartTimestamp == nil || s.StopTimestamp == nil || s.Interval == "" {
-			errmsg := fmt.Sprintf("missing parameter/parameters in configuration of windowed schedule,"+
-				"start_timestamp: %s, stop_timestamp: %s, interval: %s",
-				s.StartTimestamp, s.StopTimestamp, s.Interval)
-			return nil, errors.New(errmsg)
+			return nil, ErrMissingScheduleInterval
 		}
 
 		d, err := time.ParseDuration(s.Interval)
@@ -69,6 +55,7 @@ func makeSchedule(s Schedule) (schedule.Schedule, error) {
 			d,
 			s.StartTimestamp,
 			s.StopTimestamp,
+			s.Count,
 		)
 
 		err = sch.Validate()
@@ -78,7 +65,7 @@ func makeSchedule(s Schedule) (schedule.Schedule, error) {
 		return sch, nil
 	case "cron":
 		if s.Interval == "" {
-			return nil, errors.New("missing `interval` in configuration of cron schedule")
+			return nil, ErrMissingScheduleInterval
 		}
 		sch := schedule.NewCronSchedule(s.Interval)
 
@@ -90,6 +77,6 @@ func makeSchedule(s Schedule) (schedule.Schedule, error) {
 	case "streaming":
 		return schedule.NewStreamingSchedule(), nil
 	default:
-		return nil, errors.New("unknown schedule type " + s.Type)
+		return nil, fmt.Errorf("unknown schedule type `%s`", s.Type)
 	}
 }

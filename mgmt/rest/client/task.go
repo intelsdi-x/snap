@@ -42,6 +42,9 @@ type Schedule struct {
 	StartTimestamp *time.Time `json:"start_timestamp,omitempty"`
 	// StopTimestamp specifies the end time.
 	StopTimestamp *time.Time `json:"stop_timestamp,omitempty"`
+	// Count specifies the number of expected runs (defaults to 0 what means no limit, set to 1 means single run task).
+	// Count is supported by "simple" and "windowed" schedules
+	Count uint `json:"count,omitempty"`
 }
 
 // CreateTask creates a task given the schedule, workflow, task name, and task state.
@@ -55,12 +58,12 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, dead
 			Interval:       s.Interval,
 			StartTimestamp: s.StartTimestamp,
 			StopTimestamp:  s.StopTimestamp,
+			Count:          s.Count,
 		},
 		Workflow:    wf,
 		Start:       startTask,
 		MaxFailures: maxFailures,
 	}
-
 	if name != "" {
 		t.Name = name
 	}

@@ -545,14 +545,49 @@ func (w worker) isPluginLoaded(n, t string, v int) bool {
 }
 
 func getSchedule(s *core.Schedule) schedule.Schedule {
+	logger := log.WithFields(log.Fields{
+		"_block":        "get-schedule",
+		"schedule-type": s.Type,
+	})
 	switch s.Type {
-	case "simple":
-		d, e := time.ParseDuration(s.Interval)
-		if e != nil {
-			log.WithField("_block", "get-schedule").Error(e)
+	case "simple", "windowed":
+		if s.Interval == "" {
+			logger.Error(core.ErrMissingScheduleInterval)
 			return nil
 		}
-		return schedule.NewSimpleSchedule(d)
+		d, err := time.ParseDuration(s.Interval)
+		if err != nil {
+			logger.Error(err)
+			return nil
+		}
+		sch := schedule.NewWindowedSchedule(
+			d,
+			s.StartTimestamp,
+			s.StopTimestamp,
+			s.Count,
+		)
+		if err = sch.Validate(); err != nil {
+			logger.Error(err)
+			return nil
+		}
+		return sch
+	case "cron":
+		if s.Interval == "" {
+			logger.Error(core.ErrMissingScheduleInterval)
+			return nil
+		}
+		sch := schedule.NewCronSchedule(s.Interval)
+		if err := sch.Validate(); err != nil {
+			logger.Error(err)
+			return nil
+		}
+		return sch
+	case "streaming":
+		logger.Error("streaming is not yet available for tribe")
+		//todo
+		//return schedule.NewStreamingSchedule()
+	default:
+		logger.Error("unknown schedule type")
 	}
 	return nil
 }

@@ -179,7 +179,10 @@ func TestCollectPublishWorkflow(t *testing.T) {
 				Convey("Create and start task", func() {
 					el := newEventListener()
 					s.RegisterEventHandler("TestCollectPublishWorkflow", el)
-					t, err := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*200), w, true)
+					// create a simple schedule which equals to windowed schedule
+					// without start and stop time
+					sch := schedule.NewWindowedSchedule(time.Millisecond*200, nil, nil, 0)
+					t, err := s.CreateTask(sch, w, true)
 					So(err.Errors(), ShouldBeEmpty)
 					So(t, ShouldNotBeNil)
 					<-el.done
@@ -242,7 +245,10 @@ func TestProcessChainingWorkflow(t *testing.T) {
 				err := s.Start()
 				So(err, ShouldBeNil)
 				Convey("Create task", func() {
-					t, err := s.CreateTask(schedule.NewSimpleSchedule(time.Millisecond*200), w, true)
+					// create a simple schedule which equals to windowed schedule
+					// without start and stop time
+					sch := schedule.NewWindowedSchedule(time.Millisecond*200, nil, nil, 0)
+					t, err := s.CreateTask(sch, w, true)
 					s.RegisterEventHandler("TestProcessChainingWorkflow", lpe)
 					So(err.Errors(), ShouldBeEmpty)
 					So(t, ShouldNotBeNil)
