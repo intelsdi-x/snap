@@ -313,11 +313,7 @@ func (p *pluginControl) Start() error {
 		controlLogger.WithFields(log.Fields{
 			"_block": "start",
 		}).Info("auto discover path is enabled")
-		tempDirPath := p.GetTempDir()
-		controlLogger.WithFields(log.Fields{
-			"_block":      "start",
-			"tempdirpath": tempDirPath,
-		}).Info("temporary directory path set")
+
 		paths := filepath.SplitList(p.Config.AutoDiscoverPath)
 		p.SetAutodiscoverPaths(paths)
 		for _, pa := range paths {
@@ -396,7 +392,7 @@ func (p *pluginControl) Start() error {
 						}).Warn("Auto-loading of plugin '", fileName, "' skipped (plugin not executable)")
 						continue
 					}
-					rp, err := core.NewRequestedPlugin(path.Join(fullPath, fileName), tempDirPath, nil)
+					rp, err := core.NewRequestedPlugin(path.Join(fullPath, fileName), p.GetTempDir(), nil)
 					if err != nil {
 						controlLogger.WithFields(log.Fields{
 							"_block":           "start",
