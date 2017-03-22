@@ -324,8 +324,8 @@ func TestDistributedSubscriptions(t *testing.T) {
 				})
 				Convey("Task should be ended after an interval", func() {
 					// wait for the end of the task
-					// we are ok at this precision with being within 10% over the interval (100ms)
-					time.Sleep(interval * 110 / 100)
+					// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
+					time.Sleep(interval + time.Millisecond*100)
 					So(t.State(), ShouldEqual, core.TaskEnded)
 
 					Convey("So all dependencies should have been usubscribed", func() {
@@ -364,7 +364,9 @@ func TestDistributedSubscriptions(t *testing.T) {
 					// wait for the end of determined window
 					time.Sleep(startWait + windowSize)
 					// wait an interval to be sure that the task state has been updated
-					time.Sleep(interval)
+					// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
+					time.Sleep(interval + time.Millisecond*100)
+
 					// check if the task has ended
 					So(t.State(), ShouldEqual, core.TaskEnded)
 
