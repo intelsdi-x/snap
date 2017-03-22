@@ -325,12 +325,13 @@ func TestDistributedSubscriptions(t *testing.T) {
 					So(localMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 				})
-				Convey("Task should be ended after an interval", func() {
+				Convey("Task should be ended after one interval", func() {
 					// wait for the end of the task (or timeout)
 					select {
 					case <-lse.Ended:
-					case <-time.After(time.Duration(interval.Nanoseconds()*int64(count)+interval.Nanoseconds()) + 1*time.Second):
+					case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
 					}
+
 					So(t.State(), ShouldEqual, core.TaskEnded)
 
 					Convey("So all dependencies should have been usubscribed", func() {
@@ -340,6 +341,9 @@ func TestDistributedSubscriptions(t *testing.T) {
 				})
 			})
 			Convey("Task is expected to run until reaching determined stop time", func() {
+				lse := fixtures.NewListenToSchedulerEvent()
+				s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
+
 				startWait := time.Millisecond * 50
 				windowSize := time.Millisecond * 500
 				interval := time.Millisecond * 100
@@ -366,11 +370,11 @@ func TestDistributedSubscriptions(t *testing.T) {
 					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 				})
 				Convey("Task should have been ended after reaching the end of window", func() {
-					// wait for the end of determined window
-					time.Sleep(startWait + windowSize)
-					// wait an interval to be sure that the task state has been updated
-					// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
-					time.Sleep(interval + time.Millisecond*100)
+					// wait for the end of the task (or timeout)
+					select {
+					case <-lse.Ended:
+					case <-time.After(stop.Add(interval + 1*time.Second).Sub(start)):
+					}
 
 					// check if the task has ended
 					So(t.State(), ShouldEqual, core.TaskEnded)

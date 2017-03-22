@@ -266,9 +266,9 @@ func TestCreateTask(t *testing.T) {
 				// wait for task ended event (or timeout)
 				select {
 				case <-lse.Ended:
-				case <-time.After(stop.Add(1 * time.Second).Sub(start)):
+				case <-time.After(stop.Add(interval + 1*time.Second).Sub(start)):
 				}
-				// check if the task is ended
+
 				So(tsk.State(), ShouldEqual, core.TaskEnded)
 			})
 		})
@@ -276,7 +276,10 @@ func TestCreateTask(t *testing.T) {
 
 	Convey("Calling CreateTask for a simple/windowed schedule with determined the count of runs", t, func() {
 		Convey("Single run task firing immediately", func() {
-			sch := schedule.NewWindowedSchedule(interval, nil, nil, 1)
+			lse := fixtures.NewListenToSchedulerEvent()
+			s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
+			count := uint(1)
+			sch := schedule.NewWindowedSchedule(interval, nil, nil, count)
 			tsk, errs := s.CreateTask(sch, w, false)
 			So(errs.Errors(), ShouldBeEmpty)
 			So(tsk, ShouldNotBeNil)
@@ -285,11 +288,11 @@ func TestCreateTask(t *testing.T) {
 			task.Spin()
 
 			Convey("the task should be ended after reaching the end of window", func() {
-				// wait an interval to be sure that the task state has been updated
-				// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
-				time.Sleep(interval + time.Millisecond*100)
-				// check if the task is ended
-				So(tsk.State(), ShouldEqual, core.TaskEnded)
+				// wait for task ended event (or timeout)
+				select {
+				case <-lse.Ended:
+				case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
+				}
 			})
 		})
 		Convey("Single run task firing on defined start time", func() {
@@ -308,7 +311,7 @@ func TestCreateTask(t *testing.T) {
 				// wait for task ended event (or timeout)
 				select {
 				case <-lse.Ended:
-				case <-time.After(time.Duration(interval.Nanoseconds()*int64(count)+interval.Nanoseconds()) + 1*time.Second):
+				case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
 				}
 				// check if the task is ended
 				So(tsk.State(), ShouldEqual, core.TaskEnded)
@@ -422,8 +425,9 @@ func TestStopTask(t *testing.T) {
 		// wait for task ended event (or timeout)
 		select {
 		case <-lse.Ended:
-		case <-time.After(stop.Add(1 * time.Second).Sub(start)):
+		case <-time.After(stop.Add(interval + 1*time.Second).Sub(start)):
 		}
+
 		// check if the task is ended
 		So(tsk.State(), ShouldEqual, core.TaskEnded)
 
@@ -510,7 +514,7 @@ func TestStartTask(t *testing.T) {
 		// wait for task ended event (or timeout)
 		select {
 		case <-lse.Ended:
-		case <-time.After(stop.Add(1 * time.Second).Sub(start)):
+		case <-time.After(stop.Add(interval + 1*time.Second).Sub(start)):
 		}
 
 		// check if the task is ended
@@ -609,8 +613,9 @@ func TestEnableTask(t *testing.T) {
 		// wait for task ended event (or timeout)
 		select {
 		case <-lse.Ended:
-		case <-time.After(stop.Add(1 * time.Second).Sub(start)):
+		case <-time.After(stop.Add(interval + 1*time.Second).Sub(start)):
 		}
+
 		// check if the task is ended
 		So(tsk.State(), ShouldEqual, core.TaskEnded)
 
