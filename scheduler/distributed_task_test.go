@@ -37,6 +37,7 @@ import (
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/plugin/helper"
+	"github.com/intelsdi-x/snap/scheduler/fixtures"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -302,6 +303,8 @@ func TestDistributedSubscriptions(t *testing.T) {
 				})
 			})
 			Convey("Single run task", func() {
+				lse := fixtures.NewListenToSchedulerEvent()
+				s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
 				count := uint(1)
 				interval := time.Millisecond * 100
 				sch := schedule.NewWindowedSchedule(interval, nil, nil, count)
@@ -323,9 +326,11 @@ func TestDistributedSubscriptions(t *testing.T) {
 					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 				})
 				Convey("Task should be ended after an interval", func() {
-					// wait for the end of the task
-					// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
-					time.Sleep(interval + time.Millisecond*100)
+					// wait for the end of the task (or timeout)
+					select {
+					case <-lse.Ended:
+					case <-time.After(time.Duration(interval.Nanoseconds()*int64(count)+interval.Nanoseconds()) + 1*time.Second):
+					}
 					So(t.State(), ShouldEqual, core.TaskEnded)
 
 					Convey("So all dependencies should have been usubscribed", func() {

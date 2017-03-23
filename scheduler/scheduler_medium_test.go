@@ -34,6 +34,7 @@ import (
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/schedule"
+	"github.com/intelsdi-x/snap/scheduler/fixtures"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 )
 
@@ -250,6 +251,8 @@ func TestCreateTask(t *testing.T) {
 			})
 		})
 		Convey("should not error when the schedule is valid", func() {
+			lse := fixtures.NewListenToSchedulerEvent()
+			s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
 			start := time.Now().Add(startWait)
 			stop := time.Now().Add(startWait + windowSize)
 			sch := schedule.NewWindowedSchedule(interval, &start, &stop, 0)
@@ -260,11 +263,11 @@ func TestCreateTask(t *testing.T) {
 			task := s.tasks.Get(tsk.ID())
 			task.Spin()
 			Convey("the task should be ended after reaching the end of window", func() {
-				// wait for the end of determined window
-				time.Sleep(startWait + windowSize)
-				// wait an interval to be sure that the task state has been updated
-				// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
-				time.Sleep(interval + time.Millisecond*100)
+				// wait for task ended event (or timeout)
+				select {
+				case <-lse.Ended:
+				case <-time.After(stop.Add(1 * time.Second).Sub(start)):
+				}
 				// check if the task is ended
 				So(tsk.State(), ShouldEqual, core.TaskEnded)
 			})
@@ -290,6 +293,8 @@ func TestCreateTask(t *testing.T) {
 			})
 		})
 		Convey("Single run task firing on defined start time", func() {
+			lse := fixtures.NewListenToSchedulerEvent()
+			s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
 			count := uint(1)
 			start := time.Now().Add(startWait)
 			sch := schedule.NewWindowedSchedule(interval, &start, nil, count)
@@ -300,11 +305,11 @@ func TestCreateTask(t *testing.T) {
 			task := s.tasks.Get(tsk.ID())
 			task.Spin()
 			Convey("the task should be ended after reaching the end of window", func() {
-				// wait for the end of determined window
-				time.Sleep(startWait)
-				// wait an interval to be sure that the task state has been updated
-				// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
-				time.Sleep(interval + time.Millisecond*100)
+				// wait for task ended event (or timeout)
+				select {
+				case <-lse.Ended:
+				case <-time.After(time.Duration(interval.Nanoseconds()*int64(count)+interval.Nanoseconds()) + 1*time.Second):
+				}
 				// check if the task is ended
 				So(tsk.State(), ShouldEqual, core.TaskEnded)
 			})
@@ -400,6 +405,8 @@ func TestStopTask(t *testing.T) {
 		})
 	})
 	Convey("Calling StopTask on an ended task", t, func() {
+		lse := fixtures.NewListenToSchedulerEvent()
+		s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
 		start := time.Now().Add(startWait)
 		stop := time.Now().Add(startWait + windowSize)
 
@@ -412,11 +419,11 @@ func TestStopTask(t *testing.T) {
 		task := s.tasks.Get(tsk.ID())
 		task.Spin()
 
-		// wait for the end of determined window
-		time.Sleep(startWait + windowSize)
-		// wait an interval to be sure that the task state has been updated
-		// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
-		time.Sleep(interval + time.Millisecond*100)
+		// wait for task ended event (or timeout)
+		select {
+		case <-lse.Ended:
+		case <-time.After(stop.Add(1 * time.Second).Sub(start)):
+		}
 		// check if the task is ended
 		So(tsk.State(), ShouldEqual, core.TaskEnded)
 
@@ -486,6 +493,8 @@ func TestStartTask(t *testing.T) {
 		})
 	})
 	Convey("Calling StartTask on an ended windowed task", t, func() {
+		lse := fixtures.NewListenToSchedulerEvent()
+		s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
 		start := time.Now().Add(startWait)
 		stop := time.Now().Add(startWait + windowSize)
 
@@ -498,11 +507,11 @@ func TestStartTask(t *testing.T) {
 		task := s.tasks.Get(tsk.ID())
 		task.Spin()
 
-		// wait for the end of determined window
-		time.Sleep(startWait + windowSize)
-		// wait an interval to be sure that the task state has been updated
-		// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
-		time.Sleep(interval + time.Millisecond*100)
+		// wait for task ended event (or timeout)
+		select {
+		case <-lse.Ended:
+		case <-time.After(stop.Add(1 * time.Second).Sub(start)):
+		}
 
 		// check if the task is ended
 		So(tsk.State(), ShouldEqual, core.TaskEnded)
@@ -583,6 +592,8 @@ func TestEnableTask(t *testing.T) {
 		})
 	})
 	Convey("Calling EnableTask on an ended task", t, func() {
+		lse := fixtures.NewListenToSchedulerEvent()
+		s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
 		start := time.Now().Add(startWait)
 		stop := time.Now().Add(startWait + windowSize)
 
@@ -595,12 +606,11 @@ func TestEnableTask(t *testing.T) {
 		task := s.tasks.Get(tsk.ID())
 		task.Spin()
 
-		// wait for the end of determined window
-		time.Sleep(startWait + windowSize)
-		// wait an interval to be sure that the task state has been updated
-		/// we are ok to extend sleeping by 100ms to allow to complete post-schedule activities
-		time.Sleep(interval + time.Millisecond*100)
-
+		// wait for task ended event (or timeout)
+		select {
+		case <-lse.Ended:
+		case <-time.After(stop.Add(1 * time.Second).Sub(start)):
+		}
 		// check if the task is ended
 		So(tsk.State(), ShouldEqual, core.TaskEnded)
 
