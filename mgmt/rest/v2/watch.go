@@ -131,9 +131,6 @@ func (s *apiV2) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 	}
 }
 
-// TaskWatchHandler defines the type of Snap task watch handler.
-//
-// swagger: model taskWatchHandler
 type TaskWatchHandler struct {
 	streamCount int
 	alive       bool
@@ -182,8 +179,18 @@ func (t *TaskWatchHandler) CatchTaskDisabled(why string) {
 	}
 }
 
+// TaskWatchResponse defines the response of the task watching stream.
+//
+// swagger:response TaskWatchResponse
+type TaskWatchResponse struct {
+	// in: body
+	Body struct {
+		TaskWatch StreamedTaskEvent `json:"task_watch"`
+	}
+}
+
+// StreamedTaskEvent defines the task watching data type.
 type StreamedTaskEvent struct {
-	// Used to describe the event
 	EventType string          `json:"type"`
 	Message   string          `json:"message"`
 	Event     StreamedMetrics `json:"event,omitempty"`
@@ -194,6 +201,7 @@ func (s *StreamedTaskEvent) ToJSON() string {
 	return string(j)
 }
 
+// StreamedMetric defines a streamed metric.
 type StreamedMetric struct {
 	Namespace string            `json:"namespace"`
 	Data      interface{}       `json:"data"`
@@ -201,6 +209,7 @@ type StreamedMetric struct {
 	Tags      map[string]string `json:"tags"`
 }
 
+// StreamedMetrics defines ann array of streamed metrics.
 type StreamedMetrics []StreamedMetric
 
 func (s StreamedMetrics) Len() int {

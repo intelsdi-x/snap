@@ -116,6 +116,29 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 415: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
+		// swagger:route POST /plugins/{ptype}/{pname}/{pversion}/swap swapPlugins
+		//
+		// unloads an existing plugin then loads a new plugin.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		// multipart/form-data
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		// multipart/form-data
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 201: PluginResponse
+		// 400: ErrorResponse
+		// 409: ErrorResponse
+		// 415: ErrorResponse
+		// 500: ErrorResponse
+		api.Route{Method: "POST", Path: prefix + "/plugins/:type/:name/:version/swap", Handle: s.swapPlugins},
 		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion} unloadPlugin
 		//
 		// unloads a plugin by its type, name and version.Otherwise, an error is returned.
@@ -267,7 +290,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Schemes: http, https
 		//
 		// Responses:
-		// 200: TaskResponse
+		// 200: TaskWatchResponse
 		// 404: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id/watch", Handle: s.watchTask},

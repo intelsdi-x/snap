@@ -90,6 +90,31 @@
         ],
         "summary": "lists a list of loaded plugins. An empty list is returned if there is no loaded plugins.",
         "operationId": "getPlugins",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Name",
+            "name": "name",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "Type",
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "x-go-name": "Running",
+            "name": "running",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/PluginsResponse"
@@ -445,6 +470,79 @@
         }
       }
     },
+    "/plugins/{ptype}/{pname}/{pversion}/swap": {
+      "post": {
+        "consumes": [
+          "application/json",
+          "application/x-protobuf",
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json",
+          "application/x-protobuf",
+          "multipart/form-data"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "summary": "unloads an existing plugin then loads a new plugin.",
+        "operationId": "swapPlugins",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "file",
+            "x-go-name": "PluginData",
+            "description": "loads a plugin.",
+            "name": "pluginData",
+            "in": "formData"
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PluginResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "415": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/tasks": {
       "get": {
         "consumes": [
@@ -649,7 +747,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/TaskResponse"
+            "$ref": "#/responses/TaskWatchResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -835,9 +933,24 @@
           },
           "x-go-name": "ConfigPolicy"
         },
+        "hitcount": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "HitCount"
+        },
         "href": {
           "type": "string",
           "x-go-name": "Href"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint32",
+          "x-go-name": "ID"
+        },
+        "last_hit_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastHitTimestamp"
         },
         "loaded_timestamp": {
           "type": "integer",
@@ -847,6 +960,10 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "pprof_port": {
+          "type": "string",
+          "x-go-name": "PprofPort"
         },
         "signed": {
           "type": "boolean",
@@ -997,6 +1114,11 @@
         "interval"
       ],
       "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "Count"
+        },
         "interval": {
           "type": "string",
           "x-go-name": "Interval"
@@ -1018,6 +1140,58 @@
         }
       },
       "x-go-package": "github.com/intelsdi-x/snap/core"
+    },
+    "StreamedMetric": {
+      "type": "object",
+      "title": "StreamedMetric defines a streamed metric.",
+      "properties": {
+        "data": {
+          "type": "object",
+          "x-go-name": "Data"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Tags"
+        },
+        "timestamp": {
+          "x-go-name": "Timestamp"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "StreamedMetrics": {
+      "type": "array",
+      "title": "StreamedMetrics defines ann array of streamed metrics.",
+      "items": {
+        "$ref": "#/definitions/StreamedMetric"
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "StreamedTaskEvent": {
+      "type": "object",
+      "title": "StreamedTaskEvent defines the task watching data type.",
+      "properties": {
+        "event": {
+          "x-go-name": "Event",
+          "$ref": "#/definitions/StreamedMetrics"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "EventType"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
     },
     "Task": {
       "type": "object",
@@ -1180,6 +1354,18 @@
       "description": "TaskResp returns the giving task.",
       "schema": {
         "$ref": "#/definitions/Task"
+      }
+    },
+    "TaskWatchResponse": {
+      "description": "TaskWatchResponse defines the response of the task watching stream.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_watch": {
+            "x-go-name": "TaskWatch",
+            "$ref": "#/definitions/StreamedTaskEvent"
+          }
+        }
       }
     },
     "TasksResponse": {
