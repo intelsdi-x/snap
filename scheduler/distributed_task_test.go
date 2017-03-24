@@ -37,6 +37,7 @@ import (
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/plugin/helper"
+	"github.com/intelsdi-x/snap/scheduler/fixtures"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -302,6 +303,8 @@ func TestDistributedSubscriptions(t *testing.T) {
 				})
 			})
 			Convey("Single run task", func() {
+				lse := fixtures.NewListenToSchedulerEvent()
+				s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
 				count := uint(1)
 				interval := time.Millisecond * 100
 				sch := schedule.NewWindowedSchedule(interval, nil, nil, count)
@@ -322,10 +325,13 @@ func TestDistributedSubscriptions(t *testing.T) {
 					So(localMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 				})
-				Convey("Task should be ended after an interval", func() {
-					// wait for the end of the task
-					// we are ok at this precision with being within 10% over the interval (100ms)
-					time.Sleep(interval * 110 / 100)
+				Convey("Task should be ended after one interval", func() {
+					// wait for the end of the task (or timeout)
+					select {
+					case <-lse.Ended:
+					case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
+					}
+
 					So(t.State(), ShouldEqual, core.TaskEnded)
 
 					Convey("So all dependencies should have been usubscribed", func() {
@@ -335,6 +341,9 @@ func TestDistributedSubscriptions(t *testing.T) {
 				})
 			})
 			Convey("Task is expected to run until reaching determined stop time", func() {
+				lse := fixtures.NewListenToSchedulerEvent()
+				s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
+
 				startWait := time.Millisecond * 50
 				windowSize := time.Millisecond * 500
 				interval := time.Millisecond * 100
@@ -361,10 +370,12 @@ func TestDistributedSubscriptions(t *testing.T) {
 					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 				})
 				Convey("Task should have been ended after reaching the end of window", func() {
-					// wait for the end of determined window
-					time.Sleep(startWait + windowSize)
-					// wait an interval to be sure that the task state has been updated
-					time.Sleep(interval)
+					// wait for the end of the task (or timeout)
+					select {
+					case <-lse.Ended:
+					case <-time.After(stop.Add(interval + 1*time.Second).Sub(start)):
+					}
+
 					// check if the task has ended
 					So(t.State(), ShouldEqual, core.TaskEnded)
 
