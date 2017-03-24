@@ -302,6 +302,7 @@ func addTaskHelper(r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	defer r.Body.Close()
 
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 
@@ -337,6 +338,7 @@ func updateTaskStateHelper(r *http.Request) ([]string, serror.SnapError) {
 	if err != nil {
 		return nil, serror.New(ErrReadRequestBody)
 	}
+	defer r.Body.Close()
 
 	dm := map[string]string{}
 	err = json.Unmarshal(buf, &dm)

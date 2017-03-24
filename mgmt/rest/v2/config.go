@@ -213,13 +213,14 @@ func getPluginType(t string) (core.PluginType, error) {
 }
 
 // deletePluginConfigItemHelper builds different forms of request data into the way method deletePluginConfigItem accepts.
-// currently it accepts go-swagger client, swagger-ui and SanpCLI.
+// currently it accepts go-swagger client, swagger-ui curl, and SnapCLI.
 func deletePluginConfigItemHelper(r *http.Request) ([]string, error) {
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+	defer r.Body.Close()
 
 	dm := map[string][]string{}
 	err = json.Unmarshal(buf, &dm)
@@ -249,8 +250,8 @@ func deletePluginConfigItemHelper(r *http.Request) ([]string, error) {
 	return src, nil
 }
 
-// setPluginConfigItemHelper builds different forms of request data into the way method setPluginConfigItem accepts.
-// currently it accepts go-swagger client, swagger-ui and SanpCLI.
+// setPluginConfigItemHelper accepts different forms of request data.
+// currently it accepts go-swagger client, swagger-ui, curl, and SnapCLI.
 func setPluginConfigItemHelper(r *http.Request) error {
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -258,6 +259,7 @@ func setPluginConfigItemHelper(r *http.Request) error {
 	}
 
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+	defer r.Body.Close()
 
 	dm := map[string]string{}
 	err = json.Unmarshal(buf, &dm)
