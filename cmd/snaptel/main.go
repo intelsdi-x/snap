@@ -45,7 +45,7 @@ type usageError struct {
 }
 
 func (ue usageError) Error() string {
-	return ue.s
+	return fmt.Sprintf("Error: %s \nUsage: %s", ue.s, ue.ctx.Command.Usage)
 }
 
 func (ue usageError) help() {

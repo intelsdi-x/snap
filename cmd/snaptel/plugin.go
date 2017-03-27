@@ -35,7 +35,7 @@ func loadPlugin(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) != 1 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
@@ -104,7 +104,7 @@ func swapPlugins(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) < 1 || len(ctx.Args()) > 2 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
