@@ -90,7 +90,7 @@ func getConfig(ctx *cli.Context) error {
 	defer w.Flush()
 	r := pClient.GetPluginConfig(ptyp, pname, strconv.Itoa(pver))
 	if r.Err != nil {
-		return fmt.Errorf("Error requesting info: ", r.Err)
+		return fmt.Errorf("Error requesting info: %v", r.Err)
 	}
 	printFields(w, false, 0,
 		"NAME",
