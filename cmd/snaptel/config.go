@@ -84,7 +84,7 @@ func getConfig(ctx *cli.Context) error {
 		return newUsageError("Must provide plugin name", ctx)
 	}
 	if pver < 1 {
-		return newUsageError("Must provide plugin version", ctx)
+		return newUsageError("Plugin version must be greater than zero", ctx)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	defer w.Flush()
