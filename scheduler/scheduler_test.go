@@ -45,6 +45,7 @@ type mockMetricManager struct {
 	failValidatingMetricsAfter int
 	failuredSoFar              int
 	autodiscoverPaths          []string
+	timeToWait                 time.Duration
 }
 
 func (m *mockMetricManager) StreamMetrics(string, map[string]map[string]string, time.Duration, int64) (chan []core.Metric, chan error, []error) {
@@ -52,6 +53,9 @@ func (m *mockMetricManager) StreamMetrics(string, map[string]map[string]string, 
 }
 
 func (m *mockMetricManager) CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error) {
+	if m.timeToWait != 0 {
+		time.Sleep(m.timeToWait)
+	}
 	return nil, nil
 }
 
@@ -199,8 +203,26 @@ func TestScheduler(t *testing.T) {
 		e := s.Start()
 		So(e, ShouldBeNil)
 		// create a simple schedule which equals to windowed schedule without start and stop time
-		_, te := s.CreateTask(schedule.NewWindowedSchedule(time.Second, nil, nil, 0), w, false)
+		t, te := s.CreateTask(schedule.NewWindowedSchedule(time.Second, nil, nil, 0), w, false)
 		So(te.Errors(), ShouldBeEmpty)
+
+		Convey("start task", func() {
+			c.timeToWait = 200 * time.Millisecond
+			t.(*task).Spin()
+			time.Sleep(100 * time.Millisecond) // let's wait for things to settle
+			So(t.State(), ShouldResemble, core.TaskFiring)
+			c.timeToWait = 0
+		})
+
+		Convey("stop task", func() {
+			c.timeToWait = 500 * time.Millisecond
+			t.(*task).Spin()
+			So(t.State(), ShouldResemble, core.TaskSpinning)
+			time.Sleep(50 * time.Millisecond)
+			t.(*task).Stop()
+			So(t.State(), ShouldResemble, core.TaskStopped)
+			c.timeToWait = 0
+		})
 
 		Convey("returns errors when metrics do not validate", func() {
 			c.failValidatingMetrics = true

@@ -81,6 +81,15 @@ func (f *Mock) CollectMetrics(mts []plugin.MetricType) ([]plugin.MetricType, err
 			panic("Oops!")
 		}
 
+		if c, ok := mts[i].Config().Table()["time_to_wait"]; ok {
+			dur, err := time.ParseDuration(c.(ctypes.ConfigValueStr).Value)
+			if err != nil {
+				log.Println(err.Error())
+			} else {
+				time.Sleep(dur)
+			}
+		}
+
 		if isDynamic, _ := mts[i].Namespace().IsDynamic(); isDynamic {
 			requestedHosts := []string{}
 

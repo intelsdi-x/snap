@@ -241,6 +241,9 @@ type wfContentTypes map[string]map[string][]string
 
 // Start starts a workflow
 func (s *schedulerWorkflow) Start(t *task) {
+	t.isFiring = make(chan bool)
+	defer close(t.isFiring)
+
 	workflowLogger.WithFields(log.Fields{
 		"_block":    "workflow-start",
 		"task-id":   t.id,
