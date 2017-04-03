@@ -72,7 +72,7 @@ The control section contains settings for configuring the Control module within 
 ```yaml
 control:
   # auto_discover_path sets the directory(s) to auto load plugins and tasks on
-  # the start of the snap daemon. This can be a comma separated list of directories.
+  # the start of the snap daemon. This can be a colon separated list of directories.
   auto_discover_path: /opt/snap/plugins:/opt/snap/tasks
 
   # cache_expiration sets the time interval for the plugin cache to use before
