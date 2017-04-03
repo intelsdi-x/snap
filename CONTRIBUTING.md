@@ -1,4 +1,4 @@
-#Contributing to Snap
+# Contributing to Snap
 
 Contributing to Snap is a snap (pun intended :turtle:).
 
