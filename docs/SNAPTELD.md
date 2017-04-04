@@ -79,20 +79,20 @@ By default, Snap daemon loads the configuration in `/etc/snap/snapteld.conf` and
 
 * shutdown `snap-telemetry` service and ensure there's no Snap processes running:
     RedHat 6/Ubuntu 14.04:
-    ```
+```
 $ sevice snap-telemetry stop
 $ pgrep snap
-    ```
+```
     RedHat 7/Ubuntu 16.04:
-    ```
+```
 $ systemctl stop snap-telemetry
 $ pgrep snap
-    ```
+```
 
 * run Snap with debug log `--log-level 1`, no log file `--log-path ''`, along with any other custom startup options (it will use the snapteld.conf file settings if an option is omitted):
-    ```
+```
 $ snapteld --log-level 1 --log-path '' --plugin-trust 0
-    ```
+```
 
 This should result in the following log output:
 ```
