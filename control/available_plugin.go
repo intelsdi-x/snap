@@ -236,7 +236,7 @@ func (a *availablePlugin) Stop(r string) error {
 	return a.client.Kill(r)
 }
 
-// Kill assumes aplugin is not able to here a Kill RPC call
+// Kill assumes a plugin is not able to hear a Kill RPC call
 func (a *availablePlugin) Kill(r string) error {
 	log.WithFields(log.Fields{
 		"_module":     "control-aplugin",
@@ -252,6 +252,7 @@ func (a *availablePlugin) Kill(r string) error {
 		}).Debug("deleting available plugin package")
 		os.RemoveAll(filepath.Dir(a.execPath))
 	}
+
 	// If it's a streaming plugin, we need to signal the scheduler that
 	// this plugin is being killed.
 	if c, ok := a.client.(client.PluginStreamCollectorClient); ok {
