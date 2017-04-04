@@ -24,6 +24,7 @@ import (
 )
 
 const (
+	PluginsUnsubscribed    = "Scheduler.PluginUnsubscribed"
 	TaskCreated            = "Scheduler.TaskCreated"
 	TaskDeleted            = "Scheduler.TaskDeleted"
 	TaskStarted            = "Scheduler.TaskStarted"
@@ -33,6 +34,15 @@ const (
 	MetricCollected        = "Scheduler.MetricsCollected"
 	MetricCollectionFailed = "Scheduler.MetricCollectionFailed"
 )
+
+type PluginsUnsubscribedEvent struct {
+	TaskID  string
+	Plugins []core.SubscribedPlugin
+}
+
+func (e PluginsUnsubscribedEvent) Namespace() string {
+	return PluginsUnsubscribed
+}
 
 type TaskStartedEvent struct {
 	TaskID string

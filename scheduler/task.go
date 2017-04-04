@@ -366,6 +366,11 @@ func (t *task) UnsubscribePlugins() []serror.SnapError {
 	depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
 	var errs []serror.SnapError
 	for k := range depGroups {
+		event := scheduler_event.PluginsUnsubscribedEvent{
+			TaskID:  t.ID(),
+			Plugins: depGroups[k].subscribedPlugins,
+		}
+		defer t.eventEmitter.Emit(event)
 		mgr, err := t.RemoteManagers.Get(k)
 		if err != nil {
 			errs = append(errs, serror.New(err))
