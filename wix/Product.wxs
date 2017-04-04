@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="3CA1CB42-7F66-4F7E-98F0-E299F91519BF" Name="Snap" Language="1033" Version="1.0.0.0" Manufacturer="Intel" UpgradeCode="fc9c6e23-268a-402c-a2d1-8ded018c9be0">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated" AdminImage="yes"/>
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="Snap" Level="1">
+      <ComponentRef Id="snapteld.exe"/>
+      <ComponentRef Id="SnapShortcut"/>
+    </Feature>
+
+    <Icon Id="icon.ico" SourceFile="ref\images\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="icon.ico" />
+
+    <UIRef Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="Snap" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Snap"/>
+      </Directory>
+    </Directory>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="SnapShortcut" Guid="24DCB61B-FEF6-486D-8A26-EBDE5C3D3A28">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="Snapteld"
+                  Description="A powerful open telemetry framework"
+                  Target="[#snapteld.exe]"
+                  WorkingDirectory="INSTALLFOLDER"/>
+        <RemoveFolder Id="CleanUpShortCut" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="SOFTWARE\Intel\Snap" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="snapteld.exe" Guid="DCAE5F38-72F8-4D21-BE1B-D2FA11B71F45">
+        <File Id="snapteld.exe" Source="ref\snapteld.exe" KeyPath="yes" Checksum="yes"/>
+        <ServiceInstall Id="ServiceInstaller"
+                        Account="LocalSystem"
+                        Description="Installs snap agent and runs it in the background"
+                        DisplayName="Snap Agent"
+                        Interactive="yes"
+                        Name="SnapService"
+                        Start="auto"
+                        Type="ownProcess"
+                        ErrorControl="normal"
+                        Vital="yes"
+                        Arguments="-l 1 -t 0 -o &quot;[INSTALLFOLDER]snap.log&quot;"
+        />
+        <ServiceControl Id="ServiceControlOptions" Start="install" Stop="both" Remove="uninstall" Name="SnapService" Wait="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <WixVariable Id="WixUILicenseRtf" Value="ref\LICENSE.rtf" Overridable="yes" />
+    <WixVariable Id="WixUIBannerBmp" Value="ref\images\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="ref\images\dialog.bmp" />
+  </Product>
+</Wix>

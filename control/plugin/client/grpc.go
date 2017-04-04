@@ -219,10 +219,8 @@ func (g *grpcClient) Killed() {
 }
 
 func (g *grpcClient) Kill(reason string) error {
-
 	_, err := g.plugin.Kill(getContext(g.timeout), &rpc.KillArg{Reason: reason})
 	g.conn.Close()
-	g.Killed()
 	if err != nil {
 		return err
 	}
