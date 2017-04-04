@@ -132,7 +132,7 @@ type PluginPostParams struct {
 	// in:formData
 	//
 	// swagger:file
-	PluginData *bytes.Buffer `json:"pluginData"`
+	PluginData *bytes.Buffer `json:"plugin_data"`
 }
 
 // Name plugin name string
