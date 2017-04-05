@@ -43,10 +43,10 @@ var (
 	ErrReadRequestBody      = errors.New("Read request body error")
 )
 
-// Error unsuccessful generic response to a failed API call
+// Error
 //
 // swagger:response ErrorResponse
-type ErrorResp struct {
+type ErrorResponse struct {
 	// in:body
 	SnapError Error `json: "snap_error""`
 }

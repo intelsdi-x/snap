@@ -56,9 +56,11 @@ func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *apiV2 {
 
 func (s *apiV2) GetRoutes() []api.Route {
 	routes := []api.Route{
-		// swagger:route GET /plugins getPlugins
+		// swagger:route GET /plugins plugins getPlugins
 		//
-		// lists a list of loaded plugins. An empty list is returned if there is no loaded plugins.
+		// Get All
+		//
+		// An empty list is returned if there are no loaded plugins.
 		//
 		// Consumes:
 		// application/json
@@ -73,9 +75,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 200: PluginsResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
-		// swagger:route GET /plugins/{ptype}/{pname}/{pversion} getPlugin
+		// swagger:route GET /plugins/{ptype}/{pname}/{pversion} plugins getPlugin
 		//
-		// lists a given plugin by its type, name and version. No plugin found error returns if it's not existing.
+		// Get
+		//
+		// An error will be returned if the plugin does not exist.
 		//
 		// Consumes:
 		// application/json
@@ -93,9 +97,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 404: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version", Handle: s.getPlugin},
-		// swagger:route POST /plugins loadPlugin
+		// swagger:route POST /plugins plugins loadPlugin
 		//
-		// loads a plugin based on input.
+		// Load
+		//
+		// A plugin binary is required.
 		//
 		// Consumes:
 		// application/json
@@ -116,32 +122,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 415: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
-		// swagger:route POST /plugins/{ptype}/{pname}/{pversion}/swap swapPlugins
+		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion} plugins unloadPlugin
 		//
-		// unloads an existing plugin then loads a new plugin.
+		// Unload
 		//
-		// Consumes:
-		// application/json
-		// application/x-protobuf
-		// multipart/form-data
-		//
-		// Produces:
-		// application/json
-		// application/x-protobuf
-		// multipart/form-data
-		//
-		// Schemes: http, https
-		//
-		// Responses:
-		// 201: PluginResponse
-		// 400: ErrorResponse
-		// 409: ErrorResponse
-		// 415: ErrorResponse
-		// 500: ErrorResponse
-		api.Route{Method: "POST", Path: prefix + "/plugins/:type/:name/:version/swap", Handle: s.swapPlugins},
-		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion} unloadPlugin
-		//
-		// unloads a plugin by its type, name and version.Otherwise, an error is returned.
+		// Required fields are plugin type, name and version.
 		//
 		// Consumes:
 		// application/json
@@ -162,10 +147,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 409: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version", Handle: s.unloadPlugin},
-		// swagger:route GET /plugins/{ptype}/{pname}/{pversion}/config getPluginConfigItem
+		// swagger:route GET /plugins/{ptype}/{pname}/{pversion}/config plugins getPluginConfigItem
 		//
-		// lists the config of a giving plugin. The allowed plugin types are collector, processor, and publisher.
-		// Any other type results in error.
+		// Get Config
+		//
+		// An empty config is returned if there are no configs for the plugin.
 		//
 		// Consumes:
 		// application/json
@@ -181,9 +167,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.getPluginConfigItem},
-		// swagger:route PUT /plugins/{ptype}/{pname}/{pversion}/config setPluginConfigItem
+		// swagger:route PUT /plugins/{ptype}/{pname}/{pversion}/config plugins setPluginConfigItem
 		//
-		// updates the config of a giving plugin. A wrong plugin type or non-numeric plugin version results in error.
+		// Set Config
+		//
+		// A config is JSON. For example: {"user":"snap", "host":"ocean_eleven"}.
 		//
 		// Consumes:
 		// application/json
@@ -199,10 +187,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
 		api.Route{Method: "PUT", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.setPluginConfigItem},
-		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion}/config deletePluginConfigItem
+		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion}/config plugins deletePluginConfigItem
 		//
-		// deletes the config of a giving plugin. Note that that to be removed config items are a slice of config keys.
-		// At lease one config key is required for this operation. An error occurs for any bad request.
+		// Delete Config
+		//
+		// A minimum of one config key is required for this operation.
 		//
 		// Consumes:
 		// application/json
@@ -218,9 +207,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.deletePluginConfigItem},
-		// swagger:route GET /metrics getMetrics
+		// swagger:route GET /metrics plugins getMetrics
 		//
-		// lists a list of loaded metric types. An empty list returns if there is no loaded metrics. Any bad request results in error.
+		// Get Metrics
+		//
+		// An empty list returns if there is no loaded metrics.
 		//
 		// Consumes:
 		// application/json
@@ -237,9 +228,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 404: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/metrics", Handle: s.getMetrics},
-		// swagger:route GET /tasks getTasks
+		// swagger:route GET /tasks tasks getTasks
 		//
-		// lists a list of created tasks. An empty list returns if no created tasks.
+		// Get All
+		//
+		// An empty list returns if no tasks exist.
 		//
 		// Consumes:
 		// application/json
@@ -254,9 +247,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 200: TasksResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks", Handle: s.getTasks},
-		// swagger:route GET /tasks/{id} getTask
+		// swagger:route GET /tasks/{id} tasks getTask
 		//
-		// lists a task by the giving task id. Otherwise a not found error returns.
+		// Get
+		//
+		// The task ID is required.
 		//
 		// Consumes:
 		// application/json
@@ -272,9 +267,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: TaskResponse
 		// 404: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id", Handle: s.getTask},
-		// swagger:route GET /tasks/{id}/watch watchTask
+		// swagger:route GET /tasks/{id}/watch tasks watchTask
 		//
-		// watches a task data stream for the giving task id. Otherwise, an error returns.
+		// Watch
+		//
+		// The task ID is required.
 		//
 		// Consumes:
 		// application/json
@@ -293,9 +290,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 404: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id/watch", Handle: s.watchTask},
-		// swagger:route POST /tasks addTask
+		// swagger:route POST /tasks tasks addTask
 		//
-		// creates a task based on the input. Othereise, an error returns if the input misses the required fields or is in a malformed format.
+		// Add
+		//
+		// A string representation of Snap task manifest is required.
 		//
 		// Consumes:
 		// application/json
@@ -311,9 +310,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 201: TaskResponse
 		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/tasks", Handle: s.addTask},
-		// swagger:route PUT /tasks/{id} updateTaskState
+		// swagger:route PUT /tasks/{id} tasks updateTaskState
 		//
-		// updates a task's state for the giving task id and the input state. An error occurs for any bad request.
+		// Enable/Start/Stop
+		//
+		// The task ID is required.
 		//
 		// Consumes:
 		// application/json
@@ -331,9 +332,11 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 409: ErrorResponse
 		// 500: ErrorResponse
 		api.Route{Method: "PUT", Path: prefix + "/tasks/:id", Handle: s.updateTaskState},
-		// swagger:route DELETE /tasks/{id} removeTask
+		// swagger:route DELETE /tasks/{id} tasks removeTask
 		//
-		// deletes a task for the giving task id. Note that only a stopped task may be removed. Otherwise, an error occurs.
+		// Remove
+		//
+		// The task ID is required.
 		//
 		// Consumes:
 		// application/json

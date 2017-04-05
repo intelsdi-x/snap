@@ -71,15 +71,15 @@ type Plugin struct {
 	Name             string        `json:"name"`
 	Version          int           `json:"version"`
 	Type             string        `json:"type"`
-	Signed           bool          `json:"signed,omitempty"`
-	Status           string        `json:"status,omitempty"`
+	Signed           bool          `json:"signed"`
+	Status           string        `json:"status"`
 	LoadedTimestamp  int64         `json:"loaded_timestamp,omitempty"`
 	Href             string        `json:"href,omitempty"`
 	ConfigPolicy     []PolicyTable `json:"config_policy,omitempty"`
 	HitCount         int           `json:"hitcount,omitempty"`
 	LastHitTimestamp int64         `json:"last_hit_timestamp,omitempty"`
 	ID               uint32        `json:"id,omitempty"`
-	PprofPort        string        `json:"pprof_port"`
+	PprofPort        string        `json:"pprof_port,omitempty"`
 }
 
 // RunningPlugin represents the JSON format of a running plugin.
@@ -96,7 +96,7 @@ type RunningPlugin struct {
 
 // PluginParams represents the plugin name, version and type in the request path.
 //
-// swagger:parameters getPlugin unloadPlugin getPluginConfigItem setPluginConfigItem swapPlugins
+// swagger:parameters getPlugin unloadPlugin getPluginConfigItem setPluginConfigItem
 type PluginParams struct {
 	// required: true
 	// in: path
@@ -125,7 +125,7 @@ type PluginsParams struct {
 
 // PluginPostParams defines type for loading a plugin.
 //
-// swagger:parameters loadPlugin swapPlugins
+// swagger:parameters loadPlugin
 type PluginPostParams struct {
 	// loads a plugin.
 	//
@@ -149,11 +149,6 @@ func (p *PluginParams) Version() int {
 // They are collector, processor and publisher.
 func (p *PluginParams) TypeName() string {
 	return p.PType
-}
-
-func (s *apiV2) swapPlugins(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	s.unloadPluginOpeation(w, r, p)
-	s.loadPlugin(w, r, p)
 }
 
 func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

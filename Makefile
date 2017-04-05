@@ -22,7 +22,7 @@ default:
 	$(MAKE) deps
 	$(MAKE) snap
 	$(MAKE) plugins
-	$(MAKE) swagger-spec
+	$(MAKE) swagger
 deps:
 	bash -c "./scripts/deps.sh"
 test:
@@ -60,7 +60,7 @@ install:
 	cp build/$(OS)/$(ARCH)/snaptel /usr/local/bin/
 proto:
 	cd `echo $(GOPATH) | cut -d: -f 1`; bash -c "./src/github.com/intelsdi-x/snap/scripts/gen-proto.sh"
-swagger-spec:
+swagger:
 	swagger generate spec -o ./swagger.json
 	bash -c "./scripts/sed_swagger.sh"
 	swagger validate ./swagger.json
