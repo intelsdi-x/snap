@@ -20,8 +20,13 @@ limitations under the License.
 package v2
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core"
@@ -33,17 +38,46 @@ type PolicyTable cpolicy.RuleTable
 
 type PolicyTableSlice []cpolicy.RuleTable
 
-// cdata.ConfigDataNode implements it's own UnmarshalJSON
+// PluginConfigItem represents cdata.ConfigDataNode which implements it's own UnmarshalJSON.
+//
+// swagger:response PluginConfigResponse
 type PluginConfigItem struct {
-	cdata.ConfigDataNode
+	//in: body
+	Config cdata.ConfigDataNode `json:"config"`
+}
+
+// PluginConfigParam type
+//
+//swagger:parameters setPluginConfigItem
+type PluginConfigParam struct {
+	// in: formData
+	Config string `json:"config"`
+}
+
+// PluginConfigDeleteParams defines parameters for deleting a config.
+//
+// swagger:parameters deletePluginConfigItem
+type PluginConfigDeleteParams struct {
+	// required: true
+	// in: path
+	PName string `json:"pname"`
+	// required: true
+	// in: path
+	PVersion int `json:"pversion"`
+	// required: true
+	// in: path
+	// enum: collector, processor, publisher
+	PType string `json:"ptype"`
+	// in: formData
+	// required: true
+	Config []string `json:"config"`
 }
 
 func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	var err error
 	styp := p.ByName("type")
 	if styp == "" {
 		cdn := s.configManager.GetPluginConfigDataNodeAll()
-		item := &PluginConfigItem{ConfigDataNode: cdn}
+		item := &PluginConfigItem{cdn}
 		Write(200, item, w)
 		return
 	}
@@ -65,7 +99,7 @@ func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	}
 
 	cdn := s.configManager.GetPluginConfigDataNode(typ, name, iver)
-	item := &PluginConfigItem{ConfigDataNode: cdn}
+	item := &PluginConfigItem{cdn}
 	Write(200, item, w)
 }
 
@@ -73,6 +107,7 @@ func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
+
 	if styp != "" {
 		typ, err = getPluginType(styp)
 		if err != nil {
@@ -83,6 +118,13 @@ func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 
 	name := p.ByName("name")
 	sver := p.ByName("version")
+
+	src, err := deletePluginConfigItemHelper(r)
+	if err != nil {
+		Write(400, FromError(err), w)
+		return
+	}
+
 	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
@@ -91,11 +133,13 @@ func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 		}
 	}
 
-	src := []string{}
-	errCode, err := core.UnmarshalBody(&src, r.Body)
-	if errCode != 0 && err != nil {
-		Write(400, FromError(err), w)
-		return
+	if len(src) == 0 {
+		src = []string{}
+		errCode, err := core.UnmarshalBody(&src, r.Body)
+		if errCode != 0 && err != nil {
+			Write(400, FromError(err), w)
+			return
+		}
 	}
 
 	var res cdata.ConfigDataNode
@@ -105,7 +149,7 @@ func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 		res = s.configManager.DeletePluginConfigDataNodeField(typ, name, iver, src...)
 	}
 
-	item := &PluginConfigItem{ConfigDataNode: res}
+	item := &PluginConfigItem{res}
 	Write(200, item, w)
 }
 
@@ -113,6 +157,7 @@ func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	var err error
 	var typ core.PluginType
 	styp := p.ByName("type")
+
 	if styp != "" {
 		typ, err = getPluginType(styp)
 		if err != nil {
@@ -123,6 +168,13 @@ func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 
 	name := p.ByName("name")
 	sver := p.ByName("version")
+
+	err = setPluginConfigItemHelper(r)
+	if err != nil {
+		Write(400, FromError(err), w)
+		return
+	}
+
 	iver := -2
 	if sver != "" {
 		if iver, err = strconv.Atoi(sver); err != nil {
@@ -145,7 +197,7 @@ func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 		res = s.configManager.MergePluginConfigDataNode(typ, name, iver, src)
 	}
 
-	item := &PluginConfigItem{ConfigDataNode: res}
+	item := &PluginConfigItem{res}
 	Write(200, item, w)
 }
 
@@ -158,4 +210,79 @@ func getPluginType(t string) (core.PluginType, error) {
 		return core.PluginType(-1), err
 	}
 	return ityp, nil
+}
+
+// deletePluginConfigItemHelper builds different forms of request data into the way method deletePluginConfigItem accepts.
+// currently it accepts go-swagger client, swagger-ui curl, and SnapCLI.
+func deletePluginConfigItemHelper(r *http.Request) ([]string, error) {
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+	defer r.Body.Close()
+
+	dm := map[string][]string{}
+	err = json.Unmarshal(buf, &dm)
+
+	sw := true
+	// No error needs to be returned here.
+	// As it explores different request formats.
+	// There is no way to detect a string is URLEncoded.
+	if err != nil {
+		sw = false
+
+		// go-swagger sends url-encoded form data.
+		// Unescaping is necessary.
+		data, _ := url.QueryUnescape(string(buf))
+		tokens := strings.Split(data, "=")
+		if len(tokens) == 2 {
+			itokens := strings.Split(tokens[1], ",")
+			dm["config"] = itokens
+			sw = true
+		}
+	}
+
+	var src []string
+	if sw {
+		src = dm["config"]
+	}
+	return src, nil
+}
+
+// setPluginConfigItemHelper accepts different forms of request data.
+// currently it accepts go-swagger client, swagger-ui, curl, and SnapCLI.
+func setPluginConfigItemHelper(r *http.Request) error {
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+	defer r.Body.Close()
+
+	dm := map[string]string{}
+	err = json.Unmarshal(buf, &dm)
+
+	sw := true
+	// No error needs to be returned here.
+	// As it explores different request formats.
+	// There is no way to detect a string is URLEncoded.
+	if err != nil {
+		sw = false
+
+		data, _ := url.QueryUnescape(string(buf))
+		tokens := strings.Split(data, "=")
+		if len(tokens) == 2 {
+			dm["config"] = tokens[1]
+			sw = true
+		}
+	}
+
+	if sw {
+		cfg := dm["config"]
+		r.Body = ioutil.NopCloser(strings.NewReader(cfg))
+		r.ContentLength = int64(len(cfg))
+	}
+	return nil
 }

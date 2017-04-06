@@ -169,10 +169,14 @@ func (p *ConfigPolicyNode) Add(rules ...Rule) {
 
 type RuleTableSlice []RuleTable
 
+// RuleTable defines a named property characteristics.
 type RuleTable struct {
-	Name     string      `json:"name"`
-	Type     string      `json:"type"`
-	Default  interface{} `json:"default,omitempty"`
+	// required: true
+	Name string `json:"name"`
+	// required: true
+	Type    string      `json:"type"`
+	Default interface{} `json:"default,omitempty"`
+	// required: true
 	Required bool        `json:"required"`
 	Minimum  interface{} `json:"minimum,omitempty"`
 	Maximum  interface{} `json:"maximum,omitempty"`

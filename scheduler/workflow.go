@@ -132,13 +132,13 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 		// If version is not 1+ we use -1 to indicate we want
 		// the plugin manager to select the highest version
 		// available on plugin calls
-		if p.Version < 1 {
-			p.Version = -1
+		if p.PluginVersion < 1 {
+			p.PluginVersion = -1
 		}
-		p.Name = strings.ToLower(p.Name)
+		p.PluginName = strings.ToLower(p.PluginName)
 		prNodes[i] = &processNode{
-			name:         p.Name,
-			version:      p.Version,
+			name:         p.PluginName,
+			version:      p.PluginVersion,
 			config:       cdn,
 			Target:       p.Target,
 			ProcessNodes: prC,
@@ -162,9 +162,9 @@ func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error
 		if p.Version < 1 {
 			p.Version = -1
 		}
-		p.Name = strings.ToLower(p.Name)
+		p.PluginName = strings.ToLower(p.PluginName)
 		puNodes[i] = &publishNode{
-			name:    p.Name,
+			name:    p.PluginName,
 			version: p.Version,
 			config:  cdn,
 			Target:  p.Target,

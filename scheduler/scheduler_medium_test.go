@@ -288,11 +288,15 @@ func TestCreateTask(t *testing.T) {
 			task.Spin()
 
 			Convey("the task should be ended after reaching the end of window", func() {
+
 				// wait for task ended event (or timeout)
 				select {
 				case <-lse.Ended:
 				case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
 				}
+
+				// check if the task is ended
+				So(tsk.State(), ShouldEqual, core.TaskEnded)
 			})
 		})
 		Convey("Single run task firing on defined start time", func() {
@@ -313,6 +317,7 @@ func TestCreateTask(t *testing.T) {
 				case <-lse.Ended:
 				case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
 				}
+
 				// check if the task is ended
 				So(tsk.State(), ShouldEqual, core.TaskEnded)
 			})

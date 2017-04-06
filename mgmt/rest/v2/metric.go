@@ -33,26 +33,54 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// MetricsResp is the representation of metric operation response.
+//
+// swagger:response MetricsResponse
+type MetricsResp struct {
+	// in: body
+	Body struct {
+		Metrics []Metric `json:"metrics,omitempty"`
+	}
+}
+
+// MetricParams defines the input query params for get a specific metric.
+//
+// swagger:parameters getMetrics
+type MetricParams struct {
+	// in: query
+	Ns string `json:"ns"`
+	// in: query
+	Ver int `json:"ver"`
+}
+
 type MetricsResonse struct {
 	Metrics Metrics `json:"metrics,omitempty"`
 }
 
+// Metrics a slice of metric.
 type Metrics []Metric
 
+// Metric represents the metric type.
 type Metric struct {
-	LastAdvertisedTimestamp int64            `json:"last_advertised_timestamp,omitempty"`
-	Namespace               string           `json:"namespace,omitempty"`
-	Version                 int              `json:"version,omitempty"`
-	Dynamic                 bool             `json:"dynamic"`
-	DynamicElements         []DynamicElement `json:"dynamic_elements,omitempty"`
-	Description             string           `json:"description,omitempty"`
-	Unit                    string           `json:"unit,omitempty"`
-	Policy                  PolicyTableSlice `json:"policy,omitempty"`
-	Href                    string           `json:"href"`
+	LastAdvertisedTimestamp int64 `json:"last_advertised_timestamp,omitempty"`
+	// required: true
+	Namespace string `json:"namespace,omitempty"`
+	Version   int    `json:"version,omitempty"`
+	// Dynamic boolean representation if the metric has dynamic element.
+	Dynamic bool `json:"dynamic"`
+	// DynamicElements slice of dynamic elements.
+	DynamicElements []DynamicElement `json:"dynamic_elements,omitempty"`
+	Description     string           `json:"description,omitempty"`
+	Unit            string           `json:"unit,omitempty"`
+	// Policy a slice of metric rules.
+	Policy PolicyTableSlice `json:"policy,omitempty"`
+	Href   string           `json:"href"`
 }
 
+// DynamicElement defines the dynamic element of a metric.
 type DynamicElement struct {
-	Index       int    `json:"index,omitempty"`
+	Index int `json:"index,omitempty"`
+	// required: true
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 }
@@ -77,6 +105,7 @@ func (s *apiV2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.
 	q := r.URL.Query()
 	v := q.Get("ver")
 	ns_query := q.Get("ns")
+
 	if ns_query != "" {
 		ver := 0 // 0: get all versions
 		if v != "" {
@@ -112,11 +141,12 @@ func (s *apiV2) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.
 }
 
 func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.ResponseWriter) {
-	b := MetricsResonse{Metrics: make(Metrics, 0)}
+	metrics := make(Metrics, 0)
+
 	for _, m := range mts {
 		policies := PolicyTableSlice(m.Policy().RulesAsTable())
 		dyn, indexes := m.Namespace().IsDynamic()
-		b.Metrics = append(b.Metrics, Metric{
+		metrics = append(metrics, Metric{
 			Namespace:               m.Namespace().String(),
 			Version:                 m.Version(),
 			LastAdvertisedTimestamp: m.LastAdvertisedTime().Unix(),
@@ -128,7 +158,11 @@ func respondWithMetrics(host string, mts []core.CatalogedMetric, w http.Response
 			Href:                    catalogedMetricURI(host, m),
 		})
 	}
-	sort.Sort(b.Metrics)
+	sort.Sort(metrics)
+
+	b := MetricsResonse{
+		Metrics: metrics,
+	}
 	Write(200, b, w)
 }
 

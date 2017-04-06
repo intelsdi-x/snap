@@ -56,25 +56,302 @@ func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *apiV2 {
 
 func (s *apiV2) GetRoutes() []api.Route {
 	routes := []api.Route{
-		// plugin routes
+		// swagger:route GET /plugins plugins getPlugins
+		//
+		// Get All
+		//
+		// An empty list is returned if there are no loaded plugins.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: PluginsResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
+		// swagger:route GET /plugins/{ptype}/{pname}/{pversion} plugins getPlugin
+		//
+		// Get
+		//
+		// An error will be returned if the plugin does not exist.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: PluginResponse
+		// 400: ErrorResponse
+		// 404: ErrorResponse
+		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version", Handle: s.getPlugin},
+		// swagger:route POST /plugins plugins loadPlugin
+		//
+		// Load
+		//
+		// A plugin binary is required.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		// multipart/form-data
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		// multipart/form-data
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 201: PluginResponse
+		// 400: ErrorResponse
+		// 409: ErrorResponse
+		// 415: ErrorResponse
+		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
+		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion} plugins unloadPlugin
+		//
+		// Unload
+		//
+		// Required fields are plugin type, name and version.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		// text/plain
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		// text/plain
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 204: PluginResponse
+		// 400: ErrorResponse
+		// 404: ErrorResponse
+		// 409: ErrorResponse
+		// 500: ErrorResponse
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version", Handle: s.unloadPlugin},
-
+		// swagger:route GET /plugins/{ptype}/{pname}/{pversion}/config plugins getPluginConfigItem
+		//
+		// Get Config
+		//
+		// An empty config is returned if there are no configs for the plugin.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: PluginConfigResponse
+		// 400: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.getPluginConfigItem},
+		// swagger:route PUT /plugins/{ptype}/{pname}/{pversion}/config plugins setPluginConfigItem
+		//
+		// Set Config
+		//
+		// A config is JSON. For example: {"user":"snap", "host":"ocean_eleven"}.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: PluginConfigResponse
+		// 400: ErrorResponse
 		api.Route{Method: "PUT", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.setPluginConfigItem},
+		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion}/config plugins deletePluginConfigItem
+		//
+		// Delete Config
+		//
+		// A minimum of one config key is required for this operation.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: PluginConfigResponse
+		// 400: ErrorResponse
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.deletePluginConfigItem},
-
-		// metric routes
+		// swagger:route GET /metrics plugins getMetrics
+		//
+		// Get Metrics
+		//
+		// An empty list returns if there is no loaded metrics.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: MetricsResponse
+		// 404: ErrorResponse
+		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/metrics", Handle: s.getMetrics},
-
-		// task routes
+		// swagger:route GET /tasks tasks getTasks
+		//
+		// Get All
+		//
+		// An empty list returns if no tasks exist.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: TasksResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks", Handle: s.getTasks},
+		// swagger:route GET /tasks/{id} tasks getTask
+		//
+		// Get
+		//
+		// The task ID is required.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: TaskResponse
+		// 404: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id", Handle: s.getTask},
+		// swagger:route GET /tasks/{id}/watch tasks watchTask
+		//
+		// Watch
+		//
+		// The task ID is required.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		// text/event-stream
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		// text/event-stream
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 200: TaskWatchResponse
+		// 404: ErrorResponse
+		// 500: ErrorResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id/watch", Handle: s.watchTask},
+		// swagger:route POST /tasks tasks addTask
+		//
+		// Add
+		//
+		// A string representation of Snap task manifest is required.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 201: TaskResponse
+		// 500: ErrorResponse
 		api.Route{Method: "POST", Path: prefix + "/tasks", Handle: s.addTask},
+		// swagger:route PUT /tasks/{id} tasks updateTaskState
+		//
+		// Enable/Start/Stop
+		//
+		// The task ID is required.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 204: TaskResponse
+		// 400: ErrorResponse
+		// 409: ErrorResponse
+		// 500: ErrorResponse
 		api.Route{Method: "PUT", Path: prefix + "/tasks/:id", Handle: s.updateTaskState},
+		// swagger:route DELETE /tasks/{id} tasks removeTask
+		//
+		// Remove
+		//
+		// The task ID is required.
+		//
+		// Consumes:
+		// application/json
+		// application/x-protobuf
+		//
+		// Produces:
+		// application/json
+		// application/x-protobuf
+		//
+		// Schemes: http, https
+		//
+		// Responses:
+		// 204: TaskResponse
+		// 404: ErrorResponse
+		// 500: TaskErrorResponse
 		api.Route{Method: "DELETE", Path: prefix + "/tasks/:id", Handle: s.removeTask},
 	}
 	return routes

@@ -134,9 +134,9 @@ func TestWfPublishProcessNodes(t *testing.T) {
 		wmap.CollectNode.AddConfigItem("/foo/bar", "user", "stu")
 
 		pr1 := &ProcessWorkflowMapNode{
-			Name:    "oslo",
-			Version: 1,
-			Config:  make(map[string]interface{}),
+			PluginName:    "oslo",
+			PluginVersion: 1,
+			Config:        make(map[string]interface{}),
 		}
 
 		pr1.Config["version"] = "kilo"
