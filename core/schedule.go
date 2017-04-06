@@ -32,7 +32,7 @@ import (
 // swagger:model Schedule
 type Schedule struct {
 	// required: true
-	// enum: simple, windowed, cron
+	// enum: simple, windowed, streaming, cron
 	Type string `json:"type"`
 	// required: true
 	Interval       string     `json:"interval"`

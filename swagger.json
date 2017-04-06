@@ -1111,6 +1111,7 @@
           "enum": [
             "simple",
             " windowed",
+            " streaming",
             " cron"
           ],
           "x-go-name": "Type"
