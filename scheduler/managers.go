@@ -53,7 +53,7 @@ func (m *managers) Add(key string, val managesMetrics) {
 
 // Returns the managesMetric instance that maps to given
 // string. If an empty string is given, will instead return
-// the local instance passed in on initializiation.
+// the local instance passed in on initialization.
 func (m *managers) Get(key string) (managesMetrics, error) {
 	if key == "" {
 		return m.local, nil

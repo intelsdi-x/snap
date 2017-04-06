@@ -779,6 +779,13 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 		task, _ := s.getTask(v.TaskID)
 		task.UnsubscribePlugins()
 		s.taskWatcherColl.handleTaskDisabled(v.TaskID, v.Why)
+	case *scheduler_event.PluginsUnsubscribedEvent:
+		log.WithFields(log.Fields{
+			"_module":         "scheduler-events",
+			"_block":          "handle-events",
+			"event-namespace": e.Namespace(),
+			"task-id":         v.TaskID,
+		}).Debug("event received")
 	default:
 		log.WithFields(log.Fields{
 			"_module":         "scheduler-events",
