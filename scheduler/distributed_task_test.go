@@ -320,20 +320,19 @@ func TestDistributedSubscriptions(t *testing.T) {
 				schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
 				terrs := s.StartTask(t.ID())
 				So(terrs, ShouldBeNil)
+				// wait for the task to stop and plugins to be unsubscribed (or timeout)
+				select {
+				case event := <-lse.UnsubscribedPluginEvents:
+					So(event.TaskID, ShouldEqual, t.ID())
+				case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
+				}
 
 				Convey("So all dependencies should have been subscribed to", func() {
 					So(localMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 				})
 				Convey("Task should be ended after one interval", func() {
-					// wait for the end of the task (or timeout)
-					select {
-					case <-lse.Ended:
-					case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
-					}
-
 					So(t.State(), ShouldEqual, core.TaskEnded)
-
 					Convey("So all dependencies should have been usubscribed", func() {
 						So(remoteMockManager.UnsubscribeCallCount, ShouldEqual, remoteMockManager.SubscribeCallCount)
 						So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.SubscribeCallCount)
@@ -370,9 +369,10 @@ func TestDistributedSubscriptions(t *testing.T) {
 					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
 				})
 				Convey("Task should have been ended after reaching the end of window", func() {
-					// wait for the end of the task (or timeout)
+					// wait for the task to stop and plugins to be unsubscribed (or timeout)
 					select {
-					case <-lse.Ended:
+					case event := <-lse.UnsubscribedPluginEvents:
+						So(event.TaskID, ShouldEqual, t.ID())
 					case <-time.After(stop.Add(interval + 1*time.Second).Sub(start)):
 					}
 

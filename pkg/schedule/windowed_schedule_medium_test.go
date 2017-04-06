@@ -330,7 +330,7 @@ func TestWindowedSchedule(t *testing.T) {
 	}) // the end of `Nominal windowed Schedule`
 
 	Convey("Windowed Schedule with determined the count of runs", t, func() {
-		interval := time.Millisecond * 10
+		interval := time.Second
 
 		Convey("expected to start immediately", func() {
 			Convey("single run", func() {
@@ -523,8 +523,6 @@ func TestWindowedSchedule(t *testing.T) {
 		Convey("started in the past", func() {
 			startWait := time.Millisecond * -200
 			count := uint(1)
-			interval := time.Millisecond * 10
-
 			start := time.Now().Add(startWait)
 			w := NewWindowedSchedule(
 				interval,
@@ -564,7 +562,6 @@ func TestWindowedSchedule(t *testing.T) {
 		Convey("with determined stop", func() {
 			startWait := time.Millisecond * 50
 			windowSize := time.Millisecond * 200
-			interval := time.Millisecond * 10
 			count := uint(1)
 
 			start := time.Now().Add(startWait)
