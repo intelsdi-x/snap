@@ -1,0 +1,14 @@
+---
+  version: 1
+  schedule: 
+    type: "simple"
+    interval: "1s"
+  workflow: 
+    collect: 
+      metrics: 
+        /intel/mock/foo: {}
+      config: 
+        /intel/mock: 
+          name: "root"
+          password: "secret"          
+          time_to_wait: "5s"
