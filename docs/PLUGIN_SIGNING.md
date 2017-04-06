@@ -3,7 +3,7 @@ Plugin Signing
 # Security
 By default, the Snap daemon (snapteld) has plugin signing verification enabled. To disable it or turn it to warning, the flag `--plugin-trust, -t` can be set to 0 or 2 respectively.
 
-##How it works
+## How it works
 ![How it works](https://cloud.githubusercontent.com/assets/14298289/19846788/de129a2a-9f4a-11e6-8275-fdd5fac63c82.png)  
 
 
@@ -14,7 +14,7 @@ The Snap daemon uses the [Golang OpenPGP library](https://godoc.org/golang.org/x
 openpgp.CheckArmoredDetachedSignature(keyring, signed, signature)
 ```
 
-##Usage
+## Usage
 ```
 snapteld
   --plugin-trust, -t '1'		0-2 (Disabled, Enabled, Warning) [$SNAP_TRUST_LEVEL]
@@ -43,22 +43,22 @@ Loading a single plugin using $SNAP_PATH/bin/snaptel
 $ $SNAP_PATH/bin/snaptel plugin load <pluginFile> -a <pluginFile>.asc
 ```
 
-####Examples
-#####No keyring, trust enabled/warning
+#### Examples
+##### No keyring, trust enabled/warning
 ```
 $ $SNAP_PATH/bin/snapteld -l 1
 
 INFO[0000] setting plugin trust level to: enabled
 FATA[0000] need keyring file when trust is on (--keyring-file or -k)  _module=snapteld block=main
 ```
-#####Invalid Keyring
+##### Invalid Keyring
 Keyring doesn't exist
 ```    
 $ $SNAP_PATH/bin/snapteld -l 1 -k /Users/tiffany/.gnupg/pubring.gpg:/Users/tiffany/.gnupg/stuff.gpg
 INFO[0000] adding keyring file /Users/tiffany/.gnupg/pubring.gpg
 FATA[0000] bad keyring file                              _module=snapteld block=main error=stat /Users/tiffany/.gnupg/stuff.gpg: no such file or directory keyringPath=/Users/tiffany/.gnupg/stuff.gpg
 ```
-#####Correct Keyring, trust enabled
+##### Correct Keyring, trust enabled
 Valid signature
 ```
 $ $SNAP_PATH/bin/snapteld -l 1 -k /Users/tiffany/.gnupg/
@@ -132,7 +132,7 @@ INFO[0002] Loading plugin: /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/0574
 ERRO[0002] Error checking signature
 openpgp: signature made by unknown entity  _module=_mgmt-rest
 ```
-#####Correct keyring, trust warning
+##### Correct keyring, trust warning
 ```
 $ $SNAP_PATH/bin/snapteld -l 1 -k ~/.gnupg/pubring.gpg -t 2
 INFO[0000] setting plugin trust level to: warning
@@ -164,8 +164,8 @@ Good signature from Tiffany Jernigan (ACI signing key) <my.email@intel.com>
 WARN[0355] Loading unsigned plugin /var/folders/kh/v2qy5_zx3zlgbc0gll7fzjnm0000gp/T/205904491/snap-plugin-collector-mock2  _block=load _module=control
 ```
 
-##Creating Signing Files and Validating Signature
-###Creating a key for plugin signing
+## Creating Signing Files and Validating Signature
+### Creating a key for plugin signing
 The following is leveraged from the [CoreOS RKT Signing and Verification Guide](https://coreos.com/rkt/docs/0.5.4/signing-and-verification-guide.html)
 
 
@@ -186,12 +186,12 @@ Passphrase: snap
 %commit
 %echo done
 ```
-#####Generate the key using batch mode
+##### Generate the key using batch mode
 ```
 $ gpg --batch --gen-key gpg-batch
 ```
 
-#####List the keys
+##### List the keys
 ```
 $ gpg --no-default-keyring --secret-keyring ./snap.secring --keyring ./snap.pubring \
 --list-keys
@@ -248,22 +248,22 @@ unless you restart the program.
 
 gpg> quit
 ```
-#####Export the public key
+##### Export the public key
 ```
 $ gpg --no-default-keyring --armor \
 --secret-keyring ./snap.secring --keyring ./snap.pubring \
 --export my.email@intel.com > pubkeys.gpg
 ```
 
-###Signing the plugin/plugin package using generated keyrings
-#####Sign file
+### Signing the plugin/plugin package using generated keyrings
+##### Sign file
 ```
 $ gpg --no-default-keyring --armor \
 --secret-keyring ./snap.secring --keyring ./snap.pubring \
 --output <pluginFile>.asc \
 --detach-sig <pluginFile>
 ```
-#####Verify the image using gpg
+##### Verify the image using gpg
 ```
 $ gpg --no-default-keyring \
 --secret-keyring ./snap.secring --keyring ./snap.pubring \
@@ -274,7 +274,7 @@ gpg: Signature made Wed Nov  4 14:24:18 2015 PST using RSA key ID 0BC6D4D7
 gpg: Good signature from "Tiffany Jernigan (Plugin signing key) <my.email@intel.com>
 ```
 
-###Signing file using key in your default keyring
+### Signing file using key in your default keyring
 If you already have a key, you can use that. Otherwise, you can create a key and directly add to your keyring  
 Create a file named `gpg-batch` with the following
 ```
@@ -291,7 +291,7 @@ Passphrase: snap
 %commit
 %echo done
 ```
-#####Generate the key using batch mode
+##### Generate the key using batch mode
 ```
 $ gpg --batch --gen-key gpg-batch
 ```
@@ -306,17 +306,17 @@ uid                  Tiffany Jernigan (Main signing key) <my.email@intel.com>
 sub   2048R/2ED40FB2 2015-08-22
 ```
 
-#####Sign file
+##### Sign file
 ```
 $ gpg --armor --output <pluginFile>.asc --detach-sig <pluginFile>
 ```
-#####Verify the image using gpg
+##### Verify the image using gpg
 ```
 $ gpg --verify <pluginFile>.asc <pluginFile>
 ```
 
-###Keyring
-####Adding to your keyring
+### Keyring
+#### Adding to your keyring
 If you only have one key, you can use the `snap.pubring` you just made as your `<keyringFile>`. For multiple you can just separate them by a colon (e.g. <keyringFile1>:<keyringFile2> ) . If you want to add future pubkeys.gpg files to an existing keyring you can do:
 ```
 $ gpg --no-default-keyring --keyring <keyringFile> --import pubkeys.gpg
@@ -325,7 +325,7 @@ If you just want to add to your gnupg default keyring (e.g. `~/.gnupg/pubring.gp
 ```
 $ gpg --import pubkeys.gpg
 ```
-####Validating a public key from someone else
+#### Validating a public key from someone else
 From the [GPG Handbook](https://www.gnupg.org/gph/en/manual/x56.html):  
 Once a key is imported it should be validated. GnuPG uses a powerful and flexible trust model that does not require you to personally validate each key you import. Some keys may need to be personally validated, however. A key is validated by verifying the key's fingerprint and then signing the key to certify it as a valid key. A key's fingerprint can be quickly viewed with the --fingerprint command-line option, but in order to certify the key, you must edit it.
 
