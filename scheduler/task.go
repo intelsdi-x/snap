@@ -304,8 +304,11 @@ func (t *task) stream() {
 			}
 			select {
 			case <-t.killChan:
+				t.Lock()
 				t.state = core.TaskStopped
-				break
+				t.Unlock()
+				done = true
+				return
 			case mts, ok := <-metricsChan:
 				if !ok {
 					metricsChan = nil
