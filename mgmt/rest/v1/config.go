@@ -20,6 +20,7 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -148,6 +149,9 @@ func (s *apiV1) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 
 func getPluginType(t string) (core.PluginType, error) {
 	if ityp, err := strconv.Atoi(t); err == nil {
+		if !core.CheckPluginType(core.PluginType(ityp)) {
+			return core.PluginType(-1), fmt.Errorf("invalid plugin type id given %d", ityp)
+		}
 		return core.PluginType(ityp), nil
 	}
 	ityp, err := core.ToPluginType(t)
