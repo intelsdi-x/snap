@@ -172,7 +172,7 @@ func (a Arg) SetTLSEnabled(tlsEnabled bool) Arg {
 	return a
 }
 
-//
+// NewArg returns new plugin arguments structure
 func NewArg(logLevel int, pprof bool) Arg {
 	return Arg{
 		LogLevel:            log.Level(logLevel),

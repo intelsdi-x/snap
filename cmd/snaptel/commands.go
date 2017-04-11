@@ -101,7 +101,7 @@ var (
 			Subcommands: []cli.Command{
 				{
 					Name:   "load",
-					Usage:  "load <plugin_path>",
+					Usage:  "load <plugin_path> [--plugin-cert=<plugin_cert_path> --plugin-key=<plugin_key_path>]",
 					Action: loadPlugin,
 					Flags: []cli.Flag{
 						flPluginAsc,
@@ -116,7 +116,7 @@ var (
 				},
 				{
 					Name:   "swap",
-					Usage:  "swap <load_plugin_path> <unload_plugin_type>:<unload_plugin_name>:<unload_plugin_version> or swap <load_plugin_path> -t <unload_plugin_type> -n <unload_plugin_name> -v <unload_plugin_version>",
+					Usage:  "swap <load_plugin_path> <unload_plugin_type>:<unload_plugin_name>:<unload_plugin_version> or swap <load_plugin_path> -t <unload_plugin_type> -n <unload_plugin_name> -v <unload_plugin_version> [--plugin-cert=<plugin_cert_path> --plugin-key=<plugin_key_path>]",
 					Action: swapPlugins,
 					Flags: []cli.Flag{
 						flPluginAsc,

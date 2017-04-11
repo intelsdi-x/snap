@@ -29,6 +29,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/intelsdi-x/snap/mgmt/rest/v1"
 	"github.com/urfave/cli"
 )
 
@@ -210,25 +211,28 @@ func listPlugins(ctx *cli.Context) error {
 func storeTLSPaths(ctx *cli.Context, paths []string) ([]string, error) {
 	pCert := ctx.String("plugin-cert")
 	pKey := ctx.String("plugin-key")
+	if pCert != pKey && (pCert == "" || pKey == "") {
+		return paths, fmt.Errorf("Error processing plugin TLS arguments - one of (certificate, key) arguments is missing")
+	}
 	if pCert != "" {
-		tmpFile, err := ioutil.TempFile("", "crt.")
+		tmpFile, err := ioutil.TempFile("", v1.TLSCertPrefix)
 		if err != nil {
-			return paths, fmt.Errorf("Error processing plugin certificate - unable to create link:\n%v", err.Error())
+			return paths, fmt.Errorf("Error processing plugin TLS certificate - unable to create link:\n%v", err.Error())
 		}
 		_, err = tmpFile.WriteString(pCert)
 		if err != nil {
-			return paths, fmt.Errorf("Error processing plugin certificate - unable to write link:\n%v", err.Error())
+			return paths, fmt.Errorf("Error processing plugin TLS certificate - unable to write link:\n%v", err.Error())
 		}
 		paths = append(paths, tmpFile.Name())
 	}
 	if pKey != "" {
-		tmpFile, err := ioutil.TempFile("", "key.")
+		tmpFile, err := ioutil.TempFile("", v1.TLSKeyPrefix)
 		if err != nil {
-			return paths, fmt.Errorf("Error processing plugin key - unable to create link:\n%v", err.Error())
+			return paths, fmt.Errorf("Error processing plugin TLS key - unable to create link:\n%v", err.Error())
 		}
 		_, err = tmpFile.WriteString(pKey)
 		if err != nil {
-			return paths, fmt.Errorf("Error processing plugin key - unable to write link:\n%v", err.Error())
+			return paths, fmt.Errorf("Error processing plugin TLS key - unable to write link:\n%v", err.Error())
 		}
 		paths = append(paths, tmpFile.Name())
 	}

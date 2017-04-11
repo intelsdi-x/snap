@@ -135,14 +135,14 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			case i < 4:
 				if filepath.Ext(p.FileName()) == ".asc" {
 					signature = b
-				} else if strings.HasPrefix(p.FileName(), "crt.") {
+				} else if strings.HasPrefix(p.FileName(), TLSCertPrefix) {
 					certPath = string(b)
 					if _, err := os.Stat(certPath); os.IsNotExist(err) {
 						e := errors.New("Error: given certificate file is not available")
 						rbody.Write(500, rbody.FromError(e), w)
 						return
 					}
-				} else if strings.HasPrefix(p.FileName(), "key.") {
+				} else if strings.HasPrefix(p.FileName(), TLSKeyPrefix) {
 					keyPath = string(b)
 					if _, err := os.Stat(keyPath); os.IsNotExist(err) {
 						e := errors.New("Error: given key file is not available")

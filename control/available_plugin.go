@@ -42,7 +42,7 @@ import (
 )
 
 const (
-	// DefaultClientTimeout - default timeout for a client connection attempt
+	// DefaultClientTimeout - default timeout for RPC method completion
 	DefaultClientTimeout = time.Second * 10
 	// DefaultHealthCheckTimeout - default timeout for a health check
 	DefaultHealthCheckTimeout = time.Second * 10
