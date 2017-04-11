@@ -20,6 +20,7 @@ limitations under the License.
 package v2
 
 import (
+	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
 	"errors"
@@ -40,49 +41,103 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// PluginResponse represents the response from plugin operations.
+//
+// swagger:response PluginResponse
+type PluginResponse struct {
+	// List of a plugin
+	//
+	// in: body
+	Plugin Plugin `json:"plugin,omitempty"`
+}
+
+// PluginsResp represents the response from plugins operations.
+//
+// swagger:response PluginsResponse
+type PluginsResp struct {
+	// List of plugins
+	//
+	// in: body
+	Body struct {
+		Plugins []Plugin `json:"plugins,omitempty"`
+	}
+}
+
 type PluginsResponse struct {
-	RunningPlugins []RunningPlugin `json:"running_plugins,omitempty"`
-	Plugins        []Plugin        `json:"plugins,omitempty"`
+	Plugins []Plugin `json:"plugins,omitempty"`
 }
 
+// Plugin represents a plugin type definition.
 type Plugin struct {
-	Name            string        `json:"name"`
-	Version         int           `json:"version"`
-	Type            string        `json:"type"`
-	Signed          bool          `json:"signed"`
-	Status          string        `json:"status"`
-	LoadedTimestamp int64         `json:"loaded_timestamp"`
-	Href            string        `json:"href"`
-	ConfigPolicy    []PolicyTable `json:"policy,omitempty"`
+	Name             string        `json:"name"`
+	Version          int           `json:"version"`
+	Type             string        `json:"type"`
+	Signed           bool          `json:"signed"`
+	Status           string        `json:"status"`
+	LoadedTimestamp  int64         `json:"loaded_timestamp,omitempty"`
+	Href             string        `json:"href,omitempty"`
+	ConfigPolicy     []PolicyTable `json:"config_policy,omitempty"`
+	HitCount         int           `json:"hitcount,omitempty"`
+	LastHitTimestamp int64         `json:"last_hit_timestamp,omitempty"`
+	ID               uint32        `json:"id,omitempty"`
+	PprofPort        string        `json:"pprof_port,omitempty"`
 }
 
-type RunningPlugin struct {
-	Name             string `json:"name"`
-	Version          int    `json:"version"`
-	Type             string `json:"type"`
-	HitCount         int    `json:"hitcount"`
-	LastHitTimestamp int64  `json:"last_hit_timestamp"`
-	ID               uint32 `json:"id"`
-	Href             string `json:"href"`
-	PprofPort        string `json:"pprof_port"`
+// PluginParams represents the request path plugin name, version and type.
+//
+// swagger:parameters getPlugin unloadPlugin getPluginConfigItem setPluginConfigItem
+type PluginParams struct {
+	// required: true
+	// in: path
+	PName string `json:"pname"`
+	// required: true
+	// in: path
+	PVersion int `json:"pversion"`
+	// required: true
+	// in: path
+	// enum: collector, processor, publisher
+	PType string `json:"ptype"`
 }
 
-type plugin struct {
-	name       string
-	version    int
-	pluginType string
+// PluginsParams represents the query parameters for getting a list of plugins.
+//
+// swagger:parameters getPlugins
+type PluginsParams struct {
+	// in: query
+	Name string `json:"name"`
+	// in: query
+	// enum: collector, processor, publisher
+	Type string `json:"type"`
+	// in: query
+	Running bool `json:"running"`
 }
 
-func (p *plugin) Name() string {
-	return p.name
+// PluginPostParams defines type for loading a plugin.
+//
+// swagger:parameters loadPlugin
+type PluginPostParams struct {
+	// loads a plugin.
+	//
+	// in:formData
+	//
+	// swagger:file
+	PluginData *bytes.Buffer `json:"plugin_data"`
 }
 
-func (p *plugin) Version() int {
-	return p.version
+// Name plugin name string
+func (p *PluginParams) Name() string {
+	return p.PName
 }
 
-func (p *plugin) TypeName() string {
-	return p.pluginType
+// Version plugin version integer
+func (p *PluginParams) Version() int {
+	return p.PVersion
+}
+
+// TypeName plugin type string.
+// They are collector, processor and publisher.
+func (p *PluginParams) TypeName() string {
+	return p.PType
 }
 
 func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -221,10 +276,10 @@ func (s *apiV2) unloadPlugin(w http.ResponseWriter, r *http.Request, p httproute
 		return
 	}
 
-	_, se = s.metricManager.Unload(&plugin{
-		name:       plName,
-		version:    plVersion,
-		pluginType: plType,
+	_, se = s.metricManager.Unload(&PluginParams{
+		PName:    plName,
+		PVersion: plVersion,
+		PType:    plType,
 	})
 
 	// 404 - plugin not found
@@ -253,36 +308,26 @@ func (s *apiV2) getPlugins(w http.ResponseWriter, r *http.Request, params httpro
 	plType := q.Get("type")
 	nbFilter := Btoi(plName != "") + Btoi(plType != "")
 
+	var plugins []Plugin
 	if _, detail := r.URL.Query()["running"]; detail {
 		// get running plugins
-		plugins := runningPluginsBody(r.Host, s.metricManager.AvailablePlugins())
-		filteredPlugins := []RunningPlugin{}
-		if nbFilter > 0 {
-			for _, p := range plugins {
-				if nbFilter == 1 && (p.Name == plName || p.Type == plType) || nbFilter == 2 && (p.Name == plName && p.Type == plType) {
-					filteredPlugins = append(filteredPlugins, p)
-				}
-			}
-		} else {
-			filteredPlugins = plugins
-		}
-		Write(200, PluginsResponse{RunningPlugins: filteredPlugins}, w)
+		plugins = runningPluginsBody(r.Host, s.metricManager.AvailablePlugins())
 	} else {
 		// get plugins from the plugin catalog
-		plugins := pluginCatalogBody(r.Host, s.metricManager.PluginCatalog())
-		filteredPlugins := []Plugin{}
-
-		if nbFilter > 0 {
-			for _, p := range plugins {
-				if nbFilter == 1 && (p.Name == plName || p.Type == plType) || nbFilter == 2 && (p.Name == plName && p.Type == plType) {
-					filteredPlugins = append(filteredPlugins, p)
-				}
-			}
-		} else {
-			filteredPlugins = plugins
-		}
-		Write(200, PluginsResponse{Plugins: filteredPlugins}, w)
+		plugins = pluginCatalogBody(r.Host, s.metricManager.PluginCatalog())
 	}
+
+	filteredPlugins := []Plugin{}
+	if nbFilter > 0 {
+		for _, p := range plugins {
+			if nbFilter == 1 && (p.Name == plName || p.Type == plType) || nbFilter == 2 && (p.Name == plName && p.Type == plType) {
+				filteredPlugins = append(filteredPlugins, p)
+			}
+		}
+	} else {
+		filteredPlugins = plugins
+	}
+	Write(200, PluginsResponse{Plugins: filteredPlugins}, w)
 }
 
 func Btoi(b bool) int {
@@ -312,10 +357,10 @@ func catalogedPluginBody(host string, c core.CatalogedPlugin) Plugin {
 	}
 }
 
-func runningPluginsBody(host string, c []core.AvailablePlugin) []RunningPlugin {
-	plugins := make([]RunningPlugin, len(c))
+func runningPluginsBody(host string, c []core.AvailablePlugin) []Plugin {
+	plugins := make([]Plugin, len(c))
 	for i, p := range c {
-		plugins[i] = RunningPlugin{
+		plugins[i] = Plugin{
 			Name:             p.Name(),
 			Version:          p.Version(),
 			Type:             p.TypeName(),

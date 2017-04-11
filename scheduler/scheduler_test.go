@@ -164,12 +164,12 @@ func TestScheduler(t *testing.T) {
 		s.SetMetricManager(c)
 		w := wmap.NewWorkflowMap()
 		// Collection node
-		w.CollectNode.AddMetric("/foo/bar", 1)
-		w.CollectNode.AddMetric("/foo/baz", 2)
-		w.CollectNode.AddConfigItem("/foo/bar", "username", "root")
-		w.CollectNode.AddConfigItem("/foo/bar", "port", 8080)
-		w.CollectNode.AddConfigItem("/foo/bar", "ratio", 0.32)
-		w.CollectNode.AddConfigItem("/foo/bar", "yesorno", true)
+		w.Collect.AddMetric("/foo/bar", 1)
+		w.Collect.AddMetric("/foo/baz", 2)
+		w.Collect.AddConfigItem("/foo/bar", "username", "root")
+		w.Collect.AddConfigItem("/foo/bar", "port", 8080)
+		w.Collect.AddConfigItem("/foo/bar", "ratio", 0.32)
+		w.Collect.AddConfigItem("/foo/bar", "yesorno", true)
 
 		// Add a process node
 		pr1 := wmap.NewProcessNode("machine", 1)
@@ -193,8 +193,8 @@ func TestScheduler(t *testing.T) {
 
 		pr12.Add(pu2)
 		pr1.Add(pr12)
-		w.CollectNode.Add(pr1)
-		w.CollectNode.Add(pu1)
+		w.Collect.Add(pr1)
+		w.Collect.Add(pu1)
 
 		e := s.Start()
 		So(e, ShouldBeNil)

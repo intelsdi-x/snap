@@ -162,16 +162,16 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			// the mock plugin to be used.  '/intel/mock/test' will be coming from
 			// mock version 1 due to the global config above.
 			w := wmap.NewWorkflowMap()
-			w.CollectNode.AddMetric("/intel/mock/foo", -1)
-			w.CollectNode.AddMetric("/intel/mock/test", -1)
-			w.CollectNode.AddConfigItem("/intel/mock/foo", "password", "secret")
+			w.Collect.AddMetric("/intel/mock/foo", -1)
+			w.Collect.AddMetric("/intel/mock/test", -1)
+			w.Collect.AddConfigItem("/intel/mock/foo", "password", "secret")
 
 			pu := wmap.NewPublishNode("mock-file", 3)
 			pu.AddConfigItem("file", "/tmp/snap-TestCollectPublishWorkflow.out")
 			pr := wmap.NewProcessNode("passthru", 1)
 
 			pr.Add(pu)
-			w.CollectNode.Add(pr)
+			w.Collect.Add(pr)
 
 			Convey("Start scheduler", func() {
 				err := s.Start()
@@ -227,8 +227,8 @@ func TestProcessChainingWorkflow(t *testing.T) {
 			So(metrics, ShouldNotBeEmpty)
 
 			w := wmap.NewWorkflowMap()
-			w.CollectNode.AddMetric("/intel/mock/foo", 2)
-			w.CollectNode.AddConfigItem("/intel/mock/foo", "password", "secret")
+			w.Collect.AddMetric("/intel/mock/foo", 2)
+			w.Collect.AddConfigItem("/intel/mock/foo", "password", "secret")
 
 			pu := wmap.NewPublishNode("mock-file", 3)
 			pu.AddConfigItem("file", "/tmp/snap-TestCollectPublishWorkflow.out")
@@ -239,7 +239,7 @@ func TestProcessChainingWorkflow(t *testing.T) {
 
 			pr2.Add(pu)
 			pr1.Add(pr2)
-			w.CollectNode.Add(pr1)
+			w.Collect.Add(pr1)
 
 			Convey("Start scheduler", func() {
 				err := s.Start()
