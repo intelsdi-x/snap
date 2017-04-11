@@ -35,7 +35,7 @@ func loadPlugin(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) != 1 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
@@ -66,7 +66,7 @@ func loadPlugin(ctx *cli.Context) error {
 func unloadPlugin(ctx *cli.Context) error {
 	pType := ctx.Args().Get(0)
 	pName := ctx.Args().Get(1)
-	pVer, err := strconv.Atoi(ctx.Args().Get(2))
+	pVerStr := ctx.Args().Get(2)
 
 	if pType == "" {
 		return newUsageError("Must provide plugin type", ctx)
@@ -74,11 +74,16 @@ func unloadPlugin(ctx *cli.Context) error {
 	if pName == "" {
 		return newUsageError("Must provide plugin name", ctx)
 	}
+	if pVerStr == "" {
+		return newUsageError("Must provide plugin version", ctx)
+	}
+
+	pVer, err := strconv.Atoi(pVerStr)
 	if err != nil {
 		return newUsageError("Can't convert version string to integer", ctx)
 	}
 	if pVer < 1 {
-		return newUsageError("Must provide plugin version", ctx)
+		return newUsageError("Plugin version must be greater than zero", ctx)
 	}
 
 	r := pClient.UnloadPlugin(pType, pName, pVer)
@@ -99,7 +104,7 @@ func swapPlugins(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) < 1 || len(ctx.Args()) > 2 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
@@ -139,7 +144,7 @@ func swapPlugins(ctx *cli.Context) error {
 		return newUsageError("Must provide plugin name", ctx)
 	}
 	if pVer < 1 {
-		return newUsageError("Must provide plugin version", ctx)
+		return newUsageError("Plugin version must be greater than zero", ctx)
 	}
 
 	r := pClient.SwapPlugin(paths, pType, pName, pVer)

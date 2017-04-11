@@ -32,7 +32,7 @@ import (
 	"github.com/intelsdi-x/snap/scheduler"
 )
 
-// common ressources used for medium tests
+// common resources used for medium tests
 
 var (
 	// Switching this turns on logging for all the REST API calls

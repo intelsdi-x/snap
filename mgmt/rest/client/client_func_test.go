@@ -343,6 +343,25 @@ func TestSnapClient(t *testing.T) {
 			})
 		})
 
+		Convey("unload one of collector plugin", func() {
+			p := c.GetPlugins(false)
+			So(p.Err, ShouldBeNil)
+			So(len(p.LoadedPlugins), ShouldEqual, 3)
+
+			p2 := c.UnloadPlugin("collector", "mock", 2)
+			So(p2.Err, ShouldBeNil)
+			So(p2.Name, ShouldEqual, "mock")
+			So(p2.Version, ShouldEqual, 2)
+			So(p2.Type, ShouldEqual, "collector")
+
+			Convey("there should be two loaded plugins", func() {
+				p = c.GetPlugins(false)
+				So(p.Err, ShouldBeNil)
+				So(len(p.LoadedPlugins), ShouldEqual, 2)
+				So(p.AvailablePlugins, ShouldBeEmpty)
+			})
+		})
+
 		Convey("Tasks", func() {
 			Convey("Passing a bad task manifest", func() {
 				wfb := getWMFromSample("bad.json")
@@ -357,9 +376,8 @@ func TestSnapClient(t *testing.T) {
 					So(tt.Err, ShouldNotBeNil)
 				})
 
-				Convey("Creating a task with missing parameters (start_timestamp and stop_timestamp) "+
-					"for windowed schedule", func() {
-					incorrectSchedule := &Schedule{Type: "windowed", Interval: "1s"}
+				Convey("Creating a task with missing parameter (interval) for windowed schedule", func() {
+					incorrectSchedule := &Schedule{Type: "windowed"}
 					tt := c.CreateTask(incorrectSchedule, wf, "baron", "", true, 0)
 					So(tt.Err, ShouldNotBeNil)
 				})
@@ -374,27 +392,48 @@ func TestSnapClient(t *testing.T) {
 					correctSchedule := &Schedule{Type: "simple", Interval: "1s"}
 					tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
 					So(tt.Err, ShouldBeNil)
+					So(tt.State, ShouldEqual, "Running")
 				})
 
 				Convey("Creating a task with correct configuration for windowed schedule", func() {
-					startTime := time.Now().Add(time.Minute)
-					stopTime := time.Now().Add(2 * time.Minute)
-					correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
-						StartTimestamp: &startTime,
-						StopTimestamp:  &stopTime}
-					tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
-					So(tt.Err, ShouldBeNil)
+					Convey("regular window", func() {
+						startTime := time.Now().Add(time.Minute)
+						stopTime := time.Now().Add(2 * time.Minute)
+						correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
+							StartTimestamp: &startTime,
+							StopTimestamp:  &stopTime}
+						tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+						So(tt.Err, ShouldBeNil)
+						So(tt.State, ShouldEqual, "Running")
+					})
+					Convey("stop time is not set", func() {
+						startTime := time.Now().Add(time.Minute)
+						correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
+							StartTimestamp: &startTime}
+						tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+						So(tt.Err, ShouldBeNil)
+						So(tt.State, ShouldEqual, "Running")
+					})
+					Convey("start time is not set", func() {
+						stopTime := time.Now().Add(2 * time.Minute)
+						correctSchedule := &Schedule{Type: "windowed", Interval: "1s",
+							StopTimestamp: &stopTime}
+						tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
+						So(tt.Err, ShouldBeNil)
+						So(tt.State, ShouldEqual, "Running")
+					})
 				})
 
 				Convey("Creating a task with correct configuration for cron schedule", func() {
 					correctSchedule := &Schedule{Type: "cron", Interval: "1 1 1 1 1 1"}
 					tt := c.CreateTask(correctSchedule, wf, "baron", "", true, 0)
 					So(tt.Err, ShouldBeNil)
+					So(tt.State, ShouldEqual, "Running")
 				})
 			})
 
-			tf := c.CreateTask(sch, wf, "baron", "", false, 0)
 			Convey("valid task not started on creation", func() {
+				tf := c.CreateTask(sch, wf, "baron", "", false, 0)
 				So(tf.Err, ShouldBeNil)
 				So(tf.Name, ShouldEqual, "baron")
 				So(tf.State, ShouldEqual, "Stopped")
@@ -436,8 +475,8 @@ func TestSnapClient(t *testing.T) {
 				})
 			})
 
-			tt := c.CreateTask(sch, wf, "baron", "", true, 0)
 			Convey("valid task started on creation", func() {
+				tt := c.CreateTask(sch, wf, "baron", "", true, 0)
 				So(tt.Err, ShouldBeNil)
 				So(tt.Name, ShouldEqual, "baron")
 				So(tt.State, ShouldEqual, "Running")
@@ -533,6 +572,7 @@ func TestSnapClient(t *testing.T) {
 
 						a := new(ea)
 						r := c.WatchTask(tf.ID)
+						So(r.Err, ShouldBeNil)
 						wait := make(chan struct{})
 						go func() {
 							for {
@@ -554,10 +594,11 @@ func TestSnapClient(t *testing.T) {
 						So(startResp.Err, ShouldBeNil)
 						<-wait
 						a.Lock()
+						defer a.Unlock()
+
 						So(len(a.events), ShouldEqual, 5)
-						a.Unlock()
 						So(a.events[0], ShouldEqual, "task-started")
-						for x := 2; x <= 4; x++ {
+						for x := 1; x < 5; x++ {
 							So(a.events[x], ShouldEqual, "metric-event")
 						}
 					})
@@ -570,16 +611,15 @@ func TestSnapClient(t *testing.T) {
 				So(p.Err, ShouldNotBeNil)
 				So(p.Err.Error(), ShouldEqual, "plugin not found")
 			})
+			Convey("unload already unloaded plugin", func() {
+				p := c.UnloadPlugin("collector", "mock", 2)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "plugin not found")
+			})
 			Convey("unload one of multiple", func() {
 				p1 := c.GetPlugins(false)
 				So(p1.Err, ShouldBeNil)
-				So(len(p1.LoadedPlugins), ShouldEqual, 3)
-
-				p2 := c.UnloadPlugin("collector", "mock", 2)
-				So(p2.Err, ShouldBeNil)
-				So(p2.Name, ShouldEqual, "mock")
-				So(p2.Version, ShouldEqual, 2)
-				So(p2.Type, ShouldEqual, "collector")
+				So(len(p1.LoadedPlugins), ShouldEqual, 2)
 
 				p3 := c.UnloadPlugin("publisher", "mock-file", 3)
 				So(p3.Err, ShouldBeNil)

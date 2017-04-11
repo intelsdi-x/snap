@@ -12,21 +12,20 @@ A task can be in the following states:
 - **running:** a running task
 - **stopped:** a task that is not running
 - **disabled:** a task in a state not allowed to start. This happens when the task produces consecutive errors. A disabled task must be re-enabled before it can be started again. 
+- **ended:** a task for which the schedule is ended. It happens for schedule with defined _stop_timestamp_ or with specified the _count_ of runs. An ended task is resumable if the schedule is still valid.
 
+![statediagram](https://cloud.githubusercontent.com/assets/11335874/23774722/62526aaa-0525-11e7-9ce8-894a8e2cbdf1.png)
 
-![newtaskstatediagram2](https://cloud.githubusercontent.com/assets/21182867/19282545/a4179520-8fa3-11e6-9056-4fc3aa610983.png)
-
-
-	    How To				                        |  Command
-    ----------------------------------------|------------------------
-      Create task                           |  snaptel task create _[command options] [arguments...]_ <br/>  Find more details [here](https://github.com/intelsdi-x/snap/blob/master/docs/SNAPTEL.md#task)
-      List					                        |  snaptel task list
-      Start task                     		    |  snaptel task start _\<task_id>_
-      Stop task                        		  |  snaptel task stop _\<task_id>_
-      Remove task                       		|  snaptel task remove _\<task_id>_
-      Export task                       		|  snaptel task export _\<task_id>_
-      Watch task                        		|  snaptel task watch _\<task_id>_
-      Enable task                       		|  snaptel task enable _\<task_id>_
+  How To                                |  Command
+----------------------------------------|----------------------------------------
+  Create task                           |  snaptel task create _[command options] [arguments...]_ <br/>  Find more details [here](https://github.com/intelsdi-x/snap/blob/master/docs/SNAPTEL.md#task)
+  List                                  |  snaptel task list
+  Start task                            |  snaptel task start _\<task_id>_
+  Stop task                             |  snaptel task stop _\<task_id>_
+  Remove task                           |  snaptel task remove _\<task_id>_
+  Export task                           |  snaptel task export _\<task_id>_
+  Watch task                            |  snaptel task watch _\<task_id>_
+  Enable task                           |  snaptel task enable _\<task_id>_
 
 
 ## Task Manifest
@@ -49,46 +48,141 @@ The header contains a version, used to differentiate between versions of the tas
 
 #### Schedule
 
-The schedule describes the schedule type and interval for running the task.  The type of a schedule could be a simple "run forever" schedule, which is what we see above as `"simple"` or something more complex.  Snap is designed in a way where custom schedulers can easily be dropped in.  If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  At the time of this writing, Snap has three schedules:
-- **simple schedule** which is described above,
-- **window schedule** which adds a start and stop time for the task. The time must be given as a quoted string in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format, for example with specific time zone offset:
-```json
-    "version": 1,
-    "schedule": {
-        "type": "windowed",
-        "interval": "1s",
-        "start_timestamp": "2016-10-27T16:39:57+01:00",
-        "stop_timestamp": "2016-10-28T16:39:57+01:00"
-    },
-    "max-failures": 10,
-```
-or without time zone offset (in that cases uppercase'Z' must be present):
-```json
-    "version": 1,
-    "schedule": {
-        "type": "windowed",
-        "interval": "1s",
-        "start_timestamp": "2016-10-27T16:39:57Z",
-        "stop_timestamp": "2016-10-28T16:39:57Z"
-    },
-    "max-failures": 10,
-```
-- **cron schedule** which supports cron-like entries in ```interval``` field, like in this example (workflow will fire every hour on the half hour):
-```json
-    "version": 1,
-    "schedule": {
-        "type": "cron",
-        "interval" : "0 30 * * * *"
-    },
-    "max-failures": 10,
-```
-More on cron expressions can be found here: https://godoc.org/github.com/robfig/cron
+The schedule describes the schedule type and interval for running the task. At the time of this writing, Snap has three schedules: 
+ - [simple](#simple-schedule) 
+ - [windowed](#windowed-schedule) 
+ - [cron](#cron-schedule)
+ 
+Snap is designed in a way where custom schedulers can easily be dropped in. If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  
+  
+  
+##### Simple Schedule
 
+  Key                       |   Type        |   Description   
+----------------------------|---------------|-----------------
+  interval<sup>(*)</sup>    | string        |  An interval specifies the time duration between each scheduled execution; It must be greater than 0.
+  count                     | uint          |  A count determines the number of expected scheduled executions at interval seconds apart. Defaults to 0 what means no limit. Set the count to 1 if you expect a single run task.    
+      
+<sup>(*)</sup> is required
+
+  - simple "run forever" schedule: 
+  ```json
+  	"version": 1,
+	"schedule": {
+		"type": "simple",
+		"interval": "1s"
+	},
+	"max-failures": 10,
+  ```
+   
+   - simple "run X times" schedule:        
+  ```json
+	"version": 1,
+	"schedule": {
+		"type": "simple",
+		"interval": "1s",
+		"count": 1
+	},
+	"max-failures": 1,
+  ```       
+              
+            
+##### Windowed Schedule
+
+  The windowed schedule adds a start and/or stop time for the task. 
+
+  Key                           |   Type        |   Description   
+--------------------------------|---------------|-----------------
+  interval<sup>(*)</sup>        | string        |  An interval specifies the time duration between each scheduled execution; It must be greater than 0.
+  start_timestamp<sup>(1)</sup> | string        |  A start time for the task schedule. If not determined, the schedule will start immediately.
+  stop_timestamp<sup>(1)</sup>  | string        |  A stop time for the task schedule. If not determined, the schedule will be running all the time until the stop command is not called.
+  count                         | uint          |  A count determines the number of expected scheduled executions at interval seconds apart. Defaults to 0 what means no limit. Set the count to 1 if you expect a single run task.               
+      
+ 
+  <sup>(*)</sup> is required
+    
+  <sup>(1)</sup> the time must be given as a quoted string in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with specific time zone offset
+    
+  Notice: Specifying both the _stop_timestamp_ and the _count_ is not allowed. In such case, you receive a warning that the value of the _count_ field will be ignored. 
+
+  - a regular window with determined both start and stop time:
+  ```json
+	"version": 1,
+	"schedule": {
+		"type": "windowed",
+		"interval": "1s",
+		"start_timestamp": "2016-10-27T16:00:00+01:00",
+		"stop_timestamp": "2016-10-28T16:30:00+01:00"
+	    },
+	"max-failures": 10,
+  ```
+
+  - start schedule on _start_timestamp_ and "run forever":  
+    (a window with determined only stop time)
+  ```json
+	"version": 1,
+	"schedule": {
+		"type": "windowed",
+		"interval": "1s",
+		"start_timestamp": "2016-10-27T16:00:00+01:00"
+	    },
+	"max-failures": 10,
+  ```
+
+  - start schedule immediately and finish on _stop time_:  
+   (a window with determined only start time) 
+  ```json
+	"version": 1,
+	"schedule": {
+		"type": "windowed",
+		"interval": "1s",
+		"stop_timestamp": "2016-10-28T16:30:00+01:00"
+	    },
+	"max-failures": 10,
+  ```
+    
+  - start schedule on _start time_ and run "X times":  
+    (a window with determined start time and count)
+  ```json
+	"version": 1,
+	"schedule": {
+		"type": "windowed",
+		"interval": "1s",
+		"start_timestamp": "2016-10-27T16:00:00+01:00",
+		"count": 1
+	    },
+	"max-failures": 1,
+  ```  
+        
+  
+##### Cron Schedule
+
+  The cron schedule supports cron-like entries in `interval` field. More on cron expressions can be found here: https://godoc.org/github.com/robfig/cron
+
+  Key                           |   Type        |   Description   
+--------------------------------|---------------|-----------------
+  interval<sup>(*)</sup>        | string        |  An interval specifies the time duration between each scheduled execution in cron-like entries. More on cron expressions can be found here: https://godoc.org/github.com/robfig/cron.               
+      
+<sup>(*)</sup> is required
+       
+  - schedule task every hour on the half hour:
+    
+   ```json
+      "version": 1,
+      "schedule": {
+          "type": "cron",
+          "interval" : "0 30 * * * *"
+      },
+      "max-failures": 10,
+   ```
+  
+    
+    
 #### Max-Failures
 
 By default, Snap will disable a task if there are 10 consecutive errors from any plugins within the workflow.  The configuration
 can be changed by specifying the number of failures value in the task header.  If the `max-failures` value is -1, Snap will
-not disable a task with consecutive failure.  Instead, Snap will sleep for 1 second for every 10 consecutive failures
+not disable a task with consecutive failure. Instead, Snap will sleep for 1 second for every 10 consecutive failures
 and retry again.
 
 If you intend to run tasks with `max-failures: -1`, please also configure `max_plugin_restarts: -1` in [snap daemon control configuration section](SNAPTELD_CONFIGURATION.md).
@@ -208,7 +302,16 @@ More information about the architecture behind this can be found [here](DISTRIBU
 
 #### collect
 
-The collect section describes which metrics are requested to be collected.
+The collect section describes which metrics, indicated by namespaces, are requested to be collected.
+
+Elements of namespace are separated by **namespace separators** which can be set in the task manifest as different characters,
+with some limitations specific for format of the task manifest. The first character in the namespace defines the namespace separator.
+
+It is not recommended to use following characters in the task manifest as the namespace separators:
+- for YAML: `|`,`#`, `$`, `>`,`*`, `,`,`[`, `]`,`{`,`}`,`!`,`"`, `` ` ``,`%`,`@`
+- for JSON: ` \ `, `$`,`"`, `*`
+
+Some of mentioned characters may work as namespace separators but the namespace must be in double quotes (i.e.`"|intel|mock|foo"` for YAML) or special characters must be escaped.
 
 Metrics can be enumerated using:
 
@@ -216,13 +319,13 @@ Metrics can be enumerated using:
 
 Declaring a metric's name exactly as it appears in the metric catalog (see `snaptel metric list`).
 
-    Metrics requested in task manifest          | Collected metrics
-    --------------------------------------------|------------------------
-    /intel/mock/foo                             |  /intel/mock/foo
-	|
-    /intel/mock/bar                             |  /intel/mock/bar
-	|
-    /intel/mock/\*/baz <br/> _(dynamic metric)_ |  /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/><br/> _(collect metrics for all instances of the dynamic metric)_
+Metrics requested in task manifest          | Collected metrics
+--------------------------------------------|------------------------
+/intel/mock/foo                             |  /intel/mock/foo
+|
+/intel/mock/bar                             |  /intel/mock/bar
+|
+/intel/mock/\*/baz <br/> _(dynamic metric)_ |  /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/><br/> _(collect metrics for all instances of the dynamic metric)_
 
  
  

@@ -158,7 +158,7 @@ func printMetric(metric *client.GetMetricResult, idx int) error {
 
 func getMetric(ctx *cli.Context) error {
 	if !ctx.IsSet("metric-namespace") {
-		return newUsageError("namespace is required\n\n", ctx)
+		return newUsageError("Must provide metric namespace", ctx)
 	}
 	ns := ctx.String("metric-namespace")
 	ver := ctx.Int("metric-version")

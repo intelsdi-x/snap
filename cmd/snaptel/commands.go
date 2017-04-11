@@ -41,6 +41,7 @@ var (
 						flTaskManifest,
 						flWorkfowManifest,
 						flTaskSchedInterval,
+						flTaskSchedCount,
 						flTaskSchedStartDate,
 						flTaskSchedStartTime,
 						flTaskSchedStopDate,

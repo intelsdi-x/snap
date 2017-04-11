@@ -55,7 +55,7 @@ func listMembers(ctx *cli.Context) error {
 
 func showMember(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 
 	resp := pClient.GetMember(ctx.Args().First())
@@ -105,7 +105,7 @@ func listAgreements(ctx *cli.Context) error {
 
 func createAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 
 	resp := pClient.AddAgreement(ctx.Args().First())
@@ -118,7 +118,7 @@ func createAgreement(ctx *cli.Context) error {
 
 func deleteAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 
 	resp := pClient.DeleteAgreement(ctx.Args().First())
@@ -131,7 +131,7 @@ func deleteAgreement(ctx *cli.Context) error {
 
 func joinAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 2 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 
 	resp := pClient.JoinAgreement(ctx.Args().First(), ctx.Args().Get(1))
@@ -144,7 +144,7 @@ func joinAgreement(ctx *cli.Context) error {
 
 func leaveAgreement(ctx *cli.Context) error {
 	if len(ctx.Args()) != 2 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 
 	resp := pClient.LeaveAgreement(ctx.Args().First(), ctx.Args().Get(1))
@@ -157,7 +157,7 @@ func leaveAgreement(ctx *cli.Context) error {
 
 func agreementMembers(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
-		return newUsageError("Incorrect usage:", ctx)
+		return newUsageError("Incorrect usage", ctx)
 	}
 
 	resp := pClient.GetAgreement(ctx.Args().First())

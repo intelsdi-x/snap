@@ -136,6 +136,16 @@ func (c ControlProxy) CollectMetrics(taskID string, AllTags map[string]map[strin
 	return metrics, nil
 }
 
+func (c ControlProxy) StreamMetrics(
+	_ string,
+	_ map[string]map[string]string,
+	_ time.Duration,
+	_ int64) (chan []core.Metric, chan error, []error) {
+	return nil, nil, []error{
+		errors.New("Streaming not supported in distributed workflows"),
+	}
+}
+
 func (c ControlProxy) ValidateDeps(mts []core.RequestedMetric, plugins []core.SubscribedPlugin, _ *cdata.ConfigDataTree) []serror.SnapError {
 	// The configDataTree is kept so that we can match the interface provided by control
 	// we do not need it here though since the configDataTree is only used for metrics

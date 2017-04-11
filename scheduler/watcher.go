@@ -85,14 +85,14 @@ func (t *taskWatcherCollection) rm(taskID string, tw *TaskWatcher) {
 func (t *taskWatcherCollection) add(taskID string, twh core.TaskWatcherHandler) (*TaskWatcher, error) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	// init map for task ID if it does not eist
+	// init map for task ID if it does not exist
 	if t.coll[taskID] == nil {
 		t.coll[taskID] = make([]*TaskWatcher, 0)
 	}
 	tw := &TaskWatcher{
 		// Assign unique ID to task watcher
 		id: t.tIDCounter,
-		// Add ref to coll for cleanup later
+		// Add ref to call for cleanup later
 		parent:  t,
 		stopped: false,
 		handler: twh,
@@ -176,6 +176,29 @@ func (t *taskWatcherCollection) handleTaskStopped(taskID string) {
 		}).Debug("calling taskwatcher task stopped func")
 		// Call the catcher
 		v.handler.CatchTaskStopped()
+	}
+}
+
+func (t *taskWatcherCollection) handleTaskEnded(taskID string) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	// no taskID means no watches, early exit
+	if t.coll[taskID] == nil || len(t.coll[taskID]) == 0 {
+		// Uncomment this debug line if needed. Otherwise this is too verbose for even debug level.
+		// watcherLog.WithFields(log.Fields{
+		// 	"task-id": taskID,
+		// }).Debug("no watchers")
+		return
+	}
+	// Walk all watchers for a task ID
+	for _, v := range t.coll[taskID] {
+		// Check if they have a catcher assigned
+		watcherLog.WithFields(log.Fields{
+			"task-id":         taskID,
+			"task-watcher-id": v.id,
+		}).Debug("calling taskwatcher task ended func")
+		// Call the catcher
+		v.handler.CatchTaskEnded()
 	}
 }
 

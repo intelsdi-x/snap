@@ -42,6 +42,9 @@ type Schedule struct {
 	StartTimestamp *time.Time `json:"start_timestamp,omitempty"`
 	// StopTimestamp specifies the end time.
 	StopTimestamp *time.Time `json:"stop_timestamp,omitempty"`
+	// Count specifies the number of expected runs (defaults to 0 what means no limit, set to 1 means single run task).
+	// Count is supported by "simple" and "windowed" schedules
+	Count uint `json:"count,omitempty"`
 }
 
 // CreateTask creates a task given the schedule, workflow, task name, and task state.
@@ -55,12 +58,12 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, dead
 			Interval:       s.Interval,
 			StartTimestamp: s.StartTimestamp,
 			StopTimestamp:  s.StopTimestamp,
+			Count:          s.Count,
 		},
 		Workflow:    wf,
 		Start:       startTask,
 		MaxFailures: maxFailures,
 	}
-
 	if name != "" {
 		t.Name = name
 	}
@@ -93,6 +96,11 @@ func (c *Client) CreateTask(s *Schedule, wf *wmap.WorkflowMap, name string, dead
 // interactive with Event and Done channels. An HTTP GET request retrieves tasks.
 // StreamedTaskEvent returns if it succeeds. Otherwise, an error is returned.
 func (c *Client) WatchTask(id string) *WatchTasksResult {
+	// during watch we don't want to have a timeout
+	// Store the old timeout so we can restore when we are through
+	oldTimeout := c.http.Timeout
+	c.http.Timeout = time.Duration(0)
+
 	r := &WatchTasksResult{
 		EventChan: make(chan *rbody.StreamedTaskEvent),
 		DoneChan:  make(chan struct{}),
@@ -131,6 +139,7 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 	// Start watching
 	go func() {
 		reader := bufio.NewReader(resp.Body)
+		defer func() { c.http.Timeout = oldTimeout }()
 		for {
 			select {
 			case <-r.DoneChan:
@@ -157,7 +166,7 @@ func (c *Client) WatchTask(id string) *WatchTasksResult {
 				case rbody.TaskWatchTaskDisabled:
 					r.EventChan <- ste
 					r.Close()
-				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
+				case rbody.TaskWatchTaskStopped, rbody.TaskWatchTaskEnded, rbody.TaskWatchTaskStarted, rbody.TaskWatchMetricEvent:
 					r.EventChan <- ste
 				}
 			}

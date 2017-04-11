@@ -35,21 +35,24 @@ var (
 		Value:  "http://localhost:8181",
 	}
 	flAPIVer = cli.StringFlag{
-		Name:  "api-version, a",
-		Usage: "The Snap API version",
-		Value: "v1",
+		Name:   "api-version, a",
+		Usage:  "The Snap API version",
+		EnvVar: "SNAP_API_VERSION",
+		Value:  "v1",
 	}
 	flSecure = cli.BoolFlag{
-		Name:  "insecure",
-		Usage: "Ignore certificate errors when Snap's API is running HTTPS",
+		Name:   "insecure",
+		Usage:  "Ignore certificate errors when Snap's API is running HTTPS",
+		EnvVar: "SNAP_INSECURE",
 	}
 	flRunning = cli.BoolFlag{
 		Name:  "running",
 		Usage: "Shows running plugins",
 	}
 	flPassword = cli.BoolFlag{
-		Name:  "password, p",
-		Usage: "Password for REST API authentication",
+		Name:   "password, p",
+		Usage:  "Require password for REST API authentication",
+		EnvVar: "SNAP_REST_PASSWORD",
 	}
 	flConfig = cli.StringFlag{
 		Name:   "config, c",
@@ -101,7 +104,6 @@ var (
 		Name:  "interval, i",
 		Usage: "Interval for the task schedule [ex (simple schedule): 250ms, 1s, 30m (cron schedule): \"0 * * * * *\"]",
 	}
-
 	flTaskSchedStartTime = cli.StringFlag{
 		Name:  "start-time",
 		Usage: "Start time for the task schedule [defaults to now]",
@@ -110,7 +112,6 @@ var (
 		Name:  "stop-time",
 		Usage: "Start time for the task schedule [defaults to now]",
 	}
-
 	flTaskSchedStartDate = cli.StringFlag{
 		Name:  "start-date",
 		Usage: "Start date for the task schedule [defaults to today]",
@@ -118,6 +119,10 @@ var (
 	flTaskSchedStopDate = cli.StringFlag{
 		Name:  "stop-date",
 		Usage: "Stop date for the task schedule [defaults to today]",
+	}
+	flTaskSchedCount = cli.StringFlag{
+		Name:  "count",
+		Usage: "The count of runs for the task schedule [defaults to 0 what means no limit, e.g. set to 1 determines a single run task]",
 	}
 	flTaskSchedDuration = cli.StringFlag{
 		Name:  "duration, d",

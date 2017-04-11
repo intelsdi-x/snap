@@ -28,6 +28,7 @@ import (
 	"strconv"
 	"text/tabwriter"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/urfave/cli"
 )
@@ -40,6 +41,11 @@ type restAPIConfig struct {
 }
 
 func (c *config) loadConfig(path string) error {
+	log.WithFields(log.Fields{
+		"_module":     "snaptel-config",
+		"_block":      "loadConfig",
+		"config_path": path,
+	}).Warning("The snaptel configuration file will be deprecated. Find more information here: https://github.com/intelsdi-x/snap/issues/1539")
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("Unable to read config. File might not exist.")
@@ -78,13 +84,13 @@ func getConfig(ctx *cli.Context) error {
 		return newUsageError("Must provide plugin name", ctx)
 	}
 	if pver < 1 {
-		return newUsageError("Must provide plugin version", ctx)
+		return newUsageError("Plugin version must be greater than zero", ctx)
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 	defer w.Flush()
 	r := pClient.GetPluginConfig(ptyp, pname, strconv.Itoa(pver))
 	if r.Err != nil {
-		return fmt.Errorf("Error requesting info: ", r.Err)
+		return fmt.Errorf("Error requesting info: %v", r.Err)
 	}
 	printFields(w, false, 0,
 		"NAME",

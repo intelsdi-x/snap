@@ -1,8 +1,8 @@
-hash: 55584a3098467b96c2800b810444ba49663ade021e4f2d0796233b277d712415
-updated: 2017-02-06T22:13:53.321938894-08:00
+hash: 14712d189ae570ecb1e287d5a11120347c831b9b4bb6b2265eecb53acf52dc9d
+updated: 2017-03-03T11:55:17.822848886-08:00
 imports:
 - name: github.com/appc/spec
-  version: db96f94ae6b227fe4d8288527ead8927181620f6
+  version: ba99d6b8ccbbed2942e53eb5395fddae113cdf8e
   subpackages:
   - aci
   - pkg/device
@@ -10,6 +10,7 @@ imports:
   - schema
   - schema/common
   - schema/types
+  - schema/types/resource
 - name: github.com/armon/go-metrics
   version: 3df31a1ada83e310c2e24b267c8e8b68836547b4
 - name: github.com/asaskevich/govalidator
@@ -20,10 +21,6 @@ imports:
   - semver
 - name: github.com/ghodss/yaml
   version: c3eb24aeea63668ebdac08d2e252f20df8b6b1ae
-- name: github.com/gogo/protobuf
-  version: 82d16f734d6d871204a3feb1a73cb220cc92574c
-  subpackages:
-  - proto
 - name: github.com/golang/protobuf
   version: 888eb0692c857ec880338addf316bd662d5e630e
   subpackages:
@@ -37,7 +34,7 @@ imports:
 - name: github.com/intelsdi-x/gomit
   version: db68f6fda248706a71980abc58e969fcd63f5ea6
 - name: github.com/intelsdi-x/snap-plugin-lib-go
-  version: 4b5999a62ffb7604f173c1ab3c2205ba8b559624
+  version: af03307f16e97c41f966b1e00d340d3393d6675d
   subpackages:
   - v1/plugin
   - v1/plugin/rpc
@@ -114,12 +111,6 @@ imports:
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
   version: c1cd2254a6dd314c9d73c338c12688c9325d85c6
-- name: k8s.io/kubernetes
-  version: 9625926852e215caa35e278c2cd7926744532291
-  subpackages:
-  - pkg/api/resource
-  - pkg/conversion
-  - third_party/forked/reflect
 testImports:
 - name: github.com/gopherjs/gopherjs
   version: 4b53e1bddba0e2f734514aeb6c02db652f4c6fe8

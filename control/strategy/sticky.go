@@ -33,7 +33,7 @@ var (
 	ErrCacheDoesNotExist = errors.New("cache does not exist")
 )
 
-// sticky provides a stragey that ... concurrency count is 1
+// sticky provides a strategy that ... concurrency count is 1
 type sticky struct {
 	plugins     map[string]AvailablePlugin
 	metricCache map[string]*cache

@@ -47,6 +47,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	"github.com/intelsdi-x/snap/scheduler"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -268,6 +269,17 @@ func action(ctx *cli.Context) error {
 		defer file.Close()
 		log.SetOutput(file)
 	}
+
+	// verify the temDirPath points to existing directory
+	tempDirPath := cfg.Control.TempDirPath
+	f, err := os.Stat(tempDirPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !f.IsDir() {
+		log.Fatal("temp dir path provided must be a directory")
+	}
+
 	// Because even though github.com/Sirupsen/logrus states that
 	// 'Logs the event in colors if stdout is a tty, otherwise without colors'
 	// Seems like this does not work
@@ -287,7 +299,13 @@ func action(ctx *cli.Context) error {
 
 	// Switch log level to user defined
 	log.SetLevel(getLevel(cfg.LogLevel))
+
+	//Set standard logger as logger for grpc
+	grpclog.SetLogger(log.StandardLogger())
+
 	log.Info("setting log level to: ", l[cfg.LogLevel])
+
+	log.Info("setting temp dir path to: ", tempDirPath)
 
 	log.Info("Starting snapteld (version: ", gitversion, ")")
 

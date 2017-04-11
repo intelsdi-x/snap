@@ -288,9 +288,10 @@ func TestV2Task(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(mock.ADD_TASK_RESPONSE, r.port),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(mock.ADD_TASK_RESPONSE, r.port),
+			)
 		})
 
 		Convey("Get tasks - v2/tasks", func() {
@@ -307,9 +308,10 @@ func TestV2Task(t *testing.T) {
 			// GetTasks returns an unordered map,
 			// thus there is more than one possible response
 			So(
+				string(body),
+				ShouldBeIn,
 				responses,
-				ShouldContain,
-				string(body))
+			)
 		})
 
 		Convey("Get task - v2/tasks/:id", func() {
@@ -321,9 +323,10 @@ func TestV2Task(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			So(err, ShouldBeNil)
 			So(
-				fmt.Sprintf(mock.GET_TASK_RESPONSE, r.port),
+				string(body),
 				ShouldResemble,
-				string(body))
+				fmt.Sprintf(mock.GET_TASK_RESPONSE, r.port),
+			)
 		})
 
 		Convey("Watch tasks - v2/tasks/:id/watch", func() {

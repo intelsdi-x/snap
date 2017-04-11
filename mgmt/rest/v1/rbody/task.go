@@ -36,6 +36,7 @@ const (
 	ScheduledTaskType              = "scheduled_task"
 	ScheduledTaskStartedType       = "scheduled_task_started"
 	ScheduledTaskStoppedType       = "scheduled_task_stopped"
+	ScheduledTaskEndedType         = "scheduled_task_ended"
 	ScheduledTaskRemovedType       = "scheduled_task_removed"
 	ScheduledTaskWatchingEndedType = "schedule_task_watch_ended"
 	ScheduledTaskEnabledType       = "scheduled_task_enabled"
@@ -46,6 +47,7 @@ const (
 	TaskWatchTaskDisabled = "task-disabled"
 	TaskWatchTaskStarted  = "task-started"
 	TaskWatchTaskStopped  = "task-stopped"
+	TaskWatchTaskEnded    = "task-ended"
 )
 
 type ScheduledTaskListReturned struct {
@@ -215,12 +217,6 @@ func (s *ScheduledTaskEnabled) ResponseBodyType() string {
 
 func assertSchedule(s schedule.Schedule, t *AddScheduledTask) {
 	switch v := s.(type) {
-	case *schedule.SimpleSchedule:
-		t.Schedule = &core.Schedule{
-			Type:     "simple",
-			Interval: v.Interval.String(),
-		}
-		return
 	case *schedule.WindowedSchedule:
 		t.Schedule = &core.Schedule{
 			Type:           "windowed",

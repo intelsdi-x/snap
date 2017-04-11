@@ -117,6 +117,10 @@ func errorMetricElementHasTuple(value, ns string) error {
 	return fmt.Errorf("A element %s should not define tuple for namespace %s.", value, ns)
 }
 
+func errorEmptyNamespace() error {
+	return fmt.Errorf("Incorrect format of requested metric, empty list of namespace elements")
+}
+
 type metricCatalogItem struct {
 	namespace string
 	versions  map[int]core.Metric

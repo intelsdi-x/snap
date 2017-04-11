@@ -37,6 +37,7 @@ const (
 	TaskWatchTaskDisabled = "task-disabled"
 	TaskWatchTaskStarted  = "task-started"
 	TaskWatchTaskStopped  = "task-stopped"
+	TaskWatchTaskEnded    = "task-ended"
 )
 
 // The amount of time to buffer streaming events before flushing in seconds
@@ -95,7 +96,7 @@ func (s *apiV2) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 				// The client can decide to stop receiving on the stream on Task Stopped.
 				// We write the event to the buffer
 				fmt.Fprintf(w, "data: %s\n\n", e.ToJSON())
-			case TaskWatchTaskDisabled, TaskWatchTaskStopped:
+			case TaskWatchTaskDisabled, TaskWatchTaskStopped, TaskWatchTaskEnded:
 				// A disabled task should end the streaming and close the connection
 				fmt.Fprintf(w, "data: %s\n\n", e.ToJSON())
 				// Flush since we are sending nothing new
@@ -162,6 +163,12 @@ func (t *TaskWatchHandler) CatchTaskStarted() {
 func (t *TaskWatchHandler) CatchTaskStopped() {
 	t.mChan <- StreamedTaskEvent{
 		EventType: TaskWatchTaskStopped,
+	}
+}
+
+func (t *TaskWatchHandler) CatchTaskEnded() {
+	t.mChan <- StreamedTaskEvent{
+		EventType: TaskWatchTaskEnded,
 	}
 }
 

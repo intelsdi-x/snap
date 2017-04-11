@@ -46,7 +46,8 @@ func TestTask(t *testing.T) {
 		So(errs, ShouldBeEmpty)
 		c := &mockMetricManager{}
 		Convey("task + simple schedule", func() {
-			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			// create a simple schedule which equals to windowed schedule without start and stop time
+			sch := schedule.NewWindowedSchedule(time.Millisecond*100, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
 			So(err, ShouldBeNil)
 			task.Spin()
@@ -57,7 +58,7 @@ func TestTask(t *testing.T) {
 		})
 
 		Convey("Task specified-name test", func() {
-			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			sch := schedule.NewWindowedSchedule(time.Millisecond*100, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter, core.SetTaskName("My name is unique"))
 			So(err, ShouldBeNil)
 			task.Spin()
@@ -65,7 +66,7 @@ func TestTask(t *testing.T) {
 
 		})
 		Convey("Task default-name test", func() {
-			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			sch := schedule.NewWindowedSchedule(time.Millisecond*100, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
 			So(err, ShouldBeNil)
 			task.Spin()
@@ -74,7 +75,7 @@ func TestTask(t *testing.T) {
 		})
 
 		Convey("Task deadline duration test", func() {
-			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			sch := schedule.NewWindowedSchedule(time.Millisecond*100, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter, core.TaskDeadlineDuration(20*time.Second))
 			So(err, ShouldBeNil)
 			task.Spin()
@@ -86,7 +87,7 @@ func TestTask(t *testing.T) {
 		})
 
 		Convey("Tasks are created and creation of task table is checked", func() {
-			sch := schedule.NewSimpleSchedule(time.Millisecond * 100)
+			sch := schedule.NewWindowedSchedule(time.Millisecond*100, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
 			So(err, ShouldBeNil)
 			task1, err := newTask(sch, wf, newWorkManager(), c, emitter)
@@ -103,7 +104,7 @@ func TestTask(t *testing.T) {
 		})
 
 		Convey("Task is created and starts to spin", func() {
-			sch := schedule.NewSimpleSchedule(time.Second * 5)
+			sch := schedule.NewWindowedSchedule(time.Second*5, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
 			So(err, ShouldBeNil)
 			task.Spin()
@@ -116,7 +117,7 @@ func TestTask(t *testing.T) {
 		})
 
 		Convey("task fires", func() {
-			sch := schedule.NewSimpleSchedule(time.Nanosecond * 100)
+			sch := schedule.NewWindowedSchedule(time.Nanosecond*100, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
 			So(err, ShouldBeNil)
 			task.Spin()
@@ -127,7 +128,7 @@ func TestTask(t *testing.T) {
 		})
 
 		Convey("Enable a running task", func() {
-			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
+			sch := schedule.NewWindowedSchedule(time.Millisecond*10, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
 			So(err, ShouldBeNil)
 			task.Spin()
@@ -137,7 +138,7 @@ func TestTask(t *testing.T) {
 		})
 
 		Convey("Enable a disabled task", func() {
-			sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
+			sch := schedule.NewWindowedSchedule(time.Millisecond*10, nil, nil, 0)
 			task, err := newTask(sch, wf, newWorkManager(), c, emitter)
 			So(err, ShouldBeNil)
 
@@ -153,7 +154,7 @@ func TestTask(t *testing.T) {
 		wf, errs := wmapToWorkflow(sampleWFMap)
 		So(errs, ShouldBeEmpty)
 
-		sch := schedule.NewSimpleSchedule(time.Millisecond * 10)
+		sch := schedule.NewWindowedSchedule(time.Millisecond*10, nil, nil, 0)
 		task, err := newTask(sch, wf, newWorkManager(), &mockMetricManager{}, emitter)
 		So(err, ShouldBeNil)
 		So(task.id, ShouldNotBeEmpty)

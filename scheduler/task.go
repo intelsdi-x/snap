@@ -33,6 +33,7 @@ import (
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/scheduler_event"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
@@ -84,6 +85,10 @@ type task struct {
 	stopOnFailure      int
 	eventEmitter       gomit.Emitter
 	RemoteManagers     managers
+	isStream           bool
+
+	maxCollectDuration time.Duration
+	maxMetricsBuffer   int64
 }
 
 //NewTask creates a Task
@@ -101,6 +106,7 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 	if err != nil {
 		return nil, err
 	}
+	_, stream := s.(*schedule.StreamingSchedule)
 	task := &task{
 		id:               taskID,
 		name:             name,
@@ -115,6 +121,7 @@ func newTask(s schedule.Schedule, wf *schedulerWorkflow, m *workManager, mm mana
 		stopOnFailure:    DefaultStopOnFailure,
 		eventEmitter:     emitter,
 		RemoteManagers:   mgrs,
+		isStream:         stream,
 	}
 	//set options
 	for _, opt := range opts {
@@ -131,6 +138,22 @@ func (t *task) Option(opts ...core.TaskOption) core.TaskOption {
 		previous = opt(t)
 	}
 	return previous
+}
+
+func (t *task) MaxCollectDuration() time.Duration {
+	return t.maxCollectDuration
+}
+
+func (t *task) SetMaxCollectDuration(ti time.Duration) {
+	t.maxCollectDuration = ti
+}
+
+func (t *task) MaxMetricsBuffer() int64 {
+	return t.maxMetricsBuffer
+}
+
+func (t *task) SetMaxMetricsBuffer(i int64) {
+	t.maxMetricsBuffer = i
 }
 
 //Returns the name of the task
@@ -217,17 +240,114 @@ func (t *task) Spin() {
 	// We need to lock long enough to change state
 	t.Lock()
 	defer t.Unlock()
+	// if this task is a streaming task
+	if t.isStream {
+		t.state = core.TaskSpinning
+		t.killChan = make(chan struct{})
+		go t.stream()
+		return
+	}
+
 	// Reset the lastFireTime at each Spin.
 	// This ensures misses are tracked only forward of the point
 	// in time that a task starts spinning. E.g. stopping a task,
 	// waiting a period of time, and starting the task won't show
 	// misses for the interval while stopped.
-	t.lastFireTime = time.Now()
-	if t.state == core.TaskStopped {
+	t.lastFireTime = time.Time{}
+
+	if t.state == core.TaskStopped || t.state == core.TaskEnded {
 		t.state = core.TaskSpinning
 		t.killChan = make(chan struct{})
 		// spin in a goroutine
 		go t.spin()
+	}
+}
+
+// Fork stream stuff here
+func (t *task) stream() {
+	var consecutiveFailures int
+	resetTime := time.Second * 3
+	for {
+		metricsChan, errChan, err := t.metricsManager.StreamMetrics(
+			t.id,
+			t.workflow.tags,
+			t.maxCollectDuration,
+			t.maxMetricsBuffer)
+		if err != nil {
+			consecutiveFailures++
+			// check task failures
+			if t.stopOnFailure >= 0 && consecutiveFailures >= t.stopOnFailure {
+				taskLogger.WithFields(log.Fields{
+					"_block":               "stream",
+					"task-id":              t.id,
+					"task-name":            t.name,
+					"consecutive failures": consecutiveFailures,
+					"error":                t.lastFailureMessage,
+				}).Error(ErrTaskDisabledOnFailures)
+				// disable the task
+				t.disable(t.lastFailureMessage)
+				return
+			}
+			// If we are unsuccessful at setting up the stream
+			// wait for a second and then try again until either
+			// the connection is successful or we pass the
+			// acceptable number of consecutive failures
+			time.Sleep(resetTime)
+			continue
+		} else {
+			consecutiveFailures = 0
+		}
+		done := false
+		for !done {
+			if errChan == nil {
+				break
+			}
+			select {
+			case <-t.killChan:
+				t.Lock()
+				t.state = core.TaskStopped
+				t.Unlock()
+				done = true
+				return
+			case mts, ok := <-metricsChan:
+				if !ok {
+					metricsChan = nil
+					break
+				}
+				if len(mts) == 0 {
+					continue
+				}
+				t.hitCount++
+				consecutiveFailures = 0
+				t.workflow.StreamStart(t, mts)
+			case err := <-errChan:
+				taskLogger.WithFields(log.Fields{
+					"_block":    "stream",
+					"task-id":   t.id,
+					"task-name": t.name,
+				}).Error("Error: " + err.Error())
+				consecutiveFailures++
+				if err.Error() == "connection broken" {
+					// Wait here before trying to reconnect to allow time
+					// for plugin restarts.
+					time.Sleep(resetTime)
+					done = true
+				}
+				// check task failures
+				if t.stopOnFailure >= 0 && consecutiveFailures >= t.stopOnFailure {
+					taskLogger.WithFields(log.Fields{
+						"_block":               "stream",
+						"task-id":              t.id,
+						"task-name":            t.name,
+						"consecutive failures": consecutiveFailures,
+						"error":                t.lastFailureMessage,
+					}).Error(ErrTaskDisabledOnFailures)
+					// disable the task
+					t.disable(t.lastFailureMessage)
+					return
+				}
+			}
+		}
 	}
 }
 
@@ -238,6 +358,73 @@ func (t *task) Stop() {
 		t.state = core.TaskStopping
 		close(t.killChan)
 	}
+}
+
+// UnsubscribePlugins groups task dependencies by the node they live in workflow and unsubscribe them
+func (t *task) UnsubscribePlugins() []serror.SnapError {
+	depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
+	var errs []serror.SnapError
+	for k := range depGroups {
+		event := &scheduler_event.PluginsUnsubscribedEvent{
+			TaskID:  t.ID(),
+			Plugins: depGroups[k].subscribedPlugins,
+		}
+		defer t.eventEmitter.Emit(event)
+		mgr, err := t.RemoteManagers.Get(k)
+		if err != nil {
+			errs = append(errs, serror.New(err))
+		} else {
+			uerrs := mgr.UnsubscribeDeps(t.ID())
+			if len(uerrs) > 0 {
+				errs = append(errs, uerrs...)
+			}
+		}
+	}
+	for _, err := range errs {
+		taskLogger.WithFields(log.Fields{
+			"_block":     "UnsubscribePlugins",
+			"task-id":    t.id,
+			"task-name":  t.name,
+			"task-state": t.state,
+		}).Error(err)
+	}
+	return errs
+}
+
+// SubscribePlugins groups task dependencies by the node they live in workflow and subscribe them.
+// If there are errors with subscribing any deps, manage unsubscribing all other deps that may have already been subscribed
+// and then return the errors.
+func (t *task) SubscribePlugins() ([]string, []serror.SnapError) {
+	depGroups := getWorkflowPlugins(t.workflow.processNodes, t.workflow.publishNodes, t.workflow.metrics)
+	var subbedDeps []string
+	for k := range depGroups {
+		var errs []serror.SnapError
+		mgr, err := t.RemoteManagers.Get(k)
+		if err != nil {
+			errs = append(errs, serror.New(err))
+		} else {
+			errs = mgr.SubscribeDeps(t.ID(), depGroups[k].requestedMetrics, depGroups[k].subscribedPlugins, t.workflow.configTree)
+		}
+		// If there are errors with subscribing any deps, go through and unsubscribe all other
+		// deps that may have already been subscribed then return the errors.
+		if len(errs) > 0 {
+			for _, key := range subbedDeps {
+				mgr, err := t.RemoteManagers.Get(key)
+				if err != nil {
+					errs = append(errs, serror.New(err))
+				} else {
+					// sending empty mts to unsubscribe to indicate task should not start
+					uerrs := mgr.UnsubscribeDeps(t.ID())
+					errs = append(errs, uerrs...)
+				}
+			}
+			return nil, errs
+		}
+		// If subscribed successfully add to subbedDeps
+		subbedDeps = append(subbedDeps, k)
+	}
+
+	return subbedDeps, nil
 }
 
 //Enable changes the state from Disabled to Stopped
@@ -282,7 +469,7 @@ func (t *task) spin() {
 		select {
 		case sr := <-t.schResponseChan:
 			switch sr.State() {
-			// If response show this schedule is stil active we fire
+			// If response show this schedule is still active we fire
 			case schedule.Active:
 				t.missedIntervals += sr.Missed()
 				t.lastFireTime = time.Now()
@@ -309,15 +496,9 @@ func (t *task) spin() {
 						"consecutive failures": consecutiveFailures,
 						"error":                t.lastFailureMessage,
 					}).Error(ErrTaskDisabledOnFailures)
-					// You must lock on state change for tasks
-					t.Lock()
-					t.state = core.TaskDisabled
-					t.Unlock()
-					// Send task disabled event
-					event := new(scheduler_event.TaskDisabledEvent)
-					event.TaskID = t.id
-					event.Why = fmt.Sprintf("Task disabled with error: %s", t.lastFailureMessage)
-					defer t.eventEmitter.Emit(event)
+
+					// disable the task
+					t.disable(t.lastFailureMessage)
 					return
 				}
 
@@ -327,14 +508,17 @@ func (t *task) spin() {
 				t.Lock()
 				t.state = core.TaskEnded
 				t.Unlock()
+				// Send task ended event
+				event := new(scheduler_event.TaskEndedEvent)
+				event.TaskID = t.id
+				defer t.eventEmitter.Emit(event)
 				return //spin
 
 			// Schedule has errored
 			case schedule.Error:
-				// You must lock task to change state
-				t.Lock()
-				t.state = core.TaskDisabled
-				t.Unlock()
+				// disable the task
+				failureMessage := sr.Error().Error()
+				t.disable(failureMessage)
 				return //spin
 
 			}
@@ -356,6 +540,19 @@ func (t *task) fire() {
 	t.state = core.TaskFiring
 	t.workflow.Start(t)
 	t.state = core.TaskSpinning
+}
+
+// disable proceeds disabling a task which consists of changing task state to disabled and emitting an appropriate event
+func (t *task) disable(failureMsg string) {
+	t.Lock()
+	t.state = core.TaskDisabled
+	t.Unlock()
+
+	// Send task disabled event
+	event := new(scheduler_event.TaskDisabledEvent)
+	event.TaskID = t.id
+	event.Why = fmt.Sprintf("Task disabled with error: %s", failureMsg)
+	defer t.eventEmitter.Emit(event)
 }
 
 func (t *task) waitForSchedule() {
@@ -428,7 +625,7 @@ func (t *taskCollection) remove(task *task) error {
 	t.Lock()
 	defer t.Unlock()
 	if _, ok := t.table[task.id]; ok {
-		if task.state != core.TaskStopped && task.state != core.TaskDisabled {
+		if task.state != core.TaskStopped && task.state != core.TaskDisabled && task.state != core.TaskEnded {
 			taskLogger.WithFields(log.Fields{
 				"_block":  "remove",
 				"task id": task.id,

@@ -37,6 +37,7 @@ import (
 	"github.com/intelsdi-x/snap/grpc/controlproxy"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/plugin/helper"
+	"github.com/intelsdi-x/snap/scheduler/fixtures"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -68,9 +69,7 @@ func TestDistributedWorkflow(t *testing.T) {
 		mock2Path := helper.PluginFilePath("snap-plugin-collector-mock2")
 		passthruPath := helper.PluginFilePath("snap-plugin-processor-passthru")
 		filePath := helper.PluginFilePath("snap-plugin-publisher-mock-file")
-
 		// mock2 and file onto c1
-
 		rp, err := core.NewRequestedPlugin(mock2Path, c1.GetTempDir(), nil)
 		So(err, ShouldBeNil)
 		_, err = c1.Load(rp)
@@ -89,7 +88,9 @@ func TestDistributedWorkflow(t *testing.T) {
 			//Create a task
 			//Create a workflowmap
 			wf := dsWFMap(port1)
-			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, true)
+			// create a simple schedule (equals to windowed schedule without determined start and stop timestamp)
+			s := schedule.NewWindowedSchedule(time.Second, nil, nil, 0)
+			t, errs := sch.CreateTask(s, wf, true)
 			So(len(errs.Errors()), ShouldEqual, 0)
 			So(t, ShouldNotBeNil)
 			// stop the scheduler and control (since in nested Convey statements, the
@@ -103,7 +104,9 @@ func TestDistributedWorkflow(t *testing.T) {
 		Convey("Test task with invalid remote port", func() {
 			wf := dsWFMap(0)
 			controlproxy.MAX_CONNECTION_TIMEOUT = 1 * time.Second
-			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, true)
+			// create a simple schedule (equals to windowed schedule without determined start and stop timestamp)
+			s := schedule.NewWindowedSchedule(time.Second, nil, nil, 0)
+			t, errs := sch.CreateTask(s, wf, true)
 			So(len(errs.Errors()), ShouldEqual, 1)
 			So(t, ShouldBeNil)
 			// stop the scheduler and control (since in nested Convey statements, the
@@ -118,7 +121,9 @@ func TestDistributedWorkflow(t *testing.T) {
 			_, err := c2.Unload(passthru)
 			So(err, ShouldBeNil)
 			wf := dsWFMap(port1)
-			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, true)
+			// create a simple schedule (equals to windowed schedule without determined start and stop timestamp)
+			s := schedule.NewWindowedSchedule(time.Second, nil, nil, 0)
+			t, errs := sch.CreateTask(s, wf, true)
 			So(len(errs.Errors()), ShouldEqual, 1)
 			So(t, ShouldBeNil)
 			// stop the scheduler and control (since in nested Convey statements, the
@@ -136,7 +141,8 @@ func TestDistributedWorkflow(t *testing.T) {
 			// define an interval that the simple scheduler will run on every 100ms
 			interval := time.Millisecond * 100
 			// create our task; should be disabled after 3 failures
-			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(interval), wf, true)
+			s := schedule.NewWindowedSchedule(interval, nil, nil, 0)
+			t, errs := sch.CreateTask(s, wf, true)
 			// ensure task was created successfully
 			So(len(errs.Errors()), ShouldEqual, 0)
 			So(t, ShouldNotBeNil)
@@ -198,10 +204,10 @@ func TestDistributedSubscriptions(t *testing.T) {
 		port1 := cfg.ListenPort
 		c2 := control.New(cfg)
 		schcfg := GetDefaultConfig()
-		sch := New(schcfg)
+		s := New(schcfg)
 		c2.Start()
-		sch.SetMetricManager(c1)
-		err := sch.Start()
+		s.SetMetricManager(c1)
+		err := s.Start()
 		So(err, ShouldBeNil)
 		// Load appropriate plugins into each control.
 		mock2Path := helper.PluginFilePath("snap-plugin-collector-mock2")
@@ -223,13 +229,15 @@ func TestDistributedSubscriptions(t *testing.T) {
 		_, err = c2.Load(rp)
 		So(err, ShouldBeNil)
 
+		// Create a workflowmap
+		wf := dsWFMap(port1)
+
 		Convey("Starting task should not succeed if remote dep fails to subscribe", func() {
-			//Create a task
-			//Create a workflowmap
-			wf := dsWFMap(port1)
+			// Create a simple schedule which equals to windowed schedule without start and stop time
+			sch := schedule.NewWindowedSchedule(time.Second, nil, nil, 0)
 			// Create a task that is not started immediately so we can
 			// validate deps correctly.
-			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, false)
+			t, errs := s.CreateTask(sch, wf, false)
 			So(len(errs.Errors()), ShouldEqual, 0)
 			So(t, ShouldNotBeNil)
 			schTask := t.(*task)
@@ -238,24 +246,22 @@ func TestDistributedSubscriptions(t *testing.T) {
 			localMockManager := &subscriptionManager{Fail: false}
 			schTask.RemoteManagers.Add("", localMockManager)
 			// Start task. We expect it to fail while subscribing deps
-			terrs := sch.StartTask(t.ID())
+			terrs := s.StartTask(t.ID())
 			So(terrs, ShouldNotBeNil)
 			Convey("So dependencies should have been unsubscribed", func() {
 				// Ensure that unsubscribe call count is equal to subscribe call count
 				// i.e that every subscribe call was followed by an unsubscribe since
 				// we errored
 				So(remoteMockManager.UnsubscribeCallCount, ShouldEqual, remoteMockManager.SubscribeCallCount)
-				So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.UnsubscribeCallCount)
+				So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.SubscribeCallCount)
 			})
 		})
-
 		Convey("Starting task should not succeed if missing local dep fails to subscribe", func() {
-			//Create a task
-			//Create a workflowmap
-			wf := dsWFMap(port1)
+			// create a simple schedule which equals to windowed schedule without start and stop time
+			sch := schedule.NewWindowedSchedule(time.Second, nil, nil, 0)
 			// Create a task that is not started immediately so we can
 			// validate deps correctly.
-			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, false)
+			t, errs := s.CreateTask(sch, wf, false)
 			So(len(errs.Errors()), ShouldEqual, 0)
 			So(t, ShouldNotBeNil)
 			schTask := t.(*task)
@@ -265,39 +271,119 @@ func TestDistributedSubscriptions(t *testing.T) {
 			schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
 
 			// Start task. We expect it to fail while subscribing deps
-			terrs := sch.StartTask(t.ID())
+			terrs := s.StartTask(t.ID())
 			So(terrs, ShouldNotBeNil)
 			Convey("So dependencies should have been unsubscribed", func() {
 				// Ensure that unsubscribe call count is equal to subscribe call count
 				// i.e that every subscribe call was followed by an unsubscribe since
 				// we errored
 				So(remoteMockManager.UnsubscribeCallCount, ShouldEqual, remoteMockManager.SubscribeCallCount)
-				So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.UnsubscribeCallCount)
+				So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.SubscribeCallCount)
 			})
 		})
-
 		Convey("Starting task should succeed if all deps are available", func() {
-			//Create a task
-			//Create a workflowmap
-			wf := dsWFMap(port1)
-			// Create a task that is not started immediately so we can
-			// validate deps correctly.
-			t, errs := sch.CreateTask(schedule.NewSimpleSchedule(time.Second), wf, false)
-			So(len(errs.Errors()), ShouldEqual, 0)
-			So(t, ShouldNotBeNil)
-			schTask := t.(*task)
-			localMockManager := &subscriptionManager{Fail: false}
-			schTask.RemoteManagers.Add("", localMockManager)
-			remoteMockManager := &subscriptionManager{Fail: false}
-			schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
-			terrs := sch.StartTask(t.ID())
-			So(terrs, ShouldBeNil)
-			Convey("So all depndencies should have been subscribed to", func() {
-				// Ensure that unsubscribe call count is equal to subscribe call count
-				// i.e that every subscribe call was followed by an unsubscribe since
-				// we errored
-				So(localMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
-				So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+			Convey("Task is expected to run until being stopped", func() {
+				sch := schedule.NewWindowedSchedule(time.Second, nil, nil, 0)
+				// Create a task that is not started immediately so we can
+				// validate deps correctly.
+				t, errs := s.CreateTask(sch, wf, false)
+				So(len(errs.Errors()), ShouldEqual, 0)
+				So(t, ShouldNotBeNil)
+				schTask := t.(*task)
+				localMockManager := &subscriptionManager{Fail: false}
+				schTask.RemoteManagers.Add("", localMockManager)
+				remoteMockManager := &subscriptionManager{Fail: false}
+				schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
+				terrs := s.StartTask(t.ID())
+				So(terrs, ShouldBeNil)
+
+				Convey("So all dependencies should have been subscribed to", func() {
+					So(localMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+				})
+			})
+			Convey("Single run task", func() {
+				lse := fixtures.NewListenToSchedulerEvent()
+				s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
+				count := uint(1)
+				interval := time.Millisecond * 100
+				sch := schedule.NewWindowedSchedule(interval, nil, nil, count)
+				// Create a task that is not started immediately so we can
+				// validate deps correctly.
+				t, errs := s.CreateTask(sch, wf, false)
+				So(len(errs.Errors()), ShouldEqual, 0)
+				So(t, ShouldNotBeNil)
+				schTask := t.(*task)
+				localMockManager := &subscriptionManager{Fail: false}
+				schTask.RemoteManagers.Add("", localMockManager)
+				remoteMockManager := &subscriptionManager{Fail: false}
+				schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
+				terrs := s.StartTask(t.ID())
+				So(terrs, ShouldBeNil)
+				// wait for the task to stop and plugins to be unsubscribed (or timeout)
+				select {
+				case event := <-lse.UnsubscribedPluginEvents:
+					So(event.TaskID, ShouldEqual, t.ID())
+				case <-time.After(time.Duration(int64(count)*interval.Nanoseconds()) + 1*time.Second):
+				}
+
+				Convey("So all dependencies should have been subscribed to", func() {
+					So(localMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+				})
+				Convey("Task should be ended after one interval", func() {
+					So(t.State(), ShouldEqual, core.TaskEnded)
+					Convey("So all dependencies should have been usubscribed", func() {
+						So(remoteMockManager.UnsubscribeCallCount, ShouldEqual, remoteMockManager.SubscribeCallCount)
+						So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.SubscribeCallCount)
+					})
+				})
+			})
+			Convey("Task is expected to run until reaching determined stop time", func() {
+				lse := fixtures.NewListenToSchedulerEvent()
+				s.eventManager.RegisterHandler("Scheduler.TaskEnded", lse)
+
+				startWait := time.Millisecond * 50
+				windowSize := time.Millisecond * 500
+				interval := time.Millisecond * 100
+
+				start := time.Now().Add(startWait)
+				stop := time.Now().Add(startWait + windowSize)
+				sch := schedule.NewWindowedSchedule(interval, &start, &stop, 0)
+
+				// Create a task that is not started immediately so we can
+				// validate deps correctly.
+				t, errs := s.CreateTask(sch, wf, false)
+				So(len(errs.Errors()), ShouldEqual, 0)
+				So(t, ShouldNotBeNil)
+				schTask := t.(*task)
+				localMockManager := &subscriptionManager{Fail: false}
+				schTask.RemoteManagers.Add("", localMockManager)
+				remoteMockManager := &subscriptionManager{Fail: false}
+				schTask.RemoteManagers.Add(fmt.Sprintf("127.0.0.1:%v", port1), remoteMockManager)
+				terrs := s.StartTask(t.ID())
+				So(terrs, ShouldBeNil)
+
+				Convey("So all dependencies should have been subscribed to", func() {
+					So(localMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+					So(remoteMockManager.SubscribeCallCount, ShouldBeGreaterThan, 0)
+				})
+				Convey("Task should have been ended after reaching the end of window", func() {
+					// wait for the task to stop and plugins to be unsubscribed (or timeout)
+					select {
+					case event := <-lse.UnsubscribedPluginEvents:
+						So(event.TaskID, ShouldEqual, t.ID())
+					case <-time.After(stop.Add(interval + 1*time.Second).Sub(start)):
+					}
+
+					// check if the task has ended
+					So(t.State(), ShouldEqual, core.TaskEnded)
+
+					Convey("So all dependencies should have been usubscribed", func() {
+						So(remoteMockManager.UnsubscribeCallCount, ShouldEqual, remoteMockManager.SubscribeCallCount)
+						So(localMockManager.UnsubscribeCallCount, ShouldEqual, localMockManager.SubscribeCallCount)
+					})
+				})
 			})
 		})
 	})
