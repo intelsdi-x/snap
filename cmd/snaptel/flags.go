@@ -79,6 +79,10 @@ var (
 		Name:  "plugin-key, k",
 		Usage: "The plugin key",
 	}
+	flPluginRootCerts = cli.StringFlag{
+		Name:  "plugin-root-certs, r",
+		Usage: "List of root cert paths for TLS to use (folder/file)",
+	}
 	flPluginType = cli.StringFlag{
 		Name:  "plugin-type, t",
 		Usage: "The plugin type",

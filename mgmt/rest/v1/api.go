@@ -12,6 +12,8 @@ const (
 	TLSCertPrefix = "crt."
 	// TLSKeyPrefix defines a prefix for file fragment carrying path to TLS private key
 	TLSKeyPrefix = "key."
+	// TLSRootCertsPrefix defines a prefix for file fragment carrying paths to TLS root certificates
+	TLSRootCertsPrefix = "root."
 
 	version = "v1"
 	prefix  = "/" + version

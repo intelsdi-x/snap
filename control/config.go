@@ -48,6 +48,9 @@ var (
 	defaultCacheExpiration   = 500 * time.Millisecond
 	defaultPprof             = false
 	defaultTempDirPath       = os.TempDir()
+	defaultTLSCertPath       = ""
+	defaultTLSKeyPath        = ""
+	defaultRootCertPaths     = ""
 )
 
 type pluginConfig struct {
@@ -88,6 +91,7 @@ type Config struct {
 	TempDirPath       string                       `json:"temp_dir_path"yaml:"temp_dir_path"`
 	TLSCertPath       string                       `json:"tls_cert_path"yaml:"tls_cert_path"`
 	TLSKeyPath        string                       `json:"tls_key_path"yaml:"tls_key_path"`
+	RootCertPaths     string                       `json:"root_cert_paths"yaml:"root_cert_paths"`
 }
 
 const (
@@ -148,6 +152,9 @@ const (
 					},
 					"tls_key_path": {
 						"type": "string"
+					},
+					"root_cert_paths": {
+						"type": "string"
 					}
 				},
 				"additionalProperties": false
@@ -171,6 +178,9 @@ func GetDefaultConfig() *Config {
 		Pprof:             defaultPprof,
 		MaxPluginRestarts: MaxPluginRestartCount,
 		TempDirPath:       defaultTempDirPath,
+		TLSCertPath:       defaultTLSCertPath,
+		TLSKeyPath:        defaultTLSKeyPath,
+		RootCertPaths:     defaultRootCertPaths,
 	}
 }
 

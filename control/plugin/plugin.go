@@ -25,6 +25,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 )
 
@@ -149,9 +150,10 @@ type Arg struct {
 	// enable pprof
 	Pprof bool
 
-	CertPath   string
-	KeyPath    string
-	TLSEnabled bool
+	CertPath      string `json:"CertPath"`
+	KeyPath       string `json:"KeyPath"`
+	RootCertPaths string `json:"RootCertPaths"`
+	TLSEnabled    bool   `json:"TLSEnabled"`
 }
 
 // SetCertPath sets path to TLS certificate in plugin arguments
@@ -169,6 +171,12 @@ func (a Arg) SetKeyPath(keyPath string) Arg {
 // SetTLSEnabled sets flag enabling TLS security in plugin arguments
 func (a Arg) SetTLSEnabled(tlsEnabled bool) Arg {
 	a.TLSEnabled = tlsEnabled
+	return a
+}
+
+// SetRootCertPaths sets list of certificate paths for client verification
+func (a Arg) SetRootCertPaths(rootCertPaths string) Arg {
+	a.RootCertPaths = rootCertPaths
 	return a
 }
 

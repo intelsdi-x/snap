@@ -122,12 +122,13 @@ type SubscribedPlugin interface {
 }
 
 type RequestedPlugin struct {
-	path       string
-	checkSum   [sha256.Size]byte
-	signature  []byte
-	certPath   string
-	keyPath    string
-	tlsEnabled bool
+	path          string
+	checkSum      [sha256.Size]byte
+	signature     []byte
+	certPath      string
+	keyPath       string
+	rootCertPaths string
+	tlsEnabled    bool
 }
 
 // NewRequestedPlugin returns a Requested Plugin which represents the plugin path and signature
@@ -198,6 +199,11 @@ func (p *RequestedPlugin) KeyPath() string {
 	return p.keyPath
 }
 
+// RootCertPaths returns the list of TLS root cert paths for plugin to use
+func (p *RequestedPlugin) RootCertPaths() string {
+	return p.rootCertPaths
+}
+
 // TLSEnabled returns the TLS enabled flag for requested plugin
 func (p *RequestedPlugin) TLSEnabled() bool {
 	return p.tlsEnabled
@@ -223,6 +229,11 @@ func (p *RequestedPlugin) SetCertPath(certPath string) {
 // SetKeyPath sets the path to TLS key for requested plugin to use
 func (p *RequestedPlugin) SetKeyPath(keyPath string) {
 	p.keyPath = keyPath
+}
+
+// SetRootCertPaths sets the list of paths to TLS root certificate for plugin to use
+func (p *RequestedPlugin) SetRootCertPaths(rootCertPaths string) {
+	p.rootCertPaths = rootCertPaths
 }
 
 // SetTLSEnabled sets the TLS flag on requested plugin

@@ -32,13 +32,12 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/gomit"
 	"google.golang.org/grpc"
 
-	log "github.com/Sirupsen/logrus"
-
-	"github.com/intelsdi-x/gomit"
-
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
@@ -92,6 +91,7 @@ type pluginControl struct {
 	wg          sync.WaitGroup
 
 	subscriptionGroups ManagesSubscriptionGroups
+	grpcSecurity       client.GRPCSecurity
 }
 
 type subscribedPlugin struct {
@@ -223,7 +223,15 @@ func New(cfg *Config) *pluginControl {
 		OptSetTempDirPath(cfg.TempDirPath),
 	}
 	if cfg.IsTLSEnabled() {
-		managerOpts = append(managerOpts, OptEnableManagerTLS(cfg.TLSCertPath, cfg.TLSKeyPath))
+		if cfg.RootCertPaths != "" {
+			certPaths := filepath.SplitList(cfg.RootCertPaths)
+			c.grpcSecurity = client.SecurityTLSExtended(cfg.TLSCertPath, cfg.TLSKeyPath, client.SecureClient, certPaths)
+		} else {
+			c.grpcSecurity = client.SecurityTLSEnabled(cfg.TLSCertPath, cfg.TLSKeyPath, client.SecureClient)
+		}
+	}
+	if cfg.IsTLSEnabled() {
+		managerOpts = append(managerOpts, OptEnableManagerTLS(c.grpcSecurity))
 	}
 	c.pluginManager = newPluginManager(managerOpts...)
 	controlLogger.WithFields(log.Fields{
@@ -240,7 +248,7 @@ func New(cfg *Config) *pluginControl {
 
 	// Plugin Runner
 	if cfg.IsTLSEnabled() {
-		c.pluginRunner = newRunner(OptEnableRunnerTLS(cfg.TLSCertPath, cfg.TLSKeyPath))
+		c.pluginRunner = newRunner(OptEnableRunnerTLS(c.grpcSecurity))
 	} else {
 		c.pluginRunner = newRunner()
 	}
@@ -596,6 +604,7 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	details.Signature = rp.Signature()
 	details.CertPath = rp.CertPath()
 	details.KeyPath = rp.KeyPath()
+	details.RootCertPaths = rp.RootCertPaths()
 	details.TLSEnabled = rp.TLSEnabled()
 
 	if filepath.Ext(rp.Path()) == ".aci" {

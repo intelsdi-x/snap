@@ -24,15 +24,17 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"google.golang.org/grpc"
-
-	"golang.org/x/net/context"
-
 	log "github.com/Sirupsen/logrus"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
@@ -42,7 +44,6 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
-	"google.golang.org/grpc/credentials"
 )
 
 // SecureSide identifies security mode to apply in securing gRPC
@@ -81,19 +82,31 @@ type grpcClient struct {
 
 // GRPCSecurity contains data necessary to setup secure gRPC communication
 type GRPCSecurity struct {
-	TLSEnabled  bool
-	SecureSide  SecureSide
-	TLSCertPath string
-	TLSKeyPath  string
+	TLSEnabled    bool
+	SecureSide    SecureSide
+	TLSCertPath   string
+	TLSKeyPath    string
+	RootCertPaths []string
 }
 
 // SecurityTLSEnabled generates setup object for securing gRPC communication
-func SecurityTLSEnabled(certPath, keyPath string, SecureSide SecureSide) GRPCSecurity {
+func SecurityTLSEnabled(certPath, keyPath string, secureSide SecureSide) GRPCSecurity {
 	return GRPCSecurity{
 		TLSEnabled:  true,
-		SecureSide:  SecureSide,
+		SecureSide:  secureSide,
 		TLSCertPath: certPath,
 		TLSKeyPath:  keyPath,
+	}
+}
+
+// SecurityTLSExtended generates setup object for securing gRPC communication
+func SecurityTLSExtended(certPath, keyPath string, secureSide SecureSide, rootCertPaths []string) GRPCSecurity {
+	return GRPCSecurity{
+		TLSEnabled:    true,
+		SecureSide:    secureSide,
+		TLSCertPath:   certPath,
+		TLSKeyPath:    keyPath,
+		RootCertPaths: rootCertPaths,
 	}
 }
 
@@ -141,6 +154,52 @@ func NewPublisherGrpcClient(address string, timeout time.Duration, security GRPC
 	return p.(PluginPublisherClient), err
 }
 
+func loadRootCerts(certPaths []string) (rootCAs *x509.CertPool, err error) {
+	var path string
+	var filepaths []string
+	// list potential certificate files
+	for _, path := range certPaths {
+		var stat os.FileInfo
+		if stat, err = os.Stat(path); err != nil {
+			return nil, fmt.Errorf("unable to process CA cert source path %s: %v", path, err)
+		}
+		if !stat.IsDir() {
+			filepaths = append(filepaths, path)
+			continue
+		}
+		var subfiles []os.FileInfo
+		if subfiles, err = ioutil.ReadDir(path); err != nil {
+			return nil, fmt.Errorf("unable to process CA cert source directory %s: %v", path, err)
+		}
+		for _, subfile := range subfiles {
+			subpath := filepath.Join(path, subfile.Name())
+			if subfile.IsDir() {
+				log.WithField("path", subpath).Debug("Skipping second level directory found among certificate files")
+				continue
+			}
+			filepaths = append(filepaths, subpath)
+		}
+	}
+	rootCAs = x509.NewCertPool()
+	numread := 0
+	for _, path = range filepaths {
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			log.WithFields(log.Fields{"path": path, "error": err}).Debug("Unable to read cert file")
+			continue
+		}
+		if !rootCAs.AppendCertsFromPEM(b) {
+			log.WithField("path", path).Debug("Didn't find any usable certificates in cert file")
+			continue
+		}
+		numread++
+	}
+	if numread == 0 {
+		return nil, fmt.Errorf("found no usable certificates in given locations")
+	}
+	return rootCAs, nil
+}
+
 func buildCredentials(security GRPCSecurity) (creds credentials.TransportCredentials, err error) {
 	if !security.TLSEnabled {
 		return nil, nil
@@ -149,9 +208,19 @@ func buildCredentials(security GRPCSecurity) (creds credentials.TransportCredent
 	if err != nil {
 		return nil, fmt.Errorf("unable to load TLS key pair: %v", err)
 	}
-	rootCAs, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, fmt.Errorf("unable to load system-wide root TLS certificates: %v", err)
+	var rootCAs *x509.CertPool
+	if len(security.RootCertPaths) > 0 {
+		log.Debug("Loading root certificates given explicitly")
+		rootCAs, err = loadRootCerts(security.RootCertPaths)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		log.Debug("Loading root certificates from operating system")
+		rootCAs, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, fmt.Errorf("unable to load system-wide root TLS certificates: %v", err)
+		}
 	}
 	switch security.SecureSide {
 	case SecureClient:
@@ -168,7 +237,7 @@ func buildCredentials(security GRPCSecurity) (creds credentials.TransportCredent
 				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 			},
 			ClientAuth: tls.RequireAndVerifyClientCert,
-			RootCAs:    rootCAs,
+			ClientCAs:  rootCAs,
 		})
 	case DisabledSecurity:
 		creds = nil

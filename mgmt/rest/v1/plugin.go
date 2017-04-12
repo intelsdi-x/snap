@@ -76,6 +76,7 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	if strings.HasPrefix(mediaType, "multipart/") {
 		var certPath string
 		var keyPath string
+		var rootCertPaths string
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		lp := &rbody.PluginsLoaded{}
@@ -132,7 +133,7 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 					return
 				}
 				checkSum = sha256.Sum256(b)
-			case i < 4:
+			case i < 5:
 				if filepath.Ext(p.FileName()) == ".asc" {
 					signature = b
 				} else if strings.HasPrefix(p.FileName(), TLSCertPrefix) {
@@ -149,13 +150,16 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 						rbody.Write(500, rbody.FromError(e), w)
 						return
 					}
+				} else if strings.HasPrefix(p.FileName(), TLSRootCertsPrefix) {
+					rootCertPaths = string(b)
+					// validation will take place later; take it as it is
 				} else {
 					e := errors.New("Error: unrecognized file was passed")
 					rbody.Write(500, rbody.FromError(e), w)
 					return
 				}
-			case i == 4:
-				e := errors.New("Error: More than four files passed to the load plugin API")
+			case i == 5:
+				e := errors.New("Error: More than five files passed to the load plugin API")
 				rbody.Write(500, rbody.FromError(e), w)
 				return
 			}
@@ -171,6 +175,7 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		rp.SetSignature(signature)
 		rp.SetCertPath(certPath)
 		rp.SetKeyPath(keyPath)
+		rp.SetRootCertPaths(rootCertPaths)
 		if certPath != "" && keyPath != "" {
 			rp.SetTLSEnabled(true)
 		} else if certPath != "" || keyPath != "" {

@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/plugin/helper"
@@ -154,4 +155,21 @@ func (m MockRequestedMetric) Version() int {
 
 func (m MockRequestedMetric) Namespace() core.Namespace {
 	return m.namespace
+}
+
+func NewExecutablePlugin(a plugin.Arg, path string) (*plugin.ExecutablePlugin, error) {
+	// Travis optimization: Try starting the plugin three times before finally
+	// returning an error
+	var e error
+	var ep *plugin.ExecutablePlugin
+	for i := 0; i < 3; i++ {
+		ep, e = plugin.NewExecutablePlugin(a, path)
+		if e == nil {
+			break
+		}
+		if e != nil && i == 2 {
+			return nil, e
+		}
+	}
+	return ep, nil
 }

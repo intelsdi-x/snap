@@ -58,6 +58,8 @@ var (
 	// MaximumRestartOnDeadPluginEvent is the maximum count of restarting a plugin
 	// after the event of control_event.DeadAvailablePluginEvent
 	MaxPluginRestartCount = 3
+
+	defaultRunnerOpts = []pluginRunnerOpt{optDefaultRunnerSecurity()}
 )
 
 type executablePlugin interface {
@@ -73,9 +75,7 @@ type runner struct {
 	availablePlugins *availablePlugins
 	metricCatalog    catalogsMetrics
 	pluginManager    managesPlugins
-	tlsCertPath      string
-	tlsKeyPath       string
-	tlsEnabled       bool
+	grpcSecurity     client.GRPCSecurity
 }
 
 func newRunner(opts ...pluginRunnerOpt) *runner {
@@ -83,7 +83,9 @@ func newRunner(opts ...pluginRunnerOpt) *runner {
 		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(),
 	}
-	for _, opt := range opts {
+	mergedOpts := append([]pluginRunnerOpt{}, defaultRunnerOpts...)
+	mergedOpts = append(mergedOpts, opts...)
+	for _, opt := range append(mergedOpts) {
 		opt(r)
 	}
 	return r
@@ -92,11 +94,15 @@ func newRunner(opts ...pluginRunnerOpt) *runner {
 type pluginRunnerOpt func(*runner)
 
 // OptEnableRunnerTLS enables the TLS configuration in runner
-func OptEnableRunnerTLS(tlsCertPath, tlsKeyPath string) pluginRunnerOpt {
+func OptEnableRunnerTLS(grpcSecurity client.GRPCSecurity) pluginRunnerOpt {
 	return func(r *runner) {
-		r.tlsCertPath = tlsCertPath
-		r.tlsKeyPath = tlsKeyPath
-		r.tlsEnabled = true
+		r.grpcSecurity = grpcSecurity
+	}
+}
+
+func optDefaultRunnerSecurity() pluginRunnerOpt {
+	return func(r *runner) {
+		r.grpcSecurity = client.SecurityTLSOff()
 	}
 }
 
@@ -193,14 +199,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 		return nil, e
 	}
 
-	// build availablePlugin
-	var grpcSecurity client.GRPCSecurity
-	if r.tlsEnabled {
-		grpcSecurity = client.SecurityTLSEnabled(r.tlsCertPath, r.tlsKeyPath, client.SecureClient)
-	} else {
-		grpcSecurity = client.SecurityTLSOff()
-	}
-	ap, err := newAvailablePlugin(resp, r.emitter, p, grpcSecurity)
+	ap, err := newAvailablePlugin(resp, r.emitter, p, r.grpcSecurity)
 	if err != nil {
 		return nil, err
 	}
@@ -348,6 +347,7 @@ func (r *runner) runPlugin(name string, details *pluginDetails) error {
 	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())).
 		SetCertPath(details.CertPath).
 		SetKeyPath(details.KeyPath).
+		SetRootCertPaths(details.RootCertPaths).
 		SetTLSEnabled(details.TLSEnabled), commands...)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{

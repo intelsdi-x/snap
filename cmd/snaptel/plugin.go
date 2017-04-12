@@ -205,12 +205,13 @@ func listPlugins(ctx *cli.Context) error {
 	return nil
 }
 
-// storeTLSPaths extracts paths related to TLS (certificate, key) from command
-// line context into temporary files. Those files are appended to list of paths
-// returned from this function.
+// storeTLSPaths extracts paths related to TLS (certificate, key, root certs)
+// from command line context into temporary files. Those files are appended to
+// list of paths returned from this function.
 func storeTLSPaths(ctx *cli.Context, paths []string) ([]string, error) {
 	pCert := ctx.String("plugin-cert")
 	pKey := ctx.String("plugin-key")
+	pRootCertPaths := ctx.String("plugin-root-certs")
 	if pCert != pKey && (pCert == "" || pKey == "") {
 		return paths, fmt.Errorf("Error processing plugin TLS arguments - one of (certificate, key) arguments is missing")
 	}
@@ -233,6 +234,17 @@ func storeTLSPaths(ctx *cli.Context, paths []string) ([]string, error) {
 		_, err = tmpFile.WriteString(pKey)
 		if err != nil {
 			return paths, fmt.Errorf("Error processing plugin TLS key - unable to write link:\n%v", err.Error())
+		}
+		paths = append(paths, tmpFile.Name())
+	}
+	if pRootCertPaths != "" {
+		tmpFile, err := ioutil.TempFile("", v1.TLSRootCertsPrefix)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin TLS root certificates - unable to create link:\n%v", err.Error())
+		}
+		_, err = tmpFile.WriteString(pRootCertPaths)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin TLS root certificates - unable to write link:\n%v", err.Error())
 		}
 		paths = append(paths, tmpFile.Name())
 	}
