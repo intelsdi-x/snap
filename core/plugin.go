@@ -26,6 +26,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
@@ -64,6 +65,16 @@ func CheckPluginType(id PluginType) bool {
 	_, ok := pts[id]
 
 	return ok
+}
+
+func GetPluginType(t string) (PluginType, error) {
+	if ityp, err := strconv.Atoi(t); err == nil {
+		if !CheckPluginType(PluginType(ityp)) {
+			return PluginType(-1), fmt.Errorf("invalid plugin type id given %d", ityp)
+		}
+		return PluginType(ityp), nil
+	}
+	return ToPluginType(t)
 }
 
 func (pt PluginType) String() string {

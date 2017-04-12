@@ -20,7 +20,6 @@ limitations under the License.
 package v1
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -40,7 +39,7 @@ func (s *apiV1) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 		return
 	}
 
-	typ, err := getPluginType(styp)
+	typ, err := core.GetPluginType(styp)
 	if err != nil {
 		rbody.Write(400, rbody.FromError(err), w)
 		return
@@ -68,7 +67,7 @@ func (s *apiV1) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 	var typ core.PluginType
 	styp := p.ByName("type")
 	if styp != "" {
-		typ, err = getPluginType(styp)
+		typ, err = core.GetPluginType(styp)
 		if err != nil {
 			rbody.Write(400, rbody.FromError(err), w)
 			return
@@ -110,7 +109,7 @@ func (s *apiV1) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	var typ core.PluginType
 	styp := p.ByName("type")
 	if styp != "" {
-		typ, err = getPluginType(styp)
+		typ, err = core.GetPluginType(styp)
 		if err != nil {
 			rbody.Write(400, rbody.FromError(err), w)
 			return
@@ -145,18 +144,4 @@ func (s *apiV1) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 
 	item := &rbody.SetPluginConfigItem{ConfigDataNode: res}
 	rbody.Write(200, item, w)
-}
-
-func getPluginType(t string) (core.PluginType, error) {
-	if ityp, err := strconv.Atoi(t); err == nil {
-		if !core.CheckPluginType(core.PluginType(ityp)) {
-			return core.PluginType(-1), fmt.Errorf("invalid plugin type id given %d", ityp)
-		}
-		return core.PluginType(ityp), nil
-	}
-	ityp, err := core.ToPluginType(t)
-	if err != nil {
-		return core.PluginType(-1), err
-	}
-	return ityp, nil
 }
