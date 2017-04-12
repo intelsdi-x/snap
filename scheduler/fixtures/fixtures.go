@@ -27,6 +27,7 @@ import "github.com/intelsdi-x/snap/core/scheduler_event"
 type listenToSchedulerEvent struct {
 	Ended                    chan struct{}
 	UnsubscribedPluginEvents chan *scheduler_event.PluginsUnsubscribedEvent
+	TaskStoppedEvents        chan struct{}
 }
 
 // NewListenToSchedulerEvent
@@ -34,6 +35,7 @@ func NewListenToSchedulerEvent() *listenToSchedulerEvent {
 	return &listenToSchedulerEvent{
 		Ended: make(chan struct{}),
 		UnsubscribedPluginEvents: make(chan *scheduler_event.PluginsUnsubscribedEvent),
+		TaskStoppedEvents:        make(chan struct{}),
 	}
 }
 
@@ -43,5 +45,7 @@ func (l *listenToSchedulerEvent) HandleGomitEvent(e gomit.Event) {
 		l.Ended <- struct{}{}
 	case *scheduler_event.PluginsUnsubscribedEvent:
 		l.UnsubscribedPluginEvents <- msg
+	case *scheduler_event.TaskStoppedEvent:
+		l.TaskStoppedEvents <- struct{}{}
 	}
 }
