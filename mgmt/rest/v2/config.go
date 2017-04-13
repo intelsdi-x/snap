@@ -48,7 +48,7 @@ func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 		return
 	}
 
-	typ, err := getPluginType(styp)
+	typ, err := core.GetPluginType(styp)
 	if err != nil {
 		Write(400, FromError(err), w)
 		return
@@ -74,7 +74,7 @@ func (s *apiV2) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 	var typ core.PluginType
 	styp := p.ByName("type")
 	if styp != "" {
-		typ, err = getPluginType(styp)
+		typ, err = core.GetPluginType(styp)
 		if err != nil {
 			Write(400, FromError(err), w)
 			return
@@ -114,7 +114,7 @@ func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	var typ core.PluginType
 	styp := p.ByName("type")
 	if styp != "" {
-		typ, err = getPluginType(styp)
+		typ, err = core.GetPluginType(styp)
 		if err != nil {
 			Write(400, FromError(err), w)
 			return
@@ -147,15 +147,4 @@ func (s *apiV2) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 
 	item := &PluginConfigItem{ConfigDataNode: res}
 	Write(200, item, w)
-}
-
-func getPluginType(t string) (core.PluginType, error) {
-	if ityp, err := strconv.Atoi(t); err == nil {
-		return core.PluginType(ityp), nil
-	}
-	ityp, err := core.ToPluginType(t)
-	if err != nil {
-		return core.PluginType(-1), err
-	}
-	return ityp, nil
 }
