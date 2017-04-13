@@ -753,6 +753,8 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 			"event-namespace": e.Namespace(),
 			"task-id":         v.TaskID,
 		}).Debug("event received")
+		task, _ := s.getTask(v.TaskID)
+		task.UnsubscribePlugins()
 		s.taskWatcherColl.handleTaskStopped(v.TaskID)
 	case *scheduler_event.TaskEndedEvent:
 		log.WithFields(log.Fields{

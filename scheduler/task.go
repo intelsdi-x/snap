@@ -89,6 +89,7 @@ type task struct {
 
 	maxCollectDuration time.Duration
 	maxMetricsBuffer   int64
+	isFiring           chan bool
 }
 
 //NewTask creates a Task
@@ -356,6 +357,16 @@ func (t *task) Stop() {
 	defer t.Unlock()
 	if t.state == core.TaskFiring || t.state == core.TaskSpinning {
 		t.state = core.TaskStopping
+		for {
+			_, ok := <-t.isFiring
+			if !ok {
+				break //channel is closed, the workflow finished executing and we can stop the task now
+			}
+		}
+		t.state = core.TaskStopped
+		event := new(scheduler_event.TaskStoppedEvent)
+		event.TaskID = t.id
+		defer t.eventEmitter.Emit(event) //Unsubscription of plugins happens in event handler
 		close(t.killChan)
 	}
 }
@@ -472,8 +483,6 @@ func (t *task) spin() {
 			// If response show this schedule is still active we fire
 			case schedule.Active:
 				t.missedIntervals += sr.Missed()
-				t.lastFireTime = time.Now()
-				t.hitCount++
 				t.fire()
 				if t.lastFailureTime == t.lastFireTime {
 					consecutiveFailures++
@@ -523,11 +532,6 @@ func (t *task) spin() {
 
 			}
 		case <-t.killChan:
-			// Only here can it truly be stopped
-			t.Lock()
-			t.state = core.TaskStopped
-			t.lastFireTime = time.Time{}
-			t.Unlock()
 			return
 		}
 	}
@@ -536,9 +540,10 @@ func (t *task) spin() {
 func (t *task) fire() {
 	t.Lock()
 	defer t.Unlock()
-
 	t.state = core.TaskFiring
+	t.lastFireTime = time.Now()
 	t.workflow.Start(t)
+	t.hitCount++
 	t.state = core.TaskSpinning
 }
 
