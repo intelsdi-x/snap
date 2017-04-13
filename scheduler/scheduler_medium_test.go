@@ -43,6 +43,7 @@ type mockMetricManager struct {
 	failValidatingMetricsAfter int
 	failuredSoFar              int
 	autodiscoverPaths          []string
+	timeToWait                 time.Duration
 }
 
 func (m *mockMetricManager) StreamMetrics(string, map[string]map[string]string, time.Duration, int64) (chan []core.Metric, chan error, []error) {
@@ -50,6 +51,7 @@ func (m *mockMetricManager) StreamMetrics(string, map[string]map[string]string, 
 }
 
 func (m *mockMetricManager) CollectMetrics(string, map[string]map[string]string) ([]core.Metric, []error) {
+	time.Sleep(m.timeToWait)
 	return nil, nil
 }
 
@@ -349,9 +351,12 @@ func TestCreateTask(t *testing.T) {
 
 func TestStopTask(t *testing.T) {
 	logrus.SetLevel(logrus.FatalLevel)
-	s := newScheduler()
-	s.Start()
+	c := new(mockMetricManager)
+	cfg := GetDefaultConfig()
+	s := New(cfg)
+	s.SetMetricManager(c)
 	w := newMockWorkflowMap()
+	s.Start()
 
 	Convey("Calling StopTask on a running task", t, func() {
 		sch := schedule.NewWindowedSchedule(interval, nil, nil, 0)
@@ -372,6 +377,38 @@ func TestStopTask(t *testing.T) {
 			So(tsk.State(), ShouldEqual, core.TaskStopped)
 		})
 	})
+
+	Convey("Calling StopTask on a firing task", t, func() {
+		Convey("Should allow last scheduled workfow execution to finish", func() {
+			c.timeToWait = 500 * time.Millisecond
+			lse := fixtures.NewListenToSchedulerEvent()
+			s.eventManager.RegisterHandler("Scheduler.TaskStopped", lse)
+			sc := schedule.NewWindowedSchedule(time.Second, nil, nil, 0)
+			t, _ := s.CreateTask(sc, w, false)
+			startTime := time.Now()
+			t.(*task).Spin()
+			// allowing things to settle and waiting for task state to change to firing
+			time.Sleep(100 * time.Millisecond)
+			So(t.State(), ShouldResemble, core.TaskFiring)
+
+			// stop task when task state is firing
+			t.(*task).Stop()
+			// the last scheduled workflow execution should be allowed to finish
+			// so we expect that stopping the task is going to happen not early than 500ms (set by by timeToWait)
+
+			select {
+			case <-lse.TaskStoppedEvents:
+				// elapsed time should be greater than 500ms
+				So(time.Since(startTime), ShouldBeGreaterThan, c.timeToWait)
+				So(t.State(), ShouldResemble, core.TaskStopped)
+
+				// the task should have fired once
+				So(t.HitCount(), ShouldEqual, 1)
+			case <-time.After(1 * time.Second):
+			}
+		})
+	})
+
 	Convey("Calling StopTask on a stopped task", t, func() {
 		sch := schedule.NewWindowedSchedule(interval, nil, nil, 0)
 		tskStopped, _ := s.CreateTask(sch, w, false)
