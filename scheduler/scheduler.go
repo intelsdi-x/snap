@@ -569,16 +569,6 @@ func (s *scheduler) stopTask(id, source string) []serror.SnapError {
 			serror.New(ErrTaskDisabledNotStoppable),
 		}
 	default:
-
-		if errs := t.UnsubscribePlugins(); len(errs) != 0 {
-			return errs
-		}
-
-		event := &scheduler_event.TaskStoppedEvent{
-			TaskID: t.ID(),
-			Source: source,
-		}
-		defer s.eventManager.Emit(event)
 		t.Stop()
 		logger.WithFields(log.Fields{
 			"task-id":    t.ID(),
@@ -753,6 +743,9 @@ func (s *scheduler) HandleGomitEvent(e gomit.Event) {
 			"event-namespace": e.Namespace(),
 			"task-id":         v.TaskID,
 		}).Debug("event received")
+		// We need to unsubscribe from deps when a task has stopped
+		task, _ := s.getTask(v.TaskID)
+		task.UnsubscribePlugins()
 		s.taskWatcherColl.handleTaskStopped(v.TaskID)
 	case *scheduler_event.TaskEndedEvent:
 		log.WithFields(log.Fields{

@@ -26,6 +26,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"net/url"
@@ -54,6 +55,28 @@ func ToPluginType(name string) (PluginType, error) {
 		return -1, fmt.Errorf("invalid plugin type name given %s", name)
 	}
 	return t, nil
+}
+
+func CheckPluginType(id PluginType) bool {
+	pts := map[PluginType]string{
+		0: "collector",
+		1: "processor",
+		2: "publisher",
+	}
+
+	_, ok := pts[id]
+
+	return ok
+}
+
+func GetPluginType(t string) (PluginType, error) {
+	if ityp, err := strconv.Atoi(t); err == nil {
+		if !CheckPluginType(PluginType(ityp)) {
+			return PluginType(-1), fmt.Errorf("invalid plugin type id given %d", ityp)
+		}
+		return PluginType(ityp), nil
+	}
+	return ToPluginType(t)
 }
 
 func (pt PluginType) String() string {

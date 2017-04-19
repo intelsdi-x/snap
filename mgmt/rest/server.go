@@ -252,7 +252,7 @@ func (s *Server) run(addrString string) {
 		config := &tls.Config{Certificates: []tls.Certificate{cer}}
 		ln, err := tls.Listen("tcp", addrString, config)
 		if err != nil {
-			s.err <- err
+			log.Fatal(err)
 		}
 		s.serverListener = ln
 		s.wg.Add(1)
@@ -260,7 +260,7 @@ func (s *Server) run(addrString string) {
 	} else {
 		ln, err := net.Listen("tcp", addrString)
 		if err != nil {
-			s.err <- err
+			log.Fatal(err)
 		}
 		s.serverListener = ln
 		s.addr = ln.Addr()

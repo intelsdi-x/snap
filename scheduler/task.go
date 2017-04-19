@@ -472,8 +472,6 @@ func (t *task) spin() {
 			// If response show this schedule is still active we fire
 			case schedule.Active:
 				t.missedIntervals += sr.Missed()
-				t.lastFireTime = time.Now()
-				t.hitCount++
 				t.fire()
 				if t.lastFailureTime == t.lastFireTime {
 					consecutiveFailures++
@@ -528,6 +526,9 @@ func (t *task) spin() {
 			t.state = core.TaskStopped
 			t.lastFireTime = time.Time{}
 			t.Unlock()
+			event := new(scheduler_event.TaskStoppedEvent)
+			event.TaskID = t.id
+			defer t.eventEmitter.Emit(event)
 			return
 		}
 	}
@@ -538,7 +539,9 @@ func (t *task) fire() {
 	defer t.Unlock()
 
 	t.state = core.TaskFiring
+	t.lastFireTime = time.Now()
 	t.workflow.Start(t)
+	t.hitCount++
 	t.state = core.TaskSpinning
 }
 
