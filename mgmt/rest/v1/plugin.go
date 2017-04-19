@@ -34,9 +34,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"encoding/json"
-
+	
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/api"

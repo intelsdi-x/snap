@@ -326,8 +326,12 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		"_block": "load-plugin",
 		// "path":   filepath.Base(lPlugin.Details.Exec[0]),
 	}).Info("plugin load called")
-	var ePlugin *plugin.ExecutablePlugin
-	var resp plugin.Response
+	var (
+		ePlugin *plugin.ExecutablePlugin
+		resp plugin.Response
+	 	err error
+	)
+	
 	if lPlugin.Details.Uri == nil {
 		// We will create commands by appending the ExecPath to the actual command.
 		// The ExecPath is a temporary location where the plugin/package will be
@@ -336,7 +340,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		for i, e := range lPlugin.Details.Exec {
 			commands[i] = path.Join(lPlugin.Details.ExecPath, e)
 		}
-		ePlugin, err := plugin.NewExecutablePlugin(
+		ePlugin, err = plugin.NewExecutablePlugin(
 			p.GenerateArgs(int(log.GetLevel())),
 			commands...)
 		if err != nil {
