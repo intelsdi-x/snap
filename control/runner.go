@@ -368,12 +368,25 @@ func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID 
 		return errors.New("pool not found")
 	}
 	if pool.SubscriptionCount() < pool.Count() {
-		runnerLog.WithFields(log.Fields{
-			"_block":                  "handle-unsubscription",
-			"pool-count":              pool.Count(),
-			"pool-subscription-count": pool.SubscriptionCount(),
-		}).Debug(fmt.Sprintf("killing an available plugin in pool  %s:%s:%d", pType, pName, pVersion))
-		pool.SelectAndKill(taskID, "unsubscription event")
+		ap := pool.Plugins().Values()[0]
+		lp, err := r.pluginManager.get(ap.String())
+		if err != nil {
+			runnerLog.WithFields(log.Fields{
+				"_block":                  "handle-unsubscription",
+				"pool-count":              pool.Count(),
+				"pool-subscription-count": pool.SubscriptionCount(),
+				"plugin":                  ap.String(),
+				"error":                   err.Error(),
+			}).Error("unable to get loaded plugin")
+		}
+		if lp.Details.Uri == nil {
+			runnerLog.WithFields(log.Fields{
+				"_block":                  "handle-unsubscription",
+				"pool-count":              pool.Count(),
+				"pool-subscription-count": pool.SubscriptionCount(),
+			}).Debug(fmt.Sprintf("killing an available plugin in pool  %s:%s:%d", pType, pName, pVersion))
+			pool.SelectAndKill(taskID, "unsubscription event")
+		}
 	}
 	return nil
 }
