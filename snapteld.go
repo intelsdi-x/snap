@@ -191,7 +191,62 @@ type managesTribe interface {
 	GetMember(name string) *agreement.Member
 }
 
+type verboseErrorsHook struct {
+}
+
+func (hook *verboseErrorsHook) Levels() []log.Level {
+	return []log.Level{
+		// log.DebugLevel,
+		// log.InfoLevel,
+		// log.WarnLevel,
+		log.ErrorLevel,
+		log.FatalLevel,
+		log.PanicLevel,
+	}
+
+}
+
+func (hook *verboseErrorsHook) Fire(entry *log.Entry) error {
+	type Info struct {
+		FullPath, Func string
+		Line           int
+	}
+	infos := []Info{}
+	root := "/"
+	for i := 0; ; i++ {
+		pc, path, line, ok := runtime.Caller(i)
+		if !ok {
+			break
+		}
+		fun := runtime.FuncForPC(pc).Name()
+		fun = filepath.Base(fun) // vendor added to type name
+		if strings.HasPrefix(fun, "log.") || strings.HasPrefix(fun, "logrus.") ||
+			strings.Contains(fun, "verboseErrorsHook") {
+			continue
+		}
+		info := Info{FullPath: path, Func: fun, Line: line}
+		infos = append(infos, info)
+		if fun == "main.main" {
+			root = filepath.Dir(path)
+			break
+		}
+	}
+	for i, info := range infos {
+		var err error
+		infos[i].FullPath, err = filepath.Rel(root, info.FullPath)
+		if err != nil {
+			// this is really not supposed to happen, there is check if we are going outside of repo
+			return err
+		}
+	}
+	entry.Data["source"] = infos
+
+	return nil
+}
+
 func main() {
+	log.AddHook(&verboseErrorsHook{})
+
 	// Add a check to see if gitversion is blank from the build process
 
 	if gitversion == "" {
