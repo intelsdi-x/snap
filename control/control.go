@@ -218,7 +218,7 @@ func New(cfg *Config) *pluginControl {
 	}).Debug("metric catalog created")
 
 	// Plugin Manager
-	c.pluginManager = newPluginManager(OptSetPprof(cfg.Pprof))
+	c.pluginManager = newPluginManager(OptSetPprof(cfg.Pprof), OptSetTempDirPath(cfg.TempDirPath))
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
