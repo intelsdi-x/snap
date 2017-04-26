@@ -522,7 +522,7 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, se
 		controlLogger.WithFields(f).Error(se)
 		return nil, se
 	}
-	
+
 	pl, se := p.pluginManager.LoadPlugin(details, p.eventManager)
 	if se != nil {
 		return nil, se
@@ -532,7 +532,7 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, se
 	if pl.Details.IsPackage {
 		pl.Details.ExecPath = ""
 	}
-	
+
 	// defer sending event
 	event := &control_event.LoadPluginEvent{
 		Name:    pl.Meta.Name,
