@@ -527,6 +527,7 @@ func (p *pluginControl) Load(rp *core.RequestedPlugin) (core.CatalogedPlugin, se
 	if se != nil {
 		return nil, se
 	}
+
 	// If plugin was loaded from a package, remove ExecPath for
 	// the temporary plugin that was used for load
 	if pl.Details.IsPackage {

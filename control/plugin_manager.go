@@ -557,7 +557,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	}
 
 	if resp.State != plugin.PluginSuccess {
-		e := fmt.Errorf("plugin loading did not succeed: %s", resp.ErrorMessage)
+		e := fmt.Errorf("plugin loading did not succeed: %s\n", resp.ErrorMessage)
 		pmLogger.WithFields(log.Fields{
 			"_block":          "load-plugin",
 			"error":           e,
