@@ -236,6 +236,7 @@ type pluginManager struct {
 	pluginConfig      *pluginConfig
 	pluginTags        map[string]map[string]string
 	pprof             bool
+	tempDirPath       string
 }
 
 func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
@@ -259,6 +260,13 @@ func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 }
 
 type pluginManagerOpt func(*pluginManager)
+
+// OptSetPprof sets the pprof flag on the plugin manager
+func OptSetTempDirPath(path string) pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.tempDirPath = path
+	}
+}
 
 // OptSetPprof sets the pprof flag on the plugin manager
 func OptSetPprof(pprof bool) pluginManagerOpt {
@@ -582,22 +590,32 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 		"plugin-version": plugin.Version(),
 		"plugin-path":    plugin.Details.Path,
 	}).Debugf("Removing plugin")
-	if err := os.RemoveAll(filepath.Dir(plugin.Details.Path)); err != nil {
+	if strings.Contains(plugin.Details.Path, p.tempDirPath) {
+		if err := os.RemoveAll(filepath.Dir(plugin.Details.Path)); err != nil {
+			pmLogger.WithFields(log.Fields{
+				"plugin-type":    plugin.TypeName(),
+				"plugin-name":    plugin.Name(),
+				"plugin-version": plugin.Version(),
+				"plugin-path":    plugin.Details.Path,
+			}).Error(err)
+			se := serror.New(err)
+			se.SetFields(map[string]interface{}{
+				"plugin-type":    plugin.TypeName(),
+				"plugin-name":    plugin.Name(),
+				"plugin-version": plugin.Version(),
+				"plugin-path":    plugin.Details.Path,
+			})
+			return nil, se
+		}
+	} else {
 		pmLogger.WithFields(log.Fields{
 			"plugin-type":    plugin.TypeName(),
 			"plugin-name":    plugin.Name(),
 			"plugin-version": plugin.Version(),
 			"plugin-path":    plugin.Details.Path,
-		}).Error(err)
-		se := serror.New(err)
-		se.SetFields(map[string]interface{}{
-			"plugin-type":    plugin.TypeName(),
-			"plugin-name":    plugin.Name(),
-			"plugin-version": plugin.Version(),
-			"plugin-path":    plugin.Details.Path,
-		})
-		return nil, se
+		}).Debug("Nothing to delete as temp path is empty")
 	}
+
 	p.loadedPlugins.remove(plugin.Key())
 
 	// Remove any metrics from the catalog if this was a collector
