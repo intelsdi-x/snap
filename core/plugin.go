@@ -27,10 +27,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"net/url"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/pkg/fileutils"
@@ -131,12 +133,23 @@ type RequestedPlugin struct {
 	uri        *url.URL
 }
 
+// Checks if string is URL
+func isURL(url string) bool {
+	if !govalidator.IsURL(url) || !strings.HasPrefix(url, "http") {
+		return false
+	}
+	return true
+}
+
 // NewRequestedPlugin returns a Requested Plugin which represents the plugin path and signature
 // It takes the full path of the plugin (path), temp path (fileName), and content of the file (b) and returns a requested plugin and error
 // The argument b (content of the file) can be nil
 func NewRequestedPlugin(path, fileName string, b []byte) (*RequestedPlugin, error) {
-	if uri, err := url.ParseRequestURI(path); err == nil && uri != nil {
-		return &RequestedPlugin{uri: uri}, nil
+	// Checks if string is URL
+	if isURL(path) {
+		if uri, err := url.ParseRequestURI(path); err == nil && uri != nil {
+			return &RequestedPlugin{uri: uri}, nil
+		}
 	}
 	var rp *RequestedPlugin
 	// this case is for the snaptel cli as b is unknown and needs to be read

@@ -330,10 +330,6 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	lPlugin.State = DetectedState
 
 	//TODO (JC) deal with path
-	pmLogger.WithFields(log.Fields{
-		"_block": "load-plugin",
-		// "path":   filepath.Base(lPlugin.Details.Exec[0]),
-	}).Info("plugin load called")
 	var (
 		ePlugin *plugin.ExecutablePlugin
 		resp    plugin.Response
@@ -341,6 +337,10 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	)
 
 	if lPlugin.Details.Uri == nil {
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
+			"path":   filepath.Base(lPlugin.Details.Exec[0]),
+		}).Info("plugin load called")
 		// We will create commands by appending the ExecPath to the actual command.
 		// The ExecPath is a temporary location where the plugin/package will be
 		// run from.
@@ -383,6 +383,11 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			})
 		}
 	} else {
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
+			"path":   lPlugin.Details.Uri.String(),
+		}).Info("plugin load called")
+
 		res, err := http.Get(lPlugin.Details.Uri.String())
 		if err != nil {
 			return nil, serror.New(err)

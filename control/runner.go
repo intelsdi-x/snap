@@ -369,7 +369,7 @@ func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID 
 	}
 	if pool.SubscriptionCount() < pool.Count() {
 		ap := pool.Plugins().Values()[0]
-		lp, err := r.pluginManager.get(ap.String())
+		lp, err := r.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pType, pName, pVersion))
 		if err != nil {
 			runnerLog.WithFields(log.Fields{
 				"_block":                  "handle-unsubscription",
