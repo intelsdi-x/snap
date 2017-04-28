@@ -69,19 +69,21 @@ type executablePlugin interface {
 
 // Handles events pertaining to plugins and control the runnning state accordingly.
 type runner struct {
-	delegates        []gomit.Delegator
-	emitter          gomit.Emitter
-	monitor          *monitor
-	availablePlugins *availablePlugins
-	metricCatalog    catalogsMetrics
-	pluginManager    managesPlugins
-	grpcSecurity     client.GRPCSecurity
+	delegates         []gomit.Delegator
+	emitter           gomit.Emitter
+	monitor           *monitor
+	availablePlugins  *availablePlugins
+	metricCatalog     catalogsMetrics
+	pluginManager     managesPlugins
+	grpcSecurity      client.GRPCSecurity
+	pluginLoadTimeout int
 }
 
 func newRunner(opts ...pluginRunnerOpt) *runner {
 	r := &runner{
-		monitor:          newMonitor(),
-		availablePlugins: newAvailablePlugins(),
+		pluginLoadTimeout: defaultPluginLoadTimeout,
+		monitor:           newMonitor(),
+		availablePlugins:  newAvailablePlugins(),
 	}
 	mergedOpts := append([]pluginRunnerOpt{}, defaultRunnerOpts...)
 	mergedOpts = append(mergedOpts, opts...)
@@ -124,6 +126,11 @@ func (r *runner) AvailablePlugins() *availablePlugins {
 
 func (r *runner) Monitor() *monitor {
 	return r.monitor
+}
+
+// SetPluginLoadTimeout sets plugin load timeout
+func (r *runner) SetPluginLoadTimeout(timeout int) {
+	r.pluginLoadTimeout = timeout
 }
 
 // Adds Delegates (gomit.Delegator) for adding Runner handlers to on Start and
@@ -180,55 +187,75 @@ func (r *runner) Stop() []error {
 }
 
 func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
-	resp, err := p.Run(time.Second * 5)
-	if err != nil {
-		e := errors.New("error starting plugin: " + err.Error())
+	type result struct {
+		ap  *availablePlugin
+		err error
+	}
+	resultChan := make(chan result)
+	go func() {
+		resp, err := p.Run(time.Second * time.Duration(r.pluginLoadTimeout))
+		if err != nil {
+			e := errors.New("error starting plugin: " + err.Error())
+			runnerLog.WithFields(log.Fields{
+				"_block": "start-plugin",
+				"error":  e.Error(),
+			}).Error("error starting a plugin")
+			resultChan <- result{nil, e}
+			return
+
+		}
+
+		if resp.State != plugin.PluginSuccess {
+			e := errors.New("plugin could not start error: " + resp.ErrorMessage)
+			runnerLog.WithFields(log.Fields{
+				"_block": "start-plugin",
+				"error":  e.Error(),
+			}).Error("error starting a plugin")
+			resultChan <- result{nil, e}
+			return
+		}
+
+		// build availablePlugin
+		ap, err := newAvailablePlugin(resp, r.emitter, p, r.grpcSecurity)
+		if err != nil {
+			resultChan <- result{nil, err}
+			return
+		}
+
+		if resp.Meta.Unsecure {
+			err = ap.client.Ping()
+		} else {
+			err = ap.client.SetKey()
+		}
+		if err != nil {
+			resultChan <- result{nil, err}
+			return
+		}
+		r.availablePlugins.insert(ap)
+
 		runnerLog.WithFields(log.Fields{
-			"_block": "start-plugin",
-			"error":  e.Error(),
-		}).Error("error starting a plugin")
+			"_block":                "start-plugin",
+			"available-plugin":      ap.String(),
+			"available-plugin-type": ap.TypeName(),
+		}).Info("available plugin started")
+		resultChan <- result{ap, nil}
+
+		defer r.emitter.Emit(&control_event.StartPluginEvent{
+			Name:    ap.Name(),
+			Version: ap.Version(),
+			Type:    int(ap.Type()),
+			Key:     ap.key,
+			Id:      ap.ID(),
+		})
+	}()
+
+	select {
+	case results := <-resultChan:
+		return results.ap, results.err
+	case <-time.After(time.Second * time.Duration(r.pluginLoadTimeout)):
+		e := errors.New("error starting plugin due to timeout")
 		return nil, e
 	}
-
-	if resp.State != plugin.PluginSuccess {
-		e := errors.New("plugin could not start error: " + resp.ErrorMessage)
-		runnerLog.WithFields(log.Fields{
-			"_block": "start-plugin",
-			"error":  e.Error(),
-		}).Error("error starting a plugin")
-		return nil, e
-	}
-
-	ap, err := newAvailablePlugin(resp, r.emitter, p, r.grpcSecurity)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Meta.Unsecure {
-		err = ap.client.Ping()
-	} else {
-		err = ap.client.SetKey()
-	}
-	if err != nil {
-		return nil, err
-	}
-	r.availablePlugins.insert(ap)
-
-	runnerLog.WithFields(log.Fields{
-		"_block":                "start-plugin",
-		"available-plugin":      ap.String(),
-		"available-plugin-type": ap.TypeName(),
-	}).Info("available plugin started")
-
-	defer r.emitter.Emit(&control_event.StartPluginEvent{
-		Name:    ap.Name(),
-		Version: ap.Version(),
-		Type:    int(ap.Type()),
-		Key:     ap.key,
-		Id:      ap.ID(),
-	})
-
-	return ap, nil
 }
 
 func (r *runner) stopPlugin(reason string, ap *availablePlugin) error {

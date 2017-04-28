@@ -141,6 +141,13 @@ func (f *Mock) GetMetricTypes(cfg plugin.ConfigType) ([]plugin.MetricType, error
 	if _, ok := cfg.Table()["test-fail"]; ok {
 		return mts, fmt.Errorf("testing")
 	}
+	if d, ok := cfg.Table()["test-sleep-duration"]; ok {
+		duration, err := time.ParseDuration(d.(ctypes.ConfigValueStr).Value)
+		if err != nil {
+			return nil, err
+		}
+		time.Sleep(duration)
+	}
 	if _, ok := cfg.Table()["test"]; ok {
 		mts = append(mts, plugin.MetricType{
 			Namespace_:   core.NewNamespace("intel", "mock", "test"),

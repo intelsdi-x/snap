@@ -333,7 +333,6 @@ func TestRunnerState(t *testing.T) {
 }
 
 func TestRunnerPluginRunning(t *testing.T) {
-	// log.SetLevel(log.DebugLevel)
 	Convey("snap/control", t, func() {
 		Convey("Runner", func() {
 			Convey("startPlugin", func() {
@@ -350,8 +349,6 @@ func TestRunnerPluginRunning(t *testing.T) {
 						}
 
 						So(err, ShouldBeNil)
-
-						// exPlugin := new(MockExecutablePlugin)
 						ap, e := r.startPlugin(exPlugin)
 
 						So(e, ShouldBeNil)

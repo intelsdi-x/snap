@@ -67,10 +67,16 @@ func TestLoadedPlugins(t *testing.T) {
 	})
 }
 
-func loadPlugin(p *pluginManager, fileName string) (*loadedPlugin, serror.SnapError) {
+func loadPlugin(p *pluginManager, fileName string, retries ...int) (*loadedPlugin, serror.SnapError) {
 	// This is a Travis optimized loading of plugins. From time to time, tests will error in Travis
 	// due to a timeout when waiting for a response from a plugin. We are going to attempt loading a plugin
 	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
+	var retryCount int
+	if len(retries) == 0 {
+		retryCount = 3
+	} else {
+		retryCount = retries[0]
+	}
 	var e serror.SnapError
 	var lp *loadedPlugin
 	file, err := os.Open(fileName)
@@ -102,17 +108,13 @@ func loadPlugin(p *pluginManager, fileName string) (*loadedPlugin, serror.SnapEr
 		Exec:     []string{filepath.Base(path)},
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < retryCount; i++ {
 		lp, e = p.LoadPlugin(details, nil)
 		if e == nil {
-			break
-		}
-		if e != nil && i == 2 {
-			return nil, e
-
+			break //success
 		}
 	}
-	return lp, nil
+	return lp, e
 }
 
 // Uses the mock collector plugin to simulate loading
@@ -120,10 +122,8 @@ func TestLoadPlugin(t *testing.T) {
 	// These tests only work if SNAP_PATH is known
 	// It is the responsibility of the testing framework to
 	// build the plugins first into the build dir
-
 	if fixtures.SnapPath != "" {
 		Convey("PluginManager.LoadPlugin", t, func() {
-
 			Convey("loads plugin successfully", func() {
 				p := newPluginManager()
 				p.SetMetricCatalog(newMetricCatalog())
@@ -133,6 +133,18 @@ func TestLoadPlugin(t *testing.T) {
 				So(p.all(), ShouldNotBeEmpty)
 				So(err, ShouldBeNil)
 				So(len(p.all()), ShouldBeGreaterThan, 0)
+			})
+
+			Convey("load plugin unsuccessful due to timeout", func() {
+				cfg := GetDefaultConfig()
+				cfg.Plugins.Collector.Plugins["mock"] = newPluginConfigItem(optAddPluginConfigItem("test-sleep-duration", ctypes.ConfigValueStr{Value: "2s"}))
+				pm := newPluginManager(OptSetPluginConfig(cfg.Plugins))
+				pm.SetPluginLoadTimeout(1)
+				pm.SetMetricCatalog(newMetricCatalog())
+				lplugin, lerr := loadPlugin(pm, fixtures.PluginPathMock2, 1)
+				So(lplugin, ShouldBeNil)
+				So(lerr, ShouldNotBeNil)
+				So(lerr.Error(), ShouldContainSubstring, "timed out")
 			})
 
 			Convey("with a plugin config a plugin loads successfully", func() {
@@ -166,7 +178,6 @@ func TestLoadPlugin(t *testing.T) {
 				p := newPluginManager(OptSetPluginConfig(cfg.Plugins))
 				p.SetMetricCatalog(newMetricCatalog())
 				lp, err := loadPlugin(p, fixtures.PluginPathMock2)
-
 				So(lp, ShouldBeNil)
 				So(p.all(), ShouldBeEmpty)
 				So(err, ShouldNotBeNil)

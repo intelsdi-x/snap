@@ -116,6 +116,7 @@ type runsPlugins interface {
 	SetPluginManager(managesPlugins)
 	Monitor() *monitor
 	runPlugin(string, *pluginDetails) error
+	SetPluginLoadTimeout(int)
 }
 
 type managesPlugins interface {
@@ -174,6 +175,7 @@ func OptSetConfig(cfg *Config) PluginControlOpt {
 		c.Config = cfg
 		c.pluginManager.SetPluginConfig(cfg.Plugins)
 		c.pluginManager.SetPluginLoadTimeout(c.Config.PluginLoadTimeout)
+		c.pluginRunner.SetPluginLoadTimeout(c.Config.PluginLoadTimeout)
 	}
 }
 
