@@ -1,0 +1,18 @@
+[Unit]
+Description=Starts and stops a single snapd instance on this system
+Documentation=https://github.com/intelsdi-x/snap
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=root
+Group=root
+Type=simple
+Restart=on-failure
+ExecStart=/usr/local/bin/snapd --config=/etc/snapd/snapd.yaml
+LimitNOFILE=102400
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
+

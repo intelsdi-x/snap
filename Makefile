@@ -59,3 +59,9 @@ install:
 	cp build/$(OS)/$(ARCH)/snaptel /usr/local/bin/
 proto:
 	cd `echo $(GOPATH) | cut -d: -f 1`; bash -c "./src/github.com/intelsdi-x/snap/scripts/gen-proto.sh"
+deb:
+	$(MAKE) all
+	bash -c "./scripts/build_deb.sh"
+rpm:
+	$(MAKE) all
+	bash -c "./scripts/build_rpm.sh"
