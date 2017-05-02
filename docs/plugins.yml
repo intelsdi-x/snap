@@ -103,3 +103,8 @@
 - intelsdi-x/snap-plugin-publisher-riemann
 - runabove/snap-plugin-publisher-warp10
 - janczer/snap-plugin-collector-entropy
+- marcin-krolik/snap-plugin-publisher-slack
+- intelsdi-x/snap-plugin-processor-change-detector
+- intelsdi-x/snap-plugin-processor-tags-filter
+- intelsdi-x/snap-plugin-processor-threshold
+- intelsdi-x/snap-plugin-collector-influxdb-data
