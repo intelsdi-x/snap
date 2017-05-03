@@ -43,6 +43,7 @@ const (
 	version            = 1
 	name               = "mock"
 	port               = ""
+	remote             = false
 )
 
 var lastHit = time.Unix(1460027570, 0)
@@ -59,6 +60,7 @@ type MockAvailablePlugin struct {
 	pluginType plugin.PluginType
 	version    int
 	port       string
+	isRemote   bool
 }
 
 func NewMockAvailablePlugin() *MockAvailablePlugin {
@@ -74,6 +76,7 @@ func NewMockAvailablePlugin() *MockAvailablePlugin {
 		pluginType: plugin.CollectorPluginType,
 		version:    version,
 		port:       port,
+		isRemote:   remote,
 	}
 	return mock
 }
@@ -192,4 +195,12 @@ func (m MockAvailablePlugin) Version() int {
 
 func (m MockAvailablePlugin) Port() string {
 	return m.port
+}
+
+func (m MockAvailablePlugin) IsRemote() bool {
+	return m.isRemote
+}
+
+func (m MockAvailablePlugin) SetIsRemote(isRemote bool) {
+	m.isRemote = isRemote
 }
