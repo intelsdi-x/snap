@@ -1,6 +1,12 @@
 myfcn(
 [
   {
+    "name": "NewRelic",
+    "type": "Collector",
+    "description": "Collect metrics from New Relic.",
+    "url": "https://github.com/inteleon/snap-plugin-collector-newrelic"
+  },
+  {
     "name": "AWS-SQS",
     "type": "Publisher",
     "description": "Publishes metrics to AWS SQS.",
@@ -34,7 +40,7 @@ myfcn(
     "name": "Kubestate",
     "type": "Collector",
     "description": "Snap collector plugin for Kubernetes",
-    "url": "https://github.com/raintank/snap-plugin-collector-kubestate"
+    "url": "https://github.com/grafana/snap-plugin-collector-kubestate"
   },
   {
     "name": "Ping",
@@ -515,6 +521,12 @@ myfcn(
     "type": "Publisher",
     "description": "Publishes metrics to warp10.",
     "url": "https://github.com/runabove/snap-plugin-publisher-warp10"
+  },
+  {
+    "name": "Entropy",
+    "type": "Collector",
+    "description": "Collects Linux avaliable entropy from /proc/sys/kernel/random/entropy_avail.",
+    "url": "https://github.com/janczer/snap-plugin-collector-entropy"
   }
 ]
 )
