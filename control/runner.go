@@ -181,6 +181,11 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 		return nil, err
 	}
 
+	lp, err := r.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", ap.TypeName(), ap.Name(), ap.Version()))
+	if lp != nil && lp.Details.Uri != nil {
+		ap.SetIsRemote(true)
+	}
+
 	if resp.Meta.Unsecure {
 		err = ap.client.Ping()
 	} else {
@@ -373,7 +378,7 @@ func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID 
 			runnerLog.WithFields(log.Fields{
 				"_block":     "handle-unsubscription",
 				"plugin-uri": lp.Details.Uri,
-			}).Debug(fmt.Sprintf("unsuscribe called on standalone plugin, moving on"))
+			}).Debug(fmt.Sprintf("unsubscribe called on standalone plugin, moving on"))
 			return nil
 		}
 		pool.SelectAndKill(taskID, "unsubscription event")

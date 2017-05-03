@@ -185,6 +185,9 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		}
 		var resp map[string]string
 		err = json.Unmarshal(body, &resp)
+		if err != nil {
+			rbody.Write(500, rbody.FromError(err), w)
+		}
 		rp, err := core.NewRequestedPlugin(resp["uri"], "", nil)
 		if err != nil {
 			rbody.Write(500, rbody.FromError(err), w)

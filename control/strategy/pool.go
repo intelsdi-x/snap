@@ -83,6 +83,8 @@ type AvailablePlugin interface {
 	String() string
 	Type() plugin.PluginType
 	Stop(string) error
+	IsRemote() bool
+	SetIsRemote(bool)
 }
 
 type subscription struct {

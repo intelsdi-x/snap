@@ -412,6 +412,10 @@ func (s *subscriptionGroup) subscribePlugins(id string,
 		if plg.Details.Uri != nil {
 			// this is a remote plugin
 			pool, err := s.pluginRunner.AvailablePlugins().getOrCreatePool(plg.Key())
+			if err != nil {
+				serrs = append(serrs, serror.New(err))
+				return serrs
+			}
 			if pool.Count() < 1 {
 				var resp plugin.Response
 				res, err := http.Get(plg.Details.Uri.String())
@@ -419,23 +423,27 @@ func (s *subscriptionGroup) subscribePlugins(id string,
 					serrs = append(serrs, serror.New(err))
 					return serrs
 				}
-
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
 					serrs = append(serrs, serror.New(err))
 					return serrs
 				}
-				json.Unmarshal(body, &resp)
+				err = json.Unmarshal(body, &resp)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
 				ap, err := newAvailablePlugin(resp, s.eventManager, nil)
 				if err != nil {
 					serrs = append(serrs, serror.New(err))
 					return serrs
 				}
-				pool.Insert(ap)
-			}
-			if err != nil {
-				serrs = append(serrs, serror.New(err))
-				return serrs
+				ap.SetIsRemote(true)
+				err = pool.Insert(ap)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
 			}
 		} else {
 			pool, err := s.pluginRunner.AvailablePlugins().getOrCreatePool(plg.Key())
@@ -444,7 +452,7 @@ func (s *subscriptionGroup) subscribePlugins(id string,
 				return serrs
 			}
 			pool.Subscribe(id)
-			if pool.Eligible() && plg.Details.Uri == nil {
+			if pool.Eligible() {
 				err = s.verifyPlugin(plg)
 				if err != nil {
 					serrs = append(serrs, serror.New(err))

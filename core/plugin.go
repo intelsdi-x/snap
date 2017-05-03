@@ -126,11 +126,10 @@ type SubscribedPlugin interface {
 }
 
 type RequestedPlugin struct {
-	path       string
-	checkSum   [sha256.Size]byte
-	signature  []byte
-	autoLoaded bool
-	uri        *url.URL
+	path      string
+	checkSum  [sha256.Size]byte
+	signature []byte
+	uri       *url.URL
 }
 
 // Checks if string is URL
