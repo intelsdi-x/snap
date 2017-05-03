@@ -527,6 +527,36 @@ myfcn(
     "type": "Collector",
     "description": "Collects Linux avaliable entropy from /proc/sys/kernel/random/entropy_avail.",
     "url": "https://github.com/janczer/snap-plugin-collector-entropy"
+  },
+  {
+    "name": "Slack",
+    "type": "Publisher",
+    "description": "No description available.",
+    "url": "https://github.com/marcin-krolik/snap-plugin-publisher-slack"
+  },
+  {
+    "name": "Change-detector",
+    "type": "Processor",
+    "description": "Snap plugin intended to detect changes in metrics",
+    "url": "https://github.com/intelsdi-x/snap-plugin-processor-change-detector"
+  },
+  {
+    "name": "Tags-filter",
+    "type": "Processor",
+    "description": " Filters Snap metrics by tags",
+    "url": "https://github.com/intelsdi-x/snap-plugin-processor-tags-filter"
+  },
+  {
+    "name": "Threshold",
+    "type": "Processor",
+    "description": "This plugin filtering metrics with task defined threshold",
+    "url": "https://github.com/intelsdi-x/snap-plugin-processor-threshold"
+  },
+  {
+    "name": "Influxdb-data",
+    "type": "Collector",
+    "description": "Snap plugin intended to receive data previously saved in InfluxDB",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-influxdb-data"
   }
 ]
 )
