@@ -370,23 +370,24 @@ func (r *runner) handleUnsubscription(pType, pName string, pVersion int, taskID 
 	if pool.SubscriptionCount() < pool.Count() {
 		lp, err := r.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pType, pName, pVersion))
 		if lp != nil && lp.Details.Uri != nil {
+			if err != nil {
+				runnerLog.WithFields(log.Fields{
+					"_block":                  "handle-unsubscription",
+					"pool-count":              pool.Count(),
+					"pool-subscription-count": pool.SubscriptionCount(),
+					"plugin-name":             pName,
+					"plugin-version":          pVersion,
+					"plugin-type":             pType,
+					"error":                   err.Error(),
+				}).Error("unable to get loaded plugin")
+			}
 			runnerLog.WithFields(log.Fields{
 				"_block":     "handle-unsubscription",
 				"plugin-uri": lp.Details.Uri,
-			}).Debug(fmt.Sprintf("unsubscribe called on standalone plugin, moving on"))
-			return nil
-		}
-		pool.SelectAndKill(taskID, "unsubscription event")
-		if err != nil {
-			runnerLog.WithFields(log.Fields{
-				"_block":                  "handle-unsubscription",
-				"pool-count":              pool.Count(),
-				"pool-subscription-count": pool.SubscriptionCount(),
-				"plugin-name":             pName,
-				"plugin-version":          pVersion,
-				"plugin-type":             pType,
-				"error":                   err.Error(),
-			}).Error("unable to get loaded plugin")
+			}).Debug(fmt.Sprintf("unsubscribe called on standalone plugin"))
+			pool.SelectAndStop(taskID, "remote unsubscription event")
+		} else {
+			pool.SelectAndKill(taskID, "unsubscription event")
 		}
 	}
 	return nil
