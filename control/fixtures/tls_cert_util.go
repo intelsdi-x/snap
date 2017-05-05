@@ -1,4 +1,4 @@
-// +build legacy small medium large
+// + build legacy small medium large
 
 /*
 http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -35,7 +35,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -139,7 +138,7 @@ func (u CertTestUtil) MakeSubjCertKeyPair(cn, ou string, keyValidPeriod time.Dur
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		SubjectKeyId: subjPubSha256[:],
 	}
-	subjCertTpl.DNSNames = strings.Fields("localhost")
+	subjCertTpl.DNSNames = []string{"localhost"}
 	subjCertTpl.IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
 	subjCertBytes, err = x509.CreateCertificate(rand.Reader, &subjCertTpl, caCertTpl, subjPrivKey.Public(), caPrivKey)
 	return subjCertBytes, subjPrivKey, err

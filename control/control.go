@@ -222,7 +222,6 @@ func New(cfg *Config) *pluginControl {
 		OptSetTempDirPath(cfg.TempDirPath),
 	}
 	runnerOpts := []pluginRunnerOpt{}
-	// Plugin Manager
 	if cfg.IsTLSEnabled() {
 		if cfg.CACertPaths != "" {
 			certPaths := filepath.SplitList(cfg.CACertPaths)
@@ -233,6 +232,7 @@ func New(cfg *Config) *pluginControl {
 		managerOpts = append(managerOpts, OptEnableManagerTLS(c.grpcSecurity))
 		runnerOpts = append(runnerOpts, OptEnableRunnerTLS(c.grpcSecurity))
 	}
+	// Plugin Manager
 	c.pluginManager = newPluginManager(managerOpts...)
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",

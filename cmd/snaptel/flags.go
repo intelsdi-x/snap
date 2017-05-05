@@ -81,7 +81,7 @@ var (
 	}
 	flPluginCACerts = cli.StringFlag{
 		Name:  "plugin-ca-certs, r",
-		Usage: "List of CA cert paths for plugin (directory/file) to verify TLS clients",
+		Usage: "List of CA cert paths (directory/file) for plugin to verify TLS clients",
 	}
 	flPluginType = cli.StringFlag{
 		Name:  "plugin-type, t",
