@@ -217,21 +217,21 @@ func New(cfg *Config) *pluginControl {
 		"_block": "new",
 	}).Debug("metric catalog created")
 
-	// Plugin Manager
 	managerOpts := []pluginManagerOpt{
 		OptSetPprof(cfg.Pprof),
 		OptSetTempDirPath(cfg.TempDirPath),
 	}
+	runnerOpts := []pluginRunnerOpt{}
+	// Plugin Manager
 	if cfg.IsTLSEnabled() {
-		if cfg.RootCertPaths != "" {
-			certPaths := filepath.SplitList(cfg.RootCertPaths)
+		if cfg.CACertPaths != "" {
+			certPaths := filepath.SplitList(cfg.CACertPaths)
 			c.grpcSecurity = client.SecurityTLSExtended(cfg.TLSCertPath, cfg.TLSKeyPath, client.SecureClient, certPaths)
 		} else {
 			c.grpcSecurity = client.SecurityTLSEnabled(cfg.TLSCertPath, cfg.TLSKeyPath, client.SecureClient)
 		}
-	}
-	if cfg.IsTLSEnabled() {
 		managerOpts = append(managerOpts, OptEnableManagerTLS(c.grpcSecurity))
+		runnerOpts = append(runnerOpts, OptEnableRunnerTLS(c.grpcSecurity))
 	}
 	c.pluginManager = newPluginManager(managerOpts...)
 	controlLogger.WithFields(log.Fields{
@@ -247,11 +247,7 @@ func New(cfg *Config) *pluginControl {
 	}).Debug("signing manager created")
 
 	// Plugin Runner
-	if cfg.IsTLSEnabled() {
-		c.pluginRunner = newRunner(OptEnableRunnerTLS(c.grpcSecurity))
-	} else {
-		c.pluginRunner = newRunner()
-	}
+	c.pluginRunner = newRunner(runnerOpts...)
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("runner created")
@@ -604,7 +600,7 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	details.Signature = rp.Signature()
 	details.CertPath = rp.CertPath()
 	details.KeyPath = rp.KeyPath()
-	details.RootCertPaths = rp.RootCertPaths()
+	details.CACertPaths = rp.CACertPaths()
 	details.TLSEnabled = rp.TLSEnabled()
 
 	if filepath.Ext(rp.Path()) == ".aci" {

@@ -82,14 +82,14 @@ type grpcClient struct {
 
 // GRPCSecurity contains data necessary to setup secure gRPC communication
 type GRPCSecurity struct {
-	TLSEnabled    bool
-	SecureSide    SecureSide
-	TLSCertPath   string
-	TLSKeyPath    string
-	RootCertPaths []string
+	TLSEnabled  bool
+	SecureSide  SecureSide
+	TLSCertPath string
+	TLSKeyPath  string
+	CACertPaths []string
 }
 
-// SecurityTLSEnabled generates setup object for securing gRPC communication
+// SecurityTLSEnabled generates security object for securing gRPC communication
 func SecurityTLSEnabled(certPath, keyPath string, secureSide SecureSide) GRPCSecurity {
 	return GRPCSecurity{
 		TLSEnabled:  true,
@@ -99,14 +99,16 @@ func SecurityTLSEnabled(certPath, keyPath string, secureSide SecureSide) GRPCSec
 	}
 }
 
-// SecurityTLSExtended generates setup object for securing gRPC communication
-func SecurityTLSExtended(certPath, keyPath string, secureSide SecureSide, rootCertPaths []string) GRPCSecurity {
+// SecurityTLSExtended generates security object for securing gRPC communication.
+// This function accepts also a list of CA cert paths for verifying TLS participant's
+// identity.
+func SecurityTLSExtended(certPath, keyPath string, secureSide SecureSide, caCertPaths []string) GRPCSecurity {
 	return GRPCSecurity{
-		TLSEnabled:    true,
-		SecureSide:    secureSide,
-		TLSCertPath:   certPath,
-		TLSKeyPath:    keyPath,
-		RootCertPaths: rootCertPaths,
+		TLSEnabled:  true,
+		SecureSide:  secureSide,
+		TLSCertPath: certPath,
+		TLSKeyPath:  keyPath,
+		CACertPaths: caCertPaths,
 	}
 }
 
@@ -154,7 +156,7 @@ func NewPublisherGrpcClient(address string, timeout time.Duration, security GRPC
 	return p.(PluginPublisherClient), err
 }
 
-func loadRootCerts(certPaths []string) (rootCAs *x509.CertPool, err error) {
+func loadCACerts(certPaths []string) (rootCAs *x509.CertPool, err error) {
 	var path string
 	var filepaths []string
 	// list potential certificate files
@@ -209,14 +211,14 @@ func buildCredentials(security GRPCSecurity) (creds credentials.TransportCredent
 		return nil, fmt.Errorf("unable to load TLS key pair: %v", err)
 	}
 	var rootCAs *x509.CertPool
-	if len(security.RootCertPaths) > 0 {
-		log.Debug("Loading root certificates given explicitly")
-		rootCAs, err = loadRootCerts(security.RootCertPaths)
+	if len(security.CACertPaths) > 0 {
+		log.Debug("Loading CA certificates given explicitly")
+		rootCAs, err = loadCACerts(security.CACertPaths)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		log.Debug("Loading root certificates from operating system")
+		log.Debug("Loading CA certificates from operating system")
 		rootCAs, err = x509.SystemCertPool()
 		if err != nil {
 			return nil, fmt.Errorf("unable to load system-wide root TLS certificates: %v", err)

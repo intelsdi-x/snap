@@ -50,7 +50,7 @@ var (
 	defaultTempDirPath       = os.TempDir()
 	defaultTLSCertPath       = ""
 	defaultTLSKeyPath        = ""
-	defaultRootCertPaths     = ""
+	defaultCACertPaths       = ""
 )
 
 type pluginConfig struct {
@@ -91,7 +91,7 @@ type Config struct {
 	TempDirPath       string                       `json:"temp_dir_path"yaml:"temp_dir_path"`
 	TLSCertPath       string                       `json:"tls_cert_path"yaml:"tls_cert_path"`
 	TLSKeyPath        string                       `json:"tls_key_path"yaml:"tls_key_path"`
-	RootCertPaths     string                       `json:"root_cert_paths"yaml:"root_cert_paths"`
+	CACertPaths       string                       `json:"ca_cert_paths"yaml:"ca_cert_paths"`
 }
 
 const (
@@ -153,7 +153,7 @@ const (
 					"tls_key_path": {
 						"type": "string"
 					},
-					"root_cert_paths": {
+					"ca_cert_paths": {
 						"type": "string"
 					}
 				},
@@ -180,7 +180,7 @@ func GetDefaultConfig() *Config {
 		TempDirPath:       defaultTempDirPath,
 		TLSCertPath:       defaultTLSCertPath,
 		TLSKeyPath:        defaultTLSKeyPath,
-		RootCertPaths:     defaultRootCertPaths,
+		CACertPaths:       defaultCACertPaths,
 	}
 }
 
@@ -250,7 +250,7 @@ func (p *Config) GetPluginConfigDataNodeAll() cdata.ConfigDataNode {
 	return *p.Plugins.All
 }
 
-// IsTLSEnabled returns true if config values enable TLS security
+// IsTLSEnabled returns true if config values enable TLS in plugin communication
 func (p *Config) IsTLSEnabled() bool {
 	if p.TLSCertPath != "" && p.TLSKeyPath != "" {
 		return true

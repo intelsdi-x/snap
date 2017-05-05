@@ -320,7 +320,7 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 		bufin := bufio.NewReader(file)
 		bufins = append(bufins, bufin)
 		if baseName := filepath.Base(pluginPath); strings.HasPrefix(baseName, v1.TLSCertPrefix) ||
-			strings.HasPrefix(baseName, v1.TLSKeyPrefix) || strings.HasPrefix(baseName, v1.TLSRootCertsPrefix) {
+			strings.HasPrefix(baseName, v1.TLSKeyPrefix) || strings.HasPrefix(baseName, v1.TLSCACertsPrefix) {
 			defer os.Remove(pluginPath)
 		}
 		paths = append(paths, filepath.Base(pluginPath))

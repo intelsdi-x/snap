@@ -76,7 +76,7 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	if strings.HasPrefix(mediaType, "multipart/") {
 		var certPath string
 		var keyPath string
-		var rootCertPaths string
+		var caCertPaths string
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		lp := &rbody.PluginsLoaded{}
@@ -120,7 +120,8 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			// extension, an error is returned.
 			// If we loop around more than twice before receiving io.EOF, then
 			// an error is returned.
-
+			// Reception of TLS security file paths (ceritificate file, private key file, CA certificate files)
+			// is also taking place here. Paths are extracted and used to set up a RequestedPlugin object.
 			switch {
 			case i == 0:
 				if filepath.Ext(p.FileName()) == ".asc" {
@@ -150,8 +151,8 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 						rbody.Write(500, rbody.FromError(e), w)
 						return
 					}
-				} else if strings.HasPrefix(p.FileName(), TLSRootCertsPrefix) {
-					rootCertPaths = string(b)
+				} else if strings.HasPrefix(p.FileName(), TLSCACertsPrefix) {
+					caCertPaths = string(b)
 					// validation will take place later; take it as it is
 				} else {
 					e := errors.New("Error: unrecognized file was passed")
@@ -175,7 +176,7 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		rp.SetSignature(signature)
 		rp.SetCertPath(certPath)
 		rp.SetKeyPath(keyPath)
-		rp.SetRootCertPaths(rootCertPaths)
+		rp.SetCACertPaths(caCertPaths)
 		if certPath != "" && keyPath != "" {
 			rp.SetTLSEnabled(true)
 		} else if certPath != "" || keyPath != "" {

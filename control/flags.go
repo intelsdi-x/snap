@@ -60,15 +60,15 @@ var (
 
 	flTLSCert = cli.StringFlag{
 		Name:  "tls-cert",
-		Usage: "A path to PEM-encoded certificate to use for TLS channels",
+		Usage: "A path to PEM-encoded certificate to use for GRPC TLS channels",
 	}
 	flTLSKey = cli.StringFlag{
 		Name:  "tls-key",
-		Usage: "A path to PEM-encoded private key file to use for TLS channels",
+		Usage: "A path to PEM-encoded private key file to use for GRPC TLS channels",
 	}
-	flRootCertPaths = cli.StringFlag{
-		Name:  "root-cert-paths",
-		Usage: "A list of paths to root certificates or their parent directories, separated with OS path separator",
+	flCACertPaths = cli.StringFlag{
+		Name:  "ca-cert-paths",
+		Usage: "A list of paths to CA certificates or their parent directories, separated with OS path separator",
 	}
 
 	flControlRpcPort = cli.StringFlag{
@@ -89,5 +89,5 @@ var (
 		EnvVar: "SNAP_TEMP_DIR_PATH",
 	}
 
-	Flags = []cli.Flag{flNumberOfPLs, flPluginLoadTimeout, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr, flTempDirPath, flTLSCert, flTLSKey, flRootCertPaths}
+	Flags = []cli.Flag{flNumberOfPLs, flPluginLoadTimeout, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr, flTempDirPath, flTLSCert, flTLSKey, flCACertPaths}
 )

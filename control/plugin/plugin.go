@@ -150,10 +150,10 @@ type Arg struct {
 	// enable pprof
 	Pprof bool
 
-	CertPath      string `json:"CertPath"`
-	KeyPath       string `json:"KeyPath"`
-	RootCertPaths string `json:"RootCertPaths"`
-	TLSEnabled    bool   `json:"TLSEnabled"`
+	CertPath    string `json:"CertPath"`
+	KeyPath     string `json:"KeyPath"`
+	CACertPaths string `json:"RootCertPaths"`
+	TLSEnabled  bool   `json:"TLSEnabled"`
 }
 
 // SetCertPath sets path to TLS certificate in plugin arguments
@@ -174,9 +174,9 @@ func (a Arg) SetTLSEnabled(tlsEnabled bool) Arg {
 	return a
 }
 
-// SetRootCertPaths sets list of certificate paths for client verification
-func (a Arg) SetRootCertPaths(rootCertPaths string) Arg {
-	a.RootCertPaths = rootCertPaths
+// SetCACertPaths sets list of certificate paths for client verification
+func (a Arg) SetCACertPaths(caCertPaths string) Arg {
+	a.CACertPaths = caCertPaths
 	return a
 }
 

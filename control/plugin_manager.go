@@ -158,18 +158,18 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 
 // the struct representing a plugin that is loaded into snap
 type pluginDetails struct {
-	CheckSum      [sha256.Size]byte
-	Exec          []string
-	ExecPath      string
-	IsPackage     bool
-	Manifest      *schema.ImageManifest
-	Path          string
-	Signed        bool
-	Signature     []byte
-	CertPath      string
-	KeyPath       string
-	RootCertPaths string
-	TLSEnabled    bool
+	CheckSum    [sha256.Size]byte
+	Exec        []string
+	ExecPath    string
+	IsPackage   bool
+	Manifest    *schema.ImageManifest
+	Path        string
+	Signed      bool
+	Signature   []byte
+	CertPath    string
+	KeyPath     string
+	CACertPaths string
+	TLSEnabled  bool
 }
 
 type loadedPlugin struct {
@@ -359,7 +359,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		p.GenerateArgs(int(log.GetLevel())).
 			SetCertPath(details.CertPath).
 			SetKeyPath(details.KeyPath).
-			SetRootCertPaths(details.RootCertPaths).
+			SetCACertPaths(details.CACertPaths).
 			SetTLSEnabled(details.TLSEnabled),
 		commands...)
 	if err != nil {

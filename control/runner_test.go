@@ -336,7 +336,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{}
-						exPlugin, err := fixtures.NewExecutablePlugin(a, fixtures.PluginPathMock2)
+						exPlugin, err := plugin.NewExecutablePlugin(a, fixtures.PluginPathMock2)
 						if err != nil {
 							panic(err)
 						}
@@ -358,7 +358,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{}
-						exPlugin, err := fixtures.NewExecutablePlugin(a, fixtures.PluginPathMock2)
+						exPlugin, err := plugin.NewExecutablePlugin(a, fixtures.PluginPathMock2)
 						if err != nil {
 							panic(err)
 						}
@@ -376,7 +376,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{}
-						exPlugin, err := fixtures.NewExecutablePlugin(a, fixtures.PluginPathMock2)
+						exPlugin, err := plugin.NewExecutablePlugin(a, fixtures.PluginPathMock2)
 						if err != nil {
 							panic(err)
 						}
@@ -393,7 +393,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{}
-						exPlugin, err := fixtures.NewExecutablePlugin(a, fixtures.PluginPathMock2)
+						exPlugin, err := plugin.NewExecutablePlugin(a, fixtures.PluginPathMock2)
 						if err != nil {
 							panic(err)
 						}
@@ -410,7 +410,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{}
-						exPlugin, err := fixtures.NewExecutablePlugin(a, fixtures.PluginPathMock2)
+						exPlugin, err := plugin.NewExecutablePlugin(a, fixtures.PluginPathMock2)
 						if err != nil {
 							panic(err)
 						}
@@ -431,7 +431,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 						r := newRunner()
 						r.SetEmitter(new(MockEmitter))
 						a := plugin.Arg{}
-						exPlugin, err := fixtures.NewExecutablePlugin(a, fixtures.PluginPathMock2)
+						exPlugin, err := plugin.NewExecutablePlugin(a, fixtures.PluginPathMock2)
 						if err != nil {
 							panic(err)
 						}
@@ -464,7 +464,7 @@ func TestRunnerPluginRunning(t *testing.T) {
 					r := newRunner()
 					r.SetEmitter(new(MockEmitter))
 					a := plugin.Arg{}
-					exPlugin, err := fixtures.NewExecutablePlugin(a, fixtures.PluginPathMock2)
+					exPlugin, err := plugin.NewExecutablePlugin(a, fixtures.PluginPathMock2)
 					if err != nil {
 						panic(err)
 					}

@@ -856,7 +856,7 @@ func applyCmdLineFlags(cfg *Config, ctx runtimeFlagsContext) {
 	cfg.Control.TempDirPath = setStringVal(cfg.Control.TempDirPath, ctx, "temp_dir_path")
 	cfg.Control.TLSCertPath = setStringVal(cfg.Control.TLSCertPath, ctx, "tls-cert")
 	cfg.Control.TLSKeyPath = setStringVal(cfg.Control.TLSKeyPath, ctx, "tls-key")
-	cfg.Control.RootCertPaths = setStringVal(cfg.Control.RootCertPaths, ctx, "root-cert-paths")
+	cfg.Control.CACertPaths = setStringVal(cfg.Control.CACertPaths, ctx, "ca-cert-paths")
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")

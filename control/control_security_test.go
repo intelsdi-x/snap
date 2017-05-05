@@ -91,7 +91,7 @@ func TestSecureCollector(t *testing.T) {
 			ap, err = runPlugin(plugin.Arg{}.
 				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
 				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
-				SetRootCertPaths(tlsTestCA+fixtures.TestCrtFileExt).
+				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
 				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-collector-mock2-grpc"),
 				security)
 			So(err, ShouldBeNil)
@@ -133,7 +133,7 @@ func TestSecureProcessor(t *testing.T) {
 			ap, err = runPlugin(plugin.Arg{}.
 				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
 				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
-				SetRootCertPaths(tlsTestCA+fixtures.TestCrtFileExt).
+				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
 				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-processor-passthru-grpc"),
 				security)
 			So(err, ShouldBeNil)
@@ -171,7 +171,7 @@ func TestSecurePublisher(t *testing.T) {
 			ap, err = runPlugin(plugin.NewArg(int(log.DebugLevel), false).
 				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
 				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
-				SetRootCertPaths(tlsTestCA+fixtures.TestCrtFileExt).
+				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
 				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-publisher-mock-file-grpc"),
 				security)
 			So(err, ShouldBeNil)
@@ -216,7 +216,7 @@ func TestSecureStreamingCollector(t *testing.T) {
 			ap, err = runPlugin(plugin.Arg{}.
 				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
 				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
-				SetRootCertPaths(tlsTestCA+fixtures.TestCrtFileExt).
+				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
 				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-stream-collector-rand1"),
 				security)
 			So(err, ShouldBeNil)
@@ -289,7 +289,7 @@ func TestInsecureConfigurationFails(t *testing.T) {
 		{
 			name: "SecureFrameworkInsecurePlugin_Fail",
 			msg: func(srv *plugin.Arg, cli *client.GRPCSecurity, f func(string)) {
-				// note: server root certs are used to validate client certs (and vice versa)
+				// note: server CA certs are used to validate client certs (and vice versa)
 				*srv = srv.SetTLSEnabled(false)
 				f("Attempting TLS connection between secure framework and insecure plugin")
 			},
@@ -302,17 +302,17 @@ func TestInsecureConfigurationFails(t *testing.T) {
 			},
 		},
 		{
-			name: "BadRootCertInFramework_Fail",
+			name: "BadCACertInFramework_Fail",
 			msg: func(srv *plugin.Arg, cli *client.GRPCSecurity, f func(string)) {
-				cli.RootCertPaths = []string{tlsTestCA + fixtures.TestBadCrtFileExt}
-				f("Attempting TLS connection between framework and plugin using incompatible root certs, bad cert in framework")
+				cli.CACertPaths = []string{tlsTestCA + fixtures.TestBadCrtFileExt}
+				f("Attempting TLS connection between framework and plugin using incompatible CA certs, bad cert in framework")
 			},
 		},
 		{
-			name: "PluginRootCertsUnknownToFramework_Fail",
+			name: "PluginCACertsUnknownToFramework_Fail",
 			msg: func(srv *plugin.Arg, cli *client.GRPCSecurity, f func(string)) {
-				cli.RootCertPaths = []string{}
-				f("Attempting TLS connection between secure framework and plugin with certificate without root certs known to framework")
+				cli.CACertPaths = []string{}
+				f("Attempting TLS connection between secure framework and plugin with certificate without CA certs known to framework")
 			},
 		},
 		{
@@ -330,17 +330,17 @@ func TestInsecureConfigurationFails(t *testing.T) {
 			},
 		},
 		{
-			name: "FrameworkRootCertsUnknownToPlugin_Fail",
+			name: "FrameworkCACertsUnknownToPlugin_Fail",
 			msg: func(srv *plugin.Arg, cli *client.GRPCSecurity, f func(string)) {
-				srv.RootCertPaths = ""
-				f("Attempting TLS connection between invalid framework with no root certs known to plugin and secure plugin")
+				srv.CACertPaths = ""
+				f("Attempting TLS connection between invalid framework with no CA certs known to plugin and secure plugin")
 			},
 		},
 		{
-			name: "BadRootCertInPlugin_Fail",
+			name: "BadCACertInPlugin_Fail",
 			msg: func(srv *plugin.Arg, cli *client.GRPCSecurity, f func(string)) {
-				srv.RootCertPaths = tlsTestCA + fixtures.TestBadCrtFileExt
-				f("Attempting TLS connection between framework and plugin using incompatible root certs, bad cert in plugin")
+				srv.CACertPaths = tlsTestCA + fixtures.TestBadCrtFileExt
+				f("Attempting TLS connection between framework and plugin using incompatible CA certs, bad cert in plugin")
 			},
 		},
 	}
@@ -349,7 +349,7 @@ func TestInsecureConfigurationFails(t *testing.T) {
 		pluginArgs := plugin.Arg{}.
 			SetCertPath(tlsTestSrv + fixtures.TestCrtFileExt).
 			SetKeyPath(tlsTestSrv + fixtures.TestKeyFileExt).
-			SetRootCertPaths(tlsTestCA + fixtures.TestCrtFileExt).
+			SetCACertPaths(tlsTestCA + fixtures.TestCrtFileExt).
 			SetTLSEnabled(true)
 		runThisCase := func(f func(msg string)) {
 			t.Run(tc.name, func(_ *testing.T) {
@@ -386,17 +386,17 @@ func TestInsecureConfigurationFails(t *testing.T) {
 	}
 }
 
-func (m *configTLSMock) setRootCertPaths(rootCertPaths string) *configTLSMock {
-	m.RootCertPaths = rootCertPaths
+func (m *configTLSMock) setCACertPaths(caCertPaths string) *configTLSMock {
+	m.CACertPaths = caCertPaths
 	return m
 }
 
 func TestSecuritySetupFromConfig(t *testing.T) {
 	var (
-		fakeSampleCert           = "/fake-samples/certs/server-cert"
-		fakeSampleKey            = "/fake-samples/keys/server-key"
-		fakeSampleRootCertsSplit = []string{"/fake-samples/root-ca/ca-one", "/fake-samples/root-ca/ca-two"}
-		fakeSampleRootCerts      = strings.Join(fakeSampleRootCertsSplit, string(filepath.ListSeparator))
+		fakeSampleCert         = "/fake-samples/certs/server-cert"
+		fakeSampleKey          = "/fake-samples/keys/server-key"
+		fakeSampleCACertsSplit = []string{"/fake-samples/root-ca/ca-one", "/fake-samples/root-ca/ca-two"}
+		fakeSampleCACerts      = strings.Join(fakeSampleCACertsSplit, string(filepath.ListSeparator))
 	)
 	tcs := []struct {
 		name           string
@@ -430,18 +430,18 @@ func TestSecuritySetupFromConfig(t *testing.T) {
 			wantManagersec: client.SecurityTLSEnabled(fakeSampleCert, fakeSampleKey, client.SecureClient),
 		},
 		{
-			name: "TLSEnabledRootCertsForwardedToSubmodules",
+			name: "TLSEnabledCACertsForwardedToSubmodules",
 			msg: func(f func(string)) {
-				f("having TLS enabled with root cert paths in config, plugin runner and manager receive same security values")
+				f("having TLS enabled with CA cert paths in config, plugin runner and manager receive same security values")
 			},
 			cfg: (*configTLSMock)(GetDefaultConfig()).
 				setTLSCertPath(fakeSampleCert).
 				setTLSKeyPath(fakeSampleKey).
-				setRootCertPaths(fakeSampleRootCerts).
+				setCACertPaths(fakeSampleCACerts).
 				export(),
 			wantError:      false,
-			wantRunnersec:  client.SecurityTLSExtended(fakeSampleCert, fakeSampleKey, client.SecureClient, fakeSampleRootCertsSplit),
-			wantManagersec: client.SecurityTLSExtended(fakeSampleCert, fakeSampleKey, client.SecureClient, fakeSampleRootCertsSplit),
+			wantRunnersec:  client.SecurityTLSExtended(fakeSampleCert, fakeSampleKey, client.SecureClient, fakeSampleCACertsSplit),
+			wantManagersec: client.SecurityTLSExtended(fakeSampleCert, fakeSampleKey, client.SecureClient, fakeSampleCACertsSplit),
 		},
 	}
 	var gotRunner *runner
@@ -484,7 +484,7 @@ func TestSecuritySetupFromConfig(t *testing.T) {
 }
 
 func runPlugin(args plugin.Arg, pluginPath string, security client.GRPCSecurity) (*availablePlugin, error) {
-	ep, err := fixtures.NewExecutablePlugin(args, pluginPath)
+	ep, err := plugin.NewExecutablePlugin(args, pluginPath)
 	if err != nil {
 		panic(err)
 	}

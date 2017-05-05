@@ -347,7 +347,7 @@ func (r *runner) runPlugin(name string, details *pluginDetails) error {
 	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())).
 		SetCertPath(details.CertPath).
 		SetKeyPath(details.KeyPath).
-		SetRootCertPaths(details.RootCertPaths).
+		SetCACertPaths(details.CACertPaths).
 		SetTLSEnabled(details.TLSEnabled), commands...)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{

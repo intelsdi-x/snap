@@ -55,7 +55,7 @@ var validCmdlineFlags_input = mockFlags{
 	"temp_dir_path":           "/no/temp/files",
 	"tls-cert":                "/no/cert/here",
 	"tls-key":                 "/no/key/here",
-	"root-cert-paths":         "/no/root/certs",
+	"ca-cert-paths":           "/no/root/certs",
 	"disable-api":             "false",
 	"api-port":                "12400",
 	"api-addr":                "120.121.122.123",
@@ -88,7 +88,7 @@ var validCmdlineFlags_expected = &Config{
 		TempDirPath:       "/no/temp/files",
 		TLSCertPath:       "/no/cert/here",
 		TLSKeyPath:        "/no/key/here",
-		RootCertPaths:     "/no/root/certs",
+		CACertPaths:       "/no/root/certs",
 	},
 	RestAPI: &rest.Config{
 		Enable:           true,
@@ -189,8 +189,8 @@ func (c *mockCfg) setTLSKey(tlsKeyPath string) *mockCfg {
 	return c
 }
 
-func (c *mockCfg) setRootCertPaths(rootCertPaths string) *mockCfg {
-	c.Control.RootCertPaths = rootCertPaths
+func (c *mockCfg) setCACertPaths(caCertPaths string) *mockCfg {
+	c.Control.CACertPaths = caCertPaths
 	return c
 }
 
@@ -218,11 +218,11 @@ func (c *mockCfg) export() *Config {
 
 func Test_checkCmdLineFlags(t *testing.T) {
 	testCtx := mockFlags{
-		"tls-cert":        "mock-cli.crt",
-		"tls-key":         "mock-cli.key",
-		"root-cert-paths": "mock-ca.crt",
-		"api-addr":        "localhost",
-		"api-port":        "9000"}
+		"tls-cert":      "mock-cli.crt",
+		"tls-key":       "mock-cli.key",
+		"ca-cert-paths": "mock-ca.crt",
+		"api-addr":      "localhost",
+		"api-port":      "9000"}
 	tests := []struct {
 		name           string
 		msg            func(func(string))
@@ -244,7 +244,7 @@ func Test_checkCmdLineFlags(t *testing.T) {
 				f("Having valid command line flags without any TLS parameters, parsing suceeds")
 			},
 			ctx: testCtx.
-				copyWithout("tls-cert", "tls-key", "root-cert-paths", "api-port").
+				copyWithout("tls-cert", "tls-key", "ca-cert-paths", "api-port").
 				update("api-addr", "127.0.0.1:9002"),
 			wantErr:        false,
 			wantPort:       9002,
@@ -315,7 +315,7 @@ func Test_checkCfgSettings(t *testing.T) {
 				setApiAddr("localhost:9000").
 				setTLSCert("mock-cli.crt").
 				setTLSKey("mock-cli.key").
-				setRootCertPaths("mock-ca.crt").
+				setCACertPaths("mock-ca.crt").
 				export(),
 			wantErr:        false,
 			wantPort:       9000,

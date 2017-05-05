@@ -60,6 +60,7 @@ type CertTestUtil struct {
 	Prefix string
 }
 
+// WritePEMFile writes block of bytes into a PEM formatted file with given header.
 func (u CertTestUtil) WritePEMFile(fn string, pemHeader string, b []byte) error {
 	f, err := os.Create(fn)
 	if err != nil {
@@ -75,6 +76,8 @@ func (u CertTestUtil) WritePEMFile(fn string, pemHeader string, b []byte) error 
 	return nil
 }
 
+// MakeCACertKeyPair generates asymmetric private key and certificate
+// for CA, suitable for signing certificates
 func (u CertTestUtil) MakeCACertKeyPair(caName, ouName string, keyValidPeriod time.Duration) (caCertTpl *x509.Certificate, caCertBytes []byte, caPrivKey *rsa.PrivateKey, err error) {
 	caPrivKey, err = rsa.GenerateKey(rand.Reader, keyBitsDefault)
 	if err != nil {
@@ -109,6 +112,8 @@ func (u CertTestUtil) MakeCACertKeyPair(caName, ouName string, keyValidPeriod ti
 	return caCertTpl, caCertBytes, caPrivKey, nil
 }
 
+// MakeSubjCertKeyPair generates a private key and a certificate for subject
+// suitable for securing TLS communication
 func (u CertTestUtil) MakeSubjCertKeyPair(cn, ou string, keyValidPeriod time.Duration, caCertTpl *x509.Certificate, caPrivKey *rsa.PrivateKey) (subjCertBytes []byte, subjPrivKey *rsa.PrivateKey, err error) {
 	subjPrivKey, err = rsa.GenerateKey(rand.Reader, keyBitsDefault)
 	if err != nil {
