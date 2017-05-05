@@ -298,6 +298,7 @@ Documentation for Snap will be kept in this repository for now with an emphasis 
 * [plugin life cycle](docs/PLUGIN_LIFECYCLE.md)
 * [plugin signing](docs/PLUGIN_SIGNING.md)
 * [tribe](docs/TRIBE.md)
+* [secure plugin communication](docs/SECURE_PLUGIN_COMMUNICATION.md)
 
 To learn more about Snap and how others are using it, check out our [blog](https://medium.com/intel-sdi). A good first post to read is [My How-to for the Snap Telemetry Framework](https://medium.com/intel-sdi/my-how-to-for-the-snap-telemetry-framework-e3bb641bc740#.6f5nk543t) by @mjbrender.
 

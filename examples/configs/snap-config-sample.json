@@ -15,6 +15,9 @@
         "keyring_paths":"/etc/snap/keyrings",
         "temp_dir_path":"/tmp",
         "plugin_trust_level":0,
+        "tls_cert_path": "/tmp/snaptest-cli.crt",
+        "tls_key_path": "/tmp/snaptest-cli.key",
+        "ca_cert_paths": "/tmp/small-setup-ca.crt:/tmp/medium-setup-ca.crt:/tmp/ca-certs/",
         "plugins":{
             "all":{
                 "password":"p@ssw0rd"

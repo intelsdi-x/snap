@@ -44,8 +44,9 @@ $ snapteld [global options] command [command options] [arguments...]
 --control-listen-port value                  Listen port for control RPC server (default: 8082) [$SNAP_CONTROL_LISTEN_PORT]
 --control-listen-addr value                  Listen address for control RPC server [$SNAP_CONTROL_LISTEN_ADDR]
 --temp_dir_path value                        Temporary path for loading plugins [$SNAP_TEMP_DIR_PATH]
---tls-cert value                             A path to PEM-encoded certificate to use for TLS channels
---tls-key value                              A path to PEM-encoded private key file to use for TLS channels
+--tls-cert value                             A path to PEM-encoded certificate for framework to use for securing communication channels to plugins over TLS
+--tls-key value                              A path to PEM-encoded private key file for framework to use for securing communication channels to plugins over TLS
+--ca-cert-paths                              List of paths (directories/files) to CA certificates for validating plugin certificates in secure TLS communication
 --work-manager-queue-size value              Size of the work manager queue (default: 25) [$WORK_MANAGER_QUEUE_SIZE]
 --work-manager-pool-size value               Size of the work manager pool (default: 4) [$WORK_MANAGER_POOL_SIZE]
 --disable-api, -d                            Disable the agent REST API
@@ -74,6 +75,8 @@ $ snapteld --version
 $ snapteld --log-level 4
 $ snapteld --auto-discover /opt/snap/plugins/
 $ snapteld --log-level 1 --plugin-trust 2 --keyring-paths /etc/snap/keyrings
+$ snapteld --log-level 1 --tls-cert /etc/snap/cert/snapteld.crt --tls-key /etc/snap/key/snapteld.key
+--ca-cert-paths /etc/ssl/certs/sample_organization_CA.crt:/etc/snap/ca/
 ```
 
 ### Debug output
@@ -157,3 +160,4 @@ INFO[2017-01-09T12:55:05-08:00] snapteld started
 * [REST_API.md](REST_API.md)
 * [PLUGIN_SIGNING.md](PLUGIN_SIGNING.md)
 * [TRIBE.md](TRIBE.md)
+* [SECURE_PLUGIN_COMMUNICATION](SECURE_PLUGIN_COMMUNICATION.md)
