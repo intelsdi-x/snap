@@ -86,12 +86,12 @@ func TestSecureCollector(t *testing.T) {
 	Convey("Having a secure collector", t, func() {
 		var ap *availablePlugin
 		Convey("framework should establish secure connection", func() {
-			security := client.SecurityTLSExtended(tlsTestCli + fixtures.TestCrtFileExt, tlsTestCli + fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
+			security := client.SecurityTLSExtended(tlsTestCli+fixtures.TestCrtFileExt, tlsTestCli+fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
 			var err error
 			ap, err = runPlugin(plugin.Arg{}.
-				SetCertPath(tlsTestSrv + fixtures.TestCrtFileExt).
-				SetKeyPath(tlsTestSrv + fixtures.TestKeyFileExt).
-				SetCACertPaths(tlsTestCA + fixtures.TestCrtFileExt).
+				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
+				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
+				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
 				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-collector-mock2-grpc"),
 				security)
 			So(err, ShouldBeNil)
@@ -128,12 +128,12 @@ func TestSecureProcessor(t *testing.T) {
 	Convey("Having a secure processor", t, func() {
 		var ap *availablePlugin
 		Convey("framework should establish secure connection", func() {
-			security := client.SecurityTLSExtended(tlsTestCli + fixtures.TestCrtFileExt, tlsTestCli + fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
+			security := client.SecurityTLSExtended(tlsTestCli+fixtures.TestCrtFileExt, tlsTestCli+fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
 			var err error
 			ap, err = runPlugin(plugin.Arg{}.
-				SetCertPath(tlsTestSrv + fixtures.TestCrtFileExt).
-				SetKeyPath(tlsTestSrv + fixtures.TestKeyFileExt).
-				SetCACertPaths(tlsTestCA + fixtures.TestCrtFileExt).
+				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
+				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
+				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
 				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-processor-passthru-grpc"),
 				security)
 			So(err, ShouldBeNil)
@@ -166,12 +166,12 @@ func TestSecurePublisher(t *testing.T) {
 	Convey("Having a secure publisher", t, func() {
 		var ap *availablePlugin
 		Convey("framework should establish secure connection", func() {
-			security := client.SecurityTLSExtended(tlsTestCli + fixtures.TestCrtFileExt, tlsTestCli + fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
+			security := client.SecurityTLSExtended(tlsTestCli+fixtures.TestCrtFileExt, tlsTestCli+fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
 			var err error
 			ap, err = runPlugin(plugin.NewArg(int(log.DebugLevel), false).
-				SetCertPath(tlsTestSrv + fixtures.TestCrtFileExt).
-				SetKeyPath(tlsTestSrv + fixtures.TestKeyFileExt).
-				SetCACertPaths(tlsTestCA + fixtures.TestCrtFileExt).
+				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
+				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
+				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
 				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-publisher-mock-file-grpc"),
 				security)
 			So(err, ShouldBeNil)
@@ -211,12 +211,12 @@ func TestSecureStreamingCollector(t *testing.T) {
 	Convey("Having a secure streaming collector", t, func() {
 		var ap *availablePlugin
 		Convey("framework should establish secure connection", func() {
-			security := client.SecurityTLSExtended(tlsTestCli + fixtures.TestCrtFileExt, tlsTestCli + fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
+			security := client.SecurityTLSExtended(tlsTestCli+fixtures.TestCrtFileExt, tlsTestCli+fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
 			var err error
 			ap, err = runPlugin(plugin.Arg{}.
-				SetCertPath(tlsTestSrv + fixtures.TestCrtFileExt).
-				SetKeyPath(tlsTestSrv + fixtures.TestKeyFileExt).
-				SetCACertPaths(tlsTestCA + fixtures.TestCrtFileExt).
+				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
+				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
+				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
 				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-stream-collector-rand1"),
 				security)
 			So(err, ShouldBeNil)
@@ -345,7 +345,7 @@ func TestInsecureConfigurationFails(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		security := client.SecurityTLSExtended(tlsTestCli + fixtures.TestCrtFileExt, tlsTestCli + fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
+		security := client.SecurityTLSExtended(tlsTestCli+fixtures.TestCrtFileExt, tlsTestCli+fixtures.TestKeyFileExt, client.SecureClient, []string{tlsTestCA + fixtures.TestCrtFileExt})
 		pluginArgs := plugin.Arg{}.
 			SetCertPath(tlsTestSrv + fixtures.TestCrtFileExt).
 			SetKeyPath(tlsTestSrv + fixtures.TestKeyFileExt).
