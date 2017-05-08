@@ -94,6 +94,7 @@ const (
 	CollectorPluginType PluginType = iota
 	ProcessorPluginType
 	PublisherPluginType
+	StreamingCollectorPluginType
 )
 
 type AvailablePlugin interface {

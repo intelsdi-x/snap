@@ -305,12 +305,12 @@ func (p *pluginConfig) deletePluginConfigDataNodeFieldAll(key string) {
 }
 
 func (p *pluginConfig) switchPluginConfigType(pluginType core.PluginType) *pluginTypeConfigItem {
-	switch pluginType {
-	case core.CollectorPluginType:
+	switch {
+	case pluginType == core.CollectorPluginType || pluginType == core.StreamingCollectorPluginType:
 		return p.Collector
-	case core.ProcessorPluginType:
+	case pluginType == core.ProcessorPluginType:
 		return p.Processor
-	case core.PublisherPluginType:
+	case pluginType == core.PublisherPluginType:
 		return p.Publisher
 	}
 	return nil
