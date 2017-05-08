@@ -154,7 +154,7 @@ func (u CertTestUtil) StoreTLSCerts(caCN, srvCN, cliCN string) (resFiles []strin
 	if err != nil {
 		return nil, err
 	}
-	caCertFn := filepath.Join(u.Prefix, caCN+TestCrtFileExt)
+	caCertFn := filepath.Join(u.Prefix, caCN + TestCrtFileExt)
 	if err := u.WritePEMFile(caCertFn, certificatePEMHeader, caCert); err != nil {
 		return nil, err
 	}
@@ -172,8 +172,8 @@ func (u CertTestUtil) StoreTLSCerts(caCN, srvCN, cliCN string) (resFiles []strin
 	if err != nil {
 		return resFiles, err
 	}
-	srvCertFn := filepath.Join(u.Prefix, srvCN+TestCrtFileExt)
-	srvKeyFn := filepath.Join(u.Prefix, srvCN+TestKeyFileExt)
+	srvCertFn := filepath.Join(u.Prefix, srvCN + TestCrtFileExt)
+	srvKeyFn := filepath.Join(u.Prefix, srvCN + TestKeyFileExt)
 	if err := u.WritePEMFile(srvCertFn, certificatePEMHeader, srvCert); err != nil {
 		return resFiles, err
 	}
@@ -186,8 +186,8 @@ func (u CertTestUtil) StoreTLSCerts(caCN, srvCN, cliCN string) (resFiles []strin
 	if err != nil {
 		return resFiles, err
 	}
-	cliCertFn := filepath.Join(u.Prefix, cliCN+TestCrtFileExt)
-	cliKeyFn := filepath.Join(u.Prefix, cliCN+TestKeyFileExt)
+	cliCertFn := filepath.Join(u.Prefix, cliCN + TestCrtFileExt)
+	cliKeyFn := filepath.Join(u.Prefix, cliCN + TestKeyFileExt)
 	if err := u.WritePEMFile(cliCertFn, certificatePEMHeader, cliCert); err != nil {
 		return resFiles, err
 	}
