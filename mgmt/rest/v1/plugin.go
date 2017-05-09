@@ -74,6 +74,9 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 	if strings.HasPrefix(mediaType, "multipart/") {
+		var certPath string
+		var keyPath string
+		var caCertPaths string
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		lp := &rbody.PluginsLoaded{}
@@ -117,7 +120,8 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			// extension, an error is returned.
 			// If we loop around more than twice before receiving io.EOF, then
 			// an error is returned.
-
+			// Reception of TLS security file paths (ceritificate file, private key file, CA certificate files)
+			// is also taking place here. Paths are extracted and used to set up a RequestedPlugin object.
 			switch {
 			case i == 0:
 				if filepath.Ext(p.FileName()) == ".asc" {
@@ -130,22 +134,38 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 					return
 				}
 				checkSum = sha256.Sum256(b)
-			case i == 1:
+			case i < 5:
 				if filepath.Ext(p.FileName()) == ".asc" {
 					signature = b
+				} else if strings.HasPrefix(p.FileName(), TLSCertPrefix) {
+					certPath = string(b)
+					if _, err := os.Stat(certPath); os.IsNotExist(err) {
+						e := errors.New("Error: given certificate file is not available")
+						rbody.Write(500, rbody.FromError(e), w)
+						return
+					}
+				} else if strings.HasPrefix(p.FileName(), TLSKeyPrefix) {
+					keyPath = string(b)
+					if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+						e := errors.New("Error: given key file is not available")
+						rbody.Write(500, rbody.FromError(e), w)
+						return
+					}
+				} else if strings.HasPrefix(p.FileName(), TLSCACertsPrefix) {
+					caCertPaths = string(b)
+					// validation will take place later; take it as it is
 				} else {
-					e := errors.New("Error: second file passed was not a signature file")
+					e := errors.New("Error: unrecognized file was passed")
 					rbody.Write(500, rbody.FromError(e), w)
 					return
 				}
-			case i == 2:
-				e := errors.New("Error: More than two files passed to the load plugin api")
+			case i == 5:
+				e := errors.New("Error: More than five files passed to the load plugin API")
 				rbody.Write(500, rbody.FromError(e), w)
 				return
 			}
 			i++
 		}
-
 		// Sanity check, verify the checkSum on the file sent is the same
 		// as after it is written to disk.
 		if rp.CheckSum() != checkSum {
@@ -154,6 +174,16 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			return
 		}
 		rp.SetSignature(signature)
+		rp.SetCertPath(certPath)
+		rp.SetKeyPath(keyPath)
+		rp.SetCACertPaths(caCertPaths)
+		if certPath != "" && keyPath != "" {
+			rp.SetTLSEnabled(true)
+		} else if certPath != "" || keyPath != "" {
+			e := errors.New("Error: TLS setup incomplete - missing one of pair: certificate, key files")
+			rbody.Write(500, rbody.FromError(e), w)
+			return
+		}
 		restLogger.Info("Loading plugin: ", rp.Path())
 		pl, err := s.metricManager.Load(rp)
 		if err != nil {

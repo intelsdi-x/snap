@@ -58,6 +58,19 @@ var (
 		EnvVar: "SNAP_CACHE_EXPIRATION",
 	}
 
+	flTLSCert = cli.StringFlag{
+		Name:  "tls-cert",
+		Usage: "A path to PEM-encoded certificate to use for GRPC TLS channels",
+	}
+	flTLSKey = cli.StringFlag{
+		Name:  "tls-key",
+		Usage: "A path to PEM-encoded private key file to use for GRPC TLS channels",
+	}
+	flCACertPaths = cli.StringFlag{
+		Name:  "ca-cert-paths",
+		Usage: "A list of paths to CA certificates or their parent directories, separated with OS path separator",
+	}
+
 	flControlRpcPort = cli.StringFlag{
 		Name:   "control-listen-port",
 		Usage:  fmt.Sprintf("Listen port for control RPC server (default: %v)", defaultListenPort),
@@ -76,5 +89,5 @@ var (
 		EnvVar: "SNAP_TEMP_DIR_PATH",
 	}
 
-	Flags = []cli.Flag{flNumberOfPLs, flPluginLoadTimeout, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr, flTempDirPath}
+	Flags = []cli.Flag{flNumberOfPLs, flPluginLoadTimeout, flAutoDiscover, flPluginTrust, flKeyringPaths, flCache, flControlRpcPort, flControlRpcAddr, flTempDirPath, flTLSCert, flTLSKey, flCACertPaths}
 )

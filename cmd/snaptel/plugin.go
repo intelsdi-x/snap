@@ -21,6 +21,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,6 +29,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/intelsdi-x/snap/mgmt/rest/v1"
 	"github.com/urfave/cli"
 )
 
@@ -35,7 +37,7 @@ func loadPlugin(ctx *cli.Context) error {
 	pAsc := ctx.String("plugin-asc")
 	var paths []string
 	if len(ctx.Args()) != 1 {
-		return newUsageError("Incorrect usage", ctx)
+		return newUsageError("Incorrect usage:", ctx)
 	}
 	paths = append(paths, ctx.Args().First())
 	if pAsc != "" {
@@ -43,6 +45,9 @@ func loadPlugin(ctx *cli.Context) error {
 			return newUsageError("Must be a .asc file for the -a flag", ctx)
 		}
 		paths = append(paths, pAsc)
+	}
+	if paths, err = storeTLSPaths(ctx, paths); err != nil {
+		return err
 	}
 	r := pClient.LoadPlugin(paths)
 	if r.Err != nil {
@@ -112,6 +117,9 @@ func swapPlugins(ctx *cli.Context) error {
 			return newUsageError("Must be a .asc file for the -a flag", ctx)
 		}
 		paths = append(paths, pAsc)
+	}
+	if paths, err = storeTLSPaths(ctx, paths); err != nil {
+		return err
 	}
 
 	// plugin to unload
@@ -195,4 +203,50 @@ func listPlugins(ctx *cli.Context) error {
 	w.Flush()
 
 	return nil
+}
+
+// storeTLSPaths extracts paths related to TLS (certificate, key, plugin CA certs)
+// from command line context into temporary files. Those files are appended to
+// list of paths returned from this function.
+func storeTLSPaths(ctx *cli.Context, paths []string) ([]string, error) {
+	pCert := ctx.String("plugin-cert")
+	pKey := ctx.String("plugin-key")
+	pCACertPaths := ctx.String("plugin-ca-certs")
+	if pCert != pKey && (pCert == "" || pKey == "") {
+		return paths, fmt.Errorf("Error processing plugin TLS arguments - one of (certificate, key) arguments is missing")
+	}
+	if pCert != "" {
+		tmpFile, err := ioutil.TempFile("", v1.TLSCertPrefix)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin TLS certificate - unable to create link:\n%v", err.Error())
+		}
+		_, err = tmpFile.WriteString(pCert)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin TLS certificate - unable to write link:\n%v", err.Error())
+		}
+		paths = append(paths, tmpFile.Name())
+	}
+	if pKey != "" {
+		tmpFile, err := ioutil.TempFile("", v1.TLSKeyPrefix)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin TLS key - unable to create link:\n%v", err.Error())
+		}
+		_, err = tmpFile.WriteString(pKey)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin TLS key - unable to write link:\n%v", err.Error())
+		}
+		paths = append(paths, tmpFile.Name())
+	}
+	if pCACertPaths != "" {
+		tmpFile, err := ioutil.TempFile("", v1.TLSCACertsPrefix)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin TLS CA certificates - unable to create link:\n%v", err.Error())
+		}
+		_, err = tmpFile.WriteString(pCACertPaths)
+		if err != nil {
+			return paths, fmt.Errorf("Error processing plugin TLS CA certificates - unable to write link:\n%v", err.Error())
+		}
+		paths = append(paths, tmpFile.Name())
+	}
+	return paths, nil
 }

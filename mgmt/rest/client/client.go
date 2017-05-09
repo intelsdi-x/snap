@@ -38,6 +38,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 
+	"github.com/intelsdi-x/snap/mgmt/rest/v1"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 )
 
@@ -318,7 +319,10 @@ func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, 
 		defer file.Close()
 		bufin := bufio.NewReader(file)
 		bufins = append(bufins, bufin)
-
+		if baseName := filepath.Base(pluginPath); strings.HasPrefix(baseName, v1.TLSCertPrefix) ||
+			strings.HasPrefix(baseName, v1.TLSKeyPrefix) || strings.HasPrefix(baseName, v1.TLSCACertsPrefix) {
+			defer os.Remove(pluginPath)
+		}
 		paths = append(paths, filepath.Base(pluginPath))
 	}
 	// with io.Pipe the write needs to be async

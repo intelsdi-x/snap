@@ -87,9 +87,9 @@ help, h     Shows a list of commands or help for one command
 $ snaptel plugin command [command options] [arguments...]
 ```
 ```
-load        load <plugin_path>
+load        load <plugin_path> [--plugin-cert=<plugin_cert_path> --plugin-key=<plugin_key_path> --plugin-ca-certs=<ca_cert_paths>]
 unload      unload <plugin_type> <plugin_name> <plugin_version>
-swap        swap <load_plugin_path> <unload_plugin_type>:<unload_plugin_name>:<unload_plugin_version> or swap <load_plugin_path> -t <unload_plugin_type> -n <unload_plugin_name> -v <unload_plugin_version>
+swap        swap <load_plugin_path> <unload_plugin_type>:<unload_plugin_name>:<unload_plugin_version> or swap <load_plugin_path> -t <unload_plugin_type> -n <unload_plugin_name> -v <unload_plugin_version> [--plugin-cert=<plugin_cert_path> --plugin-key=<plugin_key_path> [--plugin-ca-certs=<ca_cert_paths>] ]
 list        list
 help, h     Shows a list of commands or help for one command
 ```
@@ -205,3 +205,6 @@ $ snaptel plugin unload collector mock <version>
 $ snaptel plugin unload processor passthru <version>
 $ snaptel plugin unload publisher publisher <version>
 ```
+
+## More information
+* [SECURE_PLUGIN_COMMUNICATION](SECURE_PLUGIN_COMMUNICATION.md)

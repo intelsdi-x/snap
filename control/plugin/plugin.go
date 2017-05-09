@@ -25,6 +25,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 )
 
@@ -131,9 +132,11 @@ type PluginMeta struct {
 	// RoutingStrategy will override the routing strategy this plugin requires.
 	// The default routing strategy round-robin.
 	RoutingStrategy RoutingStrategyType
+	// TLSEnabled identifies status of plugin security
+	TLSEnabled bool
 }
 
-// Arguments passed to startup of Plugin
+// Arg contains arguments passed to startup of Plugin
 type Arg struct {
 	// Plugin log level
 	LogLevel log.Level
@@ -146,8 +149,38 @@ type Arg struct {
 
 	// enable pprof
 	Pprof bool
+
+	CertPath    string `json:"CertPath"`
+	KeyPath     string `json:"KeyPath"`
+	CACertPaths string `json:"RootCertPaths"`
+	TLSEnabled  bool   `json:"TLSEnabled"`
 }
 
+// SetCertPath sets path to TLS certificate in plugin arguments
+func (a Arg) SetCertPath(certPath string) Arg {
+	a.CertPath = certPath
+	return a
+}
+
+// SetKeyPath sets path to TLS key in plugin arguments
+func (a Arg) SetKeyPath(keyPath string) Arg {
+	a.KeyPath = keyPath
+	return a
+}
+
+// SetTLSEnabled sets flag enabling TLS security in plugin arguments
+func (a Arg) SetTLSEnabled(tlsEnabled bool) Arg {
+	a.TLSEnabled = tlsEnabled
+	return a
+}
+
+// SetCACertPaths sets list of certificate paths for client verification
+func (a Arg) SetCACertPaths(caCertPaths string) Arg {
+	a.CACertPaths = caCertPaths
+	return a
+}
+
+// NewArg returns new plugin arguments structure
 func NewArg(logLevel int, pprof bool) Arg {
 	return Arg{
 		LogLevel:            log.Level(logLevel),

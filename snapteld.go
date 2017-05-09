@@ -34,11 +34,10 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/vrischmann/jsonutil"
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/core/serror"
@@ -48,6 +47,11 @@ import (
 	"github.com/intelsdi-x/snap/pkg/cfgfile"
 	"github.com/intelsdi-x/snap/scheduler"
 	"google.golang.org/grpc/grpclog"
+)
+
+const (
+	commandLineErrorPrefix = "Command Line Error:"
+	configFileErrorPrefix  = "ConfigFile Error:"
 )
 
 var (
@@ -191,6 +195,13 @@ type managesTribe interface {
 	GetMember(name string) *agreement.Member
 }
 
+type runtimeFlagsContext interface {
+	String(key string) string
+	Int(key string) int
+	Bool(key string) bool
+	IsSet(key string) bool
+}
+
 func main() {
 	// Add a check to see if gitversion is blank from the build process
 
@@ -313,6 +324,9 @@ func action(ctx *cli.Context) error {
 	setMaxProcs(cfg.GoMaxProcs)
 
 	c := control.New(cfg.Control)
+	if c.Config.AutoDiscoverPath != "" && c.Config.IsTLSEnabled() {
+		log.Fatal("TLS security is not supported in autodiscovery mode")
+	}
 
 	coreModules = []coreModule{}
 
@@ -332,7 +346,9 @@ func action(ctx *cli.Context) error {
 		}
 		cfg.RestAPI.RestAuthPassword = string(password)
 	}
-
+	if cfg.Tribe.Enable && c.Config.IsTLSEnabled() {
+		log.Fatal("TLS security is not supported in tribe mode")
+	}
 	var tr managesTribe
 	if cfg.Tribe.Enable {
 		cfg.Tribe.RestAPIPort = cfg.RestAPI.Port
@@ -585,7 +601,7 @@ func defaultConfigFile() bool {
 // used to set fields in the configuration to values from the
 // command line context if the corresponding flagName is set
 // in that context
-func setBoolVal(field bool, ctx *cli.Context, flagName string, inverse ...bool) bool {
+func setBoolVal(field bool, ctx runtimeFlagsContext, flagName string, inverse ...bool) bool {
 	// check to see if a value was set (either on the command-line or via the associated
 	// environment variable, if any); if so, use that as value for the input field
 	val := ctx.Bool(flagName)
@@ -598,7 +614,7 @@ func setBoolVal(field bool, ctx *cli.Context, flagName string, inverse ...bool) 
 	return field
 }
 
-func setStringVal(field string, ctx *cli.Context, flagName string) string {
+func setStringVal(field string, ctx runtimeFlagsContext, flagName string) string {
 	// check to see if a value was set (either on the command-line or via the associated
 	// environment variable, if any); if so, use that as value for the input field
 	val := ctx.String(flagName)
@@ -608,7 +624,7 @@ func setStringVal(field string, ctx *cli.Context, flagName string) string {
 	return field
 }
 
-func setIntVal(field int, ctx *cli.Context, flagName string) int {
+func setIntVal(field int, ctx runtimeFlagsContext, flagName string) int {
 	// check to see if a value was set (either on the command-line or via the associated
 	// environment variable, if any); if so, use that as value for the input field
 	val := ctx.String(flagName)
@@ -624,7 +640,7 @@ func setIntVal(field int, ctx *cli.Context, flagName string) int {
 	return field
 }
 
-func setUIntVal(field uint, ctx *cli.Context, flagName string) uint {
+func setUIntVal(field uint, ctx runtimeFlagsContext, flagName string) uint {
 	// check to see if a value was set (either on the command-line or via the associated
 	// environment variable, if any); if so, use that as value for the input field
 	val := ctx.String(flagName)
@@ -640,7 +656,7 @@ func setUIntVal(field uint, ctx *cli.Context, flagName string) uint {
 	return field
 }
 
-func setDurationVal(field time.Duration, ctx *cli.Context, flagName string) time.Duration {
+func setDurationVal(field time.Duration, ctx runtimeFlagsContext, flagName string) time.Duration {
 	// check to see if a value was set (either on the command-line or via the associated
 	// environment variable, if any); if so, use that as value for the input field
 	val := ctx.String(flagName)
@@ -750,19 +766,25 @@ func checkHostPortVals(addr string, port *int, errPrefix string) (bool, error) {
 // appropriately; returns the port read from the command-line arguments, a flag
 // indicating whether or not a port was detected in the address read from the
 // command-line arguments, and an error if one is detected
-func checkCmdLineFlags(ctx *cli.Context) (int, bool, error) {
+func checkCmdLineFlags(ctx runtimeFlagsContext) (int, bool, error) {
+	tlsCert := ctx.String("tls-cert")
+	tlsKey := ctx.String("tls-key")
+	if _, err := checkTLSEnabled(tlsCert, tlsKey, commandLineErrorPrefix); err != nil {
+		return -1, false, err
+	}
 	// Check to see if the API address is specified (either via the CLI or through
 	// the associated environment variable); if so, grab the port and check that the
 	// address and port against the constraints (above)
 	addr := ctx.String("api-addr")
 	port := ctx.Int("api-port")
 	if ctx.IsSet("api-addr") || addr != "" {
-		portInAddr, err := checkHostPortVals(addr, &port, "Command Line Error:")
+		portInAddr, err := checkHostPortVals(addr, &port, commandLineErrorPrefix)
 		if err != nil {
 			return -1, portInAddr, err
 		}
 		return port, portInAddr, nil
 	}
+
 	return port, false, nil
 }
 
@@ -771,6 +793,11 @@ func checkCmdLineFlags(ctx *cli.Context) (int, bool, error) {
 // indicating whether or not a port was detected in the address read from the
 // global configuration file, and an error if one is detected
 func checkCfgSettings(cfg *Config) (int, bool, error) {
+	tlsCert := cfg.Control.TLSCertPath
+	tlsKey := cfg.Control.TLSKeyPath
+	if _, err := checkTLSEnabled(tlsCert, tlsKey, configFileErrorPrefix); err != nil {
+		return -1, false, err
+	}
 	addr := cfg.RestAPI.Address
 	var port int
 	if cfg.RestAPI.PortSetByConfigFile() {
@@ -778,16 +805,26 @@ func checkCfgSettings(cfg *Config) (int, bool, error) {
 	} else {
 		port = -1
 	}
-	portInAddr, err := checkHostPortVals(addr, &port, "ConfigFile Error:")
+	portInAddr, err := checkHostPortVals(addr, &port, configFileErrorPrefix)
 	if err != nil {
 		return -1, portInAddr, err
 	}
 	return port, portInAddr, nil
 }
 
+func checkTLSEnabled(certPath, keyPath, errPrefix string) (tlsEnabled bool, err error) {
+	if certPath != "" && keyPath != "" {
+		return true, nil
+	}
+	if certPath != "" || keyPath != "" {
+		return false, fmt.Errorf("%s certificate and key path must be given both or none", errPrefix)
+	}
+	return false, nil
+}
+
 // Apply the command line flags set (if any) to override the values
 // in the input configuration
-func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
+func applyCmdLineFlags(cfg *Config, ctx runtimeFlagsContext) {
 	// check the settings for the command-line arguments included in the cli.Context
 	cmdLinePort, cmdLinePortInAddr, cmdLineErr := checkCmdLineFlags(ctx)
 	if cmdLineErr != nil {
@@ -817,6 +854,9 @@ func applyCmdLineFlags(cfg *Config, ctx *cli.Context) {
 	cfg.Control.ListenPort = setIntVal(cfg.Control.ListenPort, ctx, "control-listen-port")
 	cfg.Control.Pprof = setBoolVal(cfg.Control.Pprof, ctx, "pprof")
 	cfg.Control.TempDirPath = setStringVal(cfg.Control.TempDirPath, ctx, "temp_dir_path")
+	cfg.Control.TLSCertPath = setStringVal(cfg.Control.TLSCertPath, ctx, "tls-cert")
+	cfg.Control.TLSKeyPath = setStringVal(cfg.Control.TLSKeyPath, ctx, "tls-key")
+	cfg.Control.CACertPaths = setStringVal(cfg.Control.CACertPaths, ctx, "ca-cert-paths")
 	// next for the RESTful server related flags
 	cfg.RestAPI.Enable = setBoolVal(cfg.RestAPI.Enable, ctx, "disable-api", invertBoolean)
 	cfg.RestAPI.Port = setIntVal(cfg.RestAPI.Port, ctx, "api-port")

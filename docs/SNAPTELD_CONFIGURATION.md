@@ -108,6 +108,17 @@ control:
   # before failing. Snap will not disable a plugin due to failures when this value is -1.
   max_plugin_restarts: 10
 
+  ## Secure plugin communication optional parameters:
+  # tls_cert_path sets the TLS certificate path to enable secure plugin communication
+  # and authenticate itself to plugins. Requires also: tls_key_path.
+  tls_cert_path: /tmp/snaptest-cli.crt
+  # tls_key_path sets the TLS key path to enable secure plugin communication and
+  # authenticate itself to plugins. Requires also: tls_cert_path.
+  tls_key_path: /tmp/snaptest-cli.key
+  # ca_cert_paths sets the list of filesystem paths (files/directories) to CA certificates
+  # for use in validating
+  ca_cert_paths: /tmp/small-setup-ca.crt:/tmp/medium-setup-ca.crt:/tmp/ca-certs/
+
   # plugins section contains plugin config settings that will be applied for
   # plugins across tasks.
   plugins:

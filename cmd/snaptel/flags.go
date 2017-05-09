@@ -71,6 +71,18 @@ var (
 		Name:  "plugin-asc, a",
 		Usage: "The plugin asc",
 	}
+	flPluginCert = cli.StringFlag{
+		Name:  "plugin-cert, c",
+		Usage: "The path to plugin certificate file",
+	}
+	flPluginKey = cli.StringFlag{
+		Name:  "plugin-key, k",
+		Usage: "The path to plugin private key file",
+	}
+	flPluginCACerts = cli.StringFlag{
+		Name:  "plugin-ca-certs, r",
+		Usage: "List of CA cert paths (directory/file) for plugin to verify TLS clients",
+	}
 	flPluginType = cli.StringFlag{
 		Name:  "plugin-type, t",
 		Usage: "The plugin type",

@@ -42,7 +42,7 @@ import (
 )
 
 const (
-	// DefaultClientTimeout - default timeout for a client connection attempt
+	// DefaultClientTimeout - default timeout for RPC method completion
 	DefaultClientTimeout = time.Second * 10
 	// DefaultHealthCheckTimeout - default timeout for a health check
 	DefaultHealthCheckTimeout = time.Second * 10
@@ -51,8 +51,10 @@ const (
 )
 
 var (
-	ErrPoolNotFound = errors.New("plugin pool not found")
-	ErrBadKey       = errors.New("bad key")
+	ErrPoolNotFound      = errors.New("plugin pool not found")
+	ErrBadKey            = errors.New("bad key")
+	ErrMsgInsecurePlugin = "secure framework can't connect to insecure plugin"
+	ErrMsgInsecureClient = "insecure framework can't connect to secure plugin"
 )
 
 // availablePlugin represents a plugin which is
@@ -78,7 +80,13 @@ type availablePlugin struct {
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
-func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
+func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executablePlugin, security client.GRPCSecurity) (*availablePlugin, error) {
+	if security.TLSEnabled && !resp.Meta.TLSEnabled {
+		return nil, errors.New(ErrMsgInsecurePlugin + "; plugin_name: " + resp.Meta.Name)
+	}
+	if !security.TLSEnabled && resp.Meta.TLSEnabled {
+		return nil, errors.New(ErrMsgInsecureClient + "; plugin_name: " + resp.Meta.Name)
+	}
 	if resp.Type != plugin.CollectorPluginType && resp.Type != plugin.ProcessorPluginType && resp.Type != plugin.PublisherPluginType {
 		return nil, strategy.ErrBadType
 	}
@@ -111,7 +119,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 			}
 			ap.client = c
 		case plugin.GRPC:
-			c, e := client.NewCollectorGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			c, e := client.NewCollectorGrpcClient(resp.ListenAddress, DefaultClientTimeout, security)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -120,8 +128,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 			c, e := client.NewStreamCollectorGrpcClient(
 				resp.ListenAddress,
 				DefaultClientTimeout,
-				resp.PublicKey,
-				!resp.Meta.Unsecure)
+				security)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -138,7 +145,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 			}
 			ap.client = c
 		case plugin.GRPC:
-			c, e := client.NewPublisherGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			c, e := client.NewPublisherGrpcClient(resp.ListenAddress, DefaultClientTimeout, security)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -155,7 +162,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 			}
 			ap.client = c
 		case plugin.GRPC:
-			c, e := client.NewProcessorGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			c, e := client.NewProcessorGrpcClient(resp.ListenAddress, DefaultClientTimeout, security)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}

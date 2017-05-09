@@ -8,6 +8,13 @@ import (
 )
 
 const (
+	// TLSCertPrefix defines a prefix for file fragment carrying path to TLS certificate
+	TLSCertPrefix = "crt."
+	// TLSKeyPrefix defines a prefix for file fragment carrying path to TLS private key
+	TLSKeyPrefix = "key."
+	// TLSCACertsPrefix defines a prefix for file fragment carrying paths to TLS CA certificates
+	TLSCACertsPrefix = "cacerts."
+
 	version = "v1"
 	prefix  = "/" + version
 )

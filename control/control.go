@@ -32,13 +32,12 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/intelsdi-x/gomit"
 	"google.golang.org/grpc"
 
-	log "github.com/Sirupsen/logrus"
-
-	"github.com/intelsdi-x/gomit"
-
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/control/strategy"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
@@ -92,6 +91,7 @@ type pluginControl struct {
 	wg          sync.WaitGroup
 
 	subscriptionGroups ManagesSubscriptionGroups
+	grpcSecurity       client.GRPCSecurity
 }
 
 type subscribedPlugin struct {
@@ -217,8 +217,23 @@ func New(cfg *Config) *pluginControl {
 		"_block": "new",
 	}).Debug("metric catalog created")
 
+	managerOpts := []pluginManagerOpt{
+		OptSetPprof(cfg.Pprof),
+		OptSetTempDirPath(cfg.TempDirPath),
+	}
+	runnerOpts := []pluginRunnerOpt{}
+	if cfg.IsTLSEnabled() {
+		if cfg.CACertPaths != "" {
+			certPaths := filepath.SplitList(cfg.CACertPaths)
+			c.grpcSecurity = client.SecurityTLSExtended(cfg.TLSCertPath, cfg.TLSKeyPath, client.SecureClient, certPaths)
+		} else {
+			c.grpcSecurity = client.SecurityTLSEnabled(cfg.TLSCertPath, cfg.TLSKeyPath, client.SecureClient)
+		}
+		managerOpts = append(managerOpts, OptEnableManagerTLS(c.grpcSecurity))
+		runnerOpts = append(runnerOpts, OptEnableRunnerTLS(c.grpcSecurity))
+	}
 	// Plugin Manager
-	c.pluginManager = newPluginManager(OptSetPprof(cfg.Pprof), OptSetTempDirPath(cfg.TempDirPath))
+	c.pluginManager = newPluginManager(managerOpts...)
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("plugin manager created")
@@ -232,7 +247,7 @@ func New(cfg *Config) *pluginControl {
 	}).Debug("signing manager created")
 
 	// Plugin Runner
-	c.pluginRunner = newRunner()
+	c.pluginRunner = newRunner(runnerOpts...)
 	controlLogger.WithFields(log.Fields{
 		"_block": "new",
 	}).Debug("runner created")
@@ -583,6 +598,10 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	details.Path = rp.Path()
 	details.CheckSum = rp.CheckSum()
 	details.Signature = rp.Signature()
+	details.CertPath = rp.CertPath()
+	details.KeyPath = rp.KeyPath()
+	details.CACertPaths = rp.CACertPaths()
+	details.TLSEnabled = rp.TLSEnabled()
 
 	if filepath.Ext(rp.Path()) == ".aci" {
 		f, err := os.Open(rp.Path())

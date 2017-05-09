@@ -30,6 +30,7 @@ import (
 	"github.com/intelsdi-x/gomit"
 
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/control_event"
 	"github.com/intelsdi-x/snap/pkg/aci"
@@ -57,6 +58,8 @@ var (
 	// MaximumRestartOnDeadPluginEvent is the maximum count of restarting a plugin
 	// after the event of control_event.DeadAvailablePluginEvent
 	MaxPluginRestartCount = 3
+
+	defaultRunnerOpts = []pluginRunnerOpt{optDefaultRunnerSecurity()}
 )
 
 type executablePlugin interface {
@@ -72,14 +75,35 @@ type runner struct {
 	availablePlugins *availablePlugins
 	metricCatalog    catalogsMetrics
 	pluginManager    managesPlugins
+	grpcSecurity     client.GRPCSecurity
 }
 
-func newRunner() *runner {
+func newRunner(opts ...pluginRunnerOpt) *runner {
 	r := &runner{
 		monitor:          newMonitor(),
 		availablePlugins: newAvailablePlugins(),
 	}
+	mergedOpts := append([]pluginRunnerOpt{}, defaultRunnerOpts...)
+	mergedOpts = append(mergedOpts, opts...)
+	for _, opt := range append(mergedOpts) {
+		opt(r)
+	}
 	return r
+}
+
+type pluginRunnerOpt func(*runner)
+
+// OptEnableRunnerTLS enables the TLS configuration in runner
+func OptEnableRunnerTLS(grpcSecurity client.GRPCSecurity) pluginRunnerOpt {
+	return func(r *runner) {
+		r.grpcSecurity = grpcSecurity
+	}
+}
+
+func optDefaultRunnerSecurity() pluginRunnerOpt {
+	return func(r *runner) {
+		r.grpcSecurity = client.SecurityTLSOff()
+	}
 }
 
 func (r *runner) SetMetricCatalog(c catalogsMetrics) {
@@ -175,8 +199,7 @@ func (r *runner) startPlugin(p executablePlugin) (*availablePlugin, error) {
 		return nil, e
 	}
 
-	// build availablePlugin
-	ap, err := newAvailablePlugin(resp, r.emitter, p)
+	ap, err := newAvailablePlugin(resp, r.emitter, p, r.grpcSecurity)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +344,11 @@ func (r *runner) runPlugin(name string, details *pluginDetails) error {
 	for i, e := range details.Exec {
 		commands[i] = path.Join(details.ExecPath, e)
 	}
-	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())), commands...)
+	ePlugin, err := plugin.NewExecutablePlugin(r.pluginManager.GenerateArgs(int(log.GetLevel())).
+		SetCertPath(details.CertPath).
+		SetKeyPath(details.KeyPath).
+		SetCACertPaths(details.CACertPaths).
+		SetTLSEnabled(details.TLSEnabled), commands...)
 	if err != nil {
 		runnerLog.WithFields(log.Fields{
 			"_block": "run-plugin",

@@ -65,6 +65,8 @@ var (
 	ErrPluginNotInLoadedState = errors.New("Plugin must be in a LoadedState")
 
 	pmLogger = log.WithField("_module", "control-plugin-mgr")
+
+	defaultManagerOpts = []pluginManagerOpt{optDefaultManagerSecurity()}
 )
 
 type pluginState string
@@ -156,14 +158,18 @@ func (l *loadedPlugins) findLatest(typeName, name string) (*loadedPlugin, error)
 
 // the struct representing a plugin that is loaded into snap
 type pluginDetails struct {
-	CheckSum  [sha256.Size]byte
-	Exec      []string
-	ExecPath  string
-	IsPackage bool
-	Manifest  *schema.ImageManifest
-	Path      string
-	Signed    bool
-	Signature []byte
+	CheckSum    [sha256.Size]byte
+	Exec        []string
+	ExecPath    string
+	IsPackage   bool
+	Manifest    *schema.ImageManifest
+	Path        string
+	Signed      bool
+	Signature   []byte
+	CertPath    string
+	KeyPath     string
+	CACertPaths string
+	TLSEnabled  bool
 }
 
 type loadedPlugin struct {
@@ -237,6 +243,7 @@ type pluginManager struct {
 	pluginTags        map[string]map[string]string
 	pprof             bool
 	tempDirPath       string
+	grpcSecurity      client.GRPCSecurity
 }
 
 func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
@@ -251,8 +258,9 @@ func newPluginManager(opts ...pluginManagerOpt) *pluginManager {
 		pluginConfig:      newPluginConfig(),
 		pluginTags:        newPluginTags(),
 	}
-
-	for _, opt := range opts {
+	mergedOpts := append([]pluginManagerOpt{}, defaultManagerOpts...)
+	mergedOpts = append(mergedOpts, opts...)
+	for _, opt := range mergedOpts {
 		opt(p)
 	}
 
@@ -275,6 +283,13 @@ func OptSetPprof(pprof bool) pluginManagerOpt {
 	}
 }
 
+// OptEnableManagerTLS enables the TLS configuration in plugin manager.
+func OptEnableManagerTLS(grpcSecurity client.GRPCSecurity) pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.grpcSecurity = grpcSecurity
+	}
+}
+
 // OptSetPluginConfig sets the config on the plugin manager
 func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
 	return func(p *pluginManager) {
@@ -286,6 +301,12 @@ func OptSetPluginConfig(cf *pluginConfig) pluginManagerOpt {
 func OptSetPluginTags(tags map[string]map[string]string) pluginManagerOpt {
 	return func(p *pluginManager) {
 		p.pluginTags = tags
+	}
+}
+
+func optDefaultManagerSecurity() pluginManagerOpt {
+	return func(p *pluginManager) {
+		p.grpcSecurity = client.SecurityTLSOff()
 	}
 }
 
@@ -335,7 +356,11 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	}
 
 	ePlugin, err := plugin.NewExecutablePlugin(
-		p.GenerateArgs(int(log.GetLevel())),
+		p.GenerateArgs(int(log.GetLevel())).
+			SetCertPath(details.CertPath).
+			SetKeyPath(details.KeyPath).
+			SetCACertPaths(details.CACertPaths).
+			SetTLSEnabled(details.TLSEnabled),
 		commands...)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
@@ -368,8 +393,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"plugin-type":    resp.Type.String(),
 		})
 	}
-
-	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
+	ap, err := newAvailablePlugin(resp, emitter, ePlugin, p.grpcSecurity)
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
