@@ -90,7 +90,7 @@ var (
 		"collector",
 		"processor",
 		"publisher",
-		"streamCollector",
+		"streaming collector",
 	}
 
 	routingStrategyTypes = [...]string{
@@ -169,3 +169,24 @@ type Response struct {
 	ErrorMessage string
 	PublicKey    *rsa.PublicKey
 }
+
+// func (r *Response) UnmarshalJSON(data []byte) error {
+// 	log.WithFields(
+// 		log.Fields{
+// 			"_module": "control-response",
+// 			"_block":  "UnmarshalJSON",
+// 		},
+// 	).Debug("unmarshalling the plugins response")
+// 	pluginResponse := &struct {
+// 		*Response
+// 	}{
+// 		Response: r,
+// 	}
+// 	if err := json.Unmarshal(data, pluginResponse); err != nil {
+// 		return err
+// 	}
+// 	if r.Type == CollectorPluginType && r.Meta.RPCType == STREAMGRPC {
+// 		r.Type = StreamCollectorPluginType
+// 	}
+// 	return nil
+// }

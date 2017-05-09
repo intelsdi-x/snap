@@ -23,9 +23,12 @@ package control
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -35,6 +38,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/appc/spec/schema"
+
+	"net/http"
+	"net/url"
 
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control/plugin"
@@ -164,6 +170,7 @@ type pluginDetails struct {
 	Path      string
 	Signed    bool
 	Signature []byte
+	Uri       *url.URL
 }
 
 type loadedPlugin struct {
@@ -321,52 +328,80 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	lPlugin.Details = details
 	lPlugin.State = DetectedState
 
-	pmLogger.WithFields(log.Fields{
-		"_block": "load-plugin",
-		"path":   filepath.Base(lPlugin.Details.Exec[0]),
-	}).Info("plugin load called")
+	var (
+		ePlugin *plugin.ExecutablePlugin
+		resp    plugin.Response
+		err     error
+	)
 
-	// We will create commands by appending the ExecPath to the actual command.
-	// The ExecPath is a temporary location where the plugin/package will be
-	// run from.
-	commands := make([]string, len(lPlugin.Details.Exec))
-	for i, e := range lPlugin.Details.Exec {
-		commands[i] = filepath.Join(lPlugin.Details.ExecPath, e)
-	}
-
-	ePlugin, err := plugin.NewExecutablePlugin(
-		p.GenerateArgs(int(log.GetLevel())),
-		commands...)
-	if err != nil {
+	if lPlugin.Details.Uri == nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
-			"error":  err.Error(),
-		}).Error("load plugin error while creating executable plugin")
-		return nil, serror.New(err)
-	}
+			"path":   filepath.Base(lPlugin.Details.Exec[0]),
+		}).Info("plugin load called")
+		// We will create commands by appending the ExecPath to the actual command.
+		// The ExecPath is a temporary location where the plugin/package will be
+		// run from.
+		commands := make([]string, len(lPlugin.Details.Exec))
+		for i, e := range lPlugin.Details.Exec {
+			commands[i] = path.Join(lPlugin.Details.ExecPath, e)
+		}
+		ePlugin, err = plugin.NewExecutablePlugin(
+			p.GenerateArgs(int(log.GetLevel())),
+			commands...)
+		if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+				"error":  err.Error(),
+			}).Error("load plugin error while creating executable plugin")
+			return nil, serror.New(err)
+		}
 
-	pmLogger.WithFields(log.Fields{
-		"_block": "load-plugin",
-		"path":   lPlugin.Details.Exec,
-	}).Debug(fmt.Sprintf("plugin load timeout set to %ds", p.pluginLoadTimeout))
-	resp, err := ePlugin.Run(time.Second * time.Duration(p.pluginLoadTimeout))
-	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
-			"error":  err.Error(),
-		}).Error("load plugin error when starting plugin")
-		return nil, serror.New(err)
-	}
+			"path":   lPlugin.Details.Exec,
+		}).Debug(fmt.Sprintf("plugin load timeout set to %ds", p.pluginLoadTimeout))
+		resp, err = ePlugin.Run(time.Second * time.Duration(p.pluginLoadTimeout))
+		if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+				"error":  err.Error(),
+			}).Error("load plugin error when starting plugin")
+			return nil, serror.New(err)
+		}
 
-	ePlugin.SetName(resp.Meta.Name)
+		ePlugin.SetName(resp.Meta.Name)
 
-	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", resp.Meta.Type.String(), resp.Meta.Name, resp.Meta.Version)
-	if _, exists := p.loadedPlugins.table[key]; exists {
-		return nil, serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
-			"plugin-name":    resp.Meta.Name,
-			"plugin-version": resp.Meta.Version,
-			"plugin-type":    resp.Type.String(),
-		})
+		key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", resp.Meta.Type.String(), resp.Meta.Name, resp.Meta.Version)
+		if _, exists := p.loadedPlugins.table[key]; exists {
+			return nil, serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
+				"plugin-name":    resp.Meta.Name,
+				"plugin-version": resp.Meta.Version,
+				"plugin-type":    resp.Type.String(),
+			})
+		}
+	} else {
+		pmLogger.WithFields(log.Fields{
+			"_block":     "load-plugin",
+			"plugin-uri": lPlugin.Details.Uri.String(),
+		}).Info("plugin load called")
+
+		res, err := http.Get(lPlugin.Details.Uri.String())
+		if err != nil {
+			return nil, serror.New(err)
+		}
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, serror.New(err)
+		}
+		err = json.Unmarshal(body, &resp)
+		if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+				"error":  err.Error(),
+			}).Error("error during json unmarshal")
+		}
 	}
 
 	ap, err := newAvailablePlugin(resp, emitter, ePlugin)
@@ -376,6 +411,10 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"error":  err.Error(),
 		}).Error("load plugin error while creating available plugin")
 		return nil, serror.New(err)
+	}
+
+	if lPlugin.Details.Uri != nil {
+		ap.SetIsRemote(true)
 	}
 
 	if resp.Meta.Unsecure {
@@ -401,7 +440,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block":         "load-plugin",
-			"plugin-type":    "collector",
+			"plugin-type":    resp.Type.String(),
 			"error":          err.Error(),
 			"plugin-name":    ap.Name(),
 			"plugin-version": ap.Version(),
@@ -417,19 +456,19 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	lPlugin.LoadedTime = time.Now()
 	lPlugin.State = LoadedState
 
-	if resp.Type == plugin.CollectorPluginType {
+	if resp.Type == plugin.CollectorPluginType || resp.Type == plugin.StreamCollectorPluginType {
 		cfgNode := p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version)
 
+		defaults := cdata.NewNode()
 		if lPlugin.ConfigPolicy != nil {
 			// Get plugin config defaults
-			defaults := cdata.NewNode()
 			for _, cpolicy := range lPlugin.ConfigPolicy.GetAll() {
 				_, errs := cpolicy.AddDefaults(defaults.Table())
 				if len(errs.Errors()) > 0 {
 					for _, err := range errs.Errors() {
 						pmLogger.WithFields(log.Fields{
 							"_block":         "load-plugin",
-							"plugin-type":    "collector",
+							"plugin-type":    resp.Type.String(),
 							"plugin-name":    ap.Name(),
 							"plugin-version": ap.Version(),
 							"plugin-id":      ap.ID(),
@@ -445,7 +484,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			if err != nil {
 				pmLogger.WithFields(log.Fields{
 					"_block":         "load-plugin",
-					"plugin-type":    "collector",
+					"plugin-type":    resp.Type.String(),
 					"error":          err.Error(),
 					"plugin-name":    ap.Name(),
 					"plugin-version": ap.Version(),
@@ -456,20 +495,40 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			lPlugin.ConfigPolicy = cp
 		}
 
-		colClient := ap.client.(client.PluginCollectorClient)
+		var metricTypes []core.Metric
+		// ver err error
+		if resp.Type == plugin.CollectorPluginType {
+			colClient := ap.client.(client.PluginCollectorClient)
 
-		cfg := plugin.ConfigType{
-			ConfigDataNode: cfgNode,
-		}
+			cfg := plugin.ConfigType{
+				ConfigDataNode: cfgNode,
+			}
 
-		metricTypes, err := colClient.GetMetricTypes(cfg)
-		if err != nil {
-			pmLogger.WithFields(log.Fields{
-				"_block":      "load-plugin",
-				"plugin-type": "collector",
-				"error":       err.Error(),
-			}).Error("error in getting metric types")
-			return nil, serror.New(err)
+			metricTypes, err = colClient.GetMetricTypes(cfg)
+			if err != nil {
+				pmLogger.WithFields(log.Fields{
+					"_block":      "load-plugin",
+					"plugin-type": "collector",
+					"error":       err.Error(),
+				}).Error("error in getting metric types")
+				return nil, serror.New(err)
+			}
+		} else {
+			strColClient := ap.client.(client.PluginCollectorClient)
+
+			cfg := plugin.ConfigType{
+				ConfigDataNode: cfgNode,
+			}
+
+			metricTypes, err = strColClient.GetMetricTypes(cfg)
+			if err != nil {
+				pmLogger.WithFields(log.Fields{
+					"_block":      "load-plugin",
+					"plugin-type": "streamCollector",
+					"error":       err.Error(),
+				}).Error("error in getting metric types")
+				return nil, serror.New(err)
+			}
 		}
 
 		// Add metric types to metric catalog
@@ -526,19 +585,21 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		}
 	}
 
-	// Added so clients can adequately clean up connections
-	ap.client.Kill("Retrieved necessary plugin info")
-	err = ePlugin.Kill()
-	if err != nil {
-		pmLogger.WithFields(log.Fields{
-			"_block": "load-plugin",
-			"error":  err.Error(),
-		}).Error("load plugin error while killing plugin executable plugin")
-		return nil, serror.New(err)
+	if lPlugin.Details.Uri == nil {
+		// Added so clients can adequately clean up connections
+		ap.client.Kill("Retrieved necessary plugin info")
+		err = ePlugin.Kill()
+		if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+				"error":  err.Error(),
+			}).Error("load plugin error while killing plugin executable plugin")
+			return nil, serror.New(err)
+		}
 	}
 
 	if resp.State != plugin.PluginSuccess {
-		e := fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
+		e := fmt.Errorf("plugin loading did not succeed: %s\n", resp.ErrorMessage)
 		pmLogger.WithFields(log.Fields{
 			"_block":          "load-plugin",
 			"error":           e,
@@ -590,6 +651,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 		"plugin-version": plugin.Version(),
 		"plugin-path":    plugin.Details.Path,
 	}).Debugf("Removing plugin")
+
 	if strings.Contains(plugin.Details.Path, p.tempDirPath) {
 		if err := os.RemoveAll(filepath.Dir(plugin.Details.Path)); err != nil {
 			pmLogger.WithFields(log.Fields{
@@ -619,7 +681,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 	p.loadedPlugins.remove(plugin.Key())
 
 	// Remove any metrics from the catalog if this was a collector
-	if plugin.TypeName() == "collector" {
+	if plugin.TypeName() == "collector" || plugin.TypeName() == "streamCollector" {
 		p.metricCatalog.RmUnloadedPluginMetrics(plugin)
 	}
 

@@ -27,8 +27,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"net/url"
+
+	"github.com/asaskevich/govalidator"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/pkg/fileutils"
@@ -44,9 +48,10 @@ type PluginType int
 
 func ToPluginType(name string) (PluginType, error) {
 	pts := map[string]PluginType{
-		"collector": 0,
-		"processor": 1,
-		"publisher": 2,
+		"collector":           0,
+		"processor":           1,
+		"publisher":           2,
+		"streaming collector": 3,
 	}
 	t, ok := pts[name]
 	if !ok {
@@ -60,6 +65,7 @@ func CheckPluginType(id PluginType) bool {
 		0: "collector",
 		1: "processor",
 		2: "publisher",
+		3: "streaming collector",
 	}
 
 	_, ok := pts[id]
@@ -90,6 +96,7 @@ const (
 	CollectorPluginType PluginType = iota
 	ProcessorPluginType
 	PublisherPluginType
+	StreamingCollectorPluginType
 )
 
 type AvailablePlugin interface {
@@ -125,12 +132,27 @@ type RequestedPlugin struct {
 	path      string
 	checkSum  [sha256.Size]byte
 	signature []byte
+	uri       *url.URL
+}
+
+// Checks if string is URL
+func isURL(url string) bool {
+	if !govalidator.IsURL(url) || !strings.HasPrefix(url, "http") {
+		return false
+	}
+	return true
 }
 
 // NewRequestedPlugin returns a Requested Plugin which represents the plugin path and signature
 // It takes the full path of the plugin (path), temp path (fileName), and content of the file (b) and returns a requested plugin and error
 // The argument b (content of the file) can be nil
 func NewRequestedPlugin(path, fileName string, b []byte) (*RequestedPlugin, error) {
+	// Checks if string is URL
+	if isURL(path) {
+		if uri, err := url.ParseRequestURI(path); err == nil && uri != nil {
+			return &RequestedPlugin{uri: uri}, nil
+		}
+	}
 	var rp *RequestedPlugin
 	// this case is for the snaptel cli as b is unknown and needs to be read
 	if b == nil {
@@ -193,12 +215,20 @@ func (p *RequestedPlugin) Signature() []byte {
 	return p.signature
 }
 
+func (p *RequestedPlugin) Uri() *url.URL {
+	return p.uri
+}
+
 func (p *RequestedPlugin) SetPath(path string) {
 	p.path = path
 }
 
 func (p *RequestedPlugin) SetSignature(data []byte) {
 	p.signature = data
+}
+
+func (p *RequestedPlugin) SetUri(uri *url.URL) {
+	p.uri = uri
 }
 
 func (p *RequestedPlugin) generateCheckSum() error {

@@ -74,12 +74,13 @@ type availablePlugin struct {
 	execPath           string
 	fromPackage        bool
 	pprofPort          string
+	isRemote           bool
 }
 
 // newAvailablePlugin returns an availablePlugin with information from a
 // plugin.Response
 func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executablePlugin) (*availablePlugin, error) {
-	if resp.Type != plugin.CollectorPluginType && resp.Type != plugin.ProcessorPluginType && resp.Type != plugin.PublisherPluginType {
+	if resp.Type != plugin.CollectorPluginType && resp.Type != plugin.ProcessorPluginType && resp.Type != plugin.PublisherPluginType && resp.Type != plugin.StreamCollectorPluginType {
 		return nil, strategy.ErrBadType
 	}
 	ap := &availablePlugin{
@@ -92,6 +93,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 		lastHitTime: time.Now(),
 		ePlugin:     ep,
 		pprofPort:   resp.PprofAddress,
+		isRemote:    false,
 	}
 	ap.key = fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", ap.pluginType.String(), ap.name, ap.version)
 
@@ -112,16 +114,6 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 			ap.client = c
 		case plugin.GRPC:
 			c, e := client.NewCollectorGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
-			if e != nil {
-				return nil, errors.New("error while creating client connection: " + e.Error())
-			}
-			ap.client = c
-		case plugin.STREAMGRPC:
-			c, e := client.NewStreamCollectorGrpcClient(
-				resp.ListenAddress,
-				DefaultClientTimeout,
-				resp.PublicKey,
-				!resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -156,6 +148,27 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 			ap.client = c
 		case plugin.GRPC:
 			c, e := client.NewProcessorGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
+		default:
+			return nil, errors.New("Invalid RPCTYPE")
+		}
+	case plugin.StreamCollectorPluginType:
+		switch resp.Meta.RPCType {
+		case plugin.GRPC:
+			c, e := client.NewStreamCollectorGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
+		case plugin.STREAMGRPC:
+			c, e := client.NewStreamCollectorGrpcClient(
+				resp.ListenAddress,
+				DefaultClientTimeout,
+				resp.PublicKey,
+				!resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
@@ -226,6 +239,14 @@ func (a *availablePlugin) LastHit() time.Time {
 	return a.lastHitTime
 }
 
+func (a *availablePlugin) IsRemote() bool {
+	return a.isRemote
+}
+
+func (a *availablePlugin) SetIsRemote(isRemote bool) {
+	a.isRemote = isRemote
+}
+
 // Stop halts a running availablePlugin
 func (a *availablePlugin) Stop(r string) error {
 	log.WithFields(log.Fields{
@@ -265,6 +286,13 @@ func (a *availablePlugin) Kill(r string) error {
 // CheckHealth checks the health of a plugin and updates
 // a.failedHealthChecks
 func (a *availablePlugin) CheckHealth() {
+	if a.IsRemote() {
+		runnerLog.WithFields(log.Fields{
+			"_module": "control-aplugin",
+			"_block":  "check-health",
+		}).Debug(fmt.Sprintf("bypassing check-health on standalone plugin"))
+		return
+	}
 	go func() {
 		a.healthChan <- a.client.Ping()
 	}()
@@ -338,7 +366,7 @@ func newAvailablePlugins() *availablePlugins {
 }
 
 func (ap *availablePlugins) insert(pl *availablePlugin) error {
-	if pl.pluginType != plugin.CollectorPluginType && pl.pluginType != plugin.ProcessorPluginType && pl.pluginType != plugin.PublisherPluginType {
+	if pl.pluginType != plugin.CollectorPluginType && pl.pluginType != plugin.ProcessorPluginType && pl.pluginType != plugin.PublisherPluginType && pl.pluginType != plugin.StreamCollectorPluginType {
 		return strategy.ErrBadType
 	}
 

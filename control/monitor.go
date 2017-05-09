@@ -86,7 +86,9 @@ func (m *monitor) Start(availablePlugins *availablePlugins) {
 				go func() {
 					availablePlugins.RLock()
 					for _, ap := range availablePlugins.all() {
-						go ap.CheckHealth()
+						if !ap.IsRemote() {
+							go ap.CheckHealth()
+						}
 					}
 					availablePlugins.RUnlock()
 				}()

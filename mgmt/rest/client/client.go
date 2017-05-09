@@ -38,6 +38,8 @@ import (
 
 	"github.com/asaskevich/govalidator"
 
+	"net/url"
+
 	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
 )
 
@@ -84,6 +86,14 @@ func parseURL(url string) error {
 		return fmt.Errorf("URL %s is not in the format of http(s)://<ip>:<port>", url)
 	}
 	return nil
+}
+
+// Checks if string is URL
+func isURL(url string) bool {
+	if !govalidator.IsURL(url) || !strings.HasPrefix(url, "http") {
+		return false
+	}
+	return true
 }
 
 type metaOp func(c *Client)
@@ -260,7 +270,6 @@ func (c *Client) do(method, path string, ct contentType, body ...[]byte) (*rbody
 		}
 		defer rsp.Body.Close()
 	}
-
 	return httpRespToAPIResp(rsp)
 }
 
@@ -296,6 +305,30 @@ func httpRespToAPIResp(rsp *http.Response) (*rbody.APIResponse, error) {
 }
 
 func (c *Client) pluginUploadRequest(pluginPaths []string) (*rbody.APIResponse, error) {
+	if isURL(pluginPaths[0]) {
+		if _, err := url.ParseRequestURI(pluginPaths[0]); err == nil {
+			req, err := http.NewRequest(
+				"POST",
+				c.prefix+"/plugins",
+				strings.NewReader(
+					fmt.Sprintf("{\"uri\": \"%s\"}", pluginPaths[0]),
+				),
+			)
+			if err != nil {
+				return nil, err
+			}
+			addAuth(req, c.Username, c.Password)
+			req.Header.Add("Content-Type", "application/json")
+			rsp, err := c.http.Do(req)
+			if err != nil {
+				if strings.Contains(err.Error(), "tls: oversized record") || strings.Contains(err.Error(), "malformed HTTP response") {
+					return nil, fmt.Errorf("error connecting to API URI: %s. Do you have an http/https mismatch?", c.URL)
+				}
+				return nil, fmt.Errorf("URL target is not available. %v", err)
+			}
+			return httpRespToAPIResp(rsp)
+		}
+	}
 	errChan := make(chan error)
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
