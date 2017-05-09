@@ -241,6 +241,12 @@ func (t *task) setScheduleFromCliOptions(ctx *cli.Context) error {
 		}
 		duration = &d
 	}
+
+	// It's a streaming collector
+	if strings.Compare(t.Schedule.Type, "streaming") == 0 {
+		return nil
+	}
+
 	// Grab the interval for the schedule (if one was provided). Note that if an
 	// interval value was not passed in and there is no interval defined for the
 	// schedule associated with this task, it's an error

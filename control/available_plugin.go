@@ -118,16 +118,6 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
 			ap.client = c
-		case plugin.STREAMGRPC:
-			c, e := client.NewStreamCollectorGrpcClient(
-				resp.ListenAddress,
-				DefaultClientTimeout,
-				resp.PublicKey,
-				!resp.Meta.Unsecure)
-			if e != nil {
-				return nil, errors.New("error while creating client connection: " + e.Error())
-			}
-			ap.client = c
 		default:
 			return nil, errors.New("Invalid RPCTYPE")
 		}
@@ -169,6 +159,16 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 		switch resp.Meta.RPCType {
 		case plugin.GRPC:
 			c, e := client.NewStreamCollectorGrpcClient(resp.ListenAddress, DefaultClientTimeout, resp.PublicKey, !resp.Meta.Unsecure)
+			if e != nil {
+				return nil, errors.New("error while creating client connection: " + e.Error())
+			}
+			ap.client = c
+		case plugin.STREAMGRPC:
+			c, e := client.NewStreamCollectorGrpcClient(
+				resp.ListenAddress,
+				DefaultClientTimeout,
+				resp.PublicKey,
+				!resp.Meta.Unsecure)
 			if e != nil {
 				return nil, errors.New("error while creating client connection: " + e.Error())
 			}
