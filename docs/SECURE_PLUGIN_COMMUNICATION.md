@@ -19,7 +19,27 @@ limitations under the License.
 
 # Secure Plugin Communication
 
-Snap communicates with plugins over gRPC protocol, which in general transfers data in plaintext.
+<!-- TOC -->
+
+- [Secure Plugin Communication](#secure-plugin-communication)
+    - [Overview](#overview)
+    - [Usage](#usage)
+        - [Shortest guide](#shortest-guide)
+        - [Detailed preparation](#detailed-preparation)
+        - [Enabling secure communication](#enabling-secure-communication)
+        - [Using system-installed CA certificates](#using-system-installed-ca-certificates)
+    - [More information](#more-information)
+        - [Exclusive security](#exclusive-security)
+        - [Relation to other functionalities](#relation-to-other-functionalities)
+        - [TLS setup requirements](#tls-setup-requirements)
+        - [Obtaining self-signed TLS certificates for tests](#obtaining-self-signed-tls-certificates-for-tests)
+    - [More information](#more-information-1)
+
+<!-- /TOC -->
+
+## Overview
+
+Snap framework communicates with plugins over gRPC protocol, which in general transfers data in plaintext.
 Snap allows securing communication with plugins by opening TLS channels and using certificates to authenticate plugins and framework.
 
 ## Usage 
@@ -28,23 +48,20 @@ This walkthrough assumes you have downloaded a Snap release as described in [Get
 
 ### Shortest guide
 
-Assuming all the test files are available, the following steps will result in secure plugin communication:
+Assuming all the test files are available (basing on [test instructions](#obtaining-self-signed-tls-certificates-for-tests)) , the following steps will result in secure plugin communication:
 
 ```
 snapteld --log-level 1 --plugin-trust 0 --tls-cert /tmp/snaptest-cli.crt --tls-key /tmp/snaptest-cli.key --ca-cert-paths /tmp/snaptest-ca.crt
-## (in another terminal)
-## Load each plugin
 snaptel plugin load --plugin-cert /tmp/snaptest-srv.crt --plugin-key /tmp/snaptest-srv.key --plugin-ca-certs /tmp/snaptest-ca.crt plugins/snap-plugin-collector-rand
-## Start a sample task
 snaptel task create -t sample-task.json
 ```
 
 ### Detailed preparation
 
 Starting secure communication requires following steps:
-1. Obtain TLS certificate and private key for framework.
+1. Obtain X.509 certificate and private key for framework.
     * Please note that this certificate should allow usage for TLS web client authentication (as specified in RFC 3280)
-1. Obtain TLS certificate and private key for each plugin or group of plugins.
+1. Obtain X.509 certificate and private key for each plugin or group of plugins.
     * Please note that this certificate should allow usage for TLS web server authentication (as specified in RFC 3280)
 1. Obtain and locate the CA certificates that are necessary to authenticate framework and plugin certificates.
 
@@ -83,6 +100,14 @@ Several modes of operation do not fully support secure communication:
 * distributed workflow is not covered by secure communication,
 * tribe doesn't support secure communication; `snapteld` will refuse to start in tribe mode if configured with secure communication,
 * plugin and task autodiscovery doesn't support secure communication; `snapteld` will refuse to start with autodiscovery path and secure communication enabled.
+
+### TLS setup requirements
+
+Snap plugin security is subject to following constraints:
+* certificates must be valid for use with following cipher suites:
+    * TLS_RSA_WITH_AES_128_GCM_SHA256,
+    * TLS_RSA_WITH_AES_256_GCM_SHA384.
+* certificates should allow usage for TLS web client or server authentication, as specified in RFC 3280 (server usage is for plugins).
 
 ### Obtaining self-signed TLS certificates for tests
 
