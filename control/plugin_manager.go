@@ -23,8 +23,12 @@ package control
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -170,6 +174,7 @@ type pluginDetails struct {
 	KeyPath     string
 	CACertPaths string
 	TLSEnabled  bool
+	Uri         *url.URL
 }
 
 type loadedPlugin struct {
@@ -342,56 +347,83 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	lPlugin.Details = details
 	lPlugin.State = DetectedState
 
-	pmLogger.WithFields(log.Fields{
-		"_block": "load-plugin",
-		"path":   filepath.Base(lPlugin.Details.Exec[0]),
-	}).Info("plugin load called")
+	var (
+		ePlugin *plugin.ExecutablePlugin
+		resp    plugin.Response
+		err     error
+	)
 
-	// We will create commands by appending the ExecPath to the actual command.
-	// The ExecPath is a temporary location where the plugin/package will be
-	// run from.
-	commands := make([]string, len(lPlugin.Details.Exec))
-	for i, e := range lPlugin.Details.Exec {
-		commands[i] = filepath.Join(lPlugin.Details.ExecPath, e)
-	}
-
-	ePlugin, err := plugin.NewExecutablePlugin(
-		p.GenerateArgs(int(log.GetLevel())).
-			SetCertPath(details.CertPath).
-			SetKeyPath(details.KeyPath).
-			SetCACertPaths(details.CACertPaths).
-			SetTLSEnabled(details.TLSEnabled),
-		commands...)
-	if err != nil {
+	if lPlugin.Details.Uri == nil {
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
-			"error":  err.Error(),
-		}).Error("load plugin error while creating executable plugin")
-		return nil, serror.New(err)
-	}
+			"path":   filepath.Base(lPlugin.Details.Exec[0]),
+		}).Info("plugin load called")
+		// We will create commands by appending the ExecPath to the actual command.
+		// The ExecPath is a temporary location where the plugin/package will be
+		// run from.
+		commands := make([]string, len(lPlugin.Details.Exec))
+		for i, e := range lPlugin.Details.Exec {
+			commands[i] = filepath.Join(lPlugin.Details.ExecPath, e)
+		}
 
-	pmLogger.WithFields(log.Fields{
-		"_block": "load-plugin",
-		"path":   lPlugin.Details.Exec,
-	}).Debug(fmt.Sprintf("plugin load timeout set to %ds", p.pluginLoadTimeout))
-	resp, err := ePlugin.Run(time.Second * time.Duration(p.pluginLoadTimeout))
-	if err != nil {
+		ePlugin, err = plugin.NewExecutablePlugin(
+			p.GenerateArgs(int(log.GetLevel())).
+				SetCertPath(details.CertPath).
+				SetKeyPath(details.KeyPath).
+				SetCACertPaths(details.CACertPaths).
+				SetTLSEnabled(details.TLSEnabled),
+			commands...)
+		if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+				"error":  err.Error(),
+			}).Error("load plugin error while creating executable plugin")
+			return nil, serror.New(err)
+		}
 		pmLogger.WithFields(log.Fields{
 			"_block": "load-plugin",
-			"error":  err.Error(),
-		}).Error("load plugin error when starting plugin")
-		return nil, serror.New(err)
-	}
+			"path":   lPlugin.Details.Exec,
+		}).Debug(fmt.Sprintf("plugin load timeout set to %ds", p.pluginLoadTimeout))
+		resp, err = ePlugin.Run(time.Second * time.Duration(p.pluginLoadTimeout))
+		if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+				"error":  err.Error(),
+			}).Error("load plugin error when starting plugin")
+			return nil, serror.New(err)
+		}
 
-	ePlugin.SetName(resp.Meta.Name)
+		ePlugin.SetName(resp.Meta.Name)
 
-	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", resp.Meta.Type.String(), resp.Meta.Name, resp.Meta.Version)
-	if _, exists := p.loadedPlugins.table[key]; exists {
-		return nil, serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
-			"plugin-name":    resp.Meta.Name,
-			"plugin-version": resp.Meta.Version,
-			"plugin-type":    resp.Type.String(),
-		})
+		key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", resp.Meta.Type.String(), resp.Meta.Name, resp.Meta.Version)
+		if _, exists := p.loadedPlugins.table[key]; exists {
+			return nil, serror.New(ErrPluginAlreadyLoaded, map[string]interface{}{
+				"plugin-name":    resp.Meta.Name,
+				"plugin-version": resp.Meta.Version,
+				"plugin-type":    resp.Type.String(),
+			})
+		}
+	} else {
+		pmLogger.WithFields(log.Fields{
+			"_block": "load-plugin",
+			"uri":    lPlugin.Details.Uri.String(),
+		}).Info("plugin load called")
+		res, err := http.Get(lPlugin.Details.Uri.String())
+		if err != nil {
+			return nil, serror.New(err)
+		}
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, serror.New(err)
+		}
+		err = json.Unmarshal(body, &resp)
+		if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+				"error":  err.Error(),
+			}).Error("error during json unmarshal")
+		}
 	}
 	ap, err := newAvailablePlugin(resp, emitter, ePlugin, p.grpcSecurity)
 	if err != nil {
@@ -400,6 +432,10 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			"error":  err.Error(),
 		}).Error("load plugin error while creating available plugin")
 		return nil, serror.New(err)
+	}
+
+	if lPlugin.Details.Uri != nil {
+		ap.SetIsRemote(true)
 	}
 
 	if resp.Meta.Unsecure {
@@ -481,6 +517,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		}
 
 		colClient := ap.client.(client.PluginCollectorClient)
+		defer ap.client.(client.PluginCollectorClient).Close()
 
 		cfg := plugin.ConfigType{
 			ConfigDataNode: cfgNode,
@@ -550,19 +587,21 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		}
 	}
 
-	// Added so clients can adequately clean up connections
-	ap.client.Kill("Retrieved necessary plugin info")
-	err = ePlugin.Kill()
-	if err != nil {
-		pmLogger.WithFields(log.Fields{
-			"_block": "load-plugin",
-			"error":  err.Error(),
-		}).Error("load plugin error while killing plugin executable plugin")
-		return nil, serror.New(err)
+	if lPlugin.Details.Uri == nil {
+		// Added so clients can adequately clean up connections
+		ap.client.Kill("Retrieved necessary plugin info")
+		err = ePlugin.Kill()
+		if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block": "load-plugin",
+				"error":  err.Error(),
+			}).Error("load plugin error while killing plugin executable plugin")
+			return nil, serror.New(err)
+		}
 	}
 
 	if resp.State != plugin.PluginSuccess {
-		e := fmt.Errorf("Plugin loading did not succeed: %s\n", resp.ErrorMessage)
+		e := fmt.Errorf("plugin loading did not succeed: %s\n", resp.ErrorMessage)
 		pmLogger.WithFields(log.Fields{
 			"_block":          "load-plugin",
 			"error":           e,
@@ -594,6 +633,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 		})
 		return nil, se
 	}
+
 	pmLogger.WithFields(log.Fields{
 		"_block": "unload-plugin",
 		"path":   plugin.Details.Exec,

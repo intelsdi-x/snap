@@ -76,6 +76,7 @@ type availablePlugin struct {
 	execPath           string
 	fromPackage        bool
 	pprofPort          string
+	isRemote           bool
 }
 
 // newAvailablePlugin returns an availablePlugin with information from a
@@ -100,6 +101,7 @@ func newAvailablePlugin(resp plugin.Response, emitter gomit.Emitter, ep executab
 		lastHitTime: time.Now(),
 		ePlugin:     ep,
 		pprofPort:   resp.PprofAddress,
+		isRemote:    false,
 	}
 	ap.key = fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", ap.pluginType.String(), ap.name, ap.version)
 
@@ -233,6 +235,14 @@ func (a *availablePlugin) LastHit() time.Time {
 	return a.lastHitTime
 }
 
+func (a *availablePlugin) IsRemote() bool {
+	return a.isRemote
+}
+
+func (a *availablePlugin) SetIsRemote(isRemote bool) {
+	a.isRemote = isRemote
+}
+
 // Stop halts a running availablePlugin
 func (a *availablePlugin) Stop(r string) error {
 	log.WithFields(log.Fields{
@@ -240,6 +250,9 @@ func (a *availablePlugin) Stop(r string) error {
 		"block":       "stop",
 		"plugin_name": a,
 	}).Info("stopping available plugin")
+	if a.IsRemote() {
+		return a.client.Close()
+	}
 	return a.client.Kill(r)
 }
 
@@ -272,6 +285,13 @@ func (a *availablePlugin) Kill(r string) error {
 // CheckHealth checks the health of a plugin and updates
 // a.failedHealthChecks
 func (a *availablePlugin) CheckHealth() {
+	if a.IsRemote() {
+		runnerLog.WithFields(log.Fields{
+			"_module": "control-aplugin",
+			"_block":  "check-health",
+		}).Debug(fmt.Sprintf("bypassing check-health on standalone plugin"))
+		return
+	}
 	go func() {
 		a.healthChan <- a.client.Ping()
 	}()

@@ -344,6 +344,14 @@ func (g *grpcClient) Kill(reason string) error {
 	return nil
 }
 
+func (g *grpcClient) Close() error {
+	err := g.conn.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *grpcClient) Publish(metrics []core.Metric, config map[string]ctypes.ConfigValue) error {
 	arg := &rpc.PubProcArg{
 		Metrics: NewMetrics(metrics),

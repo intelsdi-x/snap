@@ -20,10 +20,14 @@ limitations under the License.
 package control
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"sync"
 
+	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/control_event"
@@ -405,22 +409,60 @@ func (s *subscriptionGroup) subscribePlugins(id string,
 			"version": plg.Version(),
 			"_block":  "subscriptionGroup.subscribePlugins",
 		}).Debug("plugin subscription")
-		pool, err := s.pluginRunner.AvailablePlugins().getOrCreatePool(plg.Key())
-		if err != nil {
-			serrs = append(serrs, serror.New(err))
-			return serrs
-		}
-		pool.Subscribe(id)
-		if pool.Eligible() {
-			err = s.verifyPlugin(plg)
+		if plg.Details.Uri != nil {
+			// this is a remote plugin
+			pool, err := s.pluginRunner.AvailablePlugins().getOrCreatePool(plg.Key())
 			if err != nil {
 				serrs = append(serrs, serror.New(err))
 				return serrs
 			}
-			err = s.pluginRunner.runPlugin(plg.Name(), plg.Details)
+			if pool.Count() < 1 {
+				var resp plugin.Response
+				res, err := http.Get(plg.Details.Uri.String())
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
+				body, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
+				err = json.Unmarshal(body, &resp)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
+				ap, err := newAvailablePlugin(resp, s.eventManager, nil, s.grpcSecurity)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
+				ap.SetIsRemote(true)
+				err = pool.Insert(ap)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
+			}
+		} else {
+			pool, err := s.pluginRunner.AvailablePlugins().getOrCreatePool(plg.Key())
 			if err != nil {
 				serrs = append(serrs, serror.New(err))
 				return serrs
+			}
+			pool.Subscribe(id)
+			if pool.Eligible() {
+				err = s.verifyPlugin(plg)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
+				err = s.pluginRunner.runPlugin(plg.Name(), plg.Details)
+				if err != nil {
+					serrs = append(serrs, serror.New(err))
+					return serrs
+				}
 			}
 		}
 

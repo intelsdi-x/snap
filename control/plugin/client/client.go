@@ -33,6 +33,7 @@ type PluginClient interface {
 	SetKey() error
 	Ping() error
 	Kill(string) error
+	Close() error
 	GetConfigPolicy() (*cpolicy.ConfigPolicy, error)
 }
 

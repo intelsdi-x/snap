@@ -27,8 +27,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"net/url"
+
+	"github.com/asaskevich/govalidator"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/pkg/fileutils"
@@ -129,12 +133,20 @@ type RequestedPlugin struct {
 	keyPath     string
 	caCertPaths string
 	tlsEnabled  bool
+	autoLoaded  bool
+	uri         *url.URL
 }
 
 // NewRequestedPlugin returns a Requested Plugin which represents the plugin path and signature
 // It takes the full path of the plugin (path), temp path (fileName), and content of the file (b) and returns a requested plugin and error
 // The argument b (content of the file) can be nil
 func NewRequestedPlugin(path, fileName string, b []byte) (*RequestedPlugin, error) {
+	// Checks if string is URL
+	if IsUri(path) {
+		if uri, err := url.ParseRequestURI(path); err == nil && uri != nil {
+			return &RequestedPlugin{uri: uri}, nil
+		}
+	}
 	var rp *RequestedPlugin
 	// this case is for the snaptel cli as b is unknown and needs to be read
 	if b == nil {
@@ -185,6 +197,14 @@ func NewRequestedPlugin(path, fileName string, b []byte) (*RequestedPlugin, erro
 	return rp, nil
 }
 
+// Checks if string is URL
+func IsUri(url string) bool {
+	if !govalidator.IsURL(url) || !strings.HasPrefix(url, "http") {
+		return false
+	}
+	return true
+}
+
 func (p *RequestedPlugin) Path() string {
 	return p.path
 }
@@ -217,6 +237,10 @@ func (p *RequestedPlugin) Signature() []byte {
 	return p.signature
 }
 
+func (p *RequestedPlugin) Uri() *url.URL {
+	return p.uri
+}
+
 func (p *RequestedPlugin) SetPath(path string) {
 	p.path = path
 }
@@ -243,6 +267,10 @@ func (p *RequestedPlugin) SetTLSEnabled(tlsEnabled bool) {
 
 func (p *RequestedPlugin) SetSignature(data []byte) {
 	p.signature = data
+}
+
+func (p *RequestedPlugin) SetUri(uri *url.URL) {
+	p.uri = uri
 }
 
 func (p *RequestedPlugin) generateCheckSum() error {

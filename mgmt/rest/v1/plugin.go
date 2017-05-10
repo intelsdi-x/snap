@@ -22,6 +22,7 @@ package v1
 import (
 	"compress/gzip"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -67,6 +68,8 @@ func (p *plugin) TypeName() string {
 }
 
 func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	lp := &rbody.PluginsLoaded{}
+	lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
 	var rp *core.RequestedPlugin
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
@@ -77,10 +80,10 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		var certPath string
 		var keyPath string
 		var caCertPaths string
+		os.Stdout.WriteString("TEST 2\n")
+
 		var signature []byte
 		var checkSum [sha256.Size]byte
-		lp := &rbody.PluginsLoaded{}
-		lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
 		mr := multipart.NewReader(r.Body, params["boundary"])
 		var i int
 		for {
@@ -202,6 +205,30 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 				ec = 500
 			}
 			rbody.Write(ec, rb, w)
+			return
+		}
+		lp.LoadedPlugins = append(lp.LoadedPlugins, catalogedPluginToLoaded(r.Host, pl))
+		rbody.Write(201, lp, w)
+	} else if strings.HasSuffix(mediaType, "json") {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			rbody.Write(500, rbody.FromError(err), w)
+			return
+		}
+		var resp map[string]string
+		err = json.Unmarshal(body, &resp)
+		if err != nil {
+			rbody.Write(500, rbody.FromError(err), w)
+		}
+		rp, err := core.NewRequestedPlugin(resp["uri"], "", nil)
+		if err != nil {
+			rbody.Write(500, rbody.FromError(err), w)
+			return
+		}
+		pl, err := s.metricManager.Load(rp)
+		if err != nil {
+			// TODO (JC) should return 409 if plugin already loaded
+			rbody.Write(500, rbody.FromError(err), w)
 			return
 		}
 		lp.LoadedPlugins = append(lp.LoadedPlugins, catalogedPluginToLoaded(r.Host, pl))
