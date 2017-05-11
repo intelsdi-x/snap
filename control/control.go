@@ -33,9 +33,9 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/intelsdi-x/gomit"
 	"google.golang.org/grpc"
 
+	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/client"
 	"github.com/intelsdi-x/snap/control/strategy"
@@ -587,6 +587,11 @@ func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, serror.
 }
 
 func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDetails, serror.SnapError) {
+	if rp.Uri() != nil {
+		return &pluginDetails{
+			Uri: rp.Uri(),
+		}, nil
+	}
 	details := &pluginDetails{}
 	var serr serror.SnapError
 	//Check plugin signing
@@ -725,6 +730,13 @@ func (p *pluginControl) UnsubscribeDeps(id string) []serror.SnapError {
 }
 
 func (p *pluginControl) verifyPlugin(lp *loadedPlugin) error {
+	if lp.Details.Uri != nil {
+		// remote plugin
+		if core.IsUri(lp.Details.Uri.String()) {
+			return fmt.Errorf(fmt.Sprintf("Remote plugin failed to load: bad uri: (%x)", lp.Details.Uri))
+		}
+		return nil
+	}
 	b, err := ioutil.ReadFile(lp.Details.Path)
 	if err != nil {
 		return err

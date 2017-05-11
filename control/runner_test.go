@@ -131,6 +131,10 @@ func (mpcc *MockHealthyPluginCollectorClient) Kill(string) error {
 	return nil
 }
 
+func (mpcc *MockHealthyPluginCollectorClient) Close() error {
+	return nil
+}
+
 func (mpcc *MockHealthyPluginCollectorClient) GetConfigPolicy() (*cpolicy.ConfigPolicy, error) {
 	return nil, errors.New("Fail")
 }
@@ -162,6 +166,10 @@ func (mpcc *MockUnhealthyPluginCollectorClient) Ping() error {
 }
 
 func (mpcc *MockUnhealthyPluginCollectorClient) Kill(string) error {
+	return errors.New("Fail")
+}
+
+func (mpcc *MockUnhealthyPluginCollectorClient) Close() error {
 	return errors.New("Fail")
 }
 

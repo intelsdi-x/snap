@@ -95,6 +95,11 @@ func (p *PluginNativeClient) Kill(reason string) error {
 	return err
 }
 
+func (p *PluginNativeClient) Close() error {
+	// Added to conform to interface, but not needed by native
+	return nil
+}
+
 // Used to catch zero values for times and overwrite with current time
 // the 0 value for time.Time is year 1 which isn't a valid value for metric
 // collection (until we get a time machine).
