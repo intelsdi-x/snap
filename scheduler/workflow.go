@@ -59,7 +59,7 @@ var (
 // WmapToWorkflow attempts to convert a wmap.WorkflowMap to a schedulerWorkflow instance.
 func wmapToWorkflow(wfMap *wmap.WorkflowMap) (*schedulerWorkflow, error) {
 	wf := &schedulerWorkflow{}
-	err := convertCollectionNode(wfMap.CollectNode, wf)
+	err := convertCollectionNode(wfMap.Collect, wf)
 	if err != nil {
 		return nil, err
 	}
@@ -99,13 +99,13 @@ func convertCollectionNode(cnode *wmap.CollectWorkflowMapNode, wf *schedulerWork
 	}
 	wf.configTree = cdt
 	// Iterate over first level process nodes
-	pr, err := convertProcessNode(cnode.ProcessNodes)
+	pr, err := convertProcessNode(cnode.Process)
 	if err != nil {
 		return err
 	}
 	wf.processNodes = pr
 	// Iterate over first level publish nodes
-	pu, err := convertPublishNode(cnode.PublishNodes)
+	pu, err := convertPublishNode(cnode.Publish)
 	if err != nil {
 		return err
 	}
@@ -120,11 +120,11 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 		if err != nil {
 			return nil, err
 		}
-		prC, err := convertProcessNode(p.ProcessNodes)
+		prC, err := convertProcessNode(p.Process)
 		if err != nil {
 			return nil, err
 		}
-		puC, err := convertPublishNode(p.PublishNodes)
+		puC, err := convertPublishNode(p.Publish)
 		if err != nil {
 			return nil, err
 		}
@@ -132,13 +132,13 @@ func convertProcessNode(pr []wmap.ProcessWorkflowMapNode) ([]*processNode, error
 		// If version is not 1+ we use -1 to indicate we want
 		// the plugin manager to select the highest version
 		// available on plugin calls
-		if p.Version < 1 {
-			p.Version = -1
+		if p.PluginVersion < 1 {
+			p.PluginVersion = -1
 		}
-		p.Name = strings.ToLower(p.Name)
+		p.PluginName = strings.ToLower(p.PluginName)
 		prNodes[i] = &processNode{
-			name:         p.Name,
-			version:      p.Version,
+			name:         p.PluginName,
+			version:      p.PluginVersion,
 			config:       cdn,
 			Target:       p.Target,
 			ProcessNodes: prC,
@@ -159,13 +159,13 @@ func convertPublishNode(pu []wmap.PublishWorkflowMapNode) ([]*publishNode, error
 		// If version is not 1+ we use -1 to indicate we want
 		// the plugin manager to select the highest version
 		// available on plugin calls
-		if p.Version < 1 {
-			p.Version = -1
+		if p.PluginVersion < 1 {
+			p.PluginVersion = -1
 		}
-		p.Name = strings.ToLower(p.Name)
+		p.PluginName = strings.ToLower(p.PluginName)
 		puNodes[i] = &publishNode{
-			name:    p.Name,
-			version: p.Version,
+			name:    p.PluginName,
+			version: p.PluginVersion,
 			config:  cdn,
 			Target:  p.Target,
 		}

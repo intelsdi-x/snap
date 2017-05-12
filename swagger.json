@@ -1,0 +1,1284 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "Snap is an open telemetry framework designed to simplify the collection,\nprocessing and publishing of system data through a single API.\n\nThis specification should demonstrate a fully compliant swagger 2.0 spec for Snap.\nIt lists all the possible Snap Restful APIs that are available for use,\ntesting or generating spec compatible clients.",
+    "title": "Snap Restful APIs.",
+    "termsOfService": "There are no TOS at this moment, use at your own risk we take no responsibility.",
+    "contact": {
+      "name": "Snap Maintainer",
+      "url": "https://github.com/intelsdi-x/snap",
+      "email": "snap@intelsdi-x.slack.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/"
+    },
+    "version": "2.0"
+  },
+  "host": "127.0.0.1:8181",
+  "basePath": "/v2",
+  "paths": {
+    "/metrics": {
+      "get": {
+        "description": "An empty list returns if there is no loaded metrics.",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Get Metrics",
+        "operationId": "getMetrics",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Ns",
+            "name": "ns",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Ver",
+            "name": "ver",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/MetricsResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/plugins": {
+      "get": {
+        "description": "An empty list is returned if there are no loaded plugins.",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Get All",
+        "operationId": "getPlugins",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Name",
+            "name": "name",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "Type",
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "x-go-name": "Running",
+            "name": "running",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginsResponse"
+          }
+        }
+      },
+      "post": {
+        "description": "A plugin binary is required.",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Load",
+        "operationId": "loadPlugin",
+        "parameters": [
+          {
+            "type": "file",
+            "x-go-name": "PluginData",
+            "description": "loads a plugin.",
+            "name": "plugin_data",
+            "in": "formData"
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PluginResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "415": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/plugins/{ptype}/{pname}/{pversion}": {
+      "get": {
+        "description": "An error will be returned if the plugin does not exist.",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Get",
+        "operationId": "getPlugin",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "description": "Required fields are plugin type, name and version.",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Unload",
+        "operationId": "unloadPlugin",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/PluginResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/plugins/{ptype}/{pname}/{pversion}/config": {
+      "get": {
+        "description": "An empty config is returned if there are no configs for the plugin.",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Get Config",
+        "operationId": "getPluginConfigItem",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginConfigResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "put": {
+        "description": "A config is JSON. For example: {\"user\":\"snap\", \"host\":\"ocean_eleven\"}.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Set Config",
+        "operationId": "setPluginConfigItem",
+        "parameters": [
+          {
+            "x-go-name": "Config",
+            "name": "config",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginConfigResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "description": "A minimum of one config key is required for this operation.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Delete Config",
+        "operationId": "deletePluginConfigItem",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "PName",
+            "name": "pname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "PVersion",
+            "name": "pversion",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "collector",
+              " processor",
+              " publisher"
+            ],
+            "type": "string",
+            "x-go-name": "PType",
+            "name": "ptype",
+            "in": "path",
+            "required": true
+          },
+          {
+            "x-go-name": "Config",
+            "name": "config",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PluginConfigResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "description": "An empty list returns if no tasks exist.",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get All",
+        "operationId": "getTasks",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TasksResponse"
+          }
+        }
+      },
+      "post": {
+        "description": "A string representation of Snap task manifest is required.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Add",
+        "operationId": "addTask",
+        "parameters": [
+          {
+            "x-go-name": "Task",
+            "description": "Create a task.",
+            "name": "task",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/TaskResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/tasks/{id}": {
+      "get": {
+        "description": "The task ID is required.",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TaskResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "put": {
+        "description": "The task ID is required.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Enable/Start/Stop",
+        "operationId": "updateTaskState",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Action",
+            "description": "Update the state of a task",
+            "name": "action",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/TaskResponse"
+          },
+          "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "description": "The task ID is required.",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Remove",
+        "operationId": "removeTask",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/TaskResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/TaskErrorResponse"
+          }
+        }
+      }
+    },
+    "/tasks/{id}/watch": {
+      "get": {
+        "description": "The task ID is required.",
+        "produces": [
+          "text/event-stream"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Watch",
+        "operationId": "watchTask",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TaskWatchResponse"
+          },
+          "404": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/ErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "CollectWorkflowMapNode": {
+      "type": "object",
+      "title": "CollectWorkflowMapNode represents Snap workflow data model.",
+      "required": [
+        "metrics"
+      ],
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "x-go-name": "Config"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/metricInfo"
+          },
+          "x-go-name": "Metrics"
+        },
+        "process": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProcessWorkflowMapNode"
+          },
+          "x-go-name": "Process"
+        },
+        "publish": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PublishWorkflowMapNode"
+          },
+          "x-go-name": "Publish"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "x-go-name": "Tags"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    },
+    "ConfigDataNode": {
+      "description": "Represents a set of configuration data",
+      "type": "object",
+      "x-go-package": "github.com/intelsdi-x/snap/core/cdata"
+    },
+    "DynamicElement": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "index": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Index"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Error": {
+      "description": "Unsuccessful generic response to a failed API call",
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Fields"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "ErrorMessage"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Metric": {
+      "type": "object",
+      "title": "Metric represents the metric type.",
+      "required": [
+        "namespace"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "dynamic": {
+          "description": "Dynamic boolean representation if the metric has dynamic element.",
+          "type": "boolean",
+          "x-go-name": "Dynamic"
+        },
+        "dynamic_elements": {
+          "description": "DynamicElements a slice of dynamic elements.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DynamicElement"
+          },
+          "x-go-name": "DynamicElements"
+        },
+        "href": {
+          "type": "string",
+          "x-go-name": "Href"
+        },
+        "last_advertised_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastAdvertisedTimestamp"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "policy": {
+          "$ref": "#/definitions/PolicyTableSlice"
+        },
+        "unit": {
+          "type": "string",
+          "x-go-name": "Unit"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Plugin": {
+      "type": "object",
+      "title": "Plugin represents a plugin type definition.",
+      "properties": {
+        "config_policy": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PolicyTable"
+          },
+          "x-go-name": "ConfigPolicy"
+        },
+        "hitcount": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "HitCount"
+        },
+        "href": {
+          "type": "string",
+          "x-go-name": "Href"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint32",
+          "x-go-name": "ID"
+        },
+        "last_hit_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastHitTimestamp"
+        },
+        "loaded_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LoadedTimestamp"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "pprof_port": {
+          "type": "string",
+          "x-go-name": "PprofPort"
+        },
+        "signed": {
+          "type": "boolean",
+          "x-go-name": "Signed"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "PolicyTable": {
+      "$ref": "#/definitions/RuleTable"
+    },
+    "PolicyTableSlice": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RuleTable"
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "ProcessWorkflowMapNode": {
+      "type": "object",
+      "required": [
+        "plugin_name"
+      ],
+      "properties": {
+        "config": {
+          "description": "Config the configuration of a processor.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Config"
+        },
+        "plugin_name": {
+          "type": "string",
+          "x-go-name": "PluginName"
+        },
+        "plugin_version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PluginVersion"
+        },
+        "process": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProcessWorkflowMapNode"
+          },
+          "x-go-name": "Process"
+        },
+        "publish": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PublishWorkflowMapNode"
+          },
+          "x-go-name": "Publish"
+        },
+        "target": {
+          "type": "string",
+          "x-go-name": "Target"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    },
+    "PublishWorkflowMapNode": {
+      "type": "object",
+      "required": [
+        "plugin_name",
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Config"
+        },
+        "plugin_name": {
+          "type": "string",
+          "x-go-name": "PluginName"
+        },
+        "plugin_version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PluginVersion"
+        },
+        "target": {
+          "type": "string",
+          "x-go-name": "Target"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    },
+    "RuleTable": {
+      "type": "object",
+      "properties": {
+        "default": {
+          "type": "object",
+          "x-go-name": "Default"
+        },
+        "maximum": {
+          "type": "object",
+          "x-go-name": "Maximum"
+        },
+        "minimum": {
+          "type": "object",
+          "x-go-name": "Minimum"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "required": {
+          "type": "boolean",
+          "x-go-name": "Required"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/control/plugin/cpolicy"
+    },
+    "Schedule": {
+      "type": "object",
+      "title": "Schedule defines a scheduler.",
+      "required": [
+        "type",
+        "interval"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "Count"
+        },
+        "interval": {
+          "type": "string",
+          "x-go-name": "Interval"
+        },
+        "start_timestamp": {
+          "x-go-name": "StartTimestamp"
+        },
+        "stop_timestamp": {
+          "x-go-name": "StopTimestamp"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "simple",
+            " windowed",
+            " streaming",
+            " cron"
+          ],
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/core"
+    },
+    "StreamedMetric": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "x-go-name": "Data"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Tags"
+        },
+        "timestamp": {
+          "x-go-name": "Timestamp"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "StreamedMetrics": {
+      "type": "array",
+      "title": "StreamedMetrics defines a slice of streamed metrics.",
+      "items": {
+        "$ref": "#/definitions/StreamedMetric"
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "StreamedTaskEvent": {
+      "type": "object",
+      "title": "StreamedTaskEvent defines the task watching data type.",
+      "properties": {
+        "event": {
+          "$ref": "#/definitions/StreamedMetrics"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "EventType"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Task": {
+      "type": "object",
+      "title": "Task represents Snap task definition.",
+      "properties": {
+        "creation_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CreationTimestamp"
+        },
+        "deadline": {
+          "type": "string",
+          "x-go-name": "Deadline"
+        },
+        "failed_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "FailedCount"
+        },
+        "hit_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "HitCount"
+        },
+        "href": {
+          "type": "string",
+          "x-go-name": "Href"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "last_failure_message": {
+          "type": "string",
+          "x-go-name": "LastFailureMessage"
+        },
+        "last_run_timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastRunTimestamp"
+        },
+        "max-failures": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MaxFailures"
+        },
+        "miss_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "MissCount"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "schedule": {
+          "$ref": "#/definitions/Schedule"
+        },
+        "start": {
+          "type": "boolean",
+          "x-go-name": "Start"
+        },
+        "task_state": {
+          "type": "string",
+          "x-go-name": "TaskState"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version"
+        },
+        "workflow": {
+          "$ref": "#/definitions/WorkflowMap"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "Tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Task"
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
+    "WorkflowMap": {
+      "description": "WorkflowMap represents a map of a desired workflow that is used to create a scheduleWorkflow",
+      "type": "object",
+      "required": [
+        "collect"
+      ],
+      "properties": {
+        "collect": {
+          "$ref": "#/definitions/CollectWorkflowMapNode"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    },
+    "metricInfo": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Version_"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/scheduler/wmap"
+    }
+  },
+  "responses": {
+    "ErrorResponse": {
+      "description": "ErrorResponse represents the Snap error response type.\n\nIt includes an error message and a map of fields.",
+      "schema": {
+        "$ref": "#/definitions/Error"
+      }
+    },
+    "MetricsResponse": {
+      "description": "MetricsResponse is the representation of metric operation response.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Metric"
+            },
+            "x-go-name": "Metrics"
+          }
+        }
+      }
+    },
+    "PluginConfigResponse": {
+      "description": "PluginConfigResponse represents the response of a plugin config items.",
+      "schema": {
+        "$ref": "#/definitions/ConfigDataNode"
+      }
+    },
+    "PluginResponse": {
+      "description": "PluginResponse represents the response from plugin operations.",
+      "schema": {
+        "$ref": "#/definitions/Plugin"
+      }
+    },
+    "PluginsResponse": {
+      "description": "PluginsResp represents the response from plugins operations.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "plugins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Plugin"
+            },
+            "x-go-name": "Plugins"
+          }
+        }
+      }
+    },
+    "TaskErrorResponse": {
+      "description": "TaskErrorResponse returns removing a task error."
+    },
+    "TaskResponse": {
+      "description": "TaskResponse returns a task.",
+      "schema": {
+        "$ref": "#/definitions/Task"
+      }
+    },
+    "TaskWatchResponse": {
+      "description": "TaskWatchResponse defines the response of the task watching stream.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "task_watch": {
+            "$ref": "#/definitions/StreamedTaskEvent"
+          }
+        }
+      }
+    },
+    "TasksResponse": {
+      "description": "TasksResponse returns a list of created tasks.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "$ref": "#/definitions/Tasks"
+          }
+        }
+      }
+    }
+  }
+}

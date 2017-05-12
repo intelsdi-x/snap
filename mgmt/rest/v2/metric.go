@@ -33,27 +33,53 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// MetricsResponse is the representation of metric operation response.
+//
+// swagger:response MetricsResponse
+type MetricsResp struct {
+	// in: body
+	Body struct {
+		Metrics []Metric `json:"metrics,omitempty"`
+	}
+}
+
+// MetricParams defines the input query parameters for get a specific metric.
+//
+// swagger:parameters getMetrics
+type MetricParams struct {
+	// in: query
+	Ns string `json:"ns"`
+	// in: query
+	Ver int `json:"ver"`
+}
+
 type MetricsResonse struct {
 	Metrics Metrics `json:"metrics,omitempty"`
 }
 
 type Metrics []Metric
 
+// Metric represents the metric type.
 type Metric struct {
-	LastAdvertisedTimestamp int64            `json:"last_advertised_timestamp,omitempty"`
-	Namespace               string           `json:"namespace,omitempty"`
-	Version                 int              `json:"version,omitempty"`
-	Dynamic                 bool             `json:"dynamic"`
-	DynamicElements         []DynamicElement `json:"dynamic_elements,omitempty"`
-	Description             string           `json:"description,omitempty"`
-	Unit                    string           `json:"unit,omitempty"`
-	Policy                  PolicyTableSlice `json:"policy,omitempty"`
-	Href                    string           `json:"href"`
+	LastAdvertisedTimestamp int64 `json:"last_advertised_timestamp,omitempty"`
+	//required: true
+	Namespace string `json:"namespace"`
+	Version   int    `json:"version,omitempty"`
+	// Dynamic boolean representation if the metric has dynamic element.
+	Dynamic bool `json:"dynamic"`
+	// DynamicElements a slice of dynamic elements.
+	DynamicElements []DynamicElement `json:"dynamic_elements,omitempty"`
+	Description     string           `json:"description,omitempty"`
+	Unit            string           `json:"unit,omitempty"`
+	// Policy a slice of metric rules.
+	Policy PolicyTableSlice `json:"policy,omitempty"`
+	Href   string           `json:"href"`
 }
 
 type DynamicElement struct {
-	Index       int    `json:"index,omitempty"`
-	Name        string `json:"name,omitempty"`
+	Index int `json:"index,omitempty"`
+	// required: true
+	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 }
 

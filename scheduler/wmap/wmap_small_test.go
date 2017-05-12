@@ -70,7 +70,7 @@ func TestTagsOnWorkflow(t *testing.T) {
 	Convey("Extracting tags from workflow", t, func() {
 		Convey("From JSON", func() {
 			wmap, _ := FromJson(fixtures.TaskJSON)
-			tags := wmap.CollectNode.GetTags()
+			tags := wmap.Collect.GetTags()
 			So(tags, ShouldNotBeNil)
 			So(tags, ShouldResemble, map[string]map[string]string{
 				"/foo/bar": {
@@ -85,7 +85,7 @@ func TestTagsOnWorkflow(t *testing.T) {
 
 		Convey("From YAML", func() {
 			wmap, _ := FromYaml(fixtures.TaskYAML)
-			tags := wmap.CollectNode.GetTags()
+			tags := wmap.Collect.GetTags()
 			So(tags, ShouldNotBeNil)
 			So(tags, ShouldResemble, map[string]map[string]string{
 				"/foo/bar": {
@@ -105,13 +105,13 @@ func TestWfGetRequestedMetrics(t *testing.T) {
 	Convey("NewWorkFlowMap()/GetRequestedMetrics()", t, func() {
 		wmap := NewWorkflowMap()
 		So(wmap, ShouldNotBeNil)
-		So(wmap.CollectNode.GetMetrics(), ShouldBeEmpty)
-		wmap.CollectNode.AddMetric("/foo/bar", 1)
-		So(wmap.CollectNode.GetMetrics(), ShouldNotBeEmpty)
-		wmap.CollectNode.GetMetrics()[0].Namespace()
-		So(wmap.CollectNode.GetMetrics()[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
-		wmap.CollectNode.GetMetrics()[0].Version()
-		So(wmap.CollectNode.GetMetrics()[0].Version(), ShouldResemble, 1)
+		So(wmap.Collect.GetMetrics(), ShouldBeEmpty)
+		wmap.Collect.AddMetric("/foo/bar", 1)
+		So(wmap.Collect.GetMetrics(), ShouldNotBeEmpty)
+		wmap.Collect.GetMetrics()[0].Namespace()
+		So(wmap.Collect.GetMetrics()[0].Namespace(), ShouldResemble, []string{"foo", "bar"})
+		wmap.Collect.GetMetrics()[0].Version()
+		So(wmap.Collect.GetMetrics()[0].Version(), ShouldResemble, 1)
 	})
 }
 
@@ -119,24 +119,24 @@ func TestWfAddConfigItem(t *testing.T) {
 	Convey("AddMetric()/AddConfigItem()", t, func() {
 		wmap := NewWorkflowMap()
 		So(wmap, ShouldNotBeNil)
-		So(wmap.CollectNode.Metrics, ShouldBeEmpty)
-		wmap.CollectNode.AddMetric("/foo/bar", 1)
-		So(wmap.CollectNode.Metrics, ShouldNotBeEmpty)
-		So(wmap.CollectNode.Config, ShouldBeEmpty)
-		wmap.CollectNode.AddConfigItem("/foo/bar", "user", "bob")
-		So(wmap.CollectNode.Config, ShouldNotBeEmpty)
+		So(wmap.Collect.Metrics, ShouldBeEmpty)
+		wmap.Collect.AddMetric("/foo/bar", 1)
+		So(wmap.Collect.Metrics, ShouldNotBeEmpty)
+		So(wmap.Collect.Config, ShouldBeEmpty)
+		wmap.Collect.AddConfigItem("/foo/bar", "user", "bob")
+		So(wmap.Collect.Config, ShouldNotBeEmpty)
 	})
 }
 
 func TestWfPublishProcessNodes(t *testing.T) {
 	Convey("Add()/New Process/New Publish nodes", t, func() {
 		wmap := NewWorkflowMap()
-		wmap.CollectNode.AddConfigItem("/foo/bar", "user", "stu")
+		wmap.Collect.AddConfigItem("/foo/bar", "user", "stu")
 
 		pr1 := &ProcessWorkflowMapNode{
-			Name:    "oslo",
-			Version: 1,
-			Config:  make(map[string]interface{}),
+			PluginName:    "oslo",
+			PluginVersion: 1,
+			Config:        make(map[string]interface{}),
 		}
 
 		pr1.Config["version"] = "kilo"
@@ -147,26 +147,26 @@ func TestWfPublishProcessNodes(t *testing.T) {
 		pu2 := NewPublishNode("zorro", 1)
 
 		//Collect Node Add
-		wmap.CollectNode.Add(pr1)              //case process node
-		wmap.CollectNode.Add(pu1)              //case publish node
-		wmap.CollectNode.Add(wmap.CollectNode) //case default
+		wmap.Collect.Add(pr1)          //case process node
+		wmap.Collect.Add(pu1)          //case publish node
+		wmap.Collect.Add(wmap.Collect) //case default
 
-		So(wmap.CollectNode.ProcessNodes, ShouldNotBeEmpty)
-		So(wmap.CollectNode.PublishNodes, ShouldNotBeEmpty)
+		So(wmap.Collect.Process, ShouldNotBeEmpty)
+		So(wmap.Collect.Publish, ShouldNotBeEmpty)
 
 		//Process Node Add
-		wmap.CollectNode.ProcessNodes[0].Add(pr2)
-		wmap.CollectNode.ProcessNodes[0].Add(pu2)
-		wmap.CollectNode.ProcessNodes[0].Add(wmap.CollectNode)
+		wmap.Collect.Process[0].Add(pr2)
+		wmap.Collect.Process[0].Add(pu2)
+		wmap.Collect.Process[0].Add(wmap.Collect)
 
-		So(wmap.CollectNode.ProcessNodes[0].ProcessNodes, ShouldNotBeEmpty)
-		So(wmap.CollectNode.ProcessNodes[0].PublishNodes, ShouldNotBeEmpty)
+		So(wmap.Collect.Process[0].Process, ShouldNotBeEmpty)
+		So(wmap.Collect.Process[0].Publish, ShouldNotBeEmpty)
 
 		//GetConfigNode() nil case
-		cn, err := wmap.CollectNode.ProcessNodes[0].ProcessNodes[0].GetConfigNode()
+		cn, err := wmap.Collect.Process[0].Process[0].GetConfigNode()
 		So(cn, ShouldNotBeEmpty)
 		So(err, ShouldBeNil)
-		cn, err = wmap.CollectNode.PublishNodes[0].GetConfigNode()
+		cn, err = wmap.Collect.Publish[0].GetConfigNode()
 		So(cn, ShouldNotBeEmpty)
 		So(err, ShouldBeNil)
 
@@ -177,39 +177,39 @@ func TestWfPublishProcessNodes(t *testing.T) {
 func TestWfGetConfigNodeTree(t *testing.T) {
 	Convey("Gets the config tree and the config node", t, func() {
 		wmap := NewWorkflowMap()
-		wmap.CollectNode.AddConfigItem("/foo/bar", "user", "stu")
+		wmap.Collect.AddConfigItem("/foo/bar", "user", "stu")
 		pu1 := NewPublishNode("stuff", 1)
 		pr1 := NewProcessNode("name", 1)
 		pr2 := NewProcessNode("thing", 1)
 		pr3 := NewProcessNode("thing", 1)
 
-		wmap.CollectNode.Add(pu1)
-		wmap.CollectNode.Add(pr1)
-		wmap.CollectNode.Add(pr2)
+		wmap.Collect.Add(pu1)
+		wmap.Collect.Add(pr1)
+		wmap.Collect.Add(pr2)
 
-		wmap.CollectNode.ProcessNodes[0].Add(pr3)
-		wmap.CollectNode.PublishNodes[0].AddConfigItem("key", 1)
-		wmap.CollectNode.ProcessNodes[0].AddConfigItem("key", 3.14)
-		wmap.CollectNode.ProcessNodes[1].AddConfigItem("key", true)
-		wmap.CollectNode.ProcessNodes[0].ProcessNodes[0].AddConfigItem("key", struct{}{})
+		wmap.Collect.Process[0].Add(pr3)
+		wmap.Collect.Publish[0].AddConfigItem("key", 1)
+		wmap.Collect.Process[0].AddConfigItem("key", 3.14)
+		wmap.Collect.Process[1].AddConfigItem("key", true)
+		wmap.Collect.Process[0].Process[0].AddConfigItem("key", struct{}{})
 
-		pu1conf, err2 := wmap.CollectNode.PublishNodes[0].GetConfigNode()
+		pu1conf, err2 := wmap.Collect.Publish[0].GetConfigNode()
 		So(pu1conf, ShouldNotBeEmpty)
 		So(err2, ShouldBeNil)
 
-		pr1conf, err3 := wmap.CollectNode.ProcessNodes[0].GetConfigNode()
+		pr1conf, err3 := wmap.Collect.Process[0].GetConfigNode()
 		So(pr1conf, ShouldNotBeEmpty)
 		So(err3, ShouldBeNil)
 
-		pr2conf, err3 := wmap.CollectNode.ProcessNodes[1].GetConfigNode()
+		pr2conf, err3 := wmap.Collect.Process[1].GetConfigNode()
 		So(pr2conf, ShouldNotBeEmpty)
 		So(err3, ShouldBeNil)
 
-		pr3conf, err4 := wmap.CollectNode.ProcessNodes[0].ProcessNodes[0].GetConfigNode()
+		pr3conf, err4 := wmap.Collect.Process[0].Process[0].GetConfigNode()
 		So(pr3conf, ShouldNotBeEmpty)
 		So(err4, ShouldNotBeNil)
 
-		ctree, err := wmap.CollectNode.GetConfigTree()
+		ctree, err := wmap.Collect.GetConfigTree()
 		So(ctree, ShouldNotBeEmpty)
 		So(err, ShouldBeNil)
 	})
@@ -235,7 +235,7 @@ func TestMetricSeparator(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(wmap, ShouldNotBeNil)
 
-			mts := wmap.CollectNode.GetMetrics()
+			mts := wmap.Collect.GetMetrics()
 			for i, m := range mts {
 				Convey("namespace "+strconv.Itoa(i), func() {
 					So(len(m.Namespace()), ShouldEqual, 2)

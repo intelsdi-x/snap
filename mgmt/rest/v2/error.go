@@ -40,6 +40,16 @@ var (
 	ErrWrongAction          = errors.New("wrong action requested")
 )
 
+// ErrorResponse represents the Snap error response type.
+//
+// It includes an error message and a map of fields.
+//
+// swagger:response ErrorResponse
+type ErrorResponse struct {
+	// in:body
+	SnapError Error `json: "snap_error"`
+}
+
 // Unsuccessful generic response to a failed API call
 type Error struct {
 	ErrorMessage string            `json:"message"`
