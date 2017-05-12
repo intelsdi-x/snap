@@ -24,7 +24,9 @@ package control
 import (
 	"bufio"
 	"errors"
+	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -117,6 +119,28 @@ func loadPlugin(p *pluginManager, fileName string, retries ...int) (*loadedPlugi
 	return lp, e
 }
 
+func loadStandalonePlugin(p *pluginManager, uriName string) (*loadedPlugin, serror.SnapError) {
+	// This is a Travis optimized loading of plugins. From time to time, tests will error in Travis
+	// due to a timeout when waiting for a response from a plugin. We are going to attempt loading a plugin
+	// 3 times before letting the error through. Hopefully this cuts down on the number of Travis failures
+	var e serror.SnapError
+	var lp *loadedPlugin
+
+	uri, err := url.ParseRequestURI(uriName)
+	if err != nil {
+		return nil, serror.New(err)
+	}
+	details := &pluginDetails{
+		Uri: uri,
+	}
+
+	lp, e = p.LoadPlugin(details, nil)
+	if e != nil {
+		return nil, e
+	}
+	return lp, nil
+}
+
 // Uses the mock collector plugin to simulate loading
 func TestLoadPlugin(t *testing.T) {
 	// These tests only work if SNAP_PATH is known
@@ -205,7 +229,25 @@ func TestLoadPlugin(t *testing.T) {
 				So(lp.Meta.CacheTTL, ShouldNotBeNil)
 				So(lp.Meta.CacheTTL, ShouldResemble, time.Duration(time.Millisecond*1100))
 			})
+			Convey("loads standalone plugin successfully", func() {
+				cmd := exec.Command(fixtures.PluginPathMock2Grpc, "--stand-alone", "--stand-alone-port", "8183")
+				err := cmd.Start()
+				So(err, ShouldBeNil)
+				time.Sleep(100 * time.Millisecond)
 
+				p := newPluginManager()
+				p.SetMetricCatalog(newMetricCatalog())
+				lp, err := loadStandalonePlugin(p, fixtures.PluginUriMock2Grpc)
+
+				So(lp, ShouldHaveSameTypeAs, new(loadedPlugin))
+				So(p.all(), ShouldNotBeEmpty)
+				So(err, ShouldBeNil)
+				So(len(p.all()), ShouldBeGreaterThan, 0)
+				So(lp.Details.Uri.String(), ShouldContainSubstring, fixtures.PluginUriMock2Grpc)
+				So(len(lp.Details.Uri.String()), ShouldEqual, len(fixtures.PluginUriMock2Grpc))
+
+				cmd.Process.Kill()
+			})
 		})
 
 	}

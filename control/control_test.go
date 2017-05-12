@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os/exec"
 	"path"
 	"strings"
 	"testing"
@@ -436,6 +437,78 @@ func TestLoad(t *testing.T) {
 	// Stop our controller so the plugins are unloaded and cleaned up from the system
 	c.Stop()
 	time.Sleep(100 * time.Millisecond)
+}
+
+// Uses a Uri to simulate loading a standalone plugin
+func TestLoadWithStandalone(t *testing.T) {
+	// These tests only work if SNAP_PATH is known.
+	// It is the responsibility of the testing framework to
+	// build the plugins first into the build dir.
+	if fixtures.SnapPath == "" {
+		t.Fatal("SNAP_PATH not set. Cannot test loading plugins.")
+	}
+	c := New(getTestConfig())
+	// Testing trying to load before starting pluginControl
+	Convey("pluginControl before being started", t, func() {
+		_, err := load(c, fixtures.PluginUriMock2Grpc)
+		Convey("should return an error when loading a plugin", func() {
+			So(err, ShouldNotBeNil)
+		})
+		Convey("and there should be no plugin loaded", func() {
+			So(len(c.pluginManager.all()), ShouldEqual, 0)
+		})
+	})
+	// Start pluginControl and load our standalone plugin
+	c.Start()
+	lpe := newListenToPluginEvent()
+	c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
+
+	_, err := load(c, fixtures.PluginUriMock2Grpc)
+	Convey("Loading uri without starting standalone plugin", t, func() {
+		Convey("Should return an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+	})
+
+	cmd := exec.Command(fixtures.PluginPathMock2Grpc, "--stand-alone", "--stand-alone-port", "8183")
+	errcmd := cmd.Start()
+	if errcmd != nil {
+		t.Fatal(serror.New(errcmd))
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	_, err = load(c, fixtures.PluginUriMock2Grpc)
+	Convey("Loading uri with starting standalone plugin", t, func() {
+		Convey("Should not return an error", func() {
+			So(err, ShouldBeNil)
+		})
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-lpe.done
+
+	Convey("pluginControl.Load on successful load plugin standalone mock-grpc", t, func() {
+		Convey("should emit a plugin event message", func() {
+			Convey("with loaded plugin name is mock-grpc", func() {
+				So(lpe.plugin.LoadedPluginName, ShouldEqual, "mock-grpc")
+			})
+			Convey("with loaded plugin version as 1", func() {
+				So(lpe.plugin.LoadedPluginVersion, ShouldEqual, 1)
+			})
+			Convey("with loaded plugin type as collector", func() {
+				So(lpe.plugin.PluginType, ShouldEqual, int(plugin.CollectorPluginType))
+			})
+		})
+	})
+
+	// Stop our controller so the plugins are unloaded and cleaned up from the system
+	c.Stop()
+	time.Sleep(100 * time.Millisecond)
+
+	// Kill the standalone plugin
+	cmd.Process.Kill()
 }
 
 func TestLoadWithSetPluginTrustLevel(t *testing.T) {

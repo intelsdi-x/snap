@@ -589,11 +589,6 @@ func (p *pluginControl) verifySignature(rp *core.RequestedPlugin) (bool, serror.
 }
 
 func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDetails, serror.SnapError) {
-	if rp.Uri() != nil {
-		return &pluginDetails{
-			Uri: rp.Uri(),
-		}, nil
-	}
 	details := &pluginDetails{}
 	var serr serror.SnapError
 	//Check plugin signing
@@ -609,8 +604,11 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 	details.KeyPath = rp.KeyPath()
 	details.CACertPaths = rp.CACertPaths()
 	details.TLSEnabled = rp.TLSEnabled()
+	details.Uri = rp.Uri()
 
-	if filepath.Ext(rp.Path()) == ".aci" {
+	if rp.Uri() != nil {
+		// Is a standalone plugin
+	} else if filepath.Ext(rp.Path()) == ".aci" {
 		f, err := os.Open(rp.Path())
 		if err != nil {
 			return nil, serror.New(err)

@@ -40,6 +40,10 @@ var (
 
 	PluginNameStreamRand1 = "snap-plugin-stream-collector-rand1"
 	PluginPathStreamRand1 = helper.PluginFilePath(PluginNameStreamRand1)
+
+	PluginNameMock2Grpc = "snap-plugin-collector-mock2-grpc"
+	PluginPathMock2Grpc = helper.PluginFilePath(PluginNameMock2Grpc)
+	PluginUriMock2Grpc  = "http://127.0.0.1:8183"
 )
 
 // mocks a metric type
