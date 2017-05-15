@@ -34,19 +34,19 @@ limitations under the License.
 
 1. [Overview](#overview)
 2. [Getting Started](#getting-started)
-  * [System Requirements](#system-requirements)
-  * [Installation](#installation)
-  * [Running Snap](#running-snap)
-  * [Load Plugins](#load-plugins)
-  * [Running Tasks](#running-tasks)
-  * [Building Tasks](#building-tasks)
-  * [Plugin Catalog](#plugin-catalog)
+   * [System Requirements](#system-requirements)
+   * [Installation](#installation)
+   * [Running Snap](#running-snap)
+   * [Load Plugins](#load-plugins)
+   * [Running Tasks](#running-tasks)
+   * [Building Tasks](#building-tasks)
+   * [Plugin Catalog](#plugin-catalog)
 3. [Documentation](#documentation)
-  * [Examples](#examples)
+   * [Examples](#examples)
 4. [Community Support](#community-support)
 5. [Contributing](#contributing)
-  * [Author a Plugin](#author-a-plugin)
-  * [Become a Maintainer](#become-a-maintainer)
+   * [Author a Plugin](#author-a-plugin)
+   * [Become a Maintainer](#become-a-maintainer)
 6. [Code of Conduct](#code-of-conduct)
 7. [Security Disclosure](#security-disclosure)
 8. [License](#license)
@@ -54,7 +54,7 @@ limitations under the License.
 
 ## Overview
 
-**The Snap Telemetry Framework** is a project made up of multiple parts: 
+**The Snap Telemetry Framework** is a project made up of multiple parts:
 
 * A hardened, extensively tested daemon, `snapteld`, and CLI, `snaptel` (in this repo)
 * A growing number of maturing `plugins` (found in the [Plugin Catalog](#plugin-catalog))
@@ -308,7 +308,7 @@ More complex examples of using Snap Framework configuration, Task Manifest files
 ## Community Support
 This repository is one of many in the Snap framework and [has maintainers supporting it](docs/MAINTAINERS.md). We love contributions from our community along the way. No improvement is too small.
 
-This note is especially important for plugins. While the Snap framework is hardened through tons of use, **plugins mature at their own pace**. If you have subject matter expertise related to a plugin, please share your feedback on that repository. 
+This note is especially important for plugins. While the Snap framework is hardened through tons of use, **plugins mature at their own pace**. If you have subject matter expertise related to a plugin, please share your feedback on that repository.
 
 ## Contributing
 We encourage contributions from the community. Snap needs:
@@ -317,7 +317,7 @@ We encourage contributions from the community. Snap needs:
 * _Feedback_: try it and tell us about it on [our Slack team](https://intelsdi-x.herokuapp.com/), through [a blog posts](https://medium.com/intel-sdi/) or Twitter with #SnapTelemetry
 * _Integrations_: Snap can collect from and publish to almost anything by [authoring a plugin](#author-a-plugin)
 
-To contribute to the Snap framework, see our [CONTRIBUTING.md](CONTRIBUTING.md) file. To give back to a specific plugin, open an issue on its repository. Snap maintainers aim to address comments and questions as quickly as possible. To get some attention on an issue, reach out to us [on Slack](http://slack.snap-telemetry.io), or open an issue to get a conversation started. 
+To contribute to the Snap framework, see our [CONTRIBUTING.md](CONTRIBUTING.md) file. To give back to a specific plugin, open an issue on its repository. Snap maintainers aim to address comments and questions as quickly as possible. To get some attention on an issue, reach out to us [on Slack](http://slack.snap-telemetry.io), or open an issue to get a conversation started.
 
 
 ### Author a Plugin
