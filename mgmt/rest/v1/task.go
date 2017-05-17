@@ -44,6 +44,8 @@ var (
 	ErrWrongAction             = errors.New("Wrong action requested")
 )
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	task, err := core.CreateTaskFromContent(r.Body, nil, s.taskManager.CreateTask)
 	if err != nil {
@@ -55,6 +57,8 @@ func (s *apiV1) addTask(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	rbody.Write(201, taskB, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	sts := s.taskManager.GetTasks()
 
@@ -71,6 +75,8 @@ func (s *apiV1) getTasks(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	rbody.Write(200, tasks, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	t, err1 := s.taskManager.GetTask(id)
@@ -84,6 +90,8 @@ func (s *apiV1) getTask(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	rbody.Write(200, task, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	s.wg.Add(1)
 	defer s.wg.Done()
@@ -190,6 +198,8 @@ func (s *apiV1) watchTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 	}
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) startTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	errs := s.taskManager.StartTask(id)
@@ -209,6 +219,8 @@ func (s *apiV1) startTask(w http.ResponseWriter, r *http.Request, p httprouter.P
 	rbody.Write(200, &rbody.ScheduledTaskStarted{ID: id}, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	errs := s.taskManager.StopTask(id)
@@ -223,6 +235,8 @@ func (s *apiV1) stopTask(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 	rbody.Write(200, &rbody.ScheduledTaskStopped{ID: id}, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	err := s.taskManager.RemoveTask(id)
@@ -237,6 +251,8 @@ func (s *apiV1) removeTask(w http.ResponseWriter, r *http.Request, p httprouter.
 	rbody.Write(200, &rbody.ScheduledTaskRemoved{ID: id}, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 //enableTask changes the task state from Disabled to Stopped
 func (s *apiV1) enableTask(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")

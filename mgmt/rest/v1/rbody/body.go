@@ -32,6 +32,8 @@ import (
 	"github.com/urfave/negroni"
 )
 
+const deprecationInfo = "The client API V1 has been depricated. Find more information here: https://github.com/intelsdi-x/snap/issues/1637"
+
 type Body interface {
 	// These function names are rather verbose to avoid field vs function namespace collisions
 	// with varied object types that use them.
@@ -40,7 +42,8 @@ type Body interface {
 }
 
 func Write(code int, b Body, w http.ResponseWriter) {
-	w.Header().Set("Deprecated", "true")
+	w.Header().Set("Deprecated", deprecationInfo)
+
 	resp := &APIResponse{
 		Meta: &APIResponseMeta{
 			Code:    code,
