@@ -7,8 +7,9 @@ log_level: 2
 # log_path sets the path for logs for the snap daemon. By
 # default snapteld prints all logs to stdout. Any provided
 # path will send snapteld logs to a file called snapteld.log in
-# the provided directory.
-log_path: /var/log/snap
+# the provided directory. By default log path is empty
+# and snapteld logs to stdout.
+log_path: /var/log
 
 # log_truncate specifies how the log file with be opened
 # false => append
@@ -37,11 +38,11 @@ control:
 
   # listen_addr is the bind address for the control rpc server. Default address
   # is 127.0.0.1
-  listen_addr: 0.0.0.0
+  listen_addr: 127.0.0.1
 
   # listen_port is the bind port for the control rpc server. Default port is
   # 8082.
-  listen_port: 10082
+  listen_port: 8082
 
   # max_running_plugins sets the size of the available plugin pool for each
   # plugin loaded in the system. Default value is 3
@@ -65,14 +66,14 @@ control:
   # not be loaded. Valid values are 0 - Off, 1 - Enabled, 2 - Warning
   plugin_trust_level: 0
 
-  # temp_dir_path sets the temporary directory which houses the temporary files 
+  # temp_dir_path sets the temporary directory which houses the temporary files
   temp_dir_path: /tmp
 
   # max_plugin_restarts controls how many times a plugin is allowed to be restarted
   # before failing. Snap will not disable a plugin due to failures when this value is -1.
   max_plugin_restarts: 10
 
-  ## Secure plugin communication optional parameters:
+  # Secure plugin communication optional parameters:
   # tls_cert_path sets the TLS certificate path to enable secure plugin communication
   # and authenticate itself to plugins. Requires also: tls_key_path.
   tls_cert_path: /tmp/snaptest-cli.crt
@@ -107,7 +108,7 @@ control:
       influxdb:
         all:
           server: xyz.local
-          password: $password
+          password: password
     processor:
       movingaverage:
         all:
@@ -164,7 +165,7 @@ restapi:
   # port sets the port to start the REST API server on. Default is 8181
   port: 8282
 
-  # REST API in address[:port] format
+  # REST API in address[:port] format to bind to/listen on. Default is an empty string => listen on all interfaces
   addr: 127.0.0.1:12345
 
   # corsd sets the cors allowed domains in a comma separated list. It is the same origin if it's empty.
@@ -175,15 +176,15 @@ tribe:
   # enable controls enabling tribe for the snapteld instance. Default value is false.
   enable: true
 
-  # bind_addr sets the IP address for tribe to bind.
+  # bind_addr sets the IP address for tribe to bind
   bind_addr: 127.0.0.1
 
   # bind_port sets the port for tribe to listen on. Default value is 6000
-  bind_port: 16000
+  bind_port: 6000
 
   # name sets the name to use for this snapteld instance in the tribe
-  # membership. Default value defaults to local hostname of the system.
+  # membership. Default value is hostname of the system.
   name: localhost
 
   # seed sets the snapteld instance to use as the seed for tribe communications
-  seed: 1.1.1.1:16000
+  seed: 1.1.1.1:6000

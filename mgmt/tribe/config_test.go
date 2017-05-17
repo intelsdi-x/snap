@@ -105,14 +105,14 @@ func TestTribeConfigYaml(t *testing.T) {
 		Convey("BindAddr should equal 127.0.0.1", func() {
 			So(cfg.BindAddr, ShouldEqual, "127.0.0.1")
 		})
-		Convey("BindPort should be 16000", func() {
-			So(cfg.BindPort, ShouldEqual, 16000)
+		Convey("BindPort should be 6000", func() {
+			So(cfg.BindPort, ShouldEqual, 6000)
 		})
 		Convey("Name should equal localhost", func() {
 			So(cfg.Name, ShouldEqual, "localhost")
 		})
-		Convey("Seed should be 1.1.1.1:16000", func() {
-			So(cfg.Seed, ShouldEqual, "1.1.1.1:16000")
+		Convey("Seed should be 1.1.1.1:6000", func() {
+			So(cfg.Seed, ShouldEqual, "1.1.1.1:6000")
 		})
 	})
 
