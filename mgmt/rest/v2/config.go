@@ -50,7 +50,7 @@ type PluginConfigResponse struct {
 //swagger:parameters setPluginConfigItem
 type PluginConfigParam struct {
 	// in: body
-	Config string `json:"config"`
+	Config map[string]interface{} `json:"config"`
 }
 
 // PluginConfigDeleteParams defines parameters for deleting a config.
@@ -69,7 +69,7 @@ type PluginConfigDeleteParams struct {
 	PType string `json:"ptype"`
 	// in: body
 	// required: true
-	Config string `json:"config"`
+	Config []string `json:"config"`
 }
 
 func (s *apiV2) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
