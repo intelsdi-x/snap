@@ -108,3 +108,4 @@
 - intelsdi-x/snap-plugin-processor-tags-filter
 - intelsdi-x/snap-plugin-processor-threshold
 - intelsdi-x/snap-plugin-collector-influxdb-data
+- hstack/snap-plugin-publisher-prometheus
