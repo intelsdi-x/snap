@@ -84,6 +84,22 @@ The key features of Snap are:
 
 ### System Requirements
 
+Snap needs Swagger ([http://swagger.io](http://swagger.io)) installed to generate Swagger spec file during build process.
+
+To install Swagger:
+```sh
+echo "deb https://dl.bintray.com/go-swagger/goswagger-debian ubuntu main" | sudo tee -a /etc/apt/sources.list
+sudo apt-get update
+sudo apt-get install swagger
+```
+
+or from GitHub release:
+
+```sh
+curl -LO https://github.com/go-swagger/go-swagger/releases/download/0.10.0/swagger_linux_amd64
+chmod +x swagger_linux_amd64 && sudo mv swagger_linux_amd64 /usr/bin/swagger
+```
+
 Snap does not have external dependencies since it is compiled into a statically linked binary. At this time, we build Snap binaries for Linux and MacOS. We also provide Linux RPM/Deb packages and MacOS X .pkg installer.
 
 ### Installation
