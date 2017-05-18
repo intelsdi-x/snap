@@ -1,6 +1,6 @@
 {
     "log_level":2,
-    "log_path":"/some/log/dir",
+    "log_path":"/var/log/snap",
     "log_truncate":false,
     "log_colors":true,
     "gomaxprocs":2,

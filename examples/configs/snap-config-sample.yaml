@@ -9,7 +9,7 @@ log_level: 2
 # path will send snapteld logs to a file called snapteld.log in
 # the provided directory. By default log path is empty
 # and snapteld logs to stdout.
-log_path: /var/log
+log_path: /var/log/snap
 
 # log_truncate specifies how the log file with be opened
 # false => append
@@ -38,11 +38,11 @@ control:
 
   # listen_addr is the bind address for the control rpc server. Default address
   # is 127.0.0.1
-  listen_addr: 127.0.0.1
+  listen_addr: 0.0.0.0
 
   # listen_port is the bind port for the control rpc server. Default port is
   # 8082.
-  listen_port: 8082
+  listen_port: 10082
 
   # max_running_plugins sets the size of the available plugin pool for each
   # plugin loaded in the system. Default value is 3
@@ -176,15 +176,15 @@ tribe:
   # enable controls enabling tribe for the snapteld instance. Default value is false.
   enable: true
 
-  # bind_addr sets the IP address for tribe to bind
+  # bind_addr sets the IP address for tribe to bind.
   bind_addr: 127.0.0.1
 
   # bind_port sets the port for tribe to listen on. Default value is 6000
-  bind_port: 6000
+  bind_port: 16000
 
   # name sets the name to use for this snapteld instance in the tribe
   # membership. Default value is hostname of the system.
   name: localhost
 
   # seed sets the snapteld instance to use as the seed for tribe communications
-  seed: 1.1.1.1:6000
+  seed: 1.1.1.1:16000
