@@ -135,7 +135,6 @@ func TestRestAPIConfigYaml(t *testing.T) {
 			So(cfg.RestKey, ShouldEqual, "/etc/snap/cert.key")
 		})
 	})
-
 }
 
 func TestRestAPIDefaultConfig(t *testing.T) {
