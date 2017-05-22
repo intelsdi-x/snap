@@ -714,8 +714,8 @@ func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.Cataloged
 	return nil
 }
 
-func (p *pluginControl) ValidateDeps(requested []core.RequestedMetric, plugins []core.SubscribedPlugin, configTree *cdata.ConfigDataTree) []serror.SnapError {
-	return p.subscriptionGroups.ValidateDeps(requested, plugins, configTree)
+func (p *pluginControl) ValidateDeps(requested []core.RequestedMetric, plugins []core.SubscribedPlugin, configTree *cdata.ConfigDataTree, asserts ...core.SubscribedPluginAssert) []serror.SnapError {
+	return p.subscriptionGroups.ValidateDeps(requested, plugins, configTree, asserts...)
 }
 
 // SubscribeDeps will subscribe to collectors, processors and publishers.  The collectors are subscribed by mapping the provided

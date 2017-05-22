@@ -62,7 +62,7 @@ func (m *mockMetricManager) PublishMetrics([]core.Metric, map[string]ctypes.Conf
 func (m *mockMetricManager) ProcessMetrics([]core.Metric, map[string]ctypes.ConfigValue, string, string, int) ([]core.Metric, []error) {
 	return nil, nil
 }
-func (m *mockMetricManager) ValidateDeps(mts []core.RequestedMetric, prs []core.SubscribedPlugin, cdt *cdata.ConfigDataTree) []serror.SnapError {
+func (m *mockMetricManager) ValidateDeps(mts []core.RequestedMetric, prs []core.SubscribedPlugin, cdt *cdata.ConfigDataTree, asserts ...core.SubscribedPluginAssert) []serror.SnapError {
 	if m.failValidatingMetrics {
 		return []serror.SnapError{
 			serror.New(errors.New("metric validation error")),

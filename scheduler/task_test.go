@@ -134,7 +134,7 @@ func TestTask(t *testing.T) {
 			task.Spin()
 			err = task.Enable()
 			So(err, ShouldNotBeNil)
-			So(task.State(), ShouldEqual, core.TaskSpinning)
+			So(task.State(), ShouldBeIn, []core.TaskState{core.TaskSpinning, core.TaskFiring})
 		})
 
 		Convey("Enable a disabled task", func() {

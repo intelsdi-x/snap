@@ -308,6 +308,9 @@ func (t *task) stream() {
 				t.state = core.TaskStopped
 				t.Unlock()
 				done = true
+				event := new(scheduler_event.TaskStoppedEvent)
+				event.TaskID = t.id
+				defer t.eventEmitter.Emit(event)
 				return
 			case mts, ok := <-metricsChan:
 				if !ok {

@@ -27,6 +27,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -468,14 +469,44 @@ func (g *grpcClient) StreamMetrics(mts []core.Metric) (chan []core.Metric, chan 
 		if values != nil {
 			maxCollectDuration, ok := values["MaxCollectDuration"]
 			if ok {
-				t, ok := maxCollectDuration.(*ctypes.ConfigValueInt)
+				t, ok := maxCollectDuration.(ctypes.ConfigValueInt)
 				if ok {
+					// MaxCollectDuration was passed as an int therefore
+					// it is representing nanoseconds
 					arg.MaxCollectDuration = int64(t.Value)
+				} else {
+					t, ok := maxCollectDuration.(ctypes.ConfigValueStr)
+					if ok {
+						// MaxCollectDuration was passed as a string therefore
+						// it should be a string rep of a duration
+						dur, err := time.ParseDuration(t.Value)
+						if err != nil {
+							log.WithFields(
+								log.Fields{
+									"_block":     "StreamMetrics",
+									"config-key": "MaxCollectDuration",
+									"hint":       "value should be a parsable duration (e.g. 5s)",
+									"error":      err.Error(),
+								},
+							).Warn("invalid config value")
+						}
+						arg.MaxCollectDuration = dur.Nanoseconds()
+					} else {
+						log.WithFields(
+							log.Fields{
+								"_block":        "StreamMetrics",
+								"config-key":    "MaxCollectDuration",
+								"type-provided": reflect.TypeOf(maxCollectDuration).String(),
+								"type-wanted":   ctypes.ConfigValueStr{}.Type(),
+								"hint":          "value should be a parsable duration (e.g. 5s)",
+							},
+						).Warn("wrong config value type")
+					}
 				}
 			}
 			maxMetricsBuffer, ok := values["MaxMetricsBuffer"]
 			if ok {
-				t, ok := maxMetricsBuffer.(*ctypes.ConfigValueInt)
+				t, ok := maxMetricsBuffer.(ctypes.ConfigValueInt)
 				if ok {
 					arg.MaxMetricsBuffer = int64(t.Value)
 				}

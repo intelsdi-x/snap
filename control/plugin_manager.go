@@ -491,7 +491,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		lPlugin.LoadedTime = time.Now()
 		lPlugin.State = LoadedState
 
-		if resp.Type == plugin.CollectorPluginType {
+		if resp.Type == plugin.CollectorPluginType || resp.Type == plugin.StreamCollectorPluginType {
 			cfgNode := p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version)
 
 			if lPlugin.ConfigPolicy != nil {
@@ -543,9 +543,11 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			metricTypes, err := colClient.GetMetricTypes(cfg)
 			if err != nil {
 				pmLogger.WithFields(log.Fields{
-					"_block":      "load-plugin",
-					"plugin-type": "collector",
-					"error":       err.Error(),
+					"_block":         "load-plugin",
+					"plugin-type":    resp.Type.String(),
+					"error":          err.Error(),
+					"plugin-name":    ap.Name(),
+					"plugin-version": ap.Version(),
 				}).Error("error in getting metric types")
 				resultChan <- result{nil, serror.New(err)}
 				return
@@ -714,7 +716,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 	p.loadedPlugins.remove(plugin.Key())
 
 	// Remove any metrics from the catalog if this was a collector
-	if plugin.TypeName() == "collector" {
+	if plugin.TypeName() == core.CollectorPluginType.String() || plugin.TypeName() == core.StreamingCollectorPluginType.String() {
 		p.metricCatalog.RmUnloadedPluginMetrics(plugin)
 	}
 
