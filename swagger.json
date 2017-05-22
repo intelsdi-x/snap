@@ -359,7 +359,10 @@
             "name": "config",
             "in": "body",
             "schema": {
-              "type": "string"
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
             }
           },
           {
@@ -450,7 +453,10 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
@@ -510,7 +516,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/definitions/Task"
             }
           }
         ],
