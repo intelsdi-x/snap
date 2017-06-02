@@ -1,0 +1,71 @@
+{
+    "version": 1,
+    "schedule": {
+        "type": "simple",
+        "interval": "1s"
+    },
+    "workflow": {
+        "collect": {
+            "metrics": {
+                "/intel/linux/iostat/avg-cpu/%user": {},
+                "/intel/linux/iostat/avg-cpu/%system": {},
+                "/intel/linux/iostat/avg-cpu/%idle": {},
+				"/intel/linux/iostat/avg-cpu/%iowait": {},
+				"/intel/linux/iostat/avg-cpu/%nice": {},
+				"/intel/linux/iostat/avg-cpu/%steal": {},
+                "/intel/linux/iostat/device/sda1/rrqm_per_sec": {},
+                "/intel/linux/iostat/device/sda1/wrqm_per_sec": {},
+                "/intel/linux/iostat/device/sda1/r_per_sec": {},
+                "/intel/linux/iostat/device/sda1/w_per_sec": {},
+                "/intel/linux/iostat/device/sda1/rkB_per_sec": {},
+                "/intel/linux/iostat/device/sda1/wkB_per_sec": {},
+                "/intel/linux/iostat/device/sda1/%util": {},
+                "/intel/linux/iostat/device/sdb/rrqm_per_sec": {},
+                "/intel/linux/iostat/device/sdb/wrqm_per_sec": {},
+                "/intel/linux/iostat/device/sdb/r_per_sec": {},
+                "/intel/linux/iostat/device/sdb/w_per_sec": {},
+                "/intel/linux/iostat/device/sdb/rkB_per_sec": {},
+                "/intel/linux/iostat/device/sdb/wkB_per_sec": {},
+                "/intel/linux/iostat/device/sdb/%util": {},
+                "/intel/linux/iostat/device/sdb1/rrqm_per_sec": {},
+                "/intel/linux/iostat/device/sdb1/wrqm_per_sec": {},
+                "/intel/linux/iostat/device/sdb1/r_per_sec": {},
+                "/intel/linux/iostat/device/sdb1/w_per_sec": {},
+                "/intel/linux/iostat/device/sdb1/rkB_per_sec": {},
+                "/intel/linux/iostat/device/sdb1/wkB_per_sec": {},
+                "/intel/linux/iostat/device/sdb1/%util": {},
+                "/intel/linux/iostat/device/sdb2/rrqm_per_sec": {},
+                "/intel/linux/iostat/device/sdb2/wrqm_per_sec": {},
+                "/intel/linux/iostat/device/sdb2/r_per_sec": {},
+                "/intel/linux/iostat/device/sdb2/w_per_sec": {},
+                "/intel/linux/iostat/device/sdb2/rkB_per_sec": {},
+                "/intel/linux/iostat/device/sdb2/wkB_per_sec": {},
+                "/intel/linux/iostat/device/sdb2/%util": {},
+                "/intel/linux/iostat/device/ALL/rrqm_per_sec": {},
+                "/intel/linux/iostat/device/ALL/wrqm_per_sec": {},
+                "/intel/linux/iostat/device/ALL/r_per_sec": {},
+                "/intel/linux/iostat/device/ALL/w_per_sec": {},
+                "/intel/linux/iostat/device/ALL/rkB_per_sec": {},
+                "/intel/linux/iostat/device/ALL/wkB_per_sec": {},
+                "/intel/linux/iostat/device/ALL/%util": {}
+            },
+            "config": {
+                "/intel/linux/iostat": {
+                    "user": "root",
+                    "password": "secret"
+                }
+            },
+            "process": null,
+            "publish": [
+                {
+                    "plugin_name": "file",
+                    "plugin_version": 2,
+                    "config": {
+                        "file": "/tmp/published_iostat"
+                    }
+                }
+            ]
+        }
+    }
+}
+
