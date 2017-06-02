@@ -119,20 +119,20 @@ func (c *ConfigPolicyNode) CopyRules() ([]Rule, error) {
 	return rules, nil
 }
 
-// UnmarshalJSON unmarshals JSON into a ConfigPolicyNode
-func (c *ConfigPolicyNode) UnmarshalJSON(data []byte) error {
-	m := map[string]interface{}{}
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	if err := decoder.Decode(&m); err != nil {
-		return err
-	}
-	if rs, ok := m["rules"]; ok {
-		if rules, ok := rs.(map[string]interface{}); ok {
-			addRulesToConfigPolicyNode(rules, c)
-		}
-	}
-	return nil
-}
+// // UnmarshalJSON unmarshals JSON into a ConfigPolicyNode
+// func (c *ConfigPolicyNode) UnmarshalJSON(data []byte) error {
+// 	m := map[string]interface{}{}
+// 	decoder := json.NewDecoder(bytes.NewReader(data))
+// 	if err := decoder.Decode(&m); err != nil {
+// 		return err
+// 	}
+// 	if rs, ok := m["rules"]; ok {
+// 		if rules, ok := rs.(map[string]interface{}); ok {
+// 			addRulesToConfigPolicyNode(rules, c)
+// 		}
+// 	}
+// 	return nil
+// }
 
 func (c *ConfigPolicyNode) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
