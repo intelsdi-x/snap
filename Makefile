@@ -25,6 +25,8 @@ default:
 	$(MAKE) swagger
 deps:
 	bash -c "./scripts/deps.sh"
+unit_test:
+	export SNAP_PATH=`pwd`/build; bash -c "./scripts/test.sh"
 test:
 	bash -c "./scripts/test.sh $(SNAP_TEST_TYPE)"
 test-legacy:
