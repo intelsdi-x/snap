@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ctree implements ConfigTree that can store Node under the given keys ([]string).
 package ctree
 
 import (

@@ -17,6 +17,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package scheduler_event contains scheduler events (structs)
+// like TaskCreated, TaskStarted, ... MetricCollected.
 package scheduler_event
 
 import (
