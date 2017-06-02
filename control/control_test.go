@@ -2225,3 +2225,80 @@ func TestDynamicMetricSubscriptionLoadLessMetrics(t *testing.T) {
 		c.Stop()
 	})
 }
+func TestProcessMetrics(t *testing.T) {
+	Convey("Given an available file processor plugin", t, func() {
+		logger.SetLevel(logger.DebugLevel)
+		// adjust HB timeouts for test
+		plugin.PingTimeoutLimit = 1
+		plugin.PingTimeoutDurationDefault = time.Second * 1
+
+		// Create controller
+		c := New()
+		c.pluginRunner.(*runner).monitor.duration = time.Millisecond * 100
+		c.Start()
+
+		// Load plugin
+		err := c.Load(path.Join(PulsePath, "plugin", "processor", "pulse-processor-passthru"))
+		So(err, ShouldBeNil)
+		So(len(c.pluginManager.LoadedPlugins().Table()), ShouldEqual, 1)
+		lp, err := c.pluginManager.LoadedPlugins().Get(0)
+		So(err, ShouldBeNil)
+		So(lp.Name(), ShouldResemble, "passthru")
+		So(lp.ConfigPolicyTree, ShouldNotBeNil)
+
+		Convey("Subscribe to file processor with bad config", func() {
+			config := map[string]ctypes.ConfigValue{
+				"foo": ctypes.ConfigValueStr{Value: "bar"},
+			}
+			errs := c.SubscribeProcessor("passthru", 1, config)
+			So(errs, ShouldBeNil)
+			So(errs, ShouldBeEmpty)
+
+		})
+
+		Convey("Subscribe to file processor with good config", func() {
+			config := map[string]ctypes.ConfigValue{
+				"file": ctypes.ConfigValueStr{Value: "/tmp/pulse-TestProcessorMetrics.out"},
+			}
+			errs := c.SubscribeProcessor("passthru", 1, config)
+			So(errs, ShouldBeNil)
+			time.Sleep(1 * time.Second)
+
+			Convey("Publish to file", func() {
+				metrics := []plugin.PluginMetricType{
+					*plugin.NewPluginMetricType([]string{"foo"}, 1),
+				}
+				var buf bytes.Buffer
+				enc := gob.NewEncoder(&buf)
+				enc.Encode(metrics)
+				contentType := plugin.PulseGOBContentType
+				ct, c, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, config)
+				fmt.Printf("%v %v", ct, c)
+				So(errs, ShouldBeNil)
+			})
+		})
+
+		Convey("Process Metrics", func() {
+			config := map[string]ctypes.ConfigValue{
+				"foo": ctypes.ConfigValueStr{Value: "bar"},
+			}
+			errs := c.SubscribeProcessor("passthru", 1, config)
+			So(errs, ShouldBeNil)
+			time.Sleep(1 * time.Second)
+
+			Convey("Publish to file", func() {
+				var buf bytes.Buffer
+				contentType := plugin.PulseGOBContentType
+				ct, c, errs := c.ProcessMetrics(contentType, buf.Bytes(), "passthru", 1, config)
+				fmt.Printf("%v %v", ct, c)
+				So(errs, ShouldBeNil)
+			})
+		})
+
+		Convey("Count()", func() {
+			pmts := make(map[string]pluginMetricTypes)
+			Count
+		})
+
+	})
+}
