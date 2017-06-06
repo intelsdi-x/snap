@@ -24,6 +24,13 @@
 //     Produces:
 //     - application/json
 //
+//     Security:
+//     - basicAuth: []
+//
+//     SecurityDefinitions:
+//     - basicAuth:
+//         type: basic
+//         description:  HTTP basic authentication.
 //
 // swagger:meta
 package main

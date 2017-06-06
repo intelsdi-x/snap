@@ -1286,5 +1286,18 @@
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "basicAuth": {
+      "description": "HTTP basic authentication.",
+      "type": "basic"
+    }
+  },
+  "security": [
+    {
+      "basicAuth": [
+        "[]"
+      ]
+    }
+  ]
 }
