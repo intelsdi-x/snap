@@ -46,6 +46,8 @@ When **proposing a RFC**, understanding the use case is key. This type of issue 
 - A set of required participants
 - A proposal with a straightforward explanation as well as what is in and out of scope
 
+Additionaly any ideas regarding design or implementation are always welcome and feel free to include them as part of an issue, feature request or RFC description.
+
 ### What is an RFC?
 
 The Snap maintainers use RFCs, loosely based off the [EITF practice](https://www.ietf.org/rfc.html), to discuss proposed architectural and organizational improvements to the project. While most RFCs will originate from the maintainers, we welcome all users suggesting improvements through the RFC process. If you're not sure if you need to open one, you can always [discuss your idea on Slack](http://slack.snap-telemetry.io) beforehand.
@@ -80,10 +82,16 @@ For any pull request submitted, the maintainers of Snap require `small` tests th
 
 ### Pull Request Guidelines
 
-Pull requests can contain a single commit or multiple commits. The most important part is that _**a single commit maps to a single fix**_. Here are a few scenarios:
-*  If a pull request adds a feature but also fixes two bugs, then the pull request should have three commits, one commit each for the feature and two bug fixes
-* If a PR is opened with 5 commits that was work involved to fix a single issue, it should be rebased to a single commit
-* If a PR is opened with 5 commits, with the first three to fix one issue and the second two to fix a separate issue, then it should be rebased to two commits, one for each issue
+The goal of the following guidelines is to have Pull Requests (PRs) that are fairly easy to review and comprehend, and code that is easy to maintain in the future. Ideally those guidelines should be applied in any Snap related repositories (including plugins, plugin libraries, etc.).
+
+* **One PR addresses one problem**, which ideally resolves one Issue (but can be related to part of an Issue or more than one Issue)
+* **One commit per PR** (resolving only one Issue). Please squashed unneeded commits before opening or merging a PR
+* **Keep it readable for human reviewers.** We prefer to see a subset of functionality (code) with tests and documentation over delivering them separately
+* **Code changes start with a GitHub Issue** that is resolved by the PR (referencing related issues is helpful as well)
+* **You can post comments to your PR** especially when you'd like to give reviewers some more context
+* **Don't forget commenting code** to help reviewers understand and to keep [our Go Report Card](https://goreportcard.com/report/github.com/intelsdi-x/snap) at A+
+* **Partial work is welcome** and you can submit it with the PR title including [WIP]
+* **Please, keep us updated.** We will try our best to merge your PR, but please notice that PRs may be closed after 30 days of inactivity. This covers cases like: failing tests, unresolved conflicts against master branch or unaddressed review comments.
 
 Your pull request should be rebased against the current master branch. Please do not merge
 the current master branch in with your topic branch, nor use the Update Branch button provided
