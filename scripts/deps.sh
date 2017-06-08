@@ -29,6 +29,9 @@ __proj_dir="$(dirname "$__dir")"
 
 _go_path
 
+_info "Installing Swagger..."
+_go_get github.com/go-swagger/go-swagger/cmd/swagger
+_info "Installing Glide..."
 _go_get github.com/Masterminds/glide
 
 _debug "$(glide --version)"

@@ -5,8 +5,6 @@ go:
 before_install:
 - bash scripts/gitcookie.sh
 - go get github.com/smartystreets/goconvey/convey
-- curl -LO https://github.com/go-swagger/go-swagger/releases/download/0.10.0/swagger_linux_amd64
-- chmod +x swagger_linux_amd64 && sudo mv swagger_linux_amd64 /usr/bin/swagger
 - if [ ! -d $SNAP_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $SNAP_SOURCE; fi # CI for forks not from intelsdi-x
 env:
   global:
