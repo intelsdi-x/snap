@@ -84,17 +84,23 @@ The key features of Snap are:
 
 ### System Requirements
 
-Snap needs Swagger ([http://swagger.io](http://swagger.io)) installed to generate Swagger spec file during build process.
+Snap needs [Swagger for Go](https://github.com/go-swagger/go-swagger)  installed to update OpenAPI specification file after successfull build. Swagger will be installed automatically during build process (`make` or `make deps`).
 
-To install Swagger:
+#### To install Swagger manually
+
+Using `go get` (recommended):
+```sh
+go get -u github.com/go-swagger/go-swagger/cmd/swagger
+```
+
+From Debian package:
 ```sh
 echo "deb https://dl.bintray.com/go-swagger/goswagger-debian ubuntu main" | sudo tee -a /etc/apt/sources.list
 sudo apt-get update
 sudo apt-get install swagger
 ```
 
-or from GitHub release:
-
+From GitHub release:
 ```sh
 curl -LO https://github.com/go-swagger/go-swagger/releases/download/0.10.0/swagger_linux_amd64
 chmod +x swagger_linux_amd64 && sudo mv swagger_linux_amd64 /usr/bin/swagger
