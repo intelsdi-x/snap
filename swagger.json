@@ -62,6 +62,9 @@
           "200": {
             "$ref": "#/responses/MetricsResponse"
           },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
+          },
           "404": {
             "$ref": "#/responses/ErrorResponse"
           },
@@ -114,6 +117,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PluginsResponse"
+          },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
           }
         }
       },
@@ -148,6 +154,9 @@
             "$ref": "#/responses/PluginResponse"
           },
           "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "401": {
             "$ref": "#/responses/ErrorResponse"
           },
           "409": {
@@ -213,6 +222,9 @@
           "400": {
             "$ref": "#/responses/ErrorResponse"
           },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
+          },
           "404": {
             "$ref": "#/responses/ErrorResponse"
           },
@@ -269,6 +281,9 @@
             "$ref": "#/responses/PluginResponse"
           },
           "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "401": {
             "$ref": "#/responses/ErrorResponse"
           },
           "404": {
@@ -332,6 +347,9 @@
             "$ref": "#/responses/PluginConfigResponse"
           },
           "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "401": {
             "$ref": "#/responses/ErrorResponse"
           }
         }
@@ -398,6 +416,9 @@
             "$ref": "#/responses/PluginConfigResponse"
           },
           "400": {
+            "$ref": "#/responses/ErrorResponse"
+          },
+          "401": {
             "$ref": "#/responses/ErrorResponse"
           }
         }
@@ -466,6 +487,9 @@
           },
           "400": {
             "$ref": "#/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
           }
         }
       }
@@ -488,6 +512,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TasksResponse"
+          },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
           }
         }
       },
@@ -524,6 +551,9 @@
           "201": {
             "$ref": "#/responses/TaskResponse"
           },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
+          },
           "500": {
             "$ref": "#/responses/ErrorResponse"
           }
@@ -557,6 +587,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TaskResponse"
+          },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -604,6 +637,9 @@
           "400": {
             "$ref": "#/responses/ErrorResponse"
           },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
+          },
           "409": {
             "$ref": "#/responses/ErrorResponse"
           },
@@ -638,6 +674,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/TaskResponse"
+          },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -675,6 +714,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TaskWatchResponse"
+          },
+          "401": {
+            "$ref": "#/responses/ErrorResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
