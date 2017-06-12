@@ -468,14 +468,14 @@ func (g *grpcClient) StreamMetrics(mts []core.Metric) (chan []core.Metric, chan 
 		if values != nil {
 			maxCollectDuration, ok := values["MaxCollectDuration"]
 			if ok {
-				t, ok := maxCollectDuration.(*ctypes.ConfigValueInt)
+				t, ok := maxCollectDuration.(ctypes.ConfigValueInt)
 				if ok {
 					arg.MaxCollectDuration = int64(t.Value)
 				}
 			}
 			maxMetricsBuffer, ok := values["MaxMetricsBuffer"]
 			if ok {
-				t, ok := maxMetricsBuffer.(*ctypes.ConfigValueInt)
+				t, ok := maxMetricsBuffer.(ctypes.ConfigValueInt)
 				if ok {
 					arg.MaxMetricsBuffer = int64(t.Value)
 				}
