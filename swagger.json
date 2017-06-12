@@ -63,7 +63,7 @@
             "$ref": "#/responses/MetricsResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -119,7 +119,7 @@
             "$ref": "#/responses/PluginsResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           }
         }
       },
@@ -157,7 +157,7 @@
             "$ref": "#/responses/ErrorResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "409": {
             "$ref": "#/responses/ErrorResponse"
@@ -223,7 +223,7 @@
             "$ref": "#/responses/ErrorResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -284,7 +284,7 @@
             "$ref": "#/responses/ErrorResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -350,7 +350,7 @@
             "$ref": "#/responses/ErrorResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           }
         }
       },
@@ -419,7 +419,7 @@
             "$ref": "#/responses/ErrorResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           }
         }
       },
@@ -489,7 +489,7 @@
             "$ref": "#/responses/ErrorResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           }
         }
       }
@@ -514,7 +514,7 @@
             "$ref": "#/responses/TasksResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           }
         }
       },
@@ -552,7 +552,7 @@
             "$ref": "#/responses/TaskResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "500": {
             "$ref": "#/responses/ErrorResponse"
@@ -589,7 +589,7 @@
             "$ref": "#/responses/TaskResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -638,7 +638,7 @@
             "$ref": "#/responses/ErrorResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "409": {
             "$ref": "#/responses/ErrorResponse"
@@ -676,7 +676,7 @@
             "$ref": "#/responses/TaskResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -716,7 +716,7 @@
             "$ref": "#/responses/TaskWatchResponse"
           },
           "401": {
-            "$ref": "#/responses/ErrorResponse"
+            "$ref": "#/responses/UnauthResponse"
           },
           "404": {
             "$ref": "#/responses/ErrorResponse"
@@ -1223,6 +1223,22 @@
       },
       "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
     },
+    "UnauthError": {
+      "type": "object",
+      "title": "UnauthError defines the error type of an unauthorized response.",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Code"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        }
+      },
+      "x-go-package": "github.com/intelsdi-x/snap/mgmt/rest/v2"
+    },
     "WorkflowMap": {
       "description": "WorkflowMap represents a map of a desired workflow that is used to create a scheduleWorkflow",
       "type": "object",
@@ -1326,6 +1342,12 @@
             "$ref": "#/definitions/Tasks"
           }
         }
+      }
+    },
+    "UnauthResponse": {
+      "description": "UnauthResponse returns Unauthorized error struct message.",
+      "schema": {
+        "$ref": "#/definitions/UnauthError"
       }
     }
   },

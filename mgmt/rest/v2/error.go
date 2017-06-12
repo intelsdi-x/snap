@@ -50,6 +50,19 @@ type ErrorResponse struct {
 	SnapError Error `json: "snap_error"`
 }
 
+// UnauthResponse returns Unauthorized error struct message.
+// swagger:response UnauthResponse
+type UnauthResponse struct {
+	// in:body
+	Unauth UnauthError `json:"unauth"`
+}
+
+// UnauthError defines the error type of an unauthorized response.
+type UnauthError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 // Unsuccessful generic response to a failed API call
 type Error struct {
 	ErrorMessage string            `json:"message"`

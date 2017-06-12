@@ -174,7 +174,7 @@ func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next ht
 		if ok && password == s.authpwd {
 			next(rw, r)
 		} else {
-			http.Error(rw, "Not Authorized", 401)
+			v2.Write(401, v2.UnauthError{Code: 401, Message: "Not authorized. Please specify the same password that used to start snapteld. E.g: [snaptel -p plugin list] or [curl http://localhost:8181/v2/plugins -u snap]"}, rw)
 		}
 	} else {
 		next(rw, r)
