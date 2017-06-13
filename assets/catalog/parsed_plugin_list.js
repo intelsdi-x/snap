@@ -153,7 +153,7 @@ myfcn(
   {
     "name": "Disk",
     "type": "Collector",
-    "description": "Collects Linux disk metrics from /proc/diskstats.",
+    "description": "Collects Linux disk metrics from /proc/diskstats",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-disk"
   },
   {
@@ -165,7 +165,7 @@ myfcn(
   {
     "name": "Elasticsearch",
     "type": "Collector",
-    "description": "Collects Elasticsearch cluster and node statistics.",
+    "description": "Collects Elasticsearch cluster and nodes statistics",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-elasticsearch"
   },
   {
@@ -441,13 +441,13 @@ myfcn(
   {
     "name": "File",
     "type": "Publisher",
-    "description": "Publishes metrics to a local file in json format.",
+    "description": "Publishes Snap metrics to a local file in JSON format",
     "url": "https://github.com/intelsdi-x/snap-plugin-publisher-file"
   },
   {
     "name": "Graphite",
     "type": "Publisher",
-    "description": "Publishes metrics to graphite.",
+    "description": "Publishes Snap metrics to Graphite",
     "url": "https://github.com/intelsdi-x/snap-plugin-publisher-graphite"
   },
   {
@@ -471,7 +471,7 @@ myfcn(
   {
     "name": "InfluxDB",
     "type": "Publisher",
-    "description": "Publishes metrics to Influxdb.",
+    "description": "Publishes Snap metrics to a InfluxDB",
     "url": "https://github.com/intelsdi-x/snap-plugin-publisher-influxdb"
   },
   {
@@ -569,6 +569,12 @@ myfcn(
     "type": "Collector",
     "description": "Wrapper to gather telemetry data from Diamond plugins",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-diamond"
+  },
+  {
+    "name": "RDT",
+    "type": "Collector",
+    "description": "RDT Collector for Snap",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-rdt"
   }
 ]
 )
