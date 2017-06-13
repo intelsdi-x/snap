@@ -32,7 +32,7 @@ import (
 	"github.com/urfave/negroni"
 )
 
-const deprecationInfo = "The client API V1 has been depricated. Find more information here: https://github.com/intelsdi-x/snap/issues/1637"
+const deprecationInfo = "The client API V1 is being deprecated; switch to API v2. Find more information here: https://github.com/intelsdi-x/snap/issues/1637"
 
 type Body interface {
 	// These function names are rather verbose to avoid field vs function namespace collisions
