@@ -69,7 +69,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		//
 		// Responses:
 		// 200: PluginsResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins", Handle: s.getPlugins},
 		// swagger:route GET /plugins/{ptype}/{pname}/{pversion} plugins getPlugin
 		//
@@ -87,7 +87,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 400: ErrorResponse
 		// 404: ErrorResponse
 		// 500: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version", Handle: s.getPlugin},
 		// swagger:route POST /plugins plugins loadPlugin
 		//
@@ -109,7 +109,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 409: ErrorResponse
 		// 415: ErrorResponse
 		// 500: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
 		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion} plugins unloadPlugin
 		//
@@ -128,7 +128,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 404: ErrorResponse
 		// 409: ErrorResponse
 		// 500: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version", Handle: s.unloadPlugin},
 		// swagger:route GET /plugins/{ptype}/{pname}/{pversion}/config plugins getPluginConfigItem
 		//
@@ -144,7 +144,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "GET", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.getPluginConfigItem},
 		// swagger:route PUT /plugins/{ptype}/{pname}/{pversion}/config plugins setPluginConfigItem
 		//
@@ -163,7 +163,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "PUT", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.setPluginConfigItem},
 		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion}/config plugins deletePluginConfigItem
 		//
@@ -182,7 +182,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 200: PluginConfigResponse
 		// 400: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "DELETE", Path: prefix + "/plugins/:type/:name/:version/config", Handle: s.deletePluginConfigItem},
 		// swagger:route GET /metrics plugins getMetrics
 		//
@@ -199,7 +199,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: MetricsResponse
 		// 404: ErrorResponse
 		// 500: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "GET", Path: prefix + "/metrics", Handle: s.getMetrics},
 		// swagger:route GET /tasks tasks getTasks
 		//
@@ -214,7 +214,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		//
 		// Responses:
 		// 200: TasksResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks", Handle: s.getTasks},
 		// swagger:route GET /tasks/{id} tasks getTask
 		//
@@ -230,7 +230,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 200: TaskResponse
 		// 404: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id", Handle: s.getTask},
 		// swagger:route GET /tasks/{id}/watch tasks watchTask
 		//
@@ -247,7 +247,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 200: TaskWatchResponse
 		// 404: ErrorResponse
 		// 500: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "GET", Path: prefix + "/tasks/:id/watch", Handle: s.watchTask},
 		// swagger:route POST /tasks tasks addTask
 		//
@@ -266,7 +266,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// Responses:
 		// 201: TaskResponse
 		// 500: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "POST", Path: prefix + "/tasks", Handle: s.addTask},
 		// swagger:route PUT /tasks/{id} tasks updateTaskState
 		//
@@ -287,7 +287,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 400: ErrorResponse
 		// 409: ErrorResponse
 		// 500: ErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "PUT", Path: prefix + "/tasks/:id", Handle: s.updateTaskState},
 		// swagger:route DELETE /tasks/{id} tasks removeTask
 		//
@@ -304,7 +304,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 204: TaskResponse
 		// 404: ErrorResponse
 		// 500: TaskErrorResponse
-		// 401: ErrorResponse
+		// 401: UnauthResponse
 		api.Route{Method: "DELETE", Path: prefix + "/tasks/:id", Handle: s.removeTask},
 	}
 	return routes
