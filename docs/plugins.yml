@@ -110,3 +110,4 @@
 - intelsdi-x/snap-plugin-collector-influxdb-data
 - hstack/snap-plugin-publisher-prometheus
 - intelsdi-x/snap-plugin-collector-diamond
+- intelsdi-x/snap-plugin-collector-rdt
