@@ -531,7 +531,7 @@ myfcn(
   {
     "name": "Slack",
     "type": "Publisher",
-    "description": "No description available.",
+    "description": "Publishes Snap metrics to Slack ",
     "url": "https://github.com/marcin-krolik/snap-plugin-publisher-slack"
   },
   {
@@ -557,6 +557,18 @@ myfcn(
     "type": "Collector",
     "description": "Snap plugin intended to receive data previously saved in InfluxDB",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-influxdb-data"
+  },
+  {
+    "name": "Prometheus",
+    "type": "Publisher",
+    "description": "Publishes metrics to a Prometheus Push Gateway",
+    "url": "https://github.com/hstack/snap-plugin-publisher-prometheus"
+  },
+  {
+    "name": "Diamond",
+    "type": "Collector",
+    "description": "Wrapper to gather telemetry data from Diamond plugins",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-diamond"
   }
 ]
 )
