@@ -33,6 +33,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ver := 0 // 0: get all metrics
 
@@ -75,6 +77,8 @@ func (s *apiV1) getMetrics(w http.ResponseWriter, r *http.Request, _ httprouter.
 	respondWithMetrics(r.Host, mts, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getMetricsFromTree(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	namespace := params.ByName("namespace")
 

@@ -1,4 +1,7 @@
-# Snap API
+ # Rest API v1 is being deprecated; update to [API v2](https://github.com/intelsdi-x/snap-client-go). 
+ Find more information here: https://github.com/intelsdi-x/snap/issues/1637
+ 
+ # Snap API
 Snap exposes a list of RESTful APIs to perform various actions. All of Snap's API requests return `JSON`-formatted responses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation have the endpoint:
 > http://localhost:8181
 

@@ -39,6 +39,8 @@ func New(wg *sync.WaitGroup, killChan chan struct{}, protocol string) *apiV1 {
 	return &apiV1{wg: wg, killChan: killChan}
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) GetRoutes() []api.Route {
 	routes := []api.Route{
 		// plugin routes
@@ -82,18 +84,26 @@ func (s *apiV1) GetRoutes() []api.Route {
 	return routes
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) BindMetricManager(metricManager api.Metrics) {
 	s.metricManager = metricManager
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) BindTaskManager(taskManager api.Tasks) {
 	s.taskManager = taskManager
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) BindTribeManager(tribeManager api.Tribe) {
 	s.tribeManager = tribeManager
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) BindConfigManager(configManager api.Config) {
 	s.configManager = configManager
 }

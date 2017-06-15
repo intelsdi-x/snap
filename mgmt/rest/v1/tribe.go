@@ -42,12 +42,16 @@ var (
 	ErrMemberNotFound        = errors.New("Member not found")
 )
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getAgreements(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	res := &rbody.TribeListAgreement{}
 	res.Agreements = s.tribeManager.GetAgreements()
 	rbody.Write(200, res, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "getAgreement")
 	name := p.ByName("name")
@@ -70,6 +74,8 @@ func (s *apiV1) getAgreement(w http.ResponseWriter, r *http.Request, p httproute
 	rbody.Write(200, a, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) deleteAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "deleteAgreement")
 	name := p.ByName("name")
@@ -95,6 +101,8 @@ func (s *apiV1) deleteAgreement(w http.ResponseWriter, r *http.Request, p httpro
 	rbody.Write(200, a, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) joinAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "joinAgreement")
 	name := p.ByName("name")
@@ -140,6 +148,8 @@ func (s *apiV1) joinAgreement(w http.ResponseWriter, r *http.Request, p httprout
 
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) leaveAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "leaveAgreement")
 	name := p.ByName("name")
@@ -184,11 +194,15 @@ func (s *apiV1) leaveAgreement(w http.ResponseWriter, r *http.Request, p httprou
 	rbody.Write(200, &rbody.TribeLeaveAgreement{Agreement: agreement}, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getMembers(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	members := s.tribeManager.GetMembers()
 	rbody.Write(200, &rbody.TribeMemberList{Members: members}, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getMember(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "getMember")
 	name := p.ByName("name")
@@ -216,6 +230,8 @@ func (s *apiV1) getMember(w http.ResponseWriter, r *http.Request, p httprouter.P
 	rbody.Write(200, resp, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) addAgreement(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	tribeLogger = tribeLogger.WithField("_block", "addAgreement")
 	b, err := ioutil.ReadAll(r.Body)

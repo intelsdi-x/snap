@@ -67,6 +67,8 @@ func (p *plugin) TypeName() string {
 	return p.pluginType
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	lp := &rbody.PluginsLoaded{}
 	lp.LoadedPlugins = make([]rbody.LoadedPlugin, 0)
@@ -80,8 +82,6 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		var certPath string
 		var keyPath string
 		var caCertPaths string
-		os.Stdout.WriteString("TEST 2\n")
-
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		mr := multipart.NewReader(r.Body, params["boundary"])
@@ -236,6 +236,8 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	}
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")
@@ -283,6 +285,8 @@ func (s *apiV1) unloadPlugin(w http.ResponseWriter, r *http.Request, p httproute
 	rbody.Write(200, pr, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getPlugins(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	var detail bool
 	for k := range r.URL.Query() {
@@ -372,6 +376,8 @@ func catalogedPluginToLoaded(host string, c core.CatalogedPlugin) rbody.LoadedPl
 	}
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	plName := p.ByName("name")
 	plType := p.ByName("type")

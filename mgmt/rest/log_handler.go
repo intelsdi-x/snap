@@ -52,4 +52,12 @@ func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.Ha
 		"status-code": res.Status(),
 		"status":      http.StatusText(res.Status()),
 	}).Debug("API response")
+
+	if deprecationInfo := rw.Header().Get("Deprecated"); len(deprecationInfo) != 0 {
+		restLogger.WithFields(log.Fields{
+			"method": r.Method,
+			"url":    r.URL.Path,
+		}).Warning(deprecationInfo)
+	}
+
 }

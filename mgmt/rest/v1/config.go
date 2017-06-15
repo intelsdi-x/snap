@@ -29,6 +29,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	styp := p.ByName("type")
@@ -62,6 +64,8 @@ func (s *apiV1) getPluginConfigItem(w http.ResponseWriter, r *http.Request, p ht
 	rbody.Write(200, item, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	var typ core.PluginType
@@ -104,6 +108,8 @@ func (s *apiV1) deletePluginConfigItem(w http.ResponseWriter, r *http.Request, p
 	rbody.Write(200, item, w)
 }
 
+// Deprecated: Update to apiV2(https://github.com/intelsdi-x/snap-client-go).
+// Find more information here: https://github.com/intelsdi-x/snap/issues/1637
 func (s *apiV1) setPluginConfigItem(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	var typ core.PluginType
