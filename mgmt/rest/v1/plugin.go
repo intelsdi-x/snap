@@ -80,7 +80,6 @@ func (s *apiV1) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		var certPath string
 		var keyPath string
 		var caCertPaths string
-		os.Stdout.WriteString("TEST 2\n")
 
 		var signature []byte
 		var checkSum [sha256.Size]byte
