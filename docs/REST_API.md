@@ -341,7 +341,7 @@ Snap task APIs provide the functionality to create, start, stop, remove, enable,
 | deadline                         | task timeout time                       |
 | creation_timestamp               | task creation time                      |
 | last_run_timestamp               | last running time of a task             |
-| hit_count                        | number of times a task ran              |
+| hit_count                        | number of times a task succeeded        |
 | task_state                       | state of a task                         |
 | workflow.collect.metrics         | map of collected metrics                |
 | workflow.collect.config          | map of collected metrics configurations |
