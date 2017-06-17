@@ -146,7 +146,7 @@ func (c ControlProxy) StreamMetrics(
 	}
 }
 
-func (c ControlProxy) ValidateDeps(mts []core.RequestedMetric, plugins []core.SubscribedPlugin, _ *cdata.ConfigDataTree) []serror.SnapError {
+func (c ControlProxy) ValidateDeps(mts []core.RequestedMetric, plugins []core.SubscribedPlugin, _ *cdata.ConfigDataTree, _ ...core.SubscribedPluginAssert) []serror.SnapError {
 	// The configDataTree is kept so that we can match the interface provided by control
 	// we do not need it here though since the configDataTree is only used for metrics
 	// and we do not allow remote collection.

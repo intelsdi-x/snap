@@ -91,7 +91,7 @@ var (
 		"collector",
 		"processor",
 		"publisher",
-		"streamCollector",
+		"streaming-collector",
 	}
 
 	routingStrategyTypes = [...]string{

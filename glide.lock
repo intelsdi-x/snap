@@ -1,5 +1,5 @@
 hash: 14712d189ae570ecb1e287d5a11120347c831b9b4bb6b2265eecb53acf52dc9d
-updated: 2017-03-03T11:55:17.822848886-08:00
+updated: 2017-05-18T11:52:57.349827646-07:00
 imports:
 - name: github.com/appc/spec
   version: ba99d6b8ccbbed2942e53eb5395fddae113cdf8e
@@ -12,11 +12,11 @@ imports:
   - schema/types
   - schema/types/resource
 - name: github.com/armon/go-metrics
-  version: 3df31a1ada83e310c2e24b267c8e8b68836547b4
+  version: 93f237eba9b0602f3e73710416558854a81d9337
 - name: github.com/asaskevich/govalidator
   version: 9699ab6b38bee2e02cd3fe8b99ecf67665395c96
 - name: github.com/coreos/go-semver
-  version: 6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa
+  version: 294930c1e79c64e7dbe360054274fdad492c8cf5
   subpackages:
   - semver
 - name: github.com/ghodss/yaml
@@ -39,7 +39,7 @@ imports:
   - v1/plugin
   - v1/plugin/rpc
 - name: github.com/intelsdi-x/snap-plugin-utilities
-  version: 925bafffac36edcfaf4aff937dcb7d3d5659782d
+  version: 3c37e3965f3fc2f24714779d3bae7ba7032b87a9
   subpackages:
   - str
 - name: github.com/julienschmidt/httprouter
@@ -49,7 +49,7 @@ imports:
 - name: github.com/robfig/cron
   version: 32d9c273155a0506d27cf73dd1246e86a470997e
 - name: github.com/rs/cors
-  version: a62a804a8a009876ca59105f7899938a1349f4b3
+  version: 2d7dd2a10331137ae3f931ba08c21fd00cbf208d
 - name: github.com/rs/xhandler
   version: ed27b6fd65218132ee50cd95f38474a3d8a2cd12
 - name: github.com/Sirupsen/logrus
@@ -63,7 +63,7 @@ imports:
 - name: github.com/vrischmann/jsonutil
   version: 694784f9315ee9fc763c1d30f28753cba21307aa
 - name: github.com/xeipuuv/gojsonpointer
-  version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
+  version: 6fe8760cad3569743d51ddbb243b26f8456742dc
 - name: github.com/xeipuuv/gojsonreference
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
@@ -93,7 +93,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
+  version: e62c3de784db939836898e5c19ffd41bece347da
   subpackages:
   - unix
 - name: google.golang.org/grpc

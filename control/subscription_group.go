@@ -59,7 +59,7 @@ type ManagesSubscriptionGroups interface {
 	Remove(id string) []serror.SnapError
 	ValidateDeps(requested []core.RequestedMetric,
 		plugins []core.SubscribedPlugin,
-		configTree *cdata.ConfigDataTree) (serrs []serror.SnapError)
+		configTree *cdata.ConfigDataTree, asserts ...core.SubscribedPluginAssert) (serrs []serror.SnapError)
 	validateMetric(metric core.Metric) (serrs []serror.SnapError)
 }
 
@@ -203,12 +203,22 @@ func (s *subscriptionGroups) Process() (errs []serror.SnapError) {
 
 func (s *subscriptionGroups) ValidateDeps(requested []core.RequestedMetric,
 	plugins []core.SubscribedPlugin,
-	configTree *cdata.ConfigDataTree) (serrs []serror.SnapError) {
+	configTree *cdata.ConfigDataTree, asserts ...core.SubscribedPluginAssert) (serrs []serror.SnapError) {
 
 	// resolve requested metrics and map to collectors
 	pluginToMetricMap, collectors, errs := s.getMetricsAndCollectors(requested, configTree)
 	if errs != nil {
 		serrs = append(serrs, errs...)
+	}
+
+	// Validate if schedule type is streaming and we have a non-streaming plugin or vice versa
+	for _, assert := range asserts {
+		if serr := assert(collectors); serr != nil {
+			serrs = append(serrs, serr)
+		}
+	}
+	if len(serrs) > 0 {
+		return serrs
 	}
 
 	// validateMetricsTypes

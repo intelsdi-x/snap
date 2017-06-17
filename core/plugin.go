@@ -35,6 +35,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/pkg/fileutils"
 )
 
@@ -48,9 +49,10 @@ type PluginType int
 
 func ToPluginType(name string) (PluginType, error) {
 	pts := map[string]PluginType{
-		"collector": 0,
-		"processor": 1,
-		"publisher": 2,
+		"collector":           0,
+		"processor":           1,
+		"publisher":           2,
+		"streaming-collector": 3,
 	}
 	t, ok := pts[name]
 	if !ok {
@@ -64,6 +66,7 @@ func CheckPluginType(id PluginType) bool {
 		0: "collector",
 		1: "processor",
 		2: "publisher",
+		3: "streaming-collector",
 	}
 
 	_, ok := pts[id]
@@ -86,6 +89,7 @@ func (pt PluginType) String() string {
 		"collector",
 		"processor",
 		"publisher",
+		"streaming-collector",
 	}[pt]
 }
 
@@ -94,6 +98,7 @@ const (
 	CollectorPluginType PluginType = iota
 	ProcessorPluginType
 	PublisherPluginType
+	StreamingCollectorPluginType
 )
 
 type AvailablePlugin interface {
@@ -124,6 +129,8 @@ type SubscribedPlugin interface {
 	Plugin
 	Config() *cdata.ConfigDataNode
 }
+
+type SubscribedPluginAssert func(plugins []SubscribedPlugin) serror.SnapError
 
 type RequestedPlugin struct {
 	path        string

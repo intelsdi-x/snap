@@ -35,6 +35,7 @@ import (
 
 	"github.com/intelsdi-x/gomit"
 
+	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
@@ -67,6 +68,10 @@ var (
 	ErrTaskDisabledNotStoppable = errors.New("Task is disabled. Only running tasks can be stopped.")
 	// ErrTaskEndedNotStoppable - The error message for when a task is ended and cannot be stopped
 	ErrTaskEndedNotStoppable = errors.New("Task is ended. Only running tasks can be stopped.")
+	// ErrPluginIncompatibleWithScheduleType - The error message for when a streaming schedule type references a non streaming plugin or vice versa.
+	ErrPluginIncompatibleWithScheduleType = errors.New("Plugin is incompatible with the tasks schedule type.")
+	// ErrMultipleStreamingPlugins - The error message when a task with a streaming schedule refers to multiple streaming plugins.
+	ErrMultipleStreamingPlugins = errors.New("Multiple streaming plugins within the same task is not supported.")
 )
 
 type schedulerState int
@@ -93,7 +98,7 @@ type managesMetrics interface {
 	publishesMetrics
 	processesMetrics
 	GetAutodiscoverPaths() []string
-	ValidateDeps([]core.RequestedMetric, []core.SubscribedPlugin, *cdata.ConfigDataTree) []serror.SnapError
+	ValidateDeps([]core.RequestedMetric, []core.SubscribedPlugin, *cdata.ConfigDataTree, ...core.SubscribedPluginAssert) []serror.SnapError
 	SubscribeDeps(string, []core.RequestedMetric, []core.SubscribedPlugin, *cdata.ConfigDataTree) []serror.SnapError
 	UnsubscribeDeps(string) []serror.SnapError
 }
@@ -337,17 +342,73 @@ func (s *scheduler) createTask(sch schedule.Schedule, wfMap *wmap.WorkflowMap, s
 		return nil, te
 	}
 
+	// subscribedPluginAsserts includes rules that need to be evaluated once we
+	// have mapped the metrics to specific collector plugins.  Examples include
+	// asserting that streaming tasks don't reference non-streaming collectors.
+	subscribedPluginAsserts := []core.SubscribedPluginAssert{}
 	// Group dependencies by the node they live on
 	// and validate them.
 	depGroups := getWorkflowPlugins(wf.processNodes, wf.publishNodes, wf.metrics)
 	for k, group := range depGroups {
+
+		// populate subscribedPluginAsserts
+		switch sch.(type) {
+		case *schedule.StreamingSchedule:
+			// assert no non-streaming plugins
+			subscribedPluginAsserts = append(subscribedPluginAsserts, func(plugins []core.SubscribedPlugin) serror.SnapError {
+				for _, plg := range plugins {
+					if plg.TypeName() != plugin.StreamCollectorPluginType.String() {
+						return serror.New(
+							ErrPluginIncompatibleWithScheduleType,
+							map[string]interface{}{
+								"schedule_type": fmt.Sprintf("%T", sch),
+								"plugin_name":   plg.Name(),
+								"plugin_type":   plg.TypeName(),
+							},
+						)
+					}
+				}
+				return nil
+			})
+			// assert only a single streaming plugin
+			subscribedPluginAsserts = append(subscribedPluginAsserts, func(plugins []core.SubscribedPlugin) serror.SnapError {
+				if len(plugins) > 1 {
+					return serror.New(
+						ErrMultipleStreamingPlugins,
+						map[string]interface{}{
+							"schedule_type":     fmt.Sprintf("%T", sch),
+							"num_of_collectors": len(plugins),
+						},
+					)
+				}
+				return nil
+			})
+		default:
+			// assert no streaming plugins
+			subscribedPluginAsserts = append(subscribedPluginAsserts, func(plugins []core.SubscribedPlugin) serror.SnapError {
+				for _, plg := range plugins {
+					if plg.TypeName() == plugin.StreamCollectorPluginType.String() {
+						return serror.New(
+							ErrPluginIncompatibleWithScheduleType,
+							map[string]interface{}{
+								"schedule_type": fmt.Sprintf("%T", sch),
+								"plugin_name":   plg.Name(),
+								"plugin_type":   plg.TypeName(),
+							},
+						)
+					}
+				}
+				return nil
+			})
+		}
+
 		manager, err := task.RemoteManagers.Get(k)
 		if err != nil {
 			te.errs = append(te.errs, serror.New(err))
 			return nil, te
 		}
 		var errs []serror.SnapError
-		errs = manager.ValidateDeps(group.requestedMetrics, group.subscribedPlugins, wf.configTree)
+		errs = manager.ValidateDeps(group.requestedMetrics, group.subscribedPlugins, wf.configTree, subscribedPluginAsserts...)
 
 		if len(errs) > 0 {
 			te.errs = append(te.errs, errs...)

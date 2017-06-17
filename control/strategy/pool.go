@@ -59,7 +59,6 @@ type Pool interface {
 	Plugins() MapAvailablePlugin
 	RLock()
 	RUnlock()
-	SelectAndStop(taskID, reason string)
 	SelectAndKill(taskID, reason string)
 	SelectAP(taskID string, configID map[string]ctypes.ConfigValue) (AvailablePlugin, serror.SnapError)
 	Strategy() RoutingAndCaching
@@ -181,7 +180,7 @@ func (p *pool) IncRestartCount() {
 
 // Insert inserts an AvailablePlugin into the pool
 func (p *pool) Insert(a AvailablePlugin) error {
-	if a.Type() != plugin.CollectorPluginType && a.Type() != plugin.ProcessorPluginType && a.Type() != plugin.PublisherPluginType {
+	if a.Type() != plugin.CollectorPluginType && a.Type() != plugin.ProcessorPluginType && a.Type() != plugin.PublisherPluginType && a.Type() != plugin.StreamCollectorPluginType {
 		return ErrBadType
 	}
 	// If an empty pool is created, it does not have
@@ -304,27 +303,6 @@ func (p *pool) KillAll(reason string) {
 		}
 		p.Kill(id, reason)
 	}
-}
-
-// SelectAndStop selects, stops and removes the available plugin from the pool
-func (p *pool) SelectAndStop(id, reason string) {
-	rp, err := p.Remove(p.plugins.Values(), id)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"_block": "SelectAndStop",
-			"taskID": id,
-			"reason": reason,
-		}).Error(err)
-		return
-	}
-	if err := rp.Stop(reason); err != nil {
-		log.WithFields(log.Fields{
-			"_block": "SelectAndStop",
-			"taskID": id,
-			"reason": reason,
-		}).Error(err)
-	}
-	p.remove(rp.ID())
 }
 
 // SelectAndKill selects, kills and removes the available plugin from the pool
