@@ -34,7 +34,7 @@ func TestWindowedSchedule(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	Convey("Windowed Schedule expected to run forever", t, func() {
-		interval := time.Millisecond * 10
+		interval := time.Millisecond * 20
 		// set start and stop are nil, and the count is zero what means no limits
 		w := NewWindowedSchedule(interval, nil, nil, 0)
 
@@ -102,8 +102,8 @@ func TestWindowedSchedule(t *testing.T) {
 	Convey("Nominal windowed Schedule", t, func() {
 		Convey("without misses", func() {
 			startWait := time.Millisecond * 50
-			windowSize := time.Millisecond * 200
-			interval := time.Millisecond * 10
+			windowSize := time.Millisecond * 400
+			interval := time.Millisecond * 20
 
 			start := time.Now().Add(startWait)
 			stop := time.Now().Add(startWait + windowSize)
@@ -149,8 +149,8 @@ func TestWindowedSchedule(t *testing.T) {
 		})
 		Convey("with a few misses", func() {
 			startWait := time.Millisecond * 50
-			windowSize := time.Millisecond * 200
-			interval := time.Millisecond * 10
+			windowSize := time.Millisecond * 400
+			interval := time.Millisecond * 20
 
 			start := time.Now().Add(startWait)
 			stop := time.Now().Add(startWait + windowSize)
@@ -204,8 +204,8 @@ func TestWindowedSchedule(t *testing.T) {
 		})
 		Convey("started in the past", func() {
 			startWait := time.Millisecond * -200
-			windowSize := time.Millisecond * 400
-			interval := time.Millisecond * 10
+			windowSize := time.Millisecond * 600
+			interval := time.Millisecond * 20
 
 			start := time.Now().Add(startWait)
 			stop := time.Now().Add(startWait + windowSize)
@@ -258,7 +258,7 @@ func TestWindowedSchedule(t *testing.T) {
 		})
 		Convey("start without stop", func() {
 			startWait := time.Millisecond * 50
-			interval := time.Millisecond * 10
+			interval := time.Millisecond * 20
 
 			start := time.Now().Add(startWait)
 			w := NewWindowedSchedule(
@@ -290,8 +290,8 @@ func TestWindowedSchedule(t *testing.T) {
 			)
 		})
 		Convey("stop without start", func() {
-			windowSize := time.Millisecond * 200
-			interval := time.Millisecond * 10
+			windowSize := time.Millisecond * 400
+			interval := time.Millisecond * 20
 
 			stop := time.Now().Add(windowSize)
 			w := NewWindowedSchedule(
