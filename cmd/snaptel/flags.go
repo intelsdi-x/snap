@@ -50,9 +50,8 @@ var (
 		Usage: "Shows running plugins",
 	}
 	flPassword = cli.BoolFlag{
-		Name:   "password, p",
-		Usage:  "Require password for REST API authentication",
-		EnvVar: "SNAP_REST_PASSWORD",
+		Name:  "password, p",
+		Usage: "Require password for REST API authentication, e.g. snaptel -p plugin list",
 	}
 	flConfig = cli.StringFlag{
 		Name:   "config, c",
