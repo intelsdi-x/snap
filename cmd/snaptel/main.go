@@ -122,7 +122,7 @@ func checkTribeCommand(ctx *cli.Context) error {
 // Checks for authentication flags and returns a username/password
 // from the specified settings
 func checkForAuth(ctx *cli.Context) (username, password string) {
-	if ctx.IsSet("password") {
+	if ctx.Bool("password") {
 		username = "snap" // for now since username is unused but needs to exist for basicAuth
 		// Prompt for password
 		fmt.Print("Password:")
@@ -143,6 +143,7 @@ func checkForAuth(ctx *cli.Context) (username, password string) {
 			fmt.Println(err)
 		}
 		if cfg.RestAPI.Password != nil {
+			// use password declared in config file
 			password = *cfg.RestAPI.Password
 		} else {
 			fmt.Println("Error config password field 'rest-auth-pwd' is empty")
