@@ -763,6 +763,10 @@ func (m *mc) GetPlugin(core.Namespace, int) (core.CatalogedPlugin, error) {
 	return nil, nil
 }
 
+func (m *mc) GetPlugins(core.Namespace) ([]core.CatalogedPlugin, error) {
+	return nil, nil
+}
+
 func (m *mc) GetVersions(core.Namespace) ([]*metricType, error) {
 	return nil, nil
 }

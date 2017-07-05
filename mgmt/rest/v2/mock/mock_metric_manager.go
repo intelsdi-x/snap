@@ -22,6 +22,7 @@ package mock
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
@@ -50,10 +51,13 @@ type MockLoadedPlugin struct {
 	MyVersion int
 }
 
-func (m MockLoadedPlugin) Name() string       { return m.MyName }
-func (m MockLoadedPlugin) Port() string       { return "" }
-func (m MockLoadedPlugin) TypeName() string   { return m.MyType }
-func (m MockLoadedPlugin) Version() int       { return m.MyVersion }
+func (m MockLoadedPlugin) Name() string     { return m.MyName }
+func (m MockLoadedPlugin) Port() string     { return "" }
+func (m MockLoadedPlugin) TypeName() string { return m.MyType }
+func (m MockLoadedPlugin) Version() int     { return m.MyVersion }
+func (m MockLoadedPlugin) Key() string {
+	return fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", m.MyType, m.MyName, m.MyVersion)
+}
 func (m MockLoadedPlugin) Plugin() string     { return "" }
 func (m MockLoadedPlugin) IsSigned() bool     { return false }
 func (m MockLoadedPlugin) Status() string     { return "" }

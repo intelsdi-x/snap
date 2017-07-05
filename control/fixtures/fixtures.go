@@ -22,6 +22,7 @@ package fixtures
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/intelsdi-x/snap/core"
@@ -142,6 +143,9 @@ func (m MockPlugin) Name() string                  { return m.name }
 func (m MockPlugin) TypeName() string              { return m.pluginType.String() }
 func (m MockPlugin) Version() int                  { return m.ver }
 func (m MockPlugin) Config() *cdata.ConfigDataNode { return m.config }
+func (m MockPlugin) Key() string {
+	return fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", m.pluginType.String(), m.name, m.ver)
+}
 
 type MockRequestedMetric struct {
 	namespace core.Namespace

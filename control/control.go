@@ -146,6 +146,7 @@ type catalogsMetrics interface {
 	Subscribe([]string, int) error
 	Unsubscribe([]string, int) error
 	GetPlugin(core.Namespace, int) (core.CatalogedPlugin, error)
+	GetPlugins(core.Namespace) ([]core.CatalogedPlugin, error)
 }
 
 type managesSigning interface {
@@ -637,8 +638,34 @@ func (p *pluginControl) returnPluginDetails(rp *core.RequestedPlugin) (*pluginDe
 }
 
 func (p *pluginControl) Unload(pl core.Plugin) (core.CatalogedPlugin, serror.SnapError) {
-	up, err := p.pluginManager.UnloadPlugin(pl)
+	up, err := p.pluginManager.get(fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", pl.TypeName(), pl.Name(), pl.Version()))
 	if err != nil {
+		se := serror.New(ErrPluginNotFound, map[string]interface{}{
+			"plugin-name":    pl.Name(),
+			"plugin-version": pl.Version(),
+			"plugin-type":    pl.TypeName(),
+		})
+		return nil, se
+	}
+
+	if errs := p.subscriptionGroups.validatePluginUnloading(up); errs != nil {
+		impactOnTasks := []string{}
+		for _, err := range errs {
+			taskId := err.Fields()["task-id"].(string)
+			impactOnTasks = append(impactOnTasks, taskId)
+		}
+		se := serror.New(errorPluginCannotBeUnloaded(impactOnTasks), map[string]interface{}{
+			"plugin-name":    pl.Name(),
+			"plugin-version": pl.Version(),
+			"plugin-type":    pl.TypeName(),
+			"impacted-tasks": impactOnTasks,
+		})
+		return nil, se
+	}
+
+	// unload the plugin means removing it from plugin catalog
+	// and, for collector plugins, removing its metrics from metric catalog
+	if _, err := p.pluginManager.UnloadPlugin(pl); err != nil {
 		return nil, err
 	}
 
@@ -685,7 +712,6 @@ func (p *pluginControl) SwapPlugins(in *core.RequestedPlugin, out core.Cataloged
 		}
 		return serr
 	}
-
 	up, err := p.pluginManager.UnloadPlugin(out)
 	if err != nil {
 		_, err2 := p.pluginManager.UnloadPlugin(lp)
@@ -941,6 +967,10 @@ func (p *pluginControl) GetMetricVersions(ns core.Namespace) ([]core.CatalogedMe
 		rmts[i] = m
 	}
 	return rmts, nil
+}
+
+func (p *pluginControl) GetPlugins(ns core.Namespace) ([]core.CatalogedPlugin, error) {
+	return p.metricCatalog.GetPlugins(ns)
 }
 
 func (p *pluginControl) MetricExists(mns core.Namespace, ver int) bool {
