@@ -555,7 +555,7 @@ func (ap *availablePlugins) streamMetrics(
 }
 
 func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) []error {
-	key := strings.Join([]string{plugin.PublisherPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
+	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", plugin.PublisherPluginType.String(), pluginName, pluginVersion)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
 		return []error{serr}
@@ -588,7 +588,7 @@ func (ap *availablePlugins) publishMetrics(metrics []core.Metric, pluginName str
 
 func (ap *availablePlugins) processMetrics(metrics []core.Metric, pluginName string, pluginVersion int, config map[string]ctypes.ConfigValue, taskID string) ([]core.Metric, []error) {
 	var errs []error
-	key := strings.Join([]string{plugin.ProcessorPluginType.String(), pluginName, strconv.Itoa(pluginVersion)}, core.Separator)
+	key := fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", plugin.ProcessorPluginType.String(), pluginName, pluginVersion)
 	pool, serr := ap.getPool(key)
 	if serr != nil {
 		errs = append(errs, serr)

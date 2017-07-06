@@ -146,7 +146,7 @@ func TestSubscriptionGroups_Process_GlobalPluginConfig(t *testing.T) {
 
 				sg := newSubscriptionGroups(c)
 				So(sg, ShouldNotBeNil)
-				sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{subsPlugin})
+				sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{})
 				<-lpe.sub
 				So(len(sg.subscriptionMap), ShouldEqual, 1)
 				group, ok := sg.subscriptionMap["task-id"]
@@ -190,7 +190,7 @@ func TestSubscriptionGroups_ProcessStaticNegative(t *testing.T) {
 
 			sg := newSubscriptionGroups(c)
 			So(sg, ShouldNotBeNil)
-			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{subsPlugin})
+			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{})
 			<-lpe.sub
 			So(len(sg.subscriptionMap), ShouldEqual, 1)
 			group, ok := sg.subscriptionMap["task-id"]
@@ -260,7 +260,7 @@ func TestSubscriptionGroups_ProcessStaticPositive(t *testing.T) {
 
 			sg := newSubscriptionGroups(c)
 			So(sg, ShouldNotBeNil)
-			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{mock1})
+			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{})
 			<-lpe.sub
 			So(len(sg.subscriptionMap), ShouldEqual, 1)
 			group, ok := sg.subscriptionMap["task-id"]
@@ -336,7 +336,7 @@ func TestSubscriptionGroups_ProcessDynamicPositive(t *testing.T) {
 			errs := sg.ValidateDeps([]core.RequestedMetric{requested}, []core.SubscribedPlugin{mock1}, ctree)
 			So(errs, ShouldBeNil)
 			Convey("Subscription group created for requested metric with wildcards", func() {
-				sg.Add("task-id", []core.RequestedMetric{requested}, ctree, []core.SubscribedPlugin{mock1})
+				sg.Add("task-id", []core.RequestedMetric{requested}, ctree, []core.SubscribedPlugin{})
 				<-lpe.sub
 				So(len(sg.subscriptionMap), ShouldEqual, 1)
 				group, ok := sg.subscriptionMap["task-id"]
@@ -411,7 +411,7 @@ func TestSubscriptionGroups_ProcessDynamicNegative(t *testing.T) {
 
 			sg := newSubscriptionGroups(c)
 			So(sg, ShouldNotBeNil)
-			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{mock1})
+			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{})
 			<-lpe.sub
 			So(len(sg.subscriptionMap), ShouldEqual, 1)
 			group, ok := sg.subscriptionMap["task-id"]
@@ -486,9 +486,8 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicPositive(t *testing.T) {
 			serrs := sg.ValidateDeps([]core.RequestedMetric{requested}, []core.SubscribedPlugin{mock1}, cdata.NewTree())
 			So(serrs, ShouldBeNil)
 			Convey("Subscription group created for requested metric with specified instance of dynamic element and with wildcards", func() {
-				sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{mock1})
+				sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{})
 				<-lpe.sub
-
 				So(len(sg.subscriptionMap), ShouldEqual, 1)
 				group, ok := sg.subscriptionMap["task-id"]
 				So(ok, ShouldBeTrue)
@@ -567,7 +566,7 @@ func TestSubscriptionGroups_ProcessSpecifiedDynamicNegative(t *testing.T) {
 
 			sg := newSubscriptionGroups(c)
 			So(sg, ShouldNotBeNil)
-			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{mock1})
+			sg.Add("task-id", []core.RequestedMetric{requested}, cdata.NewTree(), []core.SubscribedPlugin{})
 			<-lpe.sub
 			So(len(sg.subscriptionMap), ShouldEqual, 1)
 			group, ok := sg.subscriptionMap["task-id"]

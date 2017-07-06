@@ -289,6 +289,10 @@ func (cp *catalogedPlugin) Version() int {
 	return cp.version
 }
 
+func (cp *catalogedPlugin) Key() string {
+	return fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", cp.TypeName(), cp.Name(), cp.Version())
+}
+
 func (cp *catalogedPlugin) IsSigned() bool {
 	return cp.signed
 }
@@ -610,6 +614,33 @@ func (mc *metricCatalog) GetPlugin(mns core.Namespace, ver int) (core.CatalogedP
 		return nil, err
 	}
 	return mt.Plugin, nil
+}
+
+func (mc *metricCatalog) GetPlugins(mns core.Namespace) ([]core.CatalogedPlugin, error) {
+	plugins := []core.CatalogedPlugin{}
+	pluginsMap := map[string]core.CatalogedPlugin{}
+
+	mts, err := mc.tree.GetVersions(mns.Strings())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"_module": "control",
+			"_file":   "metrics.go,",
+			"_block":  "get-plugins",
+			"error":   err,
+		}).Error("error getting plugin")
+		return nil, err
+	}
+	for _, mt := range mts {
+		// iterate over metrics and add the plugin which exposes the following metric to a map
+		// under plugin key to ensure that plugins do not repeat
+		key := mt.Plugin.Key()
+		pluginsMap[key] = mt.Plugin
+	}
+	for _, plg := range pluginsMap {
+		plugins = append(plugins, plg)
+	}
+
+	return plugins, nil
 }
 
 func appendIfMissing(keys []string, ns string) []string {

@@ -65,6 +65,8 @@ var (
 	ErrPluginNotFound = errors.New("plugin not found")
 	// ErrPluginAlreadyLoaded - error message when a plugin is already loaded
 	ErrPluginAlreadyLoaded = errors.New("plugin is already loaded")
+	// ErrPluginCannotBeUnloaded - error message when a plugin cannot be unloaded because is already in use by running task(s)
+	ErrPluginCannotBeUnloaded = errors.New("Plugin is used by running task. Stop the task to be able to unload the plugin")
 	// ErrPluginNotInLoadedState - error message when a plugin must ne in a loaded state
 	ErrPluginNotInLoadedState = errors.New("Plugin must be in a LoadedState")
 
@@ -72,6 +74,15 @@ var (
 
 	defaultManagerOpts = []pluginManagerOpt{optDefaultManagerSecurity()}
 )
+
+func errorPluginCannotBeUnloaded(impactedTaskIDs []string) error {
+	var impactedTasks string
+
+	for _, id := range impactedTaskIDs {
+		impactedTasks += fmt.Sprintf("\n%s", id)
+	}
+	return fmt.Errorf("%s:%s", ErrPluginCannotBeUnloaded, impactedTasks)
+}
 
 type pluginState string
 
@@ -687,6 +698,8 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 		"plugin-version": plugin.Version(),
 		"plugin-path":    plugin.Details.Path,
 	}).Debugf("Removing plugin")
+
+	// remove plugin binary from tempDirPath (do not apply for remote plugin)
 	if strings.Contains(plugin.Details.Path, p.tempDirPath) {
 		if err := os.RemoveAll(filepath.Dir(plugin.Details.Path)); err != nil {
 			pmLogger.WithFields(log.Fields{
@@ -713,9 +726,10 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 		}).Debug("Nothing to delete as temp path is empty")
 	}
 
+	// remove plugin key
 	p.loadedPlugins.remove(plugin.Key())
 
-	// Remove any metrics from the catalog if this was a collector
+	// remove any metrics from the catalog if this was a collector
 	if plugin.TypeName() == core.CollectorPluginType.String() || plugin.TypeName() == core.StreamingCollectorPluginType.String() {
 		p.metricCatalog.RmUnloadedPluginMetrics(plugin)
 	}

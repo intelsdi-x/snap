@@ -119,6 +119,7 @@ type CatalogedPlugin interface {
 	PluginPath() string
 	LoadedTimestamp() *time.Time
 	Policy() *cpolicy.ConfigPolicy
+	Key() string
 }
 
 // the collection of cataloged plugins used

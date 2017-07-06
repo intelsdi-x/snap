@@ -605,45 +605,6 @@ func TestSnapClient(t *testing.T) {
 				})
 			})
 		})
-		Convey("UnloadPlugin", func() {
-			Convey("unload unknown plugin", func() {
-				p := c.UnloadPlugin("not a type", "foo", 3)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "plugin not found")
-			})
-			Convey("unload already unloaded plugin", func() {
-				p := c.UnloadPlugin("collector", "mock", 2)
-				So(p.Err, ShouldNotBeNil)
-				So(p.Err.Error(), ShouldEqual, "plugin not found")
-			})
-			Convey("unload one of multiple", func() {
-				p1 := c.GetPlugins(false)
-				So(p1.Err, ShouldBeNil)
-				So(len(p1.LoadedPlugins), ShouldEqual, 2)
-
-				p3 := c.UnloadPlugin("publisher", "mock-file", 3)
-				So(p3.Err, ShouldBeNil)
-				So(p3.Name, ShouldEqual, "mock-file")
-				So(p3.Version, ShouldEqual, 3)
-				So(p3.Type, ShouldEqual, "publisher")
-			})
-			Convey("unload when only one plugin loaded", func() {
-				p1 := c.GetPlugins(false)
-				So(p1.Err, ShouldBeNil)
-				So(len(p1.LoadedPlugins), ShouldEqual, 1)
-				So(p1.LoadedPlugins[0].Name, ShouldEqual, "mock")
-
-				p2 := c.UnloadPlugin("collector", "mock", 1)
-				So(p2.Err, ShouldBeNil)
-				So(p2.Name, ShouldEqual, "mock")
-				So(p2.Version, ShouldEqual, 1)
-				So(p2.Type, ShouldEqual, "collector")
-
-				p3 := c.GetPlugins(false)
-				So(p3.Err, ShouldBeNil)
-				So(len(p3.LoadedPlugins), ShouldEqual, 0)
-			})
-		})
 	})
 
 	c, err := New("http://localhost:-1", "v1", true)
@@ -676,6 +637,73 @@ func TestSnapClient(t *testing.T) {
 		So(err, ShouldBeNil)
 		r := c.GetTasks()
 		So(r.Err, ShouldNotBeNil)
+	})
+}
+
+func TestClient_UnloadPlugin(t *testing.T) {
+	CompressUpload = false
+
+	Convey("Client should exist", t, func() {
+		uri := startAPI()
+		c, cerr := New(uri, "v1", true)
+		wf := getWMFromSample("1.json")
+		sch := &Schedule{Type: "simple", Interval: "1s"}
+		So(cerr, ShouldBeNil)
+		if cerr == nil {
+			p1 = c.LoadPlugin(MOCK_PLUGIN_PATH1)
+			p2 = c.LoadPlugin(MOCK_PLUGIN_PATH2)
+			p3 = c.LoadPlugin(FILE_PLUGIN_PATH)
+		}
+		Convey("UnloadPlugin", func() {
+			Convey("unload unknown plugin", func() {
+				p := c.UnloadPlugin("not a type", "foo", 3)
+				So(p.Err, ShouldNotBeNil)
+				So(p.Err.Error(), ShouldEqual, "plugin not found")
+			})
+			Convey("unload loaded plugin", func() {
+				p := c.UnloadPlugin("publisher", "mock-file", 3)
+				So(p.Err, ShouldBeNil)
+				So(p.Name, ShouldEqual, "mock-file")
+				So(p.Version, ShouldEqual, 3)
+				So(p.Type, ShouldEqual, "publisher")
+
+				Convey("unload already unloaded plugin", func() {
+					p := c.UnloadPlugin("publisher", "mock-file", 3)
+					So(p.Err, ShouldNotBeNil)
+					So(p.Err.Error(), ShouldEqual, "plugin not found")
+				})
+			})
+			Convey("unload plugin used by task", func() {
+				tf := c.CreateTask(sch, wf, "baron", "", true, 0)
+				So(tf.Err, ShouldBeNil)
+				plgs := c.GetPlugins(false)
+				So(plgs.Err, ShouldBeNil)
+				So(len(plgs.LoadedPlugins), ShouldEqual, 3)
+
+				Convey("unload one of multiple", func() {
+					p2 := c.UnloadPlugin("collector", "mock", 2)
+					So(p2.Err, ShouldBeNil)
+					So(p2.Name, ShouldEqual, "mock")
+					So(p2.Version, ShouldEqual, 2)
+					So(p2.Type, ShouldEqual, "collector")
+
+					Convey("unload when only one left", func() {
+						p1 := c.UnloadPlugin("collector", "mock", 1)
+						So(p1.Err, ShouldNotBeNil)
+						So(p1.Err.Error(), ShouldStartWith, control.ErrPluginCannotBeUnloaded.Error())
+
+						Convey("unload after stopping the task", func() {
+							t := c.StopTask(tf.ID)
+							So(t.Err, ShouldBeNil)
+							p1 := c.UnloadPlugin("collector", "mock", 1)
+							So(p1.Name, ShouldEqual, "mock")
+							So(p1.Version, ShouldEqual, 1)
+							So(p1.Type, ShouldEqual, "collector")
+						})
+					})
+				})
+			})
+		})
 	})
 }
 

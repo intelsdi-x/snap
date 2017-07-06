@@ -61,6 +61,7 @@ type ManagesSubscriptionGroups interface {
 		plugins []core.SubscribedPlugin,
 		configTree *cdata.ConfigDataTree, asserts ...core.SubscribedPluginAssert) (serrs []serror.SnapError)
 	validateMetric(metric core.Metric) (serrs []serror.SnapError)
+	validatePluginUnloading(*loadedPlugin) (errs []serror.SnapError)
 }
 
 type subscriptionGroup struct {
@@ -253,6 +254,20 @@ func (s *subscriptionGroups) ValidateDeps(requested []core.RequestedMetric,
 	return
 }
 
+// validatePluginUnloading checks if process of unloading the plugin is safe for existing running tasks.
+// If the plugin is used by running task and there is no replacements, return an error with appropriate message
+// containing ids of tasks which use the plugin, what blocks unloading process until they are stopped
+func (s *subscriptionGroups) validatePluginUnloading(pluginToUnload *loadedPlugin) (errs []serror.SnapError) {
+	s.Lock()
+	defer s.Unlock()
+	for id, group := range s.subscriptionMap {
+		if err := group.validatePluginUnloading(id, pluginToUnload); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errs
+}
+
 func (p *subscriptionGroups) validatePluginSubscription(pl core.SubscribedPlugin, mergedConfig *cdata.ConfigDataNode) []serror.SnapError {
 	var serrs = []serror.SnapError{}
 	controlLogger.WithFields(log.Fields{
@@ -345,6 +360,69 @@ func (s *subscriptionGroups) validateMetric(
 	return serrs
 }
 
+// pluginIsSubscribed returns true if a provided plugin has been found among subscribed plugins
+// in the following subscription group
+func (s *subscriptionGroup) pluginIsSubscribed(plugin *loadedPlugin) bool {
+	// range over subscribed plugins to find if the plugin is there
+	for _, sp := range s.plugins {
+		if sp.TypeName() == plugin.TypeName() && sp.Name() == plugin.Name() && sp.Version() == plugin.Version() {
+			return true
+		}
+	}
+	return false
+}
+
+// validatePluginUnloading verifies if a given plugin might be unloaded without causing running task failures
+func (s *subscriptionGroup) validatePluginUnloading(id string, plgToUnload *loadedPlugin) (serr serror.SnapError) {
+	impacted := false
+	if !s.pluginIsSubscribed(plgToUnload) {
+		// the plugin is not subscribed, so the task is not impacted by its unloading
+		return nil
+	}
+	controlLogger.WithFields(log.Fields{
+		"_block":           "subscriptionGroup.validatePluginUnloading",
+		"task-id":          id,
+		"plugin-to-unload": plgToUnload.Key(),
+	}).Debug("validating impact of unloading the plugin")
+
+	for _, requestedMetric := range s.requestedMetrics {
+		// get all plugins exposing the requested metric
+		plgs, _ := s.GetPlugins(requestedMetric.Namespace())
+		// when requested version is fixed (greater than 0), take into account only plugins in the requested version
+		if requestedMetric.Version() > 0 {
+			// skip those which are not impacted by unloading (version different than plgToUnload.Version())
+			if requestedMetric.Version() == plgToUnload.Version() {
+				plgsInVer := []core.CatalogedPlugin{}
+
+				for _, plg := range plgs {
+					if plg.Version() == requestedMetric.Version() {
+						plgsInVer = append(plgsInVer, plg)
+					}
+				}
+				// set plugins only in the requested version
+				plgs = plgsInVer
+			}
+		}
+		if len(plgs) == 1 && plgs[0].Key() == plgToUnload.Key() {
+			// the requested metric is exposed only by the single plugin and there is no replacement
+			impacted = true
+			controlLogger.WithFields(log.Fields{
+				"_block":           "subscriptionGroup.validatePluginUnloading",
+				"task-id":          id,
+				"plugin-to-unload": plgToUnload.Key(),
+				"requested-metric": fmt.Sprintf("%s:%d", requestedMetric.Namespace(), requestedMetric.Version()),
+			}).Errorf("unloading the plugin would cause missing in collection the requested metric")
+		}
+	}
+	if impacted {
+		serr = serror.New(ErrPluginCannotBeUnloaded, map[string]interface{}{
+			"task-id":          id,
+			"plugin-to-unload": plgToUnload.Key(),
+		})
+	}
+	return serr
+}
+
 func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 	// gathers collectors based on requested metrics
 	pluginToMetricMap, plugins, serrs := s.getMetricsAndCollectors(s.requestedMetrics, s.configTree)
@@ -353,23 +431,22 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 		"metrics":    fmt.Sprintf("%+v", s.requestedMetrics),
 	}).Debug("gathered collectors")
 
+	// notice that requested plugins contains only processors and publishers
 	for _, plugin := range s.requestedPlugins {
-		//add processors and publishers to collectors just gathered
-		if plugin.TypeName() != core.CollectorPluginType.String() {
-			plugins = append(plugins, plugin)
-			// add defaults to plugins (exposed in a plugins ConfigPolicy)
-			if lp, err := s.pluginManager.get(
-				fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d",
-					plugin.TypeName(),
-					plugin.Name(),
-					plugin.Version())); err == nil && lp.ConfigPolicy != nil {
-				if policy := lp.ConfigPolicy.Get([]string{""}); policy != nil && len(policy.Defaults()) > 0 {
-					plugin.Config().ApplyDefaults(policy.Defaults())
-				}
+		// add processors and publishers to collectors just gathered
+		plugins = append(plugins, plugin)
+		// add defaults to plugins (exposed in a plugins ConfigPolicy)
+		if lp, err := s.pluginManager.get(
+			fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d",
+				plugin.TypeName(),
+				plugin.Name(),
+				plugin.Version())); err == nil && lp.ConfigPolicy != nil {
+			if policy := lp.ConfigPolicy.Get([]string{""}); policy != nil && len(policy.Defaults()) > 0 {
+				// set defaults to plugin config
+				plugin.Config().ApplyDefaults(policy.Defaults())
 			}
 		}
 	}
-
 	// calculates those plugins that need to be subscribed and unsubscribed to
 	subs, unsubs := comparePlugins(plugins, s.plugins)
 	controlLogger.WithFields(log.Fields{
@@ -387,7 +464,7 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 		}
 	}
 
-	//updating view
+	// updating view
 	// metrics are grouped by plugin
 	s.metrics = pluginToMetricMap
 	s.plugins = plugins

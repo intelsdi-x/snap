@@ -19,8 +19,7 @@ limitations under the License.
 package fixtures
 
 import (
-	"strconv"
-	"strings"
+	"fmt"
 	"time"
 
 	"github.com/intelsdi-x/snap/control/plugin"
@@ -140,7 +139,7 @@ func (m MockAvailablePlugin) LastHit() time.Time {
 }
 
 func (m MockAvailablePlugin) String() string {
-	return strings.Join([]string{m.pluginType.String(), m.pluginName, strconv.Itoa(m.Version())}, core.Separator)
+	return fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d", m.pluginType.String(), m.pluginName, m.Version())
 }
 
 func (m MockAvailablePlugin) Kill(string) error {
