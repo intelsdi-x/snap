@@ -217,7 +217,7 @@ func TestSecureStreamingCollector(t *testing.T) {
 				SetCertPath(tlsTestSrv+fixtures.TestCrtFileExt).
 				SetKeyPath(tlsTestSrv+fixtures.TestKeyFileExt).
 				SetCACertPaths(tlsTestCA+fixtures.TestCrtFileExt).
-				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-stream-collector-rand1"),
+				SetTLSEnabled(true), helper.PluginFilePath("snap-plugin-streaming-collector-rand1"),
 				security)
 			So(err, ShouldBeNil)
 			Convey("and valid plugin client should be obtained", func() {
