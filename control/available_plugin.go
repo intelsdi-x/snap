@@ -531,7 +531,7 @@ func (ap *availablePlugins) streamMetrics(
 		return nil, nil, serror.New(errors.New("Invalid streaming client"))
 	}
 
-	metricChan, errChan, err := cli.StreamMetrics(metricTypes)
+	metricChan, errChan, err := cli.StreamMetrics(taskID, metricTypes)
 	if err != nil {
 		return nil, nil, serror.New(err)
 	}

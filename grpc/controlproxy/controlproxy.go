@@ -19,10 +19,9 @@ limitations under the License.
 package controlproxy
 
 import (
+	"context"
 	"errors"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
@@ -49,7 +48,7 @@ type ControlProxy struct {
 }
 
 func New(addr string, port int) (ControlProxy, error) {
-	conn, err := rpcutil.GetClientConnection(addr, port)
+	conn, err := rpcutil.GetClientConnection(context.Background(), addr, port)
 	if err != nil {
 		return ControlProxy{}, err
 	}

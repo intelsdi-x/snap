@@ -46,7 +46,7 @@ type PluginCollectorClient interface {
 
 type PluginStreamCollectorClient interface {
 	PluginClient
-	StreamMetrics([]core.Metric) (chan []core.Metric, chan error, error)
+	StreamMetrics(string, []core.Metric) (chan []core.Metric, chan error, error)
 	GetMetricTypes(plugin.ConfigType) ([]core.Metric, error)
 	UpdateCollectedMetrics([]core.Metric) error
 	UpdatePluginConfig([]byte) error

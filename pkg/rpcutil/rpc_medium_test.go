@@ -22,6 +22,7 @@ limitations under the License.
 package rpcutil
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -29,7 +30,7 @@ import (
 
 func TestRpcUtil(t *testing.T) {
 	Convey("Get a client connection", t, func() {
-		conn, err := GetClientConnection("127.0.0.1", 8183)
+		conn, err := GetClientConnection(context.Background(), "127.0.0.1", 8183)
 		Convey("Provided a valid address, port", func() {
 			So(err, ShouldBeNil)
 			So(conn, ShouldNotBeNil)
