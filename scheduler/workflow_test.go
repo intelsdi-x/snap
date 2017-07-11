@@ -143,7 +143,7 @@ func TestCollectPublishWorkflow(t *testing.T) {
 			So(err, ShouldBeNil)
 			rp2, err := core.NewRequestedPlugin(snap_publisher_file_path, c.GetTempDir(), nil)
 			So(err, ShouldBeNil)
-			_, err = c.Load(rp2)
+			plugPublisher, err := c.Load(rp2)
 			So(err, ShouldBeNil)
 			rp3, err := core.NewRequestedPlugin(snap_processor_passthru_path, c.GetTempDir(), nil)
 			So(err, ShouldBeNil)
@@ -189,6 +189,12 @@ func TestCollectPublishWorkflow(t *testing.T) {
 					So(t.LastFailureMessage(), ShouldBeEmpty)
 					So(t.FailedCount(), ShouldEqual, 0)
 					So(t.HitCount(), ShouldBeGreaterThan, metricsToCollect)
+
+					// check if task fails after unloading publisher
+					c.Unload(plugPublisher)
+					<-el.done
+					So(t.LastFailureMessage(), ShouldNotBeEmpty)
+					So(t.FailedCount(), ShouldBeGreaterThan, 0)
 				})
 			})
 		})

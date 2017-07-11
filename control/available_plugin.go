@@ -625,7 +625,7 @@ func (ap *availablePlugins) findLatestPool(pType, name string) (strategy.Pool, s
 	var latest strategy.Pool
 	for key, pool := range ap.table {
 		tnv := strings.Split(key, core.Separator)
-		if tnv[0] == pType && tnv[1] == name {
+		if tnv[0] == pType && tnv[1] == name && pool.Count() > 0 {
 			latest = pool
 			break
 		}
@@ -633,7 +633,7 @@ func (ap *availablePlugins) findLatestPool(pType, name string) (strategy.Pool, s
 	if latest != nil {
 		for key, pool := range ap.table {
 			tnv := strings.Split(key, core.Separator)
-			if tnv[0] == pType && tnv[1] == name && pool.Version() > latest.Version() {
+			if tnv[0] == pType && tnv[1] == name && pool.Version() > latest.Version() && pool.Count() > 0 {
 				latest = pool
 			}
 		}
