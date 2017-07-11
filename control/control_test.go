@@ -1367,7 +1367,7 @@ func TestStreamMetrics(t *testing.T) {
 		c.eventManager.RegisterHandler("Control.PluginLoaded", lpe)
 
 		// Load plugin
-		_, e := load(c, fixtures.PluginPathStreamRand1)
+		_, e := load(c, fixtures.PluginPathStreamingRand1)
 		So(e, ShouldBeNil)
 		<-lpe.done
 		mts, err := c.MetricCatalog()
@@ -1392,7 +1392,7 @@ func TestStreamMetrics(t *testing.T) {
 		}
 
 		// retrieve loaded plugin
-		lp, err := c.pluginManager.get("collector" + core.Separator + "test-rand-streamer" + core.Separator + "1")
+		lp, err := c.pluginManager.get("streaming-collector" + core.Separator + "test-rand-streamer" + core.Separator + "1")
 		So(err, ShouldBeNil)
 		So(lp, ShouldNotBeNil)
 
@@ -1406,10 +1406,10 @@ func TestStreamMetrics(t *testing.T) {
 		taskHit := "hitting"
 
 		Convey("create a pool, add subscriptions and start plugins", func() {
-			serrs := c.SubscribeDeps(taskHit, r, []core.SubscribedPlugin{subscribedPlugin{typeName: "collector", name: "test-rand-streamer", version: 1}}, cdt)
+			serrs := c.SubscribeDeps(taskHit, r, []core.SubscribedPlugin{subscribedPlugin{typeName: "streaming-collector", name: "test-rand-streamer", version: 1}}, cdt)
 			So(serrs, ShouldBeNil)
 
-			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("collector" + core.Separator + "test-rand-streamer" + core.Separator + "1")
+			pool, errp := c.pluginRunner.AvailablePlugins().getOrCreatePool("streaming-collector" + core.Separator + "test-rand-streamer" + core.Separator + "1")
 			So(errp, ShouldBeNil)
 			So(pool, ShouldNotBeNil)
 

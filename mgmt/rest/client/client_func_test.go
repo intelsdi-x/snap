@@ -51,6 +51,8 @@ var (
 	MOCK_PLUGIN_PATH2       = []string{helper.PluginFilePath("snap-plugin-collector-mock2")}
 	ANOTHERMOCK_PLUGIN_PATH = []string{helper.PluginFilePath("snap-plugin-collector-anothermock1")}
 	FILE_PLUGIN_PATH        = []string{helper.PluginFilePath("snap-plugin-publisher-mock-file")}
+	RAND_PLUGIN_PATH        = []string{helper.PluginFilePath("snap-plugin-streaming-collector-rand1")}
+	PASSTHRU_PLUGIN_PATH    = []string{helper.PluginFilePath("snap-plugin-processor-passthru")}
 	DIRECTORY_PATH          = []string{helper.PluginPath()}
 
 	NextPort = 45000
@@ -637,6 +639,61 @@ func TestSnapClient(t *testing.T) {
 		So(err, ShouldBeNil)
 		r := c.GetTasks()
 		So(r.Err, ShouldNotBeNil)
+	})
+}
+
+func TestClient_SimpleLoadAndUnloadPlugin(t *testing.T) {
+	CompressUpload = false
+
+	Convey("Client should exist", t, func() {
+		uri := startAPI()
+		c, cerr := New(uri, "v1", true)
+		So(cerr, ShouldBeNil)
+
+		Convey("load collector plugin", func() {
+			p := c.LoadPlugin(MOCK_PLUGIN_PATH1)
+			So(p.Err, ShouldBeNil)
+			Convey("unload loaded plugin", func() {
+				p := c.UnloadPlugin("collector", "mock", 1)
+				So(p.Err, ShouldBeNil)
+				So(p.Name, ShouldEqual, "mock")
+				So(p.Version, ShouldEqual, 1)
+				So(p.Type, ShouldEqual, "collector")
+			})
+		})
+		Convey("load publisher plugin", func() {
+			p := c.LoadPlugin(FILE_PLUGIN_PATH)
+			So(p.Err, ShouldBeNil)
+			Convey("unload loaded plugin", func() {
+				p := c.UnloadPlugin("publisher", "mock-file", 3)
+				So(p.Err, ShouldBeNil)
+				So(p.Name, ShouldEqual, "mock-file")
+				So(p.Version, ShouldEqual, 3)
+				So(p.Type, ShouldEqual, "publisher")
+			})
+		})
+		Convey("load processor plugin", func() {
+			p := c.LoadPlugin(PASSTHRU_PLUGIN_PATH)
+			So(p.Err, ShouldBeNil)
+			Convey("unload loaded plugin", func() {
+				p := c.UnloadPlugin("processor", "passthru", 1)
+				So(p.Err, ShouldBeNil)
+				So(p.Name, ShouldEqual, "passthru")
+				So(p.Version, ShouldEqual, 1)
+				So(p.Type, ShouldEqual, "processor")
+			})
+		})
+		Convey("load streaming collector plugin", func() {
+			p := c.LoadPlugin(RAND_PLUGIN_PATH)
+			So(p.Err, ShouldBeNil)
+			Convey("unload loaded plugin", func() {
+				p := c.UnloadPlugin("streaming-collector", "test-rand-streamer", 1)
+				So(p.Err, ShouldBeNil)
+				So(p.Name, ShouldEqual, "test-rand-streamer")
+				So(p.Version, ShouldEqual, 1)
+				So(p.Type, ShouldEqual, "streaming-collector")
+			})
+		})
 	})
 }
 
