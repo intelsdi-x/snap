@@ -23,9 +23,11 @@ limitations under the License.
 
 - [Secure Plugin Communication](#secure-plugin-communication)
     - [Overview](#overview)
-    - [Usage](#usage)
-        - [Shortest guide](#shortest-guide)
-        - [Detailed preparation](#detailed-preparation)
+    - [Prerequisites](#prerequisites)
+    - [Plugin modes of operation allowing TLS encrypted communication](#plugin-modes-of-operation-allowing-tls-encrypted-communication)
+        - [Stand-alone plugins running on web addressable hosts](#stand-alone-plugins-running-on-web-addressable-hosts)
+        - [Plugins running locally](#plugins-running-locally)
+    - [Detailed preparation](#detailed-preparation)
         - [Enabling secure communication](#enabling-secure-communication)
         - [Using system-installed CA certificates](#using-system-installed-ca-certificates)
     - [More information](#more-information)
@@ -42,21 +44,49 @@ limitations under the License.
 Snap framework communicates with plugins over gRPC protocol, which in general transfers data in plaintext.
 Snap allows securing communication with plugins by opening TLS channels and using certificates to authenticate plugins and framework.
 
-## Usage 
+Instructions given in this document allows launching workflows with TLS encrypted communication.
+
+## Prerequisites
 
 This walkthrough assumes you have downloaded a Snap release as described in [Getting Started](../README.md#getting-started).
 
-### Shortest guide
+## Plugin modes of operation allowing TLS encrypted communication
 
-Assuming all the test files are available (basing on [test instructions](#obtaining-self-signed-tls-certificates-for-tests)) , the following steps will result in secure plugin communication:
+At present there are two modes of plugin operation that support TLS secured communication:
+* stand-alone plugins running on web addressable hosts,
+* locally launched plugins.
 
+### Stand-alone plugins running on web addressable hosts
+
+TLS may be employed to secure communication with stand-alone plugins. In such setup the Snap will be communicating securely with remote plugin instances running in dedicated domains.
+
+Assuming that TLS certificate and key files are available (see [SETUP_TLS_CERTIFICATES](SETUP_TLS_CERTIFICATES.md)), the following steps will result in plugin communication encrypted with TLS:
+
+On a remote host mapped to own domain, e.g. `collectors.example.net`:
+```bash
+$ snap-plugin-collector-psutil --stand-alone --stand-alone-port 8281 --addr collectors.example.net --tls --cert-path /tmp/collectors.example.net-srv.crt --key-path /tmp/collectors.example.net-srv.key --root-cert-paths /tmp/example.net-ca.crt
+$ snap-plugin-publisher-influxdb --stand-alone --stand-alone-port 8381 --addr collectors.example.net --tls --cert-path /tmp/collectors.example.net-srv.crt --key-path /tmp/collectors.example.net-srv.key --root-cert-paths /tmp/example.net-ca.crt
 ```
-snapteld --log-level 1 --plugin-trust 0 --tls-cert /tmp/snaptest-cli.crt --tls-key /tmp/snaptest-cli.key --ca-cert-paths /tmp/snaptest-ca.crt
-snaptel plugin load --plugin-cert /tmp/snaptest-srv.crt --plugin-key /tmp/snaptest-srv.key --plugin-ca-certs /tmp/snaptest-ca.crt plugins/snap-plugin-collector-rand
-snaptel task create -t sample-task.json
+
+On a machine dedicated for running framework daemon `snapteld`:
+```bash
+$ snapteld --log-level 1 --plugin-trust 0 --tls-cert=/tmp/daemon.example.net-cli.crt --tls-key=/tmp/daemon.example.net-cli.key --ca-cert-paths=/tmp/example.net-ca.crt
+$ snaptel plugin load http://collectors.example.net:8281
+$ snaptel plugin load http://collectors.example.net:8381
+$ snaptel task create -t sample-task.json
 ```
 
-### Detailed preparation
+### Plugins running locally
+
+Assuming all the test files are available (basing on [test instructions](#obtaining-self-signed-tls-certificates-for-tests)), the following steps will result in plugin communication encrypted with TLS:
+
+```bash
+$ snapteld --log-level 1 --plugin-trust 0 --tls-cert /tmp/snaptest-cli.crt --tls-key /tmp/snaptest-cli.key --ca-cert-paths /tmp/snaptest-ca.crt
+$ snaptel plugin load --plugin-cert /tmp/snaptest-srv.crt --plugin-key /tmp/snaptest-srv.key --plugin-ca-certs /tmp/snaptest-ca.crt plugins/snap-plugin-collector-rand
+$ snaptel task create -t sample-task.json
+```
+
+## Detailed preparation
 
 Starting secure communication requires following steps:
 1. Obtain X.509 certificate and private key for framework.
@@ -72,15 +102,16 @@ We do provide a short guide on obtaining self-signed certificates that may be us
 ### Enabling secure communication
 
 Secure communication is enabled by passing the required paths to programs: `snapteld`, and plugin (via `snaptel`). The minimum paths necessary are:
-* for `snapteld`: `--tls-cert`, `--tls-key`,
-* for plugins (`snaptel`): `--plugin-cert`, `--plugin-key`.
+* for `snapteld`: `--tls-cert`, `--tls-key`
+* for locally running plugins (`snaptel`): `--plugin-cert`, `--plugin-key`
+* for plugins started in stand-alone mode: `--tls`, `--cert-path`, `--key-path`.
 
 The required paths are sufficient and necessary to enable TLS. Daemon (`snapteld`) and plugins (via `snaptel`) will refuse to start if certificate or key file argument is missing.
 
 ### Using system-installed CA certificates
 
 Framework and plugins need CA certificates to validate each other's certificate. The CA certificates may be obtained in two ways:
-* by passing a list of CA certificate paths directly as a parameter, e.g.: `--ca-cert-paths=/tmp/small-setup-ca.crt:/tmp/medium-setup-ca.crt:/tmp/ca-certs/`, `--plugin-ca-certs`
+* by passing a list of CA certificate paths directly as a parameter, e.g.: `--ca-cert-paths=/tmp/small-setup-ca.crt:/tmp/medium-setup-ca.crt:/tmp/ca-certs/` (snapteld), `--plugin-ca-certs` (snaptel), `--root-cert-paths` (stand-alone plugin)
     * plugin as well as framework will examine each path in the list and either load a file directly or list directory contents and load the enumerated files (e.g.: the files in `/tmp/ca-certs/` folder) 
 * by relying on default CA certificate discovery mechanism
     * plugin and framework will by default load certificates from system (if no paths were given as parameter). Each OS has its own specific locations, e.g.: `/etc/ssl/certs` on Ubuntu. This mechanism is provided by Go language, and is only available on selected OSes.     
@@ -111,11 +142,11 @@ Snap plugin security is subject to following constraints:
 
 ### Obtaining self-signed TLS certificates for tests
 
-The following intstructions will result in TLS certificate files. These files may be used for manual tests.
+The following instructions will result in self-signed TLS certificate files. These files may be used for manual tests. For officially signed certificates refer to document [SETUP_TLS_CERTIFICATES](SETUP_TLS_CERTIFICATES.md).
 1. Install tool [certstrap](https://github.com/square/certstrap) for generating test certificates. Further steps will assume that `certstrap` is available under `$PATH` location.
 1. Generate root CA certificate:
     ```
-    certstrap init --cn "snaptest-ca" --o "snaptest" --ou "ca" --key-bits 2048 --years 1 --passphrase '
+    certstrap init --cn "snaptest-ca" --o "snaptest" --ou "ca" --key-bits 2048 --years 1 --passphrase ''
     ```
 1. **optional** Install root CA certificate in the system:
     ```
@@ -142,6 +173,7 @@ The following files are relevant for running the tests:
 
 ## More information
 
+* [SETUP_TLS_CERTIFICATES](SETUP_TLS_CERTIFICATES.md)
 * [SNAPTELD_CONFIGURATION.md](SNAPTELD_CONFIGURATION.md)
 * [SNAPTELD](SNAPTELD.md)
 * [SNAPTEL](SNAPTEL.md)
