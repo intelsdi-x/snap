@@ -120,7 +120,8 @@ At the moment there's no way to use domain-bound certificates directly in Snap. 
     ```
     wget https://dl.eff.org/certbot-auto
     chmod a+x certbot-auto
-    ``` (CentOS)
+    ```
+    (CentOS)
 1. Request a certificate from Let's Encrypt using Certbot:
     ```
     mkdir -p tmp/certbot/conf.d tmp/certbot/work.d tmp/certbot/log.d
