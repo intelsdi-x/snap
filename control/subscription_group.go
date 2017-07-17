@@ -433,8 +433,6 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 
 	// notice that requested plugins contains only processors and publishers
 	for _, plugin := range s.requestedPlugins {
-		// add processors and publishers to collectors just gathered
-		plugins = append(plugins, plugin)
 		// add defaults to plugins (exposed in a plugins ConfigPolicy)
 		if lp, err := s.pluginManager.get(
 			fmt.Sprintf("%s"+core.Separator+"%s"+core.Separator+"%d",
@@ -445,6 +443,21 @@ func (s *subscriptionGroup) process(id string) (serrs []serror.SnapError) {
 				// set defaults to plugin config
 				plugin.Config().ApplyDefaults(policy.Defaults())
 			}
+
+			// update version info for subscribed processor or publisher
+			version := plugin.Version()
+			if version < 1 {
+				version = lp.Version()
+			}
+			s := subscribedPlugin{
+				name:     plugin.Name(),
+				typeName: plugin.TypeName(),
+				version:  version,
+				config:   plugin.Config(),
+			}
+
+			// add processors and publishers to collectors just gathered
+			plugins = append(plugins, s)
 		}
 	}
 	// calculates those plugins that need to be subscribed and unsubscribed to
