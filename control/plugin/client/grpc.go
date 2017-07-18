@@ -538,6 +538,10 @@ func (g *grpcClient) handleInStream(
 		for {
 			in, err := g.stream.Recv()
 			if err != nil {
+				g.conn.Close()
+				if strings.Contains(err.Error(), "transport is closing") {
+					errChan <- errors.New("connection broken")
+				}
 				errChan <- err
 				break
 			}

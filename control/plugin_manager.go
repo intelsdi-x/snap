@@ -545,7 +545,9 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			}
 
 			colClient := ap.client.(client.PluginCollectorClient)
-			defer ap.client.(client.PluginCollectorClient).Close()
+			if !ap.isRemote {
+				defer ap.client.(client.PluginCollectorClient).Close()
+			}
 
 			cfg := plugin.ConfigType{
 				ConfigDataNode: cfgNode,
@@ -652,6 +654,27 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 				"error":  aErr,
 			}).Error("load plugin error while adding loaded plugin to load plugins collection")
 			resultChan <- result{nil, aErr}
+		}
+		if ap.isRemote && aErr == nil {
+			// monitor standalone plugins. Unload them from the plugin catalog and metrics list
+			// when we detect they are no longer online.
+			go func() {
+				defer ap.client.(client.PluginCollectorClient).Close()
+				for {
+					time.Sleep(5 * time.Second)
+					go ap.CheckHealth()
+					if ap.failedHealthChecks > 3 {
+						p.UnloadPlugin(lPlugin)
+						return
+					}
+					if _, err := p.loadedPlugins.get(lPlugin.Key()); err != nil {
+						// prevent leaking routine when plugin is unloaded normally
+						return
+					}
+
+				}
+			}()
+
 		}
 		resultChan <- result{lPlugin, nil}
 		return
