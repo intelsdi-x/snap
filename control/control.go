@@ -817,7 +817,8 @@ func (p *pluginControl) getMetricsAndCollectors(requested []core.RequestedMetric
 			mt.config = cfg
 
 			// apply the defaults from the global (plugin) config
-			cfgNode := p.pluginManager.GetPluginConfig().getPluginConfigDataNode(core.CollectorPluginType, mt.Plugin.Name(), mt.Plugin.Version())
+			plType, _ := core.ToPluginType(mt.Plugin.TypeName())
+			cfgNode := p.pluginManager.GetPluginConfig().getPluginConfigDataNode(plType, mt.Plugin.Name(), mt.Plugin.Version())
 			cfg.ApplyDefaults(cfgNode.Table())
 
 			// apply defaults to the metric that may be present in the plugins
@@ -1111,7 +1112,7 @@ func (p *pluginControl) StreamMetrics(
 			if mt.Config() != nil {
 				mt.Config().ReverseMergeInPlace(
 					p.Config.Plugins.getPluginConfigDataNode(
-						core.CollectorPluginType,
+						core.StreamingCollectorPluginType,
 						pmt.plugin.Name(),
 						pmt.plugin.Version()))
 			}
