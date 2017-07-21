@@ -302,13 +302,6 @@ func (a *availablePlugin) Kill(r string) error {
 // CheckHealth checks the health of a plugin and updates
 // a.failedHealthChecks
 func (a *availablePlugin) CheckHealth() {
-	if a.IsRemote() {
-		runnerLog.WithFields(log.Fields{
-			"_module": "control-aplugin",
-			"_block":  "check-health",
-		}).Debug(fmt.Sprintf("bypassing check-health on standalone plugin"))
-		return
-	}
 	go func() {
 		a.healthChan <- a.client.Ping()
 	}()
