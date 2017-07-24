@@ -159,12 +159,12 @@ func (f *Mock) GetMetricTypes(cfg plugin.Config) ([]plugin.Metric, error) {
 func (f *Mock) GetConfigPolicy() (plugin.ConfigPolicy, error) {
 	p := plugin.NewConfigPolicy()
 
-	err := p.AddNewStringRule([]string{"intel", "mock", "foo"}, "name", false, plugin.SetDefaultString("bob"))
+	err := p.AddNewStringRule([]string{"intel", "mock", "test%>"}, "name", false, plugin.SetDefaultString("bob"))
 	if err != nil {
 		return *p, err
 	}
 
-	err = p.AddNewStringRule([]string{"intel", "mock", "foo"}, "password", true)
+	err = p.AddNewStringRule([]string{"intel", "mock", "/foo=㊽"}, "password", true)
 
 	return *p, err
 }
