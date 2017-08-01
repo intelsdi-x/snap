@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -31,13 +32,13 @@ import (
 const grpcDialDefaultTimeout = 2 * time.Second
 
 // GetClientConnection returns a grcp.ClientConn that is unsecured
-func GetClientConnection(addr string, port int) (*grpc.ClientConn, error) {
-	return GetClientConnectionWithCreds(addr, port, nil)
+func GetClientConnection(ctx context.Context, addr string, port int) (*grpc.ClientConn, error) {
+	return GetClientConnectionWithCreds(ctx, addr, port, nil)
 }
 
 // GetClientConnectionWithCreds returns a grcp.ClientConn with optional TLS
 // security (if creds != nil)
-func GetClientConnectionWithCreds(addr string, port int, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
+func GetClientConnectionWithCreds(ctx context.Context, addr string, port int, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
 	grpcDialOpts := []grpc.DialOption{
 		grpc.WithTimeout(grpcDialDefaultTimeout),
 	}
@@ -46,7 +47,8 @@ func GetClientConnectionWithCreds(addr string, port int, creds credentials.Trans
 	} else {
 		grpcDialOpts = append(grpcDialOpts, grpc.WithInsecure())
 	}
-	conn, err := grpc.Dial(fmt.Sprintf("%v:%v", addr, port), grpcDialOpts...)
+
+	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%v:%v", addr, port), grpcDialOpts...)
 	if err != nil {
 		return nil, err
 	}

@@ -45,6 +45,7 @@ import (
 	"github.com/intelsdi-x/snap/core/cdata"
 	"github.com/intelsdi-x/snap/core/ctypes"
 	"github.com/intelsdi-x/snap/pkg/rpcutil"
+	"google.golang.org/grpc/metadata"
 )
 
 // SecureSide identifies security mode to apply in securing gRPC
@@ -69,6 +70,7 @@ type grpcClient struct {
 	processor       rpc.ProcessorClient
 	publisher       rpc.PublisherClient
 	plugin          pluginClient
+	context         context.Context
 
 	// Channel used to signal death of stream collector to scheduler
 	killChan chan struct{}
@@ -123,7 +125,8 @@ func SecurityTLSOff() GRPCSecurity {
 
 // NewCollectorGrpcClient returns a collector gRPC Client.
 func NewCollectorGrpcClient(address string, timeout time.Duration, security GRPCSecurity) (PluginCollectorClient, error) {
-	p, err := newPluginGrpcClient(address, timeout, security, plugin.CollectorPluginType)
+	ctx := context.Background()
+	p, err := newPluginGrpcClient(ctx, address, timeout, security, plugin.CollectorPluginType)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +135,8 @@ func NewCollectorGrpcClient(address string, timeout time.Duration, security GRPC
 
 // NewStreamCollectorGrpcClient returns a stream collector gRPC client
 func NewStreamCollectorGrpcClient(address string, timeout time.Duration, security GRPCSecurity) (PluginStreamCollectorClient, error) {
-	p, err := newPluginGrpcClient(address, timeout, security, plugin.StreamCollectorPluginType)
+	ctx := context.Background()
+	p, err := newPluginGrpcClient(ctx, address, timeout, security, plugin.StreamCollectorPluginType)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +145,8 @@ func NewStreamCollectorGrpcClient(address string, timeout time.Duration, securit
 
 // NewProcessorGrpcClient returns a processor gRPC Client.
 func NewProcessorGrpcClient(address string, timeout time.Duration, security GRPCSecurity) (PluginProcessorClient, error) {
-	p, err := newPluginGrpcClient(address, timeout, security, plugin.ProcessorPluginType)
+	ctx := context.Background()
+	p, err := newPluginGrpcClient(ctx, address, timeout, security, plugin.ProcessorPluginType)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +155,8 @@ func NewProcessorGrpcClient(address string, timeout time.Duration, security GRPC
 
 // NewPublisherGrpcClient returns a publisher gRPC Client.
 func NewPublisherGrpcClient(address string, timeout time.Duration, security GRPCSecurity) (PluginPublisherClient, error) {
-	p, err := newPluginGrpcClient(address, timeout, security, plugin.PublisherPluginType)
+	ctx := context.Background()
+	p, err := newPluginGrpcClient(ctx, address, timeout, security, plugin.PublisherPluginType)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +255,7 @@ func buildCredentials(security GRPCSecurity) (creds credentials.TransportCredent
 }
 
 // newPluginGrpcClient returns a configured gRPC Client.
-func newPluginGrpcClient(address string, timeout time.Duration, security GRPCSecurity, typ plugin.PluginType) (interface{}, error) {
+func newPluginGrpcClient(ctx context.Context, address string, timeout time.Duration, security GRPCSecurity, typ plugin.PluginType) (interface{}, error) {
 	address, port, err := parseAddress(address)
 	if err != nil {
 		return nil, err
@@ -259,7 +265,7 @@ func newPluginGrpcClient(address string, timeout time.Duration, security GRPCSec
 	if creds, err = buildCredentials(security); err != nil {
 		return nil, err
 	}
-	p, err = newGrpcClient(address, int(port), timeout, typ, creds)
+	p, err = newGrpcClient(ctx, address, int(port), timeout, typ, creds)
 	if err != nil {
 		return nil, err
 	}
@@ -279,15 +285,16 @@ func parseAddress(address string) (string, int64, error) {
 	return address, port, nil
 }
 
-func newGrpcClient(addr string, port int, timeout time.Duration, typ plugin.PluginType, creds credentials.TransportCredentials) (*grpcClient, error) {
+func newGrpcClient(ctx context.Context, addr string, port int, timeout time.Duration, typ plugin.PluginType, creds credentials.TransportCredentials) (*grpcClient, error) {
 	var conn *grpc.ClientConn
 	var err error
-	if conn, err = rpcutil.GetClientConnectionWithCreds(addr, port, creds); err != nil {
+	if conn, err = rpcutil.GetClientConnectionWithCreds(ctx, addr, port, creds); err != nil {
 		return nil, err
 	}
 	p := &grpcClient{
 		timeout: timeout,
 		conn:    conn,
+		context: ctx,
 	}
 
 	switch typ {
@@ -455,7 +462,7 @@ func (g *grpcClient) UpdateMetricsBuffer(maxMetricsBuffer int64) error {
 	return nil
 }
 
-func (g *grpcClient) StreamMetrics(mts []core.Metric) (chan []core.Metric, chan error, error) {
+func (g *grpcClient) StreamMetrics(taskID string, mts []core.Metric) (chan []core.Metric, chan error, error) {
 	arg := &rpc.CollectArg{
 		Metrics_Arg: &rpc.MetricsArg{Metrics: NewMetrics(mts)},
 	}
@@ -514,7 +521,12 @@ func (g *grpcClient) StreamMetrics(mts []core.Metric) (chan []core.Metric, chan 
 		}
 	}
 
-	s, err := g.streamCollector.StreamMetrics(context.Background())
+	header := metadata.New(map[string]string{
+		"task-id": taskID,
+	})
+	ctx := metadata.NewContext(g.context, header)
+
+	s, err := g.streamCollector.StreamMetrics(ctx)
 	if err != nil {
 		return nil, nil, err
 	}

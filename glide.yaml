@@ -42,13 +42,12 @@ import:
   - openpgp
   - ssh/terminal
 - package: golang.org/x/net
-  version: 04557861f124410b768b1ba5bb3a91b705afbfc6
   subpackages:
   - context
   - trace
   - http2
 - package: google.golang.org/grpc
-  version: 0032a855ba5c8a3c8e0d71c2deef354b70af1584
+  version: ^v1.4
 - package: gopkg.in/yaml.v2
   version: c1cd2254a6dd314c9d73c338c12688c9325d85c6
 - package: github.com/intelsdi-x/snap-plugin-lib-go

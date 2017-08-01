@@ -132,7 +132,7 @@ func TestGRPCServerScheduler(t *testing.T) {
 	}
 
 	<-lpe.done
-	conn, err := rpcutil.GetClientConnection(c.Config.ListenAddr, c.Config.ListenPort)
+	conn, err := rpcutil.GetClientConnection(context.Background(), c.Config.ListenAddr, c.Config.ListenPort)
 
 	Convey("Creating an rpc connection", t, func() {
 		Convey("Should not error", func() {

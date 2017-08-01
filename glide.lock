@@ -1,5 +1,5 @@
-hash: 14712d189ae570ecb1e287d5a11120347c831b9b4bb6b2265eecb53acf52dc9d
-updated: 2017-05-18T11:52:57.349827646-07:00
+hash: 5e20e63a305141d8725aceaa198ae9cd73f6bbfdb14c51ce7a69fc40978e3fb5
+updated: 2017-07-31T13:10:38.494952622-07:00
 imports:
 - name: github.com/appc/spec
   version: ba99d6b8ccbbed2942e53eb5395fddae113cdf8e
@@ -12,11 +12,11 @@ imports:
   - schema/types
   - schema/types/resource
 - name: github.com/armon/go-metrics
-  version: 93f237eba9b0602f3e73710416558854a81d9337
+  version: f036747b9d0e8590f175a5d654a2194a7d9df4b5
 - name: github.com/asaskevich/govalidator
   version: 9699ab6b38bee2e02cd3fe8b99ecf67665395c96
 - name: github.com/coreos/go-semver
-  version: 294930c1e79c64e7dbe360054274fdad492c8cf5
+  version: 1817cd4bea52af76542157eeabd74b057d1a199e
   subpackages:
   - semver
 - name: github.com/ghodss/yaml
@@ -25,6 +25,7 @@ imports:
   version: 888eb0692c857ec880338addf316bd662d5e630e
   subpackages:
   - proto
+  - ptypes/any
 - name: github.com/hashicorp/go-msgpack
   version: fa3f63826f7c23912c15263591e65d54d080b458
   subpackages:
@@ -32,9 +33,9 @@ imports:
 - name: github.com/hashicorp/memberlist
   version: a93fbd426dd831f5a66db3adc6a5ffa6f44cc60a
 - name: github.com/intelsdi-x/gomit
-  version: db68f6fda248706a71980abc58e969fcd63f5ea6
+  version: 286c3ad6599724faed681cd18a9ff595b00d9f3f
 - name: github.com/intelsdi-x/snap-plugin-lib-go
-  version: a8b9252d1c8305deb3c24495f1e9ce26607fcbd7
+  version: 3e667d03c92e7d5247e536e4df037f6c84692229
   subpackages:
   - v1/plugin
   - v1/plugin/rpc
@@ -49,13 +50,11 @@ imports:
 - name: github.com/robfig/cron
   version: 32d9c273155a0506d27cf73dd1246e86a470997e
 - name: github.com/rs/cors
-  version: 2d7dd2a10331137ae3f931ba08c21fd00cbf208d
-- name: github.com/rs/xhandler
-  version: ed27b6fd65218132ee50cd95f38474a3d8a2cd12
+  version: 8dd4211afb5d08dbb39a533b9bb9e4b486351df6
 - name: github.com/Sirupsen/logrus
   version: be52937128b38f1d99787bb476c789e2af1147f1
 - name: github.com/spf13/pflag
-  version: 94e98a55fb412fcbcfc302555cb990f5e1590627
+  version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/urfave/cli
   version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
 - name: github.com/urfave/negroni
@@ -69,7 +68,7 @@ imports:
 - name: github.com/xeipuuv/gojsonschema
   version: d3178baac32433047aa76f07317f84fbe2be6cda
 - name: go4.org
-  version: 03efcb870d84809319ea509714dd6d19a1498483
+  version: 034d17a462f7b2dcd1a4a73553ec5357ff6e6c6e
   subpackages:
   - errorutil
 - name: golang.org/x/crypto
@@ -84,28 +83,45 @@ imports:
   - openpgp/s2k
   - ssh/terminal
 - name: golang.org/x/net
-  version: 04557861f124410b768b1ba5bb3a91b705afbfc6
+  version: 054b33e6527139ad5b1ec2f6232c3b175bd9a30c
   subpackages:
   - context
   - http2
   - http2/hpack
+  - idna
   - internal/timeseries
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: e62c3de784db939836898e5c19ffd41bece347da
+  version: abf9c25f54453410d0c6668e519582a9e1115027
   subpackages:
   - unix
+- name: golang.org/x/text
+  version: cfdf022e86b4ecfb646e1efbd7db175dd623a8fa
+  subpackages:
+  - secure/bidirule
+  - transform
+  - unicode/bidi
+  - unicode/norm
+- name: google.golang.org/genproto
+  version: 40b7550fd0ba4b8f7e9d70ed40fcd4f3375db1de
+  subpackages:
+  - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 0032a855ba5c8a3c8e0d71c2deef354b70af1584
+  version: b8669c35455183da6d5c474ea6e72fbf55183274
   subpackages:
   - codes
   - credentials
+  - grpclb/grpc_lb_v1
   - grpclog
   - internal
+  - keepalive
   - metadata
   - naming
   - peer
+  - stats
+  - status
+  - tap
   - transport
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
@@ -113,18 +129,18 @@ imports:
   version: c1cd2254a6dd314c9d73c338c12688c9325d85c6
 testImports:
 - name: github.com/gopherjs/gopherjs
-  version: 4b53e1bddba0e2f734514aeb6c02db652f4c6fe8
+  version: 2b1d432c8a82c9bff0b0baffaeb3ec6e92974112
   subpackages:
   - js
 - name: github.com/jtolds/gls
-  version: 8ddce2a84170772b95dd5d576c48d517b22cac63
+  version: 77f18212c9c7edc9bd6a33d383a7b545ce62f064
 - name: github.com/smartystreets/assertions
-  version: 443d812296a84445c202c085f19e18fc238f8250
+  version: 4ea54c1f28ad3ae597e76607dea3871fa177e263
   subpackages:
   - internal/go-render/render
   - internal/oglematchers
 - name: github.com/smartystreets/goconvey
-  version: 995f5b2e021c69b8b028ba6d0b05c1dd500783db
+  version: 9e8dc3f972df6c8fcc0375ef492c24d0bb204857
   subpackages:
   - convey
   - convey/gotest
