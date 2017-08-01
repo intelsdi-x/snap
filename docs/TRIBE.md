@@ -60,6 +60,7 @@ Name 	    Number of Members 	 plugins 	 tasks
 all-nodes 	1 			         0   		 0
 ```
 
+
 ### Joining other snapteld into an existing tribe
 Since tribe is implemented on top of a gossip based protocol there is no "master." All other nodes who join a tribe by communicating with any existing member.
 
@@ -86,3 +87,24 @@ all-nodes 	 2       			 0 		     0
 From this point forward, any plugins or tasks you load will load into both members of this agreement.
 
 *Note: Once the cluster is started subsequent new nodes can choose to establish membership through **any** node as there is no "master".*
+
+### Examples
+
+#### Starting a 4 node cluster and listing members
+![tribe-connect-seed](https://user-images.githubusercontent.com/18285077/28823050-0b8e223c-76bc-11e7-88a4-fa601a03439d.gif)
+
+#### Creating an agreement and joining members to it
+![tribe-create-join-agreement](https://user-images.githubusercontent.com/18285077/28823052-0ea6b9ca-76bc-11e7-97d9-16b9b0018709.gif)
+
+#### Loading plugins and starting tasks in tribe mode
+
+##### Loading plugins on a node participating in an agreement:
+![tribe-load-plugins](https://user-images.githubusercontent.com/18285077/28826561-d6e5c364-76ca-11e7-961c-22277791d272.gif)
+*Note: After loading a collector and publisher plugins on one node, we demonstrate that these plugins are available on all of the other nodes in the agreement.*
+
+##### Listing available metrics on all nodes participating in an agreement:
+![tribe-metric-catalog](https://user-images.githubusercontent.com/18285077/28826566-d9094652-76ca-11e7-952e-16de9e79c21f.gif)
+
+##### Starting a task on a node participating in an agreement:
+![tribe-task-watch](https://user-images.githubusercontent.com/18285077/28826569-dae32434-76ca-11e7-9c20-3c0baca9bc66.gif)
+*Note: After starting a task on one node, we demonstrate that tasks are now running on all of the other nodes in the agreement*
