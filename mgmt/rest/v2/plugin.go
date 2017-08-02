@@ -41,6 +41,15 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+const (
+	// TLSCertPrefix defines a prefix for file fragment carrying path to TLS certificate
+	TLSCertPrefix = "crt."
+	// TLSKeyPrefix defines a prefix for file fragment carrying path to TLS private key
+	TLSKeyPrefix = "key."
+	// TLSCACertsPrefix defines a prefix for file fragment carrying paths to TLS CA certificates
+	TLSCACertsPrefix = "cacerts."
+)
+
 // PluginResponse represents the response from plugin operations.
 //
 // swagger:response PluginResponse
@@ -122,6 +131,24 @@ type PluginPostParams struct {
 	//
 	// swagger:file
 	PluginData *bytes.Buffer `json:"plugin_data"`
+	// Plugin GRPC TLS server key
+	//
+	// in: formData
+	//
+	// swagger:file
+	PluginKey *bytes.Buffer `json:"plugin_key"`
+	// Plugin GRPC TLS server certification
+	//
+	// in: formData
+	//
+	// swagger:file
+	PluginCert *bytes.Buffer `json:"plugin_cert"`
+	// CA root certification
+	//
+	// in: formData
+	//
+	// swagger:file
+	CACerts *bytes.Buffer `json:"ca_certs"`
 }
 
 // Name plugin name string
@@ -148,11 +175,12 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 
+	var certPath, keyPath, caCertPaths string
 	if strings.HasPrefix(mediaType, "multipart/") {
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		mr := multipart.NewReader(r.Body, params["boundary"])
-		var i int
+
 		for {
 			var b []byte
 			p, err := mr.NextPart()
@@ -183,40 +211,44 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 				}
 			}
 
-			// A little sanity checking for files being passed into the API server.
-			// First file passed in should be the plugin. If the first file is a signature
-			// file, an error is returned. The signature file should be the second
-			// file passed to the API server. If the second file does not have the ".asc"
-			// extension, an error is returned.
-			// If we loop around more than twice before receiving io.EOF, then
-			// an error is returned.
-
-			switch {
-			case i == 0:
-				if filepath.Ext(p.FileName()) == ".asc" {
-					e := errors.New("Error: first file passed to load plugin api can not be signature file")
-					Write(400, FromError(e), w)
+			switch p.FormName() {
+			case "ca_certs":
+				fn, err := createTempFile(b, TLSCACertsPrefix)
+				if err != nil {
+					Write(500, FromError(err), w)
 					return
 				}
+				caCertPaths = fn
+			case "plugin_key":
+				fn, err := createTempFile(b, TLSKeyPrefix)
+				if err != nil {
+					Write(500, FromError(err), w)
+					return
+				}
+				keyPath = fn
+			case "plugin_cert":
+				fn, err := createTempFile(b, TLSCertPrefix)
+				if err != nil {
+					Write(500, FromError(err), w)
+					return
+				}
+				certPath = fn
+			// plugin_data is from REST API and snap-plugins is from rest_v2_test.go.
+			case "plugin_data", "snap-plugins":
 				if rp, err = core.NewRequestedPlugin(p.FileName(), s.metricManager.GetTempDir(), b); err != nil {
 					Write(500, FromError(err), w)
 					return
 				}
 				checkSum = sha256.Sum256(b)
-			case i == 1:
+			default:
 				if filepath.Ext(p.FileName()) == ".asc" {
 					signature = b
 				} else {
-					e := errors.New("Error: second file passed was not a signature file")
+					e := errors.New("Error: An unknown file found " + p.FileName())
 					Write(400, FromError(e), w)
 					return
 				}
-			case i == 2:
-				e := errors.New("Error: More than two files passed to the load plugin api")
-				Write(400, FromError(e), w)
-				return
 			}
-			i++
 		}
 
 		// Sanity check, verify the checkSum on the file sent is the same
@@ -227,6 +259,10 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			return
 		}
 		rp.SetSignature(signature)
+		rp.SetCACertPaths(caCertPaths)
+		rp.SetCertPath(certPath)
+		rp.SetKeyPath(keyPath)
+		rp.SetTLSEnabled(isTLSEnabled(certPath, keyPath))
 		restLogger.Info("Loading plugin: ", rp.Path())
 		pl, err := s.metricManager.Load(rp)
 		if err != nil {
@@ -244,11 +280,38 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			default:
 				ec = 500
 			}
+			cleanUpTempFiles(rp)
 			Write(ec, rb, w)
 			return
 		}
+		cleanUpTempFiles(rp)
 		Write(201, catalogedPluginBody(r.Host, pl), w)
 	}
+}
+
+func isTLSEnabled(cert, key string) bool {
+	if cert != "" && key != "" {
+		return true
+	}
+	return false
+}
+
+func createTempFile(b []byte, fn string) (string, error) {
+	file, err := ioutil.TempFile(os.TempDir(), fn)
+	if err != nil {
+		return "", err
+	}
+	_, err = file.Write(b)
+	if err != nil {
+		return "", err
+	}
+	return file.Name(), nil
+}
+
+func cleanUpTempFiles(rp *core.RequestedPlugin) {
+	defer os.Remove(rp.CACertPaths())
+	defer os.Remove(rp.CertPath())
+	defer os.Remove(rp.KeyPath())
 }
 
 func pluginParameters(p httprouter.Params) (string, string, int, map[string]interface{}, serror.SnapError) {
