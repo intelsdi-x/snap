@@ -364,6 +364,7 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 	case ".json":
 		e = json.Unmarshal(file, &t)
 		if e != nil {
+			showLineWithError(file, e)
 			return fmt.Errorf("Error parsing JSON file input - %v\n", e)
 		}
 	default:
@@ -419,15 +420,14 @@ func createTaskUsingWFManifest(ctx *cli.Context) error {
 	var wf *wmap.WorkflowMap
 	switch ext {
 	case ".yaml", ".yml":
-		// e = yaml.Unmarshal(file, &t)
 		wf, e = wmap.FromYaml(file)
 		if e != nil {
 			return fmt.Errorf("Error parsing YAML file input - %v\n", e)
 		}
 	case ".json":
 		wf, e = wmap.FromJson(file)
-		// e = json.Unmarshal(file, &t)
 		if e != nil {
+			showLineWithError(file, e)
 			return fmt.Errorf("Error parsing JSON file input - %v\n", e)
 		}
 	}
@@ -460,6 +460,44 @@ func createTaskUsingWFManifest(ctx *cli.Context) error {
 	fmt.Printf("State: %s\n", r.State)
 
 	return nil
+}
+
+func showLineWithError(file []byte, e error) {
+	if jsonError, ok := e.(*json.SyntaxError); ok {
+		line, lcErr := findLineNumber(file, int(jsonError.Offset))
+		fmt.Fprintf(os.Stderr, "Fail: Cannot parse JSON due to a syntax error at line %d: %v\n", line, jsonError.Error())
+		if lcErr != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't find the line of the error due to error %v\n", lcErr)
+		}
+	} else {
+		if jsonError, ok := e.(*json.UnmarshalTypeError); ok {
+			line, lcErr := findLineNumber(file, int(jsonError.Offset))
+			fmt.Fprintf(os.Stderr, "Fail: The JSON type '%v' cannot be converted into the Go '%v' type. See input file line %d\n", jsonError.Value, jsonError.Type.Name(), line)
+			if lcErr != nil {
+				fmt.Fprintf(os.Stderr, "Couldn't find the line of the error due to error %v\n", lcErr)
+			}
+		}
+	}
+}
+
+func findLineNumber(file []byte, offset int) (line int, err error) {
+	lf := byte(10) //end of line
+
+	if offset > len(file) || offset < 0 {
+		return 0, fmt.Errorf("Couldn't find offset %d within the input.", offset)
+	}
+
+	line = 1 //count from 1 not 0
+	for i, b := range file {
+		if b == lf {
+			line++
+		}
+
+		if i == offset {
+			break
+		}
+	}
+	return line, nil
 }
 
 func mergeDateTime(tm, dt string) *time.Time {
