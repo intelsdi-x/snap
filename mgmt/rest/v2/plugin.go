@@ -284,7 +284,7 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			Write(ec, rb, w)
 			return
 		}
-		cleanUpTempFiles(rp)
+		defer cleanUpTempFiles(rp)
 		Write(201, catalogedPluginBody(r.Host, pl), w)
 	}
 }
@@ -309,9 +309,9 @@ func createTempFile(b []byte, fn string) (string, error) {
 }
 
 func cleanUpTempFiles(rp *core.RequestedPlugin) {
-	defer os.Remove(rp.CACertPaths())
-	defer os.Remove(rp.CertPath())
-	defer os.Remove(rp.KeyPath())
+	os.Remove(rp.CACertPaths())
+	os.Remove(rp.CertPath())
+	os.Remove(rp.KeyPath())
 }
 
 func pluginParameters(p httprouter.Params) (string, string, int, map[string]interface{}, serror.SnapError) {
