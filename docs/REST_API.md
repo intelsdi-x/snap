@@ -30,9 +30,14 @@ Enabled in snapteld
 ```
 curl -L http://localhost:8181/v1/plugins
 ```
+```json
+{
+  "code": 401,
+  "message": "Not authorized. Please specify the same password that used to start snapteld. E.g: [snaptel -p plugin list] or [curl http://localhost:8181/v2/plugins -u snap]"
+}
+
 ```
-Not Authorized
-```
+
 ```
 curl -L http://localhost:8181/v1/plugins -u snap
 Enter host password for user 'snap':
@@ -82,12 +87,22 @@ _**Example Response**_
   "body": {
     "loaded_plugins": [
       {
+        "name": "mock-file",
+        "version": 3,
+        "type": "publisher",
+        "signed": false,
+        "status": "loaded",
+        "loaded_timestamp": 1501848167,
+        "href": "http://localhost:8181/v1/plugins/publisher/mock-file/3"
+      },
+      {
         "name": "mock",
         "version": 1,
         "type": "collector",
         "signed": false,
         "status": "loaded",
-        "loaded_timestamp": 1447977606
+        "loaded_timestamp": 1501848140,
+        "href": "http://localhost:8181/v1/plugins/collector/mock/1"
       },
       {
         "name": "mock",
@@ -95,7 +110,8 @@ _**Example Response**_
         "type": "collector",
         "signed": false,
         "status": "loaded",
-        "loaded_timestamp": 1447977606
+        "loaded_timestamp": 1501848145,
+        "href": "http://localhost:8181/v1/plugins/collector/mock/2"
       },
       {
         "name": "passthru",
@@ -103,18 +119,10 @@ _**Example Response**_
         "type": "processor",
         "signed": false,
         "status": "loaded",
-        "loaded_timestamp": 1447977606
-      },
-      {
-        "name": "file",
-        "version": 3,
-        "type": "publisher",
-        "signed": false,
-        "status": "loaded",
-        "loaded_timestamp": 1447977607
+        "loaded_timestamp": 1501848157,
+        "href": "http://localhost:8181/v1/plugins/processor/passthru/1"
       }
     ]
-  }
 }
 ```
 **GET /v1/plugins/:type/:name/:version**:
@@ -139,7 +147,8 @@ _**Example Response**_
     "type": "collector",
     "signed": false,
     "status": "loaded",
-    "loaded_timestamp": 1447977606
+    "loaded_timestamp": 1501848140,
+    "href": "http://localhost:8181/v1/plugins/collector/mock/1"
   }
 }
 ```
@@ -148,7 +157,7 @@ Load a plugin
 
 _**Example Request**_
 ```
-curl -X POST -F plugin=@build/plugin/snap-collector-mock http://localhost:8181/v1/plugins
+curl -X POST -F plugin=@snap-plugin-collector-mock1 http://localhost:8181/v1/plugins
 ```
 _**Example Response**_
 ```json
@@ -167,18 +176,19 @@ _**Example Response**_
         "type": "collector",
         "signed": false,
         "status": "loaded",
-        "loaded_timestamp": 1448058077
+        "loaded_timestamp": 1501848303,
+        "href": "http://localhost:8181/v1/plugins/collector/mock/1"
       }
     ]
   }
-}             
+}
 ```
 **DELETE /v1/plugins/:type/:name/:version**:
 Unload a plugin for the given type, name, and version
 
 _**Example Request**_
 ```
-curl -X DELETE http://localhost:8181/v1/plugins/collector/mock/1   
+curl -X DELETE http://localhost:8181/v1/plugins/collector/mock/1
 ```
 _**Example Response**_
 ```json
@@ -194,14 +204,14 @@ _**Example Response**_
     "version": 1,
     "type": "collector"
   }
-}     
+}
 ```
 **GET /v1/plugins/:type/:name/:version/config**:
 Retrieve the config for the given type, name, and version plugin
 
 _**Example Request**_
 ```
-curl -L http://localhost:8181/v1/plugins/collector/mock/1/config  
+curl -L http://localhost:8181/v1/plugins/collector/mock/1/config
 ```
 _**Example Response**_
 ```json
@@ -213,7 +223,28 @@ _**Example Response**_
     "version": 1
   },
   "body": {}
-}                    
+}
+```
+**PUT /v1/plugins/:type/:name/:version/config**:
+Set the config for the given type, name, and version plugin
+
+_**Example Request**_
+```
+curl -L -X PUT http://localhost:8181/v1/plugins/collector/mock/1/config --data '{"password": "xyz"}'
+```
+_**Example Response**_
+```json
+{
+  "meta": {
+    "code": 200,
+    "message": "Plugin config item(s) set",
+    "type": "config_plugin_item_created",
+    "version": 1
+  },
+  "body": {
+    "password": "xyz"
+  }
+}
 ```
 ## Metric API
 Snap metric APIs allow you to retrieve all or particular running metric information by invoking different APIs.  
@@ -242,53 +273,52 @@ _**Example Response**_
 {
   "meta": {
     "code": 200,
-    "message": "Metric",
+    "message": "Metrics returned",
     "type": "metrics_returned",
     "version": 1
   },
   "body": [
     {
-      "last_advertised_timestamp": 1447977606,
+      "last_advertised_timestamp": 1501848145,
       "namespace": "/intel/mock/*/baz",
-      "version": 1
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/*/baz",
-      "version": 2
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/bar",
-      "version": 1
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/bar",
-      "version": 2
-    },
-    {
-      "last_advertised_timestamp": 1447977606,
-      "namespace": "/intel/mock/foo",
-      "version": 1,
-      "policy": [
+      "version": 2,
+      "dynamic": true,
+      "dynamic_elements": [
         {
-          "name": "password",
-          "type": "string",
-          "required": true
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "default": "bob",
-          "required": false
+          "index": 2,
+          "name": "host",
+          "description": "name of the host"
         }
-      ]
+      ],
+      "description": "mock description",
+      "unit": "mock unit",
+      "href": "http://localhost:8181/v1/metrics?ns=%2Fintel%2Fmock%2F%2A%2Fbaz&ver=2"
     },
     {
-      "last_advertised_timestamp": 1447977606,
+      "last_advertised_timestamp": 1501848145,
+      "namespace": "/intel/mock/all/baz",
+      "version": 2,
+      "dynamic": false,
+      "description": "mock description",
+      "unit": "mock unit",
+      "href": "http://localhost:8181/v1/metrics?ns=%2Fintel%2Fmock%2Fall%2Fbaz&ver=2"
+    },
+    {
+      "last_advertised_timestamp": 1501848145,
+      "namespace": "/intel/mock/bar",
+      "version": 2,
+      "dynamic": false,
+      "description": "mock description",
+      "unit": "mock unit",
+      "href": "http://localhost:8181/v1/metrics?ns=%2Fintel%2Fmock%2Fbar&ver=2"
+    },
+    {
+      "last_advertised_timestamp": 1501848145,
       "namespace": "/intel/mock/foo",
       "version": 2,
+      "dynamic": false,
+      "description": "mock description",
+      "unit": "mock unit",
       "policy": [
         {
           "name": "name",
@@ -301,7 +331,8 @@ _**Example Response**_
           "type": "string",
           "required": true
         }
-      ]
+      ],
+      "href": "http://localhost:8181/v1/metrics?ns=%2Fintel%2Fmock%2Ffoo&ver=2"
     }
   ]
 }
@@ -315,19 +346,31 @@ curl -L http://localhost:8181/v1/metrics/intel/mock/*/baz
 ```
 _**Example Response**_
 ```json
+{
   "meta": {
     "code": 200,
-    "message": "Metric returned",
-    "type": "metric_returned",
+    "message": "Metrics returned",
+    "type": "metrics_returned",
     "version": 1
   },
-  "body": {
-    "Metric": {
-      "last_advertised_timestamp": 1447977606,
+  "body": [
+    {
+      "last_advertised_timestamp": 1501848145,
       "namespace": "/intel/mock/*/baz",
-      "version": 2
+      "version": 2,
+      "dynamic": true,
+      "dynamic_elements": [
+        {
+          "index": 2,
+          "name": "host",
+          "description": "name of the host"
+        }
+      ],
+      "description": "mock description",
+      "unit": "mock unit",
+      "href": "http://localhost:8181/v1/metrics?ns=%2Fintel%2Fmock%2F%2A%2Fbaz&ver=2"
     }
-  }
+  ]
 }
 ```
 ## Task API
@@ -369,13 +412,14 @@ _**Example Response**_
   "body": {
     "ScheduledTasks": [
       {
-        "id": "f573affa-9326-44a8-a64c-7a0d803d5121",
-        "name": "Task-f573affa-9326-44a8-a64c-7a0d803d5121",
+        "id": "83965e64-0b45-4df2-bb8a-bc0cbf1b2538",
+        "name": "Task-83965e64-0b45-4df2-bb8a-bc0cbf1b2538",
         "deadline": "5s",
-        "creation_timestamp": 1448004968,
-        "last_run_timestamp": 1448004989,
-        "hit_count": 20,
-        "task_state": "Running"
+        "creation_timestamp": 1501849812,
+        "last_run_timestamp": 1501849877,
+        "hit_count": 2,
+        "task_state": "Running",
+        "href": "http://localhost:8181/v1/tasks/83965e64-0b45-4df2-bb8a-bc0cbf1b2538"
       }
     ]
   }
@@ -386,20 +430,20 @@ Retrieve a task given the task ID
 
 _**Example Request**_
 ```
-curl -L http://localhost:8181/v1/tasks/36cd2bbf-b9ab-495a-b8ab-d9f87fa9b88e
+curl -L http://localhost:8181/v1/tasks/83965e64-0b45-4df2-bb8a-bc0cbf1b2538
 ```
 _**Example Response**_
 ```json
 {
   "meta": {
     "code": 200,
-    "message": "Scheduled task (36cd2bbf-b9ab-495a-b8ab-d9f87fa9b88e) returned",
+    "message": "Scheduled task (83965e64-0b45-4df2-bb8a-bc0cbf1b2538) returned",
     "type": "scheduled_task_returned",
     "version": 1
   },
   "body": {
-    "id": "36cd2bbf-b9ab-495a-b8ab-d9f87fa9b88e",
-    "name": "Task-36cd2bbf-b9ab-495a-b8ab-d9f87fa9b88e",
+    "id": "83965e64-0b45-4df2-bb8a-bc0cbf1b2538",
+    "name": "Task-83965e64-0b45-4df2-bb8a-bc0cbf1b2538",
     "deadline": "5s",
     "workflow": {
       "collect": {
@@ -416,126 +460,7 @@ _**Example Response**_
         },
         "config": {
           "/intel/mock": {
-            "password": "secret",
-            "user": "root"
-          }
-        },
-        "process": [
-          {
-            "plugin_name": "passthru",
-            "plugin_version": 0,
-            "publish": [
-              {
-                "plugin_name": "file",
-                "plugin_version": 0,
-                "config": {
-                  "file": "/tmp/published"
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "schedule": {
-      "type": "simple",
-      "interval": "1s"
-    },
-    "creation_timestamp": 1448315384,
-    "last_run_timestamp": 1448318130,
-    "hit_count": 2743,
-    "task_state": "Running"
-  }
-}
-```
-**GET /v1/tasks/:id/watch**:
-Watch a task activity stream given a task ID. Watch is an event stream sent over a long running HTTP connection.
-
-_**Example Request**_
-```
-curl -L http://localhost:8181/v1/tasks/f573affa-9326-44a8-a64c-7a0d803d5121/watch
-```
-_**Example Response**_
-```json
-{"type":"stream-open","message":"Stream opened"}
-{"type":"metric-event","message":"","event":[{"namespace":"/intel/mock/host0/baz","data":77,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075611868-08:00"},{"namespace":"/intel/mock/host1/baz","data":68,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075613646-08:00"},{"namespace":"/intel/mock/host2/baz","data":65,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075615188-08:00"},{"namespace":"/intel/mock/host3/baz","data":75,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075616491-08:00"},{"namespace":"/intel/mock/host4/baz","data":76,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075618022-08:00"},{"namespace":"/intel/mock/host5/baz","data":86,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075619501-08:00"},{"namespace":"/intel/mock/host6/baz","data":82,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075620247-08:00"},{"namespace":"/intel/mock/host7/baz","data":81,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075620942-08:00"},{"namespace":"/intel/mock/host8/baz","data":88,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075621674-08:00"},{"namespace":"/intel/mock/host9/baz","data":85,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075623754-08:00"},{"namespace":"/intel/mock/bar","data":69,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075630288-08:00"},{"namespace":"/intel/mock/foo","data":87,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:41.075635543-08:00"}]}
-{"type":"metric-event","message":"","event":[{"namespace":"/intel/mock/host0/baz","data":87,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:42.075605924-08:00"},{"namespace":"/intel/mock/host1/baz","data":89,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:42.075609242-08:00"},{"namespace":"/intel/mock/host2/baz","data":84,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:42.075611747-08:00"},{"namespace":"/intel/mock/host3/baz","data":82,"source":"egu-mac01.lan","timestamp":"2015-11-19T23:45:42.075613786-08:00"}...
-```
-**POST /v1/tasks**:
-Create a task with the JSON input, using for example mock-file.json with following content:
-```json
-{
-    "version": 1,
-    "schedule": {
-        "type": "simple",
-        "interval": "1s"
-    },
-    "max-failures": 10,
-    "workflow": {
-        "collect": {
-            "metrics": {
-                "/intel/mock/foo": {},
-                "/intel/mock/bar": {},
-                "/intel/mock/*/baz": {}
-            },
-            "config": {
-                "/intel/mock": {
-                    "name": "root",
-                    "password": "secret"
-                }
-            },
-            "process": [
-                {
-                    "plugin_name": "passthru",
-                    "process": null,
-                    "publish": [
-                        {
-                            "plugin_name": "mock-file",
-                            "config": {
-                                "file": "/tmp/published"
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
-    }
-}
-```
-
-_**Example Request**_
-```
-curl -vXPOST http://localhost:8181/v1/tasks -d @mock-file.json --header "Content-Type: application/json"
-```
-_**Example Response**_
-```json
-{
-  "meta": {
-    "code": 201,
-    "message": "Scheduled task created (15d4e09c-b4ab-4e92-b85e-9d9697212632)",
-    "type": "scheduled_task_created",
-    "version": 1
-  },
-  "body": {
-    "id": "15d4e09c-b4ab-4e92-b85e-9d9697212632",
-    "name": "Task-15d4e09c-b4ab-4e92-b85e-9d9697212632",
-    "deadline": "5s",
-    "workflow": {
-      "collect": {
-        "metrics": {
-          "/intel/mock/*/baz": {
-            "version": 0
-          },
-          "/intel/mock/bar": {
-            "version": 0
-          },
-          "/intel/mock/foo": {
-            "version": 0
-          }
-        },
-        "config": {
-          "/intel/mock": {
-            "user": "root",
+            "name": "root",
             "password": "secret"
           }
         },
@@ -549,82 +474,219 @@ _**Example Response**_
                 "plugin_version": 0,
                 "config": {
                   "file": "/tmp/published"
-                }
+                },
+                "target": ""
               }
-            ]
+            ],
+            "target": ""
           }
         ]
       }
     },
     "schedule": {
-      "type": "simple",
+      "type": "windowed",
       "interval": "1s"
     },
-    "creation_timestamp": 1448007501,
+    "creation_timestamp": 1501849812,
     "last_run_timestamp": -1,
-    "task_state": "Stopped"
+    "task_state": "Stopped",
+    "href": "http://localhost:8181/v1/tasks/83965e64-0b45-4df2-bb8a-bc0cbf1b2538"
   }
+}
+```
+**GET /v1/tasks/:id/watch**:
+Watch a task activity stream given a task ID. Watch is an event stream sent over a long running HTTP connection.
+
+_**Example Request**_
+```
+curl -L http://localhost:8181/v1/tasks/83965e64-0b45-4df2-bb8a-bc0cbf1b2538/watch
+```
+_**Example Response**_
+```json
+data: {"type":"stream-open","message":"Stream opened"}
+
+data: {"type":"metric-event","message":"","event":[{"namespace":"/intel/mock/foo","data":1089,"timestamp":"2017-08-04T14:31:49.656031232+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/bar","data":1082,"timestamp":"2017-08-04T14:31:49.656063662+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host0/baz","data":1073,"timestamp":"2017-08-04T14:31:49.65606846+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host1/baz","data":1078,"timestamp":"2017-08-04T14:31:49.656070654+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host2/baz","data":1075,"timestamp":"2017-08-04T14:31:49.656071603+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host3/baz","data":1075,"timestamp":"2017-08-04T14:31:49.65607365+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host4/baz","data":1085,"timestamp":"2017-08-04T14:31:49.656074448+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host5/baz","data":1066,"timestamp":"2017-08-04T14:31:49.656075342+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host6/baz","data":1080,"timestamp":"2017-08-04T14:31:49.656076127+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host7/baz","data":1081,"timestamp":"2017-08-04T14:31:49.656078495+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host8/baz","data":1066,"timestamp":"2017-08-04T14:31:49.656079292+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host9/baz","data":1067,"timestamp":"2017-08-04T14:31:49.656080167+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/all/baz","data":1001,"timestamp":"2017-08-04T14:31:49.656104944+02:00","tags":{"plugin_running_on":"mkleina-dev"}}]}
+
+data: {"type":"metric-event","message":"","event":[{"namespace":"/intel/mock/foo","data":1086,"timestamp":"2017-08-04T14:31:50.656527448+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/bar","data":1071,"timestamp":"2017-08-04T14:31:50.656552844+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host0/baz","data":1083,"timestamp":"2017-08-04T14:31:50.656557614+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host1/baz","data":1076,"timestamp":"2017-08-04T14:31:50.656560121+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host2/baz","data":1076,"timestamp":"2017-08-04T14:31:50.656561354+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host3/baz","data":1085,"timestamp":"2017-08-04T14:31:50.656564678+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host4/baz","data":1065,"timestamp":"2017-08-04T14:31:50.656566053+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host5/baz","data":1081,"timestamp":"2017-08-04T14:31:50.656567371+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host6/baz","data":1068,"timestamp":"2017-08-04T14:31:50.656568729+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host7/baz","data":1065,"timestamp":"2017-08-04T14:31:50.656572315+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host8/baz","data":1067,"timestamp":"2017-08-04T14:31:50.656573867+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/host9/baz","data":1076,"timestamp":"2017-08-04T14:31:50.656575325+02:00","tags":{"plugin_running_on":"mkleina-dev"}},{"namespace":"/intel/mock/all/baz","data":1001,"timestamp":"2017-08-04T14:31:50.656601896+02:00","tags":{"plugin_running_on":"mkleina-dev"}}]}
+
+...
+```
+**POST /v1/tasks**:
+Create a task with the JSON input, using for example mock-file.json with following content:
+```json
+{
+  "meta": {
+    "code": 201,
+    "message": "Scheduled task created (83965e64-0b45-4df2-bb8a-bc0cbf1b2538)",
+    "type": "scheduled_task_created",
+    "version": 1
+  },
+  "body": {
+    "id": "83965e64-0b45-4df2-bb8a-bc0cbf1b2538",
+    "name": "Task-83965e64-0b45-4df2-bb8a-bc0cbf1b2538",
+    "deadline": "5s",
+    "workflow": {
+      "collect": {
+        "metrics": {
+          "/intel/mock/*/baz": {
+            "version": 0
+          },
+          "/intel/mock/bar": {
+            "version": 0
+          },
+          "/intel/mock/foo": {
+            "version": 0
+          }
+        },
+        "config": {
+          "/intel/mock": {
+            "name": "root",
+            "password": "secret"
+          }
+        },
+        "process": [
+          {
+            "plugin_name": "passthru",
+            "plugin_version": 0,
+            "publish": [
+              {
+                "plugin_name": "mock-file",
+                "plugin_version": 0,
+                "config": {
+                  "file": "/tmp/published"
+                },
+                "target": ""
+              }
+            ],
+            "target": ""
+          }
+        ]
+      }
+    },
+    "schedule": {
+      "type": "windowed",
+      "interval": "1s"
+    },
+    "creation_timestamp": 1501849812,
+    "last_run_timestamp": -1,
+    "task_state": "Stopped",
+    "href": "http://localhost:8181/v1/tasks/83965e64-0b45-4df2-bb8a-bc0cbf1b2538"
+  }
+}
+```
+
+_**Example Request**_
+```
+curl -L -X POST http://localhost:8181/v1/tasks -d @mock-file.json --header "Content-Type: application/json"
+```
+_**Example Response**_
+```json
+{
+  "meta": {
+    "code": 201,
+    "message": "Scheduled task created (4097d262-6ef3-4f69-b749-35252b2f401a)",
+    "type": "scheduled_task_created",
+    "version": 1
+  },
+  "body": {
+    "id": "4097d262-6ef3-4f69-b749-35252b2f401a",
+    "name": "Task-4097d262-6ef3-4f69-b749-35252b2f401a",
+    "deadline": "5s",
+    "workflow": {
+      "collect": {
+        "metrics": {
+          "/intel/mock/*": {
+            "version": 0
+          }
+        },
+        "config": {
+          "/intel/mock": {
+            "password": "xyz"
+          }
+        },
+        "publish": [
+          {
+            "plugin_name": "mock-file",
+            "plugin_version": 0,
+            "config": {
+              "file": "/tmp/published_mock.log"
+            },
+            "target": ""
+          }
+        ]
+      }
+    },
+    "schedule": {
+      "type": "windowed",
+      "interval": "1s"
+    },
+    "creation_timestamp": 1501849488,
+    "last_run_timestamp": -1,
+    "task_state": "Stopped",
+    "href": "http://localhost:8181/v1/tasks/4097d262-6ef3-4f69-b749-35252b2f401a"
+  }
+}
 ```
 **PUT /v1/tasks/:id/start**:
 Start a task given a task ID
 
 _**Example Request**_
 ```
-curl -XPUT http://localhost:8181/v1/tasks/7cd4b229-e12c-4b09-985a-b60e76daac90/start
+curl -X PUT http://localhost:8181/v1/tasks/83965e64-0b45-4df2-bb8a-bc0cbf1b2538/start
 ```
 _**Example Response**_
 ```json
 {
   "meta": {
     "code": 200,
-    "message": "Scheduled task (7cd4b229-e12c-4b09-985a-b60e76daac90) started",
+    "message": "Scheduled task (83965e64-0b45-4df2-bb8a-bc0cbf1b2538) started",
     "type": "scheduled_task_started",
     "version": 1
   },
   "body": {
-    "id": "7cd4b229-e12c-4b09-985a-b60e76daac90"
+    "id": "83965e64-0b45-4df2-bb8a-bc0cbf1b2538"
   }
-}             
+}
 ```
 **PUT /v1/tasks/:id/stop**:
 Stop a running task given a task ID
 
 _**Example Request**_
 ```
-curl -XPUT http://localhost:8181/v1/tasks/7cd4b229-e12c-4b09-985a-b60e76daac90/stop
+curl -X PUT http://localhost:8181/v1/tasks/83965e64-0b45-4df2-bb8a-bc0cbf1b2538/stop
 ```
 _**Example Response**_
 ```json
 {
   "meta": {
     "code": 200,
-    "message": "Scheduled task (7cd4b229-e12c-4b09-985a-b60e76daac90) stopped",
+    "message": "Scheduled task (83965e64-0b45-4df2-bb8a-bc0cbf1b2538) stopped",
     "type": "scheduled_task_stopped",
     "version": 1
   },
   "body": {
-    "id": "7cd4b229-e12c-4b09-985a-b60e76daac90"
+    "id": "83965e64-0b45-4df2-bb8a-bc0cbf1b2538"
   }
-}      
+}
 ```
 **DELETE /v1/tasks/:id**:
 Remove a task from the scheduled task list given a task ID
 
 _**Example Request**_
 ```
-curl -X DELETE http://localhost:8181/v1/tasks/7cd4b229-e12c-4b09-985a-b60e76daac90  
+curl -X DELETE http://localhost:8181/v1/tasks/83965e64-0b45-4df2-bb8a-bc0cbf1b2538
 ```
 _**Example Response**_
 ```json
 {
   "meta": {
     "code": 200,
-    "message": "Scheduled task (7cd4b229-e12c-4b09-985a-b60e76daac90) removed",
+    "message": "Scheduled task (83965e64-0b45-4df2-bb8a-bc0cbf1b2538) removed",
     "type": "scheduled_task_removed",
     "version": 1
   },
   "body": {
-    "id": "7cd4b229-e12c-4b09-985a-b60e76daac90"
+    "id": "83965e64-0b45-4df2-bb8a-bc0cbf1b2538"
   }
 }
 ```
@@ -633,7 +695,7 @@ Enable a disabled task given a task ID
 
 _**Example Request**_
 ```
-curl -X PUT http://localhost:8181/v1/tasks/84fd498b-9232-40b7-81bd-ac7e86b1f252/enable  
+curl -X PUT http://localhost:8181/v1/tasks/84fd498b-9232-40b7-81bd-ac7e86b1f252/enable
 ```
 _**Example Response**_
 ```json
@@ -648,7 +710,7 @@ _**Example Response**_
     "message": "Task must be disabled",
     "fields": {}
   }
-}                      
+}
 ```
 ## Tribe API
 Snap tribe APIs provide the functionality for managing tribe agreements and for tribe members to join or leave tribe contracts.
@@ -684,65 +746,53 @@ _**Example Response**_
   },
   "body": {
     "agreements": {
-      "hot-agrement": {
-        "name": "hot-agrement",
-        "plugin_agreement": {
-          "plugins": [
-            {
-              "name": "file",
-              "version": 3,
-              "type": 2
-            }
-          ]
-        },
-        "task_agreement": {},
-        "members": {
-          "hawaii": {
-            "tags": {
-              "rest_api_port": "8182",
-              "rest_insecure": "",
-              "rest_proto": "http"
-            },
-            "name": "hawaii"
-          },
-          "maui": {
-            "tags": {
-              "rest_api_port": "8183",
-              "rest_insecure": "",
-              "rest_proto": "http"
-            },
-            "name": "maui"
-          },
-          "seed": {
-            "tags": {
-              "rest_api_port": "8181",
-              "rest_insecure": "",
-              "rest_proto": "http"
-            },
-            "name": "seed"
-          }
-        }
-      },
-      "warm-agreement": {
-        "name": "warm-agreement",
+      "three-nodes": {
+        "name": "three-nodes",
         "plugin_agreement": {},
         "task_agreement": {},
         "members": {
-          "hawaii": {
+          "snap-1": {
             "tags": {
-              "rest_api_port": "8182",
-              "rest_insecure": "",
+              "host": "172.19.0.2",
+              "rest_api_port": "8181",
+              "rest_insecure": "true",
               "rest_proto": "http"
             },
-            "name": "hawaii"
+            "name": "snap-1"
           },
-          "maui": {
+          "snap-2": {
             "tags": {
-              "rest_api_port": "8183",
-              "rest_insecure": "",
+              "host": "172.19.0.3",
+              "rest_api_port": "8181",
+              "rest_insecure": "true",
               "rest_proto": "http"
             },
-            "name": "maui"
+            "name": "snap-2"
+          },
+          "snap-3": {
+            "tags": {
+              "host": "172.19.0.4",
+              "rest_api_port": "8181",
+              "rest_insecure": "true",
+              "rest_proto": "http"
+            },
+            "name": "snap-3"
+          }
+        }
+      },
+      "single-node": {
+        "name": "single-node",
+        "plugin_agreement": {},
+        "task_agreement": {},
+        "members": {
+          "snap-4": {
+            "tags": {
+              "host": "172.19.0.5",
+              "rest_api_port": "8181",
+              "rest_insecure": "true",
+              "rest_proto": "http"
+            },
+            "name": "snap-4"
           }
         }
       }
@@ -755,7 +805,7 @@ Create a new tribe agreement
 
 _**Example Request**_
 ```
-curl -X POST http://localhost:8182/v1/tribe/agreements -d '{"name":"cold-agreement"}'
+curl -L -X POST http://localhost:8182/v1/tribe/agreements -d '{"name":"cold-agreement"}'
 ```
 _**Example Response**_
 ```json
@@ -773,55 +823,66 @@ _**Example Response**_
         "plugin_agreement": {},
         "task_agreement": {}
       },
-      "hot-agrement": {
-        "name": "hot-agrement",
-        "plugin_agreement": {
-          "plugins": [
-            {
-              "name": "file",
-              "version": 3,
-              "type": 2
-            }
-          ]
-        },
+      "single-node": {
+        "name": "single-node",
+        "plugin_agreement": {},
         "task_agreement": {},
         "members": {
-          "hawaii": {
+          "snap-4": {
             "tags": {
-              "rest_api_port": "8182",
-              "rest_insecure": "",
-              "rest_proto": "http"
-            },
-            "name": "hawaii"
-          },
-          "maui": {
-            "tags": {
-              "rest_api_port": "8183",
-              "rest_insecure": "",
-              "rest_proto": "http"
-            },
-            "name": "maui"
-          },
-          "seed": {
-            "tags": {
+              "host": "172.19.0.5",
               "rest_api_port": "8181",
-              "rest_insecure": "",
+              "rest_insecure": "true",
               "rest_proto": "http"
             },
-            "name": "seed"
+            "name": "snap-4"
+          }
+        }
+      },
+      "three-nodes": {
+        "name": "three-nodes",
+        "plugin_agreement": {},
+        "task_agreement": {},
+        "members": {
+          "snap-1": {
+            "tags": {
+              "host": "172.19.0.2",
+              "rest_api_port": "8181",
+              "rest_insecure": "true",
+              "rest_proto": "http"
+            },
+            "name": "snap-1"
+          },
+          "snap-2": {
+            "tags": {
+              "host": "172.19.0.3",
+              "rest_api_port": "8181",
+              "rest_insecure": "true",
+              "rest_proto": "http"
+            },
+            "name": "snap-2"
+          },
+          "snap-3": {
+            "tags": {
+              "host": "172.19.0.4",
+              "rest_api_port": "8181",
+              "rest_insecure": "true",
+              "rest_proto": "http"
+            },
+            "name": "snap-3"
           }
         }
       }
     }
   }
-}                         
+}
 ```
 **GET /v1/tribe/agreements/:name**:
 Retrieve a tribe agreement given the agreement name
 
 _**Example Request**_
 ```
-curl -L http://localhost:8183/v1/tribe/agreements/warm-agreement
+curl -L http://localhost:8183/v1/tribe/agreements/three-nodes
 ```
 _**Example Response**_
 ```json
@@ -834,25 +895,36 @@ _**Example Response**_
   },
   "body": {
     "agreement": {
-      "name": "warm-agreement",
+      "name": "three-nodes",
       "plugin_agreement": {},
       "task_agreement": {},
       "members": {
-        "hawaii": {
+        "snap-1": {
           "tags": {
-            "rest_api_port": "8182",
-            "rest_insecure": "",
+            "host": "172.19.0.2",
+            "rest_api_port": "8181",
+            "rest_insecure": "true",
             "rest_proto": "http"
           },
-          "name": "hawaii"
+          "name": "snap-1"
         },
-        "maui": {
+        "snap-2": {
           "tags": {
-            "rest_api_port": "8183",
-            "rest_insecure": "",
+            "host": "172.19.0.3",
+            "rest_api_port": "8181",
+            "rest_insecure": "true",
             "rest_proto": "http"
           },
-          "name": "maui"
+          "name": "snap-2"
+        },
+        "snap-3": {
+          "tags": {
+            "host": "172.19.0.4",
+            "rest_api_port": "8181",
+            "rest_insecure": "true",
+            "rest_proto": "http"
+          },
+          "name": "snap-3"
         }
       }
     }
@@ -864,7 +936,7 @@ Remove an agreement given the agreement name
 
 _**Example Request**_
 ```
-curl -X DELETE http://localhost:8183/v1/tribe/agreements/warm-agreement
+curl -L -X DELETE http://localhost:8183/v1/tribe/agreements/three-nodes
 ```
 _**Example Response**_
 ```json
@@ -877,55 +949,37 @@ _**Example Response**_
   },
   "body": {
     "agreements": {
-      "hot-agrement": {
-        "name": "hot-agrement",
-        "plugin_agreement": {
-          "plugins": [
-            {
-              "name": "file",
-              "version": 3,
-              "type": 2
-            }
-          ]
-        },
+      "cold-agreement": {
+        "name": "cold-agreement",
+        "plugin_agreement": {},
+        "task_agreement": {}
+      },
+      "single-node": {
+        "name": "single-node",
+        "plugin_agreement": {},
         "task_agreement": {},
         "members": {
-          "hawaii": {
+          "snap-4": {
             "tags": {
-              "rest_api_port": "8182",
-              "rest_insecure": "",
-              "rest_proto": "http"
-            },
-            "name": "hawaii"
-          },
-          "maui": {
-            "tags": {
-              "rest_api_port": "8183",
-              "rest_insecure": "",
-              "rest_proto": "http"
-            },
-            "name": "maui"
-          },
-          "seed": {
-            "tags": {
+              "host": "172.19.0.5",
               "rest_api_port": "8181",
-              "rest_insecure": "",
+              "rest_insecure": "true",
               "rest_proto": "http"
             },
-            "name": "seed"
+            "name": "snap-4"
           }
         }
       }
     }
   }
-}                                   
+}
 ```
 **PUT /v1/tribe/agreements/:name/join**:
 Join a member node into an agreement given the agreement name
 
 _**Example Request**_
 ```
-curl -X PUT http://localhost:8183/v1/tribe/agreements/warm-agreement/join -d '{"member_name": "maui"}'
+curl -L -X PUT http://localhost:8183/v1/tribe/agreements/cold-agreement/join -d '{"member_name": "snap-1"}'
 ```
 _**Example Response**_
 ```json
@@ -938,25 +992,18 @@ _**Example Response**_
   },
   "body": {
     "agreement": {
-      "name": "warm-agreement",
+      "name": "cold-agreement",
       "plugin_agreement": {},
       "task_agreement": {},
       "members": {
-        "hawaii": {
+        "snap-1": {
           "tags": {
-            "rest_api_port": "8182",
-            "rest_insecure": "",
+            "host": "172.19.0.2",
+            "rest_api_port": "8181",
+            "rest_insecure": "true",
             "rest_proto": "http"
           },
-          "name": "hawaii"
-        },
-        "maui": {
-          "tags": {
-            "rest_api_port": "8183",
-            "rest_insecure": "",
-            "rest_proto": "http"
-          },
-          "name": "maui"
+          "name": "snap-1"
         }
       }
     }
@@ -968,7 +1015,7 @@ Remove a member node from an agreement given the agreement name
 
 _**Example Request**_
 ```
-curl -X DELETE http://localhost:8183/v1/tribe/agreements/warm-agreement/leave -d '{"member_name": "maui"}'
+curl -L -X DELETE http://localhost:8183/v1/tribe/agreements/cold-agreement/leave -d '{"member_name": "snap-1"}'
 ```
 _**Example Response**_
 ```json
@@ -981,22 +1028,12 @@ _**Example Response**_
   },
   "body": {
     "agreement": {
-      "name": "warm-agreement",
+      "name": "cold-agreement",
       "plugin_agreement": {},
-      "task_agreement": {},
-      "members": {
-        "hawaii": {
-          "tags": {
-            "rest_api_port": "8182",
-            "rest_insecure": "",
-            "rest_proto": "http"
-          },
-          "name": "hawaii"
-        }
-      }
+      "task_agreement": {}
     }
   }
-}         
+}
 ```
 **GET /v1/tribe/members**:
 List all tribe members
@@ -1016,9 +1053,10 @@ _**Example Response**_
   },
   "body": {
     "members": [
-      "hawaii",
-      "seed",
-      "maui"
+      "snap-2",
+      "snap-3",
+      "snap-4",
+      "snap-1"
     ]
   }
 }
@@ -1028,7 +1066,7 @@ List tribe member information given the node name
 
 _**Example Request**_
 ```
-curl -L http://localhost:8183/v1/tribe/member/maui
+curl -L http://localhost:8183/v1/tribe/member/snap-1
 ```
 _**Example Response**_
 ```json
@@ -1040,11 +1078,12 @@ _**Example Response**_
     "version": 1
   },
   "body": {
-    "name": "maui",
-    "plugin_agreement": "warm-agreement",
+    "name": "snap-1",
+    "plugin_agreement": "",
     "tags": {
-      "rest_api_port": "8183",
-      "rest_insecure": "",
+      "host": "172.19.0.2",
+      "rest_api_port": "8181",
+      "rest_insecure": "true",
       "rest_proto": "http"
     },
     "task_agreements": null
