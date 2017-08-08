@@ -175,8 +175,8 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 
-	var certPath, keyPath, caCertPaths string
 	if strings.HasPrefix(mediaType, "multipart/") {
+		var certPath, keyPath, caCertPaths string
 		var signature []byte
 		var checkSum [sha256.Size]byte
 		mr := multipart.NewReader(r.Body, params["boundary"])
@@ -235,7 +235,8 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 				certPath = fn
 			// plugin_data is from REST API and snap-plugins is from rest_v2_test.go.
 			case "plugin_data", "snap-plugins":
-				if rp, err = core.NewRequestedPlugin(p.FileName(), s.metricManager.GetTempDir(), b); err != nil {
+				rp, err = core.NewRequestedPlugin(p.FileName(), s.metricManager.GetTempDir(), b)
+				if err != nil {
 					Write(500, FromError(err), w)
 					return
 				}
@@ -258,11 +259,21 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			Write(400, FromError(e), w)
 			return
 		}
+
+		if hasTLS(certPath, keyPath) {
+			if isTLSEnabled(certPath, keyPath) {
+				rp.SetTLSEnabled(true)
+				rp.SetCACertPaths(caCertPaths)
+				rp.SetCertPath(certPath)
+				rp.SetKeyPath(keyPath)
+			} else {
+				e := errors.New("Error: TLS setup incomplete - Both plugin TLS certificate and the key are required")
+				Write(500, FromError(e), w)
+				return
+			}
+		}
 		rp.SetSignature(signature)
-		rp.SetCACertPaths(caCertPaths)
-		rp.SetCertPath(certPath)
-		rp.SetKeyPath(keyPath)
-		rp.SetTLSEnabled(isTLSEnabled(certPath, keyPath))
+
 		restLogger.Info("Loading plugin: ", rp.Path())
 		pl, err := s.metricManager.Load(rp)
 		if err != nil {
@@ -280,13 +291,20 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			default:
 				ec = 500
 			}
-			cleanUpTempFiles(rp)
+			defer cleanUpTempFiles(rp)
 			Write(ec, rb, w)
 			return
 		}
 		defer cleanUpTempFiles(rp)
 		Write(201, catalogedPluginBody(r.Host, pl), w)
 	}
+}
+
+func hasTLS(cert, key string) bool {
+	if cert == "" && key == "" {
+		return false
+	}
+	return true
 }
 
 func isTLSEnabled(cert, key string) bool {
@@ -505,17 +523,16 @@ func (s *apiV2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.P
 		}
 		w.WriteHeader(200)
 		return
-	} else {
-		pluginRet := Plugin{
-			Name:            plugin.Name(),
-			Version:         plugin.Version(),
-			Type:            plugin.TypeName(),
-			Signed:          plugin.IsSigned(),
-			Status:          plugin.Status(),
-			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
-			Href:            pluginURI(r.Host, plugin),
-			ConfigPolicy:    configPolicy,
-		}
-		Write(200, pluginRet, w)
 	}
+	pluginRet := Plugin{
+		Name:            plugin.Name(),
+		Version:         plugin.Version(),
+		Type:            plugin.TypeName(),
+		Signed:          plugin.IsSigned(),
+		Status:          plugin.Status(),
+		LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
+		Href:            pluginURI(r.Host, plugin),
+		ConfigPolicy:    configPolicy,
+	}
+	Write(200, pluginRet, w)
 }
