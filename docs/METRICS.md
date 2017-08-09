@@ -86,7 +86,7 @@ downstream plugins (processors and publishers) the ability to extract the data a
  canonical form often required by some back ends.     
 
 Given a dynamic metric identified by the namespace `/intel/libvirt/*/disk/*/wrreq` the `NamespaceElement`s would
-have values of 'intel', 'libvirt', '*', 'disk', '*' and 'wrreq' respectively.  The `Name` and `Description` fields
+have values of 'intel', 'libvirt', '\*', 'disk', '\*' and 'wrreq' respectively.  The `Name` and `Description` fields
 of the 2nd and 4th elements would also contain non empty values.  
 
 The metric's namespace could be created using the following constructor function.
