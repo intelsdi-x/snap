@@ -322,9 +322,7 @@ Declaring a metric's name exactly as it appears in the metric catalog (see `snap
 Metrics requested in task manifest          | Collected metrics
 --------------------------------------------|------------------------
 /intel/mock/foo                             |  /intel/mock/foo
-|
 /intel/mock/bar                             |  /intel/mock/bar
-|
 /intel/mock/\*/baz <br/> _(dynamic metric)_ |  /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/><br/> _(collect metrics for all instances of the dynamic metric)_
 
  
@@ -349,9 +347,7 @@ Dynamic queries are those that contain:
 Metrics requested in task manifest  | Collected metrics
 ------------------------------------|------------------------
 /intel/mock/*                       | /intel/mock/foo <br/> /intel/mock/bar <br/> /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz  <br/> /intel/mock/host3/baz  <br/> /intel/mock/host4/baz <br/> /intel/mock/host5/baz <br/> /intel/mock/host6/baz <br/> /intel/mock/host7/baz  <br/> /intel/mock/host8/baz <br/> /intel/mock/host9/baz <br/> <br/> _(collect all metrics with prefix "/intel/mock/")_
-|
 /intel/mock/(foo;bar)               | /intel/mock/foo <br/> /intel/mock/bar
-|
 /intel/mock/(host0;host1;host2)/baz | /intel/mock/host0/baz <br/> /intel/mock/host1/baz <br/> /intel/mock/host2/baz <br/>
 
 The namespaces are keys to another nested object which may contain a specific version of a plugin, e.g.:
