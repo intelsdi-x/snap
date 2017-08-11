@@ -135,20 +135,17 @@ type PluginPostParams struct {
 	//
 	// in: formData
 	//
-	// swagger:file
-	PluginKey *bytes.Buffer `json:"plugin_key"`
+	PluginKey string `json:"plugin_key"`
 	// Plugin GRPC TLS server certification
 	//
 	// in: formData
 	//
-	// swagger:file
-	PluginCert *bytes.Buffer `json:"plugin_cert"`
+	PluginCert string `json:"plugin_cert"`
 	// CA root certification
 	//
 	// in: formData
 	//
-	// swagger:file
-	CACerts *bytes.Buffer `json:"ca_certs"`
+	CACerts string `json:"ca_certs"`
 }
 
 // Name plugin name string
@@ -213,26 +210,14 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 
 			switch p.FormName() {
 			case "ca_certs":
-				fn, err := createTempFile(b, TLSCACertsPrefix)
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-				caCertPaths = fn
+				caCertPaths = string(b)
+				handleError(caCertPaths, w)
 			case "plugin_key":
-				fn, err := createTempFile(b, TLSKeyPrefix)
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-				keyPath = fn
+				keyPath = string(b)
+				handleError(keyPath, w)
 			case "plugin_cert":
-				fn, err := createTempFile(b, TLSCertPrefix)
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-				certPath = fn
+				certPath = string(b)
+				handleError(certPath, w)
 			// plugin_data is from REST API and snap-plugins is from rest_v2_test.go.
 			case "plugin_data", "snap-plugins":
 				rp, err = core.NewRequestedPlugin(p.FileName(), s.metricManager.GetTempDir(), b)
@@ -291,12 +276,17 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			default:
 				ec = 500
 			}
-			defer cleanUpTempFiles(rp)
 			Write(ec, rb, w)
 			return
 		}
-		defer cleanUpTempFiles(rp)
 		Write(201, catalogedPluginBody(r.Host, pl), w)
+	}
+}
+
+func handleError(p string, w http.ResponseWriter) {
+	if _, err := os.Stat(p); os.IsNotExist(err) {
+		Write(500, FromError(err), w)
+		return
 	}
 }
 
@@ -312,24 +302,6 @@ func isTLSEnabled(cert, key string) bool {
 		return true
 	}
 	return false
-}
-
-func createTempFile(b []byte, fn string) (string, error) {
-	file, err := ioutil.TempFile(os.TempDir(), fn)
-	if err != nil {
-		return "", err
-	}
-	_, err = file.Write(b)
-	if err != nil {
-		return "", err
-	}
-	return file.Name(), nil
-}
-
-func cleanUpTempFiles(rp *core.RequestedPlugin) {
-	os.Remove(rp.CACertPaths())
-	os.Remove(rp.CertPath())
-	os.Remove(rp.KeyPath())
 }
 
 func pluginParameters(p httprouter.Params) (string, string, int, map[string]interface{}, serror.SnapError) {
