@@ -245,7 +245,10 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			return
 		}
 
+		// check if one of TLS params (cert or key) has been provided; if not, skip the part related to TLS
 		if hasTLS(certPath, keyPath) {
+			// check if both of required params have been provided to setup TLS connection;
+			// if not, return an appropriate error
 			if isTLSEnabled(certPath, keyPath) {
 				rp.SetTLSEnabled(true)
 				rp.SetCACertPaths(caCertPaths)
