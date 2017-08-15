@@ -7,6 +7,7 @@ before_install:
 - bash scripts/gitcookie.sh
 - go get github.com/smartystreets/goconvey/convey
 - if [ ! -d $SNAP_SOURCE ]; then mkdir -p $HOME/gopath/src/github.com/intelsdi-x; ln -s $TRAVIS_BUILD_DIR $SNAP_SOURCE; fi # CI for forks not from intelsdi-x
+- go get -u github.com/alecthomas/gometalinter
 env:
   global:
   - SNAP_SOURCE=/home/travis/gopath/src/github.com/intelsdi-x/snap
@@ -22,8 +23,10 @@ install:
 - mkdir -p $TMPDIR
 - cd $SNAP_SOURCE # change dir into source
 - make
+- gometalinter --install
 script:
 - make test 2>&1 # Run test suite
+- gometalinter ./... || true
 notifications:
   email: false
   slack:
