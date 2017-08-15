@@ -147,6 +147,27 @@
             "description": "loads a plugin.",
             "name": "plugin_data",
             "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-go-name": "PluginKey",
+            "description": "Plugin GRPC TLS server key",
+            "name": "plugin_key",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-go-name": "PluginCert",
+            "description": "Plugin GRPC TLS server certification",
+            "name": "plugin_cert",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-go-name": "CACerts",
+            "description": "CA root certification",
+            "name": "ca_certs",
+            "in": "formData"
           }
         ],
         "responses": {

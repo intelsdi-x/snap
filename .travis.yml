@@ -1,6 +1,7 @@
 sudo: true
 language: go
 go:
+- 1.8.1
 - 1.7.3
 before_install:
 - bash scripts/gitcookie.sh
