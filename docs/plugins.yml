@@ -35,13 +35,17 @@
 - Ticketmaster/snap-plugin-publisher-cloudwatch
 - intelsdi-x/snap-plugin-collector-apache
 - intelsdi-x/snap-plugin-collector-cassandra
-- intelsdi-x/snap-plugin-collector-ceph
+- intelsdi-x/snap-plugin-collector-ceph:
+    supported: true
 - intelsdi-x/snap-plugin-collector-cinder
-- intelsdi-x/snap-plugin-collector-cpu
+- intelsdi-x/snap-plugin-collector-cpu:
+    supported: true
 - intelsdi-x/snap-plugin-collector-dbi
 - intelsdi-x/snap-plugin-collector-df
-- intelsdi-x/snap-plugin-collector-disk
-- intelsdi-x/snap-plugin-collector-docker
+- intelsdi-x/snap-plugin-collector-disk:
+    supported: true
+- intelsdi-x/snap-plugin-collector-docker:
+    supported: true
 - intelsdi-x/snap-plugin-collector-elasticsearch
 - intelsdi-x/snap-plugin-collector-etcd
 - intelsdi-x/snap-plugin-collector-ethtool
@@ -49,13 +53,17 @@
 - intelsdi-x/snap-plugin-collector-glance
 - intelsdi-x/snap-plugin-collector-haproxy
 - intelsdi-x/snap-plugin-collector-influxdb
-- intelsdi-x/snap-plugin-collector-interface
-- intelsdi-x/snap-plugin-collector-iostat
+- intelsdi-x/snap-plugin-collector-interface:
+    supported: true
+- intelsdi-x/snap-plugin-collector-iostat:
+    supported: true
 - intelsdi-x/snap-plugin-collector-keystone
-- intelsdi-x/snap-plugin-collector-libvirt
+- intelsdi-x/snap-plugin-collector-libvirt:
+    supported: true
 - intelsdi-x/snap-plugin-collector-load
 - intelsdi-x/snap-plugin-collector-logs
-- intelsdi-x/snap-plugin-collector-meminfo
+- intelsdi-x/snap-plugin-collector-meminfo:
+    supported: true
 - intelsdi-x/snap-plugin-collector-mesos
 - intelsdi-x/snap-plugin-collector-mongodb
 - intelsdi-x/snap-plugin-collector-mysql
@@ -68,12 +76,14 @@
 - intelsdi-x/snap-plugin-collector-pcm
 - intelsdi-x/snap-plugin-collector-perfevents
 - intelsdi-x/snap-plugin-collector-processes
-- intelsdi-x/snap-plugin-collector-psutil
+- intelsdi-x/snap-plugin-collector-psutil:
+    supported: true
 - intelsdi-x/snap-plugin-collector-rabbitmq
 - intelsdi-x/snap-plugin-collector-scaleio
 - intelsdi-x/snap-plugin-collector-scsi
 - intelsdi-x/snap-plugin-collector-schedstat
-- intelsdi-x/snap-plugin-collector-snmp
+- intelsdi-x/snap-plugin-collector-snmp:
+    supported: true
 - intelsdi-x/snap-plugin-collector-smart
 - intelsdi-x/snap-plugin-collector-swap
 - intelsdi-x/snap-plugin-collector-use
@@ -82,18 +92,22 @@
 - intelsdi-x/snap-plugin-processor-anomalydetection
 - intelsdi-x/snap-plugin-processor-logs-openstack
 - intelsdi-x/snap-plugin-processor-logs-regexp
-- intelsdi-x/snap-plugin-processor-movingaverage
+- intelsdi-x/snap-plugin-processor-movingaverage:
+    supported: true
 - intelsdi-x/snap-plugin-processor-statistics
 - intelsdi-x/snap-plugin-processor-tag
 - intelsdi-x/snap-plugin-publisher-cassandra
 - intelsdi-x/snap-plugin-publisher-elasticsearch
 - intelsdi-x/snap-plugin-publisher-etcd
-- intelsdi-x/snap-plugin-publisher-file
-- intelsdi-x/snap-plugin-publisher-graphite
+- intelsdi-x/snap-plugin-publisher-file:
+    supported: true
+- intelsdi-x/snap-plugin-publisher-graphite:
+    supported: true
 - intelsdi-x/snap-plugin-publisher-hana
 - intelsdi-x/snap-plugin-publisher-heapster
 - intelsdi-x/snap-plugin-publisher-heka
-- intelsdi-x/snap-plugin-publisher-influxdb
+- intelsdi-x/snap-plugin-publisher-influxdb:
+    supported: true
 - intelsdi-x/snap-plugin-publisher-kafka
 - intelsdi-x/snap-plugin-publisher-kairosdb
 - intelsdi-x/snap-plugin-publisher-mysql
@@ -110,5 +124,8 @@
 - intelsdi-x/snap-plugin-collector-influxdb-data
 - hstack/snap-plugin-publisher-prometheus
 - intelsdi-x/snap-plugin-collector-diamond
-- intelsdi-x/snap-plugin-collector-rdt
+- intelsdi-x/snap-plugin-collector-rdt:
+    supported: true
 - michep/snap-plugin-processor-maptag
+- intelsdi-x/snap-plugin-collector-pysmart:
+    supported: true
