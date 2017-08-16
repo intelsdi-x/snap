@@ -168,6 +168,13 @@
             "description": "CA root certification",
             "name": "ca_certs",
             "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-go-name": "PluginURI",
+            "description": "Stand-alone plugin URI",
+            "name": "plugin_uri",
+            "in": "formData"
           }
         ],
         "responses": {
