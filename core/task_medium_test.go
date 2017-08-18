@@ -173,6 +173,7 @@ func TestUnmarshalBodyTask(t *testing.T) {
 	Convey("Bad JSON file", t, func() {
 		err := createTaskFile(YAML_FILE, YAML_FILE_CONTENT)
 		So(err, ShouldBeNil)
+		defer deleteTaskFile(YAML_FILE)
 
 		var tr TaskReq1
 		file, err := os.Open(YAML_FILE)
@@ -182,14 +183,12 @@ func TestUnmarshalBodyTask(t *testing.T) {
 		So(code, ShouldEqual, 400)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid character '-' in numeric literal")
-
-		err = deleteTaskFile(YAML_FILE)
-		So(err, ShouldBeNil)
 	})
 
 	Convey("Proper JSON file", t, func() {
 		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
 		So(err, ShouldBeNil)
+		defer deleteTaskFile(JSON_FILE)
 
 		var tr TaskReq1
 		file, err := os.Open(JSON_FILE)
@@ -197,9 +196,6 @@ func TestUnmarshalBodyTask(t *testing.T) {
 		So(err, ShouldBeNil)
 		code, err := UnmarshalBody(&tr, file)
 		So(code, ShouldEqual, 0)
-		So(err, ShouldBeNil)
-
-		err = deleteTaskFile(JSON_FILE)
 		So(err, ShouldBeNil)
 	})
 }
@@ -219,6 +215,7 @@ func TestCreateTaskRequest(t *testing.T) {
 	Convey("Bad JSON file", t, func() {
 		err := createTaskFile(YAML_FILE, YAML_FILE_CONTENT)
 		So(err, ShouldBeNil)
+		defer deleteTaskFile(YAML_FILE)
 
 		file, err := os.Open(YAML_FILE)
 		So(file, ShouldNotBeNil)
@@ -227,14 +224,12 @@ func TestCreateTaskRequest(t *testing.T) {
 		So(task, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid character '-' in numeric literal")
-
-		err = deleteTaskFile(YAML_FILE)
-		So(err, ShouldBeNil)
 	})
 
 	Convey("Proper JSON file", t, func() {
 		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
 		So(err, ShouldBeNil)
+		defer deleteTaskFile(JSON_FILE)
 
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
@@ -249,9 +244,6 @@ func TestCreateTaskRequest(t *testing.T) {
 		So(task.Schedule.StartTimestamp, ShouldBeNil)
 		So(task.Schedule.StopTimestamp, ShouldBeNil)
 		So(task.Start, ShouldEqual, false)
-
-		err = deleteTaskFile(JSON_FILE)
-		So(err, ShouldBeNil)
 	})
 }
 
@@ -271,6 +263,7 @@ func TestCreateTaskFromContent(t *testing.T) {
 	Convey("Bad JSON file", t, func() {
 		err := createTaskFile(YAML_FILE, YAML_FILE_CONTENT)
 		So(err, ShouldBeNil)
+		defer deleteTaskFile(YAML_FILE)
 
 		file, err := os.Open(YAML_FILE)
 		So(file, ShouldNotBeNil)
@@ -280,58 +273,36 @@ func TestCreateTaskFromContent(t *testing.T) {
 		So(task, ShouldBeNil)
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldEqual, "invalid character '-' in numeric literal")
-
-		err = deleteTaskFile(YAML_FILE)
-		So(err, ShouldBeNil)
 	})
 
-	Convey("Proper JSON file no workflow routine", t, func() {
+	Convey("Use proper JSON file", t, func() {
 		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
 		So(err, ShouldBeNil)
+		defer deleteTaskFile(JSON_FILE)
 
 		file, err := os.Open(JSON_FILE)
 		So(file, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 		autoStart := true
-		task, err := CreateTaskFromContent(file, &autoStart, nil)
-		So(task, ShouldBeNil)
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldEqual, "Missing workflow creation routine")
 
-		err = deleteTaskFile(JSON_FILE)
-		So(err, ShouldBeNil)
-	})
+		Convey("Proper JSON file - no workflow routine", func() {
+			task, err := CreateTaskFromContent(file, &autoStart, nil)
+			So(task, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "Missing workflow creation routine")
+		})
 
-	Convey("Proper JSON file erroring routine", t, func() {
-		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
-		So(err, ShouldBeNil)
+		Convey("Proper JSON file - erroring routine", func() {
+			task, err := CreateTaskFromContent(file, &autoStart, koRoutine)
+			So(task, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "Dummy error")
+		})
 
-		file, err := os.Open(JSON_FILE)
-		So(file, ShouldNotBeNil)
-		So(err, ShouldBeNil)
-		autoStart := true
-		task, err := CreateTaskFromContent(file, &autoStart, koRoutine)
-		So(task, ShouldBeNil)
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldEqual, "Dummy error")
-
-		err = deleteTaskFile(JSON_FILE)
-		So(err, ShouldBeNil)
-	})
-
-	Convey("Proper JSON file proper routine", t, func() {
-		err := createTaskFile(JSON_FILE, JSON_FILE_CONTENT)
-		So(err, ShouldBeNil)
-
-		file, err := os.Open(JSON_FILE)
-		So(file, ShouldNotBeNil)
-		So(err, ShouldBeNil)
-		autoStart := true
-		task, err := CreateTaskFromContent(file, &autoStart, okRoutine)
-		So(task, ShouldBeNil)
-		So(err, ShouldBeNil)
-
-		err = deleteTaskFile(JSON_FILE)
-		So(err, ShouldBeNil)
+		Convey("Proper JSON file - proper routine", func() {
+			task, err := CreateTaskFromContent(file, &autoStart, okRoutine)
+			So(task, ShouldBeNil)
+			So(err, ShouldBeNil)
+		})
 	})
 }

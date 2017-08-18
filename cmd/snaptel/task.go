@@ -387,7 +387,7 @@ func createTaskUsingTaskManifest(ctx *cli.Context) error {
 
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
-		errString := "Error creating task:"
+		errString := "Error creating task: "
 		for _, err := range errors {
 			errString += fmt.Sprintf("%v\n", err)
 		}
@@ -448,7 +448,7 @@ func createTaskUsingWFManifest(ctx *cli.Context) error {
 	r := pClient.CreateTask(t.Schedule, wf, t.Name, t.Deadline, !ctx.IsSet("no-start"), t.MaxFailures)
 	if r.Err != nil {
 		errors := strings.Split(r.Err.Error(), " -- ")
-		errString := "Error creating task:"
+		errString := "Error creating task: "
 		for _, err := range errors {
 			errString += fmt.Sprintf("%v\n", err)
 		}
