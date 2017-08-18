@@ -30,6 +30,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -146,6 +147,18 @@ type PluginPostParams struct {
 	// in: formData
 	//
 	CACerts string `json:"ca_certs"`
+	// Stand-alone plugin URI
+	//
+	// in: formData
+	//
+	PluginURI string `json:"plugin_uri"`
+}
+
+// Map for collecting HTTP form field data
+type formFieldMap map[string]formField
+type formField struct {
+	fileName string
+	data     []byte
 }
 
 // Name plugin name string
@@ -176,61 +189,96 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		var certPath, keyPath, caCertPaths string
 		var signature []byte
 		var checkSum [sha256.Size]byte
-		mr := multipart.NewReader(r.Body, params["boundary"])
 
-		for {
-			var b []byte
-			p, err := mr.NextPart()
-			if err == io.EOF {
-				break
-			}
+		// Go OpenAPI sends URL-encoded forms (without boundary data) if no file fields were passed.
+		// In standalone plugin mode, only plugin address is passed, so because of this behavior,
+		// multipart reader does not work and data needs to be processed using url.ParseQuery().
+		// Otherwise, incoming data is parsed using multipart reader.
+
+		// Reading HTTP form fields
+		formFields := make(formFieldMap)
+		if params["boundary"] == "" {
+			b, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				Write(500, FromError(err), w)
 				return
 			}
-			if r.Header.Get("Plugin-Compression") == "gzip" {
-				g, err := gzip.NewReader(p)
-				defer g.Close()
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-				b, err = ioutil.ReadAll(g)
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-			} else {
-				b, err = ioutil.ReadAll(p)
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
+			data, err := url.ParseQuery(string(b))
+			if err != nil {
+				Write(500, FromError(err), w)
+				return
 			}
+			for key, value := range data {
+				formFields[key] = formField{fileName: "", data: []byte(value[0])}
+			}
+		} else {
+			mr := multipart.NewReader(r.Body, params["boundary"])
 
-			switch p.FormName() {
+			var b []byte
+			for {
+				p, err := mr.NextPart()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					Write(500, FromError(err), w)
+					return
+				}
+				if r.Header.Get("Plugin-Compression") == "gzip" {
+					g, err := gzip.NewReader(p)
+					defer g.Close()
+					if err != nil {
+						Write(500, FromError(err), w)
+						return
+					}
+					b, err = ioutil.ReadAll(g)
+					if err != nil {
+						Write(500, FromError(err), w)
+						return
+					}
+				} else {
+					b, err = ioutil.ReadAll(p)
+					if err != nil {
+						Write(500, FromError(err), w)
+						return
+					}
+				}
+				formFields[p.FormName()] = formField{fileName: p.FileName(), data: b}
+			}
+		}
+
+		// Handle actions for received form fields
+		for fieldName, field := range formFields {
+			switch fieldName {
 			case "ca_certs":
-				caCertPaths = string(b)
+				caCertPaths = string(field.data)
 				handleError(caCertPaths, w)
 			case "plugin_key":
-				keyPath = string(b)
+				keyPath = string(field.data)
 				handleError(keyPath, w)
 			case "plugin_cert":
-				certPath = string(b)
+				certPath = string(field.data)
 				handleError(certPath, w)
-			// plugin_data is from REST API and snap-plugins is from rest_v2_test.go.
+			//plugin_data is from REST API and snap-plugins is from rest_v2_test.go.
 			case "plugin_data", "snap-plugins":
-				rp, err = core.NewRequestedPlugin(p.FileName(), s.metricManager.GetTempDir(), b)
+				rp, err = core.NewRequestedPlugin(field.fileName, s.metricManager.GetTempDir(), field.data)
 				if err != nil {
 					Write(500, FromError(err), w)
 					return
 				}
-				checkSum = sha256.Sum256(b)
+				checkSum = sha256.Sum256(field.data)
+			case "plugin_uri":
+				pluginURI := string(field.data)
+				rp, err = core.NewRequestedPlugin(pluginURI, "", nil)
+				if err != nil {
+					Write(500, FromError(err), w)
+					return
+				}
 			default:
-				if filepath.Ext(p.FileName()) == ".asc" {
-					signature = b
+				if filepath.Ext(field.fileName) == ".asc" {
+					signature = field.data
 				} else {
-					e := errors.New("Error: An unknown file found " + p.FileName())
+					e := errors.New("Error: An unknown file found " + field.fileName)
 					Write(400, FromError(e), w)
 					return
 				}
