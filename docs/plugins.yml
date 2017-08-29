@@ -112,3 +112,4 @@
 - intelsdi-x/snap-plugin-collector-diamond
 - intelsdi-x/snap-plugin-collector-rdt
 - michep/snap-plugin-processor-maptag
+- cuongquay/snap-plugin-collector-csvreader
