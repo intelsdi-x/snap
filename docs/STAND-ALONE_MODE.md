@@ -18,8 +18,7 @@ To specify a different listening port, use the `--stand-alone-port` flag, e.g.:
 $ ./snap-plugin-collector-psutil --stand-alone --stand-alone-port 8183
 ```
 ##  Loading a plugin
-When loading a plugin in stand-alone mode into `snapteld` you must provide a URL to indicate which
-machine the plugin is running (IP address/hostname with port number), e.g.:
+To load a plugin in stand-alone mode, provide a URL to indicate to the machine on which the plugin is running (IP address/hostname with port number), e.g.:
 
 ```
 $ snaptel plugin load http://127.0.0.1:8182
@@ -33,7 +32,5 @@ $ snaptel plugin load http://localhost:8182
 
 The rest of operations remains exactly the same as is it for plugins running in regular mode.
 
-## Notice
-
-If there is any disruption in the connection between Snap and a stand-alone plugin then the task is disabled and the plugin is unloaded,
-see [github issue](https://github.com/intelsdi-x/snap/issues/1697).
+## Known issues
+If some disruption occurs in the connection between Snap and a stand-alone plugin, the running task will be stopped with disabled status and the plugin will be unloaded. Providing the mechanism of reconnecting stand-alone plugins upon network disruption is in our scope, addressed by the [issue #1697](https://github.com/intelsdi-x/snap/issues/1697).
