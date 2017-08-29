@@ -17,7 +17,7 @@ $ ./snap-plugin-collector-psutil
 ```
 or with plugin configuration in the form of a JSON:
 ```
-$ ./snap-plugin-collector-psutil --config {\"mouting_points\":\"/dev/sda\"}
+$ ./snap-plugin-collector-psutil --config '{"mount_points":"/dev/sda"}'
 ```
 
 Example output:
