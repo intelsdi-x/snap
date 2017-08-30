@@ -129,3 +129,4 @@
 - michep/snap-plugin-processor-maptag
 - intelsdi-x/snap-plugin-collector-pysmart:
     supported: true
+- cuongquay/snap-plugin-collector-csvreader
