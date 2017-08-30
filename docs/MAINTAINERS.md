@@ -8,8 +8,8 @@ If you're interested in joining the team as a maintainer, check out the [becomin
 
 ----
 
-## Technical Lead: Joel Cooklin (@jcooklin)
-While our maintainers guide Snap, the plugins, and the community forward in a positive direction, our technical lead, Joel, is the key decision maker and fearless leaders for all of us. If there is ever a debate within the project, Joel is the tiebreaker. 
+## Technical Lead: Izabella Raulin (@IzabellaRaulin)
+While our maintainers guide Snap, the plugins, and the community forward in a positive direction, our technical lead, Izabella, is the key decision maker and leader for all of us. If there is ever a debate within the project, Izabella is the tiebreaker.
 
 ## Snap Maintainers
 Below is the list of Snap Maintainers, they are largely responsible for approving pull requests and thus have the final say on coding style and implementation. 
