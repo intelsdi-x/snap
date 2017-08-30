@@ -127,5 +127,6 @@
 - intelsdi-x/snap-plugin-collector-rdt:
     supported: true
 - michep/snap-plugin-processor-maptag
+- cuongquay/snap-plugin-collector-csvreader
 - intelsdi-x/snap-plugin-collector-pysmart:
     supported: true
