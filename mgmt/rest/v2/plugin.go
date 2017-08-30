@@ -30,6 +30,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -39,6 +40,15 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/julienschmidt/httprouter"
+)
+
+const (
+	// TLSCertPrefix defines a prefix for file fragment carrying path to TLS certificate
+	TLSCertPrefix = "crt."
+	// TLSKeyPrefix defines a prefix for file fragment carrying path to TLS private key
+	TLSKeyPrefix = "key."
+	// TLSCACertsPrefix defines a prefix for file fragment carrying paths to TLS CA certificates
+	TLSCACertsPrefix = "cacerts."
 )
 
 // PluginResponse represents the response from plugin operations.
@@ -122,6 +132,33 @@ type PluginPostParams struct {
 	//
 	// swagger:file
 	PluginData *bytes.Buffer `json:"plugin_data"`
+	// Plugin GRPC TLS server key
+	//
+	// in: formData
+	//
+	PluginKey string `json:"plugin_key"`
+	// Plugin GRPC TLS server certification
+	//
+	// in: formData
+	//
+	PluginCert string `json:"plugin_cert"`
+	// CA root certification
+	//
+	// in: formData
+	//
+	CACerts string `json:"ca_certs"`
+	// Stand-alone plugin URI
+	//
+	// in: formData
+	//
+	PluginURI string `json:"plugin_uri"`
+}
+
+// Map for collecting HTTP form field data
+type formFieldMap map[string]formField
+type formField struct {
+	fileName string
+	data     []byte
 }
 
 // Name plugin name string
@@ -149,74 +186,103 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 	}
 
 	if strings.HasPrefix(mediaType, "multipart/") {
+		var certPath, keyPath, caCertPaths string
 		var signature []byte
 		var checkSum [sha256.Size]byte
-		mr := multipart.NewReader(r.Body, params["boundary"])
-		var i int
-		for {
-			var b []byte
-			p, err := mr.NextPart()
-			if err == io.EOF {
-				break
-			}
+
+		// Go OpenAPI sends URL-encoded forms (without boundary data) if no file fields were passed.
+		// In standalone plugin mode, only plugin address is passed, so because of this behavior,
+		// multipart reader does not work and data needs to be processed using url.ParseQuery().
+		// Otherwise, incoming data is parsed using multipart reader.
+
+		// Reading HTTP form fields
+		formFields := make(formFieldMap)
+		if params["boundary"] == "" {
+			b, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				Write(500, FromError(err), w)
 				return
 			}
-			if r.Header.Get("Plugin-Compression") == "gzip" {
-				g, err := gzip.NewReader(p)
-				defer g.Close()
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-				b, err = ioutil.ReadAll(g)
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-			} else {
-				b, err = ioutil.ReadAll(p)
-				if err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-			}
-
-			// A little sanity checking for files being passed into the API server.
-			// First file passed in should be the plugin. If the first file is a signature
-			// file, an error is returned. The signature file should be the second
-			// file passed to the API server. If the second file does not have the ".asc"
-			// extension, an error is returned.
-			// If we loop around more than twice before receiving io.EOF, then
-			// an error is returned.
-
-			switch {
-			case i == 0:
-				if filepath.Ext(p.FileName()) == ".asc" {
-					e := errors.New("Error: first file passed to load plugin api can not be signature file")
-					Write(400, FromError(e), w)
-					return
-				}
-				if rp, err = core.NewRequestedPlugin(p.FileName(), s.metricManager.GetTempDir(), b); err != nil {
-					Write(500, FromError(err), w)
-					return
-				}
-				checkSum = sha256.Sum256(b)
-			case i == 1:
-				if filepath.Ext(p.FileName()) == ".asc" {
-					signature = b
-				} else {
-					e := errors.New("Error: second file passed was not a signature file")
-					Write(400, FromError(e), w)
-					return
-				}
-			case i == 2:
-				e := errors.New("Error: More than two files passed to the load plugin api")
-				Write(400, FromError(e), w)
+			data, err := url.ParseQuery(string(b))
+			if err != nil {
+				Write(500, FromError(err), w)
 				return
 			}
-			i++
+			for key, value := range data {
+				formFields[key] = formField{fileName: "", data: []byte(value[0])}
+			}
+		} else {
+			mr := multipart.NewReader(r.Body, params["boundary"])
+
+			var b []byte
+			for {
+				p, err := mr.NextPart()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					Write(500, FromError(err), w)
+					return
+				}
+				if r.Header.Get("Plugin-Compression") == "gzip" {
+					g, err := gzip.NewReader(p)
+					defer g.Close()
+					if err != nil {
+						Write(500, FromError(err), w)
+						return
+					}
+					b, err = ioutil.ReadAll(g)
+					if err != nil {
+						Write(500, FromError(err), w)
+						return
+					}
+				} else {
+					b, err = ioutil.ReadAll(p)
+					if err != nil {
+						Write(500, FromError(err), w)
+						return
+					}
+				}
+				formFields[p.FormName()] = formField{fileName: p.FileName(), data: b}
+			}
+		}
+
+		// Handle actions for received form fields
+		for fieldName, field := range formFields {
+			switch fieldName {
+			case "ca_certs":
+				caCertPaths = string(field.data)
+				handleError(caCertPaths, w)
+			case "plugin_key":
+				keyPath = string(field.data)
+				handleError(keyPath, w)
+			case "plugin_cert":
+				certPath = string(field.data)
+				handleError(certPath, w)
+			//plugin_data is from REST API and snap-plugins is from rest_v2_test.go.
+			case "plugin_data", "snap-plugins":
+				rp, err = core.NewRequestedPlugin(field.fileName, s.metricManager.GetTempDir(), field.data)
+				if err != nil {
+					Write(500, FromError(err), w)
+					return
+				}
+				checkSum = sha256.Sum256(field.data)
+			case "plugin_uri":
+				pluginURI := string(field.data)
+				rp, err = core.NewRequestedPlugin(pluginURI, "", nil)
+				if err != nil {
+					Write(500, FromError(err), w)
+					return
+				}
+			default:
+				if filepath.Ext(field.fileName) == ".asc" {
+					signature = field.data
+				} else {
+					e := errors.New("Error: An unknown file found " + field.fileName)
+					Write(400, FromError(e), w)
+					return
+				}
+			}
 		}
 
 		// Sanity check, verify the checkSum on the file sent is the same
@@ -226,7 +292,24 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			Write(400, FromError(e), w)
 			return
 		}
+
+		// check if one of TLS params (cert or key) has been provided; if not, skip the part related to TLS
+		if hasTLS(certPath, keyPath) {
+			// check if both of required params have been provided to setup TLS connection;
+			// if not, return an appropriate error
+			if isTLSEnabled(certPath, keyPath) {
+				rp.SetTLSEnabled(true)
+				rp.SetCACertPaths(caCertPaths)
+				rp.SetCertPath(certPath)
+				rp.SetKeyPath(keyPath)
+			} else {
+				e := errors.New("Error: TLS setup incomplete - Both plugin TLS certificate and the key are required")
+				Write(500, FromError(e), w)
+				return
+			}
+		}
 		rp.SetSignature(signature)
+
 		restLogger.Info("Loading plugin: ", rp.Path())
 		pl, err := s.metricManager.Load(rp)
 		if err != nil {
@@ -249,6 +332,27 @@ func (s *apiV2) loadPlugin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		}
 		Write(201, catalogedPluginBody(r.Host, pl), w)
 	}
+}
+
+func handleError(p string, w http.ResponseWriter) {
+	if _, err := os.Stat(p); os.IsNotExist(err) {
+		Write(500, FromError(err), w)
+		return
+	}
+}
+
+func hasTLS(cert, key string) bool {
+	if cert == "" && key == "" {
+		return false
+	}
+	return true
+}
+
+func isTLSEnabled(cert, key string) bool {
+	if cert != "" && key != "" {
+		return true
+	}
+	return false
 }
 
 func pluginParameters(p httprouter.Params) (string, string, int, map[string]interface{}, serror.SnapError) {
@@ -442,17 +546,16 @@ func (s *apiV2) getPlugin(w http.ResponseWriter, r *http.Request, p httprouter.P
 		}
 		w.WriteHeader(200)
 		return
-	} else {
-		pluginRet := Plugin{
-			Name:            plugin.Name(),
-			Version:         plugin.Version(),
-			Type:            plugin.TypeName(),
-			Signed:          plugin.IsSigned(),
-			Status:          plugin.Status(),
-			LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
-			Href:            pluginURI(r.Host, plugin),
-			ConfigPolicy:    configPolicy,
-		}
-		Write(200, pluginRet, w)
 	}
+	pluginRet := Plugin{
+		Name:            plugin.Name(),
+		Version:         plugin.Version(),
+		Type:            plugin.TypeName(),
+		Signed:          plugin.IsSigned(),
+		Status:          plugin.Status(),
+		LoadedTimestamp: plugin.LoadedTimestamp().Unix(),
+		Href:            pluginURI(r.Host, plugin),
+		ConfigPolicy:    configPolicy,
+	}
+	Write(200, pluginRet, w)
 }
