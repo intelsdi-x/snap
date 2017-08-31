@@ -315,7 +315,7 @@ Documentation for Snap will be kept in this repository for now with an emphasis 
 * [configuring snapteld](docs/SNAPTELD_CONFIGURATION.md)
 * [snaptel (Snap CLI)](docs/SNAPTEL.md)
 * [build and test](docs/BUILD_AND_TEST.md)
-* [REST API](docs/REST_API.md)
+* [REST API V1](docs/REST_API_V1.md)
 * [tasks](docs/TASKS.md)
 * [plugin life cycle](docs/PLUGIN_LIFECYCLE.md)
 * [plugin signing](docs/PLUGIN_SIGNING.md)

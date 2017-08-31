@@ -1,3 +1,6 @@
+# Notice
+This document describes API v1, for info about API v2 see [REST_API_V2.md](REST_API_V2.md).
+
 # Snap API
 Snap exposes a list of RESTful APIs to perform various actions. All of Snap's API requests return `JSON`-formatted responses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation have the endpoint:
 > http://localhost:8181
