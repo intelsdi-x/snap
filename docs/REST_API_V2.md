@@ -1,18 +1,18 @@
-# Snap API
+# Snap API v2
 Snap exposes RESTful APIs that allow performing various actions. All of Snap's API requests return `JSON`-formatted responses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation have the endpoint:
 > http://localhost:8181
 
 ## API Index
 1. [Authentication](#authentication)
 2. [Plugin API](#plugin-api)
- * [Plugin Response Parameters](#plugin-response-parameters)
- * [Plugin API endpoints and examples](#plugin-api-endpoints-and-examples)
+   * [Plugin Response Parameters](#plugin-response-parameters)
+   * [Plugin API endpoints and examples](#plugin-api-endpoints-and-examples)
 3. [Metric API](#metric-api)
- * [Metric Response Parameters](#metric-response-parameters)
- * [Metric API endpoints and examples](#metric-api-endpoints-and-examples)
+   * [Metric Response Parameters](#metric-response-parameters)
+   * [Metric API endpoints and examples](#metric-api-endpoints-and-examples)
 4. [Task API](#task-api)
- * [Task API Response Parameters](#task-api-response-parameters)
- * [Task API endpoints and examples](#task-api-endpoints-and-examples)
+   * [Task API Response Parameters](#task-api-response-parameters)
+   * [Task API endpoints and examples](#task-api-endpoints-and-examples)
 
 ### Authentication
 If Snap framework is started with `--rest-auth` flag, then all requests without authentication info provided will be unauthorized:
