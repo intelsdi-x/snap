@@ -39,11 +39,12 @@ Before writing a new Snap plugin, please check out the [Plugin Catalog](./PLUGIN
 
 ### Plugin Type
 
-Snap supports three type of plugins:
+Snap supports four types of plugins:
 
 * collector: gathering metrics
 * processor: transforming metrics
 * publisher: publishing metrics
+* streaming collector: streaming gathered metrics
 
 ### Plugin Name
 

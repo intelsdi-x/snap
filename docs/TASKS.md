@@ -52,6 +52,7 @@ The schedule describes the schedule type and interval for running the task. At t
  - [simple](#simple-schedule) 
  - [windowed](#windowed-schedule) 
  - [cron](#cron-schedule)
+ - [streaming] (#streaming-schedule)
  
 Snap is designed in a way where custom schedulers can easily be dropped in. If a custom schedule is used, it may require more key/value pairs in the schedule section of the manifest.  
   
@@ -176,8 +177,15 @@ Snap is designed in a way where custom schedulers can easily be dropped in. If a
       "max-failures": 10,
    ```
   
-    
-    
+##### Streaming Schedule
+```yaml
+   ---
+  version: 1
+  schedule:
+    type: "streaming"
+```
+For more details on streaming, visit [STREAMING.md](STREAMING.md)
+
 #### Max-Failures
 
 By default, Snap will disable a task if there are 10 consecutive errors from any plugins within the workflow.  The configuration

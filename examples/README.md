@@ -33,3 +33,5 @@ For additional examples of using Snap, checkout the examples in these repositori
  - [snap-plugin-publisher-influxdb](https://github.com/intelsdi-x/snap-plugin-publisher-influxdb)
  - [snap-plugin-publisher-graphite](https://github.com/intelsdi-x/snap-plugin-publisher-graphite)
  - [snap-plugin-publisher-file](https://github.com/intelsdi-x/snap-plugin-publisher-file)
+ - [snap-relay](https://github.com/intelsdi-x/snap-relay) (streaming collector plugin)
+ - [snap-plugin-collector-rand-streaming](https://github.com/intelsdi-x/snap-plugin-lib-go/blob/master/examples/snap-plugin-collector-rand-streaming) (streaming collector plugin)
