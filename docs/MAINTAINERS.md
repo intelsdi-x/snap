@@ -22,6 +22,7 @@ Below is the list of Snap Maintainers, they are largely responsible for approvin
 | Joel Cooklin      | @jcooklin        |
 | Katarzyna Kujawa  | @katarzyna-z     |
 | Kelly Lyon        | @kjlyon          |
+| Klaudiusz Dembler | @kdembler        |
 | Lukasz Mroz       | @lmroz           |
 | Marcin Krolik     | @marcin-krolik   |
 | Marcin Olszewski  | @marcintao       |
@@ -31,7 +32,6 @@ Below is the list of Snap Maintainers, they are largely responsible for approvin
 | Matt Broberg      | @mbbroberg       |
 | Patryk Matyjasek  | @PatrykMatyjasek |
 | Rashmi Gottipati  | @rashmigottipati |
-| Klaudiusz Dembler | @kdembler        |
 
 ### Responsibilities of Snap Maintainers
 Maintainers are expected to contribute regularly in at least one of the following capacities:
