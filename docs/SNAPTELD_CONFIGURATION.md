@@ -263,6 +263,6 @@ Do keep in mind that this signal will trigger a **restart** of the `snapteld` pr
 
 ## More information
 * [SNAPTELD.md](SNAPTELD.md)
-* [REST_API.md](REST_API.md)
+* [REST_API_V1.md](REST_API_V1.md)
 * [PLUGIN_SIGNING.md](PLUGIN_SIGNING.md)
 * [TRIBE.md](TRIBE.md)

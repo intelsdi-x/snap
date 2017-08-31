@@ -1,3 +1,12 @@
+# Notice
+This document describes API v1, which is currently supported, but no longer in active development.
+
+In the future, it will be fully replaced by [API v2](REST_API_V2.md) - see details in [issue 1637](https://github.com/intelsdi-x/snap/issues/1637).
+
+**Notice that [Tribe API](#tribe-api) is available only in API v1 at the moment.**
+
+The process of deprecation will start only after API v2 achieves full feature parity with API v1 (adding Tribe API) and will be preceded by an deprecation announcement giving Snap users time to switch to API v2.
+
 # Snap API
 Snap exposes a list of RESTful APIs to perform various actions. All of Snap's API requests return `JSON`-formatted responses, including errors. Any non-2xx HTTP status code may contain an error message. All API URLs listed in this documentation have the endpoint:
 > http://localhost:8181
@@ -13,17 +22,17 @@ Snap exposes a list of RESTful APIs to perform various actions. All of Snap's AP
 ## API Index
 1. [Authentication](#authentication)
 2. [Plugin API](#plugin-api)  
- * [Plugin Response Parameters](#plugin-response-parameters)
- * [Plugin APIs and Examples](#plugin-apis-and-examples)
+   * [Plugin Response Parameters](#plugin-response-parameters)
+   * [Plugin APIs and Examples](#plugin-apis-and-examples)
 3. [Metric API](#metric-api)  
- * [Metric Response Parameters](#metric-response-parameters)  
- * [Metric APIs and Examples](#metric-apis-and-examples)
+   * [Metric Response Parameters](#metric-response-parameters)  
+   * [Metric APIs and Examples](#metric-apis-and-examples)
 4. [Task API](#task-api)  
- * [Task API Response Parameters](#task-api-response-parameters)  
- * [Task APIs and Examples](#task-apis-and-examples)
+   * [Task API Response Parameters](#task-api-response-parameters)  
+   * [Task APIs and Examples](#task-apis-and-examples)
 5. [Tribe API](#tribe-api)  
- * [Tribe API Response Parameters](#tribe-api-response-parameters)  
- * [Tribe APIs and Examples](#tribe-apis-and-examples)
+   * [Tribe API Response Parameters](#tribe-api-response-parameters)  
+   * [Tribe APIs and Examples](#tribe-apis-and-examples)
 
 ### Authentication
 Enabled in snapteld
