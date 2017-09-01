@@ -124,6 +124,11 @@
 - intelsdi-x/snap-plugin-collector-influxdb-data
 - hstack/snap-plugin-publisher-prometheus
 - intelsdi-x/snap-plugin-collector-diamond
+- intelsdi-x/snap-plugin-collector-exec
+- intelsdi-x/snap-plugin-collector-active-directory
+- intelsdi-x/snap-plugin-collector-cgroups
+- intelsdi-x/snap-plugin-collector-intel-dcm-platform
+- intelsdi-x/snap-plugin-collector-perfmon
 - intelsdi-x/snap-plugin-collector-rdt:
     supported: true
 - michep/snap-plugin-processor-maptag
