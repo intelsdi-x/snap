@@ -184,6 +184,7 @@ Snap is designed in a way where custom schedulers can easily be dropped in. If a
   schedule:
     type: "streaming"
 ```
+The streaming schedule doesn't support fields such as `interval` and `count`. If those fields are provided as part of the schedule, they will simply be skipped. 
 For more details on streaming, visit [STREAMING.md](STREAMING.md)
 
 #### Max-Failures

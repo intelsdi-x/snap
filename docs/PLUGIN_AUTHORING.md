@@ -41,10 +41,10 @@ Before writing a new Snap plugin, please check out the [Plugin Catalog](./PLUGIN
 
 Snap supports four types of plugins:
 
-* collector: gathering metrics
+* collector: gathering metrics based on the specified interval
 * processor: transforming metrics
 * publisher: publishing metrics
-* streaming collector: streaming gathered metrics
+* streaming collector: gathering metrics when they are available 
 
 ### Plugin Name
 
