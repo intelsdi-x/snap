@@ -66,10 +66,11 @@ These and other terminology are explained in the [glossary](docs/GLOSSARY.md).
 
 The key features of Snap are:
 
-* **Plugin Architecture**: Snap has a simple and smart modular design. The three types of plugins (collectors, processors, and publishers) allow Snap to mix and match functionality based on user need. All plugins are designed with versioning, signing and deployment at scale in mind. The **open plugin model** allows for loading built-in, community, or proprietary plugins into Snap.
+* **Plugin Architecture**: Snap has a simple and smart modular design. The four types of plugins (collectors, processors, publishers and streaming collectors) allow Snap to mix and match functionality based on user need. All plugins are designed with versioning, signing and deployment at scale in mind. The **open plugin model** allows for loading built-in, community, or proprietary plugins into Snap.
   * **Collectors** - Collectors consume telemetry data. Collectors are plugins for leveraging existing telemetry solutions (Facter, CollectD, Ohai) as well as specific plugins for consuming Intel telemetry (Node, DCM, NIC, Disk) and can reach into new architectures through additional plugins (see [Plugin Authoring below](#author-a-plugin)). Telemetry data is organized into a dynamically generated catalog of available data points.
   * **Processors** - Extensible workflow injection. Convert telemetry into another data model for consumption by existing systems. Allows encryption of all or part of the telemetry payload before publishing. Inject remote queries into workflow for tokens, filtering, or other external calls. Implement filtering at an agent level reducing injection load on telemetry consumer.
   * **Publishers** - Store telemetry into a wide array of systems. Snap decouples the collection of telemetry from the implementation of where to send it. Snap comes with a large library of publisher plugins that allow exposure to telemetry analytics systems both custom and common. This flexibility allows Snap to be valuable to open source and commercial ecosystems alike by writing a publisher for their architectures.
+  * **Streaming Collectors** - Streaming collectors act just like collectors, but rather than waiting for a specified duration before sending the collected data, they send it immediately over a grpc stream to snaptel. Check out [STREAMING.md](/docs/STREAMING.md) for more details on the differences between collectors and streaming collectors. 
 
 * **Dynamic Updates**: Snap is designed to evolve. Each scheduled workflow automatically uses the most mature plugin for that step, unless the collection is pinned to a specific version (e.g. get `/intel/psutil/load/load1/v1`). Loading a new plugin automatically upgrades running workflows in tasks. Load plugins dynamically, without a restart to the service or server. This dynamically extends the metric catalog when loaded, giving access to new measurements immediately. Swapping a newer version plugin for an old one in a safe transaction. All of these behaviors allow for simple and secure bug fixes, security patching, and improving accuracy in production.
 
@@ -304,7 +305,7 @@ When you're ready to move on, walk through other uses of Snap available in the [
 Documentation for building a task can be found [here](docs/TASKS.md).
 
 ### Plugin Catalog
-All known plugins are tracked in the [plugin catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) and are tagged as collectors, processors and publishers.
+All known plugins are tracked in the [plugin catalog](https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_CATALOG.md) and are tagged as collectors, processors, publishers and streaming collectors.
 
 If you would like to write your own, read through [Author a Plugin](#author-a-plugin) to get started. Let us know if you begin to write one by [joining our Slack channel](https://intelsdi-x.herokuapp.com/). When you finish, please open a Pull Request to add yours to the catalog!
 
