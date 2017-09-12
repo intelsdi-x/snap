@@ -242,5 +242,5 @@ $ snaptel plugin unload publisher publisher <version>
 * [SECURE_PLUGIN_COMMUNICATION](SECURE_PLUGIN_COMMUNICATION.md)
 
 ## Snap CLI (REST API V2)
-The documentation for the Snap API CLI which bases on REST API V2 is located in [snap-cli](https://github.com/intelsdi-x/snap-cli).
+The documentation for the Snap CLI which bases on REST API V2 is located in [snap-cli](https://github.com/intelsdi-x/snap-cli).
 Please, be aware that this is currently in **alpha stage**.
