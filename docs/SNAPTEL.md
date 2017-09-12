@@ -232,7 +232,7 @@ $ snaptel task create -w workflow.json -i 1s -d 10s
 $ snaptel task list
 $ snaptel plugin unload collector mock <version>
 $ snaptel plugin unload processor passthru <version>
-$ snaptel plugin unload publisher publisher <version>
+$ snaptel plugin unload publisher mock-file <version>
 ```
 
 ### More information
