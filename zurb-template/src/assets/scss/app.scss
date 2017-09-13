@@ -273,6 +273,22 @@ display: block;}
     background: linear-gradient(45deg, #0071C5, #0071C5); 
 }
 
+.button_inverse {
+  font-size: 2rem;
+  letter-spacing: 5px;
+  border-image: #0071C5;
+  border-image-slice: 1;
+  background: #0071C5;
+  -webkit-text-fill-color: white;
+  transition: all 0.2s ease; }
+  .button_inverse:hover {
+    border-image: #0071C5;
+    border-image-slice: 1;
+    background: white; 
+    -webkit-text-fill-color: #0071C5;
+    
+}
+
 .button_dwnld {
     font-size: .8rem;
     /*font-weight: bold;*/

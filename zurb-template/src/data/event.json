@@ -1,7 +1,7 @@
 [ 
 { 
-"text": "Snap and Kubernetes Integration for better monitoring and scale", 
-"link": "https://medium.com/intel-sdi/how-we-integrated-kubernetes-with-snap-and-come-up-with-kubesnap-466ac25fc0ff#.61rotoqqw" 
+"text": "Snap plugin diagnostics allows for easier debugging", 
+"link": "https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_DIAGNOSTICS.md" 
 },
 
 { 
@@ -15,18 +15,18 @@
 },
 
 { 
-"text": "Set single or multiple runs for task with count parameter", 
-"link": "https://github.com/intelsdi-x/snap/blob/master/docs/TASKS.md#task-manifest" 
+"text": "2.0 release introduces a new plugin type: streaming collectors", 
+"link": "https://github.com/intelsdi-x/snap/blob/master/docs/STREAMING.md" 
 },
 
 { 
-"text": "Plugin Authors: Go RPC now deprecated", 
-"link": "https://github.com/intelsdi-x/snap/issues/1289"
+"text": "Plugin Authors: \"Supported\" plugins tag indicates premier plugins", 
+"link": "https://github.com/intelsdi-x/snap/blob/master/docs/PLUGIN_STATUS.md"
 }, 
 
 { 
-"text": "Plugin Authors: JSON RPC now deprecated and will be removed as of release 0.18", 
-"link": "https://github.com/intelsdi-x/snap/issues/1296" 
+"text": "Plugin Authors: New Snap client available based on our V2 REST API", 
+"link": "https://github.com/intelsdi-x/snap-cli" 
 }
 
 ] 
