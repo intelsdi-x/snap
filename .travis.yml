@@ -1,8 +1,9 @@
 sudo: true
 language: go
 go:
-- 1.8.1
-- 1.7.3
+- 1.9.x
+- 1.8.x
+- 1.7.x
 before_install:
 - bash scripts/gitcookie.sh
 - go get github.com/smartystreets/goconvey/convey
