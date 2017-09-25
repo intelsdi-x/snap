@@ -140,6 +140,7 @@ func TestCollectorProxy(t *testing.T) {
 			c.CollectMetrics(out, &reply)
 			var mtr CollectMetricsReply
 			err = c.Session.Decode(reply, &mtr)
+			So(err, ShouldBeNil)
 			So(mtr.PluginMetrics[0].Namespace().String(), ShouldResemble, "/foo/test/bar")
 			So(mtr.PluginMetrics[0].Namespace()[1].Name, ShouldEqual, "test")
 
