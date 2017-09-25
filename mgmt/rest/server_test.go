@@ -209,7 +209,7 @@ func (s *mockServer) getAllowedOrigins(corsd string) ([]string, error) {
 		// Validates origin formation
 		u, err := url.Parse(to)
 
-		// Checks if scheme or host exists when no error occured.
+		// Checks if scheme or host exists when no error occurred.
 		if err != nil || u.Scheme == "" || u.Host == "" {
 			restLogger.Errorf("Invalid origin found %s", to)
 			return []string{}, fmt.Errorf("Invalid origin found: %s.", to)
