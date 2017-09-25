@@ -233,7 +233,7 @@ func Test_checkCmdLineFlags(t *testing.T) {
 	}{
 		{name: "CmdlineArgsParseWell",
 			msg: func(f func(string)) {
-				f("Having valid command line flags, parsing suceeds")
+				f("Having valid command line flags, parsing succeeds")
 			},
 			ctx:            testCtx.getCopy(),
 			wantErr:        false,
@@ -241,7 +241,7 @@ func Test_checkCmdLineFlags(t *testing.T) {
 			wantPortInAddr: false},
 		{name: "CmdlineArgsWithoutTLSConfigParseWell",
 			msg: func(f func(string)) {
-				f("Having valid command line flags without any TLS parameters, parsing suceeds")
+				f("Having valid command line flags without any TLS parameters, parsing succeeds")
 			},
 			ctx: testCtx.
 				copyWithout("tls-cert", "tls-key", "ca-cert-paths", "api-port").

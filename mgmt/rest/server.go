@@ -105,7 +105,7 @@ func New(cfg *Config) (*Server, error) {
 	)
 	s.r = httprouter.New()
 
-	// CORS has to be turned on explictly in the global config.
+	// CORS has to be turned on explicitly in the global config.
 	// Otherwise, it defauts to the same origin.
 	origins, err := s.getAllowedOrigins(cfg.Corsd)
 	if err != nil {
@@ -181,7 +181,7 @@ func (s *Server) authMiddleware(rw http.ResponseWriter, r *http.Request, next ht
 	}
 }
 
-// CORS origins have to be turned on explictly in the global config.
+// CORS origins have to be turned on explicitly in the global config.
 // Otherwise, it defaults to the same origin.
 func (s *Server) setAllowedOrigins(rw http.ResponseWriter, ro string) {
 	if len(s.allowedOrigins) > 0 {
@@ -336,7 +336,7 @@ func (s *Server) getAllowedOrigins(corsd string) ([]string, error) {
 		// Validates origin formation
 		u, err := url.Parse(to)
 
-		// Checks if scheme or host exists when no error occured.
+		// Checks if scheme or host exists when no error occurred.
 		if err != nil || u.Scheme == "" || u.Host == "" {
 			restLogger.Errorf("Invalid origin found %s", to)
 			return []string{}, fmt.Errorf("Invalid origin found: %s.", to)
