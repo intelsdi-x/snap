@@ -53,6 +53,7 @@
 - intelsdi-x/snap-plugin-collector-glance
 - intelsdi-x/snap-plugin-collector-haproxy
 - intelsdi-x/snap-plugin-collector-influxdb
+- intelsdi-x/snap-plugin-collector-intel-nvdimm
 - intelsdi-x/snap-plugin-collector-interface:
     supported: true
 - intelsdi-x/snap-plugin-collector-iostat:
