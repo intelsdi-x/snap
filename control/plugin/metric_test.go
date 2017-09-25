@@ -242,6 +242,7 @@ func TestMetric(t *testing.T) {
 		b, c, e := SwapMetricContentType("snap.wat", "snap.gob", a)
 		So(e, ShouldNotBeNil)
 		So(e.Error(), ShouldResemble, "invalid snap content type for unmarshalling: snap.wat")
+		So(c, ShouldEqual, "")
 		So(b, ShouldBeNil)
 	})
 }
