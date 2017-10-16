@@ -22,7 +22,7 @@ package agreement
 import (
 	"net"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/intelsdi-x/snap/core"

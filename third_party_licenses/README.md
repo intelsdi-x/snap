@@ -26,7 +26,7 @@ Below is the list of 3rd party components grouped by licenses.
 - [cron](https://github.com/robfig/cron)
 - [govalidator](https://github.com/asaskevich/govalidator)
 - [jsonutil](https://github.com/vrischmann/jsonutil)
-- [Logrus](https://github.com/Sirupsen/logrus)
+- [Logrus](https://github.com/sirupsen/logrus)
 - [Negroni](https://github.com/urfave/negroni) 
 - [YAML](https://github.com/ghodss/yaml) (not all files, for details please see [license](yaml_license.txt))
 

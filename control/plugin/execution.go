@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var execLogger = log.WithField("_module", "plugin-exec")

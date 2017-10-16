@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/pkg/chrono"
+	log "github.com/sirupsen/logrus"
 )
 
 // GlobalCacheExpiration the default time limit for which a cache entry is valid.

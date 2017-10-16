@@ -30,7 +30,7 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin/encoding"
 	"github.com/intelsdi-x/snap/core"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

@@ -34,7 +34,7 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/vrischmann/jsonutil"
 	"golang.org/x/crypto/ssh/terminal"
@@ -291,7 +291,7 @@ func action(ctx *cli.Context) error {
 		log.Fatal("temp dir path provided must be a directory")
 	}
 
-	// Because even though github.com/Sirupsen/logrus states that
+	// Because even though github.com/sirupsen/logrus states that
 	// 'Logs the event in colors if stdout is a tty, otherwise without colors'
 	// Seems like this does not work
 	// Please note however that the default output format without colors is somewhat different (timestamps, ...)

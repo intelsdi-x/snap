@@ -29,8 +29,8 @@ import (
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core/serror"
+	log "github.com/sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

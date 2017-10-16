@@ -30,9 +30,9 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 
 	"strings"

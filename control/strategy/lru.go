@@ -22,8 +22,8 @@ package strategy
 import (
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
+	log "github.com/sirupsen/logrus"
 )
 
 // lru provides a strategy that selects the least recently used available plugin.

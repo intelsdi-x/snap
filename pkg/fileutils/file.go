@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // WriteFile creates a temporary directory for loading plugins

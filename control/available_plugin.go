@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/control/plugin"
