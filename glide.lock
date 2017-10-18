@@ -35,7 +35,7 @@ imports:
 - name: github.com/intelsdi-x/gomit
   version: 286c3ad6599724faed681cd18a9ff595b00d9f3f
 - name: github.com/intelsdi-x/snap-plugin-lib-go
-  version: 3e667d03c92e7d5247e536e4df037f6c84692229
+  version: 69934c200c23811291535a804852ff2231bf85f0 
   subpackages:
   - v1/plugin
   - v1/plugin/rpc
