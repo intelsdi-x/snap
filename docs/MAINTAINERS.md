@@ -18,7 +18,9 @@ Below is the list of Snap Maintainers, they are largely responsible for approvin
 |:------------------|:-----------------|
 | Andrzej Kuriata   | @andrzej-k       |
 | Emily Gu          | @candysmurf      |
+| Fengfeng Tao      | @taotod          |
 | Izabella Raulin   | @IzabellaRaulin  |
+| Jialei Wang       | @WangJialei-A    |
 | Joel Cooklin      | @jcooklin        |
 | Katarzyna Kujawa  | @katarzyna-z     |
 | Kelly Lyon        | @kjlyon          |
