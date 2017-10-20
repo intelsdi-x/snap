@@ -25,8 +25,8 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
+	log "github.com/sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

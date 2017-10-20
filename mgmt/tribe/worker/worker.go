@@ -31,13 +31,13 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/client"
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

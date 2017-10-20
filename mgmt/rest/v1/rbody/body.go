@@ -27,8 +27,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core/cdata"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 )
 

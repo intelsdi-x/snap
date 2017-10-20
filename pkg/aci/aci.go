@@ -28,9 +28,9 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/Sirupsen/logrus"
 	specaci "github.com/appc/spec/aci"
 	"github.com/appc/spec/schema"
+	log "github.com/sirupsen/logrus"
 )
 
 var (

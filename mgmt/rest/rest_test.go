@@ -26,10 +26,10 @@ import (
 	"net/http"
 	"os"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/plugin/helper"
 	"github.com/intelsdi-x/snap/scheduler"
+	log "github.com/sirupsen/logrus"
 )
 
 // common resources used for medium tests

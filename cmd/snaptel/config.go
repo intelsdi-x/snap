@@ -28,8 +28,8 @@ import (
 	"strconv"
 	"text/tabwriter"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 

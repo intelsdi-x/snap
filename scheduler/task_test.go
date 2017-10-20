@@ -29,8 +29,8 @@ import (
 	"github.com/intelsdi-x/snap/pkg/schedule"
 	"github.com/intelsdi-x/snap/scheduler/wmap"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
+	log "github.com/sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

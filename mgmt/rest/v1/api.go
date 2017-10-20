@@ -3,8 +3,8 @@ package v1
 import (
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/mgmt/rest/api"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

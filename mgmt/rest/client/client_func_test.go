@@ -31,8 +31,8 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/control"
 	"github.com/intelsdi-x/snap/mgmt/rest"

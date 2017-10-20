@@ -29,7 +29,6 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/control_event"
@@ -39,6 +38,7 @@ import (
 	"github.com/intelsdi-x/snap/mgmt/tribe/agreement"
 	"github.com/intelsdi-x/snap/mgmt/tribe/worker"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/memberlist"

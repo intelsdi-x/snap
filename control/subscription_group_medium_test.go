@@ -34,8 +34,8 @@ import (
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/plugin/helper"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
+	log "github.com/sirupsen/logrus"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

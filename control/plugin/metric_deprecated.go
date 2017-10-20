@@ -32,9 +32,9 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"
+	log "github.com/sirupsen/logrus"
 )
 
 func NewPluginConfigType() ConfigType {

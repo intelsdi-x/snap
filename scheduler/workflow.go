@@ -25,8 +25,8 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/gomit"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/core"
 	"github.com/intelsdi-x/snap/core/cdata"

@@ -25,7 +25,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/intelsdi-x/snap/core/serror"
 	"github.com/intelsdi-x/snap/mgmt/rest/v1/rbody"
