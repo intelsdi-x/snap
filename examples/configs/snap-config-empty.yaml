@@ -10,3 +10,8 @@ control:
       psutil:
         all:
           path: /usr/local/bin/psutil
+        # this should not cause a fatal error
+        versions:
+          1:
+      # this should also not cause a fatal error
+      myplugin:
