@@ -131,6 +131,18 @@ func TestSnapConfig(t *testing.T) {
 	})
 }
 
+func TestSnapConfigEmpty(t *testing.T) {
+	Convey("Test Config", t, func() {
+		Convey("with empty plugin config sections", func() {
+			cfg := getDefaultConfig()
+			readConfig(cfg, "./examples/configs/snap-config-empty.yaml")
+			jb, _ := json.Marshal(cfg)
+			serrs := cfgfile.ValidateSchema(CONFIG_CONSTRAINTS, string(jb))
+			So(len(serrs), ShouldEqual, 0)
+		})
+	})
+}
+
 type mockFlags map[string]string
 
 func (m mockFlags) String(key string) string {

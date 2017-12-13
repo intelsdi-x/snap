@@ -465,6 +465,10 @@ func unmarshalPluginConfig(typ string, p *pluginConfig, t map[string]interface{}
 				switch col := c.(type) {
 				case map[string]interface{}:
 					if v, ok := col["all"]; ok {
+						if v == nil { // handle empty config section by converting nil value to empty map
+							log.WithFields(log.Fields{"name": name, "type": typ}).Warning("Ignoring empty plugin configuration all: section")
+							v = map[string]interface{}{}
+						}
 						jv, err := json.Marshal(v)
 						if err != nil {
 							return err
@@ -489,7 +493,11 @@ func unmarshalPluginConfig(typ string, p *pluginConfig, t map[string]interface{}
 						case map[string]interface{}:
 							for ver, version := range versions {
 								switch v := version.(type) {
-								case map[string]interface{}:
+								case map[string]interface{}, nil:
+									if v == nil { // handle empty config section by converting nil value to empty map
+										log.WithFields(log.Fields{"name": name, "type": typ, "version": ver}).Warning("Ignoring empty plugin configuration version section")
+										v = map[string]interface{}{}
+									}
 									jv, err := json.Marshal(v)
 									if err != nil {
 										return err
@@ -521,6 +529,9 @@ func unmarshalPluginConfig(typ string, p *pluginConfig, t map[string]interface{}
 							return fmt.Errorf("Error unmarshalling %v '%v' expected '%v' got '%v'", typ, name, map[string]interface{}{}, reflect.TypeOf(versions))
 						}
 					}
+				case nil: // ignore empty config section
+					log.WithFields(log.Fields{"name": name, "type": typ}).Warning("Ignoring empty plugin configuration section")
+					continue
 				default:
 					return fmt.Errorf("Error unmarshalling %v '%v' expected '%v' got '%v'", typ, name, map[string]interface{}{}, reflect.TypeOf(col))
 				}

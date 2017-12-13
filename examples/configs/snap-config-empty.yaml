@@ -1,0 +1,17 @@
+---
+control:
+  # plugins section contains plugin config settings that will be applied for
+  # plugins across tasks.
+  plugins:
+    collector:
+      pcm:
+        # this should not cause a panic
+        all:
+      psutil:
+        all:
+          path: /usr/local/bin/psutil
+        # this should not cause a fatal error
+        versions:
+          1:
+      # this should also not cause a fatal error
+      myplugin:
