@@ -360,7 +360,7 @@ All contributors to Snap are expected to be helpful and encouraging to all membe
 
 ## Security Disclosure
 
-The Snap team takes security very seriously. If you have any issue regarding security, please notify us by sending an email to snap-security@intel.com
+The Snap team takes security very seriously. If you have any issue regarding security, please notify us by sending an email to sys_snaptel-security@intel.com
 and not by creating a GitHub issue. We will follow up with you promptly with more information and a plan for remediation.
 
 ## License
