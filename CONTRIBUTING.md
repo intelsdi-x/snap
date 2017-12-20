@@ -21,7 +21,7 @@ Snap is Apache 2.0 licensed and accepts contributions via GitHub. This document 
 ## Reporting Security Issues
 
 The Snap team take security very seriously. If you have any issue regarding security,
-please notify us by sending an email to snap-security@intel.com. **Do not create a GitHub issue.** We will follow up with you promptly with more information and a plan for remediation. While we are not offering a security bounty, we would love to send some Snap swag your way along with our deepest gratitude for your assistance in making Snap a more secure product.
+please notify us by sending an email to sys_snaptel-security@intel.com. **Do not create a GitHub issue.** We will follow up with you promptly with more information and a plan for remediation. While we are not offering a security bounty, we would love to send some Snap swag your way along with our deepest gratitude for your assistance in making Snap a more secure product.
 
 ## Reporting Issues or Feature Requests
 
