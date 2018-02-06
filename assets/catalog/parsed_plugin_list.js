@@ -205,6 +205,12 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-influxdb"
   },
   {
+    "name": "Intel-nvdimm",
+    "type": "Collector",
+    "description": "Non-Volatile DIMM Collector for Snap",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-intel-nvdimm"
+  },
+  {
     "name": "Interface",
     "type": "Collector",
     "description": "Collects network interface metrics from /proc/interface",
@@ -520,7 +526,7 @@ myfcn(
     "name": "Warp10",
     "type": "Publisher",
     "description": "Publishes metrics to warp10.",
-    "url": "https://github.com/runabove/snap-plugin-publisher-warp10"
+    "url": "https://github.com/ovhlabs/snap-plugin-publisher-warp10"
   },
   {
     "name": "Entropy",
@@ -571,10 +577,58 @@ myfcn(
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-diamond"
   },
   {
+    "name": "Exec",
+    "type": "Collector",
+    "description": "snap plugin for collecting outputs of executable files",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-exec"
+  },
+  {
+    "name": "Activedirectory",
+    "type": "Collector",
+    "description": "Collects Windows Active Directory metrics",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-active-directory"
+  },
+  {
+    "name": "Cgroups",
+    "type": "Collector",
+    "description": "Snap plugin for collecting cgroups metrics using libcontainer library for cgroup statistics.",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-cgroups"
+  },
+  {
+    "name": "Intel-dcm-platform",
+    "type": "Collector",
+    "description": "Collects metrics (power, thermal, health, inventory) from different OEM and ODM vendors’ platforms through IPMI and IPMI OEM extensions, such as Node Manager, DCMI, or IPMI SDR.",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-intel-dcm-platform"
+  },
+  {
+    "name": "Perfmon",
+    "type": "Collector",
+    "description": "Collects Windows Perfmon metrics",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-perfmon"
+  },
+  {
     "name": "RDT",
     "type": "Collector",
     "description": "RDT Collector for Snap",
     "url": "https://github.com/intelsdi-x/snap-plugin-collector-rdt"
+  },
+  {
+    "name": "Maptag",
+    "type": "Processor",
+    "description": "No description available.",
+    "url": "https://github.com/michep/snap-plugin-processor-maptag"
+  },
+  {
+    "name": "Pysmart",
+    "type": "Collector",
+    "description": "Collects metrics from the Self-Monitoring, Analysis and Reporting Technology (S.M.A.R.T.) leveraging the pySMART library",
+    "url": "https://github.com/intelsdi-x/snap-plugin-collector-pysmart"
+  },
+  {
+    "name": "Csvreader",
+    "type": "Collector",
+    "description": "Collect from CSV file's column as an intelsdi-x snap metric.",
+    "url": "https://github.com/cuongquay/snap-plugin-collector-csvreader"
   }
 ]
 )
