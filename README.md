@@ -70,7 +70,7 @@ The key features of Snap are:
   * **Collectors** - Collectors gather telemetry data at determined interval. Collectors are plugins for leveraging existing telemetry solutions (Facter, CollectD, Ohai) as well as specific plugins for consuming Intel telemetry (Node, DCM, NIC, Disk) and can reach into new architectures through additional plugins (see [Plugin Authoring below](#author-a-plugin)). Telemetry data is organized into a dynamically generated catalog of available data points.
   * **Processors** - Extensible workflow injection. Convert telemetry into another data model for consumption by existing systems. Allows encryption of all or part of the telemetry payload before publishing. Inject remote queries into workflow for tokens, filtering, or other external calls. Implement filtering at an agent level reducing injection load on telemetry consumer.
   * **Publishers** - Store telemetry into a wide array of systems. Snap decouples the collection of telemetry from the implementation of where to send it. Snap comes with a large library of publisher plugins that allow exposure to telemetry analytics systems both custom and common. This flexibility allows Snap to be valuable to open source and commercial ecosystems alike by writing a publisher for their architectures.
-  * **Streaming Collectors** - Streaming collectors act just like collectors, but there is no determined interval of gathering metrics. They send metrics immediatelly when they are available over a GRPC to Snap daemon. There is also available mechanism of buffering incoming metrics configurable by params MaxMetricsBuffer and MaxCollectDuration. Check out [STREAMING.md](/docs/STREAMING.md) for more details. 
+  * **Streaming Collectors** - Streaming collectors act just like collectors, but there is no determined interval of gathering metrics. They send metrics immediately when they are available over a GRPC to Snap daemon. There is also available mechanism of buffering incoming metrics configurable by params MaxMetricsBuffer and MaxCollectDuration. Check out [STREAMING.md](/docs/STREAMING.md) for more details. 
 
 * **Dynamic Updates**: Snap is designed to evolve. Each scheduled workflow automatically uses the most mature plugin for that step, unless the collection is pinned to a specific version (e.g. get `/intel/psutil/load/load1/v1`). Loading a new plugin automatically upgrades running workflows in tasks. Load plugins dynamically, without a restart to the service or server. This dynamically extends the metric catalog when loaded, giving access to new measurements immediately. Swapping a newer version plugin for an old one in a safe transaction. All of these behaviors allow for simple and secure bug fixes, security patching, and improving accuracy in production.
 
@@ -85,7 +85,7 @@ The key features of Snap are:
 
 ### System Requirements
 
-Snap needs [Swagger for Go](https://github.com/go-swagger/go-swagger)  installed to update OpenAPI specification file after successfull build. Swagger will be installed automatically during build process (`make` or `make deps`).
+Snap needs [Swagger for Go](https://github.com/go-swagger/go-swagger)  installed to update OpenAPI specification file after successful build. Swagger will be installed automatically during build process (`make` or `make deps`).
 
 #### To install Swagger manually
 
