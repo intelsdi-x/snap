@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #http://www.apache.org/licenses/LICENSE-2.0.txt
 #
@@ -28,4 +28,3 @@ _info "Updating API specification file..."
 swagger generate spec -o ${__dir}/../swagger.json
 _info "Validating API specification file..."
 swagger validate ${__dir}/../swagger.json
-
