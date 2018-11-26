@@ -31,7 +31,6 @@ Below is the list of Snap Maintainers, they are largely responsible for approvin
 | Marcin Spoczynski | @sandlbn         |
 | Maria Rolbiecka   | @mkuculyma       |
 | Mateusz Kleina    | @mkleina         |
-| Matt Broberg      | @mbbroberg       |
 | Patryk Matyjasek  | @PatrykMatyjasek |
 | Rashmi Gottipati  | @rashmigottipati |
 
