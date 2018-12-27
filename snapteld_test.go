@@ -43,6 +43,7 @@ var validCmdlineFlags_input = mockFlags{
 	"log-path":                "/no/logs/allowed",
 	"log-truncate":            "true",
 	"log-colors":              "true",
+	"pid-file":                "/no/pidfile/here",
 	"max-running-plugins":     "12",
 	"plugin-load-timeout":     "20",
 	"plugin-trust":            "1",
@@ -118,6 +119,7 @@ var validCmdlineFlags_expected = &Config{
 	LogPath:     "/no/logs/allowed",
 	LogTruncate: true,
 	LogColors:   true,
+	PIDFile:     "/no/pidfile/here",
 }
 
 func TestSnapConfig(t *testing.T) {

@@ -79,6 +79,11 @@ var (
 		Usage:  fmt.Sprintf("1-5 (Debug, Info, Warning, Error, Fatal; default: %v)", defaultLogLevel),
 		EnvVar: "SNAP_LOG_LEVEL",
 	}
+	flPIDFile = cli.StringFlag{
+		Name:   "pid-file, pidfile, P",
+		Usage:  "File to write PID of snapteld, if set.",
+		EnvVar: "SNAP_PID_FILE",
+	}
 	flConfig = cli.StringFlag{
 		Name:   "config",
 		Usage:  "A path to a config file",
@@ -127,6 +132,7 @@ type Config struct {
 	LogPath     string            `json:"log_path,omitempty"yaml:"log_path,omitempty"`
 	LogTruncate bool              `json:"log_truncate,omitempty"yaml:"log_truncate,omitempty"`
 	LogColors   bool              `json:"log_colors,omitempty"yaml:"log_colors,omitempty"`
+	PIDFile     string            `json:"pid_file,omitempty"yaml:"pid_file,omitempty"`
 	Control     *control.Config   `json:"control,omitempty"yaml:"control,omitempty"`
 	Scheduler   *scheduler.Config `json:"scheduler,omitempty"yaml:"scheduler,omitempty"`
 	RestAPI     *rest.Config      `json:"restapi,omitempty"yaml:"restapi,omitempty"`
@@ -161,6 +167,10 @@ const (
 				"description": "value to be used for gomaxprocs",
 				"type": "integer",
 				"minimum": 1
+			},
+			"pid_file": {
+				"description": "file for snpateld to write PID",
+				"type": "string"
 			},
 			"control": { "$ref": "#/definitions/control" },
 			"scheduler": { "$ref": "#/definitions/scheduler"},
@@ -219,6 +229,7 @@ func main() {
 		flLogTruncate,
 		flLogColors,
 		flMaxProcs,
+		flPIDFile,
 		flConfig,
 	}
 	cliApp.Flags = append(cliApp.Flags, control.Flags...)
@@ -322,6 +333,25 @@ func action(ctx *cli.Context) error {
 
 	// Set Max Processors for snapteld.
 	setMaxProcs(cfg.GoMaxProcs)
+
+	// Write PID file, if configured.
+	log.Info("Config PID file", cfg.PIDFile)
+	if cfg.PIDFile != "" {
+		log.Info("Creating PID file", cfg.PIDFile)
+		f, err := os.OpenFile(cfg.PIDFile, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Error("Unable to create pidfile", err)
+		} else {
+			fmt.Fprintf(f, "%d\n", os.Getpid())
+			f.Close()
+			defer func() {
+				err := os.Remove(cfg.PIDFile)
+				if err != nil {
+					log.Error("Unable to remove pidfile", err)
+				}
+			}()
+		}
+	}
 
 	c := control.New(cfg.Control)
 	if c.Config.AutoDiscoverPath != "" && c.Config.IsTLSEnabled() {
@@ -843,6 +873,7 @@ func applyCmdLineFlags(cfg *Config, ctx runtimeFlagsContext) {
 	cfg.LogPath = setStringVal(cfg.LogPath, ctx, "log-path")
 	cfg.LogTruncate = setBoolVal(cfg.LogTruncate, ctx, "log-truncate")
 	cfg.LogColors = setBoolVal(cfg.LogColors, ctx, "log-colors")
+	cfg.PIDFile = setStringVal(cfg.PIDFile, ctx, "pid-file")
 	// next for the flags related to the control package
 	cfg.Control.MaxRunningPlugins = setIntVal(cfg.Control.MaxRunningPlugins, ctx, "max-running-plugins")
 	cfg.Control.PluginLoadTimeout = setIntVal(cfg.Control.PluginLoadTimeout, ctx, "plugin-load-timeout")
