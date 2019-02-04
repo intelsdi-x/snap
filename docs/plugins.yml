@@ -90,6 +90,8 @@
 - intelsdi-x/snap-plugin-collector-use
 - intelsdi-x/snap-plugin-collector-users
 - intelsdi-x/snap-plugin-collector-yarn
+- intelsdi-x/snap-plugin-collector-vsphere:
+    supported: true
 - intelsdi-x/snap-plugin-processor-anomalydetection
 - intelsdi-x/snap-plugin-processor-logs-openstack
 - intelsdi-x/snap-plugin-processor-logs-regexp
