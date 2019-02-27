@@ -136,3 +136,4 @@
 - intelsdi-x/snap-plugin-collector-pysmart:
     supported: true
 - cuongquay/snap-plugin-collector-csvreader
+- ami-GS/snap-plugin-collector-mce
