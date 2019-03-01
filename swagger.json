@@ -195,6 +195,9 @@
           },
           "500": {
             "$ref": "#/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/responses/ErrorStringResponse"
           }
         }
       }
@@ -1297,6 +1300,14 @@
       "description": "ErrorResponse represents the Snap error response type.\n\nIt includes an error message and a map of fields.",
       "schema": {
         "$ref": "#/definitions/Error"
+      }
+    },
+    "ErrorStringResponse": {
+      "description": "ErrorStringResponse represents an error in the string format.\n\nIt includes an error message only.",
+      "headers": {
+        "message": {
+          "type": "string"
+        }
       }
     },
     "MetricsResponse": {

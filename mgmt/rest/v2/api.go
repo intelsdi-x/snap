@@ -110,6 +110,7 @@ func (s *apiV2) GetRoutes() []api.Route {
 		// 415: ErrorResponse
 		// 500: ErrorResponse
 		// 401: UnauthResponse
+		// default: ErrorStringResponse
 		api.Route{Method: "POST", Path: prefix + "/plugins", Handle: s.loadPlugin},
 		// swagger:route DELETE /plugins/{ptype}/{pname}/{pversion} plugins unloadPlugin
 		//
