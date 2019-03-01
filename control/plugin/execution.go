@@ -131,10 +131,10 @@ func (e *ExecutablePlugin) Run(timeout time.Duration) (Response, error) {
 					respReceived = true
 					close(doneChan)
 				} else {
-					execLogger.WithFields(log.Fields{
+					logCapturedLine(execLogger.WithFields(log.Fields{
 						"plugin": e.name,
 						"io":     "stdout",
-					}).Debug(stdOutScanner.Text())
+					}), stdOutScanner.Text())
 				}
 			}
 
@@ -202,10 +202,10 @@ func (e *ExecutablePlugin) captureStderr() {
 	go func() {
 		for {
 			for stdErrScanner.Scan() {
-				execLogger.
+				logCapturedLine(execLogger.
 					WithField("plugin", e.name).
-					WithField("io", "stderr").
-					Debug(stdErrScanner.Text())
+					WithField("io", "stderr"),
+					stdErrScanner.Text())
 			}
 
 			if errScanner := stdErrScanner.Err(); errScanner != nil {
@@ -227,4 +227,20 @@ func (e *ExecutablePlugin) captureStderr() {
 			break //scanner finished scanning without errors so break the loop
 		}
 	}()
+}
+
+// logCapturedLine logs a captured stderr/stdout line from a plugin, after choosing the
+// appropriate log level to use based on the line's contents.
+func logCapturedLine(entry *log.Entry, text string) {
+	lc := strings.ToLower(text)
+	switch {
+	case strings.Contains(lc, "error"):
+		entry.Error(text)
+	case strings.Contains(lc, "warn"):
+		entry.Warn(text)
+	case strings.Contains(lc, "level=info") || strings.Contains(lc, `"level":"info"`):
+		entry.Info(text) // be a little more choosy about matching the word "info"
+	default:
+		entry.Debug(text)
+	}
 }
