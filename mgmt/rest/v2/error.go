@@ -63,6 +63,15 @@ type UnauthError struct {
 	Message string `json:"message"`
 }
 
+// ErrorStringResponse represents an error in the string format.
+//
+// It includes an error message only.
+//
+// swagger:response ErrorStringResponse
+type ErrorStringResponse struct {
+	Message string `json:"message"`
+}
+
 // Unsuccessful generic response to a failed API call
 type Error struct {
 	ErrorMessage string            `json:"message"`
